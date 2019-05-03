@@ -4,6 +4,17 @@
     <OutputType>Library</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <LangVersion>preview</LangVersion>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Version>0.1.0</Version>
+    <Authors>Kevin Montrose</Authors>
+    <Description>Modern CSV (De)Serializer</Description>
+    <Copyright>2019</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/kevin-montrose/Cesil</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/kevin-montrose/Cesil</RepositoryUrl>
+    <PackageTags>csv</PackageTags>
+    <PackageReleaseNotes>Pre-Release
+Probably horribly broken.</PackageReleaseNotes>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -20,6 +31,10 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DocumentationFile>Cesil.xml</DocumentationFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Cesil.xml" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="System.IO.Pipelines" Version="4.5.3" />
