@@ -238,11 +238,17 @@ namespace Cesil
                 valueType = field.FieldType.GetTypeInfo();
             }
 
-            // parser must take 
-            //   a ReadOnlySpan<char>
+            // parser must
+            //   be a static method
+            //   take a ReadOnlySpan<char>
             //   have an out parameter of a type assignable to the parameter of setter
             //   and return a boolean
             {
+                if (!parser.IsStatic)
+                {
+                    Throw.ArgumentException($"{nameof(parser)} be a static method", nameof(parser));
+                }
+
                 var args = parser.GetParameters();
                 if (args.Length != 2)
                 {
