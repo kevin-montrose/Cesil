@@ -95,3 +95,53 @@ is assignable to) and the second value must be the type returned by the paired p
 
 Parsers must be a static method, and must have two parameters - the first being a `ReadOnlySpan<char>` and the second being an `out T` where
 T is the type of the paired field or a value passed to the paired setter.
+
+# Using `BoundConfiguration<T>`
+ 
+A `BoundConfiguration<T>` instance exposes 4 methods: `CreateReader`, `CreateAsyncReader`, `CreateWriter`, and `CreateAsyncWriter`.  These return `IReader<T>`, `IAsyncReader<T>`, `IWriter<T>` and `IAsyncWriter<T>` instances respectively.
+
+## Disposing
+
+The synchronous interfaces implement `IDisposable` and are meant to be used with `using` statements.
+
+The asynchronous interfaces implement `IAsyncDisposable` and are meant to be used with the `await using` statements added in C# 8.0.
+
+## IReader
+
+`IReader<T>` exposes the following methods in addition to `Dispose()`:
+
+ - `ReadAll()` - reads all rows into a new `List<T>` and returns it
+ - `ReadAll(List<T>)` - reads all rows and adds them to the provided `List<T>`, which must not be `null`
+ - `EnumerateAll()` - lazily reads each row as the returned enumerable is enumerated.
+ - `TryRead(out T)` - reads a single row into the out parameter, returning true if a row was available and false otherwise
+ - `TryReadWithReuse(ref T)` - reads a single row setting values on the given ref parameter, allocates a new `T` if needed.  Returns true if a row was available, and false otherwise.
+ 
+## IAsyncReader
+ 
+`IAsyncReader<T>` exposes the following methods in addition to `DisposeAsync()`:
+
+ - `ReadAllAsync(CancellationToken = default)` - reads all rows into a new `List<T>` and returns it.
+ - `ReadAllAsync(List<T>, CancellationToken = default)` - reads all rows into the given `List<T>`, which must not be `null`.
+ - `EnumerateAllAsync()` - lazily reads each row as the returned async enumerable is enumerated.  Intended to be used with `await foreach` statements added in C# 8.0.
+ - `TryReadAsync(CancellationToken = default)` - reads a single row, returning a `ReadResult<T>` that indicates if a row was available and, if so, the `T` read.
+ - `TryReadAsync(ref T, CancellationToken = default)` - reads a single row setting values on the given ref parameter, allocating a new `T` if needed.  Returns a `ReadResult<T>` that indicates if a row was available and, if so, the `T` read.
+ 
+All methods return `ValueTask`s, and will complete synchronously if possible - only invoking async machinery if needed to avoid blocking.
+
+## IWriter
+
+`IWriter<T>` exposes the following methods in addition to `Dispose()`:
+
+ - `Write(T)` - writes a single row.
+ - `WriteAll(IEnumerable<T>)` - writes all rows in the enumerable.
+
+## IAsyncWriter
+
+`IAsyncWriter<T>` exposes the following methods in addition to `DisposeAsync()`:
+
+ - `WriteAsync(T, CancellationToken = default)` - writes a single row.
+ - `WriteAllAsync(IEnumerable<T>, CancellationToken = default)` - writes all rows in the enumerable.
+ - `WriteAllAsync(IAsyncEnumerable<T>, CancellationToken = default)` - writes all rows in the async enumerable.
+ 
+ 
+All methods return `ValueTask`s, and will complete synchronously if possible - only invoking async machinery if needed to avoid blocking.
