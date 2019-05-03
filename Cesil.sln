@@ -7,7 +7,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cesil", "Cesil\Cesil.csproj
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cesil.Tests", "Cesil.Tests\Cesil.Tests.csproj", "{C052A689-DEFE-4A02-9FA5-BAD000514BA5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cesil.Benchmark", "Cesil.Benchmark\Cesil.Benchmark.csproj", "{9C866126-792D-4F79-A39C-C7E1508B19AA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cesil.Benchmark", "Cesil.Benchmark\Cesil.Benchmark.csproj", "{9C866126-792D-4F79-A39C-C7E1508B19AA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{675EB3DD-E020-46DA-9426-39D7C9D1DE6E}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
