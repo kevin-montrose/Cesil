@@ -4,6 +4,9 @@
 # Diagnostic and Profiling Output
 *.diagsession
 
+# Docs file
+Cesil.xml
+
 # User-specific files
 *.suo
 *.user

@@ -10,7 +10,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors />
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DocumentationFile>C:\Users\kevin_000\Dropbox\Cesil\Cesil\Cesil.xml</DocumentationFile>
+    <DocumentationFile>Cesil.xml</DocumentationFile>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -18,7 +18,7 @@
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DocumentationFile>C:\Users\kevin_000\Dropbox\Cesil\Cesil\Cesil.xml</DocumentationFile>
+    <DocumentationFile>Cesil.xml</DocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
