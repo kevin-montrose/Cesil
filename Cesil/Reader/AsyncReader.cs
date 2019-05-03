@@ -37,6 +37,11 @@ namespace Cesil
 
         private ValueTask<List<T>> ReadAllIntoListAsync(List<T> into, CancellationToken cancel)
         {
+            if(into == null)
+            {
+                Throw.ArgumentNullException(nameof(into));
+            }
+
             while (true)
             {
                 var resTask = TryReadAsync(cancel);
