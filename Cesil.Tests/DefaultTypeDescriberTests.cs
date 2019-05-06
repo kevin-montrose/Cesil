@@ -709,6 +709,13 @@ namespace Cesil.Tests
 #pragma warning disable 0649
             public long? FieldNotIncluded;
 #pragma warning restore 0649
+
+#pragma warning disable IDE0051
+            private void ResetShouldBePresent2()
+            {
+                ShouldBePresent2 = 2;
+            }
+#pragma warning restore IDE0051
         }
 
         [Fact]
@@ -735,6 +742,15 @@ namespace Cesil.Tests
                 cols,
                 a => Assert.Same(DeserializableMember.GetDefaultParser(typeof(string).GetTypeInfo()), a.Parser),
                 a => Assert.Same(DeserializableMember.GetDefaultParser(typeof(int?).GetTypeInfo()), a.Parser)
+            );
+
+            var mtd = typeof(_Deserialize).GetMethod("ResetShouldBePresent2", BindingFlags.Instance | BindingFlags.NonPublic);
+
+            // reset 
+            Assert.Collection(
+                cols,
+                a => Assert.Null(a.Reset),
+                a => Assert.Same(mtd, a.Reset)
             );
         }
 

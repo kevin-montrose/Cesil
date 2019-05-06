@@ -154,7 +154,23 @@ namespace Cesil
 
         private static DeserializableMember Map(TypeInfo ontoType, DeserializableMember member)
         {
-            if(member.Field != null)
+            MethodInfo resetOnType = null;
+            if (member.Reset != null)
+            {
+                var surrogateReset = member.Reset;
+                var surrogateResetBinding =
+                    // explicitly ignoring DeclaredOnly; shadowing is fine
+                    (surrogateReset.IsPublic ? BindingFlags.Public : BindingFlags.NonPublic) |
+                    (surrogateReset.IsStatic ? BindingFlags.Static : BindingFlags.Instance);
+
+                resetOnType = ontoType.GetMethod(surrogateReset.Name, surrogateResetBinding);
+                if (resetOnType == null)
+                {
+                    Throw.InvalidOperation($"No equivalent to {resetOnType} found on {ontoType}");
+                }
+            }
+
+            if (member.Field != null)
             {
                 var surrogateField = member.Field;
                 var surrogateFieldBinding =
@@ -172,8 +188,7 @@ namespace Cesil
                 {
                     Throw.InvalidOperation($"Field {fieldOnType} type ({fieldOnType.FieldType}) does not match surrogate field {surrogateField} type ({surrogateField.FieldType})");
                 }
-
-                return DeserializableMember.Create(member.Name, fieldOnType, member.Parser, member.IsRequired);
+                return DeserializableMember.Create(ontoType, member.Name, fieldOnType, member.Parser, member.IsRequired, resetOnType);
             }
 
             var surrogateSetter = member.Setter;
@@ -207,7 +222,7 @@ namespace Cesil
                 }
             }
 
-            return DeserializableMember.Create(member.Name, setterOnType, member.Parser, member.IsRequired);
+            return DeserializableMember.Create(ontoType, member.Name, setterOnType, member.Parser, member.IsRequired, resetOnType);
         }
 
         private static SerializableMember Map(TypeInfo ontoType, SerializableMember member)

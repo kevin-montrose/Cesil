@@ -6,6 +6,8 @@ using System.Reflection;
 
 namespace Cesil
 {
+    // todo: support deserializing into dynamic objects?
+
     /// <summary>
     /// Used to combine a type and an Options into a BoundConfiguration(T),
     /// which can create readers and writers.
@@ -93,7 +95,7 @@ namespace Cesil
 
             foreach (var col in cols)
             {
-                var setter = MakeSetter(t, col.Parser, col.Setter, col.Field);
+                var setter = MakeSetter(t, col.Parser, col.Setter, col.Field, col.Reset);
 
                 ret.Add(new Column(col.Name, setter, null, col.IsRequired));
             }
@@ -104,7 +106,7 @@ namespace Cesil
         // create a delegate that will parse the given characters,
         //   and store them using either the given setter or
         //   the given field
-        private static Column.SetterDelegate MakeSetter(TypeInfo type, MethodInfo parser, MethodInfo setter, FieldInfo field)
+        private static Column.SetterDelegate MakeSetter(TypeInfo type, MethodInfo parser, MethodInfo setter, FieldInfo field, MethodInfo reset)
         {
             var p1 = Expression.Parameter(Types.ReadOnlySpanOfCharType);
             var p2 = Expression.Parameter(Types.ObjectType);
@@ -131,6 +133,29 @@ namespace Cesil
 
             var ifNotParsedReturnFalse = Expression.IfThen(Expression.Not(l3), Expression.Return(end, Expression.Constant(false)));
             statements.Add(ifNotParsedReturnFalse);
+
+            if(reset != null)
+            {
+                MethodCallExpression callReset;
+                if (reset.IsStatic)
+                {
+                    var resetPs = reset.GetParameters();
+                    if(resetPs.Length == 1)
+                    {
+                        callReset = Expression.Call(reset, l1);
+                    }
+                    else
+                    {
+                        callReset = Expression.Call(reset);
+                    }
+                }
+                else
+                {
+                    callReset = Expression.Call(l1, reset);
+                }
+
+                statements.Add(callReset);
+            }
 
             if(setter != null)
             {

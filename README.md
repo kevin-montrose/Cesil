@@ -44,9 +44,7 @@ If `ReadBufferSizeHint` is set to `0`, Cesil will try to use a single-page of bu
 The two methods on `ITypeDescriber` (`EnumerateMembersToSerialize` and `EnumerateMembersToDeserialize`) are used to discover which members
 to de(serialize) on a type.  By default, the instance of `DefaultTypeDesciber` in `TypeDescribers.Default` is used.
 
-The default type describer (de)serializes public properties, honors `[DataMember]`, and looks for `ShouldSerializeXXX()` methods.
-
-!!TODO: Reset methods?!!
+The default type describer (de)serializes public properties, honors `[DataMember]`, and looks for `ShouldSerializeXXX()` and `ResetXXX()` methods.
 
 `ManualTypeDescriber` and `SurrogateTypeDescriber` are provided for the cases where you want to explicitly add each member to be
 (de)serialized or when you want to act as if the type being serialized was in fact another (surrogate) type.
@@ -80,9 +78,9 @@ If a should serialize method is configured, and it returns false at serializatio
 
 ### Deserializing
 
-`DeserializableMember`s have a name (which is the column name), a setter or a field, a parser, and whether or not the column is required.
+`DeserializableMember`s have a name (which is the column name), a setter or a field, a parser, whether or not the column is required, and a reset method.
 
-### Setters
+#### Setters
 
 A setter can be either an instance method or a static method.  It may not return a value.
 
@@ -91,10 +89,20 @@ If a setter is an instance method, it must take a single value of the type retur
 If a static method, it can take one or two values.  If it takes values, the first value must be of the type being deserialized (or one it
 is assignable to) and the second value must be the type returned by the paired parser.
 
-### Parsers
+#### Parsers
 
 Parsers must be a static method, and must have two parameters - the first being a `ReadOnlySpan<char>` and the second being an `out T` where
 T is the type of the paired field or a value passed to the paired setter.
+
+#### Reset
+
+Reset methods are optional.  If present, they can be instance methods or static methods.
+
+If an instance method, cannot take any parameters and must be on the serialized type or a type it is assignable to.
+
+If a static method can take 0 or 1 parameters, and if it takes a parameter it must be of the type being serialized or a type it can be assigned to.
+
+A member's reset method is called before it's setter.
 
 # Using `BoundConfiguration<T>`
  

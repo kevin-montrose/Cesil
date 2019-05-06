@@ -678,6 +678,13 @@
             Override to tweak behavior.
             </summary>
         </member>
+        <member name="M:Cesil.DefaultTypeDescriber.GetReset(System.Reflection.TypeInfo,System.Reflection.PropertyInfo)">
+            <summary>
+            Returns the reset method, if any, to call prior to deserializing the given property.
+            
+            Override to tweak behavior.
+            </summary>
+        </member>
         <member name="M:Cesil.DefaultTypeDescriber.ShouldDeserialize(System.Reflection.TypeInfo,System.Reflection.FieldInfo)">
             <summary>
             Returns true if the given field should be deserialized.
@@ -712,6 +719,13 @@
         <member name="M:Cesil.DefaultTypeDescriber.GetIsRequired(System.Reflection.TypeInfo,System.Reflection.FieldInfo)">
             <summary>
             Returns whether or not the given field is required during deserialization.
+            
+            Override to tweak behavior.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultTypeDescriber.GetReset(System.Reflection.TypeInfo,System.Reflection.FieldInfo)">
+            <summary>
+            Returns the reset method, if any, to call prior to deserializing the given field.
             
             Override to tweak behavior.
             </summary>
@@ -849,6 +863,11 @@
             Creates a DeserializableMember for the given property, with the given name, parser, and whether it is required.
             </summary>
         </member>
+        <member name="M:Cesil.DeserializableMember.ForProperty(System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo,System.Boolean,System.Reflection.MethodInfo)">
+            <summary>
+            Creates a DeserializableMember for the given property, with the given name, parser, whether it is required, and a reset method.
+            </summary>
+        </member>
         <member name="M:Cesil.DeserializableMember.ForField(System.Reflection.FieldInfo)">
             <summary>
             Creates a DeserializableMember for the given field.
@@ -869,14 +888,19 @@
             Creates a DeserializableMember for the given property, with the given name, parser, and whether it is required.
             </summary>
         </member>
-        <member name="M:Cesil.DeserializableMember.Create(System.String,System.Reflection.FieldInfo,System.Reflection.MethodInfo,System.Boolean)">
+        <member name="M:Cesil.DeserializableMember.ForField(System.Reflection.FieldInfo,System.String,System.Reflection.MethodInfo,System.Boolean,System.Reflection.MethodInfo)">
             <summary>
-            Create a DeserializableMember with an explicit name, backing field, parser, and whether it is required.
+            Creates a DeserializableMember for the given property, with the given name, parser, whether it is required, and a reset method.
             </summary>
         </member>
-        <member name="M:Cesil.DeserializableMember.Create(System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo,System.Boolean)">
+        <member name="M:Cesil.DeserializableMember.Create(System.Reflection.TypeInfo,System.String,System.Reflection.FieldInfo,System.Reflection.MethodInfo,System.Boolean,System.Reflection.MethodInfo)">
             <summary>
-            Create a Deserializable member with an explicit name, setter, parser, and whether it is required.
+            Create a DeserializableMember with an explicit name, backing field, parser, whether it is required, and a reset method.
+            </summary>
+        </member>
+        <member name="M:Cesil.DeserializableMember.Create(System.Reflection.TypeInfo,System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo,System.Boolean,System.Reflection.MethodInfo)">
+            <summary>
+            Create a Deserializable member with an explicit name, setter, parser, whether it is required, and a reset method.
             </summary>
         </member>
         <member name="M:Cesil.DeserializableMember.ToString">
@@ -1058,6 +1082,11 @@
             Add a setter for the given type, with the given name, using the given setter, parser, and whether the column is required.
             </summary>
         </member>
+        <member name="M:Cesil.ManualTypeDescriber.AddExplicitSetter(System.Reflection.TypeInfo,System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo,System.Boolean,System.Reflection.MethodInfo)">
+            <summary>
+            Add a setter for the given type, with the given name, using the given setter, parser, whether the column is required, and a reset method.
+            </summary>
+        </member>
         <member name="M:Cesil.ManualTypeDescriber.AddDeserializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo)">
             <summary>
             Add a field to deserialize for the given type.
@@ -1076,6 +1105,11 @@
         <member name="M:Cesil.ManualTypeDescriber.AddDeserializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,System.Reflection.MethodInfo,System.Boolean)">
             <summary>
             Add a field to deserialize for the given type with the given name, parser, and whether the column is required.
+            </summary>
+        </member>
+        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,System.Reflection.MethodInfo,System.Boolean,System.Reflection.MethodInfo)">
+            <summary>
+            Add a field to deserialize for the given type with the given name, parser, whether the column is required, and a reset method.
             </summary>
         </member>
         <member name="M:Cesil.ManualTypeDescriber.AddDeserializableField(System.Reflection.FieldInfo)">
@@ -1098,6 +1132,11 @@
             Add a field to deserialize with the given name, parser, and whether the column is required - for the type which declares the field.
             </summary>
         </member>
+        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableField(System.Reflection.FieldInfo,System.String,System.Reflection.MethodInfo,System.Boolean,System.Reflection.MethodInfo)">
+            <summary>
+            Add a field to deserialize with the given name, parser, whether the column is required, and a reset method - for the type which declares the field.
+            </summary>
+        </member>
         <member name="M:Cesil.ManualTypeDescriber.AddDeserializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo)">
             <summary>
             Add a property to deserialize for the given type.
@@ -1118,6 +1157,11 @@
             Add a property to deserialize for the given type with the given name and parser and whether the column is required.
             </summary>
         </member>
+        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo,System.Boolean,System.Reflection.MethodInfo)">
+            <summary>
+            Add a property to deserialize for the given type with the given name and parser, whether the column is required, and a reset method.
+            </summary>
+        </member>
         <member name="M:Cesil.ManualTypeDescriber.AddDeserializableProperty(System.Reflection.PropertyInfo)">
             <summary>
             Add a property to deserialize for the type which declares the property.
@@ -1136,6 +1180,11 @@
         <member name="M:Cesil.ManualTypeDescriber.AddDeserializableProperty(System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo,System.Boolean)">
             <summary>
             Add a property to deserialize with the given name, parser, and whether the column is required - for the type which declares the property.
+            </summary>
+        </member>
+        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableProperty(System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo,System.Boolean,System.Reflection.MethodInfo)">
+            <summary>
+            Add a property to deserialize with the given name, parser, whether the column is required, and a reset method - for the type which declares the property.
             </summary>
         </member>
         <member name="M:Cesil.ManualTypeDescriber.EnumerateMembersToDeserialize(System.Reflection.TypeInfo)">

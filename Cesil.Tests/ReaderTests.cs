@@ -12,6 +12,147 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ReaderTests
     {
+        class _WithReset
+        {
+            public string A { get; set; }
+
+            private int _B;
+            public int B
+            {
+                get
+                {
+                    return _B;
+                }
+                set
+                {
+                    if (value > 5) return;
+
+                    _B = value;
+                }
+            }
+
+            public void ResetB()
+            {
+                _B = 2;
+            }
+        }
+
+        class _WithReset_Static
+        {
+            public static int Count;
+
+            public string A { get; set; }
+
+            public int B { get; set; }
+
+            public static void ResetB()
+            {
+                Count++;
+            }
+        }
+
+        class _WithReset_StaticWithParam
+        {
+            public string A { get; set; }
+
+            private int _B;
+            public int B
+            {
+                get
+                {
+                    return _B;
+                }
+                set
+                {
+                    if (value > 5) return;
+
+                    _B = value;
+                }
+            }
+
+            public static void ResetB(_WithReset_StaticWithParam row)
+            {
+                row._B = 2;
+            }
+        }
+
+        [Fact]
+        public void WithReset()
+        {
+            // simple
+            {
+                const string CSV = "A,B\r\nfoo,1\r\nbar,6\r\n";
+
+                RunSyncReaderVariants<_WithReset>(
+                    Options.Default,
+                    (config, makeReader) =>
+                    {
+                        using (var reader = makeReader(CSV))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                a => { Assert.Equal("foo", a.A); Assert.Equal(1, a.B); },
+                                a => { Assert.Equal("bar", a.A); Assert.Equal(2, a.B); }
+                            );
+                        }
+                    }
+                );
+            }
+
+            // static
+            {
+                const string CSV = "A,B\r\nfoo,1\r\nbar,6\r\n";
+
+                RunSyncReaderVariants<_WithReset_Static>(
+                    Options.Default,
+                    (config, makeReader) =>
+                    {
+                        using (var reader = makeReader(CSV))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            _WithReset_Static.Count = 0;
+
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                a => { Assert.Equal("foo", a.A); Assert.Equal(1, a.B); },
+                                a => { Assert.Equal("bar", a.A); Assert.Equal(6, a.B); }
+                            );
+
+                            Assert.Equal(2, _WithReset_Static.Count);
+                        }
+                    }
+                );
+            }
+
+            // static with param
+            {
+                const string CSV = "A,B\r\nfoo,1\r\nbar,6\r\n";
+
+                RunSyncReaderVariants<_WithReset_StaticWithParam>(
+                    Options.Default,
+                    (config, makeReader) =>
+                    {
+                        using (var reader = makeReader(CSV))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                a => { Assert.Equal("foo", a.A); Assert.Equal(1, a.B); },
+                                a => { Assert.Equal("bar", a.A); Assert.Equal(2, a.B); }
+                            );
+                        }
+                    }
+                );
+            }
+        }
+
         [Fact]
         public void TransitionMatrixConstants()
         {
@@ -1400,6 +1541,83 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     }
                 }
             );
+        }
+
+        [Fact]
+        public async Task WithResetAsync()
+        {
+            // simple
+            {
+                const string CSV = "A,B\r\nfoo,1\r\nbar,6\r\n";
+
+                await RunAsyncReaderVariants<_WithReset>(
+                    Options.Default,
+                    async (config, makeReader) =>
+                    {
+                        using (var reader = makeReader(CSV))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                rows,
+                                a => { Assert.Equal("foo", a.A); Assert.Equal(1, a.B); },
+                                a => { Assert.Equal("bar", a.A); Assert.Equal(2, a.B); }
+                            );
+                        }
+                    }
+                );
+            }
+
+            // static
+            {
+                const string CSV = "A,B\r\nfoo,1\r\nbar,6\r\n";
+
+                await RunAsyncReaderVariants<_WithReset_Static>(
+                    Options.Default,
+                    async (config, makeReader) =>
+                    {
+                        using (var reader = makeReader(CSV))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            _WithReset_Static.Count = 0;
+
+                            var rows = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                rows,
+                                a => { Assert.Equal("foo", a.A); Assert.Equal(1, a.B); },
+                                a => { Assert.Equal("bar", a.A); Assert.Equal(6, a.B); }
+                            );
+
+                            Assert.Equal(2, _WithReset_Static.Count);
+                        }
+                    }
+                );
+            }
+
+            // static with param
+            {
+                const string CSV = "A,B\r\nfoo,1\r\nbar,6\r\n";
+
+                await RunAsyncReaderVariants<_WithReset_StaticWithParam>(
+                    Options.Default,
+                    async (config, makeReader) =>
+                    {
+                        using (var reader = makeReader(CSV))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                rows,
+                                a => { Assert.Equal("foo", a.A); Assert.Equal(1, a.B); },
+                                a => { Assert.Equal("bar", a.A); Assert.Equal(2, a.B); }
+                            );
+                        }
+                    }
+                );
+            }
         }
 
         [Fact]

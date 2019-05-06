@@ -298,20 +298,26 @@ namespace Cesil
                 defaultParser = null;
             }
 
-            AddDeserializeMember(forType, null, setter, name, defaultParser, false);
+            AddDeserializeMember(forType, null, setter, name, defaultParser, false, null);
         }
 
         /// <summary>
         /// Add a setter for the given type, with the given name, using the given setter and parser.
         /// </summary>
         public void AddExplicitSetter(TypeInfo forType, string name, MethodInfo setter, MethodInfo parser)
-        => AddDeserializeMember(forType, null, setter, name, parser, false);
+        => AddDeserializeMember(forType, null, setter, name, parser, false, null);
 
         /// <summary>
         /// Add a setter for the given type, with the given name, using the given setter, parser, and whether the column is required.
         /// </summary>
         public void AddExplicitSetter(TypeInfo forType, string name, MethodInfo setter, MethodInfo parser, bool isRequired)
-        => AddDeserializeMember(forType, null, setter, name, parser, isRequired);
+        => AddDeserializeMember(forType, null, setter, name, parser, isRequired, null);
+
+        /// <summary>
+        /// Add a setter for the given type, with the given name, using the given setter, parser, whether the column is required, and a reset method.
+        /// </summary>
+        public void AddExplicitSetter(TypeInfo forType, string name, MethodInfo setter, MethodInfo parser, bool isRequired, MethodInfo reset)
+        => AddDeserializeMember(forType, null, setter, name, parser, isRequired, reset);
 
         // deserialize fields
 
@@ -319,49 +325,61 @@ namespace Cesil
         /// Add a field to deserialize for the given type.
         /// </summary>
         public void AddDeserializableField(TypeInfo forType, FieldInfo field)
-        => AddDeserializeMember(forType, field, null, field?.Name, DeserializableMember.GetDefaultParser(field?.DeclaringType?.GetTypeInfo()), false);
+        => AddDeserializeMember(forType, field, null, field?.Name, DeserializableMember.GetDefaultParser(field?.DeclaringType?.GetTypeInfo()), false, null);
 
         /// <summary>
         /// Add a field to deserialize for the given type with the given name.
         /// </summary>
         public void AddDeserializableField(TypeInfo forType, FieldInfo field, string name)
-        => AddDeserializeMember(forType, field, null, name, DeserializableMember.GetDefaultParser(field?.DeclaringType?.GetTypeInfo()), false);
+        => AddDeserializeMember(forType, field, null, name, DeserializableMember.GetDefaultParser(field?.DeclaringType?.GetTypeInfo()), false, null);
 
         /// <summary>
         /// Add a field to deserialize for the given type with the given name and parser.
         /// </summary>
         public void AddDeserializableField(TypeInfo forType, FieldInfo field, string name, MethodInfo parser)
-        => AddDeserializeMember(forType, field, null, name, parser, false);
+        => AddDeserializeMember(forType, field, null, name, parser, false, null);
 
         /// <summary>
         /// Add a field to deserialize for the given type with the given name, parser, and whether the column is required.
         /// </summary>
         public void AddDeserializableField(TypeInfo forType, FieldInfo field, string name, MethodInfo parser, bool isRequired)
-        => AddDeserializeMember(forType, field, null, name, parser, isRequired);
+        => AddDeserializeMember(forType, field, null, name, parser, isRequired, null);
+
+        /// <summary>
+        /// Add a field to deserialize for the given type with the given name, parser, whether the column is required, and a reset method.
+        /// </summary>
+        public void AddDeserializableField(TypeInfo forType, FieldInfo field, string name, MethodInfo parser, bool isRequired, MethodInfo reset)
+        => AddDeserializeMember(forType, field, null, name, parser, isRequired, reset);
 
         /// <summary>
         /// Add a field to deserialize for the type which declares the field.
         /// </summary>
         public void AddDeserializableField(FieldInfo field)
-        => AddDeserializeMember(field?.DeclaringType?.GetTypeInfo(), field, null, field?.Name, DeserializableMember.GetDefaultParser(field?.DeclaringType?.GetTypeInfo()), false);
+        => AddDeserializeMember(field?.DeclaringType?.GetTypeInfo(), field, null, field?.Name, DeserializableMember.GetDefaultParser(field?.DeclaringType?.GetTypeInfo()), false, null);
 
         /// <summary>
         /// Add a field to deserialize with the given name - for the type which declares the field.
         /// </summary>
         public void AddDeserializableField(FieldInfo field, string name)
-        => AddDeserializeMember(field?.DeclaringType?.GetTypeInfo(), field, null, name, DeserializableMember.GetDefaultParser(field?.DeclaringType?.GetTypeInfo()), false);
+        => AddDeserializeMember(field?.DeclaringType?.GetTypeInfo(), field, null, name, DeserializableMember.GetDefaultParser(field?.DeclaringType?.GetTypeInfo()), false, null);
 
         /// <summary>
         /// Add a field to deserialize with the given name and parser - for the type which declares the field.
         /// </summary>
         public void AddDeserializableField(FieldInfo field, string name, MethodInfo parser)
-        => AddDeserializeMember(field?.DeclaringType?.GetTypeInfo(), field, null, name, parser, false);
+        => AddDeserializeMember(field?.DeclaringType?.GetTypeInfo(), field, null, name, parser, false, null);
 
         /// <summary>
         /// Add a field to deserialize with the given name, parser, and whether the column is required - for the type which declares the field.
         /// </summary>
         public void AddDeserializableField(FieldInfo field, string name, MethodInfo parser, bool isRequired)
-        => AddDeserializeMember(field?.DeclaringType?.GetTypeInfo(), field, null, name, parser, isRequired);
+        => AddDeserializeMember(field?.DeclaringType?.GetTypeInfo(), field, null, name, parser, isRequired, null);
+
+        /// <summary>
+        /// Add a field to deserialize with the given name, parser, whether the column is required, and a reset method - for the type which declares the field.
+        /// </summary>
+        public void AddDeserializableField(FieldInfo field, string name, MethodInfo parser, bool isRequired, MethodInfo reset)
+        => AddDeserializeMember(field?.DeclaringType?.GetTypeInfo(), field, null, name, parser, isRequired, reset);
 
         // deserialize properties
 
@@ -369,51 +387,63 @@ namespace Cesil
         /// Add a property to deserialize for the given type.
         /// </summary>
         public void AddDeserializableProperty(TypeInfo forType, PropertyInfo prop)
-        => AddDeserializeMember(forType, null, prop?.SetMethod, prop?.Name, DeserializableMember.GetDefaultParser(prop?.DeclaringType?.GetTypeInfo()), false);
+        => AddDeserializeMember(forType, null, prop?.SetMethod, prop?.Name, DeserializableMember.GetDefaultParser(prop?.DeclaringType?.GetTypeInfo()), false, null);
 
         /// <summary>
         /// Add a property to deserialize for the given type with the given name.
         /// </summary>
         public void AddDeserializableProperty(TypeInfo forType, PropertyInfo prop, string name)
-        => AddDeserializeMember(forType, null, prop?.SetMethod, name, DeserializableMember.GetDefaultParser(prop?.DeclaringType?.GetTypeInfo()), false);
+        => AddDeserializeMember(forType, null, prop?.SetMethod, name, DeserializableMember.GetDefaultParser(prop?.DeclaringType?.GetTypeInfo()), false, null);
 
         /// <summary>
         /// Add a property to deserialize for the given type with the given name and parser.
         /// </summary>
         public void AddDeserializableProperty(TypeInfo forType, PropertyInfo prop, string name, MethodInfo parser)
-        => AddDeserializeMember(forType, null, prop?.SetMethod, name, parser, false);
+        => AddDeserializeMember(forType, null, prop?.SetMethod, name, parser, false, null);
 
         /// <summary>
         /// Add a property to deserialize for the given type with the given name and parser and whether the column is required.
         /// </summary>
         public void AddDeserializableProperty(TypeInfo forType, PropertyInfo prop, string name, MethodInfo parser, bool isRequired)
-        => AddDeserializeMember(forType, null, prop?.SetMethod, name, parser, isRequired);
+        => AddDeserializeMember(forType, null, prop?.SetMethod, name, parser, isRequired, null);
+
+        /// <summary>
+        /// Add a property to deserialize for the given type with the given name and parser, whether the column is required, and a reset method.
+        /// </summary>
+        public void AddDeserializableProperty(TypeInfo forType, PropertyInfo prop, string name, MethodInfo parser, bool isRequired, MethodInfo reset)
+        => AddDeserializeMember(forType, null, prop?.SetMethod, name, parser, isRequired, reset);
 
         /// <summary>
         /// Add a property to deserialize for the type which declares the property.
         /// </summary>
         public void AddDeserializableProperty(PropertyInfo prop)
-        => AddDeserializeMember(prop?.DeclaringType?.GetTypeInfo(), null, prop?.SetMethod, prop?.Name, DeserializableMember.GetDefaultParser(prop?.DeclaringType?.GetTypeInfo()), false);
+        => AddDeserializeMember(prop?.DeclaringType?.GetTypeInfo(), null, prop?.SetMethod, prop?.Name, DeserializableMember.GetDefaultParser(prop?.DeclaringType?.GetTypeInfo()), false, null);
 
         /// <summary>
         /// Add a property to deserialize with the given name - for the type which declares the property.
         /// </summary>
         public void AddDeserializableProperty(PropertyInfo prop, string name)
-        => AddDeserializeMember(prop?.DeclaringType?.GetTypeInfo(), null, prop?.SetMethod, name, DeserializableMember.GetDefaultParser(prop?.DeclaringType?.GetTypeInfo()), false);
+        => AddDeserializeMember(prop?.DeclaringType?.GetTypeInfo(), null, prop?.SetMethod, name, DeserializableMember.GetDefaultParser(prop?.DeclaringType?.GetTypeInfo()), false, null);
 
         /// <summary>
         /// Add a property to deserialize with the given name and parser - for the type which declares the property.
         /// </summary>
         public void AddDeserializableProperty(PropertyInfo prop, string name, MethodInfo parser)
-        => AddDeserializeMember(prop?.DeclaringType?.GetTypeInfo(), null, prop?.SetMethod, name, parser, false);
+        => AddDeserializeMember(prop?.DeclaringType?.GetTypeInfo(), null, prop?.SetMethod, name, parser, false, null);
 
         /// <summary>
         /// Add a property to deserialize with the given name, parser, and whether the column is required - for the type which declares the property.
         /// </summary>
         public void AddDeserializableProperty(PropertyInfo prop, string name, MethodInfo parser, bool isRequired)
-        => AddDeserializeMember(prop?.DeclaringType?.GetTypeInfo(), null, prop?.SetMethod, name, parser, isRequired);
+        => AddDeserializeMember(prop?.DeclaringType?.GetTypeInfo(), null, prop?.SetMethod, name, parser, isRequired, null);
 
-        private void AddDeserializeMember(TypeInfo forType, FieldInfo field, MethodInfo setter, string name, MethodInfo parser, bool isRequired)
+        /// <summary>
+        /// Add a property to deserialize with the given name, parser, whether the column is required, and a reset method - for the type which declares the property.
+        /// </summary>
+        public void AddDeserializableProperty(PropertyInfo prop, string name, MethodInfo parser, bool isRequired, MethodInfo reset)
+        => AddDeserializeMember(prop?.DeclaringType?.GetTypeInfo(), null, prop?.SetMethod, name, parser, isRequired, reset);
+
+        private void AddDeserializeMember(TypeInfo forType, FieldInfo field, MethodInfo setter, string name, MethodInfo parser, bool isRequired, MethodInfo reset)
         {
             if (forType == null)
             {
@@ -437,8 +467,8 @@ namespace Cesil
 
             var toAdd =
                 field != null ?
-                    DeserializableMember.Create(name, field, parser, isRequired) :
-                    DeserializableMember.Create(name, setter, parser, isRequired);
+                    DeserializableMember.Create(forType, name, field, parser, isRequired, reset) :
+                    DeserializableMember.Create(forType, name, setter, parser, isRequired, reset);
 
             if (!Deserializers.TryGetValue(forType, out var d))
             {

@@ -39,13 +39,16 @@ namespace Cesil
 
         internal bool IsRequired { get; }
 
-        private DeserializableMember(string name, MethodInfo setter, FieldInfo field, MethodInfo parser, bool isRequired)
+        internal MethodInfo Reset { get; }
+
+        private DeserializableMember(string name, MethodInfo setter, FieldInfo field, MethodInfo parser, bool isRequired, MethodInfo reset)
         {
             Name = name;
             Setter = setter;
             Field = field;
             Parser = parser;
             IsRequired = isRequired;
+            Reset = reset;
         }
 
         /// <summary>
@@ -102,69 +105,86 @@ namespace Cesil
         /// Creates a DeserializableMember for the given property.
         /// </summary>
         public static DeserializableMember ForProperty(PropertyInfo property)
-        => Create(property.Name, property.SetMethod, GetDefaultParser(property.PropertyType.GetTypeInfo()), false);
+        => Create(property?.DeclaringType?.GetTypeInfo(), property?.Name, property?.SetMethod, GetDefaultParser(property?.PropertyType?.GetTypeInfo()), false, null);
 
         /// <summary>
         /// Creates a DeserializableMember for the given property, with the given name.
         /// </summary>
         public static DeserializableMember ForProperty(PropertyInfo property, string name)
-        => Create(name, property.SetMethod, GetDefaultParser(property.PropertyType.GetTypeInfo()), false);
+        => Create(property?.DeclaringType?.GetTypeInfo(), name, property?.SetMethod, GetDefaultParser(property?.PropertyType?.GetTypeInfo()), false, null);
 
         /// <summary>
         /// Creates a DeserializableMember for the given property, with the given name and parser.
         /// </summary>
         public static DeserializableMember ForProperty(PropertyInfo property, string name, MethodInfo parser)
-        => Create(name, property.SetMethod, parser, false);
+        => Create(property?.DeclaringType?.GetTypeInfo(), name, property?.SetMethod, parser, false, null);
 
         /// <summary>
         /// Creates a DeserializableMember for the given property, with the given name, parser, and whether it is required.
         /// </summary>
         public static DeserializableMember ForProperty(PropertyInfo property, string name, MethodInfo parser, bool isRequired)
-        => Create(name, property.SetMethod, parser, isRequired);
+        => Create(property?.DeclaringType?.GetTypeInfo(), name, property?.SetMethod, parser, isRequired, null);
+
+        /// <summary>
+        /// Creates a DeserializableMember for the given property, with the given name, parser, whether it is required, and a reset method.
+        /// </summary>
+        public static DeserializableMember ForProperty(PropertyInfo property, string name, MethodInfo parser, bool isRequired, MethodInfo reset)
+        => Create(property?.DeclaringType?.GetTypeInfo(), name, property?.SetMethod, parser, isRequired, reset);
 
         /// <summary>
         /// Creates a DeserializableMember for the given field.
         /// </summary>
         public static DeserializableMember ForField(FieldInfo field)
-        => Create(field.Name, field, GetDefaultParser(field.FieldType.GetTypeInfo()), false);
+        => Create(field?.DeclaringType?.GetTypeInfo(), field.Name, field, GetDefaultParser(field?.FieldType?.GetTypeInfo()), false, null);
 
         /// <summary>
         /// Creates a DeserializableMember for the given field, with the given name.
         /// </summary>
         public static DeserializableMember ForField(FieldInfo field, string name)
-        => Create(name, field, GetDefaultParser(field.FieldType.GetTypeInfo()), false);
+        => Create(field?.DeclaringType?.GetTypeInfo(), name, field, GetDefaultParser(field?.FieldType?.GetTypeInfo()), false, null);
 
         /// <summary>
         /// Creates a DeserializableMember for the given field, with the given name and parser.
         /// </summary>
         public static DeserializableMember ForField(FieldInfo field, string name, MethodInfo parser)
-        => Create(name, field, parser, false);
+        => Create(field?.DeclaringType?.GetTypeInfo(), name, field, parser, false, null);
 
         /// <summary>
         /// Creates a DeserializableMember for the given property, with the given name, parser, and whether it is required.
         /// </summary>
         public static DeserializableMember ForField(FieldInfo field, string name, MethodInfo parser, bool isRequired)
-        => Create(name, field, parser, isRequired);
+        => Create(field?.DeclaringType?.GetTypeInfo(), name, field, parser, isRequired, null);
 
         /// <summary>
-        /// Create a DeserializableMember with an explicit name, backing field, parser, and whether it is required.
+        /// Creates a DeserializableMember for the given property, with the given name, parser, whether it is required, and a reset method.
         /// </summary>
-        public static DeserializableMember Create(string name, FieldInfo field, MethodInfo parser, bool isRequired)
-        => Create(name, null, field, parser, isRequired);
+        public static DeserializableMember ForField(FieldInfo field, string name, MethodInfo parser, bool isRequired, MethodInfo reset)
+        => Create(field?.DeclaringType?.GetTypeInfo(), name, field, parser, isRequired, reset);
 
         /// <summary>
-        /// Create a Deserializable member with an explicit name, setter, parser, and whether it is required.
+        /// Create a DeserializableMember with an explicit name, backing field, parser, whether it is required, and a reset method.
         /// </summary>
-        public static DeserializableMember Create(string name, MethodInfo setter, MethodInfo parser, bool isRequired)
-        => Create(name, setter, null, parser, isRequired);
+        public static DeserializableMember Create(TypeInfo beingDeserializedType, string name, FieldInfo field, MethodInfo parser, bool isRequired, MethodInfo reset)
+        => Create(beingDeserializedType, name, null, field, parser, isRequired, reset);
 
-        private static DeserializableMember Create(string name, MethodInfo setter, FieldInfo field, MethodInfo parser, bool isRequired)
+        /// <summary>
+        /// Create a Deserializable member with an explicit name, setter, parser, whether it is required, and a reset method.
+        /// </summary>
+        public static DeserializableMember Create(TypeInfo beingDeserializedType, string name, MethodInfo setter, MethodInfo parser, bool isRequired, MethodInfo reset)
+        => Create(beingDeserializedType, name, setter, null, parser, isRequired, reset);
+
+        private static DeserializableMember Create(TypeInfo beingDeserializedType, string name, MethodInfo setter, FieldInfo field, MethodInfo parser, bool isRequired, MethodInfo reset)
         {
-            if(name == null)
+            if (beingDeserializedType == null)
+            {
+                Throw.ArgumentNullException(nameof(beingDeserializedType));
+            }
+
+            if (name == null)
             {
                 Throw.ArgumentNullException(nameof(name));
             }
-            
+
             if (field == null && setter == null)
             {
                 Throw.InvalidOperation($"At least one of {nameof(field)} and {nameof(setter)} must be non-null");
@@ -175,7 +195,7 @@ namespace Cesil
                 Throw.InvalidOperation($"Only one of {nameof(field)} and {nameof(setter)} can be non-null");
             }
 
-            if(parser == null)
+            if (parser == null)
             {
                 Throw.ArgumentNullException(nameof(parser));
             }
@@ -200,7 +220,6 @@ namespace Cesil
             {
                 var args = setter.GetParameters();
                 if (args.Length == 1)
-
                 {
                     valueType = args[0].ParameterType.GetTypeInfo();
 
@@ -231,6 +250,16 @@ namespace Cesil
                 {
                     Throw.ArgumentException($"{nameof(setter)} must take one or two parameters", nameof(setter));
                     return default; // just for flow control, the above won't actually return
+                }
+
+                // must be calleable on the provided type
+                if (!setter.IsStatic)
+                {
+                    var onType = setter.DeclaringType.GetTypeInfo();
+                    if (!onType.IsAssignableFrom(beingDeserializedType))
+                    {
+                        Throw.ArgumentException($"{nameof(setter)} must be callable on {beingDeserializedType}", nameof(setter));
+                    }
                 }
             }
             else
@@ -281,7 +310,53 @@ namespace Cesil
                 }
             }
 
-            return new DeserializableMember(name, setter, field, parser, isRequired);
+            // reset can be
+            //   an instance method, or a static method
+            //   if an instance method
+            //     can take no paramters
+            //     must be on the provided type, or a type it is assignable to
+            //  if a static method
+            //     can take either 1 or 0 parameters
+            //     if it takes a parameter, it must be the provided type or one it is assignable to
+            if (reset != null)
+            {
+                var args = reset.GetParameters();
+                if (reset.IsStatic)
+                {
+                    if (args.Length == 0)
+                    {
+                        // we're fine
+                    }
+                    else if (args.Length == 1)
+                    {
+                        var pType = args[0].ParameterType.GetTypeInfo();
+                        if (!pType.IsAssignableFrom(beingDeserializedType))
+                        {
+                            Throw.ArgumentException($"{nameof(reset)} single parameter must be accept {beingDeserializedType}", nameof(reset));
+                        }
+                    }
+                    else
+                    {
+                        Throw.ArgumentException($"{nameof(reset)} is static, it must take 0 or 1 parameters", nameof(reset));
+                    }
+                }
+                else
+                {
+                    if (args.Length != 0)
+                    {
+                        Throw.ArgumentException($"{nameof(reset)} is an instance method, it must take 0 parameters", nameof(reset));
+                    }
+
+                    var onType = reset.DeclaringType;
+
+                    if (!onType.IsAssignableFrom(beingDeserializedType))
+                    {
+                        Throw.ArgumentException($"{nameof(reset)} must be callable on {beingDeserializedType}", nameof(reset));
+                    }
+                }
+            }
+
+            return new DeserializableMember(name, setter, field, parser, isRequired, reset);
         }
 
         /// <summary>
@@ -290,6 +365,6 @@ namespace Cesil
         /// This is provided for debugging purposes, and the format is not guaranteed to be stable between releases.
         /// </summary>
         public override string ToString()
-        => $"{nameof(Name)}: {Name}\r\n{nameof(Setter)}: {Setter}\r\n{nameof(Field)}: {Field}\r\n{nameof(Parser)}: {Parser}";
+        => $"{nameof(Name)}: {Name}\r\n{nameof(Setter)}: {Setter}\r\n{nameof(Field)}: {Field}\r\n{nameof(Parser)}: {Parser}\r\n{nameof(IsRequired)}: {IsRequired}\r\n{nameof(Reset)}: {Reset}";
     }
 }

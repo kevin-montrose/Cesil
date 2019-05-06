@@ -16,8 +16,6 @@ namespace Cesil
     /// </summary>
     public class DefaultTypeDescriber : ITypeDescriber
     {
-        // todo: Reset()?
-
         /// <summary>
         /// Construct a new DefaultTypeDesciber.
         /// 
@@ -41,8 +39,9 @@ namespace Cesil
                 var parser = GetParser(forType, p);
                 var order = GetPosition(forType, p);
                 var isRequired = GetIsRequired(forType, p);
+                var reset = GetReset(forType, p);
 
-                buffer.Add((DeserializableMember.Create(name, setter, parser, isRequired), order));
+                buffer.Add((DeserializableMember.Create(forType, name, setter, parser, isRequired, reset), order));
             }
 
             foreach (var f in forType.GetFields())
@@ -53,8 +52,9 @@ namespace Cesil
                 var parser = GetParser(forType, f);
                 var order = GetPosition(forType, f);
                 var isRequired = GetIsRequired(forType, f);
+                var reset = GetReset(forType, f);
 
-                buffer.Add((DeserializableMember.Create(name, f, parser, isRequired), order));
+                buffer.Add((DeserializableMember.Create(forType, name, f, parser, isRequired, reset), order));
             }
 
             buffer.Sort(TypeDescribers.DeserializableComparer);
@@ -139,6 +139,28 @@ namespace Cesil
         protected virtual bool GetIsRequired(TypeInfo forType, PropertyInfo property)
         => GetIsRequired(property);
 
+        /// <summary>
+        /// Returns the reset method, if any, to call prior to deserializing the given property.
+        /// 
+        /// Override to tweak behavior.
+        /// </summary>
+        protected virtual MethodInfo GetReset(TypeInfo forType, PropertyInfo property)
+        {
+            var mtd = forType.GetMethod("Reset" + property.Name, BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
+            if (mtd == null) return null;
+
+            if (mtd.IsStatic)
+            {
+                if (mtd.GetParameters().Length > 1) return null;
+            }
+            else
+            {
+                if (mtd.GetParameters().Length != 0) return null;
+            }
+
+            return mtd;
+        }
+
         // field deserialization defaults
 
 
@@ -192,6 +214,14 @@ namespace Cesil
         /// </summary>
         protected virtual bool GetIsRequired(TypeInfo forType, FieldInfo field)
         => GetIsRequired(field);
+
+        /// <summary>
+        /// Returns the reset method, if any, to call prior to deserializing the given field.
+        /// 
+        /// Override to tweak behavior.
+        /// </summary>
+        protected virtual MethodInfo GetReset(TypeInfo forType, FieldInfo field)
+        => null;
 
         // common deserialization defaults
 
@@ -324,7 +354,14 @@ namespace Cesil
             var mtd = forType.GetMethod("ShouldSerialize" + property.Name, BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
             if (mtd == null) return null;
 
-            if (mtd.GetParameters().Length != 0) return null;
+            if (mtd.IsStatic)
+            {
+                if (mtd.GetParameters().Length > 1) return null;
+            }
+            else
+            {
+                if (mtd.GetParameters().Length != 0) return null;
+            }
 
             return mtd;
         }
