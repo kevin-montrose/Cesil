@@ -6,13 +6,12 @@ using System.IO;
 namespace Cesil
 {
     internal sealed class Writer<T> : WriterBase<T>, IWriter<T>, ITestableDisposable
-        where T : new()
     {
         private TextWriter Inner;
 
         public bool IsDisposed => Inner == null;
 
-        internal Writer(BoundConfiguration<T> config, TextWriter inner) : base(config)
+        internal Writer(ConcreteBoundConfiguration<T> config, TextWriter inner, object context) : base(config, context)
         {
             Inner = inner;
         }
@@ -62,7 +61,9 @@ namespace Cesil
 
                 var col = Columns[i];
 
-                if (!col.Write(row, Buffer))
+                var ctx = new WriteContext(RowNumber, i, col.Name, Context);
+
+                if (!col.Write(row, ctx, Buffer))
                 {
                     Throw.SerializationException($"Could not write column {col.Name}, formatter returned false");
                 }
@@ -77,6 +78,8 @@ namespace Cesil
                 WriteValue(res);
                 Buffer.Reset();
             }
+
+            RowNumber++;
         }
 
         private void EndRecord()
@@ -371,7 +374,7 @@ namespace Cesil
         {
             if(IsDisposed)
             {
-                Throw.ObjectDisposed(nameof(Writer<T>));
+                Throw.ObjectDisposedException(nameof(Writer<T>));
             }
         }
     }

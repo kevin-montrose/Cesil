@@ -4,9 +4,8 @@ using System.Buffers;
 namespace Cesil
 {
     internal abstract class WriterBase<T>
-        where T : new()
     {
-        internal BoundConfiguration<T> Config { get; }
+        internal BoundConfigurationBase<T> Config { get; }
 
         internal readonly MaxSizedBufferWriter Buffer;
 
@@ -19,10 +18,16 @@ namespace Cesil
         internal readonly IMemoryOwner<char> Staging;
         internal int InStaging;
 
-        protected WriterBase(BoundConfiguration<T> config)
+        internal int RowNumber;
+
+        internal readonly object Context;
+
+        protected WriterBase(BoundConfigurationBase<T> config, object context)
         {
+            RowNumber = 0;
             Config = config;
             Buffer = new MaxSizedBufferWriter(Config.MemoryPool, config.WriteBufferSizeHint);
+            Context = context;
 
             // buffering is configurable
             if (Config.WriteBufferSizeHint == 0)

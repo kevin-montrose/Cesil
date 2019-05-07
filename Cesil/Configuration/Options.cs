@@ -25,6 +25,7 @@ namespace Cesil
         ///   - does not write a new line after the last row
         ///   - does not support comments
         ///   - uses the default read buffer size
+        ///   - dynamic rows are disposed when the reader that returns them is disposed
         /// </summary>
         public static readonly Options Default =
             NewEmptyBuilder()
@@ -40,6 +41,8 @@ namespace Cesil
                 .WithWriteBufferSizeHint(null)
                 .WithCommentCharacter(null)
                 .WithReadBufferSizeHint(0)
+                .WithDynamicTypeConverter(DynamicTypeConverters.Default)
+                .WithDynamicRowDisposal(DynamicRowDisposal.OnReaderDispose)
                 .Build();
 
         /// <summary>
@@ -111,6 +114,16 @@ namespace Cesil
         /// Set to 0 to use a default size.
         /// </summary>
         public int ReadBufferSizeHint { get; private set; }
+        /// <summary>
+        /// The instance of IDynamicTypeConverter that will be used to
+        ///   determine how to convert dynamic rows and cells into
+        ///   concrete types.
+        /// </summary>
+        public IDynamicTypeConverter DynamicTypeConverter { get; private set; }
+        /// <summary>
+        /// When to dispose any dynamic rows returned by an IReader or IAsyncReader.
+        /// </summary>
+        public DynamicRowDisposal DynamicRowDisposal { get; private set; }
 
         internal Options(OptionsBuilder copy)
         {
@@ -126,6 +139,8 @@ namespace Cesil
             CommentCharacter = copy.CommentCharacter;
             WriteBufferSizeHint = copy.WriteBufferSizeHint;
             ReadBufferSizeHint = copy.ReadBufferSizeHint;
+            DynamicTypeConverter = copy.DynamicTypeConverter;
+            DynamicRowDisposal = copy.DynamicRowDisposal;
         }
 
         /// <summary>

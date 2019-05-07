@@ -77,6 +77,22 @@ namespace Cesil.Tests
                 {
                     IDisposable_MaxSizedBufferWriter();
                 }
+                else if (t == typeof(DynamicReader))
+                {
+                    IDisposable_DynamicReader();
+                }
+                else if (t == typeof(DynamicRow))
+                {
+                    IDisposable_DynamicRow();
+                }
+                else if(t == typeof(DynamicRowEnumerable<>))
+                {
+                    IDisposable_DynamicRowEnumerable();
+                }
+                else if (t == typeof(DynamicRowEnumerator<>))
+                {
+                    IDisposable_DynamicRowEnumerator();
+                }
                 else
                 {
                     throw new XunitException($"No test configured for .Dispose() on {t.Name}");
@@ -405,7 +421,7 @@ namespace Cesil.Tests
                 RowEndingDetector<_IDisposable> MakeDetector()
                 {
                     return new RowEndingDetector<_IDisposable>(
-                        Configuration.For<_IDisposable>(),
+                        (ConcreteBoundConfiguration<_IDisposable>)Configuration.For<_IDisposable>(),
                         ReaderStateMachine.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd'),
                         TextReader.Null
                     );
@@ -445,7 +461,7 @@ namespace Cesil.Tests
                 // make a partial that's "good to go"
                 HeadersReader<_IDisposable> MakeReader()
                 {
-                    var config = Configuration.For<_IDisposable>();
+                    var config = (ConcreteBoundConfiguration<_IDisposable>)Configuration.For<_IDisposable>();
 
                     return
                         new HeadersReader<_IDisposable>(
@@ -615,6 +631,239 @@ namespace Cesil.Tests
                     return new MaxSizedBufferWriter(MemoryPool<char>.Shared, null);
                 }
             }
+
+            // test for DynamicReader
+            void IDisposable_DynamicReader()
+            {
+                // double dispose does not error
+                {
+                    var r = MakeReader();
+                    r.Dispose();
+                    r.Dispose();
+                }
+
+                // assert throws after dispose
+                {
+                    var r = MakeReader();
+                    r.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => ((ITestableDisposable)r).AssertNotDisposed());
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    using (var r = MakeReader())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(r);
+                    }
+                }
+
+                // EnumerateAll
+                {
+                    var r = MakeReader();
+                    r.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => r.EnumerateAll());
+                    testCases++;
+                }
+
+                // ReadAll
+                {
+                    var r = MakeReader();
+                    r.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => r.ReadAll());
+                    testCases++;
+                }
+
+                // ReadAll pre-allocated
+                {
+                    var r = MakeReader();
+                    r.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => r.ReadAll(new List<dynamic>()));
+                    testCases++;
+                }
+
+                // TryRead
+                {
+                    var r = MakeReader();
+                    r.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => r.TryRead(out _));
+                    testCases++;
+                }
+
+                // TryReadWithReuse
+                {
+                    var r = MakeReader();
+                    r.Dispose();
+                    dynamic x = null;
+                    Assert.Throws<ObjectDisposedException>(() => r.TryReadWithReuse(ref x));
+                    testCases++;
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make a reader that's "good to go"
+                IReader<dynamic> MakeReader()
+                {
+                    return
+                        Configuration.ForDynamic(Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build())
+                            .CreateReader(new StringReader(""));
+                }
+            }
+
+            // test for DynamicRow
+            void IDisposable_DynamicRow()
+            {
+                // double dispose does not error
+                {
+                    var r = MakeRow();
+                    r.Dispose();
+                    r.Dispose();
+                }
+
+                // assert throws after dispose
+                {
+                    var r = MakeRow();
+                    r.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => ((ITestableDisposable)r).AssertNotDisposed());
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    using (var r = MakeRow())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(r);
+                    }
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make a reader that's "good to go"
+                DynamicRow MakeRow()
+                {
+                    return new DynamicRow();
+                }
+            }
+
+            // test for DynamicRowEnumerable
+            void IDisposable_DynamicRowEnumerable()
+            {
+                // double dispose does not error
+                {
+                    var r = MakeDynamicRowEnumerable();
+                    r.Dispose();
+                    r.Dispose();
+                }
+
+                // assert throws after dispose
+                {
+                    var r = MakeDynamicRowEnumerable();
+                    r.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => ((ITestableDisposable)r).AssertNotDisposed());
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    using (var r = MakeDynamicRowEnumerable())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(r);
+                    }
+                }
+
+                // GetEnumerator
+                {
+                    var r = MakeDynamicRowEnumerable();
+                    r.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => r.GetEnumerator());
+                    testCases++;
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make a reader that's "good to go"
+                DynamicRowEnumerable<_IDisposable> MakeDynamicRowEnumerable()
+                {
+                    return new DynamicRowEnumerable<_IDisposable>(new DynamicRow());
+                }
+            }
+
+            // test for DynamicRowEnumerator
+            void IDisposable_DynamicRowEnumerator()
+            {
+                // double dispose does not error
+                {
+                    var r = MakeDynamicRowEnumerator();
+                    r.Dispose();
+                    r.Dispose();
+                }
+
+                // assert throws after dispose
+                {
+                    var r = MakeDynamicRowEnumerator();
+                    r.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => ((ITestableDisposable)r).AssertNotDisposed());
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    using (var r = MakeDynamicRowEnumerator())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(r);
+                    }
+                }
+
+                // Current
+                {
+                    var r = MakeDynamicRowEnumerator();
+                    r.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => r.Current);
+                    testCases++;
+                }
+
+                // MoveNext
+                {
+                    var r = MakeDynamicRowEnumerator();
+                    r.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => r.MoveNext());
+                    testCases++;
+                }
+
+                // Reset
+                {
+                    var r = MakeDynamicRowEnumerator();
+                    r.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => r.Reset());
+                    testCases++;
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make a reader that's "good to go"
+                IEnumerator<string> MakeDynamicRowEnumerator()
+                {
+                    var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+                    var config = Configuration.ForDynamic(opts);
+
+                    var r = config.CreateReader(new StringReader("a,b,c"));
+
+                    r.TryRead(out var row);
+
+                    IEnumerable<string> e = row;
+                    var ee = e.GetEnumerator();
+
+                    return ee;
+                }
+            }
         }
         
         [Fact]
@@ -641,6 +890,10 @@ namespace Cesil.Tests
                 else if(t == typeof(AsyncEnumerator<>))
                 {
                     await IAsyncDisposable_AsyncEnumeratorAsync();
+                }
+                else if (t == typeof(AsyncDynamicReader))
+                {
+                    await IAsyncDisposable_AsyncDynamicReaderAsync();
                 }
                 else
                 {
@@ -825,6 +1078,181 @@ namespace Cesil.Tests
                             .GetAsyncEnumerator();
                 }
             }
+
+            // test async dynamic reader
+            async Task IAsyncDisposable_AsyncDynamicReaderAsync()
+            {
+                // double dispose does not error
+                {
+                    var r = MakeReader();
+                    await r.DisposeAsync();
+                    await r.DisposeAsync();
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    await using (var r = MakeReader())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(r);
+                    }
+                }
+
+                // EnumerateAllAsync
+                {
+                    var r = MakeReader();
+                    await r.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => r.EnumerateAllAsync());
+                    testCases++;
+                }
+
+                // ReadAllAsync
+                {
+                    var r = MakeReader();
+                    await r.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => r.ReadAllAsync());
+                    testCases++;
+                }
+
+                // ReadAllAsync pre-allocated
+                {
+                    var r = MakeReader();
+                    await r.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => r.ReadAllAsync(new List<dynamic>()));
+                    testCases++;
+                }
+
+                // TryReadAsync
+                {
+                    var r = MakeReader();
+                    await r.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => r.TryReadAsync());
+                    testCases++;
+                }
+
+                // TryReadWithReuseAsync
+                {
+                    var r = MakeReader();
+                    await r.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => { dynamic x = null; r.TryReadWithReuseAsync(ref x); });
+                    testCases++;
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make a reader that's "good to go"
+                IAsyncReader<dynamic> MakeReader()
+                {
+                    return
+                        Configuration.ForDynamic(Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build())
+                            .CreateAsyncReader(TextReader.Null);
+                }
+            }
+        }
+
+        [Fact]
+        public void DynamicRowThrowsAfterDisposed()
+        {
+            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+
+            RunSyncDynamicReaderVariants(
+                opts,
+                (config, makeReader) =>
+                {
+                    dynamic row1, row2;
+                    dynamic c1, c2, c3, c4;
+                    using (var reader = makeReader("1,2\r\n3,4"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        Assert.True(csv.TryRead(out row1));
+                        Assert.True(csv.TryRead(out row2));
+
+                        c1 = row1[0];
+                        c2 = row1[1];
+
+                        Assert.Equal(1, (int)c1);
+                        Assert.Equal(2, (int)c2);
+
+                        c3 = row2[0];
+                        c4 = row2[1];
+
+                        Assert.Equal(3, (int)c3);
+                        Assert.Equal(4, (int)c4);
+                    }
+
+                    // the rows throw
+                    Assert.Throws<ObjectDisposedException>(() => { var x = row1[0]; });
+                    Assert.Throws<ObjectDisposedException>(() => { var x = row1[1]; });
+                    Assert.Throws<ObjectDisposedException>(() => { var x = row2[0]; });
+                    Assert.Throws<ObjectDisposedException>(() => { var x = row2[1]; });
+
+                    // the cells throw
+                    Assert.Throws<ObjectDisposedException>(() => { int x = c1; });
+                    Assert.Throws<ObjectDisposedException>(() => { int x = c2; });
+                    Assert.Throws<ObjectDisposedException>(() => { int x = c3; });
+                    Assert.Throws<ObjectDisposedException>(() => { int x = c4; });
+                }
+            );
+        }
+
+        [Fact]
+        public void DynamicCellThrowsAfterRowDisposed()
+        {
+            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+
+            RunSyncDynamicReaderVariants(
+                opts,
+                (config, makeReader) =>
+                {
+                    using (var reader = makeReader("1,2\r\n3,4"))
+                    using(var csv = config.CreateReader(reader))
+                    {
+                        Assert.True(csv.TryRead(out dynamic row));
+
+                        var c1 = row[0];
+                        var c2 = row[1];
+
+                        Assert.Equal(1, (int)c1);
+                        Assert.Equal(2, (int)c2);
+
+                        row.Dispose();
+
+                        // getting cells throws
+                        Assert.Throws<ObjectDisposedException>(() => { var x = row[0]; });
+                        Assert.Throws<ObjectDisposedException>(() => { var x = row[1]; });
+
+                        // now cells throw
+                        Assert.Throws<ObjectDisposedException>(() => { int x = c1; });
+                        Assert.Throws<ObjectDisposedException>(() => { int x = c2; });
+
+                        Assert.True(csv.TryReadWithReuse(ref row));
+
+                        var c3 = row[0];
+                        var c4 = row[1];
+
+                        Assert.Equal(3, (int)c3);
+                        Assert.Equal(4, (int)c4);
+
+                        // old still throws
+                        Assert.Throws<ObjectDisposedException>(() => { int x = c1; });
+                        Assert.Throws<ObjectDisposedException>(() => { int x = c2; });
+
+                        row.Dispose();
+
+                        // getting cells throws
+                        Assert.Throws<ObjectDisposedException>(() => { var x = row[0]; });
+                        Assert.Throws<ObjectDisposedException>(() => { var x = row[1]; });
+
+                        // all old cells throw
+                        Assert.Throws<ObjectDisposedException>(() => { int x = c1; });
+                        Assert.Throws<ObjectDisposedException>(() => { int x = c2; });
+                        Assert.Throws<ObjectDisposedException>(() => { int x = c3; });
+                        Assert.Throws<ObjectDisposedException>(() => { int x = c4; });
+                    }
+                }
+            );
         }
     }
 #pragma warning restore IDE1006

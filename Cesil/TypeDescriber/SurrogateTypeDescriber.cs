@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace Cesil
@@ -75,12 +76,12 @@ namespace Cesil
 
             if(forType == surrogateType)
             {
-                Throw.InvalidOperation($"Type {forType} cannot be a surrogate for itself");
+                Throw.InvalidOperationException($"Type {forType} cannot be a surrogate for itself");
             }
 
             if (!SurrogateTypes.TryAdd(forType, surrogateType))
             {
-                Throw.InvalidOperation($"Surrogate already registered for {forType}");
+                Throw.InvalidOperationException($"Surrogate already registered for {forType}");
             }
         }
 
@@ -100,7 +101,7 @@ namespace Cesil
             {
                 if (ThrowOnNoRegisteredSurrogate)
                 {
-                    Throw.InvalidOperation($"No surrogate registered for {forType}");
+                    Throw.InvalidOperationException($"No surrogate registered for {forType}");
                 }
 
                 foreach(var member in TypeDescriber.EnumerateMembersToDeserialize(forType))
@@ -134,7 +135,7 @@ namespace Cesil
             {
                 if (ThrowOnNoRegisteredSurrogate)
                 {
-                    Throw.InvalidOperation($"No surrogate registered for {forType}");
+                    Throw.InvalidOperationException($"No surrogate registered for {forType}");
                 }
 
                 foreach (var member in TypeDescriber.EnumerateMembersToSerialize(forType))
@@ -152,6 +153,32 @@ namespace Cesil
             }
         }
 
+        /// <summary>
+        /// Gets an instance builder usable to construct the given type.
+        /// 
+        /// If a surrogate is registered, the surrogate will be used for discovery - the returned 
+        ///   constructor will be mapped from the surrogate to forType.
+        ///   
+        /// If a surrogate is not registered, either an exception will be thrown or forType will
+        ///   be passed to TypeDescriber.GetInstanceBuilder depending on the value of
+        ///   ThrowOnNoRegisteredSurrogate.
+        /// </summary>
+        public InstanceBuilder GetInstanceBuilder(TypeInfo forType)
+        {
+            if(!SurrogateTypes.TryGetValue(forType, out var proxy))
+            {
+                if (ThrowOnNoRegisteredSurrogate)
+                {
+                    Throw.InvalidOperationException($"No surrogate registered for {forType}");
+                }
+
+                return TypeDescriber.GetInstanceBuilder(forType);
+            }
+
+            var fromProxy = TypeDescriber.GetInstanceBuilder(forType);
+            return Map(forType, fromProxy);
+        }
+
         private static DeserializableMember Map(TypeInfo ontoType, DeserializableMember member)
         {
             MethodInfo resetOnType = null;
@@ -166,7 +193,7 @@ namespace Cesil
                 resetOnType = ontoType.GetMethod(surrogateReset.Name, surrogateResetBinding);
                 if (resetOnType == null)
                 {
-                    Throw.InvalidOperation($"No equivalent to {resetOnType} found on {ontoType}");
+                    Throw.InvalidOperationException($"No equivalent to {resetOnType} found on {ontoType}");
                 }
             }
 
@@ -181,12 +208,12 @@ namespace Cesil
                 var fieldOnType = ontoType.GetField(surrogateField.Name, surrogateFieldBinding);
                 if(fieldOnType == null)
                 {
-                    Throw.InvalidOperation($"No equivalent to {surrogateField} found on {ontoType}");
+                    Throw.InvalidOperationException($"No equivalent to {surrogateField} found on {ontoType}");
                 }
 
                 if(fieldOnType.FieldType != surrogateField.FieldType)
                 {
-                    Throw.InvalidOperation($"Field {fieldOnType} type ({fieldOnType.FieldType}) does not match surrogate field {surrogateField} type ({surrogateField.FieldType})");
+                    Throw.InvalidOperationException($"Field {fieldOnType} type ({fieldOnType.FieldType}) does not match surrogate field {surrogateField} type ({surrogateField.FieldType})");
                 }
                 return DeserializableMember.Create(ontoType, member.Name, fieldOnType, member.Parser, member.IsRequired, resetOnType);
             }
@@ -200,7 +227,7 @@ namespace Cesil
             var setterOnType = ontoType.GetMethod(surrogateSetter.Name, surrogateSetterBinding);
             if(setterOnType == null)
             {
-                Throw.InvalidOperation($"No equivalent to {surrogateSetter} found on {ontoType}");
+                Throw.InvalidOperationException($"No equivalent to {surrogateSetter} found on {ontoType}");
             }
 
             var paramsOnType = setterOnType.GetParameters();
@@ -208,7 +235,7 @@ namespace Cesil
 
             if(paramsOnType.Length != paramsOnSurrogate.Length)
             {
-                Throw.InvalidOperation($"Parameters for {setterOnType} do not match parameters for {surrogateSetter}");
+                Throw.InvalidOperationException($"Parameters for {setterOnType} do not match parameters for {surrogateSetter}");
             }
 
             for(var i = 0; i < paramsOnType.Length; i++)
@@ -218,7 +245,7 @@ namespace Cesil
 
                 if(pOnType.ParameterType != pOnSurrogate.ParameterType)
                 {
-                    Throw.InvalidOperation($"Parameter #{(i + 1)} on {setterOnType} does not match same parameter on {surrogateSetter}");
+                    Throw.InvalidOperationException($"Parameter #{(i + 1)} on {setterOnType} does not match same parameter on {surrogateSetter}");
                 }
             }
 
@@ -239,7 +266,7 @@ namespace Cesil
                 shouldSerializeOnType = ontoType.GetMethod(surrogateShouldSerialize.Name, surrogateShouldSerializeBinding);
                 if (shouldSerializeOnType == null)
                 {
-                    Throw.InvalidOperation($"No equivalent to {surrogateShouldSerialize} found on {ontoType}");
+                    Throw.InvalidOperationException($"No equivalent to {surrogateShouldSerialize} found on {ontoType}");
                 }
             }
             else
@@ -259,12 +286,12 @@ namespace Cesil
                 var fieldOnType = ontoType.GetField(surrogateField.Name, surrogateFieldBinding);
                 if (fieldOnType == null)
                 {
-                    Throw.InvalidOperation($"No equivalent to {surrogateField} found on {ontoType}");
+                    Throw.InvalidOperationException($"No equivalent to {surrogateField} found on {ontoType}");
                 }
 
                 if (fieldOnType.FieldType != surrogateField.FieldType)
                 {
-                    Throw.InvalidOperation($"Field {fieldOnType} type ({fieldOnType.FieldType}) does not match surrogate field {surrogateField} type ({surrogateField.FieldType})");
+                    Throw.InvalidOperationException($"Field {fieldOnType} type ({fieldOnType.FieldType}) does not match surrogate field {surrogateField} type ({surrogateField.FieldType})");
                 }
 
                 return SerializableMember.Create(ontoType, member.Name, fieldOnType, member.Formatter, shouldSerializeOnType, member.EmitDefaultValue);
@@ -279,7 +306,7 @@ namespace Cesil
             var getterOnType = ontoType.GetMethod(surrogateGetter.Name, surrogateGetterBinding);
             if(getterOnType == null)
             {
-                Throw.InvalidOperation($"No equivalent to {surrogateGetter} found on {ontoType}");
+                Throw.InvalidOperationException($"No equivalent to {surrogateGetter} found on {ontoType}");
             }
 
             var surrogateParams = surrogateGetter.GetParameters();
@@ -287,7 +314,7 @@ namespace Cesil
 
             if(surrogateParams.Length != onTypeParams.Length)
             {
-                Throw.InvalidOperation($"Parameters for {getterOnType} do not match parameters for {surrogateGetter}");
+                Throw.InvalidOperationException($"Parameters for {getterOnType} do not match parameters for {surrogateGetter}");
             }
 
             for(var i = 0; i < surrogateParams.Length; i++)
@@ -297,11 +324,33 @@ namespace Cesil
 
                 if(sP != tP)
                 {
-                    Throw.InvalidOperation($"Parameter #{(i + 1)} on {getterOnType} does not match same parameter on {surrogateGetter}");
+                    Throw.InvalidOperationException($"Parameter #{(i + 1)} on {getterOnType} does not match same parameter on {surrogateGetter}");
                 }
             }
 
             return SerializableMember.Create(ontoType, member.Name, getterOnType, member.Formatter, shouldSerializeOnType, member.EmitDefaultValue);
+        }
+
+        private static InstanceBuilder Map(TypeInfo ontoType, InstanceBuilder builder)
+        {
+            if(builder.Delegate != null)
+            {
+                Throw.InvalidOperationException($"Cannot map a delegate InstanceBuilder between types");
+            }
+
+            var surrogateCons = builder.Constructor;
+            var surrogateConsBinding =
+                    // explicitly ignoring DeclaredOnly; shadowing is fine
+                    (surrogateCons.IsPublic ? BindingFlags.Public : BindingFlags.NonPublic) |
+                    BindingFlags.Instance;
+
+            var consOnType = ontoType.GetConstructor(surrogateConsBinding, null, Type.EmptyTypes, null);
+            if(consOnType == null)
+            {
+                Throw.InvalidOperationException($"No equivalent to {surrogateCons} found on {ontoType}");
+            }
+
+            return new InstanceBuilder(consOnType);
         }
     }
 }

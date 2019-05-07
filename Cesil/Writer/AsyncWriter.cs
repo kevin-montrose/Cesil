@@ -11,7 +11,6 @@ namespace Cesil
         WriterBase<T>,
         IAsyncWriter<T>,
         ITestableAsyncDisposable
-        where T : new()
     {
         public bool IsDisposed => Inner == null;
 
@@ -20,7 +19,7 @@ namespace Cesil
         private IMemoryOwner<char> OneCharOwner;
         private Memory<char> OneCharMemory;
 
-        internal AsyncWriter(BoundConfiguration<T> config, TextWriter inner) : base(config)
+        internal AsyncWriter(ConcreteBoundConfiguration<T> config, TextWriter inner, object context) : base(config, context)
         {
             Inner = inner;
         }
@@ -219,12 +218,14 @@ namespace Cesil
                 var needsSeparator = i != 0;
                 var col = Columns[i];
 
-                var writeColumnTask = WriteColumnAsync(row, col, needsSeparator, cancel);
+                var writeColumnTask = WriteColumnAsync(row, i, col, needsSeparator, cancel);
                 if (!writeColumnTask.IsCompletedSuccessfully)
                 {
                     return WriteAsync_ContinueAfterWriteColumnAsync(this, writeColumnTask, row, i, cancel);
                 }
             }
+
+            RowNumber++;
 
             return default;
 
@@ -250,8 +251,10 @@ namespace Cesil
                     var needsSeparator = i != 0;
                     var col = self.Columns[i];
 
-                    await self.WriteColumnAsync(row, col, needsSeparator, cancel);
+                    await self.WriteColumnAsync(row, i, col, needsSeparator, cancel);
                 }
+
+                self.RowNumber++;
             }
 
             // wait for the record to end, then continue async
@@ -264,8 +267,10 @@ namespace Cesil
                     var needsSeparator = i != 0;
                     var col = self.Columns[i];
 
-                    await self.WriteColumnAsync(row, col, needsSeparator, cancel);
+                    await self.WriteColumnAsync(row, i, col, needsSeparator, cancel);
                 }
+
+                self.RowNumber++;
             }
 
             // wait for the column to be written, then continue with the loop
@@ -281,23 +286,27 @@ namespace Cesil
                     const bool needsSeparator = true;                  // by definition, this isn't the first loop
                     var col = self.Columns[i];
 
-                    await self.WriteColumnAsync(row, col, needsSeparator, cancel); 
+                    await self.WriteColumnAsync(row, i, col, needsSeparator, cancel); 
                 }
+
+                self.RowNumber++;
             }
         }
 
-        private ValueTask WriteColumnAsync(T row, Column col, bool needsSeparator, CancellationToken cancel)
+        private ValueTask WriteColumnAsync(T row, int colIx, Column col, bool needsSeparator, CancellationToken cancel)
         {
             if (needsSeparator)
             {
                 var sepTask = PlaceCharInStagingAsync(Config.ValueSeparator, cancel);
                 if (!sepTask.IsCompletedSuccessfully)
                 {
-                    return WriteColumnAsync_ContinueAfterSeparatorAsync(this, sepTask, row, col, cancel);
+                    return WriteColumnAsync_ContinueAfterSeparatorAsync(this, sepTask, row, colIx, col, cancel);
                 }
             }
 
-            if (!col.Write(row, Buffer))
+            var ctx = new WriteContext(RowNumber, colIx, col.Name, Context);
+
+            if (!col.Write(row, ctx, Buffer))
             {
                 Throw.SerializationException($"Could not write column {col.Name}, formatter returned false");
             }
@@ -320,11 +329,13 @@ namespace Cesil
             return default;
 
             // wait for the separator to be written, then continue async
-            static async ValueTask WriteColumnAsync_ContinueAfterSeparatorAsync(AsyncWriter<T> self, Task waitFor, T row, Column col, CancellationToken cancel)
+            static async ValueTask WriteColumnAsync_ContinueAfterSeparatorAsync(AsyncWriter<T> self, Task waitFor, T row, int colIx, Column col, CancellationToken cancel)
             {
                 await waitFor;
 
-                if (!col.Write(row, self.Buffer))
+                var ctx = new WriteContext(self.RowNumber, colIx, col.Name, self.Context);
+
+                if (!col.Write(row, ctx, self.Buffer))
                 {
                     Throw.SerializationException($"Could not write column {col.Name}, formatter returned false");
                 }
@@ -1122,7 +1133,7 @@ namespace Cesil
         {
             if (IsDisposed)
             {
-                Throw.ObjectDisposed(nameof(AsyncWriter<T>));
+                Throw.ObjectDisposedException(nameof(AsyncWriter<T>));
             }
         }
     }

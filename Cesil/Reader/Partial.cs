@@ -120,7 +120,7 @@ namespace Cesil
         {
             if (IsDisposed)
             {
-                Throw.ObjectDisposed(nameof(Partial<T>));
+                Throw.ObjectDisposedException(nameof(Partial<T>));
             }
         }
     }

@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Cesil
+﻿namespace Cesil
 {
     /// <summary>
     /// Represents the result of an attempted read operation.
@@ -27,7 +25,7 @@ namespace Cesil
             {
                 if (!HasValue)
                 {
-                    Throw.InvalidOperation($"{nameof(ReadResult<T>)} has no value");
+                    Throw.InvalidOperationException($"{nameof(ReadResult<T>)} has no value");
                 }
 
                 return _Value;

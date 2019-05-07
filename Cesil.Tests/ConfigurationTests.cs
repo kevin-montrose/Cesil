@@ -113,9 +113,8 @@ namespace Cesil.Tests
         }
 
         private static void _SingleColumn<T>( string n)
-                where T : new()
         {
-            var config = Configuration.For<T>();
+            var config = (ConcreteBoundConfiguration<T>)Configuration.For<T>();
             Assert.NotNull(config.NewCons);
 
             Assert.Collection(
@@ -185,6 +184,9 @@ namespace Cesil.Tests
             Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithWriteBufferSizeHintInternal(-1).Build());
 
             Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithReadBufferSizeHintInternal(-1).Build());
+
+            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithDynamicRowDisposalInternal(DynamicRowDisposal.None).Build());
+            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithDynamicRowDisposalInternal((DynamicRowDisposal)99).Build());
         }
     }
 #pragma warning restore IDE1006

@@ -37,7 +37,7 @@ namespace Cesil
             {
                 if (IsDisposed)
                 {
-                    Throw.ObjectDisposed(nameof(CharacterLookup));
+                    Throw.ObjectDisposedException(nameof(CharacterLookup));
                 }
             }
 
@@ -93,7 +93,7 @@ namespace Cesil
                     CurrentState = State.Record_Start;
                     break;
                 default:
-                    Throw.InvalidOperation($"Unexpected {nameof(ReadHeaders)}: {HasHeaders}");
+                    Throw.InvalidOperationException($"Unexpected {nameof(ReadHeaders)}: {HasHeaders}");
                     break;
             }
 
@@ -125,7 +125,7 @@ namespace Cesil
                     CurrentState = State.Record_Start;
                     break;
                 default:
-                    Throw.InvalidOperation($"Unexpected {nameof(ReadHeaders)}: {HasHeaders}");
+                    Throw.InvalidOperationException($"Unexpected {nameof(ReadHeaders)}: {HasHeaders}");
                     break;
             }
 
@@ -298,7 +298,7 @@ namespace Cesil
         {
             if (IsDisposed)
             {
-                Throw.ObjectDisposed(nameof(ReaderStateMachine));
+                Throw.ObjectDisposedException(nameof(ReaderStateMachine));
             }
         }
     }

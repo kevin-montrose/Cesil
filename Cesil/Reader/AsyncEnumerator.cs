@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Cesil
 {
     internal sealed class AsyncEnumerator<T>: IAsyncEnumerator<T>, ITestableAsyncDisposable
-        where T : new()
     {
         private T _Current;
         public T Current
@@ -84,7 +82,7 @@ namespace Cesil
         {
             if (IsDisposed)
             {
-                Throw.ObjectDisposed(nameof(AsyncEnumerator<T>));
+                Throw.ObjectDisposedException(nameof(AsyncEnumerator<T>));
             }
         }
     }

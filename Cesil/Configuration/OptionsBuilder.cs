@@ -80,6 +80,16 @@ namespace Cesil
         /// Set to 0 to use a default size.
         /// </summary>
         public int ReadBufferSizeHint { get; private set; }
+        /// <summary>
+        /// The instance of IDynamicTypeConverter that will be used to
+        ///   determine how to convert dynamic rows and cells into
+        ///   concrete types.
+        /// </summary>
+        public IDynamicTypeConverter DynamicTypeConverter { get; private set; }
+        /// <summary>
+        /// When to dispose any dynamic rows returned by an IReader or IAsyncReader.
+        /// </summary>
+        public DynamicRowDisposal DynamicRowDisposal { get; private set; }
 
         internal OptionsBuilder() { }
 
@@ -97,6 +107,8 @@ namespace Cesil
             CommentCharacter = copy.CommentCharacter;
             WriteBufferSizeHint = copy.WriteBufferSizeHint;
             ReadBufferSizeHint = copy.ReadBufferSizeHint;
+            DynamicTypeConverter = copy.DynamicTypeConverter;
+            DynamicRowDisposal = copy.DynamicRowDisposal;
         }
 
         /// <summary>
@@ -114,57 +126,62 @@ namespace Cesil
             // can't distinguish between the start of a value and an empty value
             if(ValueSeparator == EscapedValueStartAndEnd)
             {
-                Throw.InvalidOperation($"{nameof(ValueSeparator)} cannot equal {nameof(EscapedValueStartAndEnd)}, both are '{ValueSeparator}'");
+                Throw.InvalidOperationException($"{nameof(ValueSeparator)} cannot equal {nameof(EscapedValueStartAndEnd)}, both are '{ValueSeparator}'");
             }
             // can't distinguish between the start of a comment and an empty value
             if (ValueSeparator == CommentCharacter)
             {
-                Throw.InvalidOperation($"{nameof(ValueSeparator)} cannot equal {nameof(CommentCharacter)}, both are '{ValueSeparator}'");
+                Throw.InvalidOperationException($"{nameof(ValueSeparator)} cannot equal {nameof(CommentCharacter)}, both are '{ValueSeparator}'");
             }
             // can't distinguish between the start of an escaped value and a comment
             if (EscapedValueStartAndEnd == CommentCharacter)
             {
-                Throw.InvalidOperation($"{nameof(EscapedValueStartAndEnd)} cannot equal {nameof(CommentCharacter)}, both are '{EscapedValueStartAndEnd}'");
+                Throw.InvalidOperationException($"{nameof(EscapedValueStartAndEnd)} cannot equal {nameof(CommentCharacter)}, both are '{EscapedValueStartAndEnd}'");
             }
             // RowEnding not recognized
             if (RowEnding == RowEndings.None || !Enum.IsDefined(Types.RowEndingsType, RowEnding))
             {
-                Throw.InvalidOperation($"{nameof(RowEnding)} has an unexpected value, '{RowEnding}'");
+                Throw.InvalidOperationException($"{nameof(RowEnding)} has an unexpected value, '{RowEnding}'");
             }
             // ReadHeader not recognized
             if (ReadHeader == ReadHeaders.None || !Enum.IsDefined(Types.ReadHeadersType, ReadHeader))
             {
-                Throw.InvalidOperation($"{nameof(ReadHeader)} has an unexpected value, '{ReadHeader}'");
+                Throw.InvalidOperationException($"{nameof(ReadHeader)} has an unexpected value, '{ReadHeader}'");
             }
             // WriteHeader not recognized
             if (WriteHeader == WriteHeaders.None || !Enum.IsDefined(Types.WriteHeadersType, WriteHeader))
             {
-                Throw.InvalidOperation($"{nameof(WriteHeader)} has an unexpected value, '{WriteHeader}'");
+                Throw.InvalidOperationException($"{nameof(WriteHeader)} has an unexpected value, '{WriteHeader}'");
             }
             // TypeDescriber not configured
             if(TypeDescriber == null)
             {
-                Throw.InvalidOperation($"{nameof(TypeDescriber)} has not been set");
+                Throw.InvalidOperationException($"{nameof(TypeDescriber)} has not been set");
             }
             // WriteTrailingNewLine not recognized
             if (WriteTrailingNewLine == WriteTrailingNewLines.None || !Enum.IsDefined(Types.WriteTrailingNewLinesType, WriteTrailingNewLine))
             {
-                Throw.InvalidOperation($"{nameof(WriteTrailingNewLine)} has an unexpected value, '{WriteTrailingNewLine}'");
+                Throw.InvalidOperationException($"{nameof(WriteTrailingNewLine)} has an unexpected value, '{WriteTrailingNewLine}'");
             }
             // MemoryPool not configured
             if(MemoryPool == null)
             {
-                Throw.InvalidOperation($"{nameof(TypeDescriber)} has not been set");
+                Throw.InvalidOperationException($"{nameof(TypeDescriber)} has not been set");
             }
             // WriteBufferSizeHint < 0
             if(WriteBufferSizeHint.HasValue && WriteBufferSizeHint.Value < 0)
             {
-                Throw.InvalidOperation($"{nameof(WriteBufferSizeHint)} cannot be less than 0, is '{WriteBufferSizeHint}'");
+                Throw.InvalidOperationException($"{nameof(WriteBufferSizeHint)} cannot be less than 0, is '{WriteBufferSizeHint}'");
             }
             // ReadBufferSizeHint < 0
             if (ReadBufferSizeHint < 0)
             {
-                Throw.InvalidOperation($"{nameof(ReadBufferSizeHint)} cannot be less than 0, is '{ReadBufferSizeHint}'");
+                Throw.InvalidOperationException($"{nameof(ReadBufferSizeHint)} cannot be less than 0, is '{ReadBufferSizeHint}'");
+            }
+            // DynamicRowDisposal not recognized
+            if (DynamicRowDisposal == DynamicRowDisposal.None || !Enum.IsDefined(Types.DynamicRowDisposalType, DynamicRowDisposal))
+            {
+                Throw.InvalidOperationException($"{nameof(DynamicRowDisposal)} has an unexpected value, '{DynamicRowDisposal}'");
             }
 
             return BuildInternal();
@@ -275,6 +292,18 @@ namespace Cesil
         }
 
         /// <summary>
+        /// Set the ITypeDescriber used to discover and configure the
+        /// columns that are read and written.
+        /// </summary>
+        public OptionsBuilder WithDynamicTypeConverter(IDynamicTypeConverter converter)
+        {
+            converter = converter ?? DynamicTypeConverters.Default;
+
+            DynamicTypeConverter = converter;
+            return this;
+        }
+
+        /// <summary>
         /// Set whether or not to end the last row with a new line.
         /// </summary>
         public OptionsBuilder WithWriteTrailingNewLine(WriteTrailingNewLines w)
@@ -366,6 +395,29 @@ namespace Cesil
         internal OptionsBuilder WithReadBufferSizeHintInternal(int sizeHint)
         {
             ReadBufferSizeHint = sizeHint;
+            return this;
+        }
+
+        /// <summary>
+        /// Set when dynamic rows returned by a reader are disposed.
+        /// 
+        /// The options are either when the reader is disposed (the default) or
+        ///   when the row is explicitly disposed.
+        /// </summary>
+        public OptionsBuilder WithDynamicRowDisposal(DynamicRowDisposal d)
+        {
+            if(!Enum.IsDefined(typeof(DynamicRowDisposal), d))
+            {
+                Throw.ArgumentException($"Unexpected {nameof(DynamicRowDisposal)} value: {d}", nameof(d));
+            }
+
+            return WithDynamicRowDisposalInternal(d);
+        }
+
+        // sometimes we want to skip validation in tests
+        internal OptionsBuilder WithDynamicRowDisposalInternal(DynamicRowDisposal d)
+        {
+            DynamicRowDisposal = d;
             return this;
         }
     }

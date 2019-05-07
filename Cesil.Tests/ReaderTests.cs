@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Xunit;
@@ -12,6 +13,39 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ReaderTests
     {
+        class _StaticSetter
+        {
+            public static int Foo { get; set; }
+        }
+
+        [Fact]
+        public void StaticSetter()
+        {
+            var describer = new ManualTypeDescriber();
+            describer.AddDeserializableProperty(typeof(_StaticSetter).GetProperty(nameof(_StaticSetter.Foo), BindingFlags.Static | BindingFlags.Public));
+            describer.SetBuilderDelegate((out _StaticSetter i) => { i = new _StaticSetter(); return true; });
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+
+            RunSyncReaderVariants<_StaticSetter>(
+                opts,
+                (config, getReader) =>
+                {
+                    _StaticSetter.Foo = 123;
+
+                    using (var reader = getReader("456"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var row = csv.ReadAll();
+
+                        Assert.Collection(row, r => Assert.NotNull(r));
+                    }
+
+                    Assert.Equal(456, _StaticSetter.Foo);
+                }
+            );
+        }
+
         class _WithReset
         {
             public string A { get; set; }
@@ -1543,6 +1577,119 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             );
         }
 
+        class _Context
+        {
+            public string Foo { get; set; }
+            public int Bar { get; set; }
+        }
+
+        private static List<string> _Context_ParseFoo_Records;
+        public static bool _Context_ParseFoo(ReadOnlySpan<char> data, in ReadContext ctx, out string val)
+        {
+            _Context_ParseFoo_Records.Add($"{ctx.RowNumber},{ctx.ColumnName},{ctx.ColumnNumber},{new string(data)},{ctx.Context}");
+
+            val = new string(data);
+            return true;
+        }
+
+        private static List<string> _Context_ParseBar_Records;
+        public static bool _Context_ParseBar(ReadOnlySpan<char> data, in ReadContext ctx, out int val)
+        {
+            _Context_ParseBar_Records.Add($"{ctx.RowNumber},{ctx.ColumnName},{ctx.ColumnNumber},{new string(data)},{ctx.Context}");
+
+            if (!int.TryParse(data, out val))
+            {
+                val = default;
+                return false;
+            }
+
+            return true;
+        }
+
+        [Fact]
+        public void Context()
+        {
+            var parseFoo = typeof(ReaderTests).GetMethod(nameof(_Context_ParseFoo));
+            var parseBar = typeof(ReaderTests).GetMethod(nameof(_Context_ParseBar));
+
+            var describer = new ManualTypeDescriber(false);
+            describer.SetExplicitParameterlessConstructor(typeof(_Context).GetConstructor(Type.EmptyTypes));
+            describer.AddDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), parseFoo);
+            describer.AddDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), parseBar);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+
+            // no headers
+            {
+                RunSyncReaderVariants<_Context>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        _Context_ParseFoo_Records = new List<string>();
+                        _Context_ParseBar_Records = new List<string>();
+
+                        using (var reader = getReader("hello,123\r\nfoo,456\r\n,\r\nnope,7"))
+                        using (var csv = config.CreateReader(reader, "context!"))
+                        {
+                            var r = csv.ReadAll();
+
+                            Assert.Equal(4, r.Count);
+                        }
+
+                        Assert.Collection(
+                            _Context_ParseFoo_Records,
+                            c => Assert.Equal("0,Foo,0,hello,context!", c),
+                            c => Assert.Equal("1,Foo,0,foo,context!", c),
+                            c => Assert.Equal("2,Foo,0,,context!", c),
+                            c => Assert.Equal("3,Foo,0,nope,context!", c)
+                        );
+
+                        Assert.Collection(
+                            _Context_ParseBar_Records,
+                            c => Assert.Equal("0,Bar,1,123,context!", c),
+                            c => Assert.Equal("1,Bar,1,456,context!", c),
+                            c => Assert.Equal("3,Bar,1,7,context!", c)
+                        );
+                    }
+                );
+            }
+
+            // with headers
+            {
+                RunSyncReaderVariants<_Context>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        _Context_ParseFoo_Records = new List<string>();
+                        _Context_ParseBar_Records = new List<string>();
+
+                        using (var reader = getReader("Bar,Foo\r\n123,hello\r\n456,foo\r\n8,\r\n7,nope"))
+                        using (var csv = config.CreateReader(reader, 999))
+                        {
+                            var r = csv.ReadAll();
+
+                            Assert.Equal(4, r.Count);
+                        }
+
+                        Assert.Collection(
+                            _Context_ParseFoo_Records,
+                            c => Assert.Equal("0,Foo,1,hello,999", c),
+                            c => Assert.Equal("1,Foo,1,foo,999", c),
+                            c => Assert.Equal("3,Foo,1,nope,999", c)
+                        );
+
+                        Assert.Collection(
+                            _Context_ParseBar_Records,
+                            c => Assert.Equal("0,Bar,0,123,999", c),
+                            c => Assert.Equal("1,Bar,0,456,999", c),
+                            c => Assert.Equal("2,Bar,0,8,999", c),
+                            c => Assert.Equal("3,Bar,0,7,999", c)
+                        );
+                    }
+                );
+            }
+        }
+
         [Fact]
         public async Task WithResetAsync()
         {
@@ -3027,6 +3174,118 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     }
                 );
             }
+        }
+
+        [Fact]
+        public async Task ContextAsync()
+        {
+            var parseFoo = typeof(ReaderTests).GetMethod(nameof(_Context_ParseFoo));
+            var parseBar = typeof(ReaderTests).GetMethod(nameof(_Context_ParseBar));
+
+            var describer = new ManualTypeDescriber(false);
+            describer.SetExplicitParameterlessConstructor(typeof(_Context).GetConstructor(Type.EmptyTypes));
+            describer.AddDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), parseFoo);
+            describer.AddDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), parseBar);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+
+            // no headers
+            {
+                await RunAsyncReaderVariants<_Context>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        _Context_ParseFoo_Records = new List<string>();
+                        _Context_ParseBar_Records = new List<string>();
+
+                        using (var reader = getReader("hello,123\r\nfoo,456\r\n,\r\nnope,7"))
+                        await using (var csv = config.CreateAsyncReader(reader, -22))
+                        {
+                            var r = await csv.ReadAllAsync();
+
+                            Assert.Equal(4, r.Count);
+                        }
+
+                        Assert.Collection(
+                            _Context_ParseFoo_Records,
+                            c => Assert.Equal("0,Foo,0,hello,-22", c),
+                            c => Assert.Equal("1,Foo,0,foo,-22", c),
+                            c => Assert.Equal("2,Foo,0,,-22", c),
+                            c => Assert.Equal("3,Foo,0,nope,-22", c)
+                        );
+
+                        Assert.Collection(
+                            _Context_ParseBar_Records,
+                            c => Assert.Equal("0,Bar,1,123,-22", c),
+                            c => Assert.Equal("1,Bar,1,456,-22", c),
+                            c => Assert.Equal("3,Bar,1,7,-22", c)
+                        );
+                    }
+                );
+            }
+
+            // with headers
+            {
+                await RunAsyncReaderVariants<_Context>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        _Context_ParseFoo_Records = new List<string>();
+                        _Context_ParseBar_Records = new List<string>();
+
+                        using (var reader = getReader("Bar,Foo\r\n123,hello\r\n456,foo\r\n8,\r\n7,nope"))
+                        await using (var csv = config.CreateAsyncReader(reader, "world"))
+                        {
+                            var r = await csv.ReadAllAsync();
+
+                            Assert.Equal(4, r.Count);
+                        }
+
+                        Assert.Collection(
+                            _Context_ParseFoo_Records,
+                            c => Assert.Equal("0,Foo,1,hello,world", c),
+                            c => Assert.Equal("1,Foo,1,foo,world", c),
+                            c => Assert.Equal("3,Foo,1,nope,world", c)
+                        );
+
+                        Assert.Collection(
+                            _Context_ParseBar_Records,
+                            c => Assert.Equal("0,Bar,0,123,world", c),
+                            c => Assert.Equal("1,Bar,0,456,world", c),
+                            c => Assert.Equal("2,Bar,0,8,world", c),
+                            c => Assert.Equal("3,Bar,0,7,world", c)
+                        );
+                    }
+                );
+            }
+        }
+
+        [Fact]
+        public async Task StaticSetterAsync()
+        {
+            var describer = new ManualTypeDescriber();
+            describer.AddDeserializableProperty(typeof(_StaticSetter).GetProperty(nameof(_StaticSetter.Foo), BindingFlags.Static | BindingFlags.Public));
+            describer.SetBuilderDelegate((out _StaticSetter i) => { i = new _StaticSetter(); return true; });
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+
+            await RunAsyncReaderVariants<_StaticSetter>(
+                opts,
+                async (config, getReader) =>
+                {
+                    _StaticSetter.Foo = 123;
+
+                    using (var reader = getReader("456"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var row = await csv.ReadAllAsync();
+
+                        Assert.Collection(row, r => Assert.NotNull(r));
+                    }
+
+                    Assert.Equal(456, _StaticSetter.Foo);
+                }
+            );
         }
     }
 #pragma warning restore IDE1006

@@ -1,22 +1,24 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
 namespace Cesil
 {
-    // todo: test
-
     /// <summary>
     /// An ITypeDescriber that takes lets you register explicit members to return
     ///   when one of the EnumerateXXX() methods are called.
     /// </summary>
-    public sealed class ManualTypeDescriber: ITypeDescriber
+    public sealed class ManualTypeDescriber : ITypeDescriber
     {
         /// <summary>
         /// Whether to throw an exception if a type has no configured members
         ///   for a given EnumerateXXX() method call.
         /// </summary>
         public bool ThrowsOnNoConfiguredType { get; }
+
+        private readonly Dictionary<TypeInfo, ConstructorInfo> Constructors;
+        private readonly Dictionary<TypeInfo, (Delegate Builder, TypeInfo Constructs)> BuilderDelegates;
 
         private readonly Dictionary<TypeInfo, List<SerializableMember>> Serializers;
         private readonly Dictionary<TypeInfo, List<DeserializableMember>> Deserializers;
@@ -27,6 +29,9 @@ namespace Cesil
         public ManualTypeDescriber(bool throwOnNoConfiguredType)
         {
             ThrowsOnNoConfiguredType = throwOnNoConfiguredType;
+
+            Constructors = new Dictionary<TypeInfo, ConstructorInfo>();
+            BuilderDelegates = new Dictionary<TypeInfo, (Delegate Builder, TypeInfo Constructs)>();
             Serializers = new Dictionary<TypeInfo, List<SerializableMember>>();
             Deserializers = new Dictionary<TypeInfo, List<DeserializableMember>>();
         }
@@ -37,6 +42,72 @@ namespace Cesil
         /// Does not throw if no type is configured for a given enumeration.
         /// </summary>
         public ManualTypeDescriber() : this(false) { }
+
+        // explicit constructor
+
+        /// <summary>
+        /// Set the parameterless constructor to use when constructing new instances of 
+        ///   the constructor's declaring type.
+        /// </summary>
+        public void SetExplicitParameterlessConstructor(ConstructorInfo cons)
+        => SetExplicitParameterlessConstructor(cons?.DeclaringType?.GetTypeInfo(), cons);
+
+        /// <summary>
+        /// Set the parameterless constructor to use when constructing new instances of 
+        ///   the given type.
+        /// </summary>
+        public void SetExplicitParameterlessConstructor(TypeInfo forType, ConstructorInfo cons)
+        {
+            if (forType == null)
+            {
+                Throw.ArgumentNullException(nameof(forType));
+            }
+
+            if (cons == null)
+            {
+                Throw.ArgumentNullException(nameof(cons));
+            }
+
+            var createdType = cons.DeclaringType.GetTypeInfo();
+            if (!forType.IsAssignableFrom(createdType))
+            {
+                Throw.InvalidOperationException($"{forType} cannot be assigned from {createdType}, constructed by {cons}");
+            }
+
+            Constructors[forType] = cons;
+        }
+
+        /// <summary>
+        /// Set the delegate to use when constructing new instances of 
+        ///   type T.
+        /// </summary>
+        public void SetBuilderDelegate<T>(InstanceBuilderDelegate<T> del)
+        => SetBuilderDelegate(typeof(T).GetTypeInfo(), del);
+
+        /// <summary>
+        /// Set the delegate to use when constructing new instances of 
+        ///   the given type.
+        /// </summary>
+        public void SetBuilderDelegate<T>(TypeInfo forType, InstanceBuilderDelegate<T> del)
+        {
+            if (forType == null)
+            {
+                Throw.ArgumentNullException(nameof(forType));
+            }
+
+            if (del == null)
+            {
+                Throw.ArgumentNullException(nameof(del));
+            }
+
+            var createdType = typeof(T).GetTypeInfo();
+            if (!forType.IsAssignableFrom(createdType))
+            {
+                Throw.InvalidOperationException($"{forType} cannot be assigned from {createdType}, constructed by {del}");
+            }
+
+            BuilderDelegates[forType] = (del, createdType);
+        }
 
         // explicit getter
 
@@ -191,7 +262,7 @@ namespace Cesil
 
             if(field == null && getter == null)
             {
-                Throw.InvalidOperation($"One of {nameof(field)} and {nameof(getter)} must be set");
+                Throw.InvalidOperationException($"One of {nameof(field)} and {nameof(getter)} must be set");
             }
 
             if(name == null)
@@ -325,13 +396,13 @@ namespace Cesil
         /// Add a field to deserialize for the given type.
         /// </summary>
         public void AddDeserializableField(TypeInfo forType, FieldInfo field)
-        => AddDeserializeMember(forType, field, null, field?.Name, DeserializableMember.GetDefaultParser(field?.DeclaringType?.GetTypeInfo()), false, null);
+        => AddDeserializeMember(forType, field, null, field?.Name, DeserializableMember.GetDefaultParser(field?.FieldType?.GetTypeInfo()), false, null);
 
         /// <summary>
         /// Add a field to deserialize for the given type with the given name.
         /// </summary>
         public void AddDeserializableField(TypeInfo forType, FieldInfo field, string name)
-        => AddDeserializeMember(forType, field, null, name, DeserializableMember.GetDefaultParser(field?.DeclaringType?.GetTypeInfo()), false, null);
+        => AddDeserializeMember(forType, field, null, name, DeserializableMember.GetDefaultParser(field?.FieldType?.GetTypeInfo()), false, null);
 
         /// <summary>
         /// Add a field to deserialize for the given type with the given name and parser.
@@ -355,13 +426,13 @@ namespace Cesil
         /// Add a field to deserialize for the type which declares the field.
         /// </summary>
         public void AddDeserializableField(FieldInfo field)
-        => AddDeserializeMember(field?.DeclaringType?.GetTypeInfo(), field, null, field?.Name, DeserializableMember.GetDefaultParser(field?.DeclaringType?.GetTypeInfo()), false, null);
+        => AddDeserializeMember(field?.DeclaringType?.GetTypeInfo(), field, null, field?.Name, DeserializableMember.GetDefaultParser(field?.FieldType?.GetTypeInfo()), false, null);
 
         /// <summary>
         /// Add a field to deserialize with the given name - for the type which declares the field.
         /// </summary>
         public void AddDeserializableField(FieldInfo field, string name)
-        => AddDeserializeMember(field?.DeclaringType?.GetTypeInfo(), field, null, name, DeserializableMember.GetDefaultParser(field?.DeclaringType?.GetTypeInfo()), false, null);
+        => AddDeserializeMember(field?.DeclaringType?.GetTypeInfo(), field, null, name, DeserializableMember.GetDefaultParser(field?.FieldType?.GetTypeInfo()), false, null);
 
         /// <summary>
         /// Add a field to deserialize with the given name and parser - for the type which declares the field.
@@ -387,13 +458,13 @@ namespace Cesil
         /// Add a property to deserialize for the given type.
         /// </summary>
         public void AddDeserializableProperty(TypeInfo forType, PropertyInfo prop)
-        => AddDeserializeMember(forType, null, prop?.SetMethod, prop?.Name, DeserializableMember.GetDefaultParser(prop?.DeclaringType?.GetTypeInfo()), false, null);
+        => AddDeserializeMember(forType, null, prop?.SetMethod, prop?.Name, DeserializableMember.GetDefaultParser(prop?.PropertyType?.GetTypeInfo()), false, null);
 
         /// <summary>
         /// Add a property to deserialize for the given type with the given name.
         /// </summary>
         public void AddDeserializableProperty(TypeInfo forType, PropertyInfo prop, string name)
-        => AddDeserializeMember(forType, null, prop?.SetMethod, name, DeserializableMember.GetDefaultParser(prop?.DeclaringType?.GetTypeInfo()), false, null);
+        => AddDeserializeMember(forType, null, prop?.SetMethod, name, DeserializableMember.GetDefaultParser(prop?.PropertyType?.GetTypeInfo()), false, null);
 
         /// <summary>
         /// Add a property to deserialize for the given type with the given name and parser.
@@ -417,13 +488,13 @@ namespace Cesil
         /// Add a property to deserialize for the type which declares the property.
         /// </summary>
         public void AddDeserializableProperty(PropertyInfo prop)
-        => AddDeserializeMember(prop?.DeclaringType?.GetTypeInfo(), null, prop?.SetMethod, prop?.Name, DeserializableMember.GetDefaultParser(prop?.DeclaringType?.GetTypeInfo()), false, null);
+        => AddDeserializeMember(prop?.DeclaringType?.GetTypeInfo(), null, prop?.SetMethod, prop?.Name, DeserializableMember.GetDefaultParser(prop?.PropertyType?.GetTypeInfo()), false, null);
 
         /// <summary>
         /// Add a property to deserialize with the given name - for the type which declares the property.
         /// </summary>
         public void AddDeserializableProperty(PropertyInfo prop, string name)
-        => AddDeserializeMember(prop?.DeclaringType?.GetTypeInfo(), null, prop?.SetMethod, name, DeserializableMember.GetDefaultParser(prop?.DeclaringType?.GetTypeInfo()), false, null);
+        => AddDeserializeMember(prop?.DeclaringType?.GetTypeInfo(), null, prop?.SetMethod, name, DeserializableMember.GetDefaultParser(prop?.PropertyType?.GetTypeInfo()), false, null);
 
         /// <summary>
         /// Add a property to deserialize with the given name and parser - for the type which declares the property.
@@ -452,7 +523,7 @@ namespace Cesil
 
             if (field == null && setter == null)
             {
-                Throw.InvalidOperation($"One of {nameof(field)} and {nameof(setter)} must be set");
+                Throw.InvalidOperationException($"One of {nameof(field)} and {nameof(setter)} must be set");
             }
 
             if (name == null)
@@ -479,6 +550,43 @@ namespace Cesil
         }
 
         /// <summary>
+        /// Returns an InstanceBuilder that can construct the given type.
+        /// 
+        /// If neither a parameterless constructor nor a delegate has been
+        ///    configured, will throw an exception.
+        ///    
+        /// If both a parameterless constructor and a delegate have been
+        ///   configured, will also throw an exception.
+        /// </summary>
+        public InstanceBuilder GetInstanceBuilder(TypeInfo forType)
+        {
+            if(forType == null)
+            {
+                Throw.ArgumentNullException(nameof(forType));
+            }
+
+            var hasCons = Constructors.TryGetValue(forType, out var cons);
+            var hasDel = BuilderDelegates.TryGetValue(forType, out var del);
+
+            if(hasCons && hasDel)
+            {
+                Throw.InvalidOperationException($"Both constructor and delegate configured for building {forType}, only one should be configured");
+            }
+
+            if(!hasCons && !hasDel)
+            {
+                Throw.InvalidOperationException($"Neither constructor nor delegate configured for building {forType}, one must be configured");
+            }
+
+            if(cons != null)
+            {
+                return new InstanceBuilder(cons);
+            }
+
+            return new InstanceBuilder(del.Builder, del.Constructs);
+        }
+
+        /// <summary>
         /// Enumerate all the members on forType to deserialize.
         /// 
         /// If no members have been added for deserialization, will either return
@@ -491,7 +599,7 @@ namespace Cesil
             {
                 if (ThrowsOnNoConfiguredType)
                 {
-                    Throw.InvalidOperation($"No configured members to deserialize for {forType} ({nameof(ThrowsOnNoConfiguredType)} is set)");
+                    Throw.InvalidOperationException($"No configured members to deserialize for {forType} ({nameof(ThrowsOnNoConfiguredType)} is set)");
                 }
 
                 return Enumerable.Empty<DeserializableMember>();
@@ -513,7 +621,7 @@ namespace Cesil
             {
                 if (ThrowsOnNoConfiguredType)
                 {
-                    Throw.InvalidOperation($"No configured members to serialize for {forType} ({nameof(ThrowsOnNoConfiguredType)} is set)");
+                    Throw.InvalidOperationException($"No configured members to serialize for {forType} ({nameof(ThrowsOnNoConfiguredType)} is set)");
                 }
 
                 return Enumerable.Empty<SerializableMember>();

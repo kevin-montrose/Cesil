@@ -17,8 +17,8 @@ namespace Cesil
             var ret = new Dictionary<TypeInfo, MethodInfo>();
             foreach (var mtd in Types.DefaultTypeParsersType.GetMethods(BindingFlags.Static | BindingFlags.NonPublic))
             {
-                var secondArg = mtd.GetParameters()[1];
-                var forType = secondArg.ParameterType.GetElementType().GetTypeInfo();
+                var thirdArg = mtd.GetParameters()[2];
+                var forType = thirdArg.ParameterType.GetElementType().GetTypeInfo();
 
                 ret.Add(forType, mtd);
             }
@@ -187,12 +187,12 @@ namespace Cesil
 
             if (field == null && setter == null)
             {
-                Throw.InvalidOperation($"At least one of {nameof(field)} and {nameof(setter)} must be non-null");
+                Throw.InvalidOperationException($"At least one of {nameof(field)} and {nameof(setter)} must be non-null");
             }
 
             if (field != null && setter != null)
             {
-                Throw.InvalidOperation($"Only one of {nameof(field)} and {nameof(setter)} can be non-null");
+                Throw.InvalidOperationException($"Only one of {nameof(field)} and {nameof(setter)} can be non-null");
             }
 
             if (parser == null)
@@ -208,7 +208,7 @@ namespace Cesil
             TypeInfo valueType;
 
             // setter must take single parameter (the result of parser)
-            //   can be instance or static                                  // todo: do we have tests for both?
+            //   can be instance or static
             //   and cannot return a value
             // -- OR --
             // setter must take two parameters, 
@@ -270,6 +270,7 @@ namespace Cesil
             // parser must
             //   be a static method
             //   take a ReadOnlySpan<char>
+            //   take an in ReadContext
             //   have an out parameter of a type assignable to the parameter of setter
             //   and return a boolean
             {
@@ -279,13 +280,14 @@ namespace Cesil
                 }
 
                 var args = parser.GetParameters();
-                if (args.Length != 2)
+                if (args.Length != 3)
                 {
-                    Throw.ArgumentException($"{nameof(parser)} must have two parameters", nameof(parser));
+                    Throw.ArgumentException($"{nameof(parser)} must have three parameters", nameof(parser));
                 }
 
                 var p1 = args[0].ParameterType.GetTypeInfo();
                 var p2 = args[1].ParameterType.GetTypeInfo();
+                var p3 = args[2].ParameterType.GetTypeInfo();
 
                 if (p1 != Types.ReadOnlySpanOfCharType)
                 {
@@ -294,13 +296,24 @@ namespace Cesil
 
                 if (!p2.IsByRef)
                 {
-                    Throw.ArgumentException($"The second parameter of {nameof(parser)} must be an out", nameof(parser));
+                    Throw.ArgumentException($"The second parameter of {nameof(parser)} must be an in", nameof(parser));
                 }
 
-                var underlying = p2.GetElementType().GetTypeInfo();
+                var p2Elem = p2.GetElementType().GetTypeInfo();
+                if (p2Elem != Types.ReadContextType)
+                {
+                    Throw.ArgumentException($"The second parameter of {nameof(parser)} must be a {nameof(ReadContext)}", nameof(parser));
+                }
+
+                if (!p3.IsByRef)
+                {
+                    Throw.ArgumentException($"The third parameter of {nameof(parser)} must be an out", nameof(parser));
+                }
+
+                var underlying = p3.GetElementType().GetTypeInfo();
                 if (!valueType.IsAssignableFrom(underlying))
                 {
-                    Throw.ArgumentException($"The second parameter of {nameof(parser)} must be an out assignable to {valueType.FullName} (the value passed to {nameof(setter)})", nameof(parser));
+                    Throw.ArgumentException($"The third parameter of {nameof(parser)} must be an out assignable to {valueType.FullName} (the value passed to {nameof(setter)})", nameof(parser));
                 }
 
                 var parserRetType = parser.ReturnType.GetTypeInfo();

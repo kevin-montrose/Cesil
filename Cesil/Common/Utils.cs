@@ -14,7 +14,7 @@ namespace Cesil
             {
                 if (oldSize >= pool.MaxBufferSize)
                 {
-                    Throw.InvalidOperation($"Needed a larger memory segment than could be requested, needed {newSize:N0}; {nameof(MemoryPool<T>.MaxBufferSize)} = {pool.MaxBufferSize:N0}");
+                    Throw.InvalidOperationException($"Needed a larger memory segment than could be requested, needed {newSize:N0}; {nameof(MemoryPool<T>.MaxBufferSize)} = {pool.MaxBufferSize:N0}");
                 }
 
                 requestSize = pool.MaxBufferSize;
@@ -198,12 +198,10 @@ namespace Cesil
             return -1;
         }
 
-        internal static int FindNeedsEncode<T>(ReadOnlyMemory<char> head, int start, BoundConfiguration<T> config)
-            where T : new()
+        internal static int FindNeedsEncode<T>(ReadOnlyMemory<char> head, int start, BoundConfigurationBase<T> config)
         => FindNeedsEncode(head.Span, start, config);
 
-        internal static int FindNeedsEncode<T>(ReadOnlySpan<char> span, int start, BoundConfiguration<T> config)
-            where T : new()
+        internal static int FindNeedsEncode<T>(ReadOnlySpan<char> span, int start, BoundConfigurationBase<T> config)
         {
             if(config.CommentChar == null)
             {
@@ -213,8 +211,7 @@ namespace Cesil
             return FindNeedsEncodeWithComment(span, start, config);
         }
 
-        private static unsafe int FindNeedsEncodeNoComment<T>(ReadOnlySpan<char> span, int start, BoundConfiguration<T> config)
-            where T:new()
+        private static unsafe int FindNeedsEncodeNoComment<T>(ReadOnlySpan<char> span, int start, BoundConfigurationBase<T> config)
         {
             var sepChar = config.ValueSeparator;
             var escapeValueChar = config.EscapedValueStartAndStop;
@@ -253,8 +250,7 @@ namespace Cesil
             return -1;
         }
 
-        private static unsafe int FindNeedsEncodeWithComment<T>(ReadOnlySpan<char> span, int start, BoundConfiguration<T> config)
-            where T : new()
+        private static unsafe int FindNeedsEncodeWithComment<T>(ReadOnlySpan<char> span, int start, BoundConfigurationBase<T> config)
         {
             var sepChar = config.ValueSeparator;
             var escapeValueChar = config.EscapedValueStartAndStop;
@@ -295,8 +291,7 @@ namespace Cesil
             return -1;
         }
 
-        internal static int FindNeedsEncode<T>(ReadOnlySequence<char> head, int start, BoundConfiguration<T> config)
-            where T : new()
+        internal static int FindNeedsEncode<T>(ReadOnlySequence<char> head, int start, BoundConfigurationBase<T> config)
         {
             if (head.IsSingleSegment)
             {

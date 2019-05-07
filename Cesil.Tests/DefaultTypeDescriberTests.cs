@@ -15,7 +15,7 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class DefaultTypeDescriberTests
     {
-        private delegate bool Parse<T>(ReadOnlySpan<char> foo, out T val);
+        private delegate bool Parse<T>(ReadOnlySpan<char> foo, in ReadContext ctx, out T val);
 
 
         private enum _TestEnum
@@ -49,13 +49,13 @@ namespace Cesil.Tests
 
                 var del = (Parse<string>)Delegate.CreateDelegate(typeof(Parse<string>), mtd);
 
-                Assert.True(del("123", out var v1));
+                Assert.True(del("123", default, out var v1));
                 Assert.Equal("123", v1);
 
-                Assert.True(del("-123", out var v2));
+                Assert.True(del("-123", default, out var v2));
                 Assert.Equal("-123", v2);
 
-                Assert.True(del("foo", out var v3));
+                Assert.True(del("foo", default, out var v3));
                 Assert.Equal("foo", v3);
             }
 
@@ -66,18 +66,18 @@ namespace Cesil.Tests
 
                 var del = (Parse<_TestEnum>)Delegate.CreateDelegate(typeof(Parse<_TestEnum>), mtd);
 
-                Assert.True(del(_TestEnum.None.ToString(), out var v1));
+                Assert.True(del(_TestEnum.None.ToString(), default, out var v1));
                 Assert.Equal(_TestEnum.None, v1);
 
-                Assert.True(del(_TestEnum.Foo.ToString(), out var v2));
+                Assert.True(del(_TestEnum.Foo.ToString(), default, out var v2));
                 Assert.Equal(_TestEnum.Foo, v2);
 
-                Assert.True(del(_TestEnum.Bar.ToString(), out var v3));
+                Assert.True(del(_TestEnum.Bar.ToString(), default, out var v3));
                 Assert.Equal(_TestEnum.Bar, v3);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
 
-                Assert.False(del("123", out _));
+                Assert.False(del("123", default, out _));
             }
 
             // flags enum
@@ -87,18 +87,18 @@ namespace Cesil.Tests
 
                 var del = (Parse<_TestFlagsEnum>)Delegate.CreateDelegate(typeof(Parse<_TestFlagsEnum>), mtd);
 
-                Assert.True(del(_TestFlagsEnum.None.ToString(), out var v1));
+                Assert.True(del(_TestFlagsEnum.None.ToString(), default, out var v1));
                 Assert.Equal(_TestFlagsEnum.None, v1);
 
-                Assert.True(del(_TestFlagsEnum.Multi.ToString(), out var v2));
+                Assert.True(del(_TestFlagsEnum.Multi.ToString(), default, out var v2));
                 Assert.Equal(_TestFlagsEnum.Multi, v2);
 
-                Assert.True(del((_TestFlagsEnum.First | _TestFlagsEnum.Second).ToString(), out var v3));
+                Assert.True(del((_TestFlagsEnum.First | _TestFlagsEnum.Second).ToString(), default, out var v3));
                 Assert.Equal((_TestFlagsEnum.First | _TestFlagsEnum.Second), v3);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
 
-                Assert.False(del("123", out _));
+                Assert.False(del("123", default, out _));
             }
 
             // char
@@ -108,10 +108,10 @@ namespace Cesil.Tests
 
                 var del = (Parse<char>)Delegate.CreateDelegate(typeof(Parse<char>), mtd);
 
-                Assert.True(del("t", out var v1));
+                Assert.True(del("t", default, out var v1));
                 Assert.Equal('t', v1);
                 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // bool
@@ -121,19 +121,19 @@ namespace Cesil.Tests
 
                 var del = (Parse<bool>)Delegate.CreateDelegate(typeof(Parse<bool>), mtd);
 
-                Assert.True(del("true", out var v1));
+                Assert.True(del("true", default, out var v1));
                 Assert.True(v1);
 
-                Assert.True(del("false", out var v2));
+                Assert.True(del("false", default, out var v2));
                 Assert.False(v2);
 
-                Assert.True(del("True", out var v3));
+                Assert.True(del("True", default, out var v3));
                 Assert.True(v3);
 
-                Assert.True(del("False", out var v4));
+                Assert.True(del("False", default, out var v4));
                 Assert.False(v4);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // byte
@@ -143,12 +143,12 @@ namespace Cesil.Tests
 
                 var del = (Parse<byte>)Delegate.CreateDelegate(typeof(Parse<byte>), mtd);
 
-                Assert.True(del("123", out var v1));
+                Assert.True(del("123", default, out var v1));
                 Assert.Equal((byte)123, v1);
 
-                Assert.False(del("-123", out _));
+                Assert.False(del("-123", default, out _));
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // sbyte
@@ -158,13 +158,13 @@ namespace Cesil.Tests
 
                 var del = (Parse<sbyte>)Delegate.CreateDelegate(typeof(Parse<sbyte>), mtd);
 
-                Assert.True(del("123", out var v1));
+                Assert.True(del("123", default, out var v1));
                 Assert.Equal((sbyte)123, v1);
 
-                Assert.True(del("-123", out var v2));
+                Assert.True(del("-123", default, out var v2));
                 Assert.Equal((sbyte)-123, v2);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // short
@@ -174,13 +174,13 @@ namespace Cesil.Tests
 
                 var del = (Parse<short>)Delegate.CreateDelegate(typeof(Parse<short>), mtd);
 
-                Assert.True(del("123", out var v1));
+                Assert.True(del("123", default, out var v1));
                 Assert.Equal((short)123, v1);
 
-                Assert.True(del("-123", out var v2));
+                Assert.True(del("-123", default, out var v2));
                 Assert.Equal((short)-123, v2);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // ushort
@@ -190,12 +190,12 @@ namespace Cesil.Tests
 
                 var del = (Parse<ushort>)Delegate.CreateDelegate(typeof(Parse<ushort>), mtd);
 
-                Assert.True(del("123", out var v1));
+                Assert.True(del("123", default, out var v1));
                 Assert.Equal((ushort)123, v1);
 
-                Assert.False(del("-123", out _));
+                Assert.False(del("-123", default, out _));
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // int
@@ -205,13 +205,13 @@ namespace Cesil.Tests
 
                 var del = (Parse<int>)Delegate.CreateDelegate(typeof(Parse<int>), mtd);
 
-                Assert.True(del("123", out var v1));
+                Assert.True(del("123", default, out var v1));
                 Assert.Equal(123, v1);
 
-                Assert.True(del("-123", out var v2));
+                Assert.True(del("-123", default, out var v2));
                 Assert.Equal(-123, v2);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // uint
@@ -221,12 +221,12 @@ namespace Cesil.Tests
 
                 var del = (Parse<uint>)Delegate.CreateDelegate(typeof(Parse<uint>), mtd);
 
-                Assert.True(del("123", out var v1));
+                Assert.True(del("123", default, out var v1));
                 Assert.Equal((uint)123, v1);
 
-                Assert.False(del("-123", out _));
+                Assert.False(del("-123", default, out _));
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // long
@@ -236,13 +236,13 @@ namespace Cesil.Tests
 
                 var del = (Parse<long>)Delegate.CreateDelegate(typeof(Parse<long>), mtd);
 
-                Assert.True(del("123", out var v1));
+                Assert.True(del("123", default, out var v1));
                 Assert.Equal(123L, v1);
 
-                Assert.True(del("-123", out var v2));
+                Assert.True(del("-123", default, out var v2));
                 Assert.Equal(-123L, v2);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // ulong
@@ -252,12 +252,12 @@ namespace Cesil.Tests
 
                 var del = (Parse<ulong>)Delegate.CreateDelegate(typeof(Parse<ulong>), mtd);
 
-                Assert.True(del("123", out var v1));
+                Assert.True(del("123", default, out var v1));
                 Assert.Equal((ulong)123, v1);
 
-                Assert.False(del("-123", out _));
+                Assert.False(del("-123", default, out _));
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // float
@@ -267,13 +267,13 @@ namespace Cesil.Tests
 
                 var del = (Parse<float>)Delegate.CreateDelegate(typeof(Parse<float>), mtd);
 
-                Assert.True(del("123.45", out var v1));
+                Assert.True(del("123.45", default, out var v1));
                 Assert.Equal(123.45f, v1);
 
-                Assert.True(del("-123.45", out var v2));
+                Assert.True(del("-123.45", default, out var v2));
                 Assert.Equal(-123.45f, v2);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // double
@@ -283,13 +283,13 @@ namespace Cesil.Tests
 
                 var del = (Parse<double>)Delegate.CreateDelegate(typeof(Parse<double>), mtd);
 
-                Assert.True(del("123.45", out var v1));
+                Assert.True(del("123.45", default, out var v1));
                 Assert.Equal(123.45, v1);
 
-                Assert.True(del("-123.45", out var v2));
+                Assert.True(del("-123.45", default, out var v2));
                 Assert.Equal(-123.45, v2);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // decimal
@@ -299,13 +299,13 @@ namespace Cesil.Tests
 
                 var del = (Parse<decimal>)Delegate.CreateDelegate(typeof(Parse<decimal>), mtd);
 
-                Assert.True(del("123.45", out var v1));
+                Assert.True(del("123.45", default, out var v1));
                 Assert.Equal(123.45m, v1);
 
-                Assert.True(del("-123.45", out var v2));
+                Assert.True(del("-123.45", default, out var v2));
                 Assert.Equal(-123.45m, v2);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // Guid
@@ -317,22 +317,22 @@ namespace Cesil.Tests
 
                 var del = (Parse<Guid>)Delegate.CreateDelegate(typeof(Parse<Guid>), mtd);
 
-                Assert.True(del("fe754e30-49c2-4875-b905-cbd6f237ddfd", out var v1));
+                Assert.True(del("fe754e30-49c2-4875-b905-cbd6f237ddfd", default, out var v1));
                 Assert.Equal(shouldMatch, v1);
 
-                Assert.True(del("fe754e3049c24875b905cbd6f237ddfd", out var v2));
+                Assert.True(del("fe754e3049c24875b905cbd6f237ddfd", default, out var v2));
                 Assert.Equal(shouldMatch, v2);
 
-                Assert.True(del("{fe754e30-49c2-4875-b905-cbd6f237ddfd}", out var v3));
+                Assert.True(del("{fe754e30-49c2-4875-b905-cbd6f237ddfd}", default, out var v3));
                 Assert.Equal(shouldMatch, v3);
 
-                Assert.True(del("(fe754e30-49c2-4875-b905-cbd6f237ddfd)", out var v4));
+                Assert.True(del("(fe754e30-49c2-4875-b905-cbd6f237ddfd)", default, out var v4));
                 Assert.Equal(shouldMatch, v4);
 
-                Assert.True(del("{0xfe754e30,0x49c2,0x4875,{0xb9,0x05,0xcb,0xd6,0xf2,0x37,0xdd,0xfd}}", out var v5));
+                Assert.True(del("{0xfe754e30,0x49c2,0x4875,{0xb9,0x05,0xcb,0xd6,0xf2,0x37,0xdd,0xfd}}", default, out var v5));
                 Assert.Equal(shouldMatch, v5);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // TimeSpan
@@ -343,11 +343,11 @@ namespace Cesil.Tests
                 var del = (Parse<TimeSpan>)Delegate.CreateDelegate(typeof(Parse<TimeSpan>), mtd);
 
                 // max
-                Assert.True(del(TimeSpan.MaxValue.ToString("c"), out var v1));
+                Assert.True(del(TimeSpan.MaxValue.ToString("c"), default, out var v1));
                 Assert.Equal(TimeSpan.MaxValue, v1);
 
                 // min
-                Assert.True(del(TimeSpan.MinValue.ToString("c"), out var v2));
+                Assert.True(del(TimeSpan.MinValue.ToString("c"), default, out var v2));
                 Assert.Equal(TimeSpan.MinValue, v2);
             }
         }
@@ -362,21 +362,21 @@ namespace Cesil.Tests
 
                 var del = (Parse<_TestEnum?>)Delegate.CreateDelegate(typeof(Parse<_TestEnum?>), mtd);
 
-                Assert.True(del(_TestEnum.None.ToString(), out var v1));
+                Assert.True(del(_TestEnum.None.ToString(), default, out var v1));
                 Assert.Equal((_TestEnum?)_TestEnum.None, v1);
 
-                Assert.True(del(_TestEnum.Foo.ToString(), out var v2));
+                Assert.True(del(_TestEnum.Foo.ToString(), default, out var v2));
                 Assert.Equal((_TestEnum?)_TestEnum.Foo, v2);
 
-                Assert.True(del(_TestEnum.Bar.ToString(), out var v3));
+                Assert.True(del(_TestEnum.Bar.ToString(), default, out var v3));
                 Assert.Equal((_TestEnum?)_TestEnum.Bar, v3);
 
-                Assert.True(del("", out var v4));
+                Assert.True(del("", default, out var v4));
                 Assert.Equal((_TestEnum?)null, v4);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
 
-                Assert.False(del("123", out _));
+                Assert.False(del("123", default, out _));
             }
 
             // flags enum?
@@ -386,21 +386,21 @@ namespace Cesil.Tests
 
                 var del = (Parse<_TestFlagsEnum?>)Delegate.CreateDelegate(typeof(Parse<_TestFlagsEnum?>), mtd);
 
-                Assert.True(del(((_TestFlagsEnum?)_TestFlagsEnum.None).ToString(), out var v1));
+                Assert.True(del(((_TestFlagsEnum?)_TestFlagsEnum.None).ToString(), default, out var v1));
                 Assert.Equal((_TestFlagsEnum?)_TestFlagsEnum.None, v1);
 
-                Assert.True(del(((_TestFlagsEnum?)_TestFlagsEnum.Multi).ToString(), out var v2));
+                Assert.True(del(((_TestFlagsEnum?)_TestFlagsEnum.Multi).ToString(), default, out var v2));
                 Assert.Equal((_TestFlagsEnum?)_TestFlagsEnum.Multi, v2);
 
-                Assert.True(del(((_TestFlagsEnum?)(_TestFlagsEnum.First | _TestFlagsEnum.Second)).ToString(), out var v3));
+                Assert.True(del(((_TestFlagsEnum?)(_TestFlagsEnum.First | _TestFlagsEnum.Second)).ToString(), default, out var v3));
                 Assert.Equal((_TestFlagsEnum?)(_TestFlagsEnum.First | _TestFlagsEnum.Second), v3);
 
-                Assert.True(del("", out var v4));
+                Assert.True(del("", default, out var v4));
                 Assert.Equal((_TestFlagsEnum?)null, v4);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
 
-                Assert.False(del("123", out _));
+                Assert.False(del("123", default, out _));
             }
 
             // char?
@@ -410,13 +410,13 @@ namespace Cesil.Tests
 
                 var del = (Parse<char?>)Delegate.CreateDelegate(typeof(Parse<char?>), mtd);
 
-                Assert.True(del("t", out var v1));
+                Assert.True(del("t", default, out var v1));
                 Assert.Equal('t', v1.Value);
 
-                Assert.True(del("", out var v2));
+                Assert.True(del("", default, out var v2));
                 Assert.Equal((char?)null, v2);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // bool?
@@ -426,22 +426,22 @@ namespace Cesil.Tests
 
                 var del = (Parse<bool?>)Delegate.CreateDelegate(typeof(Parse<bool?>), mtd);
 
-                Assert.True(del("true", out var v1));
+                Assert.True(del("true", default, out var v1));
                 Assert.True(v1.Value);
 
-                Assert.True(del("false", out var v2));
+                Assert.True(del("false", default, out var v2));
                 Assert.False(v2.Value);
 
-                Assert.True(del("True", out var v3));
+                Assert.True(del("True", default, out var v3));
                 Assert.True(v3.Value);
 
-                Assert.True(del("False", out var v4));
+                Assert.True(del("False", default, out var v4));
                 Assert.False(v4.Value);
 
-                Assert.True(del("", out var v5));
+                Assert.True(del("", default, out var v5));
                 Assert.Equal((bool?)null, v5);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // byte?
@@ -451,15 +451,15 @@ namespace Cesil.Tests
 
                 var del = (Parse<byte?>)Delegate.CreateDelegate(typeof(Parse<byte?>), mtd);
 
-                Assert.True(del("123", out var v1));
+                Assert.True(del("123", default, out var v1));
                 Assert.Equal((byte?)123, v1);
 
-                Assert.True(del("", out var v2));
+                Assert.True(del("", default, out var v2));
                 Assert.Equal((byte?)null, v2);
 
-                Assert.False(del("-123", out _));
+                Assert.False(del("-123", default, out _));
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // sbyte?
@@ -469,16 +469,16 @@ namespace Cesil.Tests
 
                 var del = (Parse<sbyte?>)Delegate.CreateDelegate(typeof(Parse<sbyte?>), mtd);
 
-                Assert.True(del("123", out var v1));
+                Assert.True(del("123", default, out var v1));
                 Assert.Equal((sbyte?)123, v1);
 
-                Assert.True(del("-123", out var v2));
+                Assert.True(del("-123", default, out var v2));
                 Assert.Equal((sbyte?)-123, v2);
 
-                Assert.True(del("", out var v3));
+                Assert.True(del("", default, out var v3));
                 Assert.Equal((sbyte?)null, v3);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // short?
@@ -488,16 +488,16 @@ namespace Cesil.Tests
 
                 var del = (Parse<short?>)Delegate.CreateDelegate(typeof(Parse<short?>), mtd);
 
-                Assert.True(del("123", out var v1));
+                Assert.True(del("123", default, out var v1));
                 Assert.Equal((short?)123, v1);
 
-                Assert.True(del("-123", out var v2));
+                Assert.True(del("-123", default, out var v2));
                 Assert.Equal((short?)-123, v2);
 
-                Assert.True(del("", out var v3));
+                Assert.True(del("", default, out var v3));
                 Assert.Equal((short?)null, v3);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // ushort?
@@ -507,15 +507,15 @@ namespace Cesil.Tests
 
                 var del = (Parse<ushort?>)Delegate.CreateDelegate(typeof(Parse<ushort?>), mtd);
 
-                Assert.True(del("123", out var v1));
+                Assert.True(del("123", default, out var v1));
                 Assert.Equal((ushort?)123, v1);
 
-                Assert.True(del("", out var v2));
+                Assert.True(del("", default, out var v2));
                 Assert.Equal((ushort?)null, v2);
 
-                Assert.False(del("-123", out _));
+                Assert.False(del("-123", default, out _));
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // int?
@@ -525,16 +525,16 @@ namespace Cesil.Tests
 
                 var del = (Parse<int?>)Delegate.CreateDelegate(typeof(Parse<int?>), mtd);
 
-                Assert.True(del("123", out var v1));
+                Assert.True(del("123", default, out var v1));
                 Assert.Equal((int?)123, v1);
 
-                Assert.True(del("-123", out var v2));
+                Assert.True(del("-123", default, out var v2));
                 Assert.Equal((int?)-123, v2);
 
-                Assert.True(del("", out var v3));
+                Assert.True(del("", default, out var v3));
                 Assert.Equal((int?)null, v3);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // uint?
@@ -544,15 +544,15 @@ namespace Cesil.Tests
 
                 var del = (Parse<uint?>)Delegate.CreateDelegate(typeof(Parse<uint?>), mtd);
 
-                Assert.True(del("123", out var v1));
+                Assert.True(del("123", default, out var v1));
                 Assert.Equal((uint?)123, v1);
 
-                Assert.True(del("", out var v2));
+                Assert.True(del("", default, out var v2));
                 Assert.Equal((uint?)null, v2);
 
-                Assert.False(del("-123", out _));
+                Assert.False(del("-123", default, out _));
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // long?
@@ -562,16 +562,16 @@ namespace Cesil.Tests
 
                 var del = (Parse<long?>)Delegate.CreateDelegate(typeof(Parse<long?>), mtd);
 
-                Assert.True(del("123", out var v1));
+                Assert.True(del("123", default, out var v1));
                 Assert.Equal((long?)123, v1);
 
-                Assert.True(del("-123", out var v2));
+                Assert.True(del("-123", default, out var v2));
                 Assert.Equal((long?)-123, v2);
 
-                Assert.True(del("", out var v3));
+                Assert.True(del("", default, out var v3));
                 Assert.Equal((long?)null, v3);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // ulong?
@@ -581,15 +581,15 @@ namespace Cesil.Tests
 
                 var del = (Parse<ulong?>)Delegate.CreateDelegate(typeof(Parse<ulong?>), mtd);
 
-                Assert.True(del("123", out var v1));
+                Assert.True(del("123", default, out var v1));
                 Assert.Equal((ulong?)123, v1);
 
-                Assert.True(del("", out var v2));
+                Assert.True(del("", default, out var v2));
                 Assert.Equal((ulong?)null, v2);
 
-                Assert.False(del("-123", out _));
+                Assert.False(del("-123", default, out _));
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // float?
@@ -599,16 +599,16 @@ namespace Cesil.Tests
 
                 var del = (Parse<float?>)Delegate.CreateDelegate(typeof(Parse<float?>), mtd);
 
-                Assert.True(del("123.45", out var v1));
+                Assert.True(del("123.45", default, out var v1));
                 Assert.Equal((float?)123.45f, v1);
 
-                Assert.True(del("-123.45", out var v2));
+                Assert.True(del("-123.45", default, out var v2));
                 Assert.Equal((float?)-123.45f, v2);
 
-                Assert.True(del("", out var v3));
+                Assert.True(del("", default, out var v3));
                 Assert.Equal((float?)null, v3);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // double?
@@ -618,16 +618,16 @@ namespace Cesil.Tests
 
                 var del = (Parse<double?>)Delegate.CreateDelegate(typeof(Parse<double?>), mtd);
 
-                Assert.True(del("123.45", out var v1));
+                Assert.True(del("123.45", default, out var v1));
                 Assert.Equal((double?)123.45, v1);
 
-                Assert.True(del("-123.45", out var v2));
+                Assert.True(del("-123.45", default, out var v2));
                 Assert.Equal((double?)-123.45, v2);
 
-                Assert.True(del("", out var v3));
+                Assert.True(del("", default, out var v3));
                 Assert.Equal((double?)null, v3);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // decimal?
@@ -637,16 +637,16 @@ namespace Cesil.Tests
 
                 var del = (Parse<decimal?>)Delegate.CreateDelegate(typeof(Parse<decimal?>), mtd);
 
-                Assert.True(del("123.45", out var v1));
+                Assert.True(del("123.45", default, out var v1));
                 Assert.Equal((decimal?)123.45m, v1);
 
-                Assert.True(del("-123.45", out var v2));
+                Assert.True(del("-123.45", default, out var v2));
                 Assert.Equal((decimal?)-123.45m, v2);
 
-                Assert.True(del("", out var v3));
+                Assert.True(del("", default, out var v3));
                 Assert.Equal((decimal?)null, v3);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // Guid?
@@ -658,25 +658,25 @@ namespace Cesil.Tests
 
                 var del = (Parse<Guid?>)Delegate.CreateDelegate(typeof(Parse<Guid?>), mtd);
 
-                Assert.True(del("fe754e30-49c2-4875-b905-cbd6f237ddfd", out var v1));
+                Assert.True(del("fe754e30-49c2-4875-b905-cbd6f237ddfd", default, out var v1));
                 Assert.Equal((Guid?)shouldMatch, v1);
 
-                Assert.True(del("fe754e3049c24875b905cbd6f237ddfd", out var v2));
+                Assert.True(del("fe754e3049c24875b905cbd6f237ddfd", default, out var v2));
                 Assert.Equal((Guid?)shouldMatch, v2);
 
-                Assert.True(del("{fe754e30-49c2-4875-b905-cbd6f237ddfd}", out var v3));
+                Assert.True(del("{fe754e30-49c2-4875-b905-cbd6f237ddfd}", default, out var v3));
                 Assert.Equal((Guid?)shouldMatch, v3);
 
-                Assert.True(del("(fe754e30-49c2-4875-b905-cbd6f237ddfd)", out var v4));
+                Assert.True(del("(fe754e30-49c2-4875-b905-cbd6f237ddfd)", default, out var v4));
                 Assert.Equal((Guid?)shouldMatch, v4);
 
-                Assert.True(del("{0xfe754e30,0x49c2,0x4875,{0xb9,0x05,0xcb,0xd6,0xf2,0x37,0xdd,0xfd}}", out var v5));
+                Assert.True(del("{0xfe754e30,0x49c2,0x4875,{0xb9,0x05,0xcb,0xd6,0xf2,0x37,0xdd,0xfd}}", default, out var v5));
                 Assert.Equal((Guid?)shouldMatch, v5);
 
-                Assert.True(del("", out var v6));
+                Assert.True(del("", default, out var v6));
                 Assert.Equal((Guid?)null, v6);
 
-                Assert.False(del("foo", out _));
+                Assert.False(del("foo", default, out _));
             }
 
             // TimeSpan?
@@ -687,15 +687,15 @@ namespace Cesil.Tests
                 var del = (Parse<TimeSpan?>)Delegate.CreateDelegate(typeof(Parse<TimeSpan?>), mtd);
 
                 // max
-                Assert.True(del(TimeSpan.MaxValue.ToString("c"), out var v1));
+                Assert.True(del(TimeSpan.MaxValue.ToString("c"), default, out var v1));
                 Assert.Equal((TimeSpan?)TimeSpan.MaxValue, v1);
 
                 // min
-                Assert.True(del(TimeSpan.MinValue.ToString("c"), out var v2));
+                Assert.True(del(TimeSpan.MinValue.ToString("c"), default, out var v2));
                 Assert.Equal((TimeSpan?)TimeSpan.MinValue, v2);
 
                 // null
-                Assert.True(del("", out var v3));
+                Assert.True(del("", default, out var v3));
                 Assert.Equal((TimeSpan?)null, v3);
             }
         }
@@ -906,7 +906,7 @@ namespace Cesil.Tests
                 var reader = pipe.Reader;
 
                 var mtd = SerializableMember.GetDefaultFormatter(typeof(string).GetTypeInfo());
-                var res = mtd.Invoke(null, new object[] { "foo", writer });
+                var res = mtd.Invoke(null, new object[] { "foo", default(WriteContext), writer });
                 var resBool = (bool)res;
                 Assert.True(resBool);
 
@@ -927,7 +927,7 @@ namespace Cesil.Tests
 
                 // Bar
                 {
-                    var res = mtd.Invoke(null, new object[] { _TestEnum.Bar, writer });
+                    var res = mtd.Invoke(null, new object[] { _TestEnum.Bar, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -940,7 +940,7 @@ namespace Cesil.Tests
 
                 // Foo
                 {
-                    var res = mtd.Invoke(null, new object[] { _TestEnum.Foo, writer });
+                    var res = mtd.Invoke(null, new object[] { _TestEnum.Foo, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -953,7 +953,7 @@ namespace Cesil.Tests
 
                 // None
                 {
-                    var res = mtd.Invoke(null, new object[] { _TestEnum.None, writer });
+                    var res = mtd.Invoke(null, new object[] { _TestEnum.None, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -966,7 +966,7 @@ namespace Cesil.Tests
 
                 // bad value
                 {
-                    var res = mtd.Invoke(null, new object[] { (_TestEnum)int.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { (_TestEnum)int.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.False(resBool);
                 }
@@ -982,7 +982,7 @@ namespace Cesil.Tests
 
                 // First
                 {
-                    var res = mtd.Invoke(null, new object[] { _TestFlagsEnum.First, writer });
+                    var res = mtd.Invoke(null, new object[] { _TestFlagsEnum.First, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -995,7 +995,7 @@ namespace Cesil.Tests
 
                 // Multi
                 {
-                    var res = mtd.Invoke(null, new object[] { _TestFlagsEnum.Multi, writer });
+                    var res = mtd.Invoke(null, new object[] { _TestFlagsEnum.Multi, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1008,7 +1008,7 @@ namespace Cesil.Tests
 
                 // First | Fourth
                 {
-                    var res = mtd.Invoke(null, new object[] { _TestFlagsEnum.First | _TestFlagsEnum.Fourth, writer });
+                    var res = mtd.Invoke(null, new object[] { _TestFlagsEnum.First | _TestFlagsEnum.Fourth, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1021,7 +1021,7 @@ namespace Cesil.Tests
 
                 // bad value
                 {
-                    var res = mtd.Invoke(null, new object[] { (_TestFlagsEnum)int.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { (_TestFlagsEnum)int.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.False(resBool);
                 }
@@ -1037,7 +1037,7 @@ namespace Cesil.Tests
 
                 // value
                 {
-                    var res = mtd.Invoke(null, new object[] { 'D', writer });
+                    var res = mtd.Invoke(null, new object[] { 'D', default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1059,7 +1059,7 @@ namespace Cesil.Tests
 
                 // true
                 {
-                    var res = mtd.Invoke(null, new object[] { true, writer });
+                    var res = mtd.Invoke(null, new object[] { true, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1072,7 +1072,7 @@ namespace Cesil.Tests
 
                 // false
                 {
-                    var res = mtd.Invoke(null, new object[] { false, writer });
+                    var res = mtd.Invoke(null, new object[] { false, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1094,7 +1094,7 @@ namespace Cesil.Tests
                 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { (byte)123, writer });
+                    var res = mtd.Invoke(null, new object[] { (byte)123, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1116,7 +1116,7 @@ namespace Cesil.Tests
                 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { (sbyte)123, writer });
+                    var res = mtd.Invoke(null, new object[] { (sbyte)123, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1129,7 +1129,7 @@ namespace Cesil.Tests
 
                 // negative
                 {
-                    var res = mtd.Invoke(null, new object[] { (sbyte)-123, writer });
+                    var res = mtd.Invoke(null, new object[] { (sbyte)-123, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1151,7 +1151,7 @@ namespace Cesil.Tests
 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { (short)short.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { short.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1164,7 +1164,7 @@ namespace Cesil.Tests
 
                 // negative
                 {
-                    var res = mtd.Invoke(null, new object[] { (short)short.MinValue, writer });
+                    var res = mtd.Invoke(null, new object[] { short.MinValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1186,7 +1186,7 @@ namespace Cesil.Tests
 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { (ushort)ushort.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { ushort.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1208,7 +1208,7 @@ namespace Cesil.Tests
 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { (int)int.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { int.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1221,7 +1221,7 @@ namespace Cesil.Tests
 
                 // negative
                 {
-                    var res = mtd.Invoke(null, new object[] { (int)int.MinValue, writer });
+                    var res = mtd.Invoke(null, new object[] { int.MinValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1243,7 +1243,7 @@ namespace Cesil.Tests
 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { (uint)uint.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { uint.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1265,7 +1265,7 @@ namespace Cesil.Tests
 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { (long)long.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { long.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1278,7 +1278,7 @@ namespace Cesil.Tests
 
                 // negative
                 {
-                    var res = mtd.Invoke(null, new object[] { (long)long.MinValue, writer });
+                    var res = mtd.Invoke(null, new object[] { long.MinValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1300,7 +1300,7 @@ namespace Cesil.Tests
 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { (ulong)ulong.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { ulong.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1322,7 +1322,7 @@ namespace Cesil.Tests
 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { 12.34f, writer });
+                    var res = mtd.Invoke(null, new object[] { 12.34f, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1335,7 +1335,7 @@ namespace Cesil.Tests
 
                 // negative
                 {
-                    var res = mtd.Invoke(null, new object[] { -12.34f, writer });
+                    var res = mtd.Invoke(null, new object[] { -12.34f, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1357,7 +1357,7 @@ namespace Cesil.Tests
 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { 12.34, writer });
+                    var res = mtd.Invoke(null, new object[] { 12.34, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1370,7 +1370,7 @@ namespace Cesil.Tests
 
                 // negative
                 {
-                    var res = mtd.Invoke(null, new object[] { -12.34, writer });
+                    var res = mtd.Invoke(null, new object[] { -12.34, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1383,7 +1383,7 @@ namespace Cesil.Tests
 
                 // very long
                 {
-                    var res = mtd.Invoke(null, new object[] { 0.84551240822557006, writer });
+                    var res = mtd.Invoke(null, new object[] { 0.84551240822557006, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1405,7 +1405,7 @@ namespace Cesil.Tests
 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { 12.34m, writer });
+                    var res = mtd.Invoke(null, new object[] { 12.34m, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1418,7 +1418,7 @@ namespace Cesil.Tests
 
                 // negative
                 {
-                    var res = mtd.Invoke(null, new object[] { -12.34m, writer });
+                    var res = mtd.Invoke(null, new object[] { -12.34m, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1431,7 +1431,7 @@ namespace Cesil.Tests
 
                 // large
                 {
-                    var res = mtd.Invoke(null, new object[] { 79_228_162_514_264_337_593_543_950_335m, writer });
+                    var res = mtd.Invoke(null, new object[] { 79_228_162_514_264_337_593_543_950_335m, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1453,7 +1453,7 @@ namespace Cesil.Tests
 
                 // max
                 {
-                    var res = mtd.Invoke(null, new object[] { DateTime.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { DateTime.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1466,7 +1466,7 @@ namespace Cesil.Tests
 
                 // min
                 {
-                    var res = mtd.Invoke(null, new object[] { DateTime.MinValue, writer });
+                    var res = mtd.Invoke(null, new object[] { DateTime.MinValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1488,7 +1488,7 @@ namespace Cesil.Tests
 
                 // max
                 {
-                    var res = mtd.Invoke(null, new object[] { DateTimeOffset.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { DateTimeOffset.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1501,7 +1501,7 @@ namespace Cesil.Tests
 
                 // min
                 {
-                    var res = mtd.Invoke(null, new object[] { DateTimeOffset.MinValue, writer });
+                    var res = mtd.Invoke(null, new object[] { DateTimeOffset.MinValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1523,7 +1523,7 @@ namespace Cesil.Tests
 
                 // max
                 {
-                    var res = mtd.Invoke(null, new object[] { TimeSpan.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { TimeSpan.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1536,7 +1536,7 @@ namespace Cesil.Tests
 
                 // min
                 {
-                    var res = mtd.Invoke(null, new object[] { TimeSpan.MinValue, writer });
+                    var res = mtd.Invoke(null, new object[] { TimeSpan.MinValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1577,7 +1577,7 @@ namespace Cesil.Tests
 
                 // Bar
                 {
-                    var res = mtd.Invoke(null, new object[] { (_TestEnum?)_TestEnum.Bar, writer });
+                    var res = mtd.Invoke(null, new object[] { (_TestEnum?)_TestEnum.Bar, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1590,7 +1590,7 @@ namespace Cesil.Tests
 
                 // Foo
                 {
-                    var res = mtd.Invoke(null, new object[] { (_TestEnum?)_TestEnum.Foo, writer });
+                    var res = mtd.Invoke(null, new object[] { (_TestEnum?)_TestEnum.Foo, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1603,7 +1603,7 @@ namespace Cesil.Tests
 
                 // None
                 {
-                    var res = mtd.Invoke(null, new object[] { (_TestEnum?)_TestEnum.None, writer });
+                    var res = mtd.Invoke(null, new object[] { (_TestEnum?)_TestEnum.None, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1616,7 +1616,7 @@ namespace Cesil.Tests
 
                 // null
                 {
-                    var res = mtd.Invoke(null, new object[] { (_TestEnum?)null, writer });
+                    var res = mtd.Invoke(null, new object[] { (_TestEnum?)null, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1627,7 +1627,7 @@ namespace Cesil.Tests
 
                 // bad value
                 {
-                    var res = mtd.Invoke(null, new object[] { (_TestEnum?)int.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { (_TestEnum?)int.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.False(resBool);
                 }
@@ -1643,7 +1643,7 @@ namespace Cesil.Tests
 
                 // First
                 {
-                    var res = mtd.Invoke(null, new object[] { (_TestFlagsEnum?)_TestFlagsEnum.First, writer });
+                    var res = mtd.Invoke(null, new object[] { (_TestFlagsEnum?)_TestFlagsEnum.First, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1656,7 +1656,7 @@ namespace Cesil.Tests
 
                 // Multi
                 {
-                    var res = mtd.Invoke(null, new object[] { (_TestFlagsEnum?)_TestFlagsEnum.Multi, writer });
+                    var res = mtd.Invoke(null, new object[] { (_TestFlagsEnum?)_TestFlagsEnum.Multi, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1669,7 +1669,7 @@ namespace Cesil.Tests
 
                 // First | Fourth
                 {
-                    var res = mtd.Invoke(null, new object[] { (_TestFlagsEnum?)_TestFlagsEnum.First | _TestFlagsEnum.Fourth, writer });
+                    var res = mtd.Invoke(null, new object[] { (_TestFlagsEnum?)_TestFlagsEnum.First | _TestFlagsEnum.Fourth, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1682,7 +1682,7 @@ namespace Cesil.Tests
 
                 // null
                 {
-                    var res = mtd.Invoke(null, new object[] { (_TestFlagsEnum?)null, writer });
+                    var res = mtd.Invoke(null, new object[] { (_TestFlagsEnum?)null, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1693,7 +1693,7 @@ namespace Cesil.Tests
 
                 // bad value
                 {
-                    var res = mtd.Invoke(null, new object[] { (_TestFlagsEnum)int.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { (_TestFlagsEnum)int.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.False(resBool);
                 }
@@ -1709,7 +1709,7 @@ namespace Cesil.Tests
 
                 // value
                 {
-                    var res = mtd.Invoke(null, new object[] { (char?)'D', writer });
+                    var res = mtd.Invoke(null, new object[] { (char?)'D', default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1722,7 +1722,7 @@ namespace Cesil.Tests
 
                 // null
                 {
-                    var res = mtd.Invoke(null, new object[] { (char?)null, writer });
+                    var res = mtd.Invoke(null, new object[] { (char?)null, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1742,7 +1742,7 @@ namespace Cesil.Tests
 
                 // true
                 {
-                    var res = mtd.Invoke(null, new object[] { (bool?)true, writer });
+                    var res = mtd.Invoke(null, new object[] { (bool?)true, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1755,7 +1755,7 @@ namespace Cesil.Tests
 
                 // false
                 {
-                    var res = mtd.Invoke(null, new object[] { (bool?)false, writer });
+                    var res = mtd.Invoke(null, new object[] { (bool?)false, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1768,7 +1768,7 @@ namespace Cesil.Tests
 
                 // null
                 {
-                    var res = mtd.Invoke(null, new object[] { (bool?)null, writer });
+                    var res = mtd.Invoke(null, new object[] { (bool?)null, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1788,7 +1788,7 @@ namespace Cesil.Tests
 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { (byte?)123, writer });
+                    var res = mtd.Invoke(null, new object[] { (byte?)123, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1801,7 +1801,7 @@ namespace Cesil.Tests
 
                 // null
                 {
-                    var res = mtd.Invoke(null, new object[] { (byte?)null, writer });
+                    var res = mtd.Invoke(null, new object[] { (byte?)null, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1821,7 +1821,7 @@ namespace Cesil.Tests
 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { (sbyte?)123, writer });
+                    var res = mtd.Invoke(null, new object[] { (sbyte?)123, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1834,7 +1834,7 @@ namespace Cesil.Tests
 
                 // negative
                 {
-                    var res = mtd.Invoke(null, new object[] { (sbyte?)-123, writer });
+                    var res = mtd.Invoke(null, new object[] { (sbyte?)-123, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1847,7 +1847,7 @@ namespace Cesil.Tests
 
                 // null
                 {
-                    var res = mtd.Invoke(null, new object[] { (sbyte?)null, writer });
+                    var res = mtd.Invoke(null, new object[] { (sbyte?)null, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1867,7 +1867,7 @@ namespace Cesil.Tests
 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { (short?)short.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { (short?)short.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1880,7 +1880,7 @@ namespace Cesil.Tests
 
                 // negative
                 {
-                    var res = mtd.Invoke(null, new object[] { (short?)short.MinValue, writer });
+                    var res = mtd.Invoke(null, new object[] { (short?)short.MinValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1893,7 +1893,7 @@ namespace Cesil.Tests
 
                 // null
                 {
-                    var res = mtd.Invoke(null, new object[] { (short?)null, writer });
+                    var res = mtd.Invoke(null, new object[] { (short?)null, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1913,7 +1913,7 @@ namespace Cesil.Tests
 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { (ushort?)ushort.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { (ushort?)ushort.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1926,7 +1926,7 @@ namespace Cesil.Tests
 
                 // null
                 {
-                    var res = mtd.Invoke(null, new object[] { (ushort?)null, writer });
+                    var res = mtd.Invoke(null, new object[] { (ushort?)null, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1946,7 +1946,7 @@ namespace Cesil.Tests
 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { (int?)int.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { (int?)int.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1959,7 +1959,7 @@ namespace Cesil.Tests
 
                 // negative
                 {
-                    var res = mtd.Invoke(null, new object[] { (int?)int.MinValue, writer });
+                    var res = mtd.Invoke(null, new object[] { (int?)int.MinValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1972,7 +1972,7 @@ namespace Cesil.Tests
 
                 // null
                 {
-                    var res = mtd.Invoke(null, new object[] { (int?)null, writer });
+                    var res = mtd.Invoke(null, new object[] { (int?)null, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -1992,7 +1992,7 @@ namespace Cesil.Tests
 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { (uint?)uint.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { (uint?)uint.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2005,7 +2005,7 @@ namespace Cesil.Tests
 
                 // null
                 {
-                    var res = mtd.Invoke(null, new object[] { (uint?)null, writer });
+                    var res = mtd.Invoke(null, new object[] { (uint?)null, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2025,7 +2025,7 @@ namespace Cesil.Tests
 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { (long?)long.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { (long?)long.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2038,7 +2038,7 @@ namespace Cesil.Tests
 
                 // negative
                 {
-                    var res = mtd.Invoke(null, new object[] { (long?)long.MinValue, writer });
+                    var res = mtd.Invoke(null, new object[] { (long?)long.MinValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2051,7 +2051,7 @@ namespace Cesil.Tests
 
                 // null
                 {
-                    var res = mtd.Invoke(null, new object[] { (long?)null, writer });
+                    var res = mtd.Invoke(null, new object[] { (long?)null, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2071,7 +2071,7 @@ namespace Cesil.Tests
 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { (ulong?)ulong.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { (ulong?)ulong.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2084,7 +2084,7 @@ namespace Cesil.Tests
 
                 // null
                 {
-                    var res = mtd.Invoke(null, new object[] { (ulong?)null, writer });
+                    var res = mtd.Invoke(null, new object[] { (ulong?)null, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2104,7 +2104,7 @@ namespace Cesil.Tests
 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { (float?)12.34f, writer });
+                    var res = mtd.Invoke(null, new object[] { (float?)12.34f, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2117,7 +2117,7 @@ namespace Cesil.Tests
 
                 // negative
                 {
-                    var res = mtd.Invoke(null, new object[] { (float?)-12.34f, writer });
+                    var res = mtd.Invoke(null, new object[] { (float?)-12.34f, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2130,7 +2130,7 @@ namespace Cesil.Tests
 
                 // null
                 {
-                    var res = mtd.Invoke(null, new object[] { (float?)null, writer });
+                    var res = mtd.Invoke(null, new object[] { (float?)null, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2150,7 +2150,7 @@ namespace Cesil.Tests
 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { (double?)12.34, writer });
+                    var res = mtd.Invoke(null, new object[] { (double?)12.34, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2163,7 +2163,7 @@ namespace Cesil.Tests
 
                 // negative
                 {
-                    var res = mtd.Invoke(null, new object[] { (double?)-12.34, writer });
+                    var res = mtd.Invoke(null, new object[] { (double?)-12.34, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2176,7 +2176,7 @@ namespace Cesil.Tests
 
                 // very long
                 {
-                    var res = mtd.Invoke(null, new object[] { 0.84551240822557006, writer });
+                    var res = mtd.Invoke(null, new object[] { 0.84551240822557006, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2189,7 +2189,7 @@ namespace Cesil.Tests
 
                 // null
                 {
-                    var res = mtd.Invoke(null, new object[] { (double?)null, writer });
+                    var res = mtd.Invoke(null, new object[] { (double?)null, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2210,7 +2210,7 @@ namespace Cesil.Tests
 
                 // positive
                 {
-                    var res = mtd.Invoke(null, new object[] { (decimal?)12.34m, writer });
+                    var res = mtd.Invoke(null, new object[] { (decimal?)12.34m, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2223,7 +2223,7 @@ namespace Cesil.Tests
 
                 // negative
                 {
-                    var res = mtd.Invoke(null, new object[] { (decimal?)-12.34m, writer });
+                    var res = mtd.Invoke(null, new object[] { (decimal?)-12.34m, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2236,7 +2236,7 @@ namespace Cesil.Tests
 
                 // large
                 {
-                    var res = mtd.Invoke(null, new object[] { (decimal?)79_228_162_514_264_337_593_543_950_335m, writer });
+                    var res = mtd.Invoke(null, new object[] { (decimal?)79_228_162_514_264_337_593_543_950_335m, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2249,7 +2249,7 @@ namespace Cesil.Tests
 
                 // null
                 {
-                    var res = mtd.Invoke(null, new object[] { (decimal?)null, writer });
+                    var res = mtd.Invoke(null, new object[] { (decimal?)null, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2269,7 +2269,7 @@ namespace Cesil.Tests
 
                 // max
                 {
-                    var res = mtd.Invoke(null, new object[] { (DateTime?)DateTime.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { (DateTime?)DateTime.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2282,7 +2282,7 @@ namespace Cesil.Tests
 
                 // min
                 {
-                    var res = mtd.Invoke(null, new object[] { (DateTime?)DateTime.MinValue, writer });
+                    var res = mtd.Invoke(null, new object[] { (DateTime?)DateTime.MinValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2295,7 +2295,7 @@ namespace Cesil.Tests
 
                 // null
                 {
-                    var res = mtd.Invoke(null, new object[] { (DateTime?)null, writer });
+                    var res = mtd.Invoke(null, new object[] { (DateTime?)null, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2315,7 +2315,7 @@ namespace Cesil.Tests
 
                 // max
                 {
-                    var res = mtd.Invoke(null, new object[] { (DateTimeOffset?)DateTimeOffset.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { (DateTimeOffset?)DateTimeOffset.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2328,7 +2328,7 @@ namespace Cesil.Tests
 
                 // min
                 {
-                    var res = mtd.Invoke(null, new object[] { (DateTimeOffset?)DateTimeOffset.MinValue, writer });
+                    var res = mtd.Invoke(null, new object[] { (DateTimeOffset?)DateTimeOffset.MinValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2341,7 +2341,7 @@ namespace Cesil.Tests
 
                 // null
                 {
-                    var res = mtd.Invoke(null, new object[] { (DateTimeOffset?)null, writer });
+                    var res = mtd.Invoke(null, new object[] { (DateTimeOffset?)null, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2361,7 +2361,7 @@ namespace Cesil.Tests
 
                 // max
                 {
-                    var res = mtd.Invoke(null, new object[] { (TimeSpan?)TimeSpan.MaxValue, writer });
+                    var res = mtd.Invoke(null, new object[] { (TimeSpan?)TimeSpan.MaxValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2374,7 +2374,7 @@ namespace Cesil.Tests
 
                 // min
                 {
-                    var res = mtd.Invoke(null, new object[] { (TimeSpan?)TimeSpan.MinValue, writer });
+                    var res = mtd.Invoke(null, new object[] { (TimeSpan?)TimeSpan.MinValue, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 
@@ -2387,7 +2387,7 @@ namespace Cesil.Tests
 
                 // null
                 {
-                    var res = mtd.Invoke(null, new object[] { (TimeSpan?)null, writer });
+                    var res = mtd.Invoke(null, new object[] { (TimeSpan?)null, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 

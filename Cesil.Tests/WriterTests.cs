@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
@@ -13,6 +14,321 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class WriterTests
     {
+        struct _UserDefinedEmitDefaultValue_ValueType
+        {
+            public int Value { get; set; }
+        }
+
+        struct _UserDefinedEmitDefaultValue_ValueType_Equatable: IEquatable<_UserDefinedEmitDefaultValue_ValueType_Equatable>
+        {
+            public static int EqualsCallCount = 0;
+
+            public int Value { get; set; }
+
+            public bool Equals(_UserDefinedEmitDefaultValue_ValueType_Equatable other)
+            {
+                EqualsCallCount++;
+
+                return Value == other.Value;
+            }
+        }
+
+        struct _UserDefinedEmitDefaultValue_ValueType_Operator
+        {
+            public static int OperatorCallCount = 0;
+
+            public int Value { get; set; }
+
+            public static bool operator ==(_UserDefinedEmitDefaultValue_ValueType_Operator a, _UserDefinedEmitDefaultValue_ValueType_Operator b)
+            {
+                OperatorCallCount++;
+
+                return a.Value == b.Value;
+            }
+
+            public static bool operator !=(_UserDefinedEmitDefaultValue_ValueType_Operator a, _UserDefinedEmitDefaultValue_ValueType_Operator b)
+            => !(a == b);
+
+            public override bool Equals(object obj)
+            {
+                if(obj is _UserDefinedEmitDefaultValue_ValueType_Operator o)
+                {
+                    return this == o;
+                }
+
+                return false;
+            }
+
+            public override int GetHashCode()
+            => Value;
+        }
+
+        class _UserDefinedEmitDefaultValue1
+        {
+            public string Foo { get; set; }
+            [DataMember(EmitDefaultValue = false)]
+            public _UserDefinedEmitDefaultValue_ValueType Bar { get; set; }
+        }
+
+        class _UserDefinedEmitDefaultValue2
+        {
+            public string Foo { get; set; }
+            [DataMember(EmitDefaultValue = false)]
+            public _UserDefinedEmitDefaultValue_ValueType_Equatable Bar { get; set; }
+        }
+
+        class _UserDefinedEmitDefaultValue3
+        {
+            public string Foo { get; set; }
+            [DataMember(EmitDefaultValue = false)]
+            public _UserDefinedEmitDefaultValue_ValueType_Operator Bar { get; set; }
+        }
+
+        class _UserDefinedEmitDefaultValue_TypeDescripter: DefaultTypeDescriber
+        {
+            public static bool Format_UserDefinedEmitDefaultValue_ValueType(_UserDefinedEmitDefaultValue_ValueType t, in WriteContext _, IBufferWriter<char> writer)
+            {
+                var asStr = t.Value.ToString();
+                writer.Write(asStr.AsSpan());
+
+                return true;
+            }
+
+            public static bool Format_UserDefinedEmitDefaultValue_ValueType_Equatable(_UserDefinedEmitDefaultValue_ValueType_Equatable t, in WriteContext _, IBufferWriter<char> writer)
+            {
+                var asStr = t.Value.ToString();
+                writer.Write(asStr.AsSpan());
+
+                return true;
+            }
+
+            public static bool Format_UserDefinedEmitDefaultValue_ValueType_Operator(_UserDefinedEmitDefaultValue_ValueType_Operator t, in WriteContext _, IBufferWriter<char> writer)
+            {
+                var asStr = t.Value.ToString();
+                writer.Write(asStr.AsSpan());
+
+                return true;
+            }
+
+            protected override bool ShouldDeserialize(TypeInfo forType, PropertyInfo property)
+            {
+                if (forType == typeof(_UserDefinedEmitDefaultValue1).GetTypeInfo() && property.Name == nameof(_UserDefinedEmitDefaultValue1.Bar))
+                {
+                    return false;
+                }
+
+                if (forType == typeof(_UserDefinedEmitDefaultValue2).GetTypeInfo() && property.Name == nameof(_UserDefinedEmitDefaultValue2.Bar))
+                {
+                    return false;
+                }
+
+                if (forType == typeof(_UserDefinedEmitDefaultValue3).GetTypeInfo() && property.Name == nameof(_UserDefinedEmitDefaultValue3.Bar))
+                {
+                    return false;
+                }
+
+                return base.ShouldDeserialize(forType, property);
+            }
+
+            protected override MethodInfo GetFormatter(TypeInfo forType, PropertyInfo property)
+            {
+                if(forType == typeof(_UserDefinedEmitDefaultValue1).GetTypeInfo() && property.Name == nameof(_UserDefinedEmitDefaultValue1.Bar))
+                {
+                    return typeof(_UserDefinedEmitDefaultValue_TypeDescripter).GetMethod(nameof(Format_UserDefinedEmitDefaultValue_ValueType), BindingFlags.Public | BindingFlags.Static);
+                }
+
+                if (forType == typeof(_UserDefinedEmitDefaultValue2).GetTypeInfo() && property.Name == nameof(_UserDefinedEmitDefaultValue2.Bar))
+                {
+                    return typeof(_UserDefinedEmitDefaultValue_TypeDescripter).GetMethod(nameof(Format_UserDefinedEmitDefaultValue_ValueType_Equatable), BindingFlags.Public | BindingFlags.Static);
+                }
+
+                if (forType == typeof(_UserDefinedEmitDefaultValue3).GetTypeInfo() && property.Name == nameof(_UserDefinedEmitDefaultValue3.Bar))
+                {
+                    return typeof(_UserDefinedEmitDefaultValue_TypeDescripter).GetMethod(nameof(Format_UserDefinedEmitDefaultValue_ValueType_Operator), BindingFlags.Public | BindingFlags.Static);
+                }
+
+                return base.GetFormatter(forType, property);
+            }
+        }
+
+        [Fact]
+        public void UserDefinedEmitDefaultValue()
+        {
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(new _UserDefinedEmitDefaultValue_TypeDescripter()).Build();
+
+            // not equatable
+            RunSyncWriterVariants<_UserDefinedEmitDefaultValue1>(
+                opts,
+                (config, getWriter, getStr) =>
+                {
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
+                    {
+                        csv.Write(new _UserDefinedEmitDefaultValue1 { Foo = "hello", Bar = default });
+                        csv.Write(new _UserDefinedEmitDefaultValue1 { Foo = "world", Bar = new _UserDefinedEmitDefaultValue_ValueType { Value = 2 } });
+                    }
+
+                    var res = getStr();
+                    Assert.Equal("Bar,Foo\r\n,hello\r\n2,world", res);
+                }
+            );
+
+            // equatable
+            RunSyncWriterVariants<_UserDefinedEmitDefaultValue2>(
+                opts,
+                (config, getWriter, getStr) =>
+                {
+                    _UserDefinedEmitDefaultValue_ValueType_Equatable.EqualsCallCount = 0;
+
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
+                    {
+                        csv.Write(new _UserDefinedEmitDefaultValue2 { Foo = "hello", Bar = default });
+                        csv.Write(new _UserDefinedEmitDefaultValue2 { Foo = "world", Bar = new _UserDefinedEmitDefaultValue_ValueType_Equatable { Value = 2 } });
+                    }
+
+                    var res = getStr();
+                    Assert.Equal("Bar,Foo\r\n,hello\r\n2,world", res);
+                    Assert.Equal(2, _UserDefinedEmitDefaultValue_ValueType_Equatable.EqualsCallCount);
+                }
+            );
+
+            // operator
+            RunSyncWriterVariants<_UserDefinedEmitDefaultValue3>(
+                opts,
+                (config, getWriter, getStr) =>
+                {
+                    _UserDefinedEmitDefaultValue_ValueType_Operator.OperatorCallCount = 0;
+
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
+                    {
+                        csv.Write(new _UserDefinedEmitDefaultValue3 { Foo = "hello", Bar = default });
+                        csv.Write(new _UserDefinedEmitDefaultValue3 { Foo = "world", Bar = new _UserDefinedEmitDefaultValue_ValueType_Operator { Value = 2 } });
+                    }
+
+                    var res = getStr();
+                    Assert.Equal("Bar,Foo\r\n,hello\r\n2,world", res);
+                    Assert.Equal(2, _UserDefinedEmitDefaultValue_ValueType_Operator.OperatorCallCount);
+                }
+            );
+        }
+
+        class _Context
+        {
+            [DataMember(Order = 1)]
+            public string Foo { get; set; }
+            [DataMember(Order = 2)]
+            public int Bar { get; set; }
+        }
+
+        private static List<string> _Context_FormatFoo_Records;
+        public static bool _Context_FormatFoo(string data, in WriteContext ctx, IBufferWriter<char> writer)
+        {
+            _Context_FormatFoo_Records.Add($"{ctx.RowNumber},{ctx.ColumnName},{ctx.ColumnNumber},{data},{ctx.Context}");
+
+            writer.Write(data.AsSpan());
+
+            return true;
+        }
+
+        private static List<string> _Context_FormatBar_Records;
+        public static bool _Context_FormatBar(int data, in WriteContext ctx, IBufferWriter<char> writer)
+        {
+            _Context_FormatBar_Records.Add($"{ctx.RowNumber},{ctx.ColumnName},{ctx.ColumnNumber},{data},{ctx.Context}");
+
+            var asStr = data.ToString();
+            writer.Write(asStr.AsSpan());
+
+            return true;
+        }
+
+        [Fact]
+        public void Context()
+        {
+            var formatFoo = typeof(WriterTests).GetMethod(nameof(_Context_FormatFoo));
+            var formatBar = typeof(WriterTests).GetMethod(nameof(_Context_FormatBar));
+
+            var describer = new ManualTypeDescriber(false);
+            describer.SetExplicitParameterlessConstructor(typeof(_Context).GetConstructor(Type.EmptyTypes));
+            describer.AddSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), formatFoo);
+            describer.AddSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), formatBar);
+
+            var optsBase = Options.Default.NewBuilder().WithTypeDescriber(describer);
+
+            // no headers
+            {
+                var opts = optsBase.WithWriteHeader(WriteHeaders.Never).Build();
+
+                RunSyncWriterVariants<_Context>(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        _Context_FormatFoo_Records = new List<string>();
+                        _Context_FormatBar_Records = new List<string>();
+
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer, "context!"))
+                        {
+                            csv.Write(new _Context { Bar = 123, Foo = "whatever" });
+                            csv.Write(new _Context { Bar = 456, Foo = "indeed" });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("whatever,123\r\nindeed,456", res);
+
+                        Assert.Collection(
+                            _Context_FormatFoo_Records,
+                            c => Assert.Equal("0,Foo,0,whatever,context!", c),
+                            c => Assert.Equal("1,Foo,0,indeed,context!", c)
+                        );
+
+                        Assert.Collection(
+                            _Context_FormatBar_Records,
+                            c => Assert.Equal("0,Bar,1,123,context!", c),
+                            c => Assert.Equal("1,Bar,1,456,context!", c)
+                        );
+                    }
+                );
+            }
+
+            // with headers
+            {
+                var opts = optsBase.WithWriteHeader(WriteHeaders.Always).Build();
+
+                RunSyncWriterVariants<_Context>(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        _Context_FormatFoo_Records = new List<string>();
+                        _Context_FormatBar_Records = new List<string>();
+
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer, "context!"))
+                        {
+                            csv.Write(new _Context { Bar = 123, Foo = "whatever" });
+                            csv.Write(new _Context { Bar = 456, Foo = "indeed" });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("Foo,Bar\r\nwhatever,123\r\nindeed,456", res);
+
+                        Assert.Collection(
+                            _Context_FormatFoo_Records,
+                            c => Assert.Equal("0,Foo,0,whatever,context!", c),
+                            c => Assert.Equal("1,Foo,0,indeed,context!", c)
+                        );
+
+                        Assert.Collection(
+                            _Context_FormatBar_Records,
+                            c => Assert.Equal("0,Bar,1,123,context!", c),
+                            c => Assert.Equal("1,Bar,1,456,context!", c)
+                        );
+                    }
+                );
+            }
+        }
+
         class _CommentEscape
         {
             public string A { get; set; }
@@ -735,7 +1051,7 @@ namespace Cesil.Tests
                 return ret;
             }
 
-            public static bool TryFormatStringCrazy(string val, IBufferWriter<char> buffer)
+            public static bool TryFormatStringCrazy(string val, in WriteContext ctx, IBufferWriter<char> buffer)
             {
                 for (var i = 0; i < val.Length; i++)
                 {
@@ -878,6 +1194,7 @@ namespace Cesil.Tests
         public void StaticGetters()
         {
             var m = new ManualTypeDescriber();
+            m.SetExplicitParameterlessConstructor(typeof(_StaticGetters).GetConstructor(Type.EmptyTypes));
             m.AddExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Bar", typeof(_StaticGetters).GetMethod("GetBar", BindingFlags.Static | BindingFlags.Public));
             m.AddExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Fizz", typeof(_StaticGetters).GetMethod("GetFizz", BindingFlags.Static | BindingFlags.Public));
 
@@ -944,6 +1261,155 @@ namespace Cesil.Tests
                     Assert.Equal("1,,None,1970-01-01 00:00:00Z\r\n,Fizz,,", txt);
                 }
             );
+        }
+
+        [Fact]
+        public async Task UserDefinedEmitDefaultValueAsync()
+        {
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(new _UserDefinedEmitDefaultValue_TypeDescripter()).Build();
+
+            // not equatable
+            await RunAsyncWriterVariants<_UserDefinedEmitDefaultValue1>(
+                opts,
+                async (config, getWriter, getStr) =>
+                {
+                    using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        await csv.WriteAsync(new _UserDefinedEmitDefaultValue1 { Foo = "hello", Bar = default });
+                        await csv.WriteAsync(new _UserDefinedEmitDefaultValue1 { Foo = "world", Bar = new _UserDefinedEmitDefaultValue_ValueType { Value = 2 } });
+                    }
+
+                    var res = getStr();
+                    Assert.Equal("Bar,Foo\r\n,hello\r\n2,world", res);
+                }
+            );
+
+            // equatable
+            await RunAsyncWriterVariants<_UserDefinedEmitDefaultValue2>(
+                opts,
+                async (config, getWriter, getStr) =>
+                {
+                    _UserDefinedEmitDefaultValue_ValueType_Equatable.EqualsCallCount = 0;
+
+                    using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        await csv.WriteAsync(new _UserDefinedEmitDefaultValue2 { Foo = "hello", Bar = default });
+                        await csv.WriteAsync(new _UserDefinedEmitDefaultValue2 { Foo = "world", Bar = new _UserDefinedEmitDefaultValue_ValueType_Equatable { Value = 2 } });
+                    }
+
+                    var res = getStr();
+                    Assert.Equal("Bar,Foo\r\n,hello\r\n2,world", res);
+                    Assert.Equal(2, _UserDefinedEmitDefaultValue_ValueType_Equatable.EqualsCallCount);
+                }
+            );
+
+            // operator
+            await RunAsyncWriterVariants<_UserDefinedEmitDefaultValue3>(
+                opts,
+                async (config, getWriter, getStr) =>
+                {
+                    _UserDefinedEmitDefaultValue_ValueType_Operator.OperatorCallCount = 0;
+
+                    using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        await csv.WriteAsync(new _UserDefinedEmitDefaultValue3 { Foo = "hello", Bar = default });
+                        await csv.WriteAsync(new _UserDefinedEmitDefaultValue3 { Foo = "world", Bar = new _UserDefinedEmitDefaultValue_ValueType_Operator { Value = 2 } });
+                    }
+
+                    var res = getStr();
+                    Assert.Equal("Bar,Foo\r\n,hello\r\n2,world", res);
+                    Assert.Equal(2, _UserDefinedEmitDefaultValue_ValueType_Operator.OperatorCallCount);
+                }
+            );
+        }
+
+        [Fact]
+        public async Task ContextAsync()
+        {
+            var formatFoo = typeof(WriterTests).GetMethod(nameof(_Context_FormatFoo));
+            var formatBar = typeof(WriterTests).GetMethod(nameof(_Context_FormatBar));
+
+            var describer = new ManualTypeDescriber(false);
+            describer.SetExplicitParameterlessConstructor(typeof(_Context).GetConstructor(Type.EmptyTypes));
+            describer.AddSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), formatFoo);
+            describer.AddSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), formatBar);
+
+            var optsBase = Options.Default.NewBuilder().WithTypeDescriber(describer);
+
+            // no headers
+            {
+                var opts = optsBase.WithWriteHeader(WriteHeaders.Never).Build();
+
+                await RunAsyncWriterVariants<_Context>(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        _Context_FormatFoo_Records = new List<string>();
+                        _Context_FormatBar_Records = new List<string>();
+
+                        using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer, "context!"))
+                        {
+                            await csv.WriteAsync(new _Context { Bar = 123, Foo = "whatever" });
+                            await csv.WriteAsync(new _Context { Bar = 456, Foo = "indeed" });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("whatever,123\r\nindeed,456", res);
+
+                        Assert.Collection(
+                            _Context_FormatFoo_Records,
+                            c => Assert.Equal("0,Foo,0,whatever,context!", c),
+                            c => Assert.Equal("1,Foo,0,indeed,context!", c)
+                        );
+
+                        Assert.Collection(
+                            _Context_FormatBar_Records,
+                            c => Assert.Equal("0,Bar,1,123,context!", c),
+                            c => Assert.Equal("1,Bar,1,456,context!", c)
+                        );
+                    }
+                );
+            }
+
+            // with headers
+            {
+                var opts = optsBase.WithWriteHeader(WriteHeaders.Always).Build();
+
+                await RunAsyncWriterVariants<_Context>(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        _Context_FormatFoo_Records = new List<string>();
+                        _Context_FormatBar_Records = new List<string>();
+
+                        using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer, "context!"))
+                        {
+                            await csv.WriteAsync(new _Context { Bar = 123, Foo = "whatever" });
+                            await csv.WriteAsync(new _Context { Bar = 456, Foo = "indeed" });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("Foo,Bar\r\nwhatever,123\r\nindeed,456", res);
+
+                        Assert.Collection(
+                            _Context_FormatFoo_Records,
+                            c => Assert.Equal("0,Foo,0,whatever,context!", c),
+                            c => Assert.Equal("1,Foo,0,indeed,context!", c)
+                        );
+
+                        Assert.Collection(
+                            _Context_FormatBar_Records,
+                            c => Assert.Equal("0,Bar,1,123,context!", c),
+                            c => Assert.Equal("1,Bar,1,456,context!", c)
+                        );
+                    }
+                );
+            }
         }
 
         [Fact]
@@ -1436,6 +1902,7 @@ namespace Cesil.Tests
         public async Task StaticGettersAsync()
         {
             var m = new ManualTypeDescriber();
+            m.SetExplicitParameterlessConstructor(typeof(_StaticGetters).GetConstructor(Type.EmptyTypes));
             m.AddExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Bar", typeof(_StaticGetters).GetMethod("GetBar", BindingFlags.Static | BindingFlags.Public));
             m.AddExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Fizz", typeof(_StaticGetters).GetMethod("GetFizz", BindingFlags.Static | BindingFlags.Public));
 

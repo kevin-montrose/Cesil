@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -84,11 +85,38 @@ namespace Cesil.Tests
                 }
             }
 
+            // don't count IDynamicMetaObjectProvider methods
+            if (o.GetType().GetInterfaces().Any(i => i == typeof(IDynamicMetaObjectProvider)))
+            {
+                var map = o.GetType().GetInterfaceMap(typeof(IDynamicMetaObjectProvider));
+
+                for (var i = 0; i < map.TargetMethods.Length; i++)
+                {
+                    if (map.TargetMethods[i].IsPublic)
+                    {
+                        expectedTestCases--;
+                    }
+                }
+            }
+
+            // don't count IDynamicRowOwner methods
+            if (o.GetType().GetInterfaces().Any(i => i == typeof(IDynamicRowOwner)))
+            {
+                var map = o.GetType().GetInterfaceMap(typeof(IDynamicRowOwner));
+
+                for (var i = 0; i < map.TargetMethods.Length; i++)
+                {
+                    if (map.TargetMethods[i].IsPublic)
+                    {
+                        expectedTestCases--;
+                    }
+                }
+            }
+
             return expectedTestCases;
         }
 
-        public static void RunSyncReaderVariants<T>(Options opts, Action<BoundConfiguration<T>, Func<string, TextReader>> run)
-            where T: new()
+        public static void RunSyncReaderVariants<T>(Options opts, Action<IBoundConfiguration<T>, Func<string, TextReader>> run)
         {
             var defaultConfig = Configuration.For<T>(opts);
             var smallBufferConfig = Configuration.For<T>(opts.NewBuilder().WithReadBufferSizeHint(1).Build());
@@ -122,8 +150,75 @@ namespace Cesil.Tests
             }
         }
 
-        public static async Task RunAsyncReaderVariants<T>(Options opts, Func<BoundConfiguration<T>, Func<string, TextReader>, Task> run)
-            where T : new()
+        public static void RunSyncDynamicReaderVariants(Options opts, Action<IBoundConfiguration<dynamic>, Func<string, TextReader>> run, int expectedRuns = 1)
+        {
+            var defaultConfig = Configuration.ForDynamic(opts);
+            var smallBufferConfig = Configuration.ForDynamic(opts.NewBuilder().WithReadBufferSizeHint(1).Build());
+
+            // default buffer
+            {
+                var runCount = 0;
+                run(defaultConfig, str => { runCount++; return new StringReader(str); });
+
+                Assert.Equal(expectedRuns, runCount);
+            }
+
+            // small buffer
+            {
+                var runCount = 0;
+                run(smallBufferConfig, str => { runCount++; return new StringReader(str); });
+
+                Assert.Equal(expectedRuns, runCount);
+            }
+
+            // leaks
+            {
+                var leakDetector = new TrackedMemoryPool<char>();
+                var leakDetectorConfig = Configuration.ForDynamic(opts.NewBuilder().WithMemoryPool(leakDetector).Build());
+
+                var runCount = 0;
+                run(defaultConfig, str => { runCount++; return new StringReader(str); });
+
+                Assert.Equal(expectedRuns, runCount);
+                Assert.Equal(0, leakDetector.OutstandingRentals);
+            }
+        }
+
+        public static async Task RunAsyncDynamicReaderVariants(Options opts, Func<IBoundConfiguration<dynamic>, Func<string, TextReader>, Task> run, int expectedRuns = 1)
+        {
+            var defaultConfig = Configuration.ForDynamic(opts);
+            var smallBufferConfig = Configuration.ForDynamic(opts.NewBuilder().WithReadBufferSizeHint(1).Build());
+
+            // default buffer
+            {
+                var runCount = 0;
+                await run(defaultConfig, str => { runCount++; return new StringReader(str); });
+
+                Assert.Equal(expectedRuns, runCount);
+            }
+
+            // small buffer
+            {
+                var runCount = 0;
+                await run(smallBufferConfig, str => { runCount++; return new StringReader(str); });
+
+                Assert.Equal(expectedRuns, runCount);
+            }
+
+            // leaks
+            {
+                var leakDetector = new TrackedMemoryPool<char>();
+                var leakDetectorConfig = Configuration.ForDynamic(opts.NewBuilder().WithMemoryPool(leakDetector).Build());
+
+                var runCount = 0;
+                await run(defaultConfig, str => { runCount++; return new StringReader(str); });
+
+                Assert.Equal(expectedRuns, runCount);
+                Assert.Equal(0, leakDetector.OutstandingRentals);
+            }
+        }
+
+        public static async Task RunAsyncReaderVariants<T>(Options opts, Func<IBoundConfiguration<T>, Func<string, TextReader>, Task> run)
         {
             var defaultConfig = Configuration.For<T>(opts);
             var smallBufferConfig = Configuration.For<T>(opts.NewBuilder().WithReadBufferSizeHint(1).Build());
@@ -316,9 +411,8 @@ namespace Cesil.Tests
 
         public static void RunSyncWriterVariants<T>(
            Options baseOptions,
-           Action<BoundConfiguration<T>, Func<TextWriter>, Func<string>> run
+           Action<IBoundConfiguration<T>, Func<TextWriter>, Func<string>> run
         )
-           where T : new()
         {
             var defaultConfig = Configuration.For<T>(baseOptions);
             var noBufferConfig = Configuration.For<T>(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).Build());
@@ -380,9 +474,8 @@ namespace Cesil.Tests
 
         public static async Task RunAsyncWriterVariants<T>(
             Options baseOptions,
-            Func<BoundConfiguration<T>, Func<TextWriter>, Func<string>, Task> run
+            Func<IBoundConfiguration<T>, Func<TextWriter>, Func<string>, Task> run
         )
-            where T: new()
         {
             var defaultConfig = Configuration.For<T>(baseOptions);
             var noBufferConfig = Configuration.For<T>(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).Build());

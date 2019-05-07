@@ -165,7 +165,7 @@ namespace Cesil
         {
             if (IsDisposed)
             {
-                Throw.ObjectDisposed(nameof(MaybeInPlaceBuffer<T>));
+                Throw.ObjectDisposedException(nameof(MaybeInPlaceBuffer<T>));
             }
         }
     }

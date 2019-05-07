@@ -17,7 +17,7 @@ namespace Cesil
         {
             private static readonly string[] Names = Enum.GetNames(typeof(T));
 
-            internal static bool TryFormatFlagsEnum(T e, IBufferWriter<char> writer)
+            internal static bool TryFormatFlagsEnum(T e, in WriteContext _, IBufferWriter<char> writer)
             {
                 // this will allocate, but we don't really have a choice?
                 var valStr = e.ToString();
@@ -50,18 +50,18 @@ namespace Cesil
                 return true;
             }
 
-            internal static bool TryFormatNullableFlagsEnum(T? e, IBufferWriter<char> writer)
+            internal static bool TryFormatNullableFlagsEnum(T? e, in WriteContext _, IBufferWriter<char> writer)
             {
                 if (e == null) return true;
 
-                return TryFormatFlagsEnum(e.Value, writer);
+                return TryFormatFlagsEnum(e.Value, _, writer);
             }
         }
 
         internal static class DefaultEnumTypeFormatter<T>
             where T: struct, Enum
         {
-            internal static bool TryFormatEnum(T e, IBufferWriter<char> writer)
+            internal static bool TryFormatEnum(T e, in WriteContext _, IBufferWriter<char> writer)
             {
                 if (!Enum.IsDefined(typeof(T), e)) return false;
 
@@ -77,15 +77,15 @@ namespace Cesil
                 return true;
             }
 
-            internal static bool TryFormatNullableEnum(T? e, IBufferWriter<char> writer)
+            internal static bool TryFormatNullableEnum(T? e, in WriteContext _, IBufferWriter<char> writer)
             {
                 if (e == null) return true;
 
-                return TryFormatEnum(e.Value, writer);
+                return TryFormatEnum(e.Value, _, writer);
             }
         }
 
-        private static bool TryFormatString(string s, IBufferWriter<char> writer)
+        private static bool TryFormatString(string s, in WriteContext _, IBufferWriter<char> writer)
         {
             if (string.IsNullOrEmpty(s))
             {
@@ -103,7 +103,7 @@ namespace Cesil
 
         // non-nullable
 
-        private static bool TryFormatBool(bool b, IBufferWriter<char> writer)
+        private static bool TryFormatBool(bool b, in WriteContext _, IBufferWriter<char> writer)
         {
             if (b)
             {
@@ -127,7 +127,7 @@ namespace Cesil
             return true;
         }
 
-        private static bool TryFormatChar(char c, IBufferWriter<char> writer)
+        private static bool TryFormatChar(char c, in WriteContext _, IBufferWriter<char> writer)
         {
             var charSpan = writer.GetSpan(1);
             if (charSpan.Length < 1) return false;
@@ -138,7 +138,7 @@ namespace Cesil
             return true;
         }
 
-        private static bool TryFormatByte(byte b, IBufferWriter<char> writer)
+        private static bool TryFormatByte(byte b, in WriteContext _, IBufferWriter<char> writer)
         {
             var charSpan = writer.GetSpan(3);
 
@@ -149,7 +149,7 @@ namespace Cesil
             return true;
         }
 
-        private static bool TryFormatSByte(sbyte b, IBufferWriter<char> writer)
+        private static bool TryFormatSByte(sbyte b, in WriteContext _, IBufferWriter<char> writer)
         {
             var charSpan = writer.GetSpan(4);
 
@@ -160,7 +160,7 @@ namespace Cesil
             return true;
         }
 
-        private static bool TryFormatShort(short b, IBufferWriter<char> writer)
+        private static bool TryFormatShort(short b, in WriteContext _, IBufferWriter<char> writer)
         {
             var charSpan = writer.GetSpan(6 );
 
@@ -171,7 +171,7 @@ namespace Cesil
             return true;
         }
 
-        private static bool TryFormatUShort(ushort b, IBufferWriter<char> writer)
+        private static bool TryFormatUShort(ushort b, in WriteContext _, IBufferWriter<char> writer)
         {
             var charSpan = writer.GetSpan(5 );
 
@@ -182,7 +182,7 @@ namespace Cesil
             return true;
         }
 
-        private static bool TryFormatInt(int b, IBufferWriter<char> writer)
+        private static bool TryFormatInt(int b, in WriteContext _, IBufferWriter<char> writer)
         {
             var charSpan = writer.GetSpan(11 );
 
@@ -193,7 +193,7 @@ namespace Cesil
             return true;
         }
 
-        private static bool TryFormatUInt(uint b, IBufferWriter<char> writer)
+        private static bool TryFormatUInt(uint b, in WriteContext _, IBufferWriter<char> writer)
         {
             var charSpan = writer.GetSpan(10 );
 
@@ -204,7 +204,7 @@ namespace Cesil
             return true;
         }
 
-        private static bool TryFormatLong(long b, IBufferWriter<char> writer)
+        private static bool TryFormatLong(long b, in WriteContext _, IBufferWriter<char> writer)
         {
             var charSpan = writer.GetSpan(20 );
 
@@ -215,7 +215,7 @@ namespace Cesil
             return true;
         }
 
-        private static bool TryFormatULong(ulong b, IBufferWriter<char> writer)
+        private static bool TryFormatULong(ulong b, in WriteContext _, IBufferWriter<char> writer)
         {
             var charSpan = writer.GetSpan(20 );
 
@@ -226,7 +226,7 @@ namespace Cesil
             return true;
         }
 
-        private static bool TryFormatFloat(float b, IBufferWriter<char> writer)
+        private static bool TryFormatFloat(float b, in WriteContext _, IBufferWriter<char> writer)
         {
             // based on https://docs.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings#GFormatString
             const int MAX_CHARS =
@@ -245,7 +245,7 @@ namespace Cesil
             return true;
         }
 
-        private static bool TryFormatDouble(double b, IBufferWriter<char> writer)
+        private static bool TryFormatDouble(double b, in WriteContext _, IBufferWriter<char> writer)
         {
             // based on https://docs.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings#GFormatString
             const int MAX_CHARS =
@@ -264,7 +264,7 @@ namespace Cesil
             return true;
         }
 
-        private static bool TryFormatDecimal(decimal b, IBufferWriter<char> writer)
+        private static bool TryFormatDecimal(decimal b, in WriteContext _, IBufferWriter<char> writer)
         {
             // based on https://docs.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings#GFormatString
             const int MAX_CHARS =
@@ -283,7 +283,7 @@ namespace Cesil
             return true;
         }
 
-        private static bool TryFormatDateTime(DateTime dt, IBufferWriter<char> writer)
+        private static bool TryFormatDateTime(DateTime dt, in WriteContext _, IBufferWriter<char> writer)
         {
             // yyyy-MM-dd HH:mm:ssZ
             const int MAX_CHARS = 20;
@@ -304,7 +304,7 @@ namespace Cesil
             return true;
         }
 
-        private static bool TryFormatDateTimeOffset(DateTimeOffset dt, IBufferWriter<char> writer)
+        private static bool TryFormatDateTimeOffset(DateTimeOffset dt, in WriteContext _, IBufferWriter<char> writer)
         {
             // yyyy-MM-dd HH:mm:ssZ
             const int MAX_CHARS = 20;
@@ -318,7 +318,7 @@ namespace Cesil
             return true;
         }
 
-        private static bool TryFormatGuid(Guid g, IBufferWriter<char> writer)
+        private static bool TryFormatGuid(Guid g, in WriteContext _, IBufferWriter<char> writer)
         {
             // 32 digits + 4 dashes
             const int MAX_CHARS = 36;
@@ -332,7 +332,7 @@ namespace Cesil
             return true;
         }
 
-        private static bool TryFormatTimeSpan(TimeSpan ts, IBufferWriter<char> writer)
+        private static bool TryFormatTimeSpan(TimeSpan ts, in WriteContext _, IBufferWriter<char> writer)
         {
             // based on: https://docs.microsoft.com/en-us/dotnet/standard/base-types/standard-timespan-format-strings?view=netframework-4.7.2
             const int MAX_CHARS =
@@ -358,123 +358,123 @@ namespace Cesil
 
         // nullable
 
-        private static bool TryFormatNullableChar(char? c, IBufferWriter<char> writer)
+        private static bool TryFormatNullableChar(char? c, in WriteContext _, IBufferWriter<char> writer)
         {
             if (c == null) return true;
 
-            return TryFormatChar(c.Value, writer);
+            return TryFormatChar(c.Value, _, writer);
         }
 
-        private static bool TryFormatNullableBool(bool? b, IBufferWriter<char> writer)
+        private static bool TryFormatNullableBool(bool? b, in WriteContext _, IBufferWriter<char> writer)
         {
             if (b == null) return true;
 
-            return TryFormatBool(b.Value, writer);
+            return TryFormatBool(b.Value, _, writer);
         }
 
-        private static bool TryFormatNullableByte(byte? b, IBufferWriter<char> writer)
+        private static bool TryFormatNullableByte(byte? b, in WriteContext _, IBufferWriter<char> writer)
         {
             if (b == null) return true;
 
-            return TryFormatByte(b.Value, writer);
+            return TryFormatByte(b.Value, _, writer);
         }
 
-        private static bool TryFormatNullableSByte(sbyte? b, IBufferWriter<char> writer)
+        private static bool TryFormatNullableSByte(sbyte? b, in WriteContext _, IBufferWriter<char> writer)
         {
             if (b == null) return true;
 
-            return TryFormatSByte(b.Value, writer);
+            return TryFormatSByte(b.Value, _, writer);
         }
 
-        private static bool TryFormatNullableShort(short? b, IBufferWriter<char> writer)
+        private static bool TryFormatNullableShort(short? b, in WriteContext _, IBufferWriter<char> writer)
         {
             if (b == null) return true;
 
-            return TryFormatShort(b.Value, writer);
+            return TryFormatShort(b.Value, _, writer);
         }
 
-        private static bool TryFormatNullableUShort(ushort? b, IBufferWriter<char> writer)
+        private static bool TryFormatNullableUShort(ushort? b, in WriteContext _, IBufferWriter<char> writer)
         {
             if (b == null) return true;
 
-            return TryFormatUShort(b.Value, writer);
+            return TryFormatUShort(b.Value, _, writer);
         }
 
-        private static bool TryFormatNullableInt(int? b, IBufferWriter<char> writer)
+        private static bool TryFormatNullableInt(int? b, in WriteContext _, IBufferWriter<char> writer)
         {
             if (b == null) return true;
 
-            return TryFormatInt(b.Value, writer);
+            return TryFormatInt(b.Value, _, writer);
         }
 
-        private static bool TryFormatNullableUInt(uint? b, IBufferWriter<char> writer)
+        private static bool TryFormatNullableUInt(uint? b, in WriteContext _, IBufferWriter<char> writer)
         {
             if (b == null) return true;
 
-            return TryFormatUInt(b.Value, writer);
+            return TryFormatUInt(b.Value, _, writer);
         }
 
-        private static bool TryFormatNullableLong(long? b, IBufferWriter<char> writer)
+        private static bool TryFormatNullableLong(long? b, in WriteContext _, IBufferWriter<char> writer)
         {
             if (b == null) return true;
 
-            return TryFormatLong(b.Value, writer);
+            return TryFormatLong(b.Value, _, writer);
         }
 
-        private static bool TryFormatNullableULong(ulong? b, IBufferWriter<char> writer)
+        private static bool TryFormatNullableULong(ulong? b, in WriteContext _, IBufferWriter<char> writer)
         {
             if (b == null) return true;
 
-            return TryFormatULong(b.Value, writer);
+            return TryFormatULong(b.Value, _, writer);
         }
 
-        private static bool TryFormatNullableFloat(float? b, IBufferWriter<char> writer)
+        private static bool TryFormatNullableFloat(float? b, in WriteContext _, IBufferWriter<char> writer)
         {
             if (b == null) return true;
 
-            return TryFormatFloat(b.Value, writer);
+            return TryFormatFloat(b.Value, _, writer);
         }
 
-        private static bool TryFormatNullableDouble(double? b, IBufferWriter<char> writer)
+        private static bool TryFormatNullableDouble(double? b, in WriteContext _, IBufferWriter<char> writer)
         {
             if (b == null) return true;
 
-            return TryFormatDouble(b.Value, writer);
+            return TryFormatDouble(b.Value, _, writer);
         }
 
-        private static bool TryFormatNullableDecimal(decimal? b, IBufferWriter<char> writer)
+        private static bool TryFormatNullableDecimal(decimal? b, in WriteContext _, IBufferWriter<char> writer)
         {
             if (b == null) return true;
 
-            return TryFormatDecimal(b.Value, writer);
+            return TryFormatDecimal(b.Value, _, writer);
         }
 
-        private static bool TryFormatNullableDateTime(DateTime? b, IBufferWriter<char> writer)
+        private static bool TryFormatNullableDateTime(DateTime? b, in WriteContext _, IBufferWriter<char> writer)
         {
             if (b == null) return true;
 
-            return TryFormatDateTime(b.Value, writer);
+            return TryFormatDateTime(b.Value, _, writer);
         }
 
-        private static bool TryFormatNullableDateTimeOffset(DateTimeOffset? b, IBufferWriter<char> writer)
+        private static bool TryFormatNullableDateTimeOffset(DateTimeOffset? b, in WriteContext _, IBufferWriter<char> writer)
         {
             if (b == null) return true;
 
-            return TryFormatDateTimeOffset(b.Value, writer);
+            return TryFormatDateTimeOffset(b.Value, _, writer);
         }
 
-        private static bool TryFormatNullableGuid(Guid? g, IBufferWriter<char> writer)
+        private static bool TryFormatNullableGuid(Guid? g, in WriteContext _, IBufferWriter<char> writer)
         {
             if (g == null) return true;
 
-            return TryFormatGuid(g.Value, writer);
+            return TryFormatGuid(g.Value, _, writer);
         }
 
-        private static bool TryFormatNullableTimeSpan(TimeSpan? ts, IBufferWriter<char> writer)
+        private static bool TryFormatNullableTimeSpan(TimeSpan? ts, in WriteContext _, IBufferWriter<char> writer)
         {
             if (ts == null) return true;
 
-            return TryFormatTimeSpan(ts.Value, writer);
+            return TryFormatTimeSpan(ts.Value, _, writer);
         }
     }
 }

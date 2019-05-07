@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 namespace Cesil
 {
     internal sealed class HeadersReader<T> : ITestableDisposable
-        where T:new()
     {
         private const int LENGTH_SIZE = sizeof(uint) / sizeof(char);
 
@@ -95,7 +94,7 @@ namespace Cesil
             {
                 if (IsDisposed)
                 {
-                    Throw.ObjectDisposed(nameof(HeaderEnumerator));
+                    Throw.ObjectDisposedException(nameof(HeaderEnumerator));
                 }
             }
         }
@@ -121,7 +120,7 @@ namespace Cesil
         private Memory<char> PushBack => PushBackOwner.Memory;
 
         internal HeadersReader(
-            BoundConfiguration<T> config,
+            BoundConfigurationBase<T> config,
             ReaderStateMachine.CharacterLookup charLookup,
             TextReader inner,
             BufferWithPushback buffer
@@ -195,7 +194,7 @@ namespace Cesil
 
             if (PushBackLength + c.Length > PushBackOwner.Memory.Length)
             {
-                Throw.InvalidOperation($"Could not allocate large enough buffer to read headers");
+                Throw.InvalidOperationException($"Could not allocate large enough buffer to read headers");
             }
 
             c.CopyTo(PushBack.Span.Slice(PushBackLength));
@@ -378,16 +377,16 @@ namespace Cesil
                         return true;
 
                     case ReaderStateMachine.AdvanceResult.Exception_ExpectedEndOfRecord:
-                        Throw.InvalidOperation($"Encountered '{c}' when expecting end of record");
+                        Throw.InvalidOperationException($"Encountered '{c}' when expecting end of record");
                         break;
                     case ReaderStateMachine.AdvanceResult.Exception_InvalidState:
-                        Throw.InvalidOperation($"Internal state machine is in an invalid state due to a previous error");
+                        Throw.InvalidOperationException($"Internal state machine is in an invalid state due to a previous error");
                         break;
                     case ReaderStateMachine.AdvanceResult.Exception_StartEscapeInValue:
-                        Throw.InvalidOperation($"Encountered '{c}', starting an escaped value, when already in a value");
+                        Throw.InvalidOperationException($"Encountered '{c}', starting an escaped value, when already in a value");
                         break;
                     case ReaderStateMachine.AdvanceResult.Exception_UnexpectedCharacterInEscapeSequence:
-                        Throw.InvalidOperation($"Encountered '{c}' in an escape sequence, which is invalid");
+                        Throw.InvalidOperationException($"Encountered '{c}' in an escape sequence, which is invalid");
                         break;
                     case ReaderStateMachine.AdvanceResult.Exception_UnexpectedLineEnding:
                         Throw.Exception($"Unexpected {nameof(RowEndings)} value encountered");
@@ -396,7 +395,7 @@ namespace Cesil
                         Throw.Exception($"Unexpected state value entered");
                         break;
                     case ReaderStateMachine.AdvanceResult.Exception_ExpectedEndOfRecordOrValue:
-                        Throw.InvalidOperation($"Encountered '{c}' when expecting the end of a record or value");
+                        Throw.InvalidOperationException($"Encountered '{c}' when expecting the end of a record or value");
                         break;
 
                     default:
@@ -486,7 +485,7 @@ namespace Cesil
         {
             if (IsDisposed)
             {
-                Throw.ObjectDisposed(nameof(HeadersReader<T>));
+                Throw.ObjectDisposedException(nameof(HeadersReader<T>));
             }
         }
     }

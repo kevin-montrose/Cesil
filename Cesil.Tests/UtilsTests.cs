@@ -120,7 +120,7 @@ namespace Cesil.Tests
         [InlineData("abc\r", 4, -1)]
         public void FindNeedsEncode_Span(string chars, int start, int expected)
         {
-            var config = Configuration.For<_FindNeedsEncode>();
+            var config = (ConcreteBoundConfiguration<_FindNeedsEncode>)Configuration.For<_FindNeedsEncode>();
             var asSpan = chars.AsSpan();
             var ix = Utils.FindNeedsEncode(asSpan, start, config);
 
@@ -139,7 +139,7 @@ namespace Cesil.Tests
         [InlineData("abc\r", 4, -1)]
         public void FindNeedsEncode_Memory(string chars, int start, int expected)
         {
-            var config = Configuration.For<_FindNeedsEncode>();
+            var config = (ConcreteBoundConfiguration<_FindNeedsEncode>)Configuration.For<_FindNeedsEncode>();
             var asMemory = chars.AsMemory();
             var ix = Utils.FindNeedsEncode(asMemory, start, config);
 
@@ -192,7 +192,7 @@ namespace Cesil.Tests
 
             var seq = new ReadOnlySequence<char>(head, 0, tail, seqs[seqs.Length - 1].Length);
 
-            var config = Configuration.For<_FindNeedsEncode>();
+            var config = (ConcreteBoundConfiguration<_FindNeedsEncode>)Configuration.For<_FindNeedsEncode>();
             var ix = Utils.FindNeedsEncode(seq, start, config);
 
             Assert.Equal(expected, ix);

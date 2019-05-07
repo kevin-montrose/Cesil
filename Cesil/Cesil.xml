@@ -4,31 +4,14 @@
         <name>Cesil</name>
     </assembly>
     <members>
-        <member name="T:Cesil.BoundConfiguration`1">
+        <member name="M:Cesil.BoundConfigurationBase`1.#ctor(System.Char,System.Char,System.Char,Cesil.RowEndings,Cesil.ReadHeaders,Cesil.WriteHeaders,Cesil.WriteTrailingNewLines,System.Buffers.MemoryPool{System.Char},System.Nullable{System.Char},System.Nullable{System.Int32},System.Int32,Cesil.IDynamicTypeConverter,Cesil.DynamicRowDisposal)">
             <summary>
-            Represents and Options and Type pair.
-            
-            Used to create readers and writers.
+            For working with dynamic.
             </summary>
         </member>
-        <member name="M:Cesil.BoundConfiguration`1.CreateReader(System.IO.TextReader)">
+        <member name="M:Cesil.BoundConfigurationBase`1.#ctor(Cesil.InstanceBuilderDelegate{`0},Cesil.Column[],Cesil.Column[],System.Boolean[],System.Char,System.Char,System.Char,Cesil.RowEndings,Cesil.ReadHeaders,Cesil.WriteHeaders,Cesil.WriteTrailingNewLines,System.Buffers.MemoryPool{System.Char},System.Nullable{System.Char},System.Nullable{System.Int32},System.Int32)">
             <summary>
-            Create a synchronous reader for the given reader.
-            </summary>
-        </member>
-        <member name="M:Cesil.BoundConfiguration`1.CreateAsyncReader(System.IO.TextReader)">
-            <summary>
-            Create an asynchronous reader for the given reader.
-            </summary>
-        </member>
-        <member name="M:Cesil.BoundConfiguration`1.CreateWriter(System.IO.TextWriter)">
-            <summary>
-            Create a synchronous writer for the given writer.
-            </summary>
-        </member>
-        <member name="M:Cesil.BoundConfiguration`1.CreateAsyncWriter(System.IO.TextWriter)">
-            <summary>
-            Create an asynchronous writer for the given writer.
+            For working with concrete types.
             </summary>
         </member>
         <member name="T:Cesil.Configuration">
@@ -37,14 +20,90 @@
             which can create readers and writers.
             </summary>
         </member>
+        <member name="M:Cesil.Configuration.ForDynamic">
+            <summary>
+            Create a new IBoundConfiguration(T) with default Options, for use 
+              with dynamic types.
+            </summary>
+        </member>
+        <member name="M:Cesil.Configuration.ForDynamic(Cesil.Options)">
+            <summary>
+            Create a new IBoundConfiguration(T) with given Options, for use 
+              with dynamic types.
+            </summary>
+        </member>
         <member name="M:Cesil.Configuration.For``1">
             <summary>
-            Create a new BoundConfiguration(T) with default Options.
+            Create a new IBoundConfiguration(T) with default Options, for
+              use with the given type.
             </summary>
         </member>
         <member name="M:Cesil.Configuration.For``1(Cesil.Options)">
             <summary>
-            Create a new BoundConfiguration(T) with the given Options.
+            Create a new IBoundConfiguration(T) with the given Options, for
+              use with the given type.
+            </summary>
+        </member>
+        <member name="T:Cesil.DynamicRowDisposal">
+            <summary>
+            When a dynamic row returned by a IReader or IAsyncReader 
+               will be disposed.
+            </summary>
+        </member>
+        <member name="F:Cesil.DynamicRowDisposal.None">
+            <summary>
+            Default value, do not use.
+            </summary>
+        </member>
+        <member name="F:Cesil.DynamicRowDisposal.OnReaderDispose">
+            <summary>
+            Dynamic rows will be automatically disposed when the
+              reader that returned them is disposed.
+            </summary>
+        </member>
+        <member name="F:Cesil.DynamicRowDisposal.OnExplicitDispose">
+            <summary>
+            Dynamic rows will only be disposed when Dispose() is
+              explicitly called on the row.
+            </summary>
+        </member>
+        <member name="T:Cesil.IBoundConfiguration`1">
+            <summary>
+            Represents and Options and Type pair.
+            
+            Used to create readers and writers.
+            </summary>
+        </member>
+        <member name="M:Cesil.IBoundConfiguration`1.CreateReader(System.IO.TextReader,System.Object)">
+            <summary>
+            Create a synchronous reader for the given reader.
+            
+            Takes an optional context object which is made available
+              during certain operations as a member on ReadContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.IBoundConfiguration`1.CreateAsyncReader(System.IO.TextReader,System.Object)">
+            <summary>
+            Create an asynchronous reader for the given reader.
+            
+            Takes an optional context object which is made available
+              during certain operations as a member on ReadContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.IBoundConfiguration`1.CreateWriter(System.IO.TextWriter,System.Object)">
+            <summary>
+            Create a synchronous writer for the given writer.
+            
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.IBoundConfiguration`1.CreateAsyncWriter(System.IO.TextWriter,System.Object)">
+            <summary>
+            Create an asynchronous writer for the given writer.
+            
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
             </summary>
         </member>
         <member name="T:Cesil.Options">
@@ -71,6 +130,7 @@
               - does not write a new line after the last row
               - does not support comments
               - uses the default read buffer size
+              - dynamic rows are disposed when the reader that returns them is disposed
             </summary>
         </member>
         <member name="P:Cesil.Options.ValueSeparator">
@@ -152,6 +212,18 @@
               servicing read operations.
               
             Set to 0 to use a default size.
+            </summary>
+        </member>
+        <member name="P:Cesil.Options.DynamicTypeConverter">
+            <summary>
+            The instance of IDynamicTypeConverter that will be used to
+              determine how to convert dynamic rows and cells into
+              concrete types.
+            </summary>
+        </member>
+        <member name="P:Cesil.Options.DynamicRowDisposal">
+            <summary>
+            When to dispose any dynamic rows returned by an IReader or IAsyncReader.
             </summary>
         </member>
         <member name="M:Cesil.Options.NewEmptyBuilder">
@@ -254,6 +326,18 @@
             Set to 0 to use a default size.
             </summary>
         </member>
+        <member name="P:Cesil.OptionsBuilder.DynamicTypeConverter">
+            <summary>
+            The instance of IDynamicTypeConverter that will be used to
+              determine how to convert dynamic rows and cells into
+              concrete types.
+            </summary>
+        </member>
+        <member name="P:Cesil.OptionsBuilder.DynamicRowDisposal">
+            <summary>
+            When to dispose any dynamic rows returned by an IReader or IAsyncReader.
+            </summary>
+        </member>
         <member name="M:Cesil.OptionsBuilder.NewEmptyBuilder">
             <summary>
             Create a new, empty, OptionsBuilder.
@@ -302,6 +386,12 @@
             columns that are read and written.
             </summary>
         </member>
+        <member name="M:Cesil.OptionsBuilder.WithDynamicTypeConverter(Cesil.IDynamicTypeConverter)">
+            <summary>
+            Set the ITypeDescriber used to discover and configure the
+            columns that are read and written.
+            </summary>
+        </member>
         <member name="M:Cesil.OptionsBuilder.WithWriteTrailingNewLine(Cesil.WriteTrailingNewLines)">
             <summary>
             Set whether or not to end the last row with a new line.
@@ -340,6 +430,14 @@
               
             All values are treated as hints, it's up to
               the configured MemoryPool to satsify the request.
+            </summary>
+        </member>
+        <member name="M:Cesil.OptionsBuilder.WithDynamicRowDisposal(Cesil.DynamicRowDisposal)">
+            <summary>
+            Set when dynamic rows returned by a reader are disposed.
+            
+            The options are either when the reader is disposed (the default) or
+              when the row is explicitly disposed.
             </summary>
         </member>
         <member name="T:Cesil.RowEndings">
@@ -562,6 +660,40 @@
             Write a single row.
             </summary>
         </member>
+        <member name="T:Cesil.ReadContext">
+            <summary>
+            Context object provided during read operations.
+            </summary>
+        </member>
+        <member name="P:Cesil.ReadContext.RowNumber">
+            <summary>
+            The index of the row being read (0-based).
+            </summary>
+        </member>
+        <member name="P:Cesil.ReadContext.ColumnNumber">
+            <summary>
+            The index of the column being read (0-based).
+            </summary>
+        </member>
+        <member name="P:Cesil.ReadContext.ColumnName">
+            <summary>
+            The name of the column being read, can be null
+              if no column names were available.
+            </summary>
+        </member>
+        <member name="P:Cesil.ReadContext.Context">
+            <summary>
+            The object, if any, provided to the call to CreateReader or
+              CreateAsyncReader that produced the reader which is
+              performing the read operation which is described
+              by this context.
+            </summary>
+        </member>
+        <member name="M:Cesil.ReadContext.ToString">
+            <summary>
+            Returns a string representation of this ReadContext.
+            </summary>
+        </member>
         <member name="T:Cesil.ReadHeaders">
             <summary>
             Whether to expect a header row when
@@ -609,6 +741,145 @@
             The value read, if HasValue == true.
             </summary>
         </member>
+        <member name="T:Cesil.DefaultDynamicTypeConverter">
+            <summary>
+            The default implementation of IDynamicTypeConverter used to
+              determine how to map a dynamic cell or row to a concrete type.
+              
+            It will map cells to types using DeserializableMember.GetDefaultParser() or a
+               constructor that takes a ReadOnlySpan(char).
+            
+            It will map rows to Tuple, ValueTuple, IEnumerable(T), IEnumerable, user defined 
+              types with constructors of the same arity as the row, user defined types with
+              a constructor taking a single object/dynamic, or user defined types where column
+              names match properties and a zero-parameter constructor is defined.
+            </summary>
+        </member>
+        <member name="T:Cesil.DefaultDynamicTypeConverter.ConstructorWithParameters">
+            <summary>
+            Represents a constructor - columns pair.
+            
+            Used by GetRowConstuctorTakingTypedParameters to indicate
+              a constructor to invoke with particular column values
+              to map a dynamic row to a concrete type.
+            </summary>
+        </member>
+        <member name="P:Cesil.DefaultDynamicTypeConverter.ConstructorWithParameters.Constructor">
+            <summary>
+            Constructor to invoke.
+            </summary>
+        </member>
+        <member name="P:Cesil.DefaultDynamicTypeConverter.ConstructorWithParameters.ColumnIndexes">
+            <summary>
+            Indexes of the columns to pass to Constructor.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultDynamicTypeConverter.ConstructorWithParameters.#ctor(System.Reflection.ConstructorInfo,System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Create a new ConstructorWithParameters with the given constructor
+              and columns.
+            </summary>
+        </member>
+        <member name="T:Cesil.DefaultDynamicTypeConverter.ConstructorWithSetters">
+            <summary>
+            Represents a constructor - setters - columns triple.
+            
+            Used by GetRowConstructorAndSetters to indicate
+              a constructor to invoke to create a type, and then a
+              series of setters to invoke and pass columns at the
+              corresponding indexes to.
+            </summary>
+        </member>
+        <member name="P:Cesil.DefaultDynamicTypeConverter.ConstructorWithSetters.Constructor">
+            <summary>
+            Constructor to invoke.
+            </summary>
+        </member>
+        <member name="P:Cesil.DefaultDynamicTypeConverter.ConstructorWithSetters.Setters">
+            <summary>
+            Setters to invoke with column values.
+            </summary>
+        </member>
+        <member name="P:Cesil.DefaultDynamicTypeConverter.ConstructorWithSetters.ColumnIndexes">
+            <summary>
+            Indexes of the columns to pass to each setter.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultDynamicTypeConverter.ConstructorWithSetters.#ctor(System.Reflection.ConstructorInfo,System.Collections.Generic.IEnumerable{System.Reflection.MethodInfo},System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Create a new ConstructorWithParameters with the given constructor
+              and columns.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultDynamicTypeConverter.#ctor">
+            <summary>
+            Create a new instance of DefaultDynamicTypeConverter.
+            
+            A pre-allocated instances can be found on DynamicTypeConverters.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultDynamicTypeConverter.GetCellConverter(System.Int32,System.String,System.Reflection.TypeInfo)">
+            <summary>
+            Returns a DynamicCellConverter that can be used to parse the targetType,
+               if a default parser for the type exists or a constructor accepting
+               ReadOnlySpan(char) is on the the type.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultDynamicTypeConverter.GetCellParsingMethodFor(System.Int32,System.String,System.Reflection.TypeInfo)">
+            <summary>
+            Returns the default cell parsing method for the given type, if any.
+            
+            Override to tweak behavior.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultDynamicTypeConverter.GetCellConstructorFor(System.Int32,System.String,System.Reflection.TypeInfo)">
+            <summary>
+            Returns the default constructor for the given type, if any.
+            
+            Override to tweak behavior.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultDynamicTypeConverter.GetRowConverter(System.Int32,System.Int32,System.String[],System.Reflection.TypeInfo)">
+            <summary>
+            Returns a DynamicRowConverter that can be used to parse the targetType,
+               if a default parser for the type exists or a constructor accepting
+               the appropriate number of objects (can be dynamic in source) is on 
+               the the type.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultDynamicTypeConverter.GetRowParsingMethodFor(System.Int32,System.Int32,System.String[],System.Reflection.TypeInfo)">
+            <summary>
+            Returns the default parsing method for the given type, if any,
+              that maps a whole row to the given type.
+            
+            Override to tweak behavior.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultDynamicTypeConverter.GetRowConstructorTakingDynamicFor(System.Int32,System.Int32,System.String[],System.Reflection.TypeInfo)">
+            <summary>
+            Returns the single-object-taking constructor for the given type (or one assignable
+              to it), if any, that maps a whole row to the given type.
+            
+            Override to tweak behavior.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultDynamicTypeConverter.GetRowConstuctorTakingTypedParameters(System.Int32,System.Int32,System.String[],System.Reflection.TypeInfo)">
+            <summary>
+            Returns a constructor and an array of column indexes that corresponds
+              to a constructor on the given type (or one assignable to it) that takes
+              typed parameters for each of the included columns.
+            
+            Override to tweak behavior.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultDynamicTypeConverter.GetRowConstructorAndSetters(System.Int32,System.Int32,System.String[],System.Reflection.TypeInfo)">
+            <summary>
+            Returns a constructor, setters, and an array of column indexes that corresponds
+              to the setters that takes typed parameters for each of the included columns.
+            
+            Override to tweak behavior.
+            </summary>
+        </member>
         <member name="T:Cesil.DefaultTypeDescriber">
             <summary>
             The default implementation of ITypeDescriber used to
@@ -618,6 +889,10 @@
               with a [DataMember], and will respect ShouldSerialize()
               methods.
               
+            It will deserialize all public properties, any fields
+              with a [DataMember], and will call Reset() methods.  Expects
+              a public parameterless constructor for any deserialized types.
+            
             This type is unsealed to allow for easy extension of it's behavior.
             </summary>
         </member>
@@ -626,6 +901,14 @@
             Construct a new DefaultTypeDesciber.
             
             A pre-allocated instance is available on TypeDescribers.Default.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultTypeDescriber.GetInstanceBuilder(System.Reflection.TypeInfo)">
+            <summary>
+            Gets an InstanceBuilder that wraps the parameterless constructor
+              for the given type.
+              
+            Throws if there is no parameterless constructor.
             </summary>
         </member>
         <member name="M:Cesil.DefaultTypeDescriber.EnumerateMembersToDeserialize(System.Reflection.TypeInfo)">
@@ -910,12 +1193,150 @@
             This is provided for debugging purposes, and the format is not guaranteed to be stable between releases.
             </summary>
         </member>
+        <member name="T:Cesil.DynamicCellConverter">
+            <summary>
+            Describes how to convert a dynamic cell value
+              into an instance of a type.
+              
+            Conversions can implemented as constructors,
+              or static methods.
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicCellConverter.ForConstructor(System.Reflection.ConstructorInfo)">
+            <summary>
+            Create a DynamicCellConverter from the given constructor.
+            
+            Constructor must take a ReadOnlySpan(char).
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicCellConverter.ForMethod(System.Reflection.MethodInfo)">
+            <summary>
+            Create a DynamicCellConverter from the given method.
+            
+            Method must be static, return a bool, take a ReadOnlySpan(char) 
+              as it's first parameter, a ReadContext as it's second parameter,
+              and have a third parameter that is an out for the result value.
+            </summary>
+        </member>
+        <member name="T:Cesil.DynamicRowConverter">
+            <summary>
+            Describes how to convert a dynamic row value
+              into an instance of a type.
+              
+            Conversions can implemented as constructors taking a single 
+              dynamic/object, constructors taking typed parameters, an 
+              empty constructor paired with setter methods,
+              or static methods.
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicRowConverter.ForConstructorTakingDynamic(System.Reflection.ConstructorInfo)">
+            <summary>
+            Create a DynamicRowConverter from the given constructor.
+            
+            Constructor must take an object (which can be dynamic in source).
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicRowConverter.ForConstructorTakingTypedParameters(System.Reflection.ConstructorInfo,System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Create a DynamicRowConverter for the given constructor, which maps specific columns to the parameters
+              for the of the constructor.
+              
+            Constructor must take the same number of parameters as column indexes passed in.
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicRowConverter.ForEmptyConstructorAndSetters(System.Reflection.ConstructorInfo,System.Collections.Generic.IEnumerable{System.Reflection.MethodInfo},System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Create a DynamicRowConverter for the given zero parameter constructor, which will call each setter
+              with the column indicated in the passed column to setters.
+              
+            The same number of setters and columns must be passed.  Setter methods must take a single parameter,
+              and either be callable on the constructed type or static.  Setters must return void.
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicRowConverter.ForMethod(System.Reflection.MethodInfo)">
+            <summary>
+            Create a DynamicRowConverter from the given method.
+            
+            Method must be static, return a bool, take an object (which can be dynamic in source)
+              as it's first parameter, a ReadContext as it's second paramter, and have a third parameter that is an out 
+              for the result value.
+            </summary>
+        </member>
+        <member name="T:Cesil.DynamicTypeConverters">
+            <summary>
+            Holds references to pre-allocated DynamicTypeConverters.
+            </summary>
+        </member>
+        <member name="F:Cesil.DynamicTypeConverters.Default">
+            <summary>
+            An instance of DefaultDynamicTypeConverter.
+            
+            This instance is used in cases where an IDynamicTypeConverter has not been
+              configured.
+            </summary>
+        </member>
+        <member name="T:Cesil.IDynamicTypeConverter">
+            <summary>
+            The interface used to discover how to convert dynamically typed values
+              to concrete types.
+            </summary>
+        </member>
+        <member name="M:Cesil.IDynamicTypeConverter.GetCellConverter(System.Int32,System.String,System.Reflection.TypeInfo)">
+            <summary>
+            Called to determine how to convert a cell in the given column, as identified by
+               it's number (base-0) and column name (which may be null), into the given type.
+               
+            Column name will be null if headers were not configured or discovered during reading.
+            </summary>
+        </member>
+        <member name="M:Cesil.IDynamicTypeConverter.GetRowConverter(System.Int32,System.Int32,System.String[],System.Reflection.TypeInfo)">
+            <summary>
+            Called to determine how to convert an entire row into the given type, as identified by
+              it's number (base-0), into the given type.
+              
+            Column names will be null if headers were not configured or discovered during reading.
+            </summary>
+        </member>
+        <member name="T:Cesil.InstanceBuilderDelegate`1">
+            <summary>
+            Delegate used to create InstanceBuilders.
+            </summary>
+        </member>
+        <member name="T:Cesil.InstanceBuilder">
+            <summary>
+            Represents a way to create new instances of a type.
+            </summary>
+        </member>
+        <member name="M:Cesil.InstanceBuilder.ForParameterlessConstructor(System.Reflection.ConstructorInfo)">
+            <summary>
+            Create a new InstanceBuilder from a parameterless constructor.
+            
+            The constructed type must be concrete, that is:
+              - not an interface
+              - not an abstract class
+              - not a generic parameter
+              - not an unbound generic type (ie. a generic type definition)
+            </summary>
+        </member>
+        <member name="M:Cesil.InstanceBuilder.ForDelegate``1(Cesil.InstanceBuilderDelegate{``0})">
+            <summary>
+            Create a new InstanceBuilder from delegate.
+            
+            There are no restrictions on what the give delegate may do,
+              but be aware that it may be called from many different contexts.
+            </summary>
+        </member>
         <member name="T:Cesil.ITypeDescriber">
             <summary>
             The interface used to discover the members to (de)serialize for a type.
             
             DefaultTypeDescriber, ManualTypeDescriber, and SurrogateTypeDescriber all implement
               this interface and handle the most common desired configurations.
+            </summary>
+        </member>
+        <member name="M:Cesil.ITypeDescriber.GetInstanceBuilder(System.Reflection.TypeInfo)">
+            <summary>
+            Get the builder used to make instances of forType.
             </summary>
         </member>
         <member name="M:Cesil.ITypeDescriber.EnumerateMembersToSerialize(System.Reflection.TypeInfo)">
@@ -950,6 +1371,30 @@
             Creates a new ManualTypeDescriber.
             
             Does not throw if no type is configured for a given enumeration.
+            </summary>
+        </member>
+        <member name="M:Cesil.ManualTypeDescriber.SetExplicitParameterlessConstructor(System.Reflection.ConstructorInfo)">
+            <summary>
+            Set the parameterless constructor to use when constructing new instances of 
+              the constructor's declaring type.
+            </summary>
+        </member>
+        <member name="M:Cesil.ManualTypeDescriber.SetExplicitParameterlessConstructor(System.Reflection.TypeInfo,System.Reflection.ConstructorInfo)">
+            <summary>
+            Set the parameterless constructor to use when constructing new instances of 
+              the given type.
+            </summary>
+        </member>
+        <member name="M:Cesil.ManualTypeDescriber.SetBuilderDelegate``1(Cesil.InstanceBuilderDelegate{``0})">
+            <summary>
+            Set the delegate to use when constructing new instances of 
+              type T.
+            </summary>
+        </member>
+        <member name="M:Cesil.ManualTypeDescriber.SetBuilderDelegate``1(System.Reflection.TypeInfo,Cesil.InstanceBuilderDelegate{``0})">
+            <summary>
+            Set the delegate to use when constructing new instances of 
+              the given type.
             </summary>
         </member>
         <member name="M:Cesil.ManualTypeDescriber.AddExplicitGetter(System.Reflection.TypeInfo,System.String,System.Reflection.MethodInfo)">
@@ -1187,6 +1632,17 @@
             Add a property to deserialize with the given name, parser, whether the column is required, and a reset method - for the type which declares the property.
             </summary>
         </member>
+        <member name="M:Cesil.ManualTypeDescriber.GetInstanceBuilder(System.Reflection.TypeInfo)">
+            <summary>
+            Returns an InstanceBuilder that can construct the given type.
+            
+            If neither a parameterless constructor nor a delegate has been
+               configured, will throw an exception.
+               
+            If both a parameterless constructor and a delegate have been
+              configured, will also throw an exception.
+            </summary>
+        </member>
         <member name="M:Cesil.ManualTypeDescriber.EnumerateMembersToDeserialize(System.Reflection.TypeInfo)">
             <summary>
             Enumerate all the members on forType to deserialize.
@@ -1361,6 +1817,18 @@
               ThrowOnNoRegisteredSurrogate.
             </summary>
         </member>
+        <member name="M:Cesil.SurrogateTypeDescriber.GetInstanceBuilder(System.Reflection.TypeInfo)">
+            <summary>
+            Gets an instance builder usable to construct the given type.
+            
+            If a surrogate is registered, the surrogate will be used for discovery - the returned 
+              constructor will be mapped from the surrogate to forType.
+              
+            If a surrogate is not registered, either an exception will be thrown or forType will
+              be passed to TypeDescriber.GetInstanceBuilder depending on the value of
+              ThrowOnNoRegisteredSurrogate.
+            </summary>
+        </member>
         <member name="T:Cesil.TypeDescribers">
             <summary>
             Holds references to pre-allocated TypeDescibers.
@@ -1372,6 +1840,40 @@
             
             This instance is used in cases where an ITypeDescriber has not been
               configured.
+            </summary>
+        </member>
+        <member name="T:Cesil.WriteContext">
+            <summary>
+            Context object provided during write operations.
+            </summary>
+        </member>
+        <member name="P:Cesil.WriteContext.RowNumber">
+            <summary>
+            The index of the row being written (0-based).
+            </summary>
+        </member>
+        <member name="P:Cesil.WriteContext.ColumnNumber">
+            <summary>
+            The index of the column being written (0-based).
+            </summary>
+        </member>
+        <member name="P:Cesil.WriteContext.ColumnName">
+            <summary>
+            The name of the column being written, can be null
+              if no column names are available.
+            </summary>
+        </member>
+        <member name="P:Cesil.WriteContext.Context">
+            <summary>
+            The object, if any, provided to the call to CreateWriter or
+              CreateAsyncWriter that produced the writer which is
+              performing the writer operation which is described
+              by this context.
+            </summary>
+        </member>
+        <member name="M:Cesil.WriteContext.ToString">
+            <summary>
+            Returns a string representation of this WriteContext.
             </summary>
         </member>
     </members>

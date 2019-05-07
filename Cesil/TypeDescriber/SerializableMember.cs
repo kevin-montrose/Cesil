@@ -186,12 +186,12 @@ namespace Cesil
 
             if (field == null && getter == null)
             {
-                Throw.InvalidOperation($"At least one of {nameof(field)} and {nameof(getter)} must be non-null");
+                Throw.InvalidOperationException($"At least one of {nameof(field)} and {nameof(getter)} must be non-null");
             }
 
             if (field != null && getter != null)
             {
-                Throw.InvalidOperation($"Only one of {nameof(field)} and {nameof(getter)} can be non-null");
+                Throw.InvalidOperationException($"Only one of {nameof(field)} and {nameof(getter)} can be non-null");
             }
 
             if(formatter == null)
@@ -249,7 +249,8 @@ namespace Cesil
             }
 
             // formatter needs to take the toSerializeType (or a type it's assignable to)
-            //   and a IBufferWriter<char>
+            //   and an IBufferWriter<char>
+            //   and a WriteContext
             //   and return bool (false indicates insufficient space was available)
             {
                 if (!formatter.IsStatic)
@@ -264,19 +265,30 @@ namespace Cesil
                 }
 
                 var args = formatter.GetParameters();
-                if(args.Length != 2)
+                if(args.Length != 3)
                 {
-                    Throw.ArgumentException($"{nameof(formatter)} must take 2 parameters", nameof(formatter));
+                    Throw.ArgumentException($"{nameof(formatter)} must take 3 parameters", nameof(formatter));
                 }
 
                 if (!args[0].ParameterType.IsAssignableFrom(toSerializeType))
                 {
-                    Throw.ArgumentException($"The first paramater to {nameof(formatter)} must be accept a {toSerializeType.FullName}", nameof(formatter));
+                    Throw.ArgumentException($"The first paramater to {nameof(formatter)} must be accept a {toSerializeType}", nameof(formatter));
                 }
 
-                if (args[1].ParameterType.GetTypeInfo() != Types.IBufferWriterOfCharType)
+                var p2 = args[1].ParameterType.GetTypeInfo();
+                if (!p2.IsByRef)
                 {
-                    Throw.ArgumentException($"The second paramater to {nameof(formatter)} must be a {nameof(IBufferWriter<char>)}", nameof(formatter));
+                    Throw.ArgumentException($"The second paramater to {nameof(formatter)} must be an in {nameof(WriteContext)}, was not by ref", nameof(formatter));
+                }
+
+                if (p2.GetElementType() != Types.WriteContext)
+                {
+                    Throw.ArgumentException($"The second paramater to {nameof(formatter)} must be an in {nameof(WriteContext)}", nameof(formatter));
+                }
+
+                if (args[2].ParameterType.GetTypeInfo() != Types.IBufferWriterOfCharType)
+                {
+                    Throw.ArgumentException($"The third paramater to {nameof(formatter)} must be a {nameof(IBufferWriter<char>)}", nameof(formatter));
                 }
             }
 

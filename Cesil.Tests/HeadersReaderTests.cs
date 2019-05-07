@@ -22,7 +22,6 @@ namespace Cesil.Tests
         }
 
         private static IEnumerable<ReadOnlyMemory<char>> ToEnumerable<T>(HeadersReader<T>.HeaderEnumerator e)
-            where T : new()
         {
             using (e)
             {
@@ -42,7 +41,7 @@ namespace Cesil.Tests
         [Fact]
         public void BufferToLarge()
         {
-            var config = Configuration.For<_BufferToLarge>(Options.Default.NewBuilder().WithMemoryPool(new TestMemoryPool<char>(16)).Build());
+            var config = (ConcreteBoundConfiguration<_BufferToLarge>)Configuration.For<_BufferToLarge>(Options.Default.NewBuilder().WithMemoryPool(new TestMemoryPool<char>(16)).Build());
 
             // none
             {
@@ -60,7 +59,7 @@ namespace Cesil.Tests
         [Fact]
         public void JustHeaders()
         {
-            var config = Configuration.For<_JustHeaders>();
+            var config = (ConcreteBoundConfiguration<_JustHeaders>)Configuration.For<_JustHeaders>();
 
             // none
             {
@@ -212,7 +211,7 @@ namespace Cesil.Tests
                     }
                 );
 
-            var config = Configuration.For<_ManyHeaders>(Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).Build());
+            var config = (ConcreteBoundConfiguration<_ManyHeaders>)Configuration.For<_ManyHeaders>(Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).Build());
 
             using (var str = new StringReader(csv))
             {
@@ -239,7 +238,7 @@ namespace Cesil.Tests
         [Fact]
         public void TrailingRecords()
         {
-            var config = Configuration.For<_JustHeaders>(Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).Build());
+            var config = (ConcreteBoundConfiguration<_JustHeaders>)Configuration.For<_JustHeaders>(Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).Build());
 
             // none
             {
@@ -358,7 +357,7 @@ namespace Cesil.Tests
         [Fact]
         public async Task JustHeadersAsync()
         {
-            var config = Configuration.For<_JustHeaders>(Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).Build());
+            var config = (ConcreteBoundConfiguration<_JustHeaders>)Configuration.For<_JustHeaders>(Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).Build());
 
             // none
             {
@@ -549,10 +548,12 @@ namespace Cesil.Tests
                 Options.Default,
                 async (config, makeReader) =>
                 {
+                    var c = (ConcreteBoundConfiguration<_ManyHeaders>)config;
+
                     using (var str = makeReader(csv))
                     {
-                        using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                        using var reader = new HeadersReader<_ManyHeaders>(config, charLookup,  str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                        using var charLookup = ReaderStateMachine.MakeCharacterLookup(c.MemoryPool, c.EscapedValueStartAndStop, c.ValueSeparator, c.EscapeValueEscapeChar, c.CommentChar);
+                        using var reader = new HeadersReader<_ManyHeaders>(c, charLookup,  str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
                         var res = await reader.ReadAsync(default);
                         Assert.Collection(
                             ToEnumerable(res.Headers),
@@ -576,7 +577,7 @@ namespace Cesil.Tests
         [Fact]
         public async Task TrailingRecordsAsync()
         {
-            var config = Configuration.For<_JustHeaders>(Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).Build());
+            var config = (ConcreteBoundConfiguration<_JustHeaders>)Configuration.For<_JustHeaders>(Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).Build());
 
             var columns =
                 new[]

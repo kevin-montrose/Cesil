@@ -31,7 +31,7 @@ namespace Cesil.Benchmark.Benchmarks
             public double? World { get; set; }
         }
 
-        private static readonly BoundConfiguration<Row> Config = Configuration.For<Row>();
+        private static readonly IBoundConfiguration<Row> Config = Configuration.For<Row>();
 
         [Benchmark]
         public void Cesil()

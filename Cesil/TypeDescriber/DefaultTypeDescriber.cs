@@ -12,6 +12,10 @@ namespace Cesil
     ///   with a [DataMember], and will respect ShouldSerialize()
     ///   methods.
     ///   
+    /// It will deserialize all public properties, any fields
+    ///   with a [DataMember], and will call Reset() methods.  Expects
+    ///   a public parameterless constructor for any deserialized types.
+    /// 
     /// This type is unsealed to allow for easy extension of it's behavior.
     /// </summary>
     public class DefaultTypeDescriber : ITypeDescriber
@@ -22,6 +26,23 @@ namespace Cesil
         /// A pre-allocated instance is available on TypeDescribers.Default.
         /// </summary>
         public DefaultTypeDescriber() { }
+
+        /// <summary>
+        /// Gets an InstanceBuilder that wraps the parameterless constructor
+        ///   for the given type.
+        ///   
+        /// Throws if there is no parameterless constructor.
+        /// </summary>
+        public virtual InstanceBuilder GetInstanceBuilder(TypeInfo forType)
+        {
+            var cons = forType.GetConstructor(TypeInfo.EmptyTypes);
+            if(cons == null)
+            {
+                Throw.ArgumentException($"No parameterless constructor found for {forType}", nameof(forType));
+            }
+
+            return InstanceBuilder.ForParameterlessConstructor(cons);
+        }
 
         /// <summary>
         /// Enumerate all columns to deserialize.
@@ -373,8 +394,6 @@ namespace Cesil
         /// </summary>
         protected virtual MethodInfo GetFormatter(TypeInfo forType, PropertyInfo property)
         => GetFormatter(property.PropertyType.GetTypeInfo());
-
-        // todo: do we have a test for EmitDefaultValue = false on user defined ValueTypes?
 
         /// <summary>
         /// Returns whether or not the default value should be serialized for the given property.

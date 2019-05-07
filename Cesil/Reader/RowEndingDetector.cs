@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 namespace Cesil
 {
     internal class RowEndingDetector<T>: ITestableDisposable
-        where T:new()
     {
         private enum AdvanceResult: byte
         {
@@ -38,7 +37,7 @@ namespace Cesil
         private IMemoryOwner<char> PushbackOwner;
         private Memory<char> Pushback => PushbackOwner.Memory;
 
-        internal RowEndingDetector(BoundConfiguration<T> config, ReaderStateMachine.CharacterLookup charLookup, TextReader inner)
+        internal RowEndingDetector(BoundConfigurationBase<T> config, ReaderStateMachine.CharacterLookup charLookup, TextReader inner)
         {
             Inner = inner;
 
@@ -378,7 +377,7 @@ namespace Cesil
         {
             if (IsDisposed)
             {
-                Throw.ObjectDisposed(nameof(RowEndingDetector<T>));
+                Throw.ObjectDisposedException(nameof(RowEndingDetector<T>));
             }
         }
     }

@@ -22,7 +22,7 @@ namespace Cesil.Benchmark.Benchmarks
         }
 
         public const string Path = @"D:\InternalRefs.csv";
-        private static readonly BoundConfiguration<Row> Config = Configuration.For<Row>();
+        private static readonly IBoundConfiguration<Row> Config = Configuration.For<Row>();
         private const int TakeRows = 100_000;
 
         [Benchmark]

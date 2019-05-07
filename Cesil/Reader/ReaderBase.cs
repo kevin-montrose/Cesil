@@ -3,7 +3,6 @@
 namespace Cesil
 {
     internal abstract class ReaderBase<T>
-        where T : new()
     {
         // try and size the buffers so we get a whole page to ourselves
         private const int OVERHEAD_BYTES = 16;
@@ -15,9 +14,11 @@ namespace Cesil
 
         internal readonly ReaderStateMachine.CharacterLookup SharedCharacterLookup;
 
+        internal readonly object Context;
+
         internal ReaderStateMachine StateMachine;
 
-        internal BoundConfiguration<T> Configuration { get; }
+        internal BoundConfigurationBase<T> Configuration { get; }
         internal Column[] Columns;
 
         internal RowEndings? RowEndings { get; set; }
@@ -25,9 +26,13 @@ namespace Cesil
 
         internal bool HasValueToReturn => Partial.HasPending;
 
-        protected ReaderBase(BoundConfiguration<T> config)
+        internal int RowNumber;
+
+        protected ReaderBase(BoundConfigurationBase<T> config, object context)
         {
+            RowNumber = 0;
             Configuration = config;
+            Context = context;
             
             var bufferSize = config.ReadBufferSizeHint;
             if(bufferSize == 0)
@@ -145,16 +150,16 @@ namespace Cesil
                         return true;
 
                     case ReaderStateMachine.AdvanceResult.Exception_ExpectedEndOfRecord:
-                        Throw.InvalidOperation($"Encountered '{c}' when expecting end of record");
+                        Throw.InvalidOperationException($"Encountered '{c}' when expecting end of record");
                         break;
                     case ReaderStateMachine.AdvanceResult.Exception_InvalidState:
-                        Throw.InvalidOperation($"Internal state machine is in an invalid state due to a previous error");
+                        Throw.InvalidOperationException($"Internal state machine is in an invalid state due to a previous error");
                         break;
                     case ReaderStateMachine.AdvanceResult.Exception_StartEscapeInValue:
-                        Throw.InvalidOperation($"Encountered '{c}', starting an escaped value, when already in a value");
+                        Throw.InvalidOperationException($"Encountered '{c}', starting an escaped value, when already in a value");
                         break;
                     case ReaderStateMachine.AdvanceResult.Exception_UnexpectedCharacterInEscapeSequence:
-                        Throw.InvalidOperation($"Encountered '{c}' in an escape sequence, which is invalid");
+                        Throw.InvalidOperationException($"Encountered '{c}' in an escape sequence, which is invalid");
                         break;
                     case ReaderStateMachine.AdvanceResult.Exception_UnexpectedLineEnding:
                         Throw.Exception($"Unexpected {nameof(Cesil.RowEndings)} value encountered");
@@ -163,7 +168,7 @@ namespace Cesil
                         Throw.Exception($"Unexpected state value entered");
                         break;
                     case ReaderStateMachine.AdvanceResult.Exception_ExpectedEndOfRecordOrValue:
-                        Throw.InvalidOperation($"Encountered '{c}' when expecting the end of a record or value");
+                        Throw.InvalidOperationException($"Encountered '{c}' when expecting the end of a record or value");
                         break;
 
                     default:
@@ -232,6 +237,9 @@ namespace Cesil
 
             var ret = Partial.Value;
             Partial.ClearValue();
+
+            RowNumber++;
+
             return ret;
         }
 
@@ -249,21 +257,24 @@ namespace Cesil
         {
             if (Partial.CurrentColumnIndex >= Columns.Length)
             {
-                Throw.InvalidOperation($"Unexpected column (Index={Partial.CurrentColumnIndex})");
+                Throw.InvalidOperationException($"Unexpected column (Index={Partial.CurrentColumnIndex})");
             }
 
             var dataSpan = Partial.PendingAsMemory(Buffer.Buffer);
 
-            var column = Columns[Partial.CurrentColumnIndex];
+            var colIx = Partial.CurrentColumnIndex;
+            var column = Columns[colIx];
 
             if(column.IsRequired && dataSpan.Length == 0)
             {
                 Throw.SerializationException($"Column [{column.Name}] is required, but was not found in row");
             }
 
-            if(!column.Set(dataSpan.Span, Partial.Value))
+            var ctx = new ReadContext(RowNumber, colIx, Columns[colIx].Name, Context);
+
+            if(!column.Set(dataSpan.Span, in ctx, Partial.Value))
             {
-                Throw.InvalidOperation($"Could not assign value \"{Partial.PendingAsString(Buffer.Buffer)}\" to column \"{column.Name}\" (Index={Partial.CurrentColumnIndex})");
+                Throw.InvalidOperationException($"Could not assign value \"{Partial.PendingAsString(Buffer.Buffer)}\" to column \"{column.Name}\" (Index={Partial.CurrentColumnIndex})");
             }
 
             Partial.ClearBufferAndAdvanceColumnIndex();
@@ -275,7 +286,7 @@ namespace Cesil
             {
                 if (Configuration.ReadHeader == Cesil.ReadHeaders.Always)
                 {
-                    Throw.InvalidOperation("First row of input was not a row of headers");
+                    Throw.InvalidOperationException("First row of input was not a row of headers");
                     return;
                 }
             }
@@ -338,7 +349,7 @@ namespace Cesil
         {
             if (res == null)
             {
-                Throw.InvalidOperation($"Unable to automatically detect row endings");
+                Throw.InvalidOperationException($"Unable to automatically detect row endings");
             }
 
             RowEndings = res.Value.Ending;

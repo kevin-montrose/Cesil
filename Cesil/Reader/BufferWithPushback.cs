@@ -104,7 +104,7 @@ namespace Cesil
         {
             if(IsDisposed)
             {
-                Throw.ObjectDisposed(nameof(BufferWithPushback));
+                Throw.ObjectDisposedException(nameof(BufferWithPushback));
             }
         }
     }

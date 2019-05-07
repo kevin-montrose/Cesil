@@ -4,7 +4,6 @@ using System.Threading;
 namespace Cesil
 {
     internal sealed class AsyncEnumerable<T>: IAsyncEnumerable<T>
-        where T : new()
     {
         private readonly AsyncReader<T> Reader;
 

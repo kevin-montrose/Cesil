@@ -5,12 +5,11 @@ using System.IO;
 namespace Cesil
 {
     internal sealed class Reader<T>: ReaderBase<T>, IReader<T>, ITestableDisposable
-        where T:new()
     {
         public bool IsDisposed => Inner == null;
         private TextReader Inner;
 
-        internal Reader(TextReader inner, BoundConfiguration<T> config): base(config)
+        internal Reader(TextReader inner, ConcreteBoundConfiguration<T> config, object context): base(config, context)
         {
             Inner = inner;
         }
@@ -55,7 +54,11 @@ namespace Cesil
         {
             AssertNotDisposed();
 
-            record = new T();
+            if (!Configuration.NewCons(out record))
+            {
+                Throw.InvalidOperationException($"Failed to construct new instance of {typeof(T)}");
+            }
+
             return TryReadWithReuse(ref record);
         }
 
@@ -95,7 +98,10 @@ namespace Cesil
                 {
                     if(record == null)
                     {
-                        record = new T();
+                        if (!Configuration.NewCons(out record))
+                        {
+                            Throw.InvalidOperationException($"Failed to construct new instance of {typeof(T)}");
+                        }
                     }
                     SetValueToPopulate(record);
                 }
@@ -122,7 +128,7 @@ namespace Cesil
             }
 
             var headerConfig =
-                new BoundConfiguration<T>(
+                new ConcreteBoundConfiguration<T>(
                     Configuration.NewCons,
                     Configuration.DeserializeColumns,
                     Array.Empty<Column>(),
@@ -189,7 +195,7 @@ namespace Cesil
         {
             if (IsDisposed)
             {
-                Throw.ObjectDisposed(nameof(Reader<T>));
+                Throw.ObjectDisposedException(nameof(Reader<T>));
             }
         }
     }

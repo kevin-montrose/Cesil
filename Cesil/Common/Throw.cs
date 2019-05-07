@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.Serialization;
 
 namespace Cesil
@@ -8,7 +9,7 @@ namespace Cesil
         internal static void Exception(string message)
         => throw new Exception(message);
 
-        internal static void InvalidOperation(string message)
+        internal static void InvalidOperationException(string message)
         => throw new InvalidOperationException(message);
 
         internal static void SerializationException(string message)
@@ -20,7 +21,25 @@ namespace Cesil
         internal static void ArgumentNullException(string name)
         => throw new ArgumentNullException(name);
 
-        internal static void ObjectDisposed(string typeName)
+        internal static void ObjectDisposedException(string typeName)
         => throw new ObjectDisposedException($"Instance of {typeName}");
+
+        internal static void ArgumentOutOfRangeException(string paramName, int val, int upperExclusive)
+        {
+            string msg;
+            if(upperExclusive > 0)
+            {
+                msg = $"Expected between 0 and {upperExclusive}, was {val}";
+            }
+            else
+            {
+                msg = $"Was empty, index was {val}";
+            }
+
+            throw new ArgumentOutOfRangeException(paramName, msg);
+        }
+
+        internal static void KeyNotFoundException(string key)
+        => throw new KeyNotFoundException($"Key was {key}");
     }
 }

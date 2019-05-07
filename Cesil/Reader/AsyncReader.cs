@@ -10,12 +10,11 @@ namespace Cesil
         ReaderBase<T>,
         IAsyncReader<T>,
         ITestableAsyncDisposable
-        where T : new()
     {
         public bool IsDisposed => Inner == null;
         private TextReader Inner;
 
-        internal AsyncReader(TextReader inner, BoundConfiguration<T> config) : base(config)
+        internal AsyncReader(TextReader inner, ConcreteBoundConfiguration<T> config, object context) : base(config, context)
         {
             Inner = inner;
         }
@@ -37,7 +36,9 @@ namespace Cesil
 
         private ValueTask<List<T>> ReadAllIntoListAsync(List<T> into, CancellationToken cancel)
         {
-            if(into == null)
+            AssertNotDisposed();
+
+            if (into == null)
             {
                 Throw.ArgumentNullException(nameof(into));
             }
@@ -115,7 +116,10 @@ namespace Cesil
                     // gotta check this now, because we're about to go async and ref is a no-go
                     if(row == null)
                     {
-                        row = new T();
+                        if(!Configuration.NewCons(out row))
+                        {
+                            Throw.InvalidOperationException($"Failed to construct new instance of {typeof(T)}");
+                        }
                     }
                     return TryReadAsync_ContinueAfterRowEndingsAsync(this, handleLineEndingsTask, row, cancel);
                 }
@@ -129,7 +133,10 @@ namespace Cesil
                     // gotta check this now, because we're about to go async and ref is a no-go
                     if (row == null)
                     {
-                        row = new T();
+                        if (!Configuration.NewCons(out row))
+                        {
+                            Throw.InvalidOperationException($"Failed to construct new instance of {typeof(T)}");
+                        }
                     }
                     return TryReadAsync_ContinueAfterHeadersAsync(this, handleHeadersTask, row, cancel);
                 }
@@ -160,7 +167,10 @@ namespace Cesil
                     {
                         if(row == null)
                         {
-                            row = new T();
+                            if (!Configuration.NewCons(out row))
+                            {
+                                Throw.InvalidOperationException($"Failed to construct new instance of {typeof(T)}");
+                            }
                         }
 
                         SetValueToPopulate(row);
@@ -276,7 +286,11 @@ namespace Cesil
 
                 if (!self.HasValueToReturn)
                 {
-                    self.SetValueToPopulate(new T());
+                    if (!self.Configuration.NewCons(out var inst))
+                    {
+                        Throw.InvalidOperationException($"Failed to construct new instance of {typeof(T)}");
+                    }
+                    self.SetValueToPopulate(inst);
                 }
 
                 var res = self.AdvanceWork(available);
@@ -306,7 +320,11 @@ namespace Cesil
 
                     if (!self.HasValueToReturn)
                     {
-                        self.SetValueToPopulate(new T());
+                        if (!self.Configuration.NewCons(out var inst))
+                        {
+                            Throw.InvalidOperationException($"Failed to construct new instance of {typeof(T)}");
+                        }
+                        self.SetValueToPopulate(inst);
                     }
 
                     res = self.AdvanceWork(available);
@@ -320,7 +338,11 @@ namespace Cesil
 
         public ValueTask<ReadResult<T>> TryReadAsync(CancellationToken cancel = default)
         {
-            var record = new T();
+            if (!Configuration.NewCons(out var record))
+            {
+                Throw.InvalidOperationException($"Failed to construct new instance of {typeof(T)}");
+            }
+            
             return TryReadWithReuseAsync(ref record, cancel);
         }
 
@@ -386,7 +408,7 @@ namespace Cesil
             }
 
             var headerConfig =
-                new BoundConfiguration<T>(
+                new ConcreteBoundConfiguration<T>(
                     Configuration.NewCons,
                     Configuration.DeserializeColumns,
                     Array.Empty<Column>(),
@@ -470,7 +492,7 @@ namespace Cesil
         {
             if (IsDisposed)
             {
-                Throw.ObjectDisposed(nameof(AsyncReader<T>));
+                Throw.ObjectDisposedException(nameof(AsyncReader<T>));
             }
         }
     }

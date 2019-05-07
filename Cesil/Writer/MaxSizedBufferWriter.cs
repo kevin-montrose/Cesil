@@ -187,7 +187,7 @@ namespace Cesil
             {
                 if (size > MemoryPool.MaxBufferSize)
                 {
-                    Throw.InvalidOperation($"Needed a larger memory segment than could be requested, needed {size:N0}; {nameof(MemoryPool<char>.MaxBufferSize)} = {MemoryPool.MaxBufferSize:N0}");
+                    Throw.InvalidOperationException($"Needed a larger memory segment than could be requested, needed {size:N0}; {nameof(MemoryPool<char>.MaxBufferSize)} = {MemoryPool.MaxBufferSize:N0}");
                 }
 
                 alloc = MemoryPool.Rent(size);
@@ -256,7 +256,7 @@ namespace Cesil
         {
             if (IsDisposed)
             {
-                Throw.ObjectDisposed(nameof(MaxSizedBufferWriter));
+                Throw.ObjectDisposedException(nameof(MaxSizedBufferWriter));
             }
         }
 
