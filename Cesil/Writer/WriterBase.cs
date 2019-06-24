@@ -59,5 +59,17 @@ namespace Cesil
 
             return InStaging == Staging.Memory.Length;
         }
+
+        internal ReadOnlySequence<char> SplitCommentIntoLines(string comment)
+        {
+            if (Config.CommentChar == null)
+            {
+                Throw.InvalidOperationException($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
+            }
+
+            var commentMem = comment.AsMemory();
+
+            return Utils.Split(commentMem, Config.RowEndingMemory);
+        }
     }
 }

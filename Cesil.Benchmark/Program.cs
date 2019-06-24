@@ -2,13 +2,12 @@
 using BenchmarkDotNet.Running;
 using BenchmarkDotNet.Validators;
 using Cesil.Benchmark.Benchmarks;
-using System;
 using System.IO;
 using System.Linq;
 
 namespace Cesil.Benchmark
 {
-    class Program
+    internal class Program
     {
         private class Row
         {

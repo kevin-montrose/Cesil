@@ -1,8 +1,8 @@
 ﻿using BenchmarkDotNet.Attributes;
-using CSH = CsvHelper;
 using System.IO;
 using System.Linq;
 using C = Csv;
+using CSH = CsvHelper;
 
 
 namespace Cesil.Benchmark.Benchmarks
@@ -34,7 +34,7 @@ namespace Cesil.Benchmark.Benchmarks
             using (var reader = new StreamReader(fs))
             using (var csv = Config.CreateReader(reader))
             {
-                foreach(var row in csv.EnumerateAll().Take(TakeRows))
+                foreach (var row in csv.EnumerateAll().Take(TakeRows))
                 {
                     poorHash += row.CreationDate;
                 }
@@ -52,7 +52,7 @@ namespace Cesil.Benchmark.Benchmarks
             using (var reader = new StreamReader(fs))
             using (var csv = new CSH.CsvReader(reader))
             {
-                foreach(var row in csv.GetRecords<Row>().Take(TakeRows))
+                foreach (var row in csv.GetRecords<Row>().Take(TakeRows))
                 {
                     poorHash += row.CreationDate;
                 }

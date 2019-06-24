@@ -97,6 +97,9 @@ namespace Cesil
                     Throw.ObjectDisposedException(nameof(HeaderEnumerator));
                 }
             }
+
+            public override string ToString()
+            => nameof(HeaderEnumerator);
         }
 
         private readonly Column[] Columns;
@@ -108,11 +111,11 @@ namespace Cesil
         private int CurrentBuilderStart;
         private int CurrentBuilderLength;
         private IMemoryOwner<char> BuilderOwner;
-        private Memory<char> BuilderBacking => BuilderOwner.Memory;
+        private Memory<char> BuilderBacking => BuilderOwner?.Memory ?? Memory<char>.Empty;
 
         public bool IsDisposed => MemoryPool == null;
         private MemoryPool<char> MemoryPool;
-        
+
         private int HeaderCount;
 
         private int PushBackLength;
@@ -130,14 +133,15 @@ namespace Cesil
             BufferSizeHint = config.ReadBufferSizeHint;
             Columns = config.DeserializeColumns;
             Inner = inner;
-            
+
             StateMachine =
                 new ReaderStateMachine(
                     charLookup,
                     config.EscapedValueStartAndStop,
                     config.EscapeValueEscapeChar,
                     config.RowEnding,
-                    ReadHeaders.Never
+                    ReadHeaders.Never,
+                    false
                 );
 
             Buffer = buffer;
@@ -293,7 +297,7 @@ namespace Cesil
 
             using (var e = MakeEnumerator())
             {
-                while(e.MoveNext())
+                while (e.MoveNext())
                 {
                     var val = e.Current;
 
@@ -309,7 +313,7 @@ namespace Cesil
                 }
             }
 
-        finish:
+finish:
             return (MakeEnumerator(), isHeader, PushBack.Slice(0, PushBackLength));
         }
 
@@ -335,19 +339,28 @@ namespace Cesil
                 var c = buffSpan[i];
 
                 var res = StateMachine.Advance(c);
-                
-                if(res == ReaderStateMachine.AdvanceResult.Append_Character)
+
+                if (res == ReaderStateMachine.AdvanceResult.Append_Character)
                 {
-                    if(appendingSince == -1)
+                    if (appendingSince == -1)
                     {
                         appendingSince = i;
                     }
 
                     continue;
                 }
+                else if (res == ReaderStateMachine.AdvanceResult.Append_Previous_And_Current_Character)
+                {
+                    if (appendingSince == -1)
+                    {
+                        appendingSince = i - 1;
+                    }
+
+                    continue;
+                }
                 else
                 {
-                    if(appendingSince != -1)
+                    if (appendingSince != -1)
                     {
                         var toAppend = buffSpan.Slice(appendingSince, i - appendingSince);
                         AddToBuilder(toAppend);
@@ -362,6 +375,9 @@ namespace Cesil
                         break;
 
                     // case ReaderStateMachine.AdvanceResult.Append_Character is handled by
+                    //      the above buffering logic
+
+                    // case ReaderStateMachine.AdvanceResult.Append_CarriageReturn_And_Character is handled by
                     //      the above buffering logic
 
                     case ReaderStateMachine.AdvanceResult.Finished_Value:
@@ -404,7 +420,7 @@ namespace Cesil
                 }
             }
 
-            if(appendingSince != -1)
+            if (appendingSince != -1)
             {
                 var toAppend = buffSpan.Slice(appendingSince, bufferLen - appendingSince);
                 AddToBuilder(toAppend);
@@ -432,7 +448,7 @@ namespace Cesil
                 var newLength = endIx * 2;
                 var newOwner = Utils.RentMustIncrease(MemoryPool, newLength, oldLength);
                 BuilderBacking.CopyTo(newOwner.Memory);
-                
+
                 BuilderOwner.Dispose();
                 BuilderOwner = newOwner;
             }

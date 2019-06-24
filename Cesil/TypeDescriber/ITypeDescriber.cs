@@ -23,5 +23,23 @@ namespace Cesil
         /// Enumerate all the members on forType to deserialize.
         /// </summary>
         IEnumerable<DeserializableMember> EnumerateMembersToDeserialize(TypeInfo forType);
+
+        /// <summary>
+        /// Called to determine how to convert a dynamic cell.
+        /// </summary>
+        Parser GetDynamicCellParserFor(in ReadContext ctx, TypeInfo targetType);
+
+        /// <summary>
+        /// Called to determine how to convert an entire dynamic row into the given type, as identified by
+        ///   it's number (base-0), into the given type.
+        ///   
+        /// Column names will be exposed on individual column identifiers only if they are set.
+        /// </summary>
+        DynamicRowConverter GetDynamicRowConverter(in ReadContext ctx, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType);
+
+        /// <summary>
+        /// Called to determine the cells that make up the given dynamic row.
+        /// </summary>
+        IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext ctx, object row);
     }
 }

@@ -16,8 +16,8 @@ namespace Cesil
         internal readonly Column[] SerializeColumns;
         internal readonly bool[] SerializeColumnsNeedEscape;
 
+        internal readonly ITypeDescriber TypeDescriber;
         internal readonly char ValueSeparator;
-        internal readonly ReadOnlyMemory<char> ValueSeparatorMemory;
         internal readonly char EscapedValueStartAndStop;
         internal readonly char EscapeValueEscapeChar;
         internal readonly RowEndings RowEnding;
@@ -29,13 +29,13 @@ namespace Cesil
         internal readonly char? CommentChar;
         internal readonly int? WriteBufferSizeHint;
         internal readonly int ReadBufferSizeHint;
-        internal readonly IDynamicTypeConverter DynamicTypeConverter;
         internal readonly DynamicRowDisposal DynamicRowDisposal;
 
         /// <summary>
         /// For working with dynamic.
         /// </summary>
         protected BoundConfigurationBase(
+            ITypeDescriber describer,
             char valueSeparator,
             char escapedValueStartAndStop,
             char escapeValueEscapeChar,
@@ -47,16 +47,15 @@ namespace Cesil
             char? commentChar,
             int? writeBufferSizeHint,
             int readBufferSizeHint,
-            IDynamicTypeConverter dynamicTypeConverter,
             DynamicRowDisposal dynamicRowDisposal
         )
         {
+            TypeDescriber = describer;
             NewCons = null;
             DeserializeColumns = Array.Empty<Column>();
             SerializeColumns = Array.Empty<Column>();
             SerializeColumnsNeedEscape = Array.Empty<bool>();
             ValueSeparator = valueSeparator;
-            ValueSeparatorMemory = ValueSeparator.ToString().AsMemory();
             EscapedValueStartAndStop = escapedValueStartAndStop;
             EscapeValueEscapeChar = escapeValueEscapeChar;
             RowEnding = rowEndings;
@@ -86,7 +85,6 @@ namespace Cesil
             WriteTrailingNewLine = writeTrailingNewLine;
             MemoryPool = memoryPool;
             CommentChar = commentChar;
-            DynamicTypeConverter = dynamicTypeConverter;
             DynamicRowDisposal = dynamicRowDisposal;
         }
 
@@ -116,7 +114,6 @@ namespace Cesil
             SerializeColumns = serializeColumns;
             SerializeColumnsNeedEscape = serializeColumnsNeedEscape;
             ValueSeparator = valueSeparator;
-            ValueSeparatorMemory = ValueSeparator.ToString().AsMemory();
             EscapedValueStartAndStop = escapedValueStartAndStop;
             EscapeValueEscapeChar = escapeValueEscapeChar;
             RowEnding = rowEndings;
@@ -146,7 +143,6 @@ namespace Cesil
             WriteTrailingNewLine = writeTrailingNewLine;
             MemoryPool = memoryPool;
             CommentChar = commentChar;
-            DynamicTypeConverter = null;
         }
 
         public abstract IAsyncReader<T> CreateAsyncReader(TextReader reader, object context = null);

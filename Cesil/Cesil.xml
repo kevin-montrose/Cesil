@@ -4,7 +4,79 @@
         <name>Cesil</name>
     </assembly>
     <members>
-        <member name="M:Cesil.BoundConfigurationBase`1.#ctor(System.Char,System.Char,System.Char,Cesil.RowEndings,Cesil.ReadHeaders,Cesil.WriteHeaders,Cesil.WriteTrailingNewLines,System.Buffers.MemoryPool{System.Char},System.Nullable{System.Char},System.Nullable{System.Int32},System.Int32,Cesil.IDynamicTypeConverter,Cesil.DynamicRowDisposal)">
+        <member name="T:Cesil.ColumnIdentifier">
+            <summary>
+            Identifies a particular column, either by index or 
+              index and name.
+            </summary>
+        </member>
+        <member name="P:Cesil.ColumnIdentifier.Index">
+            <summary>
+            Index of the column, base-0.
+            </summary>
+        </member>
+        <member name="P:Cesil.ColumnIdentifier.HasName">
+            <summary>
+            Whether this column has a known name.
+            </summary>
+        </member>
+        <member name="P:Cesil.ColumnIdentifier.Name">
+            <summary>
+            The name of the column.
+            </summary>
+        </member>
+        <member name="M:Cesil.ColumnIdentifier.Create(System.Int32,System.String)">
+            <summary>
+            Create a ColumnIdentifier for the given index, optionally with a name.
+            </summary>
+        </member>
+        <member name="M:Cesil.ColumnIdentifier.Equals(System.Object)">
+            <summary>
+            Returns true if the given object is equivalent to this one
+            </summary>
+        </member>
+        <member name="M:Cesil.ColumnIdentifier.Equals(Cesil.ColumnIdentifier)">
+            <summary>
+            Returns true if the given object is equivalent to this one
+            </summary>
+        </member>
+        <member name="M:Cesil.ColumnIdentifier.GetHashCode">
+            <summary>
+            Returns a stable hash for this ColumnIdentifier.
+            </summary>
+        </member>
+        <member name="M:Cesil.ColumnIdentifier.ToString">
+            <summary>
+            Describes this ColumnIdentifier.
+            
+            This is provided for debugging purposes, and the format is not guaranteed to be stable between releases.
+            </summary>
+        </member>
+        <member name="M:Cesil.ColumnIdentifier.op_Equality(Cesil.ColumnIdentifier,Cesil.ColumnIdentifier)">
+            <summary>
+            Compare two ColumnIdentifiers for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.ColumnIdentifier.op_Inequality(Cesil.ColumnIdentifier,Cesil.ColumnIdentifier)">
+            <summary>
+            Compare two ColumnIdentifiers for inequality
+            </summary>
+        </member>
+        <member name="M:Cesil.ColumnIdentifier.op_Explicit(System.Int32)~Cesil.ColumnIdentifier">
+            <summary>
+            Convenience operator for converting an index to a ColumnIdentifier.
+            
+            Equivalent to calling Create.
+            </summary>
+        </member>
+        <member name="M:Cesil.ColumnIdentifier.op_Explicit(Cesil.ColumnIdentifier)~System.Int32">
+            <summary>
+            Paired operator for the int-to-ColumnIdentifier cast.
+            
+            Equivalent to Index property.
+            </summary>
+        </member>
+        <member name="M:Cesil.BoundConfigurationBase`1.#ctor(Cesil.ITypeDescriber,System.Char,System.Char,System.Char,Cesil.RowEndings,Cesil.ReadHeaders,Cesil.WriteHeaders,Cesil.WriteTrailingNewLines,System.Buffers.MemoryPool{System.Char},System.Nullable{System.Char},System.Nullable{System.Int32},System.Int32,Cesil.DynamicRowDisposal)">
             <summary>
             For working with dynamic.
             </summary>
@@ -16,13 +88,13 @@
         </member>
         <member name="T:Cesil.Configuration">
             <summary>
-            Used to combine a type and an Options into a BoundConfiguration(T),
+            Used to combine a type and an Options into an IBoundConfiguration(T),
             which can create readers and writers.
             </summary>
         </member>
         <member name="M:Cesil.Configuration.ForDynamic">
             <summary>
-            Create a new IBoundConfiguration(T) with default Options, for use 
+            Create a new IBoundConfiguration(T) with Options.DynamicDefault, for use 
               with dynamic types.
             </summary>
         </member>
@@ -34,7 +106,7 @@
         </member>
         <member name="M:Cesil.Configuration.For``1">
             <summary>
-            Create a new IBoundConfiguration(T) with default Options, for
+            Create a new IBoundConfiguration(T) with Options.Default, for
               use with the given type.
             </summary>
         </member>
@@ -48,11 +120,6 @@
             <summary>
             When a dynamic row returned by a IReader or IAsyncReader 
                will be disposed.
-            </summary>
-        </member>
-        <member name="F:Cesil.DynamicRowDisposal.None">
-            <summary>
-            Default value, do not use.
             </summary>
         </member>
         <member name="F:Cesil.DynamicRowDisposal.OnReaderDispose">
@@ -123,6 +190,24 @@
               - escaped columns start = "
               - escape character = "
               - detects headers when reading
+              - writes headers
+              - uses the default type describer
+              - uses MemoryPool.Shared
+              - uses the default write buffer size
+              - does not write a new line after the last row
+              - does not support comments
+              - uses the default read buffer size
+              - dynamic rows are disposed when the reader that returns them is disposed
+            </summary>
+        </member>
+        <member name="F:Cesil.Options.DynamicDefault">
+            <summary>
+            Default options for dynamic operations:
+              - separator = ,
+              - row endings = \r\n
+              - escaped columns start = "
+              - escape character = "
+              - assumes headers are present
               - writes headers
               - uses the default type describer
               - uses MemoryPool.Shared
@@ -214,13 +299,6 @@
             Set to 0 to use a default size.
             </summary>
         </member>
-        <member name="P:Cesil.Options.DynamicTypeConverter">
-            <summary>
-            The instance of IDynamicTypeConverter that will be used to
-              determine how to convert dynamic rows and cells into
-              concrete types.
-            </summary>
-        </member>
         <member name="P:Cesil.Options.DynamicRowDisposal">
             <summary>
             When to dispose any dynamic rows returned by an IReader or IAsyncReader.
@@ -235,6 +313,38 @@
             <summary>
             Create a new OptionsBuilder that copies its initial values
             from this Options.
+            </summary>
+        </member>
+        <member name="M:Cesil.Options.Equals(System.Object)">
+            <summary>
+            Returns true if this object equals the given Options.
+            </summary>
+        </member>
+        <member name="M:Cesil.Options.Equals(Cesil.Options)">
+            <summary>
+            Returns true if this object equals the given Options.
+            </summary>
+        </member>
+        <member name="M:Cesil.Options.GetHashCode">
+            <summary>
+            Returns a stable hash for this Options.
+            </summary>
+        </member>
+        <member name="M:Cesil.Options.ToString">
+            <summary>
+            Returns a representation of this Options object.
+            
+            Only for debugging, this value is not guaranteed to be stable.
+            </summary>
+        </member>
+        <member name="M:Cesil.Options.op_Equality(Cesil.Options,Cesil.Options)">
+            <summary>
+            Compare two Options for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.Options.op_Inequality(Cesil.Options,Cesil.Options)">
+            <summary>
+            Compare two Options for inequality
             </summary>
         </member>
         <member name="T:Cesil.OptionsBuilder">
@@ -326,13 +436,6 @@
             Set to 0 to use a default size.
             </summary>
         </member>
-        <member name="P:Cesil.OptionsBuilder.DynamicTypeConverter">
-            <summary>
-            The instance of IDynamicTypeConverter that will be used to
-              determine how to convert dynamic rows and cells into
-              concrete types.
-            </summary>
-        </member>
         <member name="P:Cesil.OptionsBuilder.DynamicRowDisposal">
             <summary>
             When to dispose any dynamic rows returned by an IReader or IAsyncReader.
@@ -386,12 +489,6 @@
             columns that are read and written.
             </summary>
         </member>
-        <member name="M:Cesil.OptionsBuilder.WithDynamicTypeConverter(Cesil.IDynamicTypeConverter)">
-            <summary>
-            Set the ITypeDescriber used to discover and configure the
-            columns that are read and written.
-            </summary>
-        </member>
         <member name="M:Cesil.OptionsBuilder.WithWriteTrailingNewLine(Cesil.WriteTrailingNewLines)">
             <summary>
             Set whether or not to end the last row with a new line.
@@ -440,17 +537,19 @@
               when the row is explicitly disposed.
             </summary>
         </member>
+        <member name="M:Cesil.OptionsBuilder.ToString">
+            <summary>
+            Returns a representation of this OptionsBuilder object.
+            
+            Only for debugging, this value is not guaranteed to be stable.
+            </summary>
+        </member>
         <member name="T:Cesil.RowEndings">
             <summary>
             Which character sequence ends a row.
             
             This can be determined automatically with
               Detect.
-            </summary>
-        </member>
-        <member name="F:Cesil.RowEndings.None">
-            <summary>
-            Default value, do not use.
             </summary>
         </member>
         <member name="F:Cesil.RowEndings.CarriageReturn">
@@ -480,11 +579,6 @@
               serializing.
             </summary>
         </member>
-        <member name="F:Cesil.WriteHeaders.None">
-            <summary>
-            Default value, do not use.
-            </summary>
-        </member>
         <member name="F:Cesil.WriteHeaders.Always">
             <summary>
             The first row written by the writer will be a header row.
@@ -502,11 +596,6 @@
             <summary>
             Whether or not their should be a trailing new line
               after the last row when serializing.
-            </summary>
-        </member>
-        <member name="F:Cesil.WriteTrailingNewLines.None">
-            <summary>
-            Default value, do not use.
             </summary>
         </member>
         <member name="F:Cesil.WriteTrailingNewLines.Always">
@@ -575,6 +664,37 @@
             but will not block if results are not available.
             </summary>
         </member>
+        <member name="M:Cesil.IAsyncReader`1.TryReadWithCommentAsync(System.Threading.CancellationToken)">
+            <summary>
+            Reads a single row or comment.
+            
+            Distinguish between a row, comment, or nothing by inspecting 
+            ReadWithCommentResult(T).ResultType.
+            
+            Note, it is possible for row to be initialized BUT for this method
+            to return a comment or no value.  In that case row should be ignored.
+            
+            The task will attempt to complete synchronously, 
+            but will not block if results are not available.
+            </summary>
+        </member>
+        <member name="M:Cesil.IAsyncReader`1.TryReadWithCommentReuseAsync(`0@,System.Threading.CancellationToken)">
+             <summary>
+             Reads a single row (storing into an existing instance of a row
+             if provided) or comment.
+            
+             Distinguish between a row, comment, or nothing by inspecting 
+             ReadWithCommentResult(T).ResultType.
+             
+             Row will be initialized if need be.
+             
+             Note, it is possible for row to be initialized BUT for this method
+             to return a comment or no value.  In that case row should be ignored.
+             
+             The task will attempt to complete synchronously, 
+             but will not block if results are not available.
+             </summary>
+        </member>
         <member name="T:Cesil.IAsyncWriter`1">
             <summary>
             Interface for writing rows asynchronously.
@@ -600,6 +720,19 @@
         <member name="M:Cesil.IAsyncWriter`1.WriteAsync(`0,System.Threading.CancellationToken)">
             <summary>
             Write a single row.
+            
+            Will complete synchronously if possible, but will not block
+            if the underlying sink does not complete immediately.
+            </summary>
+        </member>
+        <member name="M:Cesil.IAsyncWriter`1.WriteCommentAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Write a comment as a row.
+            
+            Only supported if this IWriter's configuration has a way to indicate comments.
+            
+            If the comment contains the row ending character sequence, it will be written as multiple
+            comment lines.
             
             Will complete synchronously if possible, but will not block
             if the underlying sink does not complete immediately.
@@ -642,8 +775,33 @@
             Row will be initialized if need be.
             
             Note, it is possible for row to be initialized BUT for this method
-            to return false.  In that case row should be ignored / discarded.
+            to return false.  In that case row should be ignored>
             </summary>
+        </member>
+        <member name="M:Cesil.IReader`1.TryReadWithComment">
+            <summary>
+            Reads a single row or comment.
+            
+            Distinguish between a row, comment, or nothing by inspecting 
+            ReadWithCommentResult(T).ResultType.
+            
+            Note, it is possible for row to be initialized BUT for this method
+            to return a comment or no value.  In that case row should be ignored.
+            </summary>
+        </member>
+        <member name="M:Cesil.IReader`1.TryReadWithCommentReuse(`0@)">
+             <summary>
+             Reads a single row (storing into an existing instance of a row
+             if provided) or comment.
+            
+             Distinguish between a row, comment, or nothing by inspecting 
+             ReadWithCommentResult(T).ResultType.
+             
+             Row will be initialized if need be.
+             
+             Note, it is possible for row to be initialized BUT for this method
+             to return a comment or no value.  In that case row should be ignored.
+             </summary>
         </member>
         <member name="T:Cesil.IWriter`1">
             <summary>
@@ -660,9 +818,24 @@
             Write a single row.
             </summary>
         </member>
+        <member name="M:Cesil.IWriter`1.WriteComment(System.String)">
+            <summary>
+            Write a comment as a row.
+            
+            Only supported if this IWriter's configuration has a way to indicate comments.
+            
+            If the comment contains the row ending character sequence, it will be written as multiple
+            comment lines.
+            </summary>
+        </member>
         <member name="T:Cesil.ReadContext">
             <summary>
             Context object provided during read operations.
+            </summary>
+        </member>
+        <member name="P:Cesil.ReadContext.Mode">
+            <summary>
+            What, precisely, a reader is doing.
             </summary>
         </member>
         <member name="P:Cesil.ReadContext.RowNumber">
@@ -670,15 +843,16 @@
             The index of the row being read (0-based).
             </summary>
         </member>
-        <member name="P:Cesil.ReadContext.ColumnNumber">
+        <member name="P:Cesil.ReadContext.HasColumn">
             <summary>
-            The index of the column being read (0-based).
+            Whether or not Column is available.
             </summary>
         </member>
-        <member name="P:Cesil.ReadContext.ColumnName">
+        <member name="P:Cesil.ReadContext.Column">
             <summary>
-            The name of the column being read, can be null
-              if no column names were available.
+            The column being read.
+            
+            Will throw if HasColumn == false, or Mode != ReadingColumn.
             </summary>
         </member>
         <member name="P:Cesil.ReadContext.Context">
@@ -689,9 +863,57 @@
               by this context.
             </summary>
         </member>
+        <member name="M:Cesil.ReadContext.Equals(System.Object)">
+            <summary>
+            Returns true if this object equals the given ReadContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.ReadContext.Equals(Cesil.ReadContext)">
+            <summary>
+            Returns true if this object equals the given ReadContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.ReadContext.GetHashCode">
+            <summary>
+            Returns a stable hash for this ReadContext.
+            </summary>
+        </member>
         <member name="M:Cesil.ReadContext.ToString">
             <summary>
             Returns a string representation of this ReadContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.ReadContext.op_Equality(Cesil.ReadContext,Cesil.ReadContext)">
+            <summary>
+            Compare two ReadContexts for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.ReadContext.op_Inequality(Cesil.ReadContext,Cesil.ReadContext)">
+            <summary>
+            Compare two ReadContexts for inequality
+            </summary>
+        </member>
+        <member name="T:Cesil.ReadContextMode">
+            <summary>
+            Indicates what a reader is doing when
+              a ReadContext is created.
+            </summary>
+        </member>
+        <member name="F:Cesil.ReadContextMode.ReadingColumn">
+            <summary>
+            A single column is being read.
+            </summary>
+        </member>
+        <member name="F:Cesil.ReadContextMode.ConvertingColumn">
+            <summary>
+            A single column is being converted,
+            occurs only during dynamic deserialization.
+            </summary>
+        </member>
+        <member name="F:Cesil.ReadContextMode.ConvertingRow">
+            <summary>
+            A whole row is being converted,
+            occurs only during dynamic deserialization.
             </summary>
         </member>
         <member name="T:Cesil.ReadHeaders">
@@ -701,11 +923,6 @@
               
             This can be determined automatically with
               Detect.
-            </summary>
-        </member>
-        <member name="F:Cesil.ReadHeaders.None">
-            <summary>
-            Default value, do not use.
             </summary>
         </member>
         <member name="F:Cesil.ReadHeaders.Never">
@@ -739,151 +956,93 @@
         <member name="P:Cesil.ReadResult`1.Value">
             <summary>
             The value read, if HasValue == true.
-            </summary>
-        </member>
-        <member name="T:Cesil.DefaultDynamicTypeConverter">
-            <summary>
-            The default implementation of IDynamicTypeConverter used to
-              determine how to map a dynamic cell or row to a concrete type.
-              
-            It will map cells to types using DeserializableMember.GetDefaultParser() or a
-               constructor that takes a ReadOnlySpan(char).
             
-            It will map rows to Tuple, ValueTuple, IEnumerable(T), IEnumerable, user defined 
-              types with constructors of the same arity as the row, user defined types with
-              a constructor taking a single object/dynamic, or user defined types where column
-              names match properties and a zero-parameter constructor is defined.
+            Throws otherwise.
             </summary>
         </member>
-        <member name="T:Cesil.DefaultDynamicTypeConverter.ConstructorWithParameters">
+        <member name="M:Cesil.ReadResult`1.ToString">
             <summary>
-            Represents a constructor - columns pair.
+            Returns a representation of this ReadResult struct.
             
-            Used by GetRowConstuctorTakingTypedParameters to indicate
-              a constructor to invoke with particular column values
-              to map a dynamic row to a concrete type.
+            Only for debugging, this value is not guaranteed to be stable.
             </summary>
         </member>
-        <member name="P:Cesil.DefaultDynamicTypeConverter.ConstructorWithParameters.Constructor">
+        <member name="T:Cesil.ReadWithCommentResult`1">
             <summary>
-            Constructor to invoke.
+            Represents the result of an attempted read operation which supports comments.
             </summary>
         </member>
-        <member name="P:Cesil.DefaultDynamicTypeConverter.ConstructorWithParameters.ColumnIndexes">
+        <member name="P:Cesil.ReadWithCommentResult`1.ResultType">
             <summary>
-            Indexes of the columns to pass to Constructor.
-            </summary>
-        </member>
-        <member name="M:Cesil.DefaultDynamicTypeConverter.ConstructorWithParameters.#ctor(System.Reflection.ConstructorInfo,System.Collections.Generic.IEnumerable{System.Int32})">
-            <summary>
-            Create a new ConstructorWithParameters with the given constructor
-              and columns.
-            </summary>
-        </member>
-        <member name="T:Cesil.DefaultDynamicTypeConverter.ConstructorWithSetters">
-            <summary>
-            Represents a constructor - setters - columns triple.
+            Indicates what, if anything, is available on this result.
             
-            Used by GetRowConstructorAndSetters to indicate
-              a constructor to invoke to create a type, and then a
-              series of setters to invoke and pass columns at the
-              corresponding indexes to.
+            If NoValue, no more results will be read.
             </summary>
         </member>
-        <member name="P:Cesil.DefaultDynamicTypeConverter.ConstructorWithSetters.Constructor">
+        <member name="P:Cesil.ReadWithCommentResult`1.HasValue">
             <summary>
-            Constructor to invoke.
+            Convenience method for checking ResultType == HasValue
             </summary>
         </member>
-        <member name="P:Cesil.DefaultDynamicTypeConverter.ConstructorWithSetters.Setters">
+        <member name="P:Cesil.ReadWithCommentResult`1.HasComment">
             <summary>
-            Setters to invoke with column values.
+            Convenience method for checking ResultType == HasComment
             </summary>
         </member>
-        <member name="P:Cesil.DefaultDynamicTypeConverter.ConstructorWithSetters.ColumnIndexes">
+        <member name="P:Cesil.ReadWithCommentResult`1.Value">
             <summary>
-            Indexes of the columns to pass to each setter.
-            </summary>
-        </member>
-        <member name="M:Cesil.DefaultDynamicTypeConverter.ConstructorWithSetters.#ctor(System.Reflection.ConstructorInfo,System.Collections.Generic.IEnumerable{System.Reflection.MethodInfo},System.Collections.Generic.IEnumerable{System.Int32})">
-            <summary>
-            Create a new ConstructorWithParameters with the given constructor
-              and columns.
-            </summary>
-        </member>
-        <member name="M:Cesil.DefaultDynamicTypeConverter.#ctor">
-            <summary>
-            Create a new instance of DefaultDynamicTypeConverter.
+            The value read, if ResultType == HasValue.
             
-            A pre-allocated instances can be found on DynamicTypeConverters.
+            Throws otherwise.
             </summary>
         </member>
-        <member name="M:Cesil.DefaultDynamicTypeConverter.GetCellConverter(System.Int32,System.String,System.Reflection.TypeInfo)">
+        <member name="P:Cesil.ReadWithCommentResult`1.Comment">
             <summary>
-            Returns a DynamicCellConverter that can be used to parse the targetType,
-               if a default parser for the type exists or a constructor accepting
-               ReadOnlySpan(char) is on the the type.
-            </summary>
-        </member>
-        <member name="M:Cesil.DefaultDynamicTypeConverter.GetCellParsingMethodFor(System.Int32,System.String,System.Reflection.TypeInfo)">
-            <summary>
-            Returns the default cell parsing method for the given type, if any.
+            The comment read, if ResultType == HasComment.
             
-            Override to tweak behavior.
+            Throws otherwise.
             </summary>
         </member>
-        <member name="M:Cesil.DefaultDynamicTypeConverter.GetCellConstructorFor(System.Int32,System.String,System.Reflection.TypeInfo)">
+        <member name="M:Cesil.ReadWithCommentResult`1.ToString">
             <summary>
-            Returns the default constructor for the given type, if any.
+            Returns a representation of this ReadResult struct.
             
-            Override to tweak behavior.
+            Only for debugging, this value is not guaranteed to be stable.
             </summary>
         </member>
-        <member name="M:Cesil.DefaultDynamicTypeConverter.GetRowConverter(System.Int32,System.Int32,System.String[],System.Reflection.TypeInfo)">
+        <member name="T:Cesil.ReadWithCommentResultType">
             <summary>
-            Returns a DynamicRowConverter that can be used to parse the targetType,
-               if a default parser for the type exists or a constructor accepting
-               the appropriate number of objects (can be dynamic in source) is on 
-               the the type.
+            Represents the type of a ReadWithCommentResult,
+            either no value (end of records), having a value (of type T),
+            or having a comment (always a string).
             </summary>
         </member>
-        <member name="M:Cesil.DefaultDynamicTypeConverter.GetRowParsingMethodFor(System.Int32,System.Int32,System.String[],System.Reflection.TypeInfo)">
+        <member name="F:Cesil.ReadWithCommentResultType.NoValue">
             <summary>
-            Returns the default parsing method for the given type, if any,
-              that maps a whole row to the given type.
+            No value was read, the end of records has been reached.
             
-            Override to tweak behavior.
+            Subsequent attempts to read will fail.
+            
+            Equivalent to HasValue == false on ReadResult(T).
             </summary>
         </member>
-        <member name="M:Cesil.DefaultDynamicTypeConverter.GetRowConstructorTakingDynamicFor(System.Int32,System.Int32,System.String[],System.Reflection.TypeInfo)">
+        <member name="F:Cesil.ReadWithCommentResultType.HasValue">
             <summary>
-            Returns the single-object-taking constructor for the given type (or one assignable
-              to it), if any, that maps a whole row to the given type.
+            A value was read.
             
-            Override to tweak behavior.
+            Equivalent to HasValue == true on ReadResult(T).
             </summary>
         </member>
-        <member name="M:Cesil.DefaultDynamicTypeConverter.GetRowConstuctorTakingTypedParameters(System.Int32,System.Int32,System.String[],System.Reflection.TypeInfo)">
+        <member name="F:Cesil.ReadWithCommentResultType.HasComment">
             <summary>
-            Returns a constructor and an array of column indexes that corresponds
-              to a constructor on the given type (or one assignable to it) that takes
-              typed parameters for each of the included columns.
-            
-            Override to tweak behavior.
-            </summary>
-        </member>
-        <member name="M:Cesil.DefaultDynamicTypeConverter.GetRowConstructorAndSetters(System.Int32,System.Int32,System.String[],System.Reflection.TypeInfo)">
-            <summary>
-            Returns a constructor, setters, and an array of column indexes that corresponds
-              to the setters that takes typed parameters for each of the included columns.
-            
-            Override to tweak behavior.
+            A comment was read.
             </summary>
         </member>
         <member name="T:Cesil.DefaultTypeDescriber">
             <summary>
             The default implementation of ITypeDescriber used to
-              determine how to (de)serialize a type.
+              determine how to (de)serialize types and how to convert
+              dynamic cells and rows.
               
             It will serialize all public properties, any fields
               with a [DataMember], and will respect ShouldSerialize()
@@ -892,6 +1051,9 @@
             It will deserialize all public properties, any fields
               with a [DataMember], and will call Reset() methods.  Expects
               a public parameterless constructor for any deserialized types.
+            
+            It will convert cells to most built-in types, and map rows to
+              POCOs, ValueTuples, Tuples, and IEnumerables.
             
             This type is unsealed to allow for easy extension of it's behavior.
             </summary>
@@ -1111,6 +1273,73 @@
             Override to tweak behavior.
             </summary>
         </member>
+        <member name="M:Cesil.DefaultTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)">
+            <summary>
+            Enumerates cells on the given dynamic row.
+            
+            Null rows have no cells, but are legal.
+            
+            Rows created by Cesil have their cells enumerated as strings.
+            
+            Other dynamic types will have each member enumerated as either their
+              actual type (if a formatter is available) or as a string.
+            
+            Override to tweak behavior.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultTypeDescriber.ShouldIncludeCell(System.String,Cesil.WriteContext@,System.Object)">
+            <summary>
+            Called in GetCellsForDynamicRow to determine whether a cell should be included.
+            
+            Override to customize behavior.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultTypeDescriber.GetFormatter(System.Reflection.TypeInfo,System.String,Cesil.WriteContext@,System.Object)">
+            <summary>
+            Called in GetCellsForDynamicRow to determine the formatter that should be used for a cell.
+            
+            Override to customize behavior.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultTypeDescriber.GetDynamicCellParserFor(Cesil.ReadContext@,System.Reflection.TypeInfo)">
+            <summary>
+            Returns a Parser that can be used to parse the targetType.
+            
+            Override to customize behavior.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultTypeDescriber.GetDynamicRowConverter(Cesil.ReadContext@,System.Collections.Generic.IEnumerable{Cesil.ColumnIdentifier},System.Reflection.TypeInfo)">
+            <summary>
+            Returns a DynamicRowConverter that can be used to parse the targetType,
+               if a default parser for the type exists or a constructor accepting
+               the appropriate number of objects (can be dynamic in source) is on 
+               the the type.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultTypeDescriber.ToString">
+            <summary>
+            Returns a representation of this DefaultTypeDescriber object.
+            
+            Only for debugging, this value is not guaranteed to be stable.
+            </summary>
+        </member>
+        <member name="T:Cesil.IsMemberRequired">
+            <summary>
+            Whether or not a member is required during deserialization.
+            </summary>
+        </member>
+        <member name="F:Cesil.IsMemberRequired.Yes">
+            <summary>
+            A member must be present, it is
+            an error to omit it.
+            </summary>
+        </member>
+        <member name="F:Cesil.IsMemberRequired.No">
+            <summary>
+            A member does not have to be present,
+            it is not an error if it is omitted.
+            </summary>
+        </member>
         <member name="T:Cesil.DeserializableMember">
             <summary>
             Represents a member of a type to use when deserializing.
@@ -1119,11 +1348,6 @@
         <member name="P:Cesil.DeserializableMember.Name">
             <summary>
             The name of the column that maps to this member.
-            </summary>
-        </member>
-        <member name="M:Cesil.DeserializableMember.GetDefaultParser(System.Reflection.TypeInfo)">
-            <summary>
-            Returns the default parser for the given type, if any exists.
             </summary>
         </member>
         <member name="M:Cesil.DeserializableMember.ForProperty(System.Reflection.PropertyInfo)">
@@ -1136,17 +1360,17 @@
             Creates a DeserializableMember for the given property, with the given name.
             </summary>
         </member>
-        <member name="M:Cesil.DeserializableMember.ForProperty(System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.DeserializableMember.ForProperty(System.Reflection.PropertyInfo,System.String,Cesil.Parser)">
             <summary>
             Creates a DeserializableMember for the given property, with the given name and parser.
             </summary>
         </member>
-        <member name="M:Cesil.DeserializableMember.ForProperty(System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo,System.Boolean)">
+        <member name="M:Cesil.DeserializableMember.ForProperty(System.Reflection.PropertyInfo,System.String,Cesil.Parser,Cesil.IsMemberRequired)">
             <summary>
             Creates a DeserializableMember for the given property, with the given name, parser, and whether it is required.
             </summary>
         </member>
-        <member name="M:Cesil.DeserializableMember.ForProperty(System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo,System.Boolean,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.DeserializableMember.ForProperty(System.Reflection.PropertyInfo,System.String,Cesil.Parser,Cesil.IsMemberRequired,Cesil.Reset)">
             <summary>
             Creates a DeserializableMember for the given property, with the given name, parser, whether it is required, and a reset method.
             </summary>
@@ -1161,29 +1385,39 @@
             Creates a DeserializableMember for the given field, with the given name.
             </summary>
         </member>
-        <member name="M:Cesil.DeserializableMember.ForField(System.Reflection.FieldInfo,System.String,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.DeserializableMember.ForField(System.Reflection.FieldInfo,System.String,Cesil.Parser)">
             <summary>
             Creates a DeserializableMember for the given field, with the given name and parser.
             </summary>
         </member>
-        <member name="M:Cesil.DeserializableMember.ForField(System.Reflection.FieldInfo,System.String,System.Reflection.MethodInfo,System.Boolean)">
+        <member name="M:Cesil.DeserializableMember.ForField(System.Reflection.FieldInfo,System.String,Cesil.Parser,Cesil.IsMemberRequired)">
             <summary>
             Creates a DeserializableMember for the given property, with the given name, parser, and whether it is required.
             </summary>
         </member>
-        <member name="M:Cesil.DeserializableMember.ForField(System.Reflection.FieldInfo,System.String,System.Reflection.MethodInfo,System.Boolean,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.DeserializableMember.ForField(System.Reflection.FieldInfo,System.String,Cesil.Parser,Cesil.IsMemberRequired,Cesil.Reset)">
             <summary>
             Creates a DeserializableMember for the given property, with the given name, parser, whether it is required, and a reset method.
             </summary>
         </member>
-        <member name="M:Cesil.DeserializableMember.Create(System.Reflection.TypeInfo,System.String,System.Reflection.FieldInfo,System.Reflection.MethodInfo,System.Boolean,System.Reflection.MethodInfo)">
-            <summary>
-            Create a DeserializableMember with an explicit name, backing field, parser, whether it is required, and a reset method.
-            </summary>
-        </member>
-        <member name="M:Cesil.DeserializableMember.Create(System.Reflection.TypeInfo,System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo,System.Boolean,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.DeserializableMember.Create(System.Reflection.TypeInfo,System.String,Cesil.Setter,Cesil.Parser,Cesil.IsMemberRequired,Cesil.Reset)">
             <summary>
             Create a Deserializable member with an explicit name, setter, parser, whether it is required, and a reset method.
+            </summary>
+        </member>
+        <member name="M:Cesil.DeserializableMember.Equals(System.Object)">
+            <summary>
+            Returns true if this object equals the given DeserializableMember.
+            </summary>
+        </member>
+        <member name="M:Cesil.DeserializableMember.Equals(Cesil.DeserializableMember)">
+            <summary>
+            Returns true if this object equals the given DeserializableMember.
+            </summary>
+        </member>
+        <member name="M:Cesil.DeserializableMember.GetHashCode">
+            <summary>
+            Returns a stable hash for this DeserializableMember.
             </summary>
         </member>
         <member name="M:Cesil.DeserializableMember.ToString">
@@ -1193,137 +1427,75 @@
             This is provided for debugging purposes, and the format is not guaranteed to be stable between releases.
             </summary>
         </member>
-        <member name="T:Cesil.DynamicCellConverter">
+        <member name="M:Cesil.DeserializableMember.op_Equality(Cesil.DeserializableMember,Cesil.DeserializableMember)">
             <summary>
-            Describes how to convert a dynamic cell value
-              into an instance of a type.
-              
-            Conversions can implemented as constructors,
-              or static methods.
+            Compare two DeserializableMembers for equality
             </summary>
         </member>
-        <member name="M:Cesil.DynamicCellConverter.ForConstructor(System.Reflection.ConstructorInfo)">
+        <member name="M:Cesil.DeserializableMember.op_Inequality(Cesil.DeserializableMember,Cesil.DeserializableMember)">
             <summary>
-            Create a DynamicCellConverter from the given constructor.
+            Compare two DeserializableMembers for inequality
+            </summary>
+        </member>
+        <member name="T:Cesil.DynamicCellValue">
+            <summary>
+            Wrapper around a dynamic cell which is to be written
+              by an I(Async)Writer.
+            </summary>
+        </member>
+        <member name="P:Cesil.DynamicCellValue.Name">
+            <summary>
+            Name of the column (if any) the cell belongs to
+            </summary>
+        </member>
+        <member name="P:Cesil.DynamicCellValue.Value">
+            <summary>
+            Cell value
+            </summary>
+        </member>
+        <member name="P:Cesil.DynamicCellValue.Formatter">
+            <summary>
+            Instance of Formatter to use when formatting the associated value
+              for writing.
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicCellValue.Create(System.String,System.Object,Cesil.Formatter)">
+            <summary>
+            Create a DynamicCellValue to format the given value of the given column.
             
-            Constructor must take a ReadOnlySpan(char).
+            It's permissable for both name and val to be null.
             </summary>
         </member>
-        <member name="M:Cesil.DynamicCellConverter.ForMethod(System.Reflection.MethodInfo)">
+        <member name="M:Cesil.DynamicCellValue.Equals(System.Object)">
             <summary>
-            Create a DynamicCellConverter from the given method.
+            Returns true if this object equals the given DynamicCellValue.
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicCellValue.Equals(Cesil.DynamicCellValue)">
+            <summary>
+            Returns true if this object equals the given DynamicCellValue.
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicCellValue.GetHashCode">
+            <summary>
+            Returns a stable hash for this DynamicCellValue.
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicCellValue.ToString">
+            <summary>
+            Returns a representation of this DynamicCellValue struct.
             
-            Method must be static, return a bool, take a ReadOnlySpan(char) 
-              as it's first parameter, a ReadContext as it's second parameter,
-              and have a third parameter that is an out for the result value.
+            Only for debugging, this value is not guaranteed to be stable.
             </summary>
         </member>
-        <member name="T:Cesil.DynamicRowConverter">
+        <member name="M:Cesil.DynamicCellValue.op_Equality(Cesil.DynamicCellValue,Cesil.DynamicCellValue)">
             <summary>
-            Describes how to convert a dynamic row value
-              into an instance of a type.
-              
-            Conversions can implemented as constructors taking a single 
-              dynamic/object, constructors taking typed parameters, an 
-              empty constructor paired with setter methods,
-              or static methods.
+            Compare two DynamicCellValues for equality
             </summary>
         </member>
-        <member name="M:Cesil.DynamicRowConverter.ForConstructorTakingDynamic(System.Reflection.ConstructorInfo)">
+        <member name="M:Cesil.DynamicCellValue.op_Inequality(Cesil.DynamicCellValue,Cesil.DynamicCellValue)">
             <summary>
-            Create a DynamicRowConverter from the given constructor.
-            
-            Constructor must take an object (which can be dynamic in source).
-            </summary>
-        </member>
-        <member name="M:Cesil.DynamicRowConverter.ForConstructorTakingTypedParameters(System.Reflection.ConstructorInfo,System.Collections.Generic.IEnumerable{System.Int32})">
-            <summary>
-            Create a DynamicRowConverter for the given constructor, which maps specific columns to the parameters
-              for the of the constructor.
-              
-            Constructor must take the same number of parameters as column indexes passed in.
-            </summary>
-        </member>
-        <member name="M:Cesil.DynamicRowConverter.ForEmptyConstructorAndSetters(System.Reflection.ConstructorInfo,System.Collections.Generic.IEnumerable{System.Reflection.MethodInfo},System.Collections.Generic.IEnumerable{System.Int32})">
-            <summary>
-            Create a DynamicRowConverter for the given zero parameter constructor, which will call each setter
-              with the column indicated in the passed column to setters.
-              
-            The same number of setters and columns must be passed.  Setter methods must take a single parameter,
-              and either be callable on the constructed type or static.  Setters must return void.
-            </summary>
-        </member>
-        <member name="M:Cesil.DynamicRowConverter.ForMethod(System.Reflection.MethodInfo)">
-            <summary>
-            Create a DynamicRowConverter from the given method.
-            
-            Method must be static, return a bool, take an object (which can be dynamic in source)
-              as it's first parameter, a ReadContext as it's second paramter, and have a third parameter that is an out 
-              for the result value.
-            </summary>
-        </member>
-        <member name="T:Cesil.DynamicTypeConverters">
-            <summary>
-            Holds references to pre-allocated DynamicTypeConverters.
-            </summary>
-        </member>
-        <member name="F:Cesil.DynamicTypeConverters.Default">
-            <summary>
-            An instance of DefaultDynamicTypeConverter.
-            
-            This instance is used in cases where an IDynamicTypeConverter has not been
-              configured.
-            </summary>
-        </member>
-        <member name="T:Cesil.IDynamicTypeConverter">
-            <summary>
-            The interface used to discover how to convert dynamically typed values
-              to concrete types.
-            </summary>
-        </member>
-        <member name="M:Cesil.IDynamicTypeConverter.GetCellConverter(System.Int32,System.String,System.Reflection.TypeInfo)">
-            <summary>
-            Called to determine how to convert a cell in the given column, as identified by
-               it's number (base-0) and column name (which may be null), into the given type.
-               
-            Column name will be null if headers were not configured or discovered during reading.
-            </summary>
-        </member>
-        <member name="M:Cesil.IDynamicTypeConverter.GetRowConverter(System.Int32,System.Int32,System.String[],System.Reflection.TypeInfo)">
-            <summary>
-            Called to determine how to convert an entire row into the given type, as identified by
-              it's number (base-0), into the given type.
-              
-            Column names will be null if headers were not configured or discovered during reading.
-            </summary>
-        </member>
-        <member name="T:Cesil.InstanceBuilderDelegate`1">
-            <summary>
-            Delegate used to create InstanceBuilders.
-            </summary>
-        </member>
-        <member name="T:Cesil.InstanceBuilder">
-            <summary>
-            Represents a way to create new instances of a type.
-            </summary>
-        </member>
-        <member name="M:Cesil.InstanceBuilder.ForParameterlessConstructor(System.Reflection.ConstructorInfo)">
-            <summary>
-            Create a new InstanceBuilder from a parameterless constructor.
-            
-            The constructed type must be concrete, that is:
-              - not an interface
-              - not an abstract class
-              - not a generic parameter
-              - not an unbound generic type (ie. a generic type definition)
-            </summary>
-        </member>
-        <member name="M:Cesil.InstanceBuilder.ForDelegate``1(Cesil.InstanceBuilderDelegate{``0})">
-            <summary>
-            Create a new InstanceBuilder from delegate.
-            
-            There are no restrictions on what the give delegate may do,
-              but be aware that it may be called from many different contexts.
+            Compare two DynamicCellValues for inequality
             </summary>
         </member>
         <member name="T:Cesil.ITypeDescriber">
@@ -1349,16 +1521,28 @@
             Enumerate all the members on forType to deserialize.
             </summary>
         </member>
+        <member name="M:Cesil.ITypeDescriber.GetDynamicCellParserFor(Cesil.ReadContext@,System.Reflection.TypeInfo)">
+            <summary>
+            Called to determine how to convert a dynamic cell.
+            </summary>
+        </member>
+        <member name="M:Cesil.ITypeDescriber.GetDynamicRowConverter(Cesil.ReadContext@,System.Collections.Generic.IEnumerable{Cesil.ColumnIdentifier},System.Reflection.TypeInfo)">
+            <summary>
+            Called to determine how to convert an entire dynamic row into the given type, as identified by
+              it's number (base-0), into the given type.
+              
+            Column names will be exposed on individual column identifiers only if they are set.
+            </summary>
+        </member>
+        <member name="M:Cesil.ITypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)">
+            <summary>
+            Called to determine the cells that make up the given dynamic row.
+            </summary>
+        </member>
         <member name="T:Cesil.ManualTypeDescriber">
             <summary>
             An ITypeDescriber that takes lets you register explicit members to return
               when one of the EnumerateXXX() methods are called.
-            </summary>
-        </member>
-        <member name="P:Cesil.ManualTypeDescriber.ThrowsOnNoConfiguredType">
-            <summary>
-            Whether to throw an exception if a type has no configured members
-              for a given EnumerateXXX() method call.
             </summary>
         </member>
         <member name="M:Cesil.ManualTypeDescriber.#ctor(System.Boolean)">
@@ -1373,46 +1557,34 @@
             Does not throw if no type is configured for a given enumeration.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.SetExplicitParameterlessConstructor(System.Reflection.ConstructorInfo)">
-            <summary>
-            Set the parameterless constructor to use when constructing new instances of 
-              the constructor's declaring type.
-            </summary>
-        </member>
-        <member name="M:Cesil.ManualTypeDescriber.SetExplicitParameterlessConstructor(System.Reflection.TypeInfo,System.Reflection.ConstructorInfo)">
-            <summary>
-            Set the parameterless constructor to use when constructing new instances of 
-              the given type.
-            </summary>
-        </member>
-        <member name="M:Cesil.ManualTypeDescriber.SetBuilderDelegate``1(Cesil.InstanceBuilderDelegate{``0})">
+        <member name="M:Cesil.ManualTypeDescriber.SetBuilder(Cesil.InstanceBuilder)">
             <summary>
             Set the delegate to use when constructing new instances of 
               type T.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.SetBuilderDelegate``1(System.Reflection.TypeInfo,Cesil.InstanceBuilderDelegate{``0})">
+        <member name="M:Cesil.ManualTypeDescriber.SetBuilder(System.Reflection.TypeInfo,Cesil.InstanceBuilder)">
             <summary>
             Set the delegate to use when constructing new instances of 
               the given type.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddExplicitGetter(System.Reflection.TypeInfo,System.String,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddExplicitGetter(System.Reflection.TypeInfo,System.String,Cesil.Getter)">
             <summary>
             Add a getter for the given type, with the given name, using the given getter.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddExplicitGetter(System.Reflection.TypeInfo,System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddExplicitGetter(System.Reflection.TypeInfo,System.String,Cesil.Getter,Cesil.Formatter)">
             <summary>
             Add a getter for the given type, with the given name, using the given getter, and formatter.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddExplicitGetter(System.Reflection.TypeInfo,System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddExplicitGetter(System.Reflection.TypeInfo,System.String,Cesil.Getter,Cesil.Formatter,Cesil.ShouldSerialize)">
             <summary>
             Add a getter for the given type, with the given name, using the given getter, formatter, and ShouldSerialize method.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddExplicitGetter(System.Reflection.TypeInfo,System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo,System.Reflection.MethodInfo,System.Boolean)">
+        <member name="M:Cesil.ManualTypeDescriber.AddExplicitGetter(System.Reflection.TypeInfo,System.String,Cesil.Getter,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.WillEmitDefaultValue)">
             <summary>
             Add a getter for the given type, with the given name, using the given getter, formatter, ShouldSerialize method, and whether to emit a default value.
             </summary>
@@ -1427,12 +1599,12 @@
             Add a field to serialize for the given type, using the given name.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddSerializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddSerializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,Cesil.Formatter)">
             <summary>
             Add a field to serialize for the given type, using the given name and formatter.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddSerializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddSerializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize)">
             <summary>
             Add a field to serialize for the given type, using the given name, formatter, and ShouldSerialize method.
             </summary>
@@ -1447,17 +1619,17 @@
             Add a field to serialize with the given name - for the type which declares the field.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddSerializableField(System.Reflection.FieldInfo,System.String,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddSerializableField(System.Reflection.FieldInfo,System.String,Cesil.Formatter)">
             <summary>
             Add a field to serialize with the given name and formatter - for the type which declares the field.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddSerializableField(System.Reflection.FieldInfo,System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddSerializableField(System.Reflection.FieldInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize)">
             <summary>
             Add a field to serialize with the given name, formatter, and ShouldSerialize method - for the type which declares the field.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddSerializableField(System.Reflection.FieldInfo,System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo,System.Boolean)">
+        <member name="M:Cesil.ManualTypeDescriber.AddSerializableField(System.Reflection.FieldInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.WillEmitDefaultValue)">
             <summary>
             Add a field to serialize with the given name, formatter, ShouldSerialize method, and whether to emit a default value - for the type which declares the field.
             </summary>
@@ -1472,17 +1644,17 @@
             Add a property to serialize for the given type with the given name.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddSerializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddSerializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,Cesil.Formatter)">
             <summary>
             Add a property to serialize for the given type with the given name and formatter.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddSerializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddSerializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize)">
             <summary>
             Add a property to serialize for the given type with the given name, formatter, and ShouldSerialize method.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddSerializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo,System.Boolean)">
+        <member name="M:Cesil.ManualTypeDescriber.AddSerializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.WillEmitDefaultValue)">
             <summary>
             Add a property to serialize for the given type with the given name, formatter, ShouldSerialize method, and whether to emit a default value.
             </summary>
@@ -1497,37 +1669,37 @@
             Add a property to serialize with the given name - for the type which declares the property.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddSerializableProperty(System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddSerializableProperty(System.Reflection.PropertyInfo,System.String,Cesil.Formatter)">
             <summary>
             Add a property to serialize with the given name and formatter - for the type which declares the property.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddSerializableProperty(System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddSerializableProperty(System.Reflection.PropertyInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize)">
             <summary>
             Add a property to serialize with the given name, formatter, and ShouldSerialize method - for the type which declares the property.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddSerializableProperty(System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo,System.Boolean)">
+        <member name="M:Cesil.ManualTypeDescriber.AddSerializableProperty(System.Reflection.PropertyInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.WillEmitDefaultValue)">
             <summary>
             Add a property to serialize with the given name, formatter, ShouldSerialize method, and whether to emit a default value - for the type which declares the property.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddExplicitSetter(System.Reflection.TypeInfo,System.String,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddExplicitSetter(System.Reflection.TypeInfo,System.String,Cesil.Setter)">
             <summary>
             Add a setter for the given type, with the given name, using the given setter.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddExplicitSetter(System.Reflection.TypeInfo,System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddExplicitSetter(System.Reflection.TypeInfo,System.String,Cesil.Setter,Cesil.Parser)">
             <summary>
             Add a setter for the given type, with the given name, using the given setter and parser.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddExplicitSetter(System.Reflection.TypeInfo,System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo,System.Boolean)">
+        <member name="M:Cesil.ManualTypeDescriber.AddExplicitSetter(System.Reflection.TypeInfo,System.String,Cesil.Setter,Cesil.Parser,Cesil.IsMemberRequired)">
             <summary>
             Add a setter for the given type, with the given name, using the given setter, parser, and whether the column is required.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddExplicitSetter(System.Reflection.TypeInfo,System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo,System.Boolean,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddExplicitSetter(System.Reflection.TypeInfo,System.String,Cesil.Setter,Cesil.Parser,Cesil.IsMemberRequired,Cesil.Reset)">
             <summary>
             Add a setter for the given type, with the given name, using the given setter, parser, whether the column is required, and a reset method.
             </summary>
@@ -1542,17 +1714,17 @@
             Add a field to deserialize for the given type with the given name.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,Cesil.Parser)">
             <summary>
             Add a field to deserialize for the given type with the given name and parser.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,System.Reflection.MethodInfo,System.Boolean)">
+        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,Cesil.Parser,Cesil.IsMemberRequired)">
             <summary>
             Add a field to deserialize for the given type with the given name, parser, and whether the column is required.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,System.Reflection.MethodInfo,System.Boolean,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,Cesil.Parser,Cesil.IsMemberRequired,Cesil.Reset)">
             <summary>
             Add a field to deserialize for the given type with the given name, parser, whether the column is required, and a reset method.
             </summary>
@@ -1567,17 +1739,17 @@
             Add a field to deserialize with the given name - for the type which declares the field.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableField(System.Reflection.FieldInfo,System.String,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableField(System.Reflection.FieldInfo,System.String,Cesil.Parser)">
             <summary>
             Add a field to deserialize with the given name and parser - for the type which declares the field.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableField(System.Reflection.FieldInfo,System.String,System.Reflection.MethodInfo,System.Boolean)">
+        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableField(System.Reflection.FieldInfo,System.String,Cesil.Parser,Cesil.IsMemberRequired)">
             <summary>
             Add a field to deserialize with the given name, parser, and whether the column is required - for the type which declares the field.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableField(System.Reflection.FieldInfo,System.String,System.Reflection.MethodInfo,System.Boolean,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableField(System.Reflection.FieldInfo,System.String,Cesil.Parser,Cesil.IsMemberRequired,Cesil.Reset)">
             <summary>
             Add a field to deserialize with the given name, parser, whether the column is required, and a reset method - for the type which declares the field.
             </summary>
@@ -1592,17 +1764,17 @@
             Add a property to deserialize for the given type with the given name.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,Cesil.Parser)">
             <summary>
             Add a property to deserialize for the given type with the given name and parser.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo,System.Boolean)">
+        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,Cesil.Parser,Cesil.IsMemberRequired)">
             <summary>
             Add a property to deserialize for the given type with the given name and parser and whether the column is required.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo,System.Boolean,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,Cesil.Parser,Cesil.IsMemberRequired,Cesil.Reset)">
             <summary>
             Add a property to deserialize for the given type with the given name and parser, whether the column is required, and a reset method.
             </summary>
@@ -1617,17 +1789,17 @@
             Add a property to deserialize with the given name - for the type which declares the property.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableProperty(System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableProperty(System.Reflection.PropertyInfo,System.String,Cesil.Parser)">
             <summary>
             Add a property to deserialize with the given name and parser - for the type which declares the property.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableProperty(System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo,System.Boolean)">
+        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableProperty(System.Reflection.PropertyInfo,System.String,Cesil.Parser,Cesil.IsMemberRequired)">
             <summary>
             Add a property to deserialize with the given name, parser, and whether the column is required - for the type which declares the property.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableProperty(System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo,System.Boolean,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.AddDeserializableProperty(System.Reflection.PropertyInfo,System.String,Cesil.Parser,Cesil.IsMemberRequired,Cesil.Reset)">
             <summary>
             Add a property to deserialize with the given name, parser, whether the column is required, and a reset method - for the type which declares the property.
             </summary>
@@ -1636,11 +1808,7 @@
             <summary>
             Returns an InstanceBuilder that can construct the given type.
             
-            If neither a parameterless constructor nor a delegate has been
-               configured, will throw an exception.
-               
-            If both a parameterless constructor and a delegate have been
-              configured, will also throw an exception.
+            Will throw an expection if no builder is registered.
             </summary>
         </member>
         <member name="M:Cesil.ManualTypeDescriber.EnumerateMembersToDeserialize(System.Reflection.TypeInfo)">
@@ -1661,6 +1829,45 @@
               ThrowsOnNoConfiguredType.
             </summary>
         </member>
+        <member name="M:Cesil.ManualTypeDescriber.ToString">
+            <summary>
+            Returns a representation of this ManualTypeDescriber object.
+            
+            Only for debugging, this value is not guaranteed to be stable.
+            </summary>
+        </member>
+        <member name="M:Cesil.ManualTypeDescriber.GetDynamicCellParserFor(Cesil.ReadContext@,System.Reflection.TypeInfo)">
+            <summary>
+            Delegates to DefaultTypeDescriber.
+            </summary>
+        </member>
+        <member name="M:Cesil.ManualTypeDescriber.GetDynamicRowConverter(Cesil.ReadContext@,System.Collections.Generic.IEnumerable{Cesil.ColumnIdentifier},System.Reflection.TypeInfo)">
+            <summary>
+            Delegates to DefaultTypeDescriber.
+            </summary>
+        </member>
+        <member name="M:Cesil.ManualTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)">
+            <summary>
+            Delegates to DefaultTypeDescriber.
+            </summary>
+        </member>
+        <member name="T:Cesil.WillEmitDefaultValue">
+            <summary>
+            Whether or not the default value for a member will be serialized.
+            </summary>
+        </member>
+        <member name="F:Cesil.WillEmitDefaultValue.Yes">
+            <summary>
+            A member must be present, it is
+            an error to omit it.
+            </summary>
+        </member>
+        <member name="F:Cesil.WillEmitDefaultValue.No">
+            <summary>
+            A member does not have to be present,
+            it is not an error if it is omitted.
+            </summary>
+        </member>
         <member name="T:Cesil.SerializableMember">
             <summary>
             Represents a member of a type to use when serializing.
@@ -1669,11 +1876,6 @@
         <member name="P:Cesil.SerializableMember.Name">
             <summary>
             The name of the column that maps to this member.
-            </summary>
-        </member>
-        <member name="M:Cesil.SerializableMember.GetDefaultFormatter(System.Reflection.TypeInfo)">
-            <summary>
-            Returns the default formatter for the given type, if one exists.
             </summary>
         </member>
         <member name="M:Cesil.SerializableMember.ForProperty(System.Reflection.PropertyInfo)">
@@ -1686,17 +1888,17 @@
             Creates a SerializableMember for the given property, with the given name.
             </summary>
         </member>
-        <member name="M:Cesil.SerializableMember.ForProperty(System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.SerializableMember.ForProperty(System.Reflection.PropertyInfo,System.String,Cesil.Formatter)">
             <summary>
             Creates a SerializableMember for the given property, with the given name and formatter.
             </summary>
         </member>
-        <member name="M:Cesil.SerializableMember.ForProperty(System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.SerializableMember.ForProperty(System.Reflection.PropertyInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize)">
             <summary>
             Creates a SerializableMember for the given property, with the given name, formatter, and ShouldSerialize method.
             </summary>
         </member>
-        <member name="M:Cesil.SerializableMember.ForProperty(System.Reflection.PropertyInfo,System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo,System.Boolean)">
+        <member name="M:Cesil.SerializableMember.ForProperty(System.Reflection.PropertyInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.WillEmitDefaultValue)">
             <summary>
             Creates a SerializableMember for the given property, with the given name, formatter, ShouldSerialize method, and whether to emit a default value.
             </summary>
@@ -1711,29 +1913,39 @@
             Creates a SerializableMember for the given field, with the given name.
             </summary>
         </member>
-        <member name="M:Cesil.SerializableMember.ForField(System.Reflection.FieldInfo,System.String,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.SerializableMember.ForField(System.Reflection.FieldInfo,System.String,Cesil.Formatter)">
             <summary>
             Creates a SerializableMember for the given field, with the given name and formatter.
             </summary>
         </member>
-        <member name="M:Cesil.SerializableMember.ForField(System.Reflection.FieldInfo,System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo)">
+        <member name="M:Cesil.SerializableMember.ForField(System.Reflection.FieldInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize)">
             <summary>
             Creates a SerializableMember for the given field, with the given name, formatter, and ShouldSerialize method.
             </summary>
         </member>
-        <member name="M:Cesil.SerializableMember.ForField(System.Reflection.FieldInfo,System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo,System.Boolean)">
+        <member name="M:Cesil.SerializableMember.ForField(System.Reflection.FieldInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.WillEmitDefaultValue)">
             <summary>
             Creates a SerializableMember for the given field, with the given name, formatter, ShouldSerialize method, and whether to emit a default value.
             </summary>
         </member>
-        <member name="M:Cesil.SerializableMember.Create(System.Reflection.TypeInfo,System.String,System.Reflection.FieldInfo,System.Reflection.MethodInfo,System.Reflection.MethodInfo,System.Boolean)">
-            <summary>
-            Create a SerializableMember with an explicit type being serialized, name, backing field, formatter, ShouldSerialize method, and whether to emit a default value.
-            </summary>
-        </member>
-        <member name="M:Cesil.SerializableMember.Create(System.Reflection.TypeInfo,System.String,System.Reflection.MethodInfo,System.Reflection.MethodInfo,System.Reflection.MethodInfo,System.Boolean)">
+        <member name="M:Cesil.SerializableMember.Create(System.Reflection.TypeInfo,System.String,Cesil.Getter,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.WillEmitDefaultValue)">
             <summary>
             Create a SerializableMember with an explicit type being serialized, name, getter, formatter, ShouldSerialize method, and whether to emit a default value.
+            </summary>
+        </member>
+        <member name="M:Cesil.SerializableMember.Equals(System.Object)">
+            <summary>
+            Returns true if this object equals the given SerializableMember.
+            </summary>
+        </member>
+        <member name="M:Cesil.SerializableMember.Equals(Cesil.SerializableMember)">
+            <summary>
+            Returns true if this object equals the given SerializableMember.
+            </summary>
+        </member>
+        <member name="M:Cesil.SerializableMember.GetHashCode">
+            <summary>
+            Returns a stable hash for this SerializableMember.
             </summary>
         </member>
         <member name="M:Cesil.SerializableMember.ToString">
@@ -1743,26 +1955,22 @@
             This is provided for debugging purposes, and the format is not guaranteed to be stable between releases.
             </summary>
         </member>
+        <member name="M:Cesil.SerializableMember.op_Equality(Cesil.SerializableMember,Cesil.SerializableMember)">
+            <summary>
+            Compare two SerializableMembers for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.SerializableMember.op_Inequality(Cesil.SerializableMember,Cesil.SerializableMember)">
+            <summary>
+            Compare two SerializableMembers for inequality
+            </summary>
+        </member>
         <member name="T:Cesil.SurrogateTypeDescriber">
             <summary>
             A ITypeDesciber that enumerates members on a surrogate type and maps them to another type.
             
             Used when you don't control the type you need to (de)serialize - you markup the surrogate type
               and then the uncontrolled type is (de)serialized as if it were the surrogate type.
-            </summary>
-        </member>
-        <member name="P:Cesil.SurrogateTypeDescriber.TypeDescriber">
-            <summary>
-            The type describer to use when enumerating on a surrogate type.
-            </summary>
-        </member>
-        <member name="P:Cesil.SurrogateTypeDescriber.ThrowOnNoRegisteredSurrogate">
-            <summary>
-            Whether to throw when no surrogate type is registered for a type
-              that is being described.
-              
-            If false, types with no registered surrogate types are described
-              by TypeDescriber.
             </summary>
         </member>
         <member name="M:Cesil.SurrogateTypeDescriber.#ctor(Cesil.ITypeDescriber,System.Boolean)">
@@ -1829,6 +2037,28 @@
               ThrowOnNoRegisteredSurrogate.
             </summary>
         </member>
+        <member name="M:Cesil.SurrogateTypeDescriber.ToString">
+            <summary>
+            Returns a representation of this SurrogateTypeDescriber object.
+            
+            Only for debugging, this value is not guaranteed to be stable.
+            </summary>
+        </member>
+        <member name="M:Cesil.SurrogateTypeDescriber.GetDynamicCellParserFor(Cesil.ReadContext@,System.Reflection.TypeInfo)">
+            <summary>
+            Delegates to DefaultTypeDescriber.
+            </summary>
+        </member>
+        <member name="M:Cesil.SurrogateTypeDescriber.GetDynamicRowConverter(Cesil.ReadContext@,System.Collections.Generic.IEnumerable{Cesil.ColumnIdentifier},System.Reflection.TypeInfo)">
+            <summary>
+            Delegates to DefaultTypeDescriber.
+            </summary>
+        </member>
+        <member name="M:Cesil.SurrogateTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)">
+            <summary>
+            Delegates to DefaultTypeDescriber.
+            </summary>
+        </member>
         <member name="T:Cesil.TypeDescribers">
             <summary>
             Holds references to pre-allocated TypeDescibers.
@@ -1842,25 +2072,790 @@
               configured.
             </summary>
         </member>
+        <member name="T:Cesil.DynamicRowConverterDelegate`1">
+            <summary>
+            Delegate type for DynamicRowConverters.
+            </summary>
+        </member>
+        <member name="T:Cesil.DynamicRowConverter">
+            <summary>
+            Describes how to convert a dynamic row value
+              into an instance of a type.
+              
+            Conversions can implemented as constructors taking a single 
+              dynamic/object, constructors taking typed parameters, an 
+              empty constructor paired with setter methods,
+              or static methods.
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicRowConverter.ForDelegate``1(Cesil.DynamicRowConverterDelegate{``0})">
+            <summary>
+            Create a DynamicRowConverter from the given delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicRowConverter.ForConstructorTakingDynamic(System.Reflection.ConstructorInfo)">
+            <summary>
+            Create a DynamicRowConverter from the given constructor.
+            
+            Constructor must take an object (which can be dynamic in source).
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicRowConverter.ForConstructorTakingTypedParameters(System.Reflection.ConstructorInfo,System.Collections.Generic.IEnumerable{Cesil.ColumnIdentifier})">
+            <summary>
+            Create a DynamicRowConverter for the given constructor, which maps specific columns to the parameters
+              for the of the constructor.
+              
+            Constructor must take the same number of parameters as column indexes passed in.
+            
+            Mapping will use column names if available, and fallback to indexes.
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicRowConverter.ForEmptyConstructorAndSetters(System.Reflection.ConstructorInfo,System.Collections.Generic.IEnumerable{Cesil.Setter},System.Collections.Generic.IEnumerable{Cesil.ColumnIdentifier})">
+            <summary>
+            Create a DynamicRowConverter for the given zero parameter constructor, which will call each setter
+              with the column indicated in the passed column to setters.
+              
+            The same number of setters and columns must be passed.
+            
+            Mapping will use column names if available, and fallback to indexes.
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicRowConverter.ForMethod(System.Reflection.MethodInfo)">
+            <summary>
+            Create a DynamicRowConverter from the given method.
+            
+            Method must be static, return a bool, take an object (which can be dynamic in source)
+              as it's first parameter, a ReadContext as it's second paramter, and have a third parameter that is an out 
+              for the result value.
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicRowConverter.ToString">
+            <summary>
+            Returns a representation of this DynamicRowConverter object.
+            
+            Only for debugging, this value is not guaranteed to be stable.
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicRowConverter.Equals(System.Object)">
+            <summary>
+            Returns true if the given object is equivalent to this one
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicRowConverter.Equals(Cesil.DynamicRowConverter)">
+            <summary>
+            Returns true if the given DynamicRowConverter is equivalent to this one
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicRowConverter.GetHashCode">
+            <summary>
+            Returns a stable hash for this DynamicRowConverter.
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicRowConverter.op_Equality(Cesil.DynamicRowConverter,Cesil.DynamicRowConverter)">
+            <summary>
+            Compare two DynamicRowConverters for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicRowConverter.op_Inequality(Cesil.DynamicRowConverter,Cesil.DynamicRowConverter)">
+            <summary>
+            Compare two DynamicRowConverters for inequality
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicRowConverter.op_Explicit(System.Reflection.MethodInfo)~Cesil.DynamicRowConverter">
+            <summary>
+            Convenience operator, equivalent to calling DynamicRowConverter.ForMethod if non-null.
+            
+            Returns null if mtd is null.
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicRowConverter.op_Explicit(System.Reflection.ConstructorInfo)~Cesil.DynamicRowConverter">
+            <summary>
+            Convenience operator, equivalent to calling DynamicRowConverter.ForConstructorTakingDynamic if non-null.
+            
+            Returns null if cons is null.
+            </summary>
+        </member>
+        <member name="M:Cesil.DynamicRowConverter.op_Explicit(System.Delegate)~Cesil.DynamicRowConverter">
+            <summary>
+            Convenience operator, equivalent to calling DynamicRowConverter.ForDelegate if non-null.
+            
+            Returns null if cons is null.
+            </summary>
+        </member>
+        <member name="T:Cesil.FormatterDelegate`1">
+            <summary>
+            Delegate type for formatters.
+            </summary>
+        </member>
+        <member name="T:Cesil.Formatter">
+            <summary>
+            Represents code used to format a value into a IBufferWriter(char).
+            
+            Wraps either a MethodInfo or a FormatterDelegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Formatter.ForMethod(System.Reflection.MethodInfo)">
+            <summary>
+            Create a formatter from a method.
+            
+            Formatter needs to:
+              * be static
+              * take
+                - the type to be formatter (or one it is assignable to)
+                - an in (or by ref) WriteContext
+                -an IBufferWriter(char)
+              * return bool (false indicates insufficient space was available)
+            </summary>
+        </member>
+        <member name="M:Cesil.Formatter.ForDelegate``1(Cesil.FormatterDelegate{``0})">
+            <summary>
+            Create a Formatter from the given delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Formatter.GetDefault(System.Reflection.TypeInfo)">
+            <summary>
+            Returns the default formatter for the given type, if one exists.
+            </summary>
+        </member>
+        <member name="M:Cesil.Formatter.Equals(System.Object)">
+            <summary>
+            Compares for equality to another Formatter.
+            </summary>
+        </member>
+        <member name="M:Cesil.Formatter.Equals(Cesil.Formatter)">
+            <summary>
+            Compares for equality to another Formatter.
+            </summary>
+        </member>
+        <member name="M:Cesil.Formatter.GetHashCode">
+            <summary>
+            Returns a hashcode for this Getter.
+            </summary>
+        </member>
+        <member name="M:Cesil.Formatter.ToString">
+            <summary>
+            Describes this Formatter.
+            
+            This is provided for debugging purposes, and the format is not guaranteed to be stable between releases.
+            </summary>
+        </member>
+        <member name="M:Cesil.Formatter.op_Explicit(System.Reflection.MethodInfo)~Cesil.Formatter">
+            <summary>
+            Convenience operator, equivalent to calling Formatter.ForMethod if non-null.
+            
+            Returns null if mtd is null.
+            </summary>
+        </member>
+        <member name="M:Cesil.Formatter.op_Explicit(System.Delegate)~Cesil.Formatter">
+            <summary>
+            Convenience operator, equivalent to calling Formatter.ForDelegate if non-null.
+            
+            Returns null if del is null.
+            </summary>
+        </member>
+        <member name="M:Cesil.Formatter.op_Equality(Cesil.Formatter,Cesil.Formatter)">
+            <summary>
+            Compare two Formatters for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.Formatter.op_Inequality(Cesil.Formatter,Cesil.Formatter)">
+            <summary>
+            Compare two Formatters for inequality
+            </summary>
+        </member>
+        <member name="T:Cesil.StaticGetterDelegate`1">
+            <summary>
+            Delegate type for getters that doesn't take an instance.
+            </summary>
+        </member>
+        <member name="T:Cesil.GetterDelegate`2">
+            <summary>
+            Delegate type for getters.
+            </summary>
+        </member>
+        <member name="T:Cesil.Getter">
+            <summary>
+            Represents code used to get a value from a type.
+            
+            Wraps either a MethodInfo, a FieldInfo, a GetterDelegate, or a StaticGetterDelegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.ForMethod(System.Reflection.MethodInfo)">
+            <summary>
+            Create a getter from a method.
+            
+            getter can be an instance method or a static method
+              if it's a static method, it can take 0 or 1 parameters
+                 the 1 parameter must be the type to be serialized, or something it is assignable to
+              if it's an instance method, it can only take 0 parameters
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.ForField(System.Reflection.FieldInfo)">
+            <summary>
+            Create a getter from a field.
+            
+            field can be an instance field or a static field.        
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.ForDelegate``2(Cesil.GetterDelegate{``0,``1})">
+            <summary>
+            Create a Getter from the given delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.ForDelegate``1(Cesil.StaticGetterDelegate{``0})">
+            <summary>
+            Create a Getter from the given delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.Equals(System.Object)">
+            <summary>
+            Compares for equality to another Getter.
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.Equals(Cesil.Getter)">
+            <summary>
+            Compares for equality to another Getter.
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.GetHashCode">
+            <summary>
+            Returns a hashcode for this Getter.
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.ToString">
+            <summary>
+            Describes this Getter.
+            
+            This is provided for debugging purposes, and the format is not guaranteed to be stable between releases.
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.op_Explicit(System.Reflection.MethodInfo)~Cesil.Getter">
+            <summary>
+            Convenience operator, equivalent to calling Getter.ForMethod if non-null.
+            
+            Returns null if mtd is null.
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.op_Explicit(System.Reflection.FieldInfo)~Cesil.Getter">
+            <summary>
+            Convenience operator, equivalent to calling Getter.ForField if non-null.
+            
+            Returns null if field is null.
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.op_Explicit(System.Delegate)~Cesil.Getter">
+            <summary>
+            Convenience operator, equivalent to calling Getter.ForDelegate if non-null.
+            
+            Returns null if del is null.
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.op_Equality(Cesil.Getter,Cesil.Getter)">
+            <summary>
+            Compare two Getters for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.op_Inequality(Cesil.Getter,Cesil.Getter)">
+            <summary>
+            Compare two Getters for inequality
+            </summary>
+        </member>
+        <member name="T:Cesil.InstanceBuilderDelegate`1">
+            <summary>
+            Delegate used to create InstanceBuilders.
+            </summary>
+        </member>
+        <member name="T:Cesil.InstanceBuilder">
+            <summary>
+            Represents a way to create new instances of a type.
+            
+            This can be backed by a zero-parameter constructor, a static 
+              method, or a delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.InstanceBuilder.ForMethod(System.Reflection.MethodInfo)">
+            <summary>
+            Creates a new InstanceBuilder from a method.
+            
+            The method must:
+              - be static
+              - return a bool
+              - have a single out parameter of the constructed type
+            </summary>
+        </member>
+        <member name="M:Cesil.InstanceBuilder.ForParameterlessConstructor(System.Reflection.ConstructorInfo)">
+            <summary>
+            Create a new InstanceBuilder from a parameterless constructor.
+            
+            The constructed type must be concrete, that is:
+              - not an interface
+              - not an abstract class
+              - not a generic parameter
+              - not an unbound generic type (ie. a generic type definition)
+            </summary>
+        </member>
+        <member name="M:Cesil.InstanceBuilder.ForDelegate``1(Cesil.InstanceBuilderDelegate{``0})">
+            <summary>
+            Create a new InstanceBuilder from delegate.
+            
+            There are no restrictions on what the give delegate may do,
+              but be aware that it may be called from many different contexts.
+            </summary>
+        </member>
+        <member name="M:Cesil.InstanceBuilder.Equals(System.Object)">
+            <summary>
+            Returns true if this object equals the given InstanceBuilder.
+            </summary>
+        </member>
+        <member name="M:Cesil.InstanceBuilder.Equals(Cesil.InstanceBuilder)">
+            <summary>
+            Returns true if this object equals the given InstanceBuilder.
+            </summary>
+        </member>
+        <member name="M:Cesil.InstanceBuilder.GetHashCode">
+            <summary>
+            Returns a stable hash for this InstanceBuilder.
+            </summary>
+        </member>
+        <member name="M:Cesil.InstanceBuilder.ToString">
+            <summary>
+            Returns a representation of this InstanceBuilder object.
+            
+            Only for debugging, this value is not guaranteed to be stable.
+            </summary>
+        </member>
+        <member name="M:Cesil.InstanceBuilder.op_Explicit(System.Reflection.MethodInfo)~Cesil.InstanceBuilder">
+            <summary>
+            Convenience operator, equivalent to calling InstanceBuilder.ForMethod if non-null.
+            
+            Returns null if mtd is null.
+            </summary>
+        </member>
+        <member name="M:Cesil.InstanceBuilder.op_Explicit(System.Reflection.ConstructorInfo)~Cesil.InstanceBuilder">
+            <summary>
+            Convenience operator, equivalent to calling InstanceBuilder.ForParameterlessConstructor if non-null.
+            
+            Returns null if field is null.
+            </summary>
+        </member>
+        <member name="M:Cesil.InstanceBuilder.op_Explicit(System.Delegate)~Cesil.InstanceBuilder">
+            <summary>
+            Convenience operator, equivalent to calling InstanceBuilder.ForDelegate if non-null.
+            
+            Returns null if del is null.
+            </summary>
+        </member>
+        <member name="M:Cesil.InstanceBuilder.op_Equality(Cesil.InstanceBuilder,Cesil.InstanceBuilder)">
+            <summary>
+            Compare two InstanceBuilders for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.InstanceBuilder.op_Inequality(Cesil.InstanceBuilder,Cesil.InstanceBuilder)">
+            <summary>
+            Compare two InstanceBuilders for inequality
+            </summary>
+        </member>
+        <member name="T:Cesil.ParserDelegate`1">
+            <summary>
+            Delegate type for parsers.
+            </summary>
+        </member>
+        <member name="T:Cesil.Parser">
+            <summary>
+            Represents code used to parse values into concrete types.
+            
+            Wraps either a MethodInfo, a ParserDelegate, or a ConstructorInfo.
+            </summary>
+        </member>
+        <member name="M:Cesil.Parser.ForMethod(System.Reflection.MethodInfo)">
+            <summary>
+            Create a Parser from the given method.
+            
+            The method must:
+             - be static
+             - return a bool
+             - have parameters
+                * ReadOnlySpan(char)
+                * in ReadContext, 
+                * out assignable to outputType
+            </summary>
+        </member>
+        <member name="M:Cesil.Parser.ForConstructor(System.Reflection.ConstructorInfo)">
+            <summary>
+            Create a Parser from the given constructor.
+            
+            The method must:
+             - take either a ReadOnlySpan(char)
+            or
+             - take parameters
+                * ReadOnlySpan(char)
+                * in ReadContext
+            </summary>
+        </member>
+        <member name="M:Cesil.Parser.ForDelegate``1(Cesil.ParserDelegate{``0})">
+            <summary>
+            Create a Parser from the given delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Parser.GetDefault(System.Reflection.TypeInfo)">
+            <summary>
+            Returns the default parser for the given type, if any exists.
+            </summary>
+        </member>
+        <member name="M:Cesil.Parser.ToString">
+            <summary>
+            Describes this Parser.
+            
+            This is provided for debugging purposes, and the format is not guaranteed to be stable between releases.
+            </summary>
+        </member>
+        <member name="M:Cesil.Parser.Equals(Cesil.Parser)">
+            <summary>
+            Returns true if the given Parser is equivalent to this one
+            </summary>
+        </member>
+        <member name="M:Cesil.Parser.Equals(System.Object)">
+            <summary>
+            Returns true if the given object is equivalent to this one
+            </summary>
+        </member>
+        <member name="M:Cesil.Parser.GetHashCode">
+            <summary>
+            Returns a stable hash for this Parser.
+            </summary>
+        </member>
+        <member name="M:Cesil.Parser.op_Equality(Cesil.Parser,Cesil.Parser)">
+            <summary>
+            Compare two Parsers for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.Parser.op_Inequality(Cesil.Parser,Cesil.Parser)">
+            <summary>
+            Compare two Parsers for inequality
+            </summary>
+        </member>
+        <member name="M:Cesil.Parser.op_Explicit(System.Reflection.MethodInfo)~Cesil.Parser">
+            <summary>
+            Convenience operator, equivalent to calling Parser.ForMethod if non-null.
+            
+            Returns null if mtd is null.
+            </summary>
+        </member>
+        <member name="M:Cesil.Parser.op_Explicit(System.Reflection.ConstructorInfo)~Cesil.Parser">
+            <summary>
+            Convenience operator, equivalent to calling Parser.ForConstructor if non-null.
+            
+            Returns null if cons is null.
+            </summary>
+        </member>
+        <member name="M:Cesil.Parser.op_Explicit(System.Delegate)~Cesil.Parser">
+            <summary>
+            Convenience operator, equivalent to calling Parser.ForDelegate if non-null.
+            
+            Returns null if del is null.
+            </summary>
+        </member>
+        <member name="T:Cesil.StaticResetDelegate">
+            <summary>
+            Delegate type for resets that don't take an instance of the row.
+            </summary>
+        </member>
+        <member name="T:Cesil.ResetDelegate`1">
+            <summary>
+            Delegate type for resets.
+            </summary>
+        </member>
+        <member name="T:Cesil.Reset">
+            <summary>
+            Represents code called before a setter is called or a field
+              is set.
+            
+            Wraps either a MethodInfo, a ResetDelegate, or a StaticResetDelegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Reset.ForMethod(System.Reflection.MethodInfo)">
+            <summary>
+            Create a reset from a method.
+            
+            If method is an instance, it can take no parameters.
+            
+            If a method is static, it can take one or zero parameters.
+            
+            If the reset is instance or takes a parameter, the instance or parameter
+              type must be assignable from the type being deserialized.
+            </summary>
+        </member>
+        <member name="M:Cesil.Reset.ForDelegate``1(Cesil.ResetDelegate{``0})">
+            <summary>
+            Create a reset from a delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Reset.ForDelegate(Cesil.StaticResetDelegate)">
+            <summary>
+            Create a reset from a delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Reset.Equals(System.Object)">
+            <summary>
+            Returns true if this object equals the given Reset.
+            </summary>
+        </member>
+        <member name="M:Cesil.Reset.Equals(Cesil.Reset)">
+            <summary>
+            Returns true if this object equals the given Reset.
+            </summary>
+        </member>
+        <member name="M:Cesil.Reset.GetHashCode">
+            <summary>
+            Returns a stable hash for this Reset.
+            </summary>
+        </member>
+        <member name="M:Cesil.Reset.ToString">
+            <summary>
+            Describes this Reset.
+            
+            This is provided for debugging purposes, and the format is not guaranteed to be stable between releases.
+            </summary>
+        </member>
+        <member name="M:Cesil.Reset.op_Explicit(System.Reflection.MethodInfo)~Cesil.Reset">
+            <summary>
+            Convenience operator, equivalent to calling Reset.ForMethod if non-null.
+            
+            Returns null if mtd is null.
+            </summary>
+        </member>
+        <member name="M:Cesil.Reset.op_Explicit(System.Delegate)~Cesil.Reset">
+            <summary>
+            Convenience operator, equivalent to calling Reset.ForDelegate if non-null.
+            
+            Returns null if del is null.
+            </summary>
+        </member>
+        <member name="M:Cesil.Reset.op_Equality(Cesil.Reset,Cesil.Reset)">
+            <summary>
+            Compare two Resets for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.Reset.op_Inequality(Cesil.Reset,Cesil.Reset)">
+            <summary>
+            Compare two Resets for inequality
+            </summary>
+        </member>
+        <member name="T:Cesil.StaticSetterDelegate`1">
+            <summary>
+            Delegate type for setters that don't take an instance.
+            </summary>
+        </member>
+        <member name="T:Cesil.SetterDelegate`2">
+            <summary>
+            Delegate type for setters.
+            </summary>
+        </member>
+        <member name="T:Cesil.Setter">
+            <summary>
+            Represents code used to set parsed values onto types.
+            
+            Wraps either a MethodInfo, a FieldInfo, a SetterDelegate, or a StaticSetterDelegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.ForMethod(System.Reflection.MethodInfo)">
+            <summary>
+            Create a setter from a method.
+            
+            setter must take single parameter (the result of parser)
+              can be instance or static
+              and cannot return a value
+            -- OR --
+            setter must take two parameters, 
+               the first is the record value
+               the second is the value (the result of parser)
+               cannot return a value
+               and must be static
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.ForField(System.Reflection.FieldInfo)">
+            <summary>
+            Creates setter from a field.
+            
+            Field can be either an instance field or static field.
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.ForDelegate``1(Cesil.StaticSetterDelegate{``0})">
+            <summary>
+            Create a Setter from the given delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.ForDelegate``2(Cesil.SetterDelegate{``0,``1})">
+            <summary>
+            Create a Setter from the given delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.Equals(System.Object)">
+            <summary>
+            Returns true if this object equals the given Setter.
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.Equals(Cesil.Setter)">
+            <summary>
+            Returns true if this object equals the given Setter.
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.GetHashCode">
+            <summary>
+            Returns a stable hash for this Setter.
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.ToString">
+            <summary>
+            Describes this Setter.
+            
+            This is provided for debugging purposes, and the format is not guaranteed to be stable between releases.
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.op_Explicit(System.Reflection.MethodInfo)~Cesil.Setter">
+            <summary>
+            Convenience operator, equivalent to calling Setter.ForMethod if non-null.
+            
+            Returns null if mtd is null.
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.op_Explicit(System.Reflection.FieldInfo)~Cesil.Setter">
+            <summary>
+            Convenience operator, equivalent to calling Setter.ForField if non-null.
+            
+            Returns null if field is null.
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.op_Explicit(System.Delegate)~Cesil.Setter">
+            <summary>
+            Convenience operator, equivalent to calling Setter.ForDelegate if non-null.
+            
+            Returns null if field is null.
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.op_Equality(Cesil.Setter,Cesil.Setter)">
+            <summary>
+            Compare two Setters for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.op_Inequality(Cesil.Setter,Cesil.Setter)">
+            <summary>
+            Compare two Setters for inequality
+            </summary>
+        </member>
+        <member name="T:Cesil.StaticShouldSerializeDelegate">
+            <summary>
+            Delegate type for 'should serialize' that don't take an instance.
+            </summary>
+        </member>
+        <member name="T:Cesil.ShouldSerializeDelegate`1">
+            <summary>
+            Delegate type for 'should serialize'.
+            </summary>
+        </member>
+        <member name="T:Cesil.ShouldSerialize">
+            <summary>
+            Represents code used to determine whether or not to write a value.
+            
+            Wraps either a MethodInfo, a ShouldSerializeDelegate, or a StaticShouldSerializeDelegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.ShouldSerialize.ForMethod(System.Reflection.MethodInfo)">
+            <summary>
+            Create a ShouldSerialize from a method.
+            
+            Method must be an argument-less method
+              that is either static, or on an instance of the same type as (or a baseclass of) setter.
+            </summary>
+        </member>
+        <member name="M:Cesil.ShouldSerialize.ForDelegate``1(Cesil.ShouldSerializeDelegate{``0})">
+            <summary>
+            Create a ShouldSerialize from the given delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.ShouldSerialize.ForDelegate(Cesil.StaticShouldSerializeDelegate)">
+            <summary>
+            Create a ShouldSerialize from the given delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.ShouldSerialize.Equals(System.Object)">
+            <summary>
+            Returns true if this object equals the given ShouldSerialize.
+            </summary>
+        </member>
+        <member name="M:Cesil.ShouldSerialize.Equals(Cesil.ShouldSerialize)">
+            <summary>
+            Returns true if this object equals the given ShouldSerialize.
+            </summary>
+        </member>
+        <member name="M:Cesil.ShouldSerialize.GetHashCode">
+            <summary>
+            Returns a stable hash for this ShouldSerialize.
+            </summary>
+        </member>
+        <member name="M:Cesil.ShouldSerialize.ToString">
+            <summary>
+            Describes this ShouldSerialize.
+            
+            This is provided for debugging purposes, and the format is not guaranteed to be stable between releases.
+            </summary>
+        </member>
+        <member name="M:Cesil.ShouldSerialize.op_Explicit(System.Reflection.MethodInfo)~Cesil.ShouldSerialize">
+            <summary>
+            Convenience operator, equivalent to calling ShouldSerialize.ForMethod if non-null.
+            
+            Returns null if mtd is null.
+            </summary>
+        </member>
+        <member name="M:Cesil.ShouldSerialize.op_Explicit(System.Delegate)~Cesil.ShouldSerialize">
+            <summary>
+            Convenience operator, equivalent to calling ShouldSerialize.ForDelegate if non-null.
+            
+            Returns null if del is null.
+            </summary>
+        </member>
+        <member name="M:Cesil.ShouldSerialize.op_Equality(Cesil.ShouldSerialize,Cesil.ShouldSerialize)">
+            <summary>
+            Compare two ShouldSerializes for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.ShouldSerialize.op_Inequality(Cesil.ShouldSerialize,Cesil.ShouldSerialize)">
+            <summary>
+            Compare two ShouldSerializes for inequality
+            </summary>
+        </member>
         <member name="T:Cesil.WriteContext">
             <summary>
             Context object provided during write operations.
             </summary>
         </member>
+        <member name="P:Cesil.WriteContext.Mode">
+            <summary>
+            What, precisely, a writer is doing.
+            </summary>
+        </member>
+        <member name="P:Cesil.WriteContext.HasRowNumber">
+            <summary>
+            Whether or not RowNumber is available.
+            </summary>
+        </member>
         <member name="P:Cesil.WriteContext.RowNumber">
             <summary>
             The index of the row being written (0-based).
+            
+            If HasRowNumber == false, or Mode is DiscoveringColumns this will throw.
             </summary>
         </member>
-        <member name="P:Cesil.WriteContext.ColumnNumber">
+        <member name="P:Cesil.WriteContext.HasColumn">
             <summary>
-            The index of the column being written (0-based).
+            Whether or not Column is available.
             </summary>
         </member>
-        <member name="P:Cesil.WriteContext.ColumnName">
+        <member name="P:Cesil.WriteContext.Column">
             <summary>
-            The name of the column being written, can be null
-              if no column names are available.
+            Column being written.
+            
+            If HasColumn == false, or Mode != WriteColumn this will throw.
             </summary>
         </member>
         <member name="P:Cesil.WriteContext.Context">
@@ -1871,9 +2866,63 @@
               by this context.
             </summary>
         </member>
+        <member name="M:Cesil.WriteContext.Equals(System.Object)">
+            <summary>
+            Returns true if this object equals the given WriteContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.WriteContext.Equals(Cesil.WriteContext)">
+            <summary>
+            Returns true if this object equals the given WriteContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.WriteContext.GetHashCode">
+            <summary>
+            Returns a stable hash for this WriteContext.
+            </summary>
+        </member>
         <member name="M:Cesil.WriteContext.ToString">
             <summary>
             Returns a string representation of this WriteContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.WriteContext.op_Equality(Cesil.WriteContext,Cesil.WriteContext)">
+            <summary>
+            Compare two WriteContexts for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.WriteContext.op_Inequality(Cesil.WriteContext,Cesil.WriteContext)">
+            <summary>
+            Compare two WriteContexts for inequality
+            </summary>
+        </member>
+        <member name="T:Cesil.WriteContextMode">
+            <summary>
+            Indicates what a writer is doing when
+              a WriteContext is created.
+            </summary>
+        </member>
+        <member name="F:Cesil.WriteContextMode.DiscoveringColumns">
+            <summary>
+            A writer is discovering columns for a table, used during
+              dynamic serialization to determine headers.
+              
+            Neither columns nor rows are specified during this operation.
+            </summary>
+        </member>
+        <member name="F:Cesil.WriteContextMode.DiscoveringCells">
+            <summary>
+            A writer is discovering cells in a row, used during
+              dynamic serialization to determine per-row values.
+              
+            Only a row is specified during this operation.
+            </summary>
+        </member>
+        <member name="F:Cesil.WriteContextMode.WritingColumn">
+            <summary>
+            A writer is writing a single column.
+            
+            Both a row and a column are specified during this operation.
             </summary>
         </member>
     </members>

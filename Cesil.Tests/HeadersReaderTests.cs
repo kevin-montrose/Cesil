@@ -13,9 +13,9 @@ namespace Cesil.Tests
     public class HeadersReaderTests
     {
         // just a stub for helper purposes
-        class _Foo { public string A { get; set; } }
+        private class _Foo { public string A { get; set; } }
 
-        class _JustHeaders
+        private class _JustHeaders
         {
             public string Foo { get; set; }
             public string Bar { get; set; }
@@ -32,7 +32,95 @@ namespace Cesil.Tests
             }
         }
 
-        class _BufferToLarge
+        private class _CommentBeforeHeader
+        {
+            public string Foo { get; set; }
+            public string Bar { get; set; }
+        }
+
+        [Fact]
+        public void CommentBeforeHeader()
+        {
+            // \r\n
+            {
+                var config =
+                    (ConcreteBoundConfiguration<_CommentBeforeHeader>)
+                        Configuration.For<_CommentBeforeHeader>(
+                            Options.Default
+                                .NewBuilder()
+                                .WithCommentCharacter('#')
+                                .WithRowEnding(RowEndings.CarriageReturnLineFeed)
+                                .Build()
+                        );
+
+                using (var str = new StringReader("#hello\rfoo\nbar\r\nFoo,Bar"))
+                {
+                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
+                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    var res = reader.Read();
+                    Assert.True(res.IsHeader);
+                    Assert.Collection(
+                        ToEnumerable(res.Headers),
+                        i => Assert.Equal("Foo", new string(i.Span)),
+                        i => Assert.Equal("Bar", new string(i.Span))
+                    );
+                }
+            }
+
+            // \r
+            {
+                var config =
+                    (ConcreteBoundConfiguration<_CommentBeforeHeader>)
+                        Configuration.For<_CommentBeforeHeader>(
+                            Options.Default
+                                .NewBuilder()
+                                .WithCommentCharacter('#')
+                                .WithRowEnding(RowEndings.CarriageReturn)
+                                .Build()
+                        );
+
+                using (var str = new StringReader("#hello\nfoo\n\rFoo,Bar"))
+                {
+                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
+                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    var res = reader.Read();
+                    Assert.True(res.IsHeader);
+                    Assert.Collection(
+                        ToEnumerable(res.Headers),
+                        i => Assert.Equal("Foo", new string(i.Span)),
+                        i => Assert.Equal("Bar", new string(i.Span))
+                    );
+                }
+            }
+
+            // \n
+            {
+                var config =
+                    (ConcreteBoundConfiguration<_CommentBeforeHeader>)
+                        Configuration.For<_CommentBeforeHeader>(
+                            Options.Default
+                                .NewBuilder()
+                                .WithCommentCharacter('#')
+                                .WithRowEnding(RowEndings.LineFeed)
+                                .Build()
+                        );
+
+                using (var str = new StringReader("#hello\rfoo\r..\nFoo,Bar"))
+                {
+                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
+                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    var res = reader.Read();
+                    Assert.True(res.IsHeader);
+                    Assert.Collection(
+                        ToEnumerable(res.Headers),
+                        i => Assert.Equal("Foo", new string(i.Span)),
+                        i => Assert.Equal("Bar", new string(i.Span))
+                    );
+                }
+            }
+        }
+
+        private class _BufferToLarge
         {
             public string Foo { get; set; }
             public string Bar { get; set; }
@@ -175,7 +263,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _ManyHeaders
+        private class _ManyHeaders
         {
             public string LoooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooongHeader1 { get; set; }
             public string LoooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooongHeader2 { get; set; }
@@ -355,6 +443,88 @@ namespace Cesil.Tests
         }
 
         [Fact]
+        public async Task CommentBeforeHeaderAsync()
+        {
+            // \r\n
+            {
+                var config =
+                    (ConcreteBoundConfiguration<_CommentBeforeHeader>)
+                        Configuration.For<_CommentBeforeHeader>(
+                            Options.Default
+                                .NewBuilder()
+                                .WithCommentCharacter('#')
+                                .WithRowEnding(RowEndings.CarriageReturnLineFeed)
+                                .Build()
+                        );
+
+                using (var str = new StringReader("#hello\rfoo\nbar\r\nFoo,Bar"))
+                {
+                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
+                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    var res = await reader.ReadAsync(default);
+                    Assert.True(res.IsHeader);
+                    Assert.Collection(
+                        ToEnumerable(res.Headers),
+                        i => Assert.Equal("Foo", new string(i.Span)),
+                        i => Assert.Equal("Bar", new string(i.Span))
+                    );
+                }
+            }
+
+            // \r
+            {
+                var config =
+                    (ConcreteBoundConfiguration<_CommentBeforeHeader>)
+                        Configuration.For<_CommentBeforeHeader>(
+                            Options.Default
+                                .NewBuilder()
+                                .WithCommentCharacter('#')
+                                .WithRowEnding(RowEndings.CarriageReturn)
+                                .Build()
+                        );
+
+                using (var str = new StringReader("#hello\nfoo\n\rFoo,Bar"))
+                {
+                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
+                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    var res = await reader.ReadAsync(default);
+                    Assert.True(res.IsHeader);
+                    Assert.Collection(
+                        ToEnumerable(res.Headers),
+                        i => Assert.Equal("Foo", new string(i.Span)),
+                        i => Assert.Equal("Bar", new string(i.Span))
+                    );
+                }
+            }
+
+            // \n
+            {
+                var config =
+                    (ConcreteBoundConfiguration<_CommentBeforeHeader>)
+                        Configuration.For<_CommentBeforeHeader>(
+                            Options.Default
+                                .NewBuilder()
+                                .WithCommentCharacter('#')
+                                .WithRowEnding(RowEndings.LineFeed)
+                                .Build()
+                        );
+
+                using (var str = new StringReader("#hello\rfoo\r..\nFoo,Bar"))
+                {
+                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
+                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    var res = await reader.ReadAsync(default);
+                    Assert.True(res.IsHeader);
+                    Assert.Collection(
+                        ToEnumerable(res.Headers),
+                        i => Assert.Equal("Foo", new string(i.Span)),
+                        i => Assert.Equal("Bar", new string(i.Span))
+                    );
+                }
+            }
+        }
+
+        [Fact]
         public async Task JustHeadersAsync()
         {
             var config = (ConcreteBoundConfiguration<_JustHeaders>)Configuration.For<_JustHeaders>(Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).Build());
@@ -464,7 +634,7 @@ namespace Cesil.Tests
                         using (var str = getReader("Bar,Foo"))
                         {
                             using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config,charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -553,7 +723,7 @@ namespace Cesil.Tests
                     using (var str = makeReader(csv))
                     {
                         using var charLookup = ReaderStateMachine.MakeCharacterLookup(c.MemoryPool, c.EscapedValueStartAndStop, c.ValueSeparator, c.EscapeValueEscapeChar, c.CommentChar);
-                        using var reader = new HeadersReader<_ManyHeaders>(c, charLookup,  str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                        using var reader = new HeadersReader<_ManyHeaders>(c, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
                         var res = await reader.ReadAsync(default);
                         Assert.Collection(
                             ToEnumerable(res.Headers),

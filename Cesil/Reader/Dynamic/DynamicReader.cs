@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace Cesil
@@ -15,18 +16,14 @@ namespace Cesil
 
         private string[] ColumnNames;
 
-        public List<DynamicRow> NotifyOnDispose { get; private set; }
+        private DynamicRow NotifyOnDisposeHead;
+        public IIntrusiveLinkedList<DynamicRow> NotifyOnDispose => NotifyOnDisposeHead;
 
         public new object Context => base.Context;
 
-        internal DynamicReader(TextReader reader, DynamicBoundConfiguration config, object context): base(config, context)
+        internal DynamicReader(TextReader reader, DynamicBoundConfiguration config, object context) : base(config, context)
         {
             Inner = reader;
-
-            if (config.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose)
-            {
-                NotifyOnDispose = new List<DynamicRow>();
-            }
         }
 
         public IEnumerable<dynamic> EnumerateAll()
@@ -77,12 +74,40 @@ namespace Cesil
         {
             AssertNotDisposed();
 
+            var res = TryReadInner(false, ref row);
+            if (res.ResultType == ReadWithCommentResultType.HasValue)
+            {
+                row = res.Value;
+                return true;
+            }
+
+            // intentionally not clearing record here
+            return false;
+        }
+
+        public ReadWithCommentResult<dynamic> TryReadWithComment()
+        {
+            AssertNotDisposed();
+
+            dynamic record = null;
+            return TryReadWithCommentReuse(ref record);
+        }
+
+        public ReadWithCommentResult<dynamic> TryReadWithCommentReuse(ref dynamic row)
+        {
+            AssertNotDisposed();
+
+            return TryReadInner(true, ref row);
+        }
+
+        private ReadWithCommentResult<dynamic> TryReadInner(bool returnComments, ref dynamic row)
+        {
             if (RowEndings == null)
             {
                 HandleLineEndings();
             }
 
-            if (Columns == null)
+            if (ReadHeaders == null)
             {
                 HandleHeaders();
             }
@@ -98,18 +123,30 @@ namespace Cesil
                     if (HasValueToReturn)
                     {
                         row = GetValueForReturn();
-                        return true;
+                        return new ReadWithCommentResult<dynamic>(row);
+                    }
+
+                    if (HasCommentToReturn)
+                    {
+                        HasCommentToReturn = false;
+                        if (returnComments)
+                        {
+                            var comment = Partial.PendingAsString(Buffer.Buffer);
+                            return new ReadWithCommentResult<dynamic>(comment);
+                        }
                     }
 
                     // intentionally _not_ modifying record here
-                    return false;
+                    return ReadWithCommentResult<dynamic>.Empty;
                 }
 
                 if (!HasValueToReturn)
                 {
                     DynamicRow dynRow;
 
-                    if (row == null || !(row is DynamicRow))
+                    var rowAsObj = row as object;
+
+                    if (rowAsObj == null || !(row is DynamicRow))
                     {
                         row = dynRow = MakeRow();
                     }
@@ -121,21 +158,43 @@ namespace Cesil
 
                         if (dynRow.Owner != null && dynRow.Owner != this)
                         {
-                            dynRow.Owner?.NotifyOnDispose?.Remove(dynRow);
-                            NotifyOnDispose?.Add(dynRow);
+                            dynRow.Owner.Remove(dynRow);
+                            if (Configuration.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose)
+                            {
+                                NotifyOnDisposeHead.AddHead(ref NotifyOnDisposeHead, dynRow);
+                            }
                         }
                     }
 
-                    dynRow.Init(this, RowNumber, Columns.Length, Configuration.DynamicTypeConverter, ColumnNames, Configuration.MemoryPool);
+                    dynRow.Init(this, RowNumber, Columns.Length, Context, Configuration.TypeDescriber, ColumnNames, Configuration.MemoryPool);
 
                     SetValueToPopulate(row);
                 }
 
                 var res = AdvanceWork(available);
-                if (res)
+                if (res == ReadWithCommentResultType.HasValue)
                 {
                     row = GetValueForReturn();
-                    return true;
+                    return new ReadWithCommentResult<dynamic>(row);
+                }
+                if (res == ReadWithCommentResultType.HasComment)
+                {
+                    HasCommentToReturn = false;
+
+                    if (returnComments)
+                    {
+                        // only actually allocate for the comment if it's been asked for
+
+                        var comment = Partial.PendingAsString(Buffer.Buffer);
+                        Partial.ClearValue();
+                        Partial.ClearBuffer();
+                        return new ReadWithCommentResult<dynamic>(comment);
+                    }
+                    else
+                    {
+                        Partial.ClearValue();
+                        Partial.ClearBuffer();
+                    }
                 }
             }
         }
@@ -143,9 +202,17 @@ namespace Cesil
         private DynamicRow MakeRow()
         {
             var ret = new DynamicRow();
-            NotifyOnDispose?.Add(ret);
+            if (Configuration.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose)
+            {
+                NotifyOnDisposeHead.AddHead(ref NotifyOnDisposeHead, ret);
+            }
 
             return ret;
+        }
+
+        public void Remove(DynamicRow row)
+        {
+            NotifyOnDisposeHead.Remove(ref NotifyOnDisposeHead, row);
         }
 
         private void HandleHeaders()
@@ -155,35 +222,56 @@ namespace Cesil
 
             var allowColumnsByName = Configuration.ReadHeader == Cesil.ReadHeaders.Always;
 
-            using (var reader = new HeadersReader<object>(Configuration, SharedCharacterLookup, Inner, Buffer))
+            var headerConfig =
+                new DynamicBoundConfiguration(
+                    Configuration.TypeDescriber,
+                    Configuration.ValueSeparator,
+                    Configuration.EscapedValueStartAndStop,
+                    Configuration.EscapeValueEscapeChar,
+                    RowEndings.Value,
+                    Configuration.ReadHeader,
+                    Configuration.WriteHeader,
+                    Configuration.WriteTrailingNewLine,
+                    Configuration.MemoryPool,
+                    Configuration.CommentChar,
+                    Configuration.WriteBufferSizeHint,
+                    Configuration.ReadBufferSizeHint,
+                    Configuration.DynamicRowDisposal
+                );
+
+            using (var reader = new HeadersReader<object>(headerConfig, SharedCharacterLookup, Inner, Buffer))
             {
                 var res = reader.Read();
                 var foundHeaders = res.Headers.Count;
-                if(foundHeaders == 0)
+                if (foundHeaders == 0)
                 {
-                    Throw.InvalidOperationException("Expected a header row, but found no headers");
+                    // rare, but possible if the file is empty or all comments or something like that
+                    Columns = Array.Empty<Column>();
+                    ColumnNames = Array.Empty<string>();
                 }
-
-                Columns = new Column[foundHeaders];
-                if(allowColumnsByName)
+                else
                 {
-                    ColumnNames = new string[foundHeaders];
-                }
-
-                using (var e = res.Headers)
-                {
-                    var ix = 0;
-                    while (e.MoveNext())
+                    Columns = new Column[foundHeaders];
+                    if (allowColumnsByName)
                     {
-                        var name = allowColumnsByName ? new string(e.Current.Span) : null;
-                        if(name != null)
-                        {
-                            ColumnNames[ix] = name;
-                        }
-                        var col = new Column(name, Column.MakeDynamicSetter(name, ix), null, false);
-                        Columns[ix] = col;
+                        ColumnNames = new string[foundHeaders];
+                    }
 
-                        ix++;
+                    using (var e = res.Headers)
+                    {
+                        var ix = 0;
+                        while (e.MoveNext())
+                        {
+                            var name = allowColumnsByName ? new string(e.Current.Span) : null;
+                            if (name != null)
+                            {
+                                ColumnNames[ix] = name;
+                            }
+                            var col = new Column(name, Column.MakeDynamicSetter(name, ix), null, false);
+                            Columns[ix] = col;
+
+                            ix++;
+                        }
                     }
                 }
 
@@ -220,18 +308,19 @@ namespace Cesil
             if (IsDisposed) return;
 
             // only need to do work if the reader is responsbile for implicitly disposing
-            if (NotifyOnDispose != null)
+            while (NotifyOnDispose != null)
             {
-                foreach (var row in NotifyOnDispose)
-                {
-                    row.Dispose();
-                }
-
-                NotifyOnDispose = null;
+                NotifyOnDisposeHead.Dispose();
+                NotifyOnDisposeHead.Remove(ref NotifyOnDisposeHead, NotifyOnDisposeHead);
             }
 
             Inner.Dispose();
             Inner = null;
+        }
+
+        public override string ToString()
+        {
+            return $"{nameof(DynamicReader)} with {Configuration}";
         }
     }
 }

@@ -18,35 +18,21 @@ namespace Cesil
 
         private string[] ColumnNames;
 
-        public List<DynamicRow> NotifyOnDispose { get; private set; }
+        private DynamicRow NotifyOnDisposeHead;
+        public IIntrusiveLinkedList<DynamicRow> NotifyOnDispose => NotifyOnDisposeHead;
 
         public new object Context => base.Context;
 
         internal AsyncDynamicReader(TextReader reader, DynamicBoundConfiguration config, object context) : base(config, context)
         {
             Inner = reader;
-
-            if (config.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose)
-            {
-                NotifyOnDispose = new List<DynamicRow>();
-            }
         }
 
         public IAsyncEnumerable<dynamic> EnumerateAllAsync()
         {
             AssertNotDisposed();
 
-            return EnumerateAll_Enumerable();
-
-            // todo: convert this into a proper type that won't always await
-            async IAsyncEnumerable<dynamic> EnumerateAll_Enumerable()
-            {
-                ReadResult<dynamic> res;
-                while ((res = await TryReadAsync()).HasValue)
-                {
-                    yield return res.Value;
-                }
-            }
+            return new AsyncEnumerable<dynamic>(this);
         }
 
         public ValueTask<List<dynamic>> ReadAllAsync(CancellationToken cancel = default)
@@ -115,7 +101,7 @@ namespace Cesil
         {
             AssertNotDisposed();
 
-            dynamic row = MakeRow();
+            dynamic row = null;
             return TryReadWithReuseAsync(ref row);
         }
 
@@ -123,105 +109,202 @@ namespace Cesil
         {
             AssertNotDisposed();
 
+            var tryReadTask = TryReadInnerAsync(false, ref row, cancel);
+            if (!tryReadTask.IsCompletedSuccessfully)
+            {
+                return TryReadWithReuseAsync_ContinueAfterTryRead(this, tryReadTask, cancel);
+            }
+
+            var res = tryReadTask.Result;
+            switch (res.ResultType)
+            {
+                case ReadWithCommentResultType.HasValue:
+                    return new ValueTask<ReadResult<dynamic>>(new ReadResult<dynamic>(res.Value));
+                case ReadWithCommentResultType.NoValue:
+                    return new ValueTask<ReadResult<dynamic>>(ReadResult<dynamic>.Empty);
+                default:
+                    Throw.InvalidOperationException($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}");
+                    // just for control flow
+                    return default;
+            }
+
+            // continue after waiting for TryReadInnerAsync to complete
+            static async ValueTask<ReadResult<dynamic>> TryReadWithReuseAsync_ContinueAfterTryRead(AsyncDynamicReader self, ValueTask<ReadWithCommentResult<dynamic>> waitFor, CancellationToken cancel)
+            {
+                var res = await waitFor;
+                switch (res.ResultType)
+                {
+                    case ReadWithCommentResultType.HasValue:
+                        return new ReadResult<dynamic>(res.Value);
+                    case ReadWithCommentResultType.NoValue:
+                        return ReadResult<dynamic>.Empty;
+                    default:
+                        Throw.InvalidOperationException($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}");
+                        // just for control flow
+                        return default;
+                }
+            }
+        }
+
+
+        public ValueTask<ReadWithCommentResult<dynamic>> TryReadWithCommentAsync(CancellationToken cancel = default)
+        {
+            AssertNotDisposed();
+
+            dynamic row = null;
+            return TryReadWithCommentReuseAsync(ref row, cancel);
+        }
+
+        public ValueTask<ReadWithCommentResult<dynamic>> TryReadWithCommentReuseAsync(ref dynamic row, CancellationToken cancel = default)
+        {
+            AssertNotDisposed();
+
+            return TryReadInnerAsync(true, ref row, cancel);
+        }
+
+        private ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync(bool returnComments, ref dynamic record, CancellationToken cancel)
+        {
             if (RowEndings == null)
             {
-                var lineEndingsTask = HandleLineEndingsAsync(cancel);
-                if (!lineEndingsTask.IsCompletedSuccessfully)
+                var handleLineEndingsTask = HandleLineEndingsAsync(cancel);
+                if (!handleLineEndingsTask.IsCompletedSuccessfully)
                 {
-                    // provisionally create row, because we can't pass a ref into the local methods;
-                    if (row == null || !(row is DynamicRow))
-                    {
-                        row = MakeRow();
-                    }
-                    return TryReadWithReuseAsync_ContinueAfterHandleLineEndings(this, lineEndingsTask, row, cancel);
+                    DynamicRow dynRow;
+                    record = dynRow = GuaranteeUninitializedDynamicRow(this, ref record);
+                    return TryReadInnerAsync_ContinueAfterHandleLineEndingsAsync(this, handleLineEndingsTask, returnComments, dynRow, cancel);
                 }
             }
 
-            if (Columns == null)
+            if (ReadHeaders == null)
             {
-                var headersTask = HandleHeadersAsync(cancel);
-                if (!headersTask.IsCompletedSuccessfully)
+                var handleHeadersTask = HandleHeadersAsync(cancel);
+                if (!handleHeadersTask.IsCompletedSuccessfully)
                 {
-                    // provisionally create row, because we can't pass a ref into the local methods;
-                    if (row == null || !(row is DynamicRow))
-                    {
-                        row = MakeRow();
-                    }
-                    return TryReadWithReuseAsync_ContinueAfterHandleHeaders(this, headersTask, row, cancel);
+                    DynamicRow dynRow;
+                    record = dynRow = GuaranteeUninitializedDynamicRow(this, ref record);
+                    return TryReadInnerAsync_ContinueAfterHandleHeadersAsync(this, handleHeadersTask, returnComments, dynRow, cancel);
                 }
             }
+
+
+            var row = GuaranteeUninitializedDynamicRow(this, ref record);
+            var needsInit = true;
 
             while (true)
             {
                 PreparingToWriteToBuffer();
                 var availableTask = Buffer.ReadAsync(Inner, cancel);
-                if (availableTask.IsCompletedSuccessfully)
+                if (!availableTask.IsCompletedSuccessfully)
                 {
-                    var available = availableTask.Result;
-                    if (available == 0)
-                    {
-                        EndOfData();
-
-                        if (HasValueToReturn)
-                        {
-                            row = GetValueForReturn();
-                            return new ValueTask<ReadResult<dynamic>>(new ReadResult<dynamic>(row));
-                        }
-
-                        // intentionally _not_ modifying record here
-                        return new ValueTask<ReadResult<dynamic>>(ReadResult<dynamic>.Empty);
-                    }
-
-                    if (!HasValueToReturn)
-                    {
-                        DynamicRow dynRow;
-
-                        if (row == null || !(row is DynamicRow))
-                        {
-                            row = dynRow = MakeRow();
-                        }
-                        else
-                        {
-                            // clear it, if we're reusing
-                            dynRow = (row as DynamicRow);
-                            dynRow.Dispose();
-
-                            if (dynRow.Owner != null && dynRow.Owner != this)
-                            {
-                                dynRow.Owner?.NotifyOnDispose?.Remove(dynRow);
-                                NotifyOnDispose?.Add(dynRow);
-                            }
-                        }
-
-                        dynRow.Init(this, RowNumber, Columns.Length, Configuration.DynamicTypeConverter, ColumnNames, Configuration.MemoryPool);
-
-                        SetValueToPopulate(row);
-                    }
-
-                    var res = AdvanceWork(available);
-                    if (res)
-                    {
-                        row = GetValueForReturn();
-                        return new ValueTask<ReadResult<dynamic>>(new ReadResult<dynamic>(row));
-                    }
+                    return TryReadInnerAsync_ContinueAfterReadAsync(this, availableTask, returnComments, row, needsInit, cancel);
                 }
-                else
+
+                var available = availableTask.Result;
+                if (available == 0)
                 {
-                    // provisionally create row, because we can't pass a ref into the local methods;
-                    if (row == null || !(row is DynamicRow))
+                    EndOfData();
+
+                    if (HasValueToReturn)
                     {
-                        row = MakeRow();
+                        var ret = GetValueForReturn();
+                        return new ValueTask<ReadWithCommentResult<dynamic>>(new ReadWithCommentResult<dynamic>(ret));
                     }
-                    return TryReadWithReuseAsync_ContinueAfterRead(this, availableTask, row, cancel);
+
+                    if (HasCommentToReturn)
+                    {
+                        HasCommentToReturn = false;
+                        if (returnComments)
+                        {
+                            var comment = Partial.PendingAsString(Buffer.Buffer);
+                            return new ValueTask<ReadWithCommentResult<dynamic>>(new ReadWithCommentResult<dynamic>(comment));
+                        }
+                    }
+
+                    // intentionally _not_ modifying record here
+                    return new ValueTask<ReadWithCommentResult<dynamic>>(ReadWithCommentResult<dynamic>.Empty);
+                }
+
+                if (!HasValueToReturn)
+                {
+                    if (needsInit)
+                    {
+                        GuaranteeInitializedRow(this, row);
+                        needsInit = false;
+                    }
+                    SetValueToPopulate(row);
+                }
+
+                var res = AdvanceWork(available);
+                if (res == ReadWithCommentResultType.HasValue)
+                {
+                    var ret = GetValueForReturn();
+                    return new ValueTask<ReadWithCommentResult<dynamic>>(new ReadWithCommentResult<dynamic>(ret));
+                }
+                if (res == ReadWithCommentResultType.HasComment)
+                {
+                    HasCommentToReturn = false;
+
+                    if (returnComments)
+                    {
+                        // only actually allocate for the comment if it's been asked for
+                        var comment = Partial.PendingAsString(Buffer.Buffer);
+                        Partial.ClearValue();
+                        Partial.ClearBuffer();
+                        return new ValueTask<ReadWithCommentResult<dynamic>>(new ReadWithCommentResult<dynamic>(comment));
+                    }
+                    else
+                    {
+                        Partial.ClearValue();
+                        Partial.ClearBuffer();
+                    }
                 }
             }
 
-            // wait for line endings to be discovered, then continue
-            static async ValueTask<ReadResult<dynamic>> TryReadWithReuseAsync_ContinueAfterHandleLineEndings(AsyncDynamicReader self, ValueTask toAwait, dynamic row, CancellationToken cancel)
+            // make sure we've got a row to work with
+            static DynamicRow GuaranteeUninitializedDynamicRow(AsyncDynamicReader self, ref dynamic row)
             {
-                await toAwait;
+                DynamicRow dynRow;
+                var rowAsObj = row as object;
 
-                if (self.Columns == null)
+                if (rowAsObj == null || !(row is DynamicRow))
+                {
+                    row = dynRow = new DynamicRow();
+                }
+                else
+                {
+                    // clear it, if we're reusing
+                    dynRow = (row as DynamicRow);
+
+                    if (!dynRow.IsDisposed)
+                    {
+                        dynRow.Dispose();
+
+                        if (dynRow.Owner != null)
+                        {
+                            dynRow.Owner.Remove(dynRow);
+                        }
+                    }
+                }
+
+                return dynRow;
+            }
+
+            static DynamicRow GuaranteeInitializedRow(AsyncDynamicReader self, DynamicRow dynRow)
+            {
+                self.MonitorForDispose(dynRow);
+                dynRow.Init(self, self.RowNumber, self.Columns.Length, self.Context, self.Configuration.TypeDescriber, self.ColumnNames, self.Configuration.MemoryPool);
+
+                return dynRow;
+            }
+
+            // continue after we handle detecting line endings
+            static async ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync_ContinueAfterHandleLineEndingsAsync(AsyncDynamicReader self, ValueTask waitFor, bool returnComments, DynamicRow record, CancellationToken cancel)
+            {
+                var needsInit = true;
+                
+                await waitFor;
+
+                if (self.ReadHeaders == null)
                 {
                     await self.HandleHeadersAsync(cancel);
                 }
@@ -230,190 +313,281 @@ namespace Cesil
                 {
                     self.PreparingToWriteToBuffer();
                     var available = await self.Buffer.ReadAsync(self.Inner, cancel);
-
                     if (available == 0)
                     {
                         self.EndOfData();
 
                         if (self.HasValueToReturn)
                         {
-                            row = self.GetValueForReturn();
-                            return new ReadResult<dynamic>(row);
+                            var ret = self.GetValueForReturn();
+                            return new ReadWithCommentResult<dynamic>(ret);
                         }
 
-                        // intentionally _not_ modifying record here
-                        return ReadResult<dynamic>.Empty;
+                        if (self.HasCommentToReturn)
+                        {
+                            self.HasCommentToReturn = false;
+                            if (returnComments)
+                            {
+                                var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
+                                return new ReadWithCommentResult<dynamic>(comment);
+                            }
+                        }
+
+                        return ReadWithCommentResult<dynamic>.Empty;
                     }
 
                     if (!self.HasValueToReturn)
                     {
-                        var dynRow = row as DynamicRow;
-                        dynRow.Dispose();
-
-                        if (dynRow.Owner != null && dynRow.Owner != self)
+                        if (needsInit)
                         {
-                            dynRow.Owner?.NotifyOnDispose?.Remove(dynRow);
-                            self.NotifyOnDispose?.Add(dynRow);
+                            GuaranteeInitializedRow(self, record);
+                            needsInit = false;
                         }
-
-                        dynRow.Init(self, self.RowNumber, self.Columns.Length, self.Configuration.DynamicTypeConverter, self.ColumnNames, self.Configuration.MemoryPool);
-
-                        self.SetValueToPopulate(row);
+                        self.SetValueToPopulate(record);
                     }
 
                     var res = self.AdvanceWork(available);
-                    if (res)
+                    if (res == ReadWithCommentResultType.HasValue)
                     {
-                        row = self.GetValueForReturn();
-                        return new ReadResult<dynamic>(row);
+                        var ret = self.GetValueForReturn();
+                        return new ReadWithCommentResult<dynamic>(ret);
+                    }
+                    if (res == ReadWithCommentResultType.HasComment)
+                    {
+                        self.HasCommentToReturn = false;
+
+                        if (returnComments)
+                        {
+                            // only actually allocate for the comment if it's been asked for
+                            var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
+                            self.Partial.ClearValue();
+                            self.Partial.ClearBuffer();
+                            return new ReadWithCommentResult<dynamic>(comment);
+                        }
+                        else
+                        {
+                            self.Partial.ClearValue();
+                            self.Partial.ClearBuffer();
+                        }
                     }
                 }
             }
 
-            // wait for detection headers to finish, then continue
-            static async ValueTask<ReadResult<dynamic>> TryReadWithReuseAsync_ContinueAfterHandleHeaders(AsyncDynamicReader self, ValueTask toAwait, dynamic row, CancellationToken cancel)
+            // continue after we handle detecting headers
+            static async ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync_ContinueAfterHandleHeadersAsync(AsyncDynamicReader self, ValueTask waitFor, bool returnComments, DynamicRow record, CancellationToken cancel)
             {
-                await toAwait;
+                var needsInit = true;
+
+                await waitFor;
 
                 while (true)
                 {
                     self.PreparingToWriteToBuffer();
                     var available = await self.Buffer.ReadAsync(self.Inner, cancel);
-
                     if (available == 0)
                     {
                         self.EndOfData();
 
                         if (self.HasValueToReturn)
                         {
-                            row = self.GetValueForReturn();
-                            return new ReadResult<dynamic>(row);
+                            var ret = self.GetValueForReturn();
+                            return new ReadWithCommentResult<dynamic>(ret);
                         }
 
-                        // intentionally _not_ modifying record here
-                        return ReadResult<dynamic>.Empty;
+                        if (self.HasCommentToReturn)
+                        {
+                            self.HasCommentToReturn = false;
+                            if (returnComments)
+                            {
+                                var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
+                                return new ReadWithCommentResult<dynamic>(comment);
+                            }
+                        }
+
+                        return ReadWithCommentResult<dynamic>.Empty;
                     }
 
                     if (!self.HasValueToReturn)
                     {
-                        var dynRow = row as DynamicRow;
-                        dynRow.Dispose();
-
-                        if (dynRow.Owner != null && dynRow.Owner != self)
+                        if (needsInit)
                         {
-                            dynRow.Owner?.NotifyOnDispose?.Remove(dynRow);
-                            self.NotifyOnDispose?.Add(dynRow);
+                            GuaranteeInitializedRow(self, record);
+                            needsInit = false;
                         }
-
-                        dynRow.Init(self, self.RowNumber, self.Columns.Length, self.Configuration.DynamicTypeConverter, self.ColumnNames, self.Configuration.MemoryPool);
-
-                        self.SetValueToPopulate(row);
+                        self.SetValueToPopulate(record);
                     }
 
                     var res = self.AdvanceWork(available);
-                    if (res)
+                    if (res == ReadWithCommentResultType.HasValue)
                     {
-                        row = self.GetValueForReturn();
-                        return new ReadResult<dynamic>(row);
+                        var ret = self.GetValueForReturn();
+                        return new ReadWithCommentResult<dynamic>(ret);
+                    }
+                    if (res == ReadWithCommentResultType.HasComment)
+                    {
+                        self.HasCommentToReturn = false;
+
+                        if (returnComments)
+                        {
+                            // only actually allocate for the comment if it's been asked for
+                            var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
+                            self.Partial.ClearValue();
+                            self.Partial.ClearBuffer();
+                            return new ReadWithCommentResult<dynamic>(comment);
+                        }
+                        else
+                        {
+                            self.Partial.ClearValue();
+                            self.Partial.ClearBuffer();
+                        }
                     }
                 }
             }
 
-            // wait for an read call to complete, then continue
-            static async ValueTask<ReadResult<dynamic>> TryReadWithReuseAsync_ContinueAfterRead(AsyncDynamicReader self, ValueTask<int> toAwait, dynamic row, CancellationToken cancel)
+            // continue after we read a chunk into a buffer
+            static async ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync_ContinueAfterReadAsync(AsyncDynamicReader self, ValueTask<int> waitFor, bool returnComments, DynamicRow record, bool needsInit, CancellationToken cancel)
             {
-                var available = await toAwait;
-                // handle the result of the passed in call
+                // finish this loop up
                 {
+                    var available = await waitFor;
                     if (available == 0)
                     {
                         self.EndOfData();
 
                         if (self.HasValueToReturn)
                         {
-                            row = self.GetValueForReturn();
-                            return new ReadResult<dynamic>(row);
+                            var ret = self.GetValueForReturn();
+                            return new ReadWithCommentResult<dynamic>(ret);
+                        }
+
+                        if (self.HasCommentToReturn)
+                        {
+                            self.HasCommentToReturn = false;
+                            if (returnComments)
+                            {
+                                var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
+                                return new ReadWithCommentResult<dynamic>(comment);
+                            }
                         }
 
                         // intentionally _not_ modifying record here
-                        return ReadResult<dynamic>.Empty;
+                        return ReadWithCommentResult<dynamic>.Empty;
                     }
 
                     if (!self.HasValueToReturn)
                     {
-                        var dynRow = row as DynamicRow;
-                        dynRow.Dispose();
-
-                        if (dynRow.Owner != null && dynRow.Owner != self)
+                        if (needsInit)
                         {
-                            dynRow.Owner?.NotifyOnDispose?.Remove(dynRow);
-                            self.NotifyOnDispose?.Add(dynRow);
+                            GuaranteeInitializedRow(self, record);
+                            needsInit = false;
                         }
-
-                        dynRow.Init(self, self.RowNumber, self.Columns.Length, self.Configuration.DynamicTypeConverter, self.ColumnNames, self.Configuration.MemoryPool);
-
-                        self.SetValueToPopulate(row);
+                        self.SetValueToPopulate(record);
                     }
 
                     var res = self.AdvanceWork(available);
-                    if (res)
+                    if (res == ReadWithCommentResultType.HasValue)
                     {
-                        row = self.GetValueForReturn();
-                        return new ReadResult<dynamic>(row);
+                        var ret = self.GetValueForReturn();
+                        return new ReadWithCommentResult<dynamic>(ret);
+                    }
+                    if (res == ReadWithCommentResultType.HasComment)
+                    {
+                        self.HasCommentToReturn = false;
+
+                        if (returnComments)
+                        {
+                            // only actually allocate for the comment if it's been asked for
+                            var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
+                            self.Partial.ClearValue();
+                            self.Partial.ClearBuffer();
+                            return new ReadWithCommentResult<dynamic>(comment);
+                        }
+                        else
+                        {
+                            self.Partial.ClearValue();
+                            self.Partial.ClearBuffer();
+                        }
                     }
                 }
 
+                // back into the loop
                 while (true)
                 {
                     self.PreparingToWriteToBuffer();
-                    available = await self.Buffer.ReadAsync(self.Inner, cancel);
-
+                    var available = await self.Buffer.ReadAsync(self.Inner, cancel);
                     if (available == 0)
                     {
                         self.EndOfData();
 
                         if (self.HasValueToReturn)
                         {
-                            row = self.GetValueForReturn();
-                            return new ReadResult<dynamic>(row);
+                            var ret = self.GetValueForReturn();
+                            return new ReadWithCommentResult<dynamic>(ret);
+                        }
+
+                        if (self.HasCommentToReturn)
+                        {
+                            self.HasCommentToReturn = false;
+                            if (returnComments)
+                            {
+                                var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
+                                return new ReadWithCommentResult<dynamic>(comment);
+                            }
                         }
 
                         // intentionally _not_ modifying record here
-                        return ReadResult<dynamic>.Empty;
+                        return ReadWithCommentResult<dynamic>.Empty;
                     }
 
                     if (!self.HasValueToReturn)
                     {
-                        var dynRow = row as DynamicRow;
-                        dynRow.Dispose();
-
-                        if (dynRow.Owner != null && dynRow.Owner != self)
+                        if (needsInit)
                         {
-                            dynRow.Owner?.NotifyOnDispose?.Remove(dynRow);
-                            self.NotifyOnDispose?.Add(dynRow);
+                            GuaranteeInitializedRow(self, record);
+                            needsInit = false;
                         }
-
-                        dynRow.Init(self, self.RowNumber, self.Columns.Length, self.Configuration.DynamicTypeConverter, self.ColumnNames, self.Configuration.MemoryPool);
-
-                        self.SetValueToPopulate(row);
+                        self.SetValueToPopulate(record);
                     }
 
                     var res = self.AdvanceWork(available);
-                    if (res)
+                    if (res == ReadWithCommentResultType.HasValue)
                     {
-                        row = self.GetValueForReturn();
-                        return new ReadResult<dynamic>(row);
+                        var ret = self.GetValueForReturn();
+                        return new ReadWithCommentResult<dynamic>(ret);
+                    }
+                    if (res == ReadWithCommentResultType.HasComment)
+                    {
+                        self.HasCommentToReturn = false;
+
+                        if (returnComments)
+                        {
+                            // only actually allocate for the comment if it's been asked for
+                            var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
+                            self.Partial.ClearValue();
+                            self.Partial.ClearBuffer();
+                            return new ReadWithCommentResult<dynamic>(comment);
+                        }
+                        else
+                        {
+                            self.Partial.ClearValue();
+                            self.Partial.ClearBuffer();
+                        }
                     }
                 }
             }
         }
 
-        private DynamicRow MakeRow()
+        private void MonitorForDispose(DynamicRow dynRow)
         {
-            var ret = new DynamicRow();
-            NotifyOnDispose?.Add(ret);
+            if (Configuration.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose)
+            {
+                NotifyOnDisposeHead.AddHead(ref NotifyOnDisposeHead, dynRow);
+            }
+        }
 
-            return ret;
+        public void Remove(DynamicRow row)
+        {
+            NotifyOnDisposeHead.Remove(ref NotifyOnDisposeHead, row);
         }
 
         private ValueTask HandleHeadersAsync(CancellationToken cancel)
@@ -421,9 +595,26 @@ namespace Cesil
             ReadHeaders = Configuration.ReadHeader;
             TryMakeStateMachine();
 
+            var headerConfig =
+                new DynamicBoundConfiguration(
+                    Configuration.TypeDescriber,
+                    Configuration.ValueSeparator,
+                    Configuration.EscapedValueStartAndStop,
+                    Configuration.EscapeValueEscapeChar,
+                    RowEndings.Value,
+                    Configuration.ReadHeader,
+                    Configuration.WriteHeader,
+                    Configuration.WriteTrailingNewLine,
+                    Configuration.MemoryPool,
+                    Configuration.CommentChar,
+                    Configuration.WriteBufferSizeHint,
+                    Configuration.ReadBufferSizeHint,
+                    Configuration.DynamicRowDisposal
+                );
+
             var allowColumnsByName = Configuration.ReadHeader == Cesil.ReadHeaders.Always;
 
-            var reader = new HeadersReader<object>(Configuration, SharedCharacterLookup, Inner, Buffer);
+            var reader = new HeadersReader<object>(headerConfig, SharedCharacterLookup, Inner, Buffer);
             var disposeReader = true;
             try
             {
@@ -435,29 +626,33 @@ namespace Cesil
                     var foundHeaders = res.Headers.Count;
                     if (foundHeaders == 0)
                     {
-                        Throw.InvalidOperationException("Expected a header row, but found no headers");
+                        // rare, but possible if the file is empty or all comments or something like that
+                        Columns = Array.Empty<Column>();
+                        ColumnNames = Array.Empty<string>();
                     }
-
-                    Columns = new Column[foundHeaders];
-                    if (allowColumnsByName)
+                    else
                     {
-                        ColumnNames = new string[foundHeaders];
-                    }
-
-                    using (var e = res.Headers)
-                    {
-                        var ix = 0;
-                        while (e.MoveNext())
+                        Columns = new Column[foundHeaders];
+                        if (allowColumnsByName)
                         {
-                            var name = allowColumnsByName ? new string(e.Current.Span) : null;
-                            if (name != null)
-                            {
-                                ColumnNames[ix] = name;
-                            }
-                            var col = new Column(name, Column.MakeDynamicSetter(name, ix), null, false);
-                            Columns[ix] = col;
+                            ColumnNames = new string[foundHeaders];
+                        }
 
-                            ix++;
+                        using (var e = res.Headers)
+                        {
+                            var ix = 0;
+                            while (e.MoveNext())
+                            {
+                                var name = allowColumnsByName ? new string(e.Current.Span) : null;
+                                if (name != null)
+                                {
+                                    ColumnNames[ix] = name;
+                                }
+                                var col = new Column(name, Column.MakeDynamicSetter(name, ix), null, false);
+                                Columns[ix] = col;
+
+                                ix++;
+                            }
                         }
                     }
 
@@ -489,29 +684,33 @@ namespace Cesil
                     var foundHeaders = res.Headers.Count;
                     if (foundHeaders == 0)
                     {
-                        Throw.InvalidOperationException("Expected a header row, but found no headers");
+                        // rare, but possible if the file is empty or all comments or something like that
+                        self.Columns = Array.Empty<Column>();
+                        self.ColumnNames = Array.Empty<string>();
                     }
-
-                    self.Columns = new Column[foundHeaders];
-                    if (allowColumnsByName)
+                    else
                     {
-                        self.ColumnNames = new string[foundHeaders];
-                    }
-
-                    using (var e = res.Headers)
-                    {
-                        var ix = 0;
-                        while (e.MoveNext())
+                        self.Columns = new Column[foundHeaders];
+                        if (allowColumnsByName)
                         {
-                            var name = allowColumnsByName ? new string(e.Current.Span) : null;
-                            if (name != null)
-                            {
-                                self.ColumnNames[ix] = name;
-                            }
-                            var col = new Column(name, Column.MakeDynamicSetter(name, ix), null, false);
-                            self.Columns[ix] = col;
+                            self.ColumnNames = new string[foundHeaders];
+                        }
 
-                            ix++;
+                        using (var e = res.Headers)
+                        {
+                            var ix = 0;
+                            while (e.MoveNext())
+                            {
+                                var name = allowColumnsByName ? new string(e.Current.Span) : null;
+                                if (name != null)
+                                {
+                                    self.ColumnNames[ix] = name;
+                                }
+                                var col = new Column(name, Column.MakeDynamicSetter(name, ix), null, false);
+                                self.Columns[ix] = col;
+
+                                ix++;
+                            }
                         }
                     }
 
@@ -587,14 +786,10 @@ namespace Cesil
             }
 
             // only need to do work if the reader is responsbile for implicitly disposing
-            if (NotifyOnDispose != null)
+            while (NotifyOnDispose != null)
             {
-                foreach (var row in NotifyOnDispose)
-                {
-                    row.Dispose();
-                }
-
-                NotifyOnDispose = null;
+                NotifyOnDisposeHead.Dispose();
+                NotifyOnDisposeHead.Remove(ref NotifyOnDisposeHead, NotifyOnDisposeHead);
             }
 
             if (Inner is IAsyncDisposable iad)
@@ -624,6 +819,11 @@ namespace Cesil
                 self.Inner = null;
                 return;
             }
+        }
+
+        public override string ToString()
+        {
+            return $"{nameof(AsyncDynamicReader)} with {Configuration}";
         }
     }
 }

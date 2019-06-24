@@ -22,7 +22,7 @@ namespace Cesil.Tests
             );
         }
 
-        class _NoReadColumns
+        private class _NoReadColumns
         {
             public string Foo { private set; get; }
         }
@@ -51,7 +51,7 @@ namespace Cesil.Tests
             );
         }
 
-        class _NoWriteColumns
+        private class _NoWriteColumns
         {
             public string Bar { private get; set; }
         }
@@ -112,7 +112,7 @@ namespace Cesil.Tests
             mtdGen.Invoke(null, new object[] { n });
         }
 
-        private static void _SingleColumn<T>( string n)
+        private static void _SingleColumn<T>(string n)
         {
             var config = (ConcreteBoundConfiguration<T>)Configuration.For<T>();
             Assert.NotNull(config.NewCons);
@@ -135,13 +135,13 @@ namespace Cesil.Tests
 
             Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithEscapedValueStartAndEnd(',').WithCommentCharacter(',').Build());
 
-            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithRowEndingInternal(RowEndings.None).Build());
+            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithRowEndingInternal(default).Build());
             Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithRowEndingInternal((RowEndings)99).Build());
 
-            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithReadHeaderInternal(ReadHeaders.None).Build());
+            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithReadHeaderInternal(default).Build());
             Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithReadHeaderInternal((ReadHeaders)99).Build());
 
-            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithWriteHeaderInternal(WriteHeaders.None).Build());
+            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithWriteHeaderInternal(default).Build());
             Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithWriteHeaderInternal((WriteHeaders)99).Build());
 
             Assert.Throws<InvalidOperationException>(
@@ -161,7 +161,7 @@ namespace Cesil.Tests
                     .Build()
             );
 
-            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithWriteTrailingNewLineInternal(WriteTrailingNewLines.None).Build());
+            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithWriteTrailingNewLineInternal(default).Build());
             Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithWriteTrailingNewLineInternal((WriteTrailingNewLines)99).Build());
 
             Assert.Throws<InvalidOperationException>(
@@ -185,7 +185,7 @@ namespace Cesil.Tests
 
             Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithReadBufferSizeHintInternal(-1).Build());
 
-            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithDynamicRowDisposalInternal(DynamicRowDisposal.None).Build());
+            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithDynamicRowDisposalInternal(default).Build());
             Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithDynamicRowDisposalInternal((DynamicRowDisposal)99).Build());
         }
     }

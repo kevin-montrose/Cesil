@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -8,17 +7,17 @@ using System.Reflection;
 namespace Cesil
 {
     /// <summary>
-    /// Used to combine a type and an Options into a BoundConfiguration(T),
+    /// Used to combine a type and an Options into an IBoundConfiguration(T),
     /// which can create readers and writers.
     /// </summary>
     public static class Configuration
     {
         /// <summary>
-        /// Create a new IBoundConfiguration(T) with default Options, for use 
+        /// Create a new IBoundConfiguration(T) with Options.DynamicDefault, for use 
         ///   with dynamic types.
         /// </summary>
         public static IBoundConfiguration<dynamic> ForDynamic()
-        => ForDynamic(Options.Default);
+        => ForDynamic(Options.DynamicDefault);
 
         /// <summary>
         /// Create a new IBoundConfiguration(T) with given Options, for use 
@@ -33,11 +32,12 @@ namespace Cesil
 
             if (options.ReadHeader == ReadHeaders.Detect)
             {
-                Throw.ArgumentException($"Dynamic deserialization cannot detect the presense of headers, you must specify {nameof(ReadHeaders.Always)} or {nameof(ReadHeaders.Never)}", nameof(options));
+                Throw.ArgumentException($"Dynamic deserialization cannot detect the presense of headers, you must specify a {nameof(ReadHeaders)} of {nameof(ReadHeaders.Always)} or {nameof(ReadHeaders.Never)}", nameof(options));
             }
 
             return
                 new DynamicBoundConfiguration(
+                    options.TypeDescriber,
                     options.ValueSeparator,
                     options.EscapedValueStartAndEnd,
                     options.EscapedValueEscapeCharacter,
@@ -49,13 +49,12 @@ namespace Cesil
                     options.CommentCharacter,
                     options.WriteBufferSizeHint,
                     options.ReadBufferSizeHint,
-                    options.DynamicTypeConverter,
                     options.DynamicRowDisposal
                 );
         }
 
         /// <summary>
-        /// Create a new IBoundConfiguration(T) with default Options, for
+        /// Create a new IBoundConfiguration(T) with Options.Default, for
         ///   use with the given type.
         /// </summary>
         public static IBoundConfiguration<T> For<T>()
@@ -67,7 +66,7 @@ namespace Cesil
         /// </summary>
         public static IBoundConfiguration<T> For<T>(Options options)
         {
-            if(options == null)
+            if (options == null)
             {
                 Throw.ArgumentNullException(nameof(options));
             }
@@ -91,14 +90,14 @@ namespace Cesil
             // this is entirely knowable now, so go ahead and calculate
             //   and save for future use
             var needsEscape = new bool[serializeColumns.Length];
-            for(var i = 0; i < serializeColumns.Length; i++)
+            for (var i = 0; i < serializeColumns.Length; i++)
             {
                 var name = serializeColumns[i].Name;
                 var escape = false;
-                for(var j = 0; j < name.Length; j++)
+                for (var j = 0; j < name.Length; j++)
                 {
                     var c = name[j];
-                    if(c == '\r' || c == '\n' || c == options.ValueSeparator || c == options.EscapedValueStartAndEnd)
+                    if (c == '\r' || c == '\n' || c == options.ValueSeparator || c == options.EscapedValueStartAndEnd)
                     {
                         escape = true;
                         break;
@@ -136,7 +135,7 @@ namespace Cesil
 
             foreach (var col in cols)
             {
-                var setter = MakeSetter(t, col.Parser, col.Setter, col.Field, col.Reset);
+                var setter = MakeSetter(t, col.Parser, col.Setter, col.Reset);
 
                 ret.Add(new Column(col.Name, setter, null, col.IsRequired));
             }
@@ -147,11 +146,11 @@ namespace Cesil
         // create a delegate that will parse the given characters,
         //   and store them using either the given setter or
         //   the given field
-        private static Column.SetterDelegate MakeSetter(TypeInfo type, MethodInfo parser, MethodInfo setter, FieldInfo field, MethodInfo reset)
+        private static Column.SetterDelegate MakeSetter(TypeInfo type, Parser parser, Setter setter, Reset reset)
         {
-            var p1 = Expression.Parameter(Types.ReadOnlySpanOfCharType);
-            var p2 = Expression.Parameter(Types.ReadContextType.MakeByRefType());
-            var p3 = Expression.Parameter(Types.ObjectType);
+            var p1 = Expressions.Parameter_ReadOnlySpanOfChar;
+            var p2 = Expressions.Parameter_ReadContext_ByRef;
+            var p3 = Expressions.Parameter_Object;
 
             var end = Expression.Label(Types.BoolType, "end");
 
@@ -163,69 +162,161 @@ namespace Cesil
             var assignToL1 = Expression.Assign(l1, p3AsType);
             statements.Add(assignToL1);
 
-            var outArg = parser.GetParameters()[2].ParameterType.GetElementType();
+            var outArg = parser.Creates;
             var l2 = Expression.Parameter(outArg);
+            var l3 = Expressions.Variable_Bool;
 
-            var callParser = Expression.Call(parser, p1, p2, l2);
+            // call the parser and set l3 = success, and l2 = value
+            Expression callParser;
+            switch (parser.Mode)
+            {
+                case BackingMode.Method:
+                    {
+                        var parserMtd = parser.Method;
 
-            var l3 = Expression.Variable(Types.BoolType, "l3");
+                        callParser = Expression.Call(parserMtd, p1, p2, l2);
+                    }
+                    break;
+                case BackingMode.Delegate:
+                    {
+                        var parserDel = parser.Delegate;
+                        var delRef = Expression.Constant(parserDel);
+                        callParser = Expression.Invoke(delRef, p1, p2, l2);
+                    }
+                    break;
+                case BackingMode.Constructor:
+                    {
+                        var cons = parser.Constructor;
+                        var psCount = cons.GetParameters().Length;
+                        NewExpression callCons;
+
+                        if (psCount == 1)
+                        {
+                            callCons = Expression.New(cons, p1);
+                        }
+                        else
+                        {
+                            callCons = Expression.New(cons, p1, p2);
+                        }
+
+                        var assignToL2 = Expression.Assign(l2, callCons);
+
+                        callParser = Expression.Block(assignToL2, Expressions.Constant_True);
+                    }
+                    break;
+                default:
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {parser.Mode}");
+                    return default;
+            }
+
             var assignToL3 = Expression.Assign(l3, callParser);
-
             statements.Add(assignToL3);
 
-            var ifNotParsedReturnFalse = Expression.IfThen(Expression.Not(l3), Expression.Return(end, Expression.Constant(false)));
+            var ifNotParsedReturnFalse = Expression.IfThen(Expression.Not(l3), Expression.Return(end, Expressions.Constant_False));
             statements.Add(ifNotParsedReturnFalse);
 
-            if(reset != null)
+            // call the reset method, if there is one
+            if (reset != null)
             {
-                MethodCallExpression callReset;
-                if (reset.IsStatic)
+                Expression callReset;
+                switch (reset.Mode)
                 {
-                    var resetPs = reset.GetParameters();
-                    if(resetPs.Length == 1)
-                    {
-                        callReset = Expression.Call(reset, l1);
-                    }
-                    else
-                    {
-                        callReset = Expression.Call(reset);
-                    }
-                }
-                else
-                {
-                    callReset = Expression.Call(l1, reset);
+                    case BackingMode.Method:
+                        {
+                            var resetMtd = reset.Method;
+                            if (reset.IsStatic)
+                            {
+                                var resetPs = resetMtd.GetParameters();
+                                if (resetPs.Length == 1)
+                                {
+                                    callReset = Expression.Call(resetMtd, l1);
+                                }
+                                else
+                                {
+                                    callReset = Expression.Call(resetMtd);
+                                }
+                            }
+                            else
+                            {
+                                callReset = Expression.Call(l1, resetMtd);
+                            }
+                        }
+                        break;
+                    case BackingMode.Delegate:
+                        {
+                            var resetDel = reset.Delegate;
+                            var delRef = Expression.Constant(resetDel);
+
+                            if (reset.IsStatic)
+                            {
+                                callReset = Expression.Invoke(delRef);
+                            }
+                            else
+                            {
+                                callReset = Expression.Invoke(delRef, l1);
+                            }
+                        }
+                        break;
+                    default:
+                        Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {reset.Mode}");
+                        return default;
                 }
 
                 statements.Add(callReset);
             }
 
-            if(setter != null)
+            // call the setter (or set the field)
+
+            Expression assignResult;
+            switch (setter.Mode)
             {
-                MethodCallExpression assignToSetter;
+                case BackingMode.Method:
+                    {
+                        var setterMtd = setter.Method;
 
-                if (setter.IsStatic)
-                {
-                    assignToSetter = Expression.Call(setter, l2);
-                }
-                else
-                {
-                    assignToSetter = Expression.Call(l1, setter, l2);
-                }
+                        if (setter.IsStatic)
+                        {
+                            assignResult = Expression.Call(setterMtd, l2);
+                        }
+                        else
+                        {
+                            assignResult = Expression.Call(l1, setterMtd, l2);
+                        }
+                    }
+                    break;
+                case BackingMode.Field:
+                    {
+                        var fieldExp = Expression.Field(l1, setter.Field);
+                        assignResult = Expression.Assign(fieldExp, l2);
+                    }
+                    break;
+                case BackingMode.Delegate:
+                    {
+                        var setterDel = setter.Delegate;
+                        var delRef = Expression.Constant(setterDel);
 
-                statements.Add(assignToSetter);
+                        if (setter.IsStatic)
+                        {
+                            assignResult = Expression.Invoke(delRef, l2);
+                        }
+                        else
+                        {
+                            assignResult = Expression.Invoke(delRef, l1, l2);
+                        }
+                    }
+                    break;
+                default:
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {setter.Mode}");
+                    // just for control flow
+                    return default;
             }
-            else
-            {
-                var fieldExp = Expression.Field(l1, field);
-                var assignToField = Expression.Assign(fieldExp, l2);
 
-                statements.Add(assignToField);
-            }
+            statements.Add(assignResult);
 
-            var returnTrue = Expression.Return(end, Expression.Constant(true));
+            var returnTrue = Expression.Return(end, Expressions.Constant_True);
             statements.Add(returnTrue);
 
-            statements.Add(Expression.Label(end, Expression.Constant(false)));
+            statements.Add(Expression.Label(end, Expressions.Constant_False));
 
             var block = Expression.Block(new[] { l1, l2, l3 }, statements);
 
@@ -249,63 +340,81 @@ namespace Cesil
 
             var resultType = typeof(T).GetTypeInfo();
 
-            var retTrue = Expression.Constant(true);
+            var retTrue = Expressions.Constant_True;
             var outVar = Expression.Parameter(resultType.MakeByRefType());
 
-            var del = builder.Delegate;
-            if (del != null)
+            switch (builder.Mode)
             {
-                if (del is InstanceBuilderDelegate<T> exactMatch)
-                {
-                    return exactMatch;
-                }
+                case BackingMode.Delegate:
+                    {
+                        var del = builder.Delegate;
+                        if (del is InstanceBuilderDelegate<T> exactMatch)
+                        {
+                            return exactMatch;
+                        }
 
-                // handle the case where we have to _bridge_ between two assignable types
-                //   we basically construct a delegate that takes an object that wraps up
-                //   the original build delegate, which we then capture and use to construct
-                //   the type to be bridged
+                        // handle the case where we have to _bridge_ between two assignable types
+                        //   we basically construct a delegate that takes an object that wraps up
+                        //   the original build delegate, which we then capture and use to construct
+                        //   the type to be bridged
 
-                var innerDelType = Types.InstanceBuilderDelegateType.MakeGenericType(constructedType).GetTypeInfo();
+                        var innerDelType = Types.InstanceBuilderDelegateType.MakeGenericType(constructedType).GetTypeInfo();
 
-                var p1 = Expression.Parameter(Types.ObjectType);
-                var l1 = Expression.Variable(constructedType);
-                var innerInstanceBuilderType = Expression.Convert(p1, innerDelType);
+                        var p1 = Expressions.Parameter_Object;
+                        var l1 = Expression.Variable(constructedType);
+                        var innerInstanceBuilderType = Expression.Convert(p1, innerDelType);
 
-                var endLabel = Expression.Label(Types.BoolType, "end");
+                        var endLabel = Expression.Label(Types.BoolType, "end");
 
-                var invokeInstanceBuilder = Expression.Invoke(innerInstanceBuilderType, l1);
+                        var invokeInstanceBuilder = Expression.Invoke(innerInstanceBuilderType, l1);
 
-                var convertAndAssign = Expression.Assign(outVar, Expression.Convert(l1, resultType));
+                        var convertAndAssign = Expression.Assign(outVar, Expression.Convert(l1, resultType));
 
-                var ifTrueBlock = Expression.Block(convertAndAssign, Expression.Goto(endLabel, retTrue));
+                        var ifTrueBlock = Expression.Block(convertAndAssign, Expression.Goto(endLabel, retTrue));
 
-                var assignDefault = Expression.Assign(outVar, Expression.Default(resultType));
-                var retFalse = Expression.Constant(false);
+                        var assignDefault = Expression.Assign(outVar, Expression.Default(resultType));
+                        var retFalse = Expressions.Constant_False;
 
-                var ifFalseBlock = Expression.Block(assignDefault, Expression.Goto(endLabel, retFalse));
+                        var ifFalseBlock = Expression.Block(assignDefault, Expression.Goto(endLabel, retFalse));
 
-                var ifThenElse = Expression.IfThenElse(invokeInstanceBuilder, ifTrueBlock, ifFalseBlock);
+                        var ifThenElse = Expression.IfThenElse(invokeInstanceBuilder, ifTrueBlock, ifFalseBlock);
 
-                var markEndLabel = Expression.Label(endLabel, Expression.Default(Types.BoolType));
+                        var markEndLabel = Expression.Label(endLabel, Expressions.Default_Bool);
 
-                var delBody = Expression.Block(Types.BoolType, new[] { l1 }, ifThenElse, markEndLabel);
+                        var delBody = Expression.Block(Types.BoolType, new[] { l1 }, ifThenElse, markEndLabel);
 
-                var lambda = Expression.Lambda<Types.InstanceBuildThunkDelegate<T>>(delBody, p1, outVar);
-                var compiled = lambda.Compile();
+                        var lambda = Expression.Lambda<Types.InstanceBuildThunkDelegate<T>>(delBody, p1, outVar);
+                        var compiled = lambda.Compile();
 
-                return (out T res) => compiled(del, out res);
+                        return (out T res) => compiled(del, out res);
+                    }
+                case BackingMode.Constructor:
+                    {
+                        var cons = builder.Constructor;
+
+                        var assignTo = Expression.Assign(outVar, Expression.New(cons));
+
+                        var block = Expression.Block(new Expression[] { assignTo, retTrue });
+
+                        var wrappingDel = Expression.Lambda<InstanceBuilderDelegate<T>>(block, outVar);
+                        var ret = wrappingDel.Compile();
+
+                        return ret;
+                    }
+                case BackingMode.Method:
+                    {
+                        var mtd = builder.Method;
+
+                        var delType = typeof(InstanceBuilderDelegate<T>);
+                        var del = (InstanceBuilderDelegate<T>)Delegate.CreateDelegate(delType, mtd);
+
+                        return del;
+                    }
+                default:
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {builder.Mode}");
+                    // for control flow
+                    return default;
             }
-
-            var cons = builder.Constructor;
-
-            var assignTo = Expression.Assign(outVar, Expression.New(cons));
-
-            var block = Expression.Block(new Expression[] { assignTo, retTrue });
-
-            var wrappingDel = Expression.Lambda<InstanceBuilderDelegate<T>>(block, outVar);
-            var ret = wrappingDel.Compile();
-
-            return ret;
         }
 
         private static Column[] DiscoverSerializeColumns(TypeInfo t, Options options)
@@ -316,7 +425,7 @@ namespace Cesil
 
             foreach (var col in cols)
             {
-                var writer = MakeWriter(t, col.Formatter, col.ShouldSerialize, col.Getter, col.Field, col.EmitDefaultValue);
+                var writer = MakeWriter(t, col.Formatter, col.ShouldSerialize, col.Getter, col.EmitDefaultValue);
 
                 ret.Add(new Column(col.Name, null, writer, false));
             }
@@ -327,11 +436,11 @@ namespace Cesil
         // create a delegate that will format the given value (pulled from a getter or a field) into
         //   a buffer, subject to shouldSerialize being null or returning true
         //   and return true if it was able to do so
-        private static Column.WriterDelegate MakeWriter(TypeInfo type, MethodInfo formatter, MethodInfo shouldSerialize, MethodInfo getter, FieldInfo field, bool emitDefaultValue)
+        private static Column.WriterDelegate MakeWriter(TypeInfo type, Formatter formatter, ShouldSerialize shouldSerialize, Getter getter, bool emitDefaultValue)
         {
-            var p1 = Expression.Parameter(Types.ObjectType);
-            var p2 = Expression.Parameter(Types.WriteContext.MakeByRefType());
-            var p3 = Expression.Parameter(Types.IBufferWriterOfCharType);
+            var p1 = Expressions.Parameter_Object;
+            var p2 = Expressions.Parameter_WriteContext_ByRef;
+            var p3 = Expressions.Parameter_IBufferWriterOfChar;
 
             var statements = new List<Expression>();
 
@@ -346,14 +455,43 @@ namespace Cesil
 
             if (shouldSerialize != null)
             {
-                MethodCallExpression callShouldSerialize;
-                if (shouldSerialize.IsStatic)
+                Expression callShouldSerialize;
+                switch (shouldSerialize.Mode)
                 {
-                    callShouldSerialize = Expression.Call(shouldSerialize);
-                }
-                else
-                {
-                    callShouldSerialize = Expression.Call(l1, shouldSerialize);
+                    case BackingMode.Method:
+                        {
+                            if (shouldSerialize.IsStatic)
+                            {
+                                var mtd = shouldSerialize.Method;
+                                callShouldSerialize = Expression.Call(mtd);
+                            }
+                            else
+                            {
+                                var mtd = shouldSerialize.Method;
+                                callShouldSerialize = Expression.Call(l1, mtd);
+                            }
+                        }
+                        break;
+                    case BackingMode.Delegate:
+                        {
+                            var shouldSerializeDel = shouldSerialize.Delegate;
+                            var delRef = Expression.Constant(shouldSerializeDel);
+
+                            if (shouldSerialize.IsStatic)
+                            {
+                                callShouldSerialize = Expression.Invoke(delRef);
+                            }
+                            else
+                            {
+                                callShouldSerialize = Expression.Invoke(delRef, l1);
+                            }
+                        }
+                        break;
+                    default:
+                        Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {shouldSerialize.Mode}");
+                        // just for control flow
+                        return default;
+
                 }
 
                 var shouldntSerialize = Expression.Not(callShouldSerialize);
@@ -363,36 +501,67 @@ namespace Cesil
                 statements.Add(jumpToEndIfShouldntSerialize);
             }
 
-            var columnType = (getter?.ReturnType ?? field.FieldType).GetTypeInfo();
+            var columnType = getter.Returns;
             var l2 = Expression.Variable(columnType, "l2");
-            
-            if(getter != null)
-            {
-                MethodCallExpression callGetter;
-                if (getter.IsStatic)
-                {
-                    if (getter.GetParameters().Length == 0)
-                    {
-                        callGetter = Expression.Call(getter);
-                    }
-                    else
-                    {
-                        callGetter = Expression.Call(getter, l1);
-                    }
-                }
-                else
-                {
-                    callGetter = Expression.Call(l1, getter);
-                }
 
-                var assignToL2 = Expression.Assign(l2, callGetter);
-                statements.Add(assignToL2);
-            }
-            else
+            Expression getExp;
+            switch (getter.Mode)
             {
-                var assignToL2 = Expression.Assign(l2, Expression.Field(l1, field));
-                statements.Add(assignToL2);
+                case BackingMode.Method:
+                    {
+                        var mtd = getter.Method;
+                        if (mtd.IsStatic)
+                        {
+                            if (mtd.GetParameters().Length == 0)
+                            {
+                                getExp = Expression.Call(mtd);
+                            }
+                            else
+                            {
+                                getExp = Expression.Call(mtd, l1);
+                            }
+                        }
+                        else
+                        {
+                            getExp = Expression.Call(l1, mtd);
+                        }
+                    };
+                    break;
+                case BackingMode.Field:
+                    {
+                        var field = getter.Field;
+                        if (field.IsStatic)
+                        {
+                            getExp = Expression.Field(null, field);
+                        }
+                        else
+                        {
+                            getExp = Expression.Field(l1, field);
+                        }
+                    }
+                    break;
+                case BackingMode.Delegate:
+                    {
+                        var getterDel = getter.Delegate;
+                        var delRef = Expression.Constant(getterDel);
+
+                        if (getter.IsStatic)
+                        {
+                            getExp = Expression.Invoke(delRef);
+                        }
+                        else
+                        {
+                            getExp = Expression.Invoke(delRef, l1);
+                        }
+                    }
+                    break;
+                default:
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {getter.Mode}");
+                    // just for control flow
+                    return default;
             }
+            var assignToL2 = Expression.Assign(l2, getExp);
+            statements.Add(assignToL2);
 
             if (!emitDefaultValue)
             {
@@ -412,9 +581,9 @@ namespace Cesil
                         var map = columnType.GetInterfaceMap(equatableI);
 
                         MethodInfo equalsTyped = null;
-                        for(var j = 0; j < map.InterfaceMethods.Length; j++)
+                        for (var j = 0; j < map.InterfaceMethods.Length; j++)
                         {
-                            if(map.InterfaceMethods[j] == equals)
+                            if (map.InterfaceMethods[j] == equals)
                             {
                                 equalsTyped = map.TargetMethods[j];
                                 break;
@@ -436,19 +605,40 @@ namespace Cesil
                 statements.Add(ifIsDefaultReturnTrue);
             }
 
-            var callFormatter = Expression.Call(formatter, l2, p2, p3);
+            Expression callFormatter;
+            switch (formatter.Mode)
+            {
+                case BackingMode.Method:
+                    {
+                        callFormatter = Expression.Call(formatter.Method, l2, p2, p3);
+                    }
+                    break;
+                case BackingMode.Delegate:
+                    {
+                        var formatterDel = formatter.Delegate;
+                        var delRef = Expression.Constant(formatterDel);
+                        callFormatter = Expression.Invoke(delRef, l2, p2, p3);
+                    }
+                    break;
+                default:
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {formatter.Mode}");
+                    // just for control flow
+                    return default;
+            }
+
             statements.Add(Expression.Goto(end, callFormatter));
 
             statements.Add(Expression.Label(returnTrue));
-            statements.Add(Expression.Goto(end, Expression.Constant(true)));
+            statements.Add(Expression.Goto(end, Expressions.Constant_True));
 
-            statements.Add(Expression.Label(end, Expression.Constant(false)));
+            statements.Add(Expression.Label(end, Expressions.Constant_False));
 
             var block = Expression.Block(new[] { l1, l2 }, statements);
 
             var del = Expression.Lambda<Column.WriterDelegate>(block, p1, p2, p3);
 
             var compiled = del.Compile();
+
             return compiled;
         }
     }

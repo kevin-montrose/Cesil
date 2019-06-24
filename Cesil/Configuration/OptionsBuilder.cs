@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Text;
 
 namespace Cesil
 {
@@ -9,6 +10,7 @@ namespace Cesil
     /// Options itself is immutable, but OptionsBuilder
     /// is chainable and mutable.
     /// </summary>
+    [NotEquatable("Mutable")]
     public sealed class OptionsBuilder
     {
         /// <summary>
@@ -72,6 +74,7 @@ namespace Cesil
         /// 
         /// Set to null to use a default size.
         /// </summary>
+        [IntentionallyExposedPrimitive("Best way to indicate a size")]
         public int? WriteBufferSizeHint { get; private set; }
         /// <summary>
         /// How big a buffer to request from the MemoryPool for
@@ -79,13 +82,8 @@ namespace Cesil
         ///   
         /// Set to 0 to use a default size.
         /// </summary>
+        [IntentionallyExposedPrimitive("Best way to indicate a size")]
         public int ReadBufferSizeHint { get; private set; }
-        /// <summary>
-        /// The instance of IDynamicTypeConverter that will be used to
-        ///   determine how to convert dynamic rows and cells into
-        ///   concrete types.
-        /// </summary>
-        public IDynamicTypeConverter DynamicTypeConverter { get; private set; }
         /// <summary>
         /// When to dispose any dynamic rows returned by an IReader or IAsyncReader.
         /// </summary>
@@ -107,7 +105,6 @@ namespace Cesil
             CommentCharacter = copy.CommentCharacter;
             WriteBufferSizeHint = copy.WriteBufferSizeHint;
             ReadBufferSizeHint = copy.ReadBufferSizeHint;
-            DynamicTypeConverter = copy.DynamicTypeConverter;
             DynamicRowDisposal = copy.DynamicRowDisposal;
         }
 
@@ -124,7 +121,7 @@ namespace Cesil
         public Options Build()
         {
             // can't distinguish between the start of a value and an empty value
-            if(ValueSeparator == EscapedValueStartAndEnd)
+            if (ValueSeparator == EscapedValueStartAndEnd)
             {
                 Throw.InvalidOperationException($"{nameof(ValueSeparator)} cannot equal {nameof(EscapedValueStartAndEnd)}, both are '{ValueSeparator}'");
             }
@@ -139,37 +136,37 @@ namespace Cesil
                 Throw.InvalidOperationException($"{nameof(EscapedValueStartAndEnd)} cannot equal {nameof(CommentCharacter)}, both are '{EscapedValueStartAndEnd}'");
             }
             // RowEnding not recognized
-            if (RowEnding == RowEndings.None || !Enum.IsDefined(Types.RowEndingsType, RowEnding))
+            if (!Enum.IsDefined(Types.RowEndingsType, RowEnding))
             {
                 Throw.InvalidOperationException($"{nameof(RowEnding)} has an unexpected value, '{RowEnding}'");
             }
             // ReadHeader not recognized
-            if (ReadHeader == ReadHeaders.None || !Enum.IsDefined(Types.ReadHeadersType, ReadHeader))
+            if (!Enum.IsDefined(Types.ReadHeadersType, ReadHeader))
             {
                 Throw.InvalidOperationException($"{nameof(ReadHeader)} has an unexpected value, '{ReadHeader}'");
             }
             // WriteHeader not recognized
-            if (WriteHeader == WriteHeaders.None || !Enum.IsDefined(Types.WriteHeadersType, WriteHeader))
+            if (!Enum.IsDefined(Types.WriteHeadersType, WriteHeader))
             {
                 Throw.InvalidOperationException($"{nameof(WriteHeader)} has an unexpected value, '{WriteHeader}'");
             }
             // TypeDescriber not configured
-            if(TypeDescriber == null)
+            if (TypeDescriber == null)
             {
                 Throw.InvalidOperationException($"{nameof(TypeDescriber)} has not been set");
             }
             // WriteTrailingNewLine not recognized
-            if (WriteTrailingNewLine == WriteTrailingNewLines.None || !Enum.IsDefined(Types.WriteTrailingNewLinesType, WriteTrailingNewLine))
+            if (!Enum.IsDefined(Types.WriteTrailingNewLinesType, WriteTrailingNewLine))
             {
                 Throw.InvalidOperationException($"{nameof(WriteTrailingNewLine)} has an unexpected value, '{WriteTrailingNewLine}'");
             }
             // MemoryPool not configured
-            if(MemoryPool == null)
+            if (MemoryPool == null)
             {
                 Throw.InvalidOperationException($"{nameof(TypeDescriber)} has not been set");
             }
             // WriteBufferSizeHint < 0
-            if(WriteBufferSizeHint.HasValue && WriteBufferSizeHint.Value < 0)
+            if (WriteBufferSizeHint.HasValue && WriteBufferSizeHint.Value < 0)
             {
                 Throw.InvalidOperationException($"{nameof(WriteBufferSizeHint)} cannot be less than 0, is '{WriteBufferSizeHint}'");
             }
@@ -179,7 +176,7 @@ namespace Cesil
                 Throw.InvalidOperationException($"{nameof(ReadBufferSizeHint)} cannot be less than 0, is '{ReadBufferSizeHint}'");
             }
             // DynamicRowDisposal not recognized
-            if (DynamicRowDisposal == DynamicRowDisposal.None || !Enum.IsDefined(Types.DynamicRowDisposalType, DynamicRowDisposal))
+            if (!Enum.IsDefined(Types.DynamicRowDisposalType, DynamicRowDisposal))
             {
                 Throw.InvalidOperationException($"{nameof(DynamicRowDisposal)} has an unexpected value, '{DynamicRowDisposal}'");
             }
@@ -292,18 +289,6 @@ namespace Cesil
         }
 
         /// <summary>
-        /// Set the ITypeDescriber used to discover and configure the
-        /// columns that are read and written.
-        /// </summary>
-        public OptionsBuilder WithDynamicTypeConverter(IDynamicTypeConverter converter)
-        {
-            converter = converter ?? DynamicTypeConverters.Default;
-
-            DynamicTypeConverter = converter;
-            return this;
-        }
-
-        /// <summary>
         /// Set whether or not to end the last row with a new line.
         /// </summary>
         public OptionsBuilder WithWriteTrailingNewLine(WriteTrailingNewLines w)
@@ -355,9 +340,9 @@ namespace Cesil
         /// All values are treated as hints, it's up to
         ///   the configured MemoryPool to satsify the request.
         /// </summary>
-        public OptionsBuilder WithWriteBufferSizeHint(int? sizeHint)
+        public OptionsBuilder WithWriteBufferSizeHint([IntentionallyExposedPrimitive("Best way to indicate a size")]int? sizeHint)
         {
-            if(sizeHint != null && sizeHint < 0)
+            if (sizeHint != null && sizeHint < 0)
             {
                 Throw.ArgumentException($"Cannot be negative, was {sizeHint.Value}", nameof(sizeHint));
             }
@@ -381,9 +366,9 @@ namespace Cesil
         /// All values are treated as hints, it's up to
         ///   the configured MemoryPool to satsify the request.
         /// </summary>
-        public OptionsBuilder WithReadBufferSizeHint(int sizeHint)
+        public OptionsBuilder WithReadBufferSizeHint([IntentionallyExposedPrimitive("Best way to indicate a size")]int sizeHint)
         {
-            if(sizeHint < 0)
+            if (sizeHint < 0)
             {
                 Throw.ArgumentException($"Cannot be negative, was {sizeHint}", nameof(sizeHint));
             }
@@ -406,7 +391,7 @@ namespace Cesil
         /// </summary>
         public OptionsBuilder WithDynamicRowDisposal(DynamicRowDisposal d)
         {
-            if(!Enum.IsDefined(typeof(DynamicRowDisposal), d))
+            if (!Enum.IsDefined(typeof(DynamicRowDisposal), d))
             {
                 Throw.ArgumentException($"Unexpected {nameof(DynamicRowDisposal)} value: {d}", nameof(d));
             }
@@ -419,6 +404,31 @@ namespace Cesil
         {
             DynamicRowDisposal = d;
             return this;
+        }
+
+        /// <summary>
+        /// Returns a representation of this OptionsBuilder object.
+        /// 
+        /// Only for debugging, this value is not guaranteed to be stable.
+        /// </summary>
+        public override string ToString()
+        {
+            var ret = new StringBuilder();
+            ret.Append($"{nameof(CommentCharacter)}={CommentCharacter}");
+            ret.Append($", {nameof(DynamicRowDisposal)}={DynamicRowDisposal}");
+            ret.Append($", {nameof(EscapedValueEscapeCharacter)}={EscapedValueEscapeCharacter}");
+            ret.Append($", {nameof(EscapedValueStartAndEnd)}={EscapedValueStartAndEnd}");
+            ret.Append($", {nameof(MemoryPool)}={MemoryPool}");
+            ret.Append($", {nameof(ReadBufferSizeHint)}={ReadBufferSizeHint}");
+            ret.Append($", {nameof(ReadHeader)}={ReadHeader}");
+            ret.Append($", {nameof(RowEnding)}={RowEnding}");
+            ret.Append($", {nameof(TypeDescriber)}={TypeDescriber}");
+            ret.Append($", {nameof(ValueSeparator)}={ValueSeparator}");
+            ret.Append($", {nameof(WriteBufferSizeHint)}={WriteBufferSizeHint}");
+            ret.Append($", {nameof(WriteHeader)}={WriteHeader}");
+            ret.Append($", {nameof(WriteTrailingNewLine)}={WriteTrailingNewLine}");
+
+            return ret.ToString();
         }
     }
 }

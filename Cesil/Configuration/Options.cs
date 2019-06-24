@@ -1,4 +1,6 @@
-﻿using System.Buffers;
+﻿using System;
+using System.Buffers;
+using System.Text;
 
 namespace Cesil
 {
@@ -9,7 +11,7 @@ namespace Cesil
     /// type in a Configuration(T) which can create
     /// readers and writers.
     /// </summary>
-    public sealed class Options
+    public sealed class Options : IEquatable<Options>
     {
         /// <summary>
         /// Default options:
@@ -41,7 +43,39 @@ namespace Cesil
                 .WithWriteBufferSizeHint(null)
                 .WithCommentCharacter(null)
                 .WithReadBufferSizeHint(0)
-                .WithDynamicTypeConverter(DynamicTypeConverters.Default)
+                .WithDynamicRowDisposal(DynamicRowDisposal.OnReaderDispose)
+                .Build();
+
+        /// <summary>
+        /// Default options for dynamic operations:
+        ///   - separator = ,
+        ///   - row endings = \r\n
+        ///   - escaped columns start = "
+        ///   - escape character = "
+        ///   - assumes headers are present
+        ///   - writes headers
+        ///   - uses the default type describer
+        ///   - uses MemoryPool.Shared
+        ///   - uses the default write buffer size
+        ///   - does not write a new line after the last row
+        ///   - does not support comments
+        ///   - uses the default read buffer size
+        ///   - dynamic rows are disposed when the reader that returns them is disposed
+        /// </summary>
+        public static readonly Options DynamicDefault =
+            NewEmptyBuilder()
+                .WithValueSeparator(',')
+                .WithRowEnding(RowEndings.CarriageReturnLineFeed)
+                .WithEscapedValueStartAndEnd('"')
+                .WithEscapedValueEscapeCharacter('"')
+                .WithReadHeader(ReadHeaders.Always)
+                .WithWriteHeader(WriteHeaders.Always)
+                .WithTypeDescriber(TypeDescribers.Default)
+                .WithWriteTrailingNewLine(WriteTrailingNewLines.Never)
+                .WithMemoryPool(MemoryPool<char>.Shared)
+                .WithWriteBufferSizeHint(null)
+                .WithCommentCharacter(null)
+                .WithReadBufferSizeHint(0)
                 .WithDynamicRowDisposal(DynamicRowDisposal.OnReaderDispose)
                 .Build();
 
@@ -106,6 +140,7 @@ namespace Cesil
         /// 
         /// Set to null to use a default size.
         /// </summary>
+        [IntentionallyExposedPrimitive("Best way to indicate a size")]
         public int? WriteBufferSizeHint { get; private set; }
         /// <summary>
         /// How big a buffer to request from the MemoryPool for
@@ -113,13 +148,8 @@ namespace Cesil
         ///   
         /// Set to 0 to use a default size.
         /// </summary>
+        [IntentionallyExposedPrimitive("Best way to indicate a size")]
         public int ReadBufferSizeHint { get; private set; }
-        /// <summary>
-        /// The instance of IDynamicTypeConverter that will be used to
-        ///   determine how to convert dynamic rows and cells into
-        ///   concrete types.
-        /// </summary>
-        public IDynamicTypeConverter DynamicTypeConverter { get; private set; }
         /// <summary>
         /// When to dispose any dynamic rows returned by an IReader or IAsyncReader.
         /// </summary>
@@ -139,7 +169,6 @@ namespace Cesil
             CommentCharacter = copy.CommentCharacter;
             WriteBufferSizeHint = copy.WriteBufferSizeHint;
             ReadBufferSizeHint = copy.ReadBufferSizeHint;
-            DynamicTypeConverter = copy.DynamicTypeConverter;
             DynamicRowDisposal = copy.DynamicRowDisposal;
         }
 
@@ -153,7 +182,101 @@ namespace Cesil
         /// Create a new OptionsBuilder that copies its initial values
         /// from this Options.
         /// </summary>
-        public OptionsBuilder NewBuilder() 
+        public OptionsBuilder NewBuilder()
         => new OptionsBuilder(this);
+
+        /// <summary>
+        /// Returns true if this object equals the given Options.
+        /// </summary>
+        public override bool Equals(object obj)
+        {
+            if (obj is Options o)
+            {
+                return Equals(o);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Returns true if this object equals the given Options.
+        /// </summary>
+        public bool Equals(Options opts)
+        {
+            if (opts == null) return false;
+
+            return
+                opts.CommentCharacter == CommentCharacter &&
+                opts.DynamicRowDisposal == DynamicRowDisposal &&
+                opts.EscapedValueEscapeCharacter == EscapedValueEscapeCharacter &&
+                opts.EscapedValueStartAndEnd == EscapedValueStartAndEnd &&
+                opts.MemoryPool == MemoryPool &&
+                opts.ReadBufferSizeHint == opts.ReadBufferSizeHint &&
+                opts.ReadHeader == ReadHeader &&
+                opts.RowEnding == opts.RowEnding &&
+                opts.TypeDescriber == opts.TypeDescriber &&
+                opts.ValueSeparator == opts.ValueSeparator &&
+                opts.WriteBufferSizeHint == opts.WriteBufferSizeHint &&
+                opts.WriteHeader == opts.WriteHeader &&
+                opts.WriteTrailingNewLine == opts.WriteTrailingNewLine;
+        }
+
+        /// <summary>
+        /// Returns a stable hash for this Options.
+        /// </summary>
+        public override int GetHashCode()
+        => HashCode.Combine(
+            CommentCharacter,
+            DynamicRowDisposal,
+            EscapedValueEscapeCharacter,
+            EscapedValueStartAndEnd,
+            MemoryPool,
+            ReadBufferSizeHint,
+            ReadHeader,
+            HashCode.Combine(
+                RowEnding,
+                TypeDescriber,
+                ValueSeparator,
+                WriteBufferSizeHint,
+                WriteHeader,
+                WriteTrailingNewLine
+            ));
+
+        /// <summary>
+        /// Returns a representation of this Options object.
+        /// 
+        /// Only for debugging, this value is not guaranteed to be stable.
+        /// </summary>
+        public override string ToString()
+        {
+            var ret = new StringBuilder();
+            ret.Append($"{nameof(CommentCharacter)}={CommentCharacter}");
+            ret.Append($", {nameof(DynamicRowDisposal)}={DynamicRowDisposal}");
+            ret.Append($", {nameof(EscapedValueEscapeCharacter)}={EscapedValueEscapeCharacter}");
+            ret.Append($", {nameof(EscapedValueStartAndEnd)}={EscapedValueStartAndEnd}");
+            ret.Append($", {nameof(MemoryPool)}={MemoryPool}");
+            ret.Append($", {nameof(ReadBufferSizeHint)}={ReadBufferSizeHint}");
+            ret.Append($", {nameof(ReadHeader)}={ReadHeader}");
+            ret.Append($", {nameof(RowEnding)}={RowEnding}");
+            ret.Append($", {nameof(TypeDescriber)}={TypeDescriber}");
+            ret.Append($", {nameof(ValueSeparator)}={ValueSeparator}");
+            ret.Append($", {nameof(WriteBufferSizeHint)}={WriteBufferSizeHint}");
+            ret.Append($", {nameof(WriteHeader)}={WriteHeader}");
+            ret.Append($", {nameof(WriteTrailingNewLine)}={WriteTrailingNewLine}");
+
+            return ret.ToString();
+        }
+
+        /// <summary>
+        /// Compare two Options for equality
+        /// </summary>
+        public static bool operator ==(Options a, Options b)
+        => Utils.NullReferenceEquality(a, b);
+
+        /// <summary>
+        /// Compare two Options for inequality
+        /// </summary>
+        public static bool operator !=(Options a, Options b)
+        => !(a == b);
     }
 }

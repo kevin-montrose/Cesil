@@ -13,7 +13,671 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ReaderTests
     {
-        class _StaticSetter
+        private class _WithComments
+        {
+            public string A { get; set; }
+            public int Nope { get; set; }
+        }
+
+        [Fact]
+        public void WithComments()
+        {
+            // \r\n
+            {
+                var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturnLineFeed).Build();
+
+                // with headers
+                RunSyncReaderVariants<_WithComments>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,Nope\r\n#comment\rwhatever\r\nhello,123"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var res1 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\rwhatever", res1.Comment);
+
+                            var res2 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasValue, res2.ResultType);
+                            var row = res2.Value;
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal(123, row.Nope);
+
+                            var res3 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // with headers, comment before header
+                RunSyncReaderVariants<_WithComments>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("#comment\rwhatever\r\nA,Nope\r\nhello,123"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var res1 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\rwhatever", res1.Comment);
+
+                            var res2 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasValue, res2.ResultType);
+                            var row = res2.Value;
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal(123, row.Nope);
+
+                            var res3 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // no headers
+                RunSyncReaderVariants<_WithComments>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("#comment\rwhatever\r\nhello,123"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var res1 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\rwhatever", res1.Comment);
+
+                            var res2 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasValue, res2.ResultType);
+                            var row = res2.Value;
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal(123, row.Nope);
+
+                            var res3 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // two comments
+                RunSyncReaderVariants<_WithComments>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("#comment\rwhatever\r\n#again!###foo###"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var res1 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\rwhatever", res1.Comment);
+
+                            var res2 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res2.ResultType);
+                            Assert.Equal("again!###foo###", res2.Comment);
+
+                            var res3 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+            }
+
+            // \r
+            {
+                var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturn).Build();
+
+                // with headers
+                RunSyncReaderVariants<_WithComments>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,Nope\r#comment\nwhatever\rhello,123"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var res1 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\nwhatever", res1.Comment);
+
+                            var res2 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasValue, res2.ResultType);
+                            var row = res2.Value;
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal(123, row.Nope);
+
+                            var res3 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // with headers, comment before header
+                RunSyncReaderVariants<_WithComments>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("#comment\nwhatever\rA,Nope\rhello,123"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var res1 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\nwhatever", res1.Comment);
+
+                            var res2 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasValue, res2.ResultType);
+                            var row = res2.Value;
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal(123, row.Nope);
+
+                            var res3 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // no headers
+                RunSyncReaderVariants<_WithComments>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("#comment\nwhatever\rhello,123"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var res1 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\nwhatever", res1.Comment);
+
+                            var res2 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasValue, res2.ResultType);
+                            var row = res2.Value;
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal(123, row.Nope);
+
+                            var res3 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // two comments
+                RunSyncReaderVariants<_WithComments>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("#comment\nwhatever\r#again!###foo###"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var res1 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\nwhatever", res1.Comment);
+
+                            var res2 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res2.ResultType);
+                            Assert.Equal("again!###foo###", res2.Comment);
+
+                            var res3 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+            }
+
+            // \n
+            {
+                var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.LineFeed).Build();
+
+                // with headers
+                RunSyncReaderVariants<_WithComments>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,Nope\n#comment\rwhatever\nhello,123"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var res1 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\rwhatever", res1.Comment);
+
+                            var res2 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasValue, res2.ResultType);
+                            var row = res2.Value;
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal(123, row.Nope);
+
+                            var res3 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // with headers, comment before header
+                RunSyncReaderVariants<_WithComments>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("#comment\rwhatever\nA,Nope\nhello,123"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var res1 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\rwhatever", res1.Comment);
+
+                            var res2 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasValue, res2.ResultType);
+                            var row = res2.Value;
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal(123, row.Nope);
+
+                            var res3 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // no headers
+                RunSyncReaderVariants<_WithComments>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("#comment\rwhatever\nhello,123"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var res1 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\rwhatever", res1.Comment);
+
+                            var res2 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasValue, res2.ResultType);
+                            var row = res2.Value;
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal(123, row.Nope);
+
+                            var res3 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // two comments
+                RunSyncReaderVariants<_WithComments>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("#comment\rwhatever\n#again!###foo###"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var res1 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\rwhatever", res1.Comment);
+
+                            var res2 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res2.ResultType);
+                            Assert.Equal("again!###foo###", res2.Comment);
+
+                            var res3 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+            }
+        }
+
+        private class _DelegateReset
+        {
+            public int Foo { get; set; }
+        }
+
+        [Fact]
+        public void DelegateStaticReset()
+        {
+            var resetCalled = 0;
+            StaticResetDelegate resetDel =
+                () =>
+                {
+                    resetCalled++;
+                };
+
+            var name = nameof(_DelegateReset.Foo);
+            var parser = Parser.GetDefault(typeof(int).GetTypeInfo());
+            var setter = Setter.ForMethod(typeof(_DelegateReset).GetProperty(name).SetMethod);
+            var reset = Reset.ForDelegate(resetDel);
+
+            var describer = new ManualTypeDescriber();
+            describer.AddExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, IsMemberRequired.No, reset);
+            InstanceBuilderDelegate<_DelegateReset> del = (out _DelegateReset i) => { i = new _DelegateReset(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+
+            RunSyncReaderVariants<_DelegateReset>(
+                opts,
+                (config, getReader) =>
+                {
+                    resetCalled = 0;
+
+                    using (var reader = getReader("1\r\n23\r\n456\r\n7\r\n"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var row = csv.ReadAll();
+
+                        Assert.Collection(
+                            row,
+                            r => Assert.Equal(1, r.Foo),
+                            r => Assert.Equal(23, r.Foo),
+                            r => Assert.Equal(456, r.Foo),
+                            r => Assert.Equal(7, r.Foo)
+                        );
+                    }
+
+                    Assert.Equal(4, resetCalled);
+                }
+            );
+        }
+
+        [Fact]
+        public void DelegateReset()
+        {
+            var resetCalled = 0;
+            ResetDelegate<_DelegateReset> resetDel =
+                (_DelegateReset row) =>
+                {
+                    resetCalled++;
+                };
+
+            var name = nameof(_DelegateReset.Foo);
+            var parser = Parser.GetDefault(typeof(int).GetTypeInfo());
+            var setter = Setter.ForMethod(typeof(_DelegateReset).GetProperty(name).SetMethod);
+            var reset = Reset.ForDelegate(resetDel);
+
+            var describer = new ManualTypeDescriber();
+            describer.AddExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, IsMemberRequired.No, reset);
+            InstanceBuilderDelegate<_DelegateReset> del = (out _DelegateReset i) => { i = new _DelegateReset(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+
+            RunSyncReaderVariants<_DelegateReset>(
+                opts,
+                (config, getReader) =>
+                {
+                    resetCalled = 0;
+
+                    using (var reader = getReader("1\r\n23\r\n456\r\n7\r\n"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var row = csv.ReadAll();
+
+                        Assert.Collection(
+                            row,
+                            r => Assert.Equal(1, r.Foo),
+                            r => Assert.Equal(23, r.Foo),
+                            r => Assert.Equal(456, r.Foo),
+                            r => Assert.Equal(7, r.Foo)
+                        );
+                    }
+
+                    Assert.Equal(4, resetCalled);
+                }
+            );
+        }
+
+        private class _DelegateSetter
+        {
+            public int Foo { get; set; }
+        }
+
+        [Fact]
+        public void DelegateStaticSetter()
+        {
+            var setterCalled = 0;
+
+            StaticSetterDelegate<int> parser =
+                (int value) =>
+                {
+                    setterCalled++;
+                };
+
+            var describer = new ManualTypeDescriber();
+            describer.AddExplicitSetter(typeof(_DelegateSetter).GetTypeInfo(), "Foo", Setter.ForDelegate(parser));
+            InstanceBuilderDelegate<_DelegateSetter> del = (out _DelegateSetter i) => { i = new _DelegateSetter(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+
+            RunSyncReaderVariants<_DelegateSetter>(
+                opts,
+                (config, getReader) =>
+                {
+                    setterCalled = 0;
+
+                    using (var reader = getReader("1\r\n23\r\n456\r\n7\r\n"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var row = csv.ReadAll();
+
+                        Assert.Collection(
+                            row,
+                            r => Assert.Equal(0, r.Foo),
+                            r => Assert.Equal(0, r.Foo),
+                            r => Assert.Equal(0, r.Foo),
+                            r => Assert.Equal(0, r.Foo)
+                        );
+                    }
+
+                    Assert.Equal(4, setterCalled);
+                }
+            );
+        }
+
+        [Fact]
+        public void DelegateSetter()
+        {
+            var setterCalled = 0;
+
+            SetterDelegate<_DelegateSetter, int> parser =
+                (_DelegateSetter row, int value) =>
+                {
+                    setterCalled++;
+
+                    row.Foo = value * 2;
+                };
+
+            var describer = new ManualTypeDescriber();
+            describer.AddExplicitSetter(typeof(_DelegateSetter).GetTypeInfo(), "Foo", Setter.ForDelegate(parser));
+            InstanceBuilderDelegate<_DelegateSetter> del = (out _DelegateSetter i) => { i = new _DelegateSetter(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+
+            RunSyncReaderVariants<_DelegateSetter>(
+                opts,
+                (config, getReader) =>
+                {
+                    setterCalled = 0;
+
+                    using (var reader = getReader("1\r\n23\r\n456\r\n7\r\n"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var row = csv.ReadAll();
+
+                        Assert.Collection(
+                            row,
+                            r => Assert.Equal(1 * 2, r.Foo),
+                            r => Assert.Equal(23 * 2, r.Foo),
+                            r => Assert.Equal(456 * 2, r.Foo),
+                            r => Assert.Equal(7 * 2, r.Foo)
+                        );
+                    }
+
+                    Assert.Equal(4, setterCalled);
+                }
+            );
+        }
+
+        private class _ConstructorParser_Outer
+        {
+            public _ConstructorParser Foo { get; set; }
+            public _ConstructorParser_Outer() { }
+        }
+
+        private class _ConstructorParser
+        {
+            public static int Cons1Called = 0;
+            public static int Cons2Called = 0;
+
+            public string Value { get; }
+
+            public _ConstructorParser(ReadOnlySpan<char> a)
+            {
+                Cons1Called++;
+                Value = new string(a);
+            }
+
+            public _ConstructorParser(ReadOnlySpan<char> a, in ReadContext ctx)
+            {
+                Cons2Called++;
+                Value = new string(a) + ctx.Column.Index;
+            }
+        }
+
+        [Fact]
+        public void ConstructorParser()
+        {
+            var cons1 = typeof(_ConstructorParser).GetConstructor(new[] { typeof(ReadOnlySpan<char>) });
+            var cons2 = typeof(_ConstructorParser).GetConstructor(new[] { typeof(ReadOnlySpan<char>), typeof(ReadContext).MakeByRefType() });
+
+            // single param
+            {
+                var describer = new ManualTypeDescriber();
+                describer.AddDeserializableProperty(
+                    typeof(_ConstructorParser_Outer).GetProperty(nameof(_ConstructorParser_Outer.Foo)),
+                    nameof(_ConstructorParser_Outer.Foo),
+                    Parser.ForConstructor(cons1)
+                );
+
+                InstanceBuilderDelegate<_ConstructorParser_Outer> del = (out _ConstructorParser_Outer i) => { i = new _ConstructorParser_Outer(); return true; };
+                describer.SetBuilder((InstanceBuilder)del);
+
+                var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+
+                RunSyncReaderVariants<_ConstructorParser_Outer>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        _ConstructorParser.Cons1Called = 0;
+
+                        using (var reader = getReader("1\r\n23\r\n456\r\n7\r\n"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var row = csv.ReadAll();
+
+                            Assert.Collection(
+                                row,
+                                r => Assert.Equal("1", r.Foo.Value),
+                                r => Assert.Equal("23", r.Foo.Value),
+                                r => Assert.Equal("456", r.Foo.Value),
+                                r => Assert.Equal("7", r.Foo.Value)
+                            );
+                        }
+
+                        Assert.Equal(4, _ConstructorParser.Cons1Called);
+                    }
+                );
+            }
+
+            // two params
+            {
+                var describer = new ManualTypeDescriber();
+                describer.AddDeserializableProperty(
+                    typeof(_ConstructorParser_Outer).GetProperty(nameof(_ConstructorParser_Outer.Foo)),
+                    nameof(_ConstructorParser_Outer.Foo),
+                    Parser.ForConstructor(cons2)
+                );
+                InstanceBuilderDelegate<_ConstructorParser_Outer> del = (out _ConstructorParser_Outer i) => { i = new _ConstructorParser_Outer(); return true; };
+                describer.SetBuilder((InstanceBuilder)del);
+
+                var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+
+                RunSyncReaderVariants<_ConstructorParser_Outer>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        _ConstructorParser.Cons2Called = 0;
+
+                        using (var reader = getReader("1\r\n23\r\n456\r\n7\r\n"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var row = csv.ReadAll();
+
+                            Assert.Collection(
+                                row,
+                                r => Assert.Equal("10", r.Foo.Value),
+                                r => Assert.Equal("230", r.Foo.Value),
+                                r => Assert.Equal("4560", r.Foo.Value),
+                                r => Assert.Equal("70", r.Foo.Value)
+                            );
+                        }
+
+                        Assert.Equal(4, _ConstructorParser.Cons2Called);
+                    }
+                );
+            }
+        }
+
+        private class _DelegateParser
+        {
+            public int Foo { get; set; }
+        }
+
+        [Fact]
+        public void DelegateParser()
+        {
+            var parserCalled = 0;
+
+            ParserDelegate<int> parser =
+                (ReadOnlySpan<char> data, in ReadContext _, out int res) =>
+                {
+                    parserCalled++;
+
+                    res = data.Length;
+                    return true;
+                };
+
+            var describer = new ManualTypeDescriber();
+            describer.AddDeserializableProperty(
+                typeof(_DelegateParser).GetProperty(nameof(_DelegateParser.Foo)),
+                nameof(_DelegateParser.Foo),
+                Parser.ForDelegate(parser)
+            );
+            InstanceBuilderDelegate<_DelegateParser> del = (out _DelegateParser i) => { i = new _DelegateParser(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+
+            RunSyncReaderVariants<_DelegateParser>(
+                opts,
+                (config, getReader) =>
+                {
+                    parserCalled = 0;
+
+                    using (var reader = getReader("1\r\n23\r\n456\r\n7\r\n"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var row = csv.ReadAll();
+
+                        Assert.Collection(
+                            row,
+                            r => Assert.Equal(1, r.Foo),
+                            r => Assert.Equal(2, r.Foo),
+                            r => Assert.Equal(3, r.Foo),
+                            r => Assert.Equal(1, r.Foo)
+                        );
+                    }
+
+                    Assert.Equal(4, parserCalled);
+                }
+            );
+        }
+
+        private class _StaticSetter
         {
             public static int Foo { get; set; }
         }
@@ -23,7 +687,8 @@ namespace Cesil.Tests
         {
             var describer = new ManualTypeDescriber();
             describer.AddDeserializableProperty(typeof(_StaticSetter).GetProperty(nameof(_StaticSetter.Foo), BindingFlags.Static | BindingFlags.Public));
-            describer.SetBuilderDelegate((out _StaticSetter i) => { i = new _StaticSetter(); return true; });
+            InstanceBuilderDelegate<_StaticSetter> del = (out _StaticSetter i) => { i = new _StaticSetter(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
 
             var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
 
@@ -46,7 +711,7 @@ namespace Cesil.Tests
             );
         }
 
-        class _WithReset
+        private class _WithReset
         {
             public string A { get; set; }
 
@@ -71,7 +736,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _WithReset_Static
+        private class _WithReset_Static
         {
             public static int Count;
 
@@ -85,7 +750,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _WithReset_StaticWithParam
+        private class _WithReset_StaticWithParam
         {
             public string A { get; set; }
 
@@ -194,16 +859,22 @@ namespace Cesil.Tests
 
             // making these consts is a win, but we want to make sure we don't break them
             Assert.Equal(maxStateVal + 1, ReaderStateMachine.RuleCacheStateCount);
-            Assert.Equal(Enum.GetValues(typeof(ReaderStateMachine.CharacterType)).Length, ReaderStateMachine.RuleCacheCharacterCount);
-            Assert.Equal((maxStateVal + 1) * Enum.GetValues(typeof(ReaderStateMachine.CharacterType)).Length, ReaderStateMachine.RuleCacheConfigSize);
-            Assert.Equal(Enum.GetValues(typeof(RowEndings)).Length, ReaderStateMachine.RuleCacheRowEndingCount);
-            Assert.Equal(Enum.GetValues(typeof(RowEndings)).Length * 2, ReaderStateMachine.RuleCacheConfigCount);
+
+            var characterTypeMax = Enum.GetValues(typeof(ReaderStateMachine.CharacterType)).Cast<byte>().Max();
+
+            Assert.Equal(characterTypeMax + 1, ReaderStateMachine.RuleCacheCharacterCount);
+            Assert.Equal((maxStateVal + 1) * (characterTypeMax + 1), ReaderStateMachine.RuleCacheConfigSize);
+
+            var rowEndingsMax = Enum.GetValues(typeof(RowEndings)).Cast<byte>().Max();
+
+            Assert.Equal(rowEndingsMax + 1, ReaderStateMachine.RuleCacheRowEndingCount);
+            Assert.Equal((rowEndingsMax + 1) * 4, ReaderStateMachine.RuleCacheConfigCount);
         }
 
         [Fact]
         public void StateMasks()
         {
-            foreach(ReaderStateMachine.State state in Enum.GetValues(typeof(ReaderStateMachine.State)))
+            foreach (ReaderStateMachine.State state in Enum.GetValues(typeof(ReaderStateMachine.State)))
             {
                 var wasSpecial = false;
 
@@ -260,7 +931,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _TabSeparator
+        private class _TabSeparator
         {
             public string Foo { get; set; }
             public int Bar { get; set; }
@@ -292,7 +963,7 @@ namespace Cesil.Tests
             );
         }
 
-        class _DifferentEscapes
+        private class _DifferentEscapes
         {
             public string Foo { get; set; }
             public string Bar { get; set; }
@@ -404,7 +1075,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _BadEscape
+        private class _BadEscape
         {
             public string A { get; set; }
             public string B { get; set; }
@@ -429,7 +1100,7 @@ namespace Cesil.Tests
             );
         }
 
-        class _TryReadWithReuse
+        private class _TryReadWithReuse
         {
             public string Bar { get; set; }
         }
@@ -467,7 +1138,7 @@ namespace Cesil.Tests
             );
         }
 
-        class _ReadAll
+        private class _ReadAll
         {
             public string Foo { get; set; }
             public int? Bar { get; set; }
@@ -841,7 +1512,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             );
         }
 
-        class _DetectLineEndings
+        private class _DetectLineEndings
         {
             public string Foo { get; set; }
             public string Bar { get; set; }
@@ -1115,7 +1786,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             }
         }
 
-        class _DetectHeaders
+        private class _DetectHeaders
         {
             public int Hello { get; set; }
             public double World { get; set; }
@@ -1422,7 +2093,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             }
         }
 
-        class _IsRequiredMissing
+        private class _IsRequiredMissing
         {
             public string A { get; set; }
             [DataMember(IsRequired = true)]
@@ -1499,7 +2170,132 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             );
         }
 
-        class _Comment
+        [Fact]
+        public void WeirdComments()
+        {
+            {
+                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').WithRowEnding(RowEndings.LineFeed).Build();
+                RunSyncReaderVariants<_Comment>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        var CSV = "#this is a test comment!\r\nhello,world\nfoo,bar";
+                        using (var str = getReader(CSV))
+                        using (var csv = config.CreateReader(str))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.Collection(rows, a => { Assert.Equal("foo", a.Hello); Assert.Equal("bar", a.World); });
+                        }
+                    }
+                );
+
+                RunSyncReaderVariants<_Comment>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        var CSV = "hello,world\n#this is a test comment!\r\nfoo,bar";
+                        using (var str = getReader(CSV))
+                        using (var csv = config.CreateReader(str))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.Collection(rows, a => { Assert.Equal("foo", a.Hello); Assert.Equal("bar", a.World); });
+                        }
+                    }
+                );
+            }
+
+            {
+                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturn).Build();
+                RunSyncReaderVariants<_Comment>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        var CSV = "#this is a test comment!\n\rhello,world\rfoo,bar";
+                        using (var str = getReader(CSV))
+                        using (var csv = config.CreateReader(str))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.Collection(rows, a => { Assert.Equal("foo", a.Hello); Assert.Equal("bar", a.World); });
+                        }
+                    }
+                );
+
+                RunSyncReaderVariants<_Comment>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        var CSV = "hello,world\r#this is a test comment!\n\rfoo,bar";
+                        using (var str = getReader(CSV))
+                        using (var csv = config.CreateReader(str))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.Collection(rows, a => { Assert.Equal("foo", a.Hello); Assert.Equal("bar", a.World); });
+                        }
+                    }
+                );
+            }
+
+            {
+                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturnLineFeed).Build();
+                RunSyncReaderVariants<_Comment>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        var CSV = "#this is a test comment!\n\r\nhello,world\r\nfoo,bar";
+                        using (var str = getReader(CSV))
+                        using (var csv = config.CreateReader(str))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.Collection(rows, a => { Assert.Equal("foo", a.Hello); Assert.Equal("bar", a.World); });
+                        }
+                    }
+                );
+
+                RunSyncReaderVariants<_Comment>(
+                   opts,
+                   (config, getReader) =>
+                   {
+                       var CSV = "#this is a test comment!\r\r\nhello,world\r\nfoo,bar";
+                       using (var str = getReader(CSV))
+                       using (var csv = config.CreateReader(str))
+                       {
+                           var rows = csv.ReadAll();
+                           Assert.Collection(rows, a => { Assert.Equal("foo", a.Hello); Assert.Equal("bar", a.World); });
+                       }
+                   }
+               );
+
+                RunSyncReaderVariants<_Comment>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        var CSV = "hello,world\r\n#this is a test comment!\n\r\nfoo,bar";
+                        using (var str = getReader(CSV))
+                        using (var csv = config.CreateReader(str))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.Collection(rows, a => { Assert.Equal("foo", a.Hello); Assert.Equal("bar", a.World); });
+                        }
+                    }
+                );
+
+                RunSyncReaderVariants<_Comment>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        var CSV = "hello,world\r\n#this is a test comment!\r\r\nfoo,bar";
+                        using (var str = getReader(CSV))
+                        using (var csv = config.CreateReader(str))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.Collection(rows, a => { Assert.Equal("foo", a.Hello); Assert.Equal("bar", a.World); });
+                        }
+                    }
+                );
+            }
+        }
+
+        private class _Comment
         {
             [DataMember(Name = "hello")]
             public string Hello { get; set; }
@@ -1577,7 +2373,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             );
         }
 
-        class _Context
+        private class _Context
         {
             public string Foo { get; set; }
             public int Bar { get; set; }
@@ -1586,7 +2382,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         private static List<string> _Context_ParseFoo_Records;
         public static bool _Context_ParseFoo(ReadOnlySpan<char> data, in ReadContext ctx, out string val)
         {
-            _Context_ParseFoo_Records.Add($"{ctx.RowNumber},{ctx.ColumnName},{ctx.ColumnNumber},{new string(data)},{ctx.Context}");
+            _Context_ParseFoo_Records.Add($"{ctx.RowNumber},{ctx.Column.Name},{ctx.Column.Index},{new string(data)},{ctx.Context}");
 
             val = new string(data);
             return true;
@@ -1595,7 +2391,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         private static List<string> _Context_ParseBar_Records;
         public static bool _Context_ParseBar(ReadOnlySpan<char> data, in ReadContext ctx, out int val)
         {
-            _Context_ParseBar_Records.Add($"{ctx.RowNumber},{ctx.ColumnName},{ctx.ColumnNumber},{new string(data)},{ctx.Context}");
+            _Context_ParseBar_Records.Add($"{ctx.RowNumber},{ctx.Column.Name},{ctx.Column.Index},{new string(data)},{ctx.Context}");
 
             if (!int.TryParse(data, out val))
             {
@@ -1609,11 +2405,11 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public void Context()
         {
-            var parseFoo = typeof(ReaderTests).GetMethod(nameof(_Context_ParseFoo));
-            var parseBar = typeof(ReaderTests).GetMethod(nameof(_Context_ParseBar));
+            var parseFoo = (Parser)typeof(ReaderTests).GetMethod(nameof(_Context_ParseFoo));
+            var parseBar = (Parser)typeof(ReaderTests).GetMethod(nameof(_Context_ParseBar));
 
             var describer = new ManualTypeDescriber(false);
-            describer.SetExplicitParameterlessConstructor(typeof(_Context).GetConstructor(Type.EmptyTypes));
+            describer.SetBuilder((InstanceBuilder)typeof(_Context).GetConstructor(Type.EmptyTypes));
             describer.AddDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), parseFoo);
             describer.AddDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), parseBar);
 
@@ -1688,6 +2484,747 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     }
                 );
             }
+        }
+
+        [Fact]
+        public async Task WithCommentsAsync()
+        {
+            // \r\n
+            {
+                var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturnLineFeed).Build();
+
+                // with headers
+                await RunAsyncReaderVariants<_WithComments>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,Nope\r\n#comment\rwhatever\r\nhello,123"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var res1 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\rwhatever", res1.Comment);
+
+                            var res2 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasValue, res2.ResultType);
+                            var row = res2.Value;
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal(123, row.Nope);
+
+                            var res3 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // with headers, comment before header
+                await RunAsyncReaderVariants<_WithComments>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        using (var reader = getReader("#comment\rwhatever\r\nA,Nope\r\nhello,123"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var res1 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\rwhatever", res1.Comment);
+
+                            var res2 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasValue, res2.ResultType);
+                            var row = res2.Value;
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal(123, row.Nope);
+
+                            var res3 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // no headers
+                await RunAsyncReaderVariants<_WithComments>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        using (var reader = getReader("#comment\rwhatever\r\nhello,123"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var res1 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\rwhatever", res1.Comment);
+
+                            var res2 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasValue, res2.ResultType);
+                            var row = res2.Value;
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal(123, row.Nope);
+
+                            var res3 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // two comments
+                await RunAsyncReaderVariants<_WithComments>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        using (var reader = getReader("#comment\rwhatever\r\n#again!###foo###"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var res1 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\rwhatever", res1.Comment);
+
+                            var res2 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res2.ResultType);
+                            Assert.Equal("again!###foo###", res2.Comment);
+
+                            var res3 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+            }
+
+            // \r
+            {
+                var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturn).Build();
+
+                // with headers
+                await RunAsyncReaderVariants<_WithComments>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,Nope\r#comment\nwhatever\rhello,123"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var res1 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\nwhatever", res1.Comment);
+
+                            var res2 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasValue, res2.ResultType);
+                            var row = res2.Value;
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal(123, row.Nope);
+
+                            var res3 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // with headers, comment before header
+                await RunAsyncReaderVariants<_WithComments>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        using (var reader = getReader("#comment\nwhatever\rA,Nope\rhello,123"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var res1 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\nwhatever", res1.Comment);
+
+                            var res2 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasValue, res2.ResultType);
+                            var row = res2.Value;
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal(123, row.Nope);
+
+                            var res3 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // no headers
+                await RunAsyncReaderVariants<_WithComments>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        using (var reader = getReader("#comment\nwhatever\rhello,123"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var res1 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\nwhatever", res1.Comment);
+
+                            var res2 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasValue, res2.ResultType);
+                            var row = res2.Value;
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal(123, row.Nope);
+
+                            var res3 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // two comments
+                await RunAsyncReaderVariants<_WithComments>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        using (var reader = getReader("#comment\nwhatever\r#again!###foo###"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var res1 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\nwhatever", res1.Comment);
+
+                            var res2 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res2.ResultType);
+                            Assert.Equal("again!###foo###", res2.Comment);
+
+                            var res3 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+            }
+
+            // \n
+            {
+                var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.LineFeed).Build();
+
+                // with headers
+                await RunAsyncReaderVariants<_WithComments>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,Nope\n#comment\rwhatever\nhello,123"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var res1 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\rwhatever", res1.Comment);
+
+                            var res2 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasValue, res2.ResultType);
+                            var row = res2.Value;
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal(123, row.Nope);
+
+                            var res3 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // with headers, comment before header
+                await RunAsyncReaderVariants<_WithComments>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        using (var reader = getReader("#comment\rwhatever\nA,Nope\nhello,123"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var res1 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\rwhatever", res1.Comment);
+
+                            var res2 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasValue, res2.ResultType);
+                            var row = res2.Value;
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal(123, row.Nope);
+
+                            var res3 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // no headers
+                await RunAsyncReaderVariants<_WithComments>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        using (var reader = getReader("#comment\rwhatever\nhello,123"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var res1 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\rwhatever", res1.Comment);
+
+                            var res2 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasValue, res2.ResultType);
+                            var row = res2.Value;
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal(123, row.Nope);
+
+                            var res3 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // two comments
+                await RunAsyncReaderVariants<_WithComments>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        using (var reader = getReader("#comment\rwhatever\n#again!###foo###"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var res1 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res1.ResultType);
+                            Assert.Equal("comment\rwhatever", res1.Comment);
+
+                            var res2 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.HasComment, res2.ResultType);
+                            Assert.Equal("again!###foo###", res2.Comment);
+
+                            var res3 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+            }
+        }
+
+        [Fact]
+        public async Task WeirdCommentsAsync()
+        {
+            {
+                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').WithRowEnding(RowEndings.LineFeed).Build();
+                await RunAsyncReaderVariants<_Comment>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        var CSV = "#this is a test comment!\r\nhello,world\nfoo,bar";
+                        using (var str = getReader(CSV))
+                        await using (var csv = config.CreateAsyncReader(str))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.Collection(rows, a => { Assert.Equal("foo", a.Hello); Assert.Equal("bar", a.World); });
+                        }
+                    }
+                );
+
+                await RunAsyncReaderVariants<_Comment>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        var CSV = "hello,world\n#this is a test comment!\r\nfoo,bar";
+                        using (var str = getReader(CSV))
+                        await using (var csv = config.CreateAsyncReader(str))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.Collection(rows, a => { Assert.Equal("foo", a.Hello); Assert.Equal("bar", a.World); });
+                        }
+                    }
+                );
+            }
+
+            {
+                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturn).Build();
+                await RunAsyncReaderVariants<_Comment>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        var CSV = "#this is a test comment!\n\rhello,world\rfoo,bar";
+                        using (var str = getReader(CSV))
+                        await using (var csv = config.CreateAsyncReader(str))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.Collection(rows, a => { Assert.Equal("foo", a.Hello); Assert.Equal("bar", a.World); });
+                        }
+                    }
+                );
+
+                await RunAsyncReaderVariants<_Comment>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        var CSV = "hello,world\r#this is a test comment!\n\rfoo,bar";
+                        using (var str = getReader(CSV))
+                        await using (var csv = config.CreateAsyncReader(str))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.Collection(rows, a => { Assert.Equal("foo", a.Hello); Assert.Equal("bar", a.World); });
+                        }
+                    }
+                );
+            }
+
+            {
+                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturnLineFeed).Build();
+                await RunAsyncReaderVariants<_Comment>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        var CSV = "#this is a test comment!\n\r\nhello,world\r\nfoo,bar";
+                        using (var str = getReader(CSV))
+                        await using (var csv = config.CreateAsyncReader(str))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.Collection(rows, a => { Assert.Equal("foo", a.Hello); Assert.Equal("bar", a.World); });
+                        }
+                    }
+                );
+
+                await RunAsyncReaderVariants<_Comment>(
+                   opts,
+                   async (config, getReader) =>
+                   {
+                       var CSV = "#this is a test comment!\r\r\nhello,world\r\nfoo,bar";
+                       using (var str = getReader(CSV))
+                       await using (var csv = config.CreateAsyncReader(str))
+                       {
+                           var rows = await csv.ReadAllAsync();
+                           Assert.Collection(rows, a => { Assert.Equal("foo", a.Hello); Assert.Equal("bar", a.World); });
+                       }
+                   }
+               );
+
+                await RunAsyncReaderVariants<_Comment>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        var CSV = "hello,world\r\n#this is a test comment!\n\r\nfoo,bar";
+                        using (var str = getReader(CSV))
+                        await using (var csv = config.CreateAsyncReader(str))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.Collection(rows, a => { Assert.Equal("foo", a.Hello); Assert.Equal("bar", a.World); });
+                        }
+                    }
+                );
+
+                await RunAsyncReaderVariants<_Comment>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        var CSV = "hello,world\r\n#this is a test comment!\r\r\nfoo,bar";
+                        using (var str = getReader(CSV))
+                        await using (var csv = config.CreateAsyncReader(str))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.Collection(rows, a => { Assert.Equal("foo", a.Hello); Assert.Equal("bar", a.World); });
+                        }
+                    }
+                );
+            }
+        }
+
+        [Fact]
+        public async Task DelegateStaticResetAsync()
+        {
+            var resetCalled = 0;
+            StaticResetDelegate resetDel =
+                () =>
+                {
+                    resetCalled++;
+                };
+
+            var name = nameof(_DelegateReset.Foo);
+            var parser = Parser.GetDefault(typeof(int).GetTypeInfo());
+            var setter = Setter.ForMethod(typeof(_DelegateReset).GetProperty(name).SetMethod);
+            var reset = Reset.ForDelegate(resetDel);
+
+            var describer = new ManualTypeDescriber();
+            describer.AddExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, IsMemberRequired.No, reset);
+            InstanceBuilderDelegate<_DelegateReset> del = (out _DelegateReset i) => { i = new _DelegateReset(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+
+            await RunAsyncReaderVariants<_DelegateReset>(
+                opts,
+                async (config, getReader) =>
+                {
+                    resetCalled = 0;
+
+                    using (var reader = getReader("1\r\n23\r\n456\r\n7\r\n"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var row = await csv.ReadAllAsync();
+
+                        Assert.Collection(
+                            row,
+                            r => Assert.Equal(1, r.Foo),
+                            r => Assert.Equal(23, r.Foo),
+                            r => Assert.Equal(456, r.Foo),
+                            r => Assert.Equal(7, r.Foo)
+                        );
+                    }
+
+                    Assert.Equal(4, resetCalled);
+                }
+            );
+        }
+
+        [Fact]
+        public async Task DelegateResetAsync()
+        {
+            var resetCalled = 0;
+            ResetDelegate<_DelegateReset> resetDel =
+                (_DelegateReset row) =>
+                {
+                    resetCalled++;
+                };
+
+            var name = nameof(_DelegateReset.Foo);
+            var parser = Parser.GetDefault(typeof(int).GetTypeInfo());
+            var setter = Setter.ForMethod(typeof(_DelegateReset).GetProperty(name).SetMethod);
+            var reset = Reset.ForDelegate(resetDel);
+
+            var describer = new ManualTypeDescriber();
+            describer.AddExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, IsMemberRequired.No, reset);
+            InstanceBuilderDelegate<_DelegateReset> del = (out _DelegateReset i) => { i = new _DelegateReset(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+
+            await RunAsyncReaderVariants<_DelegateReset>(
+                opts,
+                async (config, getReader) =>
+                {
+                    resetCalled = 0;
+
+                    using (var reader = getReader("1\r\n23\r\n456\r\n7\r\n"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var row = await csv.ReadAllAsync();
+
+                        Assert.Collection(
+                            row,
+                            r => Assert.Equal(1, r.Foo),
+                            r => Assert.Equal(23, r.Foo),
+                            r => Assert.Equal(456, r.Foo),
+                            r => Assert.Equal(7, r.Foo)
+                        );
+                    }
+
+                    Assert.Equal(4, resetCalled);
+                }
+            );
+        }
+
+        [Fact]
+        public async Task DelegateStaticSetterAsync()
+        {
+            var setterCalled = 0;
+
+            StaticSetterDelegate<int> parser =
+                (int value) =>
+                {
+                    setterCalled++;
+                };
+
+            var describer = new ManualTypeDescriber();
+            describer.AddExplicitSetter(typeof(_DelegateSetter).GetTypeInfo(), "Foo", Setter.ForDelegate(parser));
+            InstanceBuilderDelegate<_DelegateSetter> del = (out _DelegateSetter i) => { i = new _DelegateSetter(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+
+            await RunAsyncReaderVariants<_DelegateSetter>(
+                opts,
+                async (config, getReader) =>
+                {
+                    setterCalled = 0;
+
+                    using (var reader = getReader("1\r\n23\r\n456\r\n7\r\n"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var row = await csv.ReadAllAsync();
+
+                        Assert.Collection(
+                            row,
+                            r => Assert.Equal(0, r.Foo),
+                            r => Assert.Equal(0, r.Foo),
+                            r => Assert.Equal(0, r.Foo),
+                            r => Assert.Equal(0, r.Foo)
+                        );
+                    }
+
+                    Assert.Equal(4, setterCalled);
+                }
+            );
+        }
+
+        [Fact]
+        public async Task DelegateSetterAsync()
+        {
+            var setterCalled = 0;
+
+            SetterDelegate<_DelegateSetter, int> parser =
+                (_DelegateSetter row, int value) =>
+                {
+                    setterCalled++;
+
+                    row.Foo = value * 2;
+                };
+
+            var describer = new ManualTypeDescriber();
+            describer.AddExplicitSetter(typeof(_DelegateSetter).GetTypeInfo(), "Foo", Setter.ForDelegate(parser));
+            InstanceBuilderDelegate<_DelegateSetter> del = (out _DelegateSetter i) => { i = new _DelegateSetter(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+
+            await RunAsyncReaderVariants<_DelegateSetter>(
+                opts,
+                async (config, getReader) =>
+                {
+                    setterCalled = 0;
+
+                    using (var reader = getReader("1\r\n23\r\n456\r\n7\r\n"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var row = await csv.ReadAllAsync();
+
+                        Assert.Collection(
+                            row,
+                            r => Assert.Equal(1 * 2, r.Foo),
+                            r => Assert.Equal(23 * 2, r.Foo),
+                            r => Assert.Equal(456 * 2, r.Foo),
+                            r => Assert.Equal(7 * 2, r.Foo)
+                        );
+                    }
+
+                    Assert.Equal(4, setterCalled);
+                }
+            );
+        }
+
+        [Fact]
+        public async Task ConstructorParserAsync()
+        {
+            var cons1 = typeof(_ConstructorParser).GetConstructor(new[] { typeof(ReadOnlySpan<char>) });
+            var cons2 = typeof(_ConstructorParser).GetConstructor(new[] { typeof(ReadOnlySpan<char>), typeof(ReadContext).MakeByRefType() });
+
+            // single param
+            {
+                var describer = new ManualTypeDescriber();
+                describer.AddDeserializableProperty(
+                    typeof(_ConstructorParser_Outer).GetProperty(nameof(_ConstructorParser_Outer.Foo)),
+                    nameof(_ConstructorParser_Outer.Foo),
+                    Parser.ForConstructor(cons1)
+                );
+                InstanceBuilderDelegate<_ConstructorParser_Outer> del = (out _ConstructorParser_Outer i) => { i = new _ConstructorParser_Outer(); return true; };
+                describer.SetBuilder((InstanceBuilder)del);
+
+                var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+
+                await RunAsyncReaderVariants<_ConstructorParser_Outer>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        _ConstructorParser.Cons1Called = 0;
+
+                        using (var reader = getReader("1\r\n23\r\n456\r\n7\r\n"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var row = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                row,
+                                r => Assert.Equal("1", r.Foo.Value),
+                                r => Assert.Equal("23", r.Foo.Value),
+                                r => Assert.Equal("456", r.Foo.Value),
+                                r => Assert.Equal("7", r.Foo.Value)
+                            );
+                        }
+
+                        Assert.Equal(4, _ConstructorParser.Cons1Called);
+                    }
+                );
+            }
+
+            // two params
+            {
+                var describer = new ManualTypeDescriber();
+                describer.AddDeserializableProperty(
+                    typeof(_ConstructorParser_Outer).GetProperty(nameof(_ConstructorParser_Outer.Foo)),
+                    nameof(_ConstructorParser_Outer.Foo),
+                    Parser.ForConstructor(cons2)
+                );
+                InstanceBuilderDelegate<_ConstructorParser_Outer> del = (out _ConstructorParser_Outer i) => { i = new _ConstructorParser_Outer(); return true; };
+                describer.SetBuilder((InstanceBuilder)del);
+
+                var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+
+                await RunAsyncReaderVariants<_ConstructorParser_Outer>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        _ConstructorParser.Cons2Called = 0;
+
+                        using (var reader = getReader("1\r\n23\r\n456\r\n7\r\n"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var row = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                row,
+                                r => Assert.Equal("10", r.Foo.Value),
+                                r => Assert.Equal("230", r.Foo.Value),
+                                r => Assert.Equal("4560", r.Foo.Value),
+                                r => Assert.Equal("70", r.Foo.Value)
+                            );
+                        }
+
+                        Assert.Equal(4, _ConstructorParser.Cons2Called);
+                    }
+                );
+            }
+        }
+
+        [Fact]
+        public async Task DelegateParserAsync()
+        {
+            var parserCalled = 0;
+
+            ParserDelegate<int> parser =
+                (ReadOnlySpan<char> data, in ReadContext _, out int res) =>
+                {
+                    parserCalled++;
+
+                    res = data.Length;
+                    return true;
+                };
+
+            var describer = new ManualTypeDescriber();
+            describer.AddDeserializableProperty(
+                typeof(_DelegateParser).GetProperty(nameof(_DelegateParser.Foo)),
+                nameof(_DelegateParser.Foo),
+                Parser.ForDelegate(parser)
+            );
+            InstanceBuilderDelegate<_DelegateParser> del = (out _DelegateParser i) => { i = new _DelegateParser(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+
+            await RunAsyncReaderVariants<_DelegateParser>(
+                opts,
+                async (config, getReader) =>
+                {
+                    parserCalled = 0;
+
+                    using (var reader = getReader("1\r\n23\r\n456\r\n7\r\n"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var row = await csv.ReadAllAsync();
+
+                        Assert.Collection(
+                            row,
+                            r => Assert.Equal(1, r.Foo),
+                            r => Assert.Equal(2, r.Foo),
+                            r => Assert.Equal(3, r.Foo),
+                            r => Assert.Equal(1, r.Foo)
+                        );
+                    }
+
+                    Assert.Equal(4, parserCalled);
+                }
+            );
         }
 
         [Fact]
@@ -3179,11 +4716,11 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public async Task ContextAsync()
         {
-            var parseFoo = typeof(ReaderTests).GetMethod(nameof(_Context_ParseFoo));
-            var parseBar = typeof(ReaderTests).GetMethod(nameof(_Context_ParseBar));
+            var parseFoo = (Parser)typeof(ReaderTests).GetMethod(nameof(_Context_ParseFoo));
+            var parseBar = (Parser)typeof(ReaderTests).GetMethod(nameof(_Context_ParseBar));
 
             var describer = new ManualTypeDescriber(false);
-            describer.SetExplicitParameterlessConstructor(typeof(_Context).GetConstructor(Type.EmptyTypes));
+            describer.SetBuilder((InstanceBuilder)typeof(_Context).GetConstructor(Type.EmptyTypes));
             describer.AddDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), parseFoo);
             describer.AddDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), parseBar);
 
@@ -3265,7 +4802,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         {
             var describer = new ManualTypeDescriber();
             describer.AddDeserializableProperty(typeof(_StaticSetter).GetProperty(nameof(_StaticSetter.Foo), BindingFlags.Static | BindingFlags.Public));
-            describer.SetBuilderDelegate((out _StaticSetter i) => { i = new _StaticSetter(); return true; });
+            InstanceBuilderDelegate<_StaticSetter> del = (out _StaticSetter i) => { i = new _StaticSetter(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
 
             var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
 

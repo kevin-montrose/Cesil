@@ -16,7 +16,7 @@ namespace Cesil
         internal bool IsRequired { get; }
 
         internal Column(
-            string name, 
+            string name,
             SetterDelegate set,
             WriterDelegate write,
             bool isRequired

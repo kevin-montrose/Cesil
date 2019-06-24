@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
@@ -10,12 +9,12 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class SurrogateTypeDescriberTests
     {
-        class _Simple_Real
+        private class _Simple_Real
         {
             public string Foo { get; set; }
         }
 
-        class _Simple_Surrogate
+        private class _Simple_Surrogate
         {
             [DataMember(Name = "bar")]
             public string Foo { get; set; }
@@ -35,10 +34,10 @@ namespace Cesil.Tests
                     res,
                     a =>
                     {
-                        Assert.Null(a.Field);
-                        Assert.Equal(DeserializableMember.GetDefaultParser(typeof(string).GetTypeInfo()), a.Parser);
+                        Assert.Null(a.Setter.Field);
+                        Assert.Equal(Parser.GetDefault(typeof(string).GetTypeInfo()), a.Parser);
                         Assert.Equal("bar", a.Name);
-                        Assert.Equal(typeof(_Simple_Real).GetProperty(nameof(_Simple_Real.Foo)).SetMethod, a.Setter);
+                        Assert.Equal(typeof(_Simple_Real).GetProperty(nameof(_Simple_Real.Foo)).SetMethod, a.Setter.Method);
                         Assert.False(a.IsRequired);
                     }
                 );
@@ -52,10 +51,10 @@ namespace Cesil.Tests
                     res,
                     a =>
                     {
-                        Assert.Null(a.Field);
-                        Assert.Equal(DeserializableMember.GetDefaultParser(typeof(string).GetTypeInfo()), a.Parser);
+                        Assert.Null(a.Setter.Field);
+                        Assert.Equal(Parser.GetDefault(typeof(string).GetTypeInfo()), a.Parser);
                         Assert.Equal("bar", a.Name);
-                        Assert.Equal(typeof(_Simple_Surrogate).GetProperty(nameof(_Simple_Surrogate.Foo)).SetMethod, a.Setter);
+                        Assert.Equal(typeof(_Simple_Surrogate).GetProperty(nameof(_Simple_Surrogate.Foo)).SetMethod, a.Setter.Method);
                         Assert.False(a.IsRequired);
                     }
                 );
@@ -77,10 +76,11 @@ namespace Cesil.Tests
                     a =>
                     {
                         Assert.True(a.EmitDefaultValue);
-                        Assert.Null(a.Field);
-                        Assert.Equal(SerializableMember.GetDefaultFormatter(typeof(string).GetTypeInfo()), a.Formatter);
+                        Assert.Null(a.Getter.Field);
+                        Assert.Null(a.Getter.Delegate);
+                        Assert.Equal(Formatter.GetDefault(typeof(string).GetTypeInfo()), a.Formatter);
                         Assert.Equal("bar", a.Name);
-                        Assert.Equal(typeof(_Simple_Real).GetProperty(nameof(_Simple_Real.Foo)).GetMethod, a.Getter);
+                        Assert.Equal(typeof(_Simple_Real).GetProperty(nameof(_Simple_Real.Foo)).GetMethod, a.Getter.Method);
                         Assert.Null(a.ShouldSerialize);
                     }
                 );
@@ -95,10 +95,11 @@ namespace Cesil.Tests
                     a =>
                     {
                         Assert.True(a.EmitDefaultValue);
-                        Assert.Null(a.Field);
-                        Assert.Equal(SerializableMember.GetDefaultFormatter(typeof(string).GetTypeInfo()), a.Formatter);
+                        Assert.Null(a.Getter.Field);
+                        Assert.Null(a.Getter.Delegate);
+                        Assert.Equal(Formatter.GetDefault(typeof(string).GetTypeInfo()), a.Formatter);
                         Assert.Equal("bar", a.Name);
-                        Assert.Equal(typeof(_Simple_Surrogate).GetProperty(nameof(_Simple_Surrogate.Foo)).GetMethod, a.Getter);
+                        Assert.Equal(typeof(_Simple_Surrogate).GetProperty(nameof(_Simple_Surrogate.Foo)).GetMethod, a.Getter.Method);
                         Assert.Null(a.ShouldSerialize);
                     }
                 );
@@ -106,86 +107,85 @@ namespace Cesil.Tests
         }
 
 #pragma warning disable 0649
-        class _Errors_Field
+        private class _Errors_Field
         {
             public string Foo;
         }
 
-
-        class _Errors_Field_Missing
+        private class _Errors_Field_Missing
         {
             [DataMember]
             public string Bar;
         }
 
-        class _Errors_Field_Mismatch
+        private class _Errors_Field_Mismatch
         {
             [DataMember]
             public int Foo;
         }
 #pragma warning restore 0649
 
-        class _Errors_Property
+        private class _Errors_Property
         {
             public string Fizz { get; set; }
         }
 
-        class _Errors_Property_Missing
+        private class _Errors_Property_Missing
         {
             public string Buzz { get; set; }
         }
 
-        class _Errors_Property_Mismatch
+        private class _Errors_Property_Mismatch
         {
             public int Fizz { get; set; }
         }
-        
-        class _Errors_ExplicitSetter
+
+        private class _Errors_ExplicitSetter
         {
             public void SetVal(string val) { }
         }
 
-        class _Errors_ExplicitSetter_Mismatch
+        private class _Errors_ExplicitSetter_Mismatch
         {
             public void SetVal(int val) { }
         }
 
-        class _Errors_ExplicitStaticSetter
+        private class _Errors_ExplicitStaticSetter
         {
             public static void SetVal(string val) { }
         }
 
-        class _Errors_ExplicitStaticSetter_Mismatch
+        private class _Errors_ExplicitStaticSetter_Mismatch
         {
             public static void SetVal(int val) { }
         }
 
-        class _Errors_ExplicitStaticSetter_ArityMismatch
+        private class _Errors_ExplicitStaticSetter_ArityMismatch
         {
             public static void SetVal(_Errors_ExplicitStaticSetter foo, int val) { }
         }
 
-        class _Errors_ExplicitGetter
+        private class _Errors_ExplicitGetter
         {
             public string GetVal() => "";
         }
 
-        class _Errors_ExplicitGetter_Mismatch
+        private class _Errors_ExplicitGetter_Mismatch
         {
             public int GetVal() => 0;
         }
 
-        class _Errors_ExplicitStaticGetter
+        private class _Errors_ExplicitStaticGetter
         {
             public static string GetVal() => "";
         }
 
-        class _Errors_ExplicitStaticGetter_Mismatch
+        private class _Errors_ExplicitStaticGetter_Mismatch
         {
             public static int GetVal() => 0;
         }
 
-        class _Errors_ExplicitStaticGetter_ArityMismatch: _Errors_ExplicitStaticGetter
+        private class _Errors_ExplicitStaticGetter_ArityMismatch : _Errors_ExplicitStaticGetter
         {
             public static string GetVal(_Errors_ExplicitStaticGetter row) => "";
         }
@@ -266,7 +266,7 @@ namespace Cesil.Tests
             // explicit setter mismatch
             {
                 var i = new ManualTypeDescriber(false);
-                i.AddExplicitSetter(typeof(_Errors_ExplicitSetter_Mismatch).GetTypeInfo(), "Val", typeof(_Errors_ExplicitSetter_Mismatch).GetMethod("SetVal"));
+                i.AddExplicitSetter(typeof(_Errors_ExplicitSetter_Mismatch).GetTypeInfo(), "Val", (Setter)typeof(_Errors_ExplicitSetter_Mismatch).GetMethod("SetVal"));
 
                 var s = new SurrogateTypeDescriber(i, false);
                 s.AddSurrogateType(typeof(_Errors_ExplicitSetter).GetTypeInfo(), typeof(_Errors_ExplicitSetter_Mismatch).GetTypeInfo());
@@ -276,7 +276,7 @@ namespace Cesil.Tests
             // explicit static setter mismatch
             {
                 var i = new ManualTypeDescriber(false);
-                i.AddExplicitSetter(typeof(_Errors_ExplicitStaticSetter_Mismatch).GetTypeInfo(), "Val", typeof(_Errors_ExplicitStaticSetter_Mismatch).GetMethod("SetVal"));
+                i.AddExplicitSetter(typeof(_Errors_ExplicitStaticSetter_Mismatch).GetTypeInfo(), "Val", (Setter)typeof(_Errors_ExplicitStaticSetter_Mismatch).GetMethod("SetVal"));
 
                 var s = new SurrogateTypeDescriber(i, false);
                 s.AddSurrogateType(typeof(_Errors_ExplicitStaticSetter).GetTypeInfo(), typeof(_Errors_ExplicitStaticSetter_Mismatch).GetTypeInfo());
@@ -286,7 +286,7 @@ namespace Cesil.Tests
             // explicit static setter arity mismatch
             {
                 var i = new ManualTypeDescriber(false);
-                i.AddExplicitSetter(typeof(_Errors_ExplicitStaticSetter_ArityMismatch).GetTypeInfo(), "Val", typeof(_Errors_ExplicitStaticSetter_ArityMismatch).GetMethod("SetVal"));
+                i.AddExplicitSetter(typeof(_Errors_ExplicitStaticSetter_ArityMismatch).GetTypeInfo(), "Val", (Setter)typeof(_Errors_ExplicitStaticSetter_ArityMismatch).GetMethod("SetVal"));
 
                 var s = new SurrogateTypeDescriber(i, false);
                 s.AddSurrogateType(typeof(_Errors_ExplicitStaticSetter).GetTypeInfo(), typeof(_Errors_ExplicitStaticSetter_ArityMismatch).GetTypeInfo());
@@ -296,7 +296,7 @@ namespace Cesil.Tests
             // explicit getter mismatch
             {
                 var i = new ManualTypeDescriber(false);
-                i.AddExplicitGetter(typeof(_Errors_ExplicitGetter_Mismatch).GetTypeInfo(), "Val", typeof(_Errors_ExplicitGetter_Mismatch).GetMethod("GetVal"));
+                i.AddExplicitGetter(typeof(_Errors_ExplicitGetter_Mismatch).GetTypeInfo(), "Val", (Getter)typeof(_Errors_ExplicitGetter_Mismatch).GetMethod("GetVal"));
 
                 var s = new SurrogateTypeDescriber(i, false);
                 s.AddSurrogateType(typeof(_Errors_ExplicitGetter).GetTypeInfo(), typeof(_Errors_ExplicitGetter_Mismatch).GetTypeInfo());
@@ -306,20 +306,10 @@ namespace Cesil.Tests
             // explicit static getter mismatch
             {
                 var i = new ManualTypeDescriber(false);
-                i.AddExplicitGetter(typeof(_Errors_ExplicitStaticGetter_Mismatch).GetTypeInfo(), "Val", typeof(_Errors_ExplicitStaticGetter_Mismatch).GetMethod("GetVal"));
+                i.AddExplicitGetter(typeof(_Errors_ExplicitStaticGetter_Mismatch).GetTypeInfo(), "Val", (Getter)typeof(_Errors_ExplicitStaticGetter_Mismatch).GetMethod("GetVal"));
 
                 var s = new SurrogateTypeDescriber(i, false);
                 s.AddSurrogateType(typeof(_Errors_ExplicitStaticGetter).GetTypeInfo(), typeof(_Errors_ExplicitStaticGetter_Mismatch).GetTypeInfo());
-                Assert.ThrowsAny<Exception>(() => s.EnumerateMembersToSerialize(typeof(_Errors_ExplicitStaticGetter).GetTypeInfo()).ToList());
-            }
-
-            // explicit static getter arity mismatch
-            {
-                var i = new ManualTypeDescriber(false);
-                i.AddExplicitGetter(typeof(_Errors_ExplicitStaticGetter_ArityMismatch).GetTypeInfo(), "Val", typeof(_Errors_ExplicitStaticGetter_ArityMismatch).GetMethod("GetVal"));
-
-                var s = new SurrogateTypeDescriber(i, false);
-                s.AddSurrogateType(typeof(_Errors_ExplicitStaticGetter).GetTypeInfo(), typeof(_Errors_ExplicitStaticGetter_ArityMismatch).GetTypeInfo());
                 Assert.ThrowsAny<Exception>(() => s.EnumerateMembersToSerialize(typeof(_Errors_ExplicitStaticGetter).GetTypeInfo()).ToList());
             }
         }

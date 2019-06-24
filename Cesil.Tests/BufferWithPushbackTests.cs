@@ -28,7 +28,7 @@ namespace Cesil.Tests
         }
 
         // just a stub for helper purposes
-        class _Foo { public string A { get; set; } }
+        private class _Foo { public string A { get; set; } }
 
         [Fact]
         public async Task ReadAsync()

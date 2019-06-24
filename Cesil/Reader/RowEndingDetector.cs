@@ -6,15 +6,15 @@ using System.Threading.Tasks;
 
 namespace Cesil
 {
-    internal class RowEndingDetector<T>: ITestableDisposable
+    internal class RowEndingDetector<T> : ITestableDisposable
     {
-        private enum AdvanceResult: byte
+        private enum AdvanceResult : byte
         {
-            NONE = 0,
+            None = 0,
 
             Continue,
             Continue_PushBackOne,
-            
+
             Finished,
 
             Exception_UnexpectedState
@@ -46,8 +46,9 @@ namespace Cesil
                     charLookup,
                     config.EscapedValueStartAndStop,
                     config.EscapeValueEscapeChar,
-                    RowEndings.None,
-                    ReadHeaders.Never
+                    default,
+                    ReadHeaders.Never,
+                    false
                 );
 
             MemoryPool = config.MemoryPool;
@@ -119,7 +120,7 @@ namespace Cesil
             }
 
             // this implies we're only gonna read a row... so whatever
-            if (Ending == RowEndings.None)
+            if (Ending == 0)
             {
                 Ending = RowEndings.CarriageReturnLineFeed;
             }
@@ -171,8 +172,8 @@ namespace Cesil
                 }
 
 
-                // resume the loop
-                loopStart:
+// resume the loop
+loopStart:
                 while (continueScan)
                 {
                     var mem = self.BufferOwner.Memory.Slice(self.BufferStart, self.BufferOwner.Memory.Length - self.BufferStart);
@@ -216,8 +217,8 @@ namespace Cesil
                     }
                 }
 
-                end:
-                if (self.Ending == RowEndings.None)
+end:
+                if (self.Ending == 0)
                 {
                     self.Ending = RowEndings.CarriageReturnLineFeed;
                 }
@@ -236,7 +237,7 @@ namespace Cesil
                 var end = Inner.Read(buffSpan.Slice(BufferStart, buffSpan.Length - BufferStart));
                 if (end == 0)
                 {
-                    if(BufferStart > 0)
+                    if (BufferStart > 0)
                     {
                         switch (buffSpan[0])
                         {
@@ -271,7 +272,7 @@ namespace Cesil
             }
 
             // this implies we're only gonna read a row... so whatever
-            if(Ending == RowEndings.None)
+            if (Ending == 0)
             {
                 Ending = RowEndings.CarriageReturnLineFeed;
             }
@@ -284,12 +285,12 @@ namespace Cesil
 
         private void AddToPushback(ReadOnlySpan<char> span)
         {
-            if(PushbackOwner == null)
+            if (PushbackOwner == null)
             {
                 PushbackOwner = MemoryPool.Rent(BufferSizeHint);
             }
 
-            if(PushbackLength + span.Length > PushbackOwner.Memory.Length)
+            if (PushbackLength + span.Length > PushbackOwner.Memory.Length)
             {
                 var oldSize = PushbackOwner.Memory.Length;
                 var newSize = PushbackLength + span.Length;
@@ -306,7 +307,7 @@ namespace Cesil
 
         private AdvanceResult Advance(ReadOnlySpan<char> buffer)
         {
-            for(var i = 0; i < buffer.Length; i++)
+            for (var i = 0; i < buffer.Length; i++)
             {
                 var cc = buffer[i];
 
@@ -349,6 +350,7 @@ namespace Cesil
                 switch (res)
                 {
                     case ReaderStateMachine.AdvanceResult.Append_Character:
+                    case ReaderStateMachine.AdvanceResult.Append_Previous_And_Current_Character:
                     case ReaderStateMachine.AdvanceResult.Finished_Value:
                     case ReaderStateMachine.AdvanceResult.Skip_Character:
                         break;

@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace Cesil
 {
-    internal sealed class AsyncEnumerator<T>: IAsyncEnumerator<T>, ITestableAsyncDisposable
+    internal sealed class AsyncEnumerator<T> : IAsyncEnumerator<T>, ITestableAsyncDisposable
     {
         private T _Current;
         public T Current
@@ -22,10 +22,10 @@ namespace Cesil
 
         public bool IsDisposed => Reader == null;
 
-        private AsyncReader<T> Reader;
+        private IAsyncReader<T> Reader;
         private readonly CancellationToken Token;
 
-        internal AsyncEnumerator(AsyncReader<T> reader, CancellationToken token)
+        internal AsyncEnumerator(IAsyncReader<T> reader, CancellationToken token)
         {
             Current = default;
             Reader = reader;
@@ -85,5 +85,8 @@ namespace Cesil
                 Throw.ObjectDisposedException(nameof(AsyncEnumerator<T>));
             }
         }
+
+        public override string ToString()
+        => $"{nameof(AsyncEnumerator<T>)} bound to {Reader}";
     }
 }

@@ -1,23 +1,99 @@
-﻿namespace Cesil
+﻿using System;
+
+namespace Cesil
 {
     /// <summary>
     /// Context object provided during write operations.
     /// </summary>
-    public readonly struct WriteContext
+    public readonly struct WriteContext : IEquatable<WriteContext>
     {
         /// <summary>
+        /// What, precisely, a writer is doing.
+        /// </summary>
+        public WriteContextMode Mode { get; }
+
+        private readonly int _RowNumber;
+
+        /// <summary>
+        /// Whether or not RowNumber is available.
+        /// </summary>
+        [IntentionallyExposedPrimitive("Best way to expose a presense, it's fine")]
+        public bool HasRowNumber
+        {
+            get
+            {
+                switch (Mode)
+                {
+                    case WriteContextMode.WritingColumn:
+                    case WriteContextMode.DiscoveringCells:
+                        return true;
+                    default:
+                        return false;
+                }
+            }
+        }
+
+        /// <summary>
         /// The index of the row being written (0-based).
+        /// 
+        /// If HasRowNumber == false, or Mode is DiscoveringColumns this will throw.
         /// </summary>
-        public int RowNumber { get; }
+        [IntentionallyExposedPrimitive("Best way to expose an index, it's fine")]
+        public int RowNumber
+        {
+            get
+            {
+                switch (Mode)
+                {
+                    case WriteContextMode.WritingColumn:
+                    case WriteContextMode.DiscoveringCells:
+                        return _RowNumber;
+                    case WriteContextMode.DiscoveringColumns:
+                        Throw.InvalidOperationException($"No row number is available (we haven't started writing) when {nameof(Mode)} is {Mode}");
+                        // just for control flow
+                        return default;
+                    default:
+                        Throw.InvalidOperationException($"Unexpected {nameof(WriteContextMode)}: {Mode}");
+                        // just for control flow
+                        return default;
+                }
+            }
+        }
+
+        private readonly ColumnIdentifier _Column;
+
+
         /// <summary>
-        /// The index of the column being written (0-based).
+        /// Whether or not Column is available.
         /// </summary>
-        public int ColumnNumber { get; }
+        [IntentionallyExposedPrimitive("Best way to expose an presense, it's fine")]
+        public bool HasColumn => Mode == WriteContextMode.WritingColumn;
+
         /// <summary>
-        /// The name of the column being written, can be null
-        ///   if no column names are available.
+        /// Column being written.
+        /// 
+        /// If HasColumn == false, or Mode != WriteColumn this will throw.
         /// </summary>
-        public string ColumnName { get; }
+        public ColumnIdentifier Column
+        {
+            get
+            {
+                switch (Mode)
+                {
+                    case WriteContextMode.WritingColumn:
+                        return _Column;
+                    case WriteContextMode.DiscoveringCells:
+                    case WriteContextMode.DiscoveringColumns:
+                        Throw.InvalidOperationException($"No column is available when {nameof(Mode)} is {Mode}");
+                        // just for control flow
+                        return default;
+                    default:
+                        Throw.InvalidOperationException($"Unexpected {nameof(WriteContextMode)}: {Mode}");
+                        // just for control flow
+                        return default;
+                }
+            }
+        }
 
         /// <summary>
         /// The object, if any, provided to the call to CreateWriter or
@@ -27,20 +103,67 @@
         /// </summary>
         public object Context { get; }
 
-        internal WriteContext(int r, int c, string n, object ctx)
+        private WriteContext(WriteContextMode m, int? r, ColumnIdentifier? ci, object ctx)
         {
-            RowNumber = r;
-            ColumnNumber = c;
-            ColumnName = n;
+            Mode = m;
+            _RowNumber = r ?? default;
+            _Column = ci ?? default;
             Context = ctx;
         }
+
+        internal static WriteContext WritingColumn(int row, ColumnIdentifier col, object ctx)
+        => new WriteContext(WriteContextMode.WritingColumn, row, col, ctx);
+
+        internal static WriteContext DiscoveringCells(int row, object ctx)
+        => new WriteContext(WriteContextMode.DiscoveringCells, row, null, ctx);
+
+        internal static WriteContext DiscoveringColumns(object ctx)
+        => new WriteContext(WriteContextMode.DiscoveringColumns, null, null, ctx);
+
+        /// <summary>
+        /// Returns true if this object equals the given WriteContext.
+        /// </summary>
+        public override bool Equals(object obj)
+        {
+            if (obj is WriteContext w)
+            {
+                return Equals(w);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Returns true if this object equals the given WriteContext.
+        /// </summary>
+        public bool Equals(WriteContext w)
+        => w.Column == Column &&
+           w.Context == Context &&
+           w.Mode == Mode &&
+           w.RowNumber == RowNumber;
+
+        /// <summary>
+        /// Returns a stable hash for this WriteContext.
+        /// </summary>
+        public override int GetHashCode()
+        => HashCode.Combine(nameof(WriteContext), Column, Context, Mode, RowNumber);
 
         /// <summary>
         /// Returns a string representation of this WriteContext.
         /// </summary>
         public override string ToString()
-        => ColumnName != null ?
-            $"{nameof(RowNumber)}={RowNumber}, {nameof(ColumnNumber)}={ColumnNumber}, {nameof(ColumnName)}={ColumnName}" :
-            $"{nameof(RowNumber)}={RowNumber}, {nameof(ColumnNumber)}={ColumnNumber}";
+        => $"{nameof(Mode)}={Mode}, {nameof(RowNumber)}={RowNumber}, {nameof(Column)}={Column}";
+
+        /// <summary>
+        /// Compare two WriteContexts for equality
+        /// </summary>
+        public static bool operator ==(WriteContext a, WriteContext b)
+        => a.Equals(b);
+
+        /// <summary>
+        /// Compare two WriteContexts for inequality
+        /// </summary>
+        public static bool operator !=(WriteContext a, WriteContext b)
+        => !(a == b);
     }
 }

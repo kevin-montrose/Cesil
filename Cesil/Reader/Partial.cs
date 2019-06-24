@@ -3,7 +3,7 @@ using System.Buffers;
 
 namespace Cesil
 {
-    internal sealed class Partial<T>: ITestableDisposable
+    internal sealed class Partial<T> : ITestableDisposable
     {
         private T _Value;
         internal T Value
@@ -94,7 +94,7 @@ namespace Cesil
         internal void ClearBufferAndAdvanceColumnIndex()
         {
             CurrentColumnIndex++;
-            PendingCharacters.Clear();
+            ClearBuffer();
         }
 
         internal ReadOnlyMemory<char> PendingAsMemory(ReadOnlyMemory<char> buffer)
@@ -104,7 +104,14 @@ namespace Cesil
 
         internal string PendingAsString(ReadOnlyMemory<char> buffer)
         {
+            if (buffer.Length == 0) return "";
+
             return new string(PendingCharacters.AsMemory(buffer).Span);
+        }
+
+        internal void ClearBuffer()
+        {
+            PendingCharacters.Clear();
         }
 
         public void Dispose()

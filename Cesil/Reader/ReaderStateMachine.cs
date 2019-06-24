@@ -3,9 +3,9 @@ using System.Buffers;
 
 namespace Cesil
 {
-    internal unsafe sealed partial class ReaderStateMachine: ITestableDisposable
+    internal sealed unsafe partial class ReaderStateMachine : ITestableDisposable
     {
-        internal struct CharacterLookup: ITestableDisposable
+        internal struct CharacterLookup : ITestableDisposable
         {
             public bool IsDisposed => Memory == null;
 
@@ -97,11 +97,16 @@ namespace Cesil
                     break;
             }
 
-            TransitionMatrixHandle = GetTransitionMatrix(RowEndings, escapeStartChar == escapeChar).Pin();
+            TransitionMatrixHandle =
+                GetTransitionMatrix(
+                    RowEndings,
+                    escapeStartChar == escapeChar,
+                    commentChar.HasValue
+                ).Pin();
             TransitionMatrix = (TransitionRule*)TransitionMatrixHandle.Pointer;
 
             SuppressCharLookupDispose = false;
-            (MinimumCharacter, CharLookupOffset, CharLookupOwner, CharLookupPin, CharLookup) = 
+            (MinimumCharacter, CharLookupOffset, CharLookupOwner, CharLookupPin, CharLookup) =
                 MakeCharacterLookup(memoryPool, escapeStartChar, valueSeparatorChar, escapeChar, commentChar);
         }
 
@@ -110,7 +115,8 @@ namespace Cesil
             char escapeStartChar,
             char escapeChar,
             RowEndings rowEndings,
-            ReadHeaders hasHeaders
+            ReadHeaders hasHeaders,
+            bool readingComments
         )
         {
             RowEndings = rowEndings;
@@ -129,7 +135,12 @@ namespace Cesil
                     break;
             }
 
-            TransitionMatrixHandle = GetTransitionMatrix(RowEndings, escapeStartChar == escapeChar).Pin();
+            TransitionMatrixHandle =
+                GetTransitionMatrix(
+                    RowEndings,
+                    escapeStartChar == escapeChar,
+                    readingComments
+                ).Pin();
             TransitionMatrix = (TransitionRule*)TransitionMatrixHandle.Pointer;
 
             SuppressCharLookupDispose = true;

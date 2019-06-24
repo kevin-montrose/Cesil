@@ -108,20 +108,76 @@ namespace Cesil
         {
             AssertNotDisposed();
 
+            var tryReadTask = TryReadInnerAsync(false, ref row, cancel);
+            if (!tryReadTask.IsCompletedSuccessfully)
+            {
+                return TryReadWithReuseAsync_ContinueAfterTryReadInnerAsync(tryReadTask, cancel);
+            }
+
+            var res = tryReadTask.Result;
+            switch (res.ResultType)
+            {
+                case ReadWithCommentResultType.HasValue:
+                    return new ValueTask<ReadResult<T>>(new ReadResult<T>(res.Value));
+                case ReadWithCommentResultType.NoValue:
+                    return new ValueTask<ReadResult<T>>(ReadResult<T>.Empty);
+                default:
+                    Throw.InvalidOperationException($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}");
+                    // just for control flow
+                    return default;
+            }
+
+            // wait for the inner call to finish
+            static async ValueTask<ReadResult<T>> TryReadWithReuseAsync_ContinueAfterTryReadInnerAsync(ValueTask<ReadWithCommentResult<T>> waitFor, CancellationToken cancel)
+            {
+                var res = await waitFor;
+
+                switch (res.ResultType)
+                {
+                    case ReadWithCommentResultType.HasValue:
+                        return new ReadResult<T>(res.Value);
+                    case ReadWithCommentResultType.NoValue:
+                        return ReadResult<T>.Empty;
+                    default:
+                        Throw.InvalidOperationException($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}");
+                        // just for control flow
+                        return default;
+                }
+            }
+        }
+
+        public ValueTask<ReadResult<T>> TryReadAsync(CancellationToken cancel = default)
+        {
+            AssertNotDisposed();
+
+            var record = default(T);
+            return TryReadWithReuseAsync(ref record, cancel);
+        }
+
+        public ValueTask<ReadWithCommentResult<T>> TryReadWithCommentAsync(CancellationToken cancel = default)
+        {
+            AssertNotDisposed();
+
+            var record = default(T);
+            return TryReadWithCommentReuseAsync(ref record, cancel);
+        }
+
+        public ValueTask<ReadWithCommentResult<T>> TryReadWithCommentReuseAsync(ref T record, CancellationToken cancel = default)
+        {
+            AssertNotDisposed();
+
+            return TryReadInnerAsync(true, ref record, cancel);
+        }
+
+        private ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync(bool returnComments, ref T record, CancellationToken cancel)
+        {
             if (RowEndings == null)
             {
                 var handleLineEndingsTask = HandleLineEndingsAsync(cancel);
                 if (!handleLineEndingsTask.IsCompletedSuccessfully)
                 {
-                    // gotta check this now, because we're about to go async and ref is a no-go
-                    if(row == null)
-                    {
-                        if(!Configuration.NewCons(out row))
-                        {
-                            Throw.InvalidOperationException($"Failed to construct new instance of {typeof(T)}");
-                        }
-                    }
-                    return TryReadAsync_ContinueAfterRowEndingsAsync(this, handleLineEndingsTask, row, cancel);
+                    var row = GuaranteeRecord(this, ref record);
+                    return TryReadInnerAsync_ContinueAfterHandleLineEndingsAsync(this, handleLineEndingsTask, returnComments, row, cancel);
                 }
             }
 
@@ -130,68 +186,96 @@ namespace Cesil
                 var handleHeadersTask = HandleHeadersAsync(cancel);
                 if (!handleHeadersTask.IsCompletedSuccessfully)
                 {
-                    // gotta check this now, because we're about to go async and ref is a no-go
-                    if (row == null)
-                    {
-                        if (!Configuration.NewCons(out row))
-                        {
-                            Throw.InvalidOperationException($"Failed to construct new instance of {typeof(T)}");
-                        }
-                    }
-                    return TryReadAsync_ContinueAfterHeadersAsync(this, handleHeadersTask, row, cancel);
+                    var row = GuaranteeRecord(this, ref record);
+                    return TryReadInnerAsync_ContinueAfterHandleHeadersAsync(this, handleHeadersTask, returnComments, row, cancel);
                 }
             }
 
             while (true)
             {
                 PreparingToWriteToBuffer();
-                var inBuffer = Buffer.ReadAsync(Inner, cancel);
-                // can we complete sync?
-                if (inBuffer.IsCompletedSuccessfully)
+                var availableTask = Buffer.ReadAsync(Inner, cancel);
+                if (!availableTask.IsCompletedSuccessfully)
                 {
-                    var available = inBuffer.Result;
-                    if (available == 0)
-                    {
-                        EndOfData();
-
-                        if (HasValueToReturn)
-                        {
-                            var ret = new ValueTask<ReadResult<T>>(new ReadResult<T>(GetValueForReturn()));
-                            return ret;
-                        }
-
-                        return new ValueTask<ReadResult<T>>(ReadResult<T>.Empty);
-                    }
-
-                    if (!HasValueToReturn)
-                    {
-                        if(row == null)
-                        {
-                            if (!Configuration.NewCons(out row))
-                            {
-                                Throw.InvalidOperationException($"Failed to construct new instance of {typeof(T)}");
-                            }
-                        }
-
-                        SetValueToPopulate(row);
-                    }
-
-                    var res = AdvanceWork(available);
-                    if (res)
-                    {
-                        var ret = new ValueTask<ReadResult<T>>(new ReadResult<T>(GetValueForReturn()));
-                        return ret;
-                    }
+                    var row = GuaranteeRecord(this, ref record);
+                    return TryReadInnerAsync_ContinueAfterReadAsync(this, availableTask, returnComments, row, cancel);
                 }
-                else
+
+                var available = availableTask.Result;
+                if (available == 0)
                 {
-                    // if ever we need to actually await, bail out to a different method
-                    return TryReadAsync_ContinueAfterReadAsync(this, inBuffer, cancel);
+                    EndOfData();
+
+                    if (HasValueToReturn)
+                    {
+                        record = GetValueForReturn();
+                        return new ValueTask<ReadWithCommentResult<T>>(new ReadWithCommentResult<T>(record));
+                    }
+
+                    if (HasCommentToReturn)
+                    {
+                        HasCommentToReturn = false;
+                        if (returnComments)
+                        {
+                            var comment = Partial.PendingAsString(Buffer.Buffer);
+                            return new ValueTask<ReadWithCommentResult<T>>(new ReadWithCommentResult<T>(comment));
+                        }
+                    }
+
+                    // intentionally _not_ modifying record here
+                    return new ValueTask<ReadWithCommentResult<T>>(ReadWithCommentResult<T>.Empty);
+                }
+
+                if (!HasValueToReturn)
+                {
+                    record = GuaranteeRecord(this, ref record);
+                    SetValueToPopulate(record);
+                }
+
+                var res = AdvanceWork(available);
+                if (res == ReadWithCommentResultType.HasValue)
+                {
+                    record = GetValueForReturn();
+                    return new ValueTask<ReadWithCommentResult<T>>(new ReadWithCommentResult<T>(record));
+                }
+                if (res == ReadWithCommentResultType.HasComment)
+                {
+                    HasCommentToReturn = false;
+
+                    if (returnComments)
+                    {
+                        // only actually allocate for the comment if it's been asked for
+                        var comment = Partial.PendingAsString(Buffer.Buffer);
+                        Partial.ClearValue();
+                        Partial.ClearBuffer();
+                        return new ValueTask<ReadWithCommentResult<T>>(new ReadWithCommentResult<T>(comment));
+                    }
+                    else
+                    {
+                        Partial.ClearValue();
+                        Partial.ClearBuffer();
+                    }
                 }
             }
 
-            // wait for row endings discovery to finish, then continue async
-            static async ValueTask<ReadResult<T>> TryReadAsync_ContinueAfterRowEndingsAsync(AsyncReader<T> self, ValueTask waitFor, T row, CancellationToken cancel)
+            // make sure we've got a row to work with
+            static T GuaranteeRecord(AsyncReader<T> self, ref T preallocd)
+            {
+                if (preallocd != null)
+                {
+                    return preallocd;
+                }
+
+                if (!self.Configuration.NewCons(out preallocd))
+                {
+                    Throw.InvalidOperationException($"Failed to construct new instance of {typeof(T)}");
+                }
+
+                return preallocd;
+            }
+
+            // continue after we handle detecting line endings
+            static async ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync_ContinueAfterHandleLineEndingsAsync(AsyncReader<T> self, ValueTask waitFor, bool returnComments, T record, CancellationToken cancel)
             {
                 await waitFor;
 
@@ -204,34 +288,63 @@ namespace Cesil
                 {
                     self.PreparingToWriteToBuffer();
                     var available = await self.Buffer.ReadAsync(self.Inner, cancel);
-
                     if (available == 0)
                     {
                         self.EndOfData();
 
                         if (self.HasValueToReturn)
                         {
-                            return new ReadResult<T>(self.GetValueForReturn());
+                            record = self.GetValueForReturn();
+                            return new ReadWithCommentResult<T>(record);
                         }
 
-                        return ReadResult<T>.Empty;
+                        if (self.HasCommentToReturn)
+                        {
+                            self.HasCommentToReturn = false;
+                            if (returnComments)
+                            {
+                                var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
+                                return new ReadWithCommentResult<T>(comment);
+                            }
+                        }
+
+                        return ReadWithCommentResult<T>.Empty;
                     }
 
                     if (!self.HasValueToReturn)
                     {
-                        self.SetValueToPopulate(row);
+                        self.SetValueToPopulate(record);
                     }
 
                     var res = self.AdvanceWork(available);
-                    if (res)
+                    if (res == ReadWithCommentResultType.HasValue)
                     {
-                        return new ReadResult<T>(self.GetValueForReturn());
+                        record = self.GetValueForReturn();
+                        return new ReadWithCommentResult<T>(record);
+                    }
+                    if (res == ReadWithCommentResultType.HasComment)
+                    {
+                        self.HasCommentToReturn = false;
+
+                        if (returnComments)
+                        {
+                            // only actually allocate for the comment if it's been asked for
+                            var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
+                            self.Partial.ClearValue();
+                            self.Partial.ClearBuffer();
+                            return new ReadWithCommentResult<T>(comment);
+                        }
+                        else
+                        {
+                            self.Partial.ClearValue();
+                            self.Partial.ClearBuffer();
+                        }
                     }
                 }
             }
 
-            // wait for headers to be handled, then continue async
-            static async ValueTask<ReadResult<T>> TryReadAsync_ContinueAfterHeadersAsync(AsyncReader<T> self, ValueTask waitFor, T row, CancellationToken cancel)
+            // continue after we handle detecting headers
+            static async ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync_ContinueAfterHandleHeadersAsync(AsyncReader<T> self, ValueTask waitFor, bool returnComments, T record, CancellationToken cancel)
             {
                 await waitFor;
 
@@ -239,111 +352,183 @@ namespace Cesil
                 {
                     self.PreparingToWriteToBuffer();
                     var available = await self.Buffer.ReadAsync(self.Inner, cancel);
-
                     if (available == 0)
                     {
                         self.EndOfData();
 
                         if (self.HasValueToReturn)
                         {
-                            return new ReadResult<T>(self.GetValueForReturn());
+                            record = self.GetValueForReturn();
+                            return new ReadWithCommentResult<T>(record);
                         }
 
-                        return ReadResult<T>.Empty;
+                        if (self.HasCommentToReturn)
+                        {
+                            self.HasCommentToReturn = false;
+                            if (returnComments)
+                            {
+                                var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
+                                return new ReadWithCommentResult<T>(comment);
+                            }
+                        }
+
+                        return ReadWithCommentResult<T>.Empty;
                     }
 
                     if (!self.HasValueToReturn)
                     {
-                        self.SetValueToPopulate(row);
+                        self.SetValueToPopulate(record);
                     }
 
                     var res = self.AdvanceWork(available);
-                    if (res)
+                    if (res == ReadWithCommentResultType.HasValue)
                     {
-                        return new ReadResult<T>(self.GetValueForReturn());
+                        record = self.GetValueForReturn();
+                        return new ReadWithCommentResult<T>(record);
+                    }
+                    if (res == ReadWithCommentResultType.HasComment)
+                    {
+                        self.HasCommentToReturn = false;
+
+                        if (returnComments)
+                        {
+                            // only actually allocate for the comment if it's been asked for
+                            var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
+                            self.Partial.ClearValue();
+                            self.Partial.ClearBuffer();
+                            return new ReadWithCommentResult<T>(comment);
+                        }
+                        else
+                        {
+                            self.Partial.ClearValue();
+                            self.Partial.ClearBuffer();
+                        }
                     }
                 }
             }
 
-            // wait for a read to finish, then continue async
-            static async ValueTask<ReadResult<T>> TryReadAsync_ContinueAfterReadAsync(AsyncReader<T> self, ValueTask<int> waitFor, CancellationToken cancel)
+            // continue after we read a chunk into a buffer
+            static async ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync_ContinueAfterReadAsync(AsyncReader<T> self, ValueTask<int> waitFor, bool returnComments, T record, CancellationToken cancel)
             {
-                var available = await waitFor;
-
-                // handle the one read in flight
-
-                if (available == 0)
+                // finish this loop up
                 {
-                    self.EndOfData();
-
-                    if (self.HasValueToReturn)
-                    {
-                        return new ReadResult<T>(self.GetValueForReturn());
-                    }
-
-                    return ReadResult<T>.Empty;
-                }
-
-                if (!self.HasValueToReturn)
-                {
-                    if (!self.Configuration.NewCons(out var inst))
-                    {
-                        Throw.InvalidOperationException($"Failed to construct new instance of {typeof(T)}");
-                    }
-                    self.SetValueToPopulate(inst);
-                }
-
-                var res = self.AdvanceWork(available);
-                if (res)
-                {
-                    return new ReadResult<T>(self.GetValueForReturn());
-                }
-
-                // back into the loop
-
-                while (true)
-                {
-                    self.PreparingToWriteToBuffer();
-                    available = await self.Buffer.ReadAsync(self.Inner, cancel);
-
+                    var available = await waitFor;
                     if (available == 0)
                     {
                         self.EndOfData();
 
                         if (self.HasValueToReturn)
                         {
-                            return new ReadResult<T>(self.GetValueForReturn());
+                            record = self.GetValueForReturn();
+                            return new ReadWithCommentResult<T>(record);
                         }
 
-                        return ReadResult<T>.Empty;
+                        if (self.HasCommentToReturn)
+                        {
+                            self.HasCommentToReturn = false;
+                            if (returnComments)
+                            {
+                                var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
+                                return new ReadWithCommentResult<T>(comment);
+                            }
+                        }
+
+                        // intentionally _not_ modifying record here
+                        return ReadWithCommentResult<T>.Empty;
                     }
 
                     if (!self.HasValueToReturn)
                     {
-                        if (!self.Configuration.NewCons(out var inst))
-                        {
-                            Throw.InvalidOperationException($"Failed to construct new instance of {typeof(T)}");
-                        }
-                        self.SetValueToPopulate(inst);
+                        record = GuaranteeRecord(self, ref record);
+                        self.SetValueToPopulate(record);
                     }
 
-                    res = self.AdvanceWork(available);
-                    if (res)
+                    var res = self.AdvanceWork(available);
+                    if (res == ReadWithCommentResultType.HasValue)
                     {
-                        return new ReadResult<T>(self.GetValueForReturn());
+                        record = self.GetValueForReturn();
+                        return new ReadWithCommentResult<T>(record);
+                    }
+                    if (res == ReadWithCommentResultType.HasComment)
+                    {
+                        self.HasCommentToReturn = false;
+
+                        if (returnComments)
+                        {
+                            // only actually allocate for the comment if it's been asked for
+                            var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
+                            self.Partial.ClearValue();
+                            self.Partial.ClearBuffer();
+                            return new ReadWithCommentResult<T>(comment);
+                        }
+                        else
+                        {
+                            self.Partial.ClearValue();
+                            self.Partial.ClearBuffer();
+                        }
+                    }
+                }
+
+                // back into the loop
+                while (true)
+                {
+                    self.PreparingToWriteToBuffer();
+                    var available = await self.Buffer.ReadAsync(self.Inner, cancel);
+                    if (available == 0)
+                    {
+                        self.EndOfData();
+
+                        if (self.HasValueToReturn)
+                        {
+                            record = self.GetValueForReturn();
+                            return new ReadWithCommentResult<T>(record);
+                        }
+
+                        if (self.HasCommentToReturn)
+                        {
+                            self.HasCommentToReturn = false;
+                            if (returnComments)
+                            {
+                                var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
+                                return new ReadWithCommentResult<T>(comment);
+                            }
+                        }
+
+                        // intentionally _not_ modifying record here
+                        return ReadWithCommentResult<T>.Empty;
+                    }
+
+                    if (!self.HasValueToReturn)
+                    {
+                        self.SetValueToPopulate(record);
+                    }
+
+                    var res = self.AdvanceWork(available);
+                    if (res == ReadWithCommentResultType.HasValue)
+                    {
+                        record = self.GetValueForReturn();
+                        return new ReadWithCommentResult<T>(record);
+                    }
+                    if (res == ReadWithCommentResultType.HasComment)
+                    {
+                        self.HasCommentToReturn = false;
+
+                        if (returnComments)
+                        {
+                            // only actually allocate for the comment if it's been asked for
+                            var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
+                            self.Partial.ClearValue();
+                            self.Partial.ClearBuffer();
+                            return new ReadWithCommentResult<T>(comment);
+                        }
+                        else
+                        {
+                            self.Partial.ClearValue();
+                            self.Partial.ClearBuffer();
+                        }
                     }
                 }
             }
-        }
-
-        public ValueTask<ReadResult<T>> TryReadAsync(CancellationToken cancel = default)
-        {
-            if (!Configuration.NewCons(out var record))
-            {
-                Throw.InvalidOperationException($"Failed to construct new instance of {typeof(T)}");
-            }
-            
-            return TryReadWithReuseAsync(ref record, cancel);
         }
 
         private ValueTask HandleLineEndingsAsync(CancellationToken cancel)
@@ -403,7 +588,7 @@ namespace Cesil
                 ReadHeaders = Cesil.ReadHeaders.Never;
                 TryMakeStateMachine();
                 Columns = Configuration.DeserializeColumns;
-                
+
                 return default;
             }
 
@@ -494,6 +679,11 @@ namespace Cesil
             {
                 Throw.ObjectDisposedException(nameof(AsyncReader<T>));
             }
+        }
+
+        public override string ToString()
+        {
+            return $"{nameof(AsyncReader<T>)} with {Configuration}";
         }
     }
 }

@@ -25,6 +25,7 @@ namespace Cesil
         internal ReadHeaders? ReadHeaders { get; set; }
 
         internal bool HasValueToReturn => Partial.HasPending;
+        internal bool HasCommentToReturn { get; set; }
 
         internal int RowNumber;
 
@@ -33,9 +34,9 @@ namespace Cesil
             RowNumber = 0;
             Configuration = config;
             Context = context;
-            
+
             var bufferSize = config.ReadBufferSizeHint;
-            if(bufferSize == 0)
+            if (bufferSize == 0)
             {
                 bufferSize = DEFAULT_BUFFER_SIZE;
             }
@@ -52,8 +53,8 @@ namespace Cesil
                     config.CommentChar
                 );
         }
-        
-        protected internal bool AdvanceWork(int numInBuffer)
+
+        protected internal ReadWithCommentResultType AdvanceWork(int numInBuffer)
         {
             var res = ProcessBuffer(numInBuffer, out var pushBack);
             if (pushBack > 0)
@@ -65,7 +66,7 @@ namespace Cesil
             return res;
         }
 
-        private bool ProcessBuffer(int bufferLen, out int unprocessedCharacters)
+        private ReadWithCommentResultType ProcessBuffer(int bufferLen, out int unprocessedCharacters)
         {
             var buffSpan = Buffer.Buffer.Span;
 
@@ -76,6 +77,11 @@ namespace Cesil
             {
                 var c = buffSpan[i];
                 var res = StateMachine.Advance(c);
+
+                var state = StateMachine.CurrentState;
+                var inComment = ((byte)state & ReaderStateMachine.IN_COMMENT_MASK) == ReaderStateMachine.IN_COMMENT_MASK;
+
+                HasCommentToReturn = inComment;
 
                 // try and batch skips and appends
                 //   to save time on copying AND on 
@@ -88,7 +94,7 @@ namespace Cesil
                     }
                     else
                     {
-                        switch(inBatchableResult.Value)
+                        switch (inBatchableResult.Value)
                         {
                             case ReaderStateMachine.AdvanceResult.Skip_Character:
 
@@ -112,11 +118,11 @@ namespace Cesil
                         // fall through into the switch to handle the current character
                     }
                 }
-        
+
                 switch (res)
                 {
                     case ReaderStateMachine.AdvanceResult.Skip_Character:
-                        if(inBatchableResult == null)
+                        if (inBatchableResult == null)
                         {
                             inBatchableResult = ReaderStateMachine.AdvanceResult.Skip_Character;
                             consistentResultSince = i;
@@ -137,6 +143,10 @@ namespace Cesil
                         Partial.AppendCharacters(buffSpan, i, 1);
                         break;
 
+                    case ReaderStateMachine.AdvanceResult.Append_Previous_And_Current_Character:
+                        Partial.AppendCharacters(buffSpan, i - 1, 2);
+                        break;
+
                     case ReaderStateMachine.AdvanceResult.Finished_Value:
                         PushPendingCharactersToValue();
                         break;
@@ -147,7 +157,10 @@ namespace Cesil
                         }
 
                         unprocessedCharacters = bufferLen - i - 1;
-                        return true;
+                        return ReadWithCommentResultType.HasValue;
+                    case ReaderStateMachine.AdvanceResult.Finished_Comment:
+                        unprocessedCharacters = bufferLen - i - 1;
+                        return ReadWithCommentResultType.HasComment;
 
                     case ReaderStateMachine.AdvanceResult.Exception_ExpectedEndOfRecord:
                         Throw.InvalidOperationException($"Encountered '{c}' when expecting end of record");
@@ -201,7 +214,7 @@ namespace Cesil
             }
 
             unprocessedCharacters = 0;
-            return false;
+            return default;
         }
 
         protected internal void EndOfData()
@@ -265,14 +278,14 @@ namespace Cesil
             var colIx = Partial.CurrentColumnIndex;
             var column = Columns[colIx];
 
-            if(column.IsRequired && dataSpan.Length == 0)
+            if (column.IsRequired && dataSpan.Length == 0)
             {
                 Throw.SerializationException($"Column [{column.Name}] is required, but was not found in row");
             }
 
-            var ctx = new ReadContext(RowNumber, colIx, Columns[colIx].Name, Context);
+            var ctx = ReadContext.ReadingColumn(RowNumber, ColumnIdentifier.Create(colIx, Columns[colIx].Name), Context);
 
-            if(!column.Set(dataSpan.Span, in ctx, Partial.Value))
+            if (!column.Set(dataSpan.Span, in ctx, Partial.Value))
             {
                 Throw.InvalidOperationException($"Could not assign value \"{Partial.PendingAsString(Buffer.Buffer)}\" to column \"{column.Name}\" (Index={Partial.CurrentColumnIndex})");
             }
@@ -306,7 +319,7 @@ namespace Cesil
                     using (var e = headers.Headers)
                     {
                         var i = 0;
-                        while(e.MoveNext())
+                        while (e.MoveNext())
                         {
                             var header = e.Current;
                             var colNameMem = col.Name.AsMemory();
@@ -321,7 +334,7 @@ namespace Cesil
                         }
                     }
 
-                    if(isRequired && !found)
+                    if (isRequired && !found)
                     {
                         Throw.SerializationException($"Column [{col.Name}] is required, but was not found in the header");
                     }
@@ -334,7 +347,7 @@ namespace Cesil
                         columnsInDiscoveredOrder[i] = Column.Ignored;
                     }
                 }
-                
+
                 Columns = columnsInDiscoveredOrder;
             }
             else
@@ -370,7 +383,8 @@ namespace Cesil
                     Configuration.EscapedValueStartAndStop,
                     Configuration.EscapeValueEscapeChar,
                     RowEndings.Value,
-                    ReadHeaders.Value
+                    ReadHeaders.Value,
+                    Configuration.CommentChar.HasValue
                 );
         }
     }

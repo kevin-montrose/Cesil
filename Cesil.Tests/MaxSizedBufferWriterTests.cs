@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Buffers;
-using System.Runtime.InteropServices;
 using Xunit;
 
 namespace Cesil.Tests

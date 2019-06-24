@@ -45,13 +45,20 @@ namespace Cesil
         {
             var ret = new object[colTypes.Length];
 
-            for (var i = 0; i < row.Width; i++)
+            var i = 0;
+            foreach (var col in row.Columns)
             {
-                if (!row.IsSet(i)) continue;
+                if (!row.IsSet(i))
+                {
+                    goto end;
+                }
 
                 var cell = row.GetCellAt(i);
                 var val = cell.CoerceTo(colTypes[i]);
                 ret[i] = val;
+
+end:
+                i++;
             }
 
             return ret;
@@ -67,14 +74,14 @@ namespace Cesil
             var ret = new TypeInfo[initalArgs.Length];
             var nextIx = 0;
 
-            mapTypes:
+mapTypes:
             var args = initalArgs ?? cur.GetGenericArguments();
             initalArgs = null;
             for (var i = 0; i < args.Length && i < REST_INDEX; i++)
             {
                 var arg = args[i];
 
-                if(nextIx == ret.Length)
+                if (nextIx == ret.Length)
                 {
                     Array.Resize(ref ret, ret.Length * 2);
                 }
@@ -89,7 +96,7 @@ namespace Cesil
                 goto mapTypes;
             }
 
-            if(ret.Length != nextIx)
+            if (ret.Length != nextIx)
             {
                 Array.Resize(ref ret, nextIx);
             }

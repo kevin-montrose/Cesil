@@ -2,8 +2,7 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Linq;
-using System.Runtime.InteropServices;
+using System.Reflection;
 
 namespace Cesil
 {
@@ -15,23 +14,40 @@ namespace Cesil
         internal static class DefaultFlagsEnumTypeFormatter<T>
             where T : struct, Enum
         {
-            private static readonly string[] Names = Enum.GetNames(typeof(T));
+            private static readonly string[] Names;
 
-            internal static bool TryFormatFlagsEnum(T e, in WriteContext _, IBufferWriter<char> writer)
+            internal static readonly Formatter TryParseFlagsEnumFormatter;
+            internal static readonly Formatter TryParseNullableFlagsEnumFormatter;
+
+            static DefaultFlagsEnumTypeFormatter()
+            {
+                var enumType = typeof(T).GetTypeInfo();
+                Names = Enum.GetNames(enumType);
+
+                var parsingClass = Types.DefaultFlagsEnumTypeFormatterType.MakeGenericType(enumType).GetTypeInfo();
+
+                var enumParsingMtd = parsingClass.GetMethod(nameof(TryFormatFlagsEnum), BindingFlags.Static | BindingFlags.NonPublic);
+                TryParseFlagsEnumFormatter = Formatter.ForMethod(enumParsingMtd);
+
+                var nullableEnumParsingMtd = parsingClass.GetMethod(nameof(TryFormatNullableFlagsEnum), BindingFlags.Static | BindingFlags.NonPublic);
+                TryParseNullableFlagsEnumFormatter = Formatter.ForMethod(nullableEnumParsingMtd);
+            }
+
+            private static bool TryFormatFlagsEnum(T e, in WriteContext _, IBufferWriter<char> writer)
             {
                 // this will allocate, but we don't really have a choice?
                 var valStr = e.ToString();
 
                 // this will _really_ allocate... but again, we have to verify somehow
                 var parts = valStr.Split(COMMA_AND_SPACE, StringSplitOptions.RemoveEmptyEntries);
-                for(var i = 0; i < parts.Length; i++)
+                for (var i = 0; i < parts.Length; i++)
                 {
                     var part = parts[i];
                     var isValid = false;
-                    for(var j = 0; j<Names.Length; j++)
+                    for (var j = 0; j < Names.Length; j++)
                     {
                         var name = Names[j];
-                        if(name.Equals(part))
+                        if (name.Equals(part))
                         {
                             isValid = true;
                             break;
@@ -45,12 +61,12 @@ namespace Cesil
                 if (charSpan.Length < valStr.Length) return false;
 
                 valStr.AsSpan().CopyTo(charSpan);
-                writer.Advance(valStr.Length );
+                writer.Advance(valStr.Length);
 
                 return true;
             }
 
-            internal static bool TryFormatNullableFlagsEnum(T? e, in WriteContext _, IBufferWriter<char> writer)
+            private static bool TryFormatNullableFlagsEnum(T? e, in WriteContext _, IBufferWriter<char> writer)
             {
                 if (e == null) return true;
 
@@ -59,9 +75,25 @@ namespace Cesil
         }
 
         internal static class DefaultEnumTypeFormatter<T>
-            where T: struct, Enum
+            where T : struct, Enum
         {
-            internal static bool TryFormatEnum(T e, in WriteContext _, IBufferWriter<char> writer)
+            internal static readonly Formatter TryParseEnumFormatter;
+            internal static readonly Formatter TryParseNullableEnumFormatter;
+
+            static DefaultEnumTypeFormatter()
+            {
+                var enumType = typeof(T).GetTypeInfo();
+
+                var parsingClass = Types.DefaultEnumTypeFormatterType.MakeGenericType(enumType).GetTypeInfo();
+
+                var enumParsingMtd = parsingClass.GetMethod(nameof(TryFormatEnum), BindingFlags.Static | BindingFlags.NonPublic);
+                TryParseEnumFormatter = Formatter.ForMethod(enumParsingMtd);
+
+                var nullableEnumParsingMtd = parsingClass.GetMethod(nameof(TryFormatNullableEnum), BindingFlags.Static | BindingFlags.NonPublic);
+                TryParseNullableEnumFormatter = Formatter.ForMethod(nullableEnumParsingMtd);
+            }
+
+            private static bool TryFormatEnum(T e, in WriteContext _, IBufferWriter<char> writer)
             {
                 if (!Enum.IsDefined(typeof(T), e)) return false;
 
@@ -72,12 +104,12 @@ namespace Cesil
                 if (charSpan.Length < valStr.Length) return false;
 
                 valStr.AsSpan().CopyTo(charSpan);
-                writer.Advance(valStr.Length );
+                writer.Advance(valStr.Length);
 
                 return true;
             }
 
-            internal static bool TryFormatNullableEnum(T? e, in WriteContext _, IBufferWriter<char> writer)
+            private static bool TryFormatNullableEnum(T? e, in WriteContext _, IBufferWriter<char> writer)
             {
                 if (e == null) return true;
 
@@ -91,14 +123,43 @@ namespace Cesil
             {
                 return true;
             }
-            
+
             var charSpan = writer.GetSpan(s.Length);
             if (charSpan.Length < s.Length) return false;
-            
+
             s.AsSpan().CopyTo(charSpan);
 
             writer.Advance(s.Length);
             return true;
+        }
+
+        private static bool TryFormatVersion(Version v, in WriteContext _, IBufferWriter<char> writer)
+        {
+            const int MAX_CHARS =
+                10 +    // major
+                1 +     // dot
+                10 +    // minor
+                1 +     // dot
+                10 +    // build
+                1 +     // dot
+                10;     // revision
+
+            var charSpan = writer.GetSpan(MAX_CHARS);
+            var ret = v.TryFormat(charSpan, out var chars);
+            if (!ret) return false;
+
+            writer.Advance(chars);
+            return true;
+        }
+
+        private static bool TryFormatUri(Uri u, in WriteContext _, IBufferWriter<char> writer)
+        {
+            if(u == null)
+            {
+                return false;
+            }
+
+            return TryFormatString(u.ToString(), in _, writer);
         }
 
         // non-nullable
@@ -112,16 +173,16 @@ namespace Cesil
                 if (charSpan.Length < 4) return false;
 
                 bool.TrueString.AsSpan().CopyTo(charSpan);
-                writer.Advance(4 );
+                writer.Advance(4);
             }
             else
             {
-                var charSpan = writer.GetSpan(5 );
+                var charSpan = writer.GetSpan(5);
 
                 if (charSpan.Length < 5) return false;
 
                 bool.FalseString.AsSpan().CopyTo(charSpan);
-                writer.Advance(5 );
+                writer.Advance(5);
             }
 
             return true;
@@ -145,7 +206,7 @@ namespace Cesil
             var ret = b.TryFormat(charSpan, out var chars, provider: CultureInfo.InvariantCulture);
             if (!ret) return false;
 
-            writer.Advance(chars );
+            writer.Advance(chars);
             return true;
         }
 
@@ -156,73 +217,73 @@ namespace Cesil
             var ret = b.TryFormat(charSpan, out var chars, provider: CultureInfo.InvariantCulture);
             if (!ret) return false;
 
-            writer.Advance(chars );
+            writer.Advance(chars);
             return true;
         }
 
         private static bool TryFormatShort(short b, in WriteContext _, IBufferWriter<char> writer)
         {
-            var charSpan = writer.GetSpan(6 );
+            var charSpan = writer.GetSpan(6);
 
             var ret = b.TryFormat(charSpan, out var chars, provider: CultureInfo.InvariantCulture);
             if (!ret) return false;
 
-            writer.Advance(chars );
+            writer.Advance(chars);
             return true;
         }
 
         private static bool TryFormatUShort(ushort b, in WriteContext _, IBufferWriter<char> writer)
         {
-            var charSpan = writer.GetSpan(5 );
+            var charSpan = writer.GetSpan(5);
 
             var ret = b.TryFormat(charSpan, out var chars, provider: CultureInfo.InvariantCulture);
             if (!ret) return false;
 
-            writer.Advance(chars );
+            writer.Advance(chars);
             return true;
         }
 
         private static bool TryFormatInt(int b, in WriteContext _, IBufferWriter<char> writer)
         {
-            var charSpan = writer.GetSpan(11 );
+            var charSpan = writer.GetSpan(11);
 
             var ret = b.TryFormat(charSpan, out var chars, provider: CultureInfo.InvariantCulture);
             if (!ret) return false;
 
-            writer.Advance(chars );
+            writer.Advance(chars);
             return true;
         }
 
         private static bool TryFormatUInt(uint b, in WriteContext _, IBufferWriter<char> writer)
         {
-            var charSpan = writer.GetSpan(10 );
+            var charSpan = writer.GetSpan(10);
 
             var ret = b.TryFormat(charSpan, out var chars, provider: CultureInfo.InvariantCulture);
             if (!ret) return false;
 
-            writer.Advance(chars );
+            writer.Advance(chars);
             return true;
         }
 
         private static bool TryFormatLong(long b, in WriteContext _, IBufferWriter<char> writer)
         {
-            var charSpan = writer.GetSpan(20 );
+            var charSpan = writer.GetSpan(20);
 
             var ret = b.TryFormat(charSpan, out var chars, provider: CultureInfo.InvariantCulture);
             if (!ret) return false;
 
-            writer.Advance(chars );
+            writer.Advance(chars);
             return true;
         }
 
         private static bool TryFormatULong(ulong b, in WriteContext _, IBufferWriter<char> writer)
         {
-            var charSpan = writer.GetSpan(20 );
+            var charSpan = writer.GetSpan(20);
 
             var ret = b.TryFormat(charSpan, out var chars, provider: CultureInfo.InvariantCulture);
             if (!ret) return false;
 
-            writer.Advance(chars );
+            writer.Advance(chars);
             return true;
         }
 
@@ -236,12 +297,12 @@ namespace Cesil
                 1 +     // e
                 2 +     // magnitude digits
                 1;      // magnitude sign bits
-            var charSpan = writer.GetSpan(MAX_CHARS );
+            var charSpan = writer.GetSpan(MAX_CHARS);
 
             var ret = b.TryFormat(charSpan, out var chars, "G9", provider: CultureInfo.InvariantCulture);
             if (!ret) return false;
 
-            writer.Advance(chars );
+            writer.Advance(chars);
             return true;
         }
 
@@ -260,7 +321,7 @@ namespace Cesil
             var ret = b.TryFormat(charSpan, out var chars, "G17", provider: CultureInfo.InvariantCulture);
             if (!ret) return false;
 
-            writer.Advance(chars );
+            writer.Advance(chars);
             return true;
         }
 
@@ -279,7 +340,7 @@ namespace Cesil
             var ret = b.TryFormat(charSpan, out var chars, provider: CultureInfo.InvariantCulture);
             if (!ret) return false;
 
-            writer.Advance(chars );
+            writer.Advance(chars);
             return true;
         }
 
@@ -295,12 +356,12 @@ namespace Cesil
                 dt = dt.ToUniversalTime();
             }
 
-            var charSpan = writer.GetSpan(MAX_CHARS );
-            
+            var charSpan = writer.GetSpan(MAX_CHARS);
+
             var ret = dt.TryFormat(charSpan, out var chars, "u", provider: CultureInfo.InstalledUICulture);
             if (!ret) return false;
 
-            writer.Advance(chars );
+            writer.Advance(chars);
             return true;
         }
 
@@ -308,13 +369,13 @@ namespace Cesil
         {
             // yyyy-MM-dd HH:mm:ssZ
             const int MAX_CHARS = 20;
-            
-            var charSpan = writer.GetSpan(MAX_CHARS );
-            
+
+            var charSpan = writer.GetSpan(MAX_CHARS);
+
             var ret = dt.TryFormat(charSpan, out var chars, "u", formatProvider: CultureInfo.InstalledUICulture);
             if (!ret) return false;
 
-            writer.Advance(chars );
+            writer.Advance(chars);
             return true;
         }
 
@@ -323,12 +384,12 @@ namespace Cesil
             // 32 digits + 4 dashes
             const int MAX_CHARS = 36;
 
-            var charSpan = writer.GetSpan(MAX_CHARS );
-            
+            var charSpan = writer.GetSpan(MAX_CHARS);
+
             var ret = g.TryFormat(charSpan, out var chars, "D");
             if (!ret) return false;
 
-            writer.Advance(chars );
+            writer.Advance(chars);
             return true;
         }
 
@@ -347,12 +408,12 @@ namespace Cesil
                 1 +     // separator
                 7;      // fractional digits
 
-            var charSpan = writer.GetSpan(MAX_CHARS );
-            
+            var charSpan = writer.GetSpan(MAX_CHARS);
+
             var ret = ts.TryFormat(charSpan, out var chars, "c");
             if (!ret) return false;
 
-            writer.Advance(chars );
+            writer.Advance(chars);
             return true;
         }
 

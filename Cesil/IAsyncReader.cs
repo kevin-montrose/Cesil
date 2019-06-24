@@ -8,7 +8,7 @@ namespace Cesil
     /// <summary>
     /// Interface for an asynchronous reader.
     /// </summary>
-    public interface IAsyncReader<T>: IAsyncDisposable
+    public interface IAsyncReader<T> : IAsyncDisposable
     {
         /// <summary>
         /// Returns an async enumerable that will read and yield
@@ -60,5 +60,36 @@ namespace Cesil
         /// but will not block if results are not available.
         /// </summary>
         ValueTask<ReadResult<T>> TryReadWithReuseAsync(ref T row, CancellationToken cancel = default);
+
+        /// <summary>
+        /// Reads a single row or comment.
+        /// 
+        /// Distinguish between a row, comment, or nothing by inspecting 
+        /// ReadWithCommentResult(T).ResultType.
+        /// 
+        /// Note, it is possible for row to be initialized BUT for this method
+        /// to return a comment or no value.  In that case row should be ignored.
+        /// 
+        /// The task will attempt to complete synchronously, 
+        /// but will not block if results are not available.
+        /// </summary>
+        ValueTask<ReadWithCommentResult<T>> TryReadWithCommentAsync(CancellationToken cancel = default);
+
+        /// <summary>
+        /// Reads a single row (storing into an existing instance of a row
+        /// if provided) or comment.
+        ///
+        /// Distinguish between a row, comment, or nothing by inspecting 
+        /// ReadWithCommentResult(T).ResultType.
+        /// 
+        /// Row will be initialized if need be.
+        /// 
+        /// Note, it is possible for row to be initialized BUT for this method
+        /// to return a comment or no value.  In that case row should be ignored.
+        /// 
+        /// The task will attempt to complete synchronously, 
+        /// but will not block if results are not available.
+        /// </summary>
+        ValueTask<ReadWithCommentResult<T>> TryReadWithCommentReuseAsync(ref T row, CancellationToken cancel = default);
     }
 }

@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Cesil.Tests
 {
-    internal sealed class ConfigurableSyncAsyncReader: TextReader
+    internal sealed class ConfigurableSyncAsyncReader : TextReader
     {
         private readonly TextReader Inner;
 
@@ -21,7 +21,7 @@ namespace Cesil.Tests
 
         private bool ShouldBeAsync()
         {
-            if(CurrentCall >= Config.Length)
+            if (CurrentCall >= Config.Length)
             {
                 throw new InvalidOperationException("Unexpected number of async calls");
             }

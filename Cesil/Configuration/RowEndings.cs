@@ -6,29 +6,24 @@
     /// This can be determined automatically with
     ///   Detect.
     /// </summary>
-    public enum RowEndings: byte
+    public enum RowEndings : byte
     {
-        /// <summary>
-        /// Default value, do not use.
-        /// </summary>
-        None = 0,
-
         /// <summary>
         /// The \r character.
         /// </summary>
-        CarriageReturn,
+        CarriageReturn = 1,
         /// <summary>
         /// The \n character.
         /// </summary>
-        LineFeed,
+        LineFeed = 2,
         /// <summary>
         /// \r\n character sequence.
         /// </summary>
-        CarriageReturnLineFeed,
+        CarriageReturnLineFeed = 3,
         /// <summary>
         /// Will probe the CSV and discover which sequence of characters
         ///    indicates the end of a record.
         /// </summary>
-        Detect
+        Detect = 4
     }
 }

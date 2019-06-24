@@ -37,12 +37,12 @@ namespace Cesil
             var disposeE = true;
             try
             {
-                while(e.MoveNext())
+                while (e.MoveNext())
                 {
                     var row = e.Current;
                     var writeTask = WriteAsync(row, cancel);
 
-                    if(!writeTask.IsCompletedSuccessfully)
+                    if (!writeTask.IsCompletedSuccessfully)
                     {
                         disposeE = false;
                         return WriteAllAsync_CompleteAsync(this, writeTask, e, cancel);
@@ -152,7 +152,7 @@ namespace Cesil
                     var row = e.Current;
                     await self.WriteAsync(row, cancel);
 
-                    while(await e.MoveNextAsync())
+                    while (await e.MoveNextAsync())
                     {
                         row = e.Current;
                         await self.WriteAsync(row, cancel);
@@ -171,7 +171,7 @@ namespace Cesil
                 {
                     await waitFor;
 
-                    while(await e.MoveNextAsync())
+                    while (await e.MoveNextAsync())
                     {
                         var row = e.Current;
                         await self.WriteAsync(row, cancel);
@@ -188,29 +188,10 @@ namespace Cesil
         {
             AssertNotDisposed();
 
-            var shouldEndRecord = true;
-
-            if (IsFirstRow)
+            var checkHeadersAndEndRowTask = WriteHeadersAndEndRowIfNeededAsync(cancel);
+            if (!checkHeadersAndEndRowTask.IsCompletedSuccessfully)
             {
-                var headersTask = CheckHeadersAsync(cancel);
-                if (!headersTask.IsCompletedSuccessfully)
-                {
-                    return WriteAsync_ContinueAfterHeadersAsync(this, headersTask, row, cancel);
-                }
-
-                if (!headersTask.Result)
-                {
-                    shouldEndRecord = false;
-                }
-            }
-
-            if (shouldEndRecord)
-            {
-                var endRecordTask = EndRecordAsync(cancel);
-                if (!endRecordTask.IsCompletedSuccessfully)
-                {
-                    return WriteAsync_ContinueAfterEndRecordAsync(this, endRecordTask, row, cancel);
-                }
+                return WriteAsync_ContinueAfterHeadersAndEndRecordAsync(this, checkHeadersAndEndRowTask, row, cancel);
             }
 
             for (var i = 0; i < Columns.Length; i++)
@@ -229,36 +210,8 @@ namespace Cesil
 
             return default;
 
-            // wait for the headers to write, then continue async
-            static async ValueTask WriteAsync_ContinueAfterHeadersAsync(AsyncWriter<T> self, ValueTask<bool> waitFor, T row, CancellationToken cancel)
-            {
-                var shouldEndRecord = true;
-
-                var res = await waitFor;
-               
-                if (!res)
-                {
-                    shouldEndRecord = false;
-                }
-
-                if (shouldEndRecord)
-                {
-                    await self.EndRecordAsync(cancel);
-                }
-
-                for (var i = 0; i < self.Columns.Length; i++)
-                {
-                    var needsSeparator = i != 0;
-                    var col = self.Columns[i];
-
-                    await self.WriteColumnAsync(row, i, col, needsSeparator, cancel);
-                }
-
-                self.RowNumber++;
-            }
-
             // wait for the record to end, then continue async
-            static async ValueTask WriteAsync_ContinueAfterEndRecordAsync(AsyncWriter<T> self, ValueTask waitFor, T row, CancellationToken cancel)
+            static async ValueTask WriteAsync_ContinueAfterHeadersAndEndRecordAsync(AsyncWriter<T> self, ValueTask waitFor, T row, CancellationToken cancel)
             {
                 await waitFor;
 
@@ -286,10 +239,247 @@ namespace Cesil
                     const bool needsSeparator = true;                  // by definition, this isn't the first loop
                     var col = self.Columns[i];
 
-                    await self.WriteColumnAsync(row, i, col, needsSeparator, cancel); 
+                    await self.WriteColumnAsync(row, i, col, needsSeparator, cancel);
                 }
 
                 self.RowNumber++;
+            }
+        }
+
+        public ValueTask WriteCommentAsync(string comment, CancellationToken cancel = default)
+        {
+            if (comment == null)
+            {
+                Throw.ArgumentNullException(nameof(comment));
+            }
+
+            AssertNotDisposed();
+
+            var writeHeadersTask = WriteHeadersAndEndRowIfNeededAsync(cancel);
+            if (!writeHeadersTask.IsCompletedSuccessfully)
+            {
+                return WriteCommentAsync_ContinueAfterWriteHeadersAndEndRowIfNeededAsync(this, writeHeadersTask, comment, cancel);
+            }
+
+            var segments = SplitCommentIntoLines(comment);
+
+            var commentChar = Config.CommentChar.Value;
+
+            if (segments.IsSingleSegment)
+            {
+                var seg = segments.First;
+
+                var placeCharInStagingTask = PlaceCharInStagingAsync(commentChar, cancel);
+                if (!placeCharInStagingTask.IsCompletedSuccessfully)
+                {
+                    if (seg.Length > 0)
+                    {
+                        return WriteCommentAsync_ContinueAfterPlaceCharInStagingSingleSegmentAsync(this, placeCharInStagingTask, seg, cancel);
+                    }
+
+                    return new ValueTask(placeCharInStagingTask);
+                }
+
+                if (seg.Length > 0)
+                {
+                    return PlaceInStagingAsync(seg, cancel);
+                }
+
+                return default;
+            }
+
+            // we know we can write directly now
+            var e = segments.GetEnumerator();
+            var isFirstRow = true;
+            while (e.MoveNext())
+            {
+                var seg = e.Current;
+                if (!isFirstRow)
+                {
+                    var endRecordTask = EndRecordAsync(cancel);
+                    if (!endRecordTask.IsCompletedSuccessfully)
+                    {
+                        return WriteCommentAsync_ContinueAfterEndRecordMultiSegmentAsync(this, endRecordTask, commentChar, seg, e, cancel);
+                    }
+                }
+
+                var placeCharTask = PlaceCharInStagingAsync(commentChar, cancel);
+                if (!placeCharTask.IsCompletedSuccessfully)
+                {
+                    return WriteCommentAsync_ContinueAfterPlaceCharMultiSegmentAsync(this, placeCharTask, commentChar, seg, e, cancel);
+                }
+
+                if (seg.Length > 0)
+                {
+                    var placeSegTask = PlaceInStagingAsync(seg, cancel);
+                    if (!placeSegTask.IsCompletedSuccessfully)
+                    {
+                        return WriteCommentAsync_ContinueAfterPlaceSegmentMultiSegmentAsync(this, placeSegTask, commentChar, e, cancel);
+                    }
+                }
+
+                isFirstRow = false;
+            }
+
+            return default;
+
+            // continue after checking for writing headers (and ending the last row, if needed)
+            static async ValueTask WriteCommentAsync_ContinueAfterWriteHeadersAndEndRowIfNeededAsync(AsyncWriter<T> self, ValueTask waitFor, string comment, CancellationToken cancel)
+            {
+                await waitFor;
+
+                var segments = self.SplitCommentIntoLines(comment);
+
+                var commentChar = self.Config.CommentChar.Value;
+
+                if (segments.IsSingleSegment)
+                {
+                    await self.PlaceCharInStagingAsync(commentChar, cancel);
+                    var seg = segments.First;
+                    if (seg.Length > 0)
+                    {
+                        await self.PlaceInStagingAsync(seg, cancel);
+                    }
+                }
+                else
+                {
+                    // we know we can write directly now
+                    var isFirstRow = true;
+                    foreach (var seg in segments)
+                    {
+                        if (!isFirstRow)
+                        {
+                            await self.EndRecordAsync(cancel);
+                        }
+
+                        await self.PlaceCharInStagingAsync(commentChar, cancel);
+                        if (seg.Length > 0)
+                        {
+                            await self.PlaceInStagingAsync(seg, cancel);
+                        }
+
+                        isFirstRow = false;
+                    }
+                }
+            }
+
+            // continue after writing the # (or whatever) before the rest of the single segment case
+            static async ValueTask WriteCommentAsync_ContinueAfterPlaceCharInStagingSingleSegmentAsync(AsyncWriter<T> self, Task waitFor, ReadOnlyMemory<char> seg, CancellationToken cancel)
+            {
+                await waitFor;
+
+                await self.PlaceInStagingAsync(seg, cancel);
+            }
+
+            // continue after writing a row ender in the multi-segment case
+            static async ValueTask WriteCommentAsync_ContinueAfterEndRecordMultiSegmentAsync(AsyncWriter<T> self, ValueTask waitFor, char commentChar, ReadOnlyMemory<char> seg, ReadOnlySequence<char>.Enumerator e, CancellationToken cancel)
+            {
+                await waitFor;
+
+                await self.PlaceCharInStagingAsync(commentChar, cancel);
+                if (seg.Length > 0)
+                {
+                    await self.PlaceInStagingAsync(seg, cancel);
+                }
+
+                while (e.MoveNext())
+                {
+                    // no need to check is first, we know it's not
+                    seg = e.Current;
+                    await self.EndRecordAsync(cancel);
+
+                    await self.PlaceCharInStagingAsync(commentChar, cancel);
+                    if (seg.Length > 0)
+                    {
+                        await self.PlaceInStagingAsync(seg, cancel);
+                    }
+                }
+            }
+
+            // continue aftering writing a # (or whatever) in the multi-segment case
+            static async ValueTask WriteCommentAsync_ContinueAfterPlaceCharMultiSegmentAsync(AsyncWriter<T> self, Task waitFor, char commentChar, ReadOnlyMemory<char> seg, ReadOnlySequence<char>.Enumerator e, CancellationToken cancel)
+            {
+                await waitFor;
+
+                if (seg.Length > 0)
+                {
+                    await self.PlaceInStagingAsync(seg, cancel);
+                }
+
+                while (e.MoveNext())
+                {
+                    // no need to check is first, we know it's not
+                    seg = e.Current;
+                    await self.EndRecordAsync(cancel);
+
+                    await self.PlaceCharInStagingAsync(commentChar, cancel);
+                    if (seg.Length > 0)
+                    {
+                        await self.PlaceInStagingAsync(seg, cancel);
+                    }
+                }
+            }
+
+            // continue after writing a segment, in the multi-segment case
+            static async ValueTask WriteCommentAsync_ContinueAfterPlaceSegmentMultiSegmentAsync(AsyncWriter<T> self, ValueTask waitFor, char commentChar, ReadOnlySequence<char>.Enumerator e, CancellationToken cancel)
+            {
+                await waitFor;
+
+                while (e.MoveNext())
+                {
+                    // no need to check is first, we know it's not
+                    var seg = e.Current;
+                    await self.EndRecordAsync(cancel);
+
+                    await self.PlaceCharInStagingAsync(commentChar, cancel);
+                    if (seg.Length > 0)
+                    {
+                        await self.PlaceInStagingAsync(seg, cancel);
+                    }
+                }
+            }
+        }
+
+        private ValueTask WriteHeadersAndEndRowIfNeededAsync(CancellationToken cancel)
+        {
+            var shouldEndRecord = true;
+            if (IsFirstRow)
+            {
+                var headersTask = CheckHeadersAsync(cancel);
+                if (!headersTask.IsCompletedSuccessfully)
+                {
+                    return WriteHeadersAndEndRecordIfNeededAsync_ContinueAfterHeadersAsync(this, headersTask, cancel);
+                }
+
+                if (!headersTask.Result)
+                {
+                    shouldEndRecord = false;
+                }
+            }
+
+            if (shouldEndRecord)
+            {
+                var endRecordTask = EndRecordAsync(cancel);
+
+                return endRecordTask;
+            }
+
+            return default;
+
+            static async ValueTask WriteHeadersAndEndRecordIfNeededAsync_ContinueAfterHeadersAsync(AsyncWriter<T> self, ValueTask<bool> waitFor, CancellationToken cancel)
+            {
+                var shouldEndRecord = true;
+                var res = await waitFor;
+
+                if (!res)
+                {
+                    shouldEndRecord = false;
+                }
+
+                if (shouldEndRecord)
+                {
+                    await self.EndRecordAsync(cancel);
+                }
             }
         }
 
@@ -304,7 +494,7 @@ namespace Cesil
                 }
             }
 
-            var ctx = new WriteContext(RowNumber, colIx, col.Name, Context);
+            var ctx = WriteContext.WritingColumn(RowNumber, ColumnIdentifier.Create(colIx, col.Name), Context);
 
             if (!col.Write(row, ctx, Buffer))
             {
@@ -333,7 +523,7 @@ namespace Cesil
             {
                 await waitFor;
 
-                var ctx = new WriteContext(self.RowNumber, colIx, col.Name, self.Context);
+                var ctx = WriteContext.WritingColumn(self.RowNumber, ColumnIdentifier.Create(colIx, col.Name), self.Context);
 
                 if (!col.Write(row, ctx, self.Buffer))
                 {
@@ -494,7 +684,7 @@ namespace Cesil
 
             // end with the escape
             var endEscapeTask = PlaceCharInStagingAsync(Config.EscapedValueStartAndStop, cancel);
-            if(!endEscapeTask.IsCompletedSuccessfully)
+            if (!endEscapeTask.IsCompletedSuccessfully)
             {
                 return new ValueTask(endEscapeTask);
             }
@@ -904,7 +1094,7 @@ namespace Cesil
 
         private ValueTask PlaceInStagingAsync(ReadOnlyMemory<char> chars, CancellationToken cancel)
         {
-            if(!HasBuffer)
+            if (!HasBuffer)
             {
                 return WriteDirectlyAsync(chars, cancel);
             }
@@ -987,12 +1177,12 @@ namespace Cesil
 
         private Task PlaceCharInStagingAsync(char c, CancellationToken cancel)
         {
-            if(!HasBuffer)
+            if (!HasBuffer)
             {
                 return WriteCharDirectlyAsync(c, cancel);
             }
 
-            if(PlaceInStaging(c))
+            if (PlaceInStaging(c))
             {
                 return FlushStagingAsync(cancel);
             }
@@ -1135,6 +1325,11 @@ namespace Cesil
             {
                 Throw.ObjectDisposedException(nameof(AsyncWriter<T>));
             }
+        }
+
+        public override string ToString()
+        {
+            return $"{nameof(AsyncWriter<T>)} with {Config}";
         }
     }
 }

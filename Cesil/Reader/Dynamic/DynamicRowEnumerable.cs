@@ -45,5 +45,8 @@ namespace Cesil
 
         IEnumerator IEnumerable.GetEnumerator()
         => GetEnumerator();
+
+        public override string ToString()
+        => $"{nameof(DynamicRowEnumerable<T>)} bound to {Row}";
     }
 }

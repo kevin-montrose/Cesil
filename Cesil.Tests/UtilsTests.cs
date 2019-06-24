@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Buffers;
+using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 namespace Cesil.Tests
@@ -7,18 +9,108 @@ namespace Cesil.Tests
     public class UtilsTests
     {
         [Theory]
-        [InlineData("", "a", false)]
-        [InlineData("a", "", false)]
+        [InlineData("", "\r\n")]
+        [InlineData("hello\r\nworld", "\r\n")]
+        [InlineData("hello world", " ")]
+        [InlineData("hello_world__foo_+bar_+_+_+_+wooo_+", "_+")]
+        [InlineData("\r\n", "\r\n")]
+        [InlineData(" \r\n", "\r\n")]
+        [InlineData("\r\n ", "\r\n")]
+        [InlineData(" \r\n ", "\r\n")]
+        [InlineData("#", "#")]
+        [InlineData("#", "###")]
+        [InlineData("nothing to break on", "foo")]
+        public void Split(string haystack, string needle)
+        {
+            var shouldMatch = haystack.Split(needle, StringSplitOptions.RemoveEmptyEntries);
+
+            var actually = Utils.Split(haystack.AsMemory(), needle.AsMemory());
+            var actuallySegments = new List<string>();
+            foreach (var seq in actually)
+            {
+                if (seq.Length != 0)
+                {
+                    actuallySegments.Add(new string(seq.Span));
+                }
+            }
+
+            Assert.True(shouldMatch.SequenceEqual(actuallySegments));
+        }
+
+        private class _Encode
+        {
+            public string Foo { get; set; }
+        }
+
+        [Theory]
+        [InlineData("\"", "\"\"\"\"")]
+        [InlineData(" \"\"\"\"\"\"\"\" ", "\" \"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\" \"")]
+        public void Encode(string input, string expected)
+        {
+            var config = (BoundConfigurationBase<_Encode>)Configuration.For<_Encode>();
+
+            var res = Utils.Encode(input, config);
+
+            Assert.Equal(expected, res);
+        }
+
+        [Theory]
+        // 0 chars
         [InlineData("", "", true)]
+
+        // 0 vs 1 chars
+        [InlineData("", "a", false)]
+
+        // 1 char
+        [InlineData("a", "b", false)]
+
+        // 1 vs 2 chars
+        [InlineData("a", "ab", false)]
+
+        // 2 chars (1 int)
         [InlineData("aa", "ab", false)]
         [InlineData("aa", "aa", true)]
         [InlineData("aa", "bb", false)]
+
+        // 2 vs 3 chars 
+        [InlineData("aa", "aab", false)]
+
+        // 3 chars (1 int, 1 char)
         [InlineData("aaa", "aab", false)]
         [InlineData("aaa", "aaa", true)]
         [InlineData("aaa", "aba", false)]
+
+        // 3 vs 4 chars
+        [InlineData("aaa", "aaab", false)]
+
+        // 4 chars (1 long)
         [InlineData("aaaa", "aaab", false)]
         [InlineData("aaaa", "aaaa", true)]
         [InlineData("aaab", "aaaa", false)]
+
+        // 4 vs 5 chars
+        [InlineData("aaaa", "aaaab", false)]
+
+        // 5 chars (1 long, 1 char)
+        [InlineData("aaaaa", "aaaaa", true)]
+        [InlineData("aaaaa", "aaaab", false)]
+        [InlineData("aaaab", "aaaaa", false)]
+
+        // 5 vs 6 chars
+        [InlineData("aaaaa", "aaaaab", false)]
+
+        // 6 chars (1 long, 1 int)
+        [InlineData("aaaaaa", "aaaaaa", true)]
+        [InlineData("aaaaaa", "aaaaab", false)]
+        [InlineData("aaaaab", "aaaaaa", false)]
+
+        // 6 vs 7 chars
+        [InlineData("aaaaaa", "aaaaaab", false)]
+
+        // 7 chars (1 long, 1 int, 1 char)
+        [InlineData("aaaaaaa", "aaaaaaa", true)]
+        [InlineData("aaaaaaa", "aaaaaab", false)]
+        [InlineData("aaaaaab", "aaaaaaa", false)]
         public void AreEqual(string a, string b, bool expected)
         {
             var aMem = a.AsMemory();
@@ -29,12 +121,43 @@ namespace Cesil.Tests
             Assert.Equal(expected, res);
         }
 
-        class _FindChar
+        private class _FindChar
         {
             public string A { get; set; }
         }
 
         [Theory]
+        // empty
+        [InlineData("", 0, 'd', -1)]
+
+        // 1 char
+        [InlineData("d", 0, 'd', 0)]
+        [InlineData("c", 0, 'd', -1)]
+
+        // 2 chars (1 int)
+        [InlineData("de", 0, 'e', 1)]
+        [InlineData("dc", 0, 'a', -1)]
+
+        // 3 chars (1 int, 1 char)
+        [InlineData("def", 0, 'f', 2)]
+        [InlineData("def", 0, 'a', -1)]
+
+        // 4 chars (1 long)
+        [InlineData("defg", 0, 'e', 1)]
+        [InlineData("defg", 0, 'h', -1)]
+
+        // 5 chars (1 long, 1 char)
+        [InlineData("defgh", 0, 'd', 0)]
+        [InlineData("defgh", 0, 'i', -1)]
+
+        // 6 chars (1 long, 1 int)
+        [InlineData("defghi", 0, 'i', 5)]
+        [InlineData("defghi", 0, 'a', -1)]
+
+        // 7 chars (1 long, 1 int, 1 char)
+        [InlineData("defghij", 0, 'e', 1)]
+        [InlineData("defghij", 0, 'a', -1)]
+
         [InlineData("abc", 0, 'd', -1)]
         [InlineData("ab\"c", 0, '"', 2)]
         [InlineData("ab\"c", 1, '"', 2)]
@@ -53,6 +176,37 @@ namespace Cesil.Tests
         }
 
         [Theory]
+        // empty
+        [InlineData("", 0, 'd', -1)]
+
+        // 1 char
+        [InlineData("d", 0, 'd', 0)]
+        [InlineData("c", 0, 'd', -1)]
+
+        // 2 chars (1 int)
+        [InlineData("de", 0, 'e', 1)]
+        [InlineData("dc", 0, 'a', -1)]
+
+        // 3 chars (1 int, 1 char)
+        [InlineData("def", 0, 'f', 2)]
+        [InlineData("def", 0, 'a', -1)]
+
+        // 4 chars (1 long)
+        [InlineData("defg", 0, 'e', 1)]
+        [InlineData("defg", 0, 'h', -1)]
+
+        // 5 chars (1 long, 1 char)
+        [InlineData("defgh", 0, 'd', 0)]
+        [InlineData("defgh", 0, 'i', -1)]
+
+        // 6 chars (1 long, 1 int)
+        [InlineData("defghi", 0, 'i', 5)]
+        [InlineData("defghi", 0, 'a', -1)]
+
+        // 7 chars (1 long, 1 int, 1 char)
+        [InlineData("defghij", 0, 'e', 1)]
+        [InlineData("defghij", 0, 'a', -1)]
+
         [InlineData("abc", 0, 'd', -1)]
         [InlineData("ab\"c", 0, '"', 2)]
         [InlineData("ab\"c", 1, '"', 2)]
@@ -103,7 +257,7 @@ namespace Cesil.Tests
             Assert.Equal(expected, ix);
         }
 
-        class _FindNeedsEncode
+        private class _FindNeedsEncode
         {
             public string A { get; set; }
         }
@@ -146,7 +300,7 @@ namespace Cesil.Tests
             Assert.Equal(expected, ix);
         }
 
-        sealed class _FindNeedsEncode_Sequence_Segment : ReadOnlySequenceSegment<char>
+        private sealed class _FindNeedsEncode_Sequence_Segment : ReadOnlySequenceSegment<char>
         {
             private readonly string Inner;
 

@@ -3,11 +3,11 @@ using System.Buffers;
 
 namespace Cesil
 {
-    internal sealed class MaybeInPlaceBuffer<T>: ITestableDisposable
+    internal sealed class MaybeInPlaceBuffer<T> : ITestableDisposable
     {
-        private enum Mode: byte
+        private enum Mode : byte
         {
-            NONE = 0,
+            None = 0,
 
             Uninitialized,
 

@@ -1,9 +1,9 @@
 ﻿using BenchmarkDotNet.Attributes;
-using CH = CsvHelper;
+using System;
 using System.IO;
 using System.Linq;
 using C = Csv;
-using System;
+using CH = CsvHelper;
 
 namespace Cesil.Benchmark.Benchmarks
 {

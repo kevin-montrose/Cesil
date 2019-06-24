@@ -40,14 +40,14 @@ namespace Cesil.Tests
         }
 
         [Fact]
-        public void DeserializableMember_GetDefaultParser()
+        public void Parser_GetDefault()
         {
             // string
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(string).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(string).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<string>)Delegate.CreateDelegate(typeof(Parse<string>), mtd);
+                var del = (Parse<string>)Delegate.CreateDelegate(typeof(Parse<string>), mtd.Method);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal("123", v1);
@@ -59,12 +59,78 @@ namespace Cesil.Tests
                 Assert.Equal("foo", v3);
             }
 
-            // enum
+            // Version
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(_TestEnum).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(Version).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<_TestEnum>)Delegate.CreateDelegate(typeof(Parse<_TestEnum>), mtd);
+                var del = (Parse<Version>)Delegate.CreateDelegate(typeof(Parse<Version>), mtd.Method);
+
+                var a = new Version();
+                var b = new Version("1.0");
+                var c = new Version(1,2);
+                var d = new Version(1, 2, 3);
+                var e = new Version(1, 2, 3, 4);
+                var f = new Version(int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue);
+
+                Assert.True(del(a.ToString(), default, out var v1));
+                Assert.Equal(a, v1);
+
+                Assert.True(del(b.ToString(), default, out var v2));
+                Assert.Equal(b, v2);
+
+                Assert.True(del(c.ToString(), default, out var v3));
+                Assert.Equal(c, v3);
+
+                Assert.True(del(d.ToString(), default, out var v4));
+                Assert.Equal(d, v4);
+
+                Assert.True(del(e.ToString(), default, out var v5));
+                Assert.Equal(e, v5);
+
+                Assert.True(del(f.ToString(), default, out var v6));
+                Assert.Equal(f, v6);
+            }
+
+            // Uri
+            {
+                var mtd = Parser.GetDefault(typeof(Uri).GetTypeInfo());
+                Assert.NotNull(mtd);
+
+                var del = (Parse<Uri>)Delegate.CreateDelegate(typeof(Parse<Uri>), mtd.Method);
+
+                var a = new Uri("/", UriKind.RelativeOrAbsolute);
+                var b = new Uri("/foo", UriKind.RelativeOrAbsolute);
+                var c = new Uri("/foo?p", UriKind.RelativeOrAbsolute);
+                var d = new Uri("/foo?p#e", UriKind.RelativeOrAbsolute);
+                var e = new Uri("file://local.bar/foo?p#e", UriKind.RelativeOrAbsolute);
+                var f = new Uri("https://local.bar:12345/foo?p#e", UriKind.RelativeOrAbsolute);
+
+                Assert.True(del(a.ToString(), default, out var v1));
+                Assert.Equal(a, v1);
+
+                Assert.True(del(b.ToString(), default, out var v2));
+                Assert.Equal(b, v2);
+
+                Assert.True(del(c.ToString(), default, out var v3));
+                Assert.Equal(c, v3);
+
+                Assert.True(del(d.ToString(), default, out var v4));
+                Assert.Equal(d, v4);
+
+                Assert.True(del(e.ToString(), default, out var v5));
+                Assert.Equal(e, v5);
+
+                Assert.True(del(f.ToString(), default, out var v6));
+                Assert.Equal(f, v6);
+            }
+
+            // enum
+            {
+                var mtd = Parser.GetDefault(typeof(_TestEnum).GetTypeInfo());
+                Assert.NotNull(mtd);
+
+                var del = (Parse<_TestEnum>)Delegate.CreateDelegate(typeof(Parse<_TestEnum>), mtd.Method);
 
                 Assert.True(del(_TestEnum.None.ToString(), default, out var v1));
                 Assert.Equal(_TestEnum.None, v1);
@@ -82,10 +148,10 @@ namespace Cesil.Tests
 
             // flags enum
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(_TestFlagsEnum).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(_TestFlagsEnum).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<_TestFlagsEnum>)Delegate.CreateDelegate(typeof(Parse<_TestFlagsEnum>), mtd);
+                var del = (Parse<_TestFlagsEnum>)Delegate.CreateDelegate(typeof(Parse<_TestFlagsEnum>), mtd.Method);
 
                 Assert.True(del(_TestFlagsEnum.None.ToString(), default, out var v1));
                 Assert.Equal(_TestFlagsEnum.None, v1);
@@ -103,23 +169,23 @@ namespace Cesil.Tests
 
             // char
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(char).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(char).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<char>)Delegate.CreateDelegate(typeof(Parse<char>), mtd);
+                var del = (Parse<char>)Delegate.CreateDelegate(typeof(Parse<char>), mtd.Method);
 
                 Assert.True(del("t", default, out var v1));
                 Assert.Equal('t', v1);
-                
+
                 Assert.False(del("foo", default, out _));
             }
 
             // bool
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(bool).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(bool).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<bool>)Delegate.CreateDelegate(typeof(Parse<bool>), mtd);
+                var del = (Parse<bool>)Delegate.CreateDelegate(typeof(Parse<bool>), mtd.Method);
 
                 Assert.True(del("true", default, out var v1));
                 Assert.True(v1);
@@ -138,10 +204,10 @@ namespace Cesil.Tests
 
             // byte
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(byte).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(byte).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<byte>)Delegate.CreateDelegate(typeof(Parse<byte>), mtd);
+                var del = (Parse<byte>)Delegate.CreateDelegate(typeof(Parse<byte>), mtd.Method);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((byte)123, v1);
@@ -153,10 +219,10 @@ namespace Cesil.Tests
 
             // sbyte
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(sbyte).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(sbyte).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<sbyte>)Delegate.CreateDelegate(typeof(Parse<sbyte>), mtd);
+                var del = (Parse<sbyte>)Delegate.CreateDelegate(typeof(Parse<sbyte>), mtd.Method);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((sbyte)123, v1);
@@ -169,10 +235,10 @@ namespace Cesil.Tests
 
             // short
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(short).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(short).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<short>)Delegate.CreateDelegate(typeof(Parse<short>), mtd);
+                var del = (Parse<short>)Delegate.CreateDelegate(typeof(Parse<short>), mtd.Method);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((short)123, v1);
@@ -185,10 +251,10 @@ namespace Cesil.Tests
 
             // ushort
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(ushort).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(ushort).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<ushort>)Delegate.CreateDelegate(typeof(Parse<ushort>), mtd);
+                var del = (Parse<ushort>)Delegate.CreateDelegate(typeof(Parse<ushort>), mtd.Method);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((ushort)123, v1);
@@ -200,10 +266,10 @@ namespace Cesil.Tests
 
             // int
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(int).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(int).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<int>)Delegate.CreateDelegate(typeof(Parse<int>), mtd);
+                var del = (Parse<int>)Delegate.CreateDelegate(typeof(Parse<int>), mtd.Method);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal(123, v1);
@@ -216,10 +282,10 @@ namespace Cesil.Tests
 
             // uint
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(uint).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(uint).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<uint>)Delegate.CreateDelegate(typeof(Parse<uint>), mtd);
+                var del = (Parse<uint>)Delegate.CreateDelegate(typeof(Parse<uint>), mtd.Method);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((uint)123, v1);
@@ -231,10 +297,10 @@ namespace Cesil.Tests
 
             // long
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(long).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(long).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<long>)Delegate.CreateDelegate(typeof(Parse<long>), mtd);
+                var del = (Parse<long>)Delegate.CreateDelegate(typeof(Parse<long>), mtd.Method);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal(123L, v1);
@@ -247,10 +313,10 @@ namespace Cesil.Tests
 
             // ulong
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(ulong).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(ulong).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<ulong>)Delegate.CreateDelegate(typeof(Parse<ulong>), mtd);
+                var del = (Parse<ulong>)Delegate.CreateDelegate(typeof(Parse<ulong>), mtd.Method);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((ulong)123, v1);
@@ -262,10 +328,10 @@ namespace Cesil.Tests
 
             // float
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(float).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(float).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<float>)Delegate.CreateDelegate(typeof(Parse<float>), mtd);
+                var del = (Parse<float>)Delegate.CreateDelegate(typeof(Parse<float>), mtd.Method);
 
                 Assert.True(del("123.45", default, out var v1));
                 Assert.Equal(123.45f, v1);
@@ -278,10 +344,10 @@ namespace Cesil.Tests
 
             // double
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(double).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(double).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<double>)Delegate.CreateDelegate(typeof(Parse<double>), mtd);
+                var del = (Parse<double>)Delegate.CreateDelegate(typeof(Parse<double>), mtd.Method);
 
                 Assert.True(del("123.45", default, out var v1));
                 Assert.Equal(123.45, v1);
@@ -294,10 +360,10 @@ namespace Cesil.Tests
 
             // decimal
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(decimal).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(decimal).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<decimal>)Delegate.CreateDelegate(typeof(Parse<decimal>), mtd);
+                var del = (Parse<decimal>)Delegate.CreateDelegate(typeof(Parse<decimal>), mtd.Method);
 
                 Assert.True(del("123.45", default, out var v1));
                 Assert.Equal(123.45m, v1);
@@ -312,10 +378,10 @@ namespace Cesil.Tests
             {
                 var shouldMatch = Guid.Parse("fe754e30-49c2-4875-b905-cbd6f237ddfd");
 
-                var mtd = DeserializableMember.GetDefaultParser(typeof(Guid).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(Guid).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<Guid>)Delegate.CreateDelegate(typeof(Parse<Guid>), mtd);
+                var del = (Parse<Guid>)Delegate.CreateDelegate(typeof(Parse<Guid>), mtd.Method);
 
                 Assert.True(del("fe754e30-49c2-4875-b905-cbd6f237ddfd", default, out var v1));
                 Assert.Equal(shouldMatch, v1);
@@ -337,10 +403,10 @@ namespace Cesil.Tests
 
             // TimeSpan
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(TimeSpan).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(TimeSpan).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<TimeSpan>)Delegate.CreateDelegate(typeof(Parse<TimeSpan>), mtd);
+                var del = (Parse<TimeSpan>)Delegate.CreateDelegate(typeof(Parse<TimeSpan>), mtd.Method);
 
                 // max
                 Assert.True(del(TimeSpan.MaxValue.ToString("c"), default, out var v1));
@@ -350,17 +416,61 @@ namespace Cesil.Tests
                 Assert.True(del(TimeSpan.MinValue.ToString("c"), default, out var v2));
                 Assert.Equal(TimeSpan.MinValue, v2);
             }
+
+            // Index
+            {
+                var mtd = Parser.GetDefault(typeof(Index).GetTypeInfo());
+                Assert.NotNull(mtd);
+
+                var del = (Parse<Index>)Delegate.CreateDelegate(typeof(Parse<Index>), mtd.Method);
+
+                // start
+                Assert.True(del(((Index)1).ToString(), default, out var v1));
+                Assert.Equal(new Index(1), v1);
+
+                // end 
+                Assert.True(del((^1).ToString(), default, out var v2));
+                Assert.Equal(^1, v2);
+            }
+
+            // Range
+            {
+                var mtd = Parser.GetDefault(typeof(Range).GetTypeInfo());
+                Assert.NotNull(mtd);
+
+                var del = (Parse<Range>)Delegate.CreateDelegate(typeof(Parse<Range>), mtd.Method);
+
+                // start-start
+                var startStart = 1..4;
+                Assert.True(del(startStart.ToString(), default, out var v1));
+                Assert.Equal(startStart, v1);
+
+                // start-end
+                var startEnd = 1..^5;
+                Assert.True(del(startEnd.ToString(), default, out var v2));
+                Assert.Equal(startEnd, v2);
+
+                // end-start
+                var endStart = ^1..5;
+                Assert.True(del(endStart.ToString(), default, out var v3));
+                Assert.Equal(endStart, v3);
+
+                // end-end
+                var endEnd = ^1..^9;
+                Assert.True(del(endEnd.ToString(), default, out var v4));
+                Assert.Equal(endEnd, v4);
+            }
         }
 
         [Fact]
-        public void DeserializableMember_GetDefaultParser_Nullable()
+        public void Parser_GetDefault_Nullable()
         {
             // enum?
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(_TestEnum?).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(_TestEnum?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<_TestEnum?>)Delegate.CreateDelegate(typeof(Parse<_TestEnum?>), mtd);
+                var del = (Parse<_TestEnum?>)Delegate.CreateDelegate(typeof(Parse<_TestEnum?>), mtd.Method);
 
                 Assert.True(del(_TestEnum.None.ToString(), default, out var v1));
                 Assert.Equal((_TestEnum?)_TestEnum.None, v1);
@@ -381,10 +491,10 @@ namespace Cesil.Tests
 
             // flags enum?
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(_TestFlagsEnum?).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(_TestFlagsEnum?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<_TestFlagsEnum?>)Delegate.CreateDelegate(typeof(Parse<_TestFlagsEnum?>), mtd);
+                var del = (Parse<_TestFlagsEnum?>)Delegate.CreateDelegate(typeof(Parse<_TestFlagsEnum?>), mtd.Method);
 
                 Assert.True(del(((_TestFlagsEnum?)_TestFlagsEnum.None).ToString(), default, out var v1));
                 Assert.Equal((_TestFlagsEnum?)_TestFlagsEnum.None, v1);
@@ -405,10 +515,10 @@ namespace Cesil.Tests
 
             // char?
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(char?).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(char?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<char?>)Delegate.CreateDelegate(typeof(Parse<char?>), mtd);
+                var del = (Parse<char?>)Delegate.CreateDelegate(typeof(Parse<char?>), mtd.Method);
 
                 Assert.True(del("t", default, out var v1));
                 Assert.Equal('t', v1.Value);
@@ -421,10 +531,10 @@ namespace Cesil.Tests
 
             // bool?
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(bool?).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(bool?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<bool?>)Delegate.CreateDelegate(typeof(Parse<bool?>), mtd);
+                var del = (Parse<bool?>)Delegate.CreateDelegate(typeof(Parse<bool?>), mtd.Method);
 
                 Assert.True(del("true", default, out var v1));
                 Assert.True(v1.Value);
@@ -446,10 +556,10 @@ namespace Cesil.Tests
 
             // byte?
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(byte?).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(byte?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<byte?>)Delegate.CreateDelegate(typeof(Parse<byte?>), mtd);
+                var del = (Parse<byte?>)Delegate.CreateDelegate(typeof(Parse<byte?>), mtd.Method);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((byte?)123, v1);
@@ -464,10 +574,10 @@ namespace Cesil.Tests
 
             // sbyte?
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(sbyte?).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(sbyte?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<sbyte?>)Delegate.CreateDelegate(typeof(Parse<sbyte?>), mtd);
+                var del = (Parse<sbyte?>)Delegate.CreateDelegate(typeof(Parse<sbyte?>), mtd.Method);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((sbyte?)123, v1);
@@ -483,10 +593,10 @@ namespace Cesil.Tests
 
             // short?
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(short?).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(short?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<short?>)Delegate.CreateDelegate(typeof(Parse<short?>), mtd);
+                var del = (Parse<short?>)Delegate.CreateDelegate(typeof(Parse<short?>), mtd.Method);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((short?)123, v1);
@@ -502,10 +612,10 @@ namespace Cesil.Tests
 
             // ushort?
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(ushort?).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(ushort?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<ushort?>)Delegate.CreateDelegate(typeof(Parse<ushort?>), mtd);
+                var del = (Parse<ushort?>)Delegate.CreateDelegate(typeof(Parse<ushort?>), mtd.Method);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((ushort?)123, v1);
@@ -520,10 +630,10 @@ namespace Cesil.Tests
 
             // int?
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(int?).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(int?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<int?>)Delegate.CreateDelegate(typeof(Parse<int?>), mtd);
+                var del = (Parse<int?>)Delegate.CreateDelegate(typeof(Parse<int?>), mtd.Method);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((int?)123, v1);
@@ -539,10 +649,10 @@ namespace Cesil.Tests
 
             // uint?
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(uint?).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(uint?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<uint?>)Delegate.CreateDelegate(typeof(Parse<uint?>), mtd);
+                var del = (Parse<uint?>)Delegate.CreateDelegate(typeof(Parse<uint?>), mtd.Method);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((uint?)123, v1);
@@ -557,10 +667,10 @@ namespace Cesil.Tests
 
             // long?
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(long?).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(long?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<long?>)Delegate.CreateDelegate(typeof(Parse<long?>), mtd);
+                var del = (Parse<long?>)Delegate.CreateDelegate(typeof(Parse<long?>), mtd.Method);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((long?)123, v1);
@@ -576,10 +686,10 @@ namespace Cesil.Tests
 
             // ulong?
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(ulong?).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(ulong?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<ulong?>)Delegate.CreateDelegate(typeof(Parse<ulong?>), mtd);
+                var del = (Parse<ulong?>)Delegate.CreateDelegate(typeof(Parse<ulong?>), mtd.Method);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((ulong?)123, v1);
@@ -594,10 +704,10 @@ namespace Cesil.Tests
 
             // float?
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(float?).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(float?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<float?>)Delegate.CreateDelegate(typeof(Parse<float?>), mtd);
+                var del = (Parse<float?>)Delegate.CreateDelegate(typeof(Parse<float?>), mtd.Method);
 
                 Assert.True(del("123.45", default, out var v1));
                 Assert.Equal((float?)123.45f, v1);
@@ -613,10 +723,10 @@ namespace Cesil.Tests
 
             // double?
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(double?).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(double?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<double?>)Delegate.CreateDelegate(typeof(Parse<double?>), mtd);
+                var del = (Parse<double?>)Delegate.CreateDelegate(typeof(Parse<double?>), mtd.Method);
 
                 Assert.True(del("123.45", default, out var v1));
                 Assert.Equal((double?)123.45, v1);
@@ -632,10 +742,10 @@ namespace Cesil.Tests
 
             // decimal?
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(decimal?).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(decimal?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<decimal?>)Delegate.CreateDelegate(typeof(Parse<decimal?>), mtd);
+                var del = (Parse<decimal?>)Delegate.CreateDelegate(typeof(Parse<decimal?>), mtd.Method);
 
                 Assert.True(del("123.45", default, out var v1));
                 Assert.Equal((decimal?)123.45m, v1);
@@ -653,10 +763,10 @@ namespace Cesil.Tests
             {
                 var shouldMatch = Guid.Parse("fe754e30-49c2-4875-b905-cbd6f237ddfd");
 
-                var mtd = DeserializableMember.GetDefaultParser(typeof(Guid?).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(Guid?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<Guid?>)Delegate.CreateDelegate(typeof(Parse<Guid?>), mtd);
+                var del = (Parse<Guid?>)Delegate.CreateDelegate(typeof(Parse<Guid?>), mtd.Method);
 
                 Assert.True(del("fe754e30-49c2-4875-b905-cbd6f237ddfd", default, out var v1));
                 Assert.Equal((Guid?)shouldMatch, v1);
@@ -681,10 +791,10 @@ namespace Cesil.Tests
 
             // TimeSpan?
             {
-                var mtd = DeserializableMember.GetDefaultParser(typeof(TimeSpan?).GetTypeInfo());
+                var mtd = Parser.GetDefault(typeof(TimeSpan?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<TimeSpan?>)Delegate.CreateDelegate(typeof(Parse<TimeSpan?>), mtd);
+                var del = (Parse<TimeSpan?>)Delegate.CreateDelegate(typeof(Parse<TimeSpan?>), mtd.Method);
 
                 // max
                 Assert.True(del(TimeSpan.MaxValue.ToString("c"), default, out var v1));
@@ -698,9 +808,61 @@ namespace Cesil.Tests
                 Assert.True(del("", default, out var v3));
                 Assert.Equal((TimeSpan?)null, v3);
             }
+
+            // Index?
+            {
+                var mtd = Parser.GetDefault(typeof(Index?).GetTypeInfo());
+                Assert.NotNull(mtd);
+
+                var del = (Parse<Index?>)Delegate.CreateDelegate(typeof(Parse<Index?>), mtd.Method);
+
+                // start
+                Assert.True(del(((Index?)1).ToString(), default, out var v1));
+                Assert.Equal(new Index(1), v1);
+
+                // end 
+                Assert.True(del(((Index?)(^1)).ToString(), default, out var v2));
+                Assert.Equal(^1, v2);
+
+                // null
+                Assert.True(del("", default, out var v3));
+                Assert.Equal((Index?)null, v3);
+            }
+
+            // Range?
+            {
+                var mtd = Parser.GetDefault(typeof(Range?).GetTypeInfo());
+                Assert.NotNull(mtd);
+
+                var del = (Parse<Range?>)Delegate.CreateDelegate(typeof(Parse<Range?>), mtd.Method);
+
+                // start-start
+                Range? startStart = 1..4;
+                Assert.True(del(startStart.ToString(), default, out var v1));
+                Assert.Equal(startStart, v1);
+
+                // start-end
+                Range? startEnd = 1..^5;
+                Assert.True(del(startEnd.ToString(), default, out var v2));
+                Assert.Equal(startEnd, v2);
+
+                // end-start
+                Range? endStart = ^1..5;
+                Assert.True(del(endStart.ToString(), default, out var v3));
+                Assert.Equal(endStart, v3);
+
+                // end-end
+                Range? endEnd = ^1..^9;
+                Assert.True(del(endEnd.ToString(), default, out var v4));
+                Assert.Equal(endEnd, v4);
+
+                // null
+                Assert.True(del("", default, out var v5));
+                Assert.Equal((Range?)null, v5);
+            }
         }
 
-        class _Deserialize
+        private class _Deserialize
         {
             public string ShouldBePresent1 { get; set; }
             public int Nope { get; private set; }
@@ -733,15 +895,15 @@ namespace Cesil.Tests
             // setters
             Assert.Collection(
                 cols,
-                a => Assert.Same(typeof(_Deserialize).GetProperty(nameof(_Deserialize.ShouldBePresent1)).SetMethod, a.Setter),
-                a => Assert.Same(typeof(_Deserialize).GetProperty(nameof(_Deserialize.ShouldBePresent2)).SetMethod, a.Setter)
+                a => Assert.Same(typeof(_Deserialize).GetProperty(nameof(_Deserialize.ShouldBePresent1)).SetMethod, a.Setter.Method),
+                a => Assert.Same(typeof(_Deserialize).GetProperty(nameof(_Deserialize.ShouldBePresent2)).SetMethod, a.Setter.Method)
             );
-            
+
             // parser
             Assert.Collection(
                 cols,
-                a => Assert.Same(DeserializableMember.GetDefaultParser(typeof(string).GetTypeInfo()), a.Parser),
-                a => Assert.Same(DeserializableMember.GetDefaultParser(typeof(int?).GetTypeInfo()), a.Parser)
+                a => Assert.Same(Parser.GetDefault(typeof(string).GetTypeInfo()), a.Parser),
+                a => Assert.Same(Parser.GetDefault(typeof(int?).GetTypeInfo()), a.Parser)
             );
 
             var mtd = typeof(_Deserialize).GetMethod("ResetShouldBePresent2", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -750,11 +912,11 @@ namespace Cesil.Tests
             Assert.Collection(
                 cols,
                 a => Assert.Null(a.Reset),
-                a => Assert.Same(mtd, a.Reset)
+                a => Assert.Same(mtd, a.Reset.Method)
             );
         }
 
-        class _DeserializeDataMember
+        private class _DeserializeDataMember
         {
             [DataMember(Order = 3)]
             public string Foo { get; set; }
@@ -792,10 +954,10 @@ namespace Cesil.Tests
             // setters
             Assert.Collection(
                 cols,
-                a => Assert.Same(typeof(_DeserializeDataMember).GetField("Field"), a.Field),
-                a => Assert.Same(typeof(_DeserializeDataMember).GetProperty(nameof(_DeserializeDataMember.Hello)).SetMethod, a.Setter),
-                a => Assert.Same(typeof(_DeserializeDataMember).GetProperty(nameof(_DeserializeDataMember.Foo)).SetMethod, a.Setter),
-                a => Assert.Same(typeof(_DeserializeDataMember).GetProperty(nameof(_DeserializeDataMember.Yeaaaah)).SetMethod, a.Setter)
+                a => Assert.Same(typeof(_DeserializeDataMember).GetField("Field"), a.Setter.Field),
+                a => Assert.Same(typeof(_DeserializeDataMember).GetProperty(nameof(_DeserializeDataMember.Hello)).SetMethod, a.Setter.Method),
+                a => Assert.Same(typeof(_DeserializeDataMember).GetProperty(nameof(_DeserializeDataMember.Foo)).SetMethod, a.Setter.Method),
+                a => Assert.Same(typeof(_DeserializeDataMember).GetProperty(nameof(_DeserializeDataMember.Yeaaaah)).SetMethod, a.Setter.Method)
             );
 
             // setters actually work
@@ -803,7 +965,7 @@ namespace Cesil.Tests
                 // Field
                 {
                     var x = new _DeserializeDataMember();
-                    var field = cols[0].Field;
+                    var field = cols[0].Setter.Field;
                     field.SetValue(x, (int?)-123);
                     Assert.Equal((int?)-123, x.Field);
                 }
@@ -811,7 +973,7 @@ namespace Cesil.Tests
                 // HELLO
                 {
                     var x = new _DeserializeDataMember();
-                    var hello = cols[1].Setter;
+                    var hello = cols[1].Setter.Method;
                     hello.Invoke(x, new object[] { (double)1.23 });
                     Assert.Equal(1.23, x.Hello);
                 }
@@ -819,7 +981,7 @@ namespace Cesil.Tests
                 // Foo
                 {
                     var x = new _DeserializeDataMember();
-                    var foo = cols[2].Setter;
+                    var foo = cols[2].Setter.Method;
                     foo.Invoke(x, new object[] { "bar" });
                     Assert.Equal("bar", x.Foo);
                 }
@@ -827,7 +989,7 @@ namespace Cesil.Tests
                 // Yeaaaah
                 {
                     var x = new _DeserializeDataMember();
-                    var yeaaaah = cols[3].Setter;
+                    var yeaaaah = cols[3].Setter.Method;
                     yeaaaah.Invoke(x, new object[] { (decimal?)12.34m });
                     Assert.Equal((decimal?)12.34m, x.GetYeah());
                 }
@@ -836,10 +998,10 @@ namespace Cesil.Tests
             // parser
             Assert.Collection(
                 cols,
-                a => Assert.Same(DeserializableMember.GetDefaultParser(typeof(int?).GetTypeInfo()), a.Parser),
-                a => Assert.Same(DeserializableMember.GetDefaultParser(typeof(double).GetTypeInfo()), a.Parser),
-                a => Assert.Same(DeserializableMember.GetDefaultParser(typeof(string).GetTypeInfo()), a.Parser),
-                a => Assert.Same(DeserializableMember.GetDefaultParser(typeof(decimal?).GetTypeInfo()), a.Parser)
+                a => Assert.Same(Parser.GetDefault(typeof(int?).GetTypeInfo()), a.Parser),
+                a => Assert.Same(Parser.GetDefault(typeof(double).GetTypeInfo()), a.Parser),
+                a => Assert.Same(Parser.GetDefault(typeof(string).GetTypeInfo()), a.Parser),
+                a => Assert.Same(Parser.GetDefault(typeof(decimal?).GetTypeInfo()), a.Parser)
             );
 
             // isRequired
@@ -852,7 +1014,7 @@ namespace Cesil.Tests
             );
         }
 
-        class CharWriter: IBufferWriter<char>
+        private class CharWriter : IBufferWriter<char>
         {
             private readonly PipeWriter Inner;
 
@@ -882,12 +1044,12 @@ namespace Cesil.Tests
         }
 
         [Fact]
-        public async Task SerializableMember_GetDefaultFormatter()
+        public async Task Formatter_GetDefault()
         {
             string BufferToString(ReadOnlySequence<byte> buff)
             {
                 var bytes = new List<byte>();
-                foreach(var b in buff)
+                foreach (var b in buff)
                 {
                     bytes.AddRange(b.ToArray());
                 }
@@ -905,7 +1067,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(string).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(string).GetTypeInfo()).Method;
                 var res = mtd.Invoke(null, new object[] { "foo", default(WriteContext), writer });
                 var resBool = (bool)res;
                 Assert.True(resBool);
@@ -917,13 +1079,189 @@ namespace Cesil.Tests
                 reader.AdvanceTo(buff.Buffer.End);
             }
 
+            // Version
+            {
+                var pipe = new Pipe();
+                var writer = new CharWriter(pipe.Writer);
+                var reader = pipe.Reader;
+
+                var mtd = Formatter.GetDefault(typeof(Version).GetTypeInfo()).Method;
+
+                var a = new Version();
+                var b = new Version("1.0");
+                var c = new Version(1, 2);
+                var d = new Version(1, 2, 3);
+                var e = new Version(1, 2, 3, 4);
+                var f = new Version(int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue);
+
+                {
+                    var res = mtd.Invoke(null, new object[] { a, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(a.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                {
+                    var res = mtd.Invoke(null, new object[] { b, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(b.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                {
+                    var res = mtd.Invoke(null, new object[] { c, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(c.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                {
+                    var res = mtd.Invoke(null, new object[] { d, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(d.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                {
+                    var res = mtd.Invoke(null, new object[] { e, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(e.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                {
+                    var res = mtd.Invoke(null, new object[] { f, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(f.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+            }
+
+            // Uri
+            {
+                var pipe = new Pipe();
+                var writer = new CharWriter(pipe.Writer);
+                var reader = pipe.Reader;
+
+                var mtd = Formatter.GetDefault(typeof(Uri).GetTypeInfo()).Method;
+
+                var a = new Uri("/", UriKind.RelativeOrAbsolute);
+                var b = new Uri("/foo", UriKind.RelativeOrAbsolute);
+                var c = new Uri("/foo?p", UriKind.RelativeOrAbsolute);
+                var d = new Uri("/foo?p#e", UriKind.RelativeOrAbsolute);
+                var e = new Uri("file://local.bar/foo?p#e", UriKind.RelativeOrAbsolute);
+                var f = new Uri("https://local.bar:12345/foo?p#e", UriKind.RelativeOrAbsolute);
+
+                {
+                    var res = mtd.Invoke(null, new object[] { a, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(a.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                {
+                    var res = mtd.Invoke(null, new object[] { b, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(b.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                {
+                    var res = mtd.Invoke(null, new object[] { c, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(c.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                {
+                    var res = mtd.Invoke(null, new object[] { d, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(d.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                {
+                    var res = mtd.Invoke(null, new object[] { e, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(e.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                {
+                    var res = mtd.Invoke(null, new object[] { f, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(f.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+            }
+
             // enum
             {
                 var pipe = new Pipe();
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(_TestEnum).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(_TestEnum).GetTypeInfo()).Method;
 
                 // Bar
                 {
@@ -978,7 +1316,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(_TestFlagsEnum).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(_TestFlagsEnum).GetTypeInfo()).Method;
 
                 // First
                 {
@@ -1033,7 +1371,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(char).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(char).GetTypeInfo()).Method;
 
                 // value
                 {
@@ -1055,7 +1393,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(bool).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(bool).GetTypeInfo()).Method;
 
                 // true
                 {
@@ -1090,8 +1428,8 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(byte).GetTypeInfo());
-                
+                var mtd = Formatter.GetDefault(typeof(byte).GetTypeInfo()).Method;
+
                 // positive
                 {
                     var res = mtd.Invoke(null, new object[] { (byte)123, default(WriteContext), writer });
@@ -1112,8 +1450,8 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(sbyte).GetTypeInfo());
-                
+                var mtd = Formatter.GetDefault(typeof(sbyte).GetTypeInfo()).Method;
+
                 // positive
                 {
                     var res = mtd.Invoke(null, new object[] { (sbyte)123, default(WriteContext), writer });
@@ -1147,7 +1485,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(short).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(short).GetTypeInfo()).Method;
 
                 // positive
                 {
@@ -1182,7 +1520,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(ushort).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(ushort).GetTypeInfo()).Method;
 
                 // positive
                 {
@@ -1204,7 +1542,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(int).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(int).GetTypeInfo()).Method;
 
                 // positive
                 {
@@ -1239,7 +1577,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(uint).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(uint).GetTypeInfo()).Method;
 
                 // positive
                 {
@@ -1261,7 +1599,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(long).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(long).GetTypeInfo()).Method;
 
                 // positive
                 {
@@ -1296,7 +1634,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(ulong).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(ulong).GetTypeInfo()).Method;
 
                 // positive
                 {
@@ -1318,7 +1656,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(float).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(float).GetTypeInfo()).Method;
 
                 // positive
                 {
@@ -1353,7 +1691,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(double).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(double).GetTypeInfo()).Method;
 
                 // positive
                 {
@@ -1401,7 +1739,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(decimal).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(decimal).GetTypeInfo()).Method;
 
                 // positive
                 {
@@ -1449,7 +1787,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(DateTime).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(DateTime).GetTypeInfo()).Method;
 
                 // max
                 {
@@ -1484,7 +1822,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(DateTimeOffset).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(DateTimeOffset).GetTypeInfo()).Method;
 
                 // max
                 {
@@ -1519,7 +1857,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(TimeSpan).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(TimeSpan).GetTypeInfo()).Method;
 
                 // max
                 {
@@ -1550,7 +1888,7 @@ namespace Cesil.Tests
         }
 
         [Fact]
-        public async Task SerializableMember_GetDefaultFormatter_Nullable()
+        public async Task Formatter_GetDefault_Nullable()
         {
             string BufferToString(ReadOnlySequence<byte> buff)
             {
@@ -1573,7 +1911,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(_TestEnum?).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(_TestEnum?).GetTypeInfo()).Method;
 
                 // Bar
                 {
@@ -1639,7 +1977,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(_TestFlagsEnum?).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(_TestFlagsEnum?).GetTypeInfo()).Method;
 
                 // First
                 {
@@ -1705,7 +2043,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(char?).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(char?).GetTypeInfo()).Method;
 
                 // value
                 {
@@ -1738,7 +2076,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(bool?).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(bool?).GetTypeInfo()).Method;
 
                 // true
                 {
@@ -1784,7 +2122,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(byte?).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(byte?).GetTypeInfo()).Method;
 
                 // positive
                 {
@@ -1817,7 +2155,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(sbyte?).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(sbyte?).GetTypeInfo()).Method;
 
                 // positive
                 {
@@ -1863,7 +2201,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(short?).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(short?).GetTypeInfo()).Method;
 
                 // positive
                 {
@@ -1909,7 +2247,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(ushort?).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(ushort?).GetTypeInfo()).Method;
 
                 // positive
                 {
@@ -1942,7 +2280,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(int?).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(int?).GetTypeInfo()).Method;
 
                 // positive
                 {
@@ -1988,7 +2326,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(uint?).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(uint?).GetTypeInfo()).Method;
 
                 // positive
                 {
@@ -2021,7 +2359,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(long?).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(long?).GetTypeInfo()).Method;
 
                 // positive
                 {
@@ -2067,7 +2405,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(ulong?).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(ulong?).GetTypeInfo()).Method;
 
                 // positive
                 {
@@ -2100,7 +2438,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(float?).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(float?).GetTypeInfo()).Method;
 
                 // positive
                 {
@@ -2146,7 +2484,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(double?).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(double?).GetTypeInfo()).Method;
 
                 // positive
                 {
@@ -2206,7 +2544,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(decimal?).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(decimal?).GetTypeInfo()).Method;
 
                 // positive
                 {
@@ -2265,7 +2603,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(DateTime?).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(DateTime?).GetTypeInfo()).Method;
 
                 // max
                 {
@@ -2311,7 +2649,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(DateTimeOffset?).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(DateTimeOffset?).GetTypeInfo()).Method;
 
                 // max
                 {
@@ -2357,7 +2695,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = SerializableMember.GetDefaultFormatter(typeof(TimeSpan?).GetTypeInfo());
+                var mtd = Formatter.GetDefault(typeof(TimeSpan?).GetTypeInfo()).Method;
 
                 // max
                 {
@@ -2398,7 +2736,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _Serialize
+        private class _Serialize
         {
             public int GetButNoSet { get; }
             public string GetAndSet { get; set; }
@@ -2432,10 +2770,10 @@ namespace Cesil.Tests
             // getters
             Assert.Collection(
                 cols,
-                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.GetButNoSet)).GetMethod, a.Getter),
-                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.GetAndSet)).GetMethod, a.Getter),
-                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.ShouldSerializeProp)).GetMethod, a.Getter),
-                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.ShouldSerializeStaticProp)).GetMethod, a.Getter)
+                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.GetButNoSet)).GetMethod, a.Getter.Method),
+                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.GetAndSet)).GetMethod, a.Getter.Method),
+                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.ShouldSerializeProp)).GetMethod, a.Getter.Method),
+                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.ShouldSerializeStaticProp)).GetMethod, a.Getter.Method)
             );
 
             // should serialize
@@ -2443,21 +2781,21 @@ namespace Cesil.Tests
                 cols,
                 a => Assert.Null(a.ShouldSerialize),
                 b => Assert.Null(b.ShouldSerialize),
-                c => Assert.Same(typeof(_Serialize).GetMethod(nameof(_Serialize.ShouldSerializeShouldSerializeProp)), c.ShouldSerialize),
-                d => Assert.Same(typeof(_Serialize).GetMethod(nameof(_Serialize.ShouldSerializeShouldSerializeStaticProp)), d.ShouldSerialize)
+                c => Assert.Same(typeof(_Serialize).GetMethod(nameof(_Serialize.ShouldSerializeShouldSerializeProp)), c.ShouldSerialize.Method),
+                d => Assert.Same(typeof(_Serialize).GetMethod(nameof(_Serialize.ShouldSerializeShouldSerializeStaticProp)), d.ShouldSerialize.Method)
             );
 
             // formatter
             Assert.Collection(
                 cols,
-                a => Assert.Same(SerializableMember.GetDefaultFormatter(typeof(int).GetTypeInfo()), a.Formatter),
-                b => Assert.Same(SerializableMember.GetDefaultFormatter(typeof(string).GetTypeInfo()), b.Formatter),
-                c => Assert.Same(SerializableMember.GetDefaultFormatter(typeof(char?).GetTypeInfo()), c.Formatter),
-                d => Assert.Same(SerializableMember.GetDefaultFormatter(typeof(DateTimeOffset).GetTypeInfo()), d.Formatter)
+                a => Assert.Same(Formatter.GetDefault(typeof(int).GetTypeInfo()), a.Formatter),
+                b => Assert.Same(Formatter.GetDefault(typeof(string).GetTypeInfo()), b.Formatter),
+                c => Assert.Same(Formatter.GetDefault(typeof(char?).GetTypeInfo()), c.Formatter),
+                d => Assert.Same(Formatter.GetDefault(typeof(DateTimeOffset).GetTypeInfo()), d.Formatter)
             );
         }
 
-        class _SerializeDataMember
+        private class _SerializeDataMember
         {
             [DataMember(Order = 3)]
             public string Bar { get; set; }
@@ -2498,17 +2836,17 @@ namespace Cesil.Tests
             // getters
             Assert.Collection(
                 cols,
-                a => Assert.Same(typeof(_SerializeDataMember).GetField("Field"), a.Field),
-                a => Assert.Same(typeof(_SerializeDataMember).GetProperty("WORLD").GetMethod, a.Getter),
-                a => Assert.Same(typeof(_SerializeDataMember).GetProperty("Bar").GetMethod, a.Getter),
-                a => Assert.Same(typeof(_SerializeDataMember).GetProperty("Yeaaaah", BindingFlags.Instance | BindingFlags.NonPublic).GetMethod, a.Getter)
+                a => Assert.Same(typeof(_SerializeDataMember).GetField("Field"), a.Getter.Field),
+                a => Assert.Same(typeof(_SerializeDataMember).GetProperty("WORLD").GetMethod, a.Getter.Method),
+                a => Assert.Same(typeof(_SerializeDataMember).GetProperty("Bar").GetMethod, a.Getter.Method),
+                a => Assert.Same(typeof(_SerializeDataMember).GetProperty("Yeaaaah", BindingFlags.Instance | BindingFlags.NonPublic).GetMethod, a.Getter.Method)
             );
 
             // should serialize
             Assert.Collection(
                 cols,
                 a => Assert.Null(a.ShouldSerialize),
-                a => Assert.Same(typeof(_SerializeDataMember).GetMethod(nameof(_SerializeDataMember.ShouldSerializeWORLD)), a.ShouldSerialize),
+                a => Assert.Same(typeof(_SerializeDataMember).GetMethod(nameof(_SerializeDataMember.ShouldSerializeWORLD)), a.ShouldSerialize.Method),
                 a => Assert.Null(a.ShouldSerialize),
                 a => Assert.Null(a.ShouldSerialize)
             );
@@ -2516,10 +2854,10 @@ namespace Cesil.Tests
             // formatter
             Assert.Collection(
                 cols,
-                a => Assert.Same(SerializableMember.GetDefaultFormatter(typeof(int?).GetTypeInfo()), a.Formatter),
-                a => Assert.Same(SerializableMember.GetDefaultFormatter(typeof(double).GetTypeInfo()), a.Formatter),
-                a => Assert.Same(SerializableMember.GetDefaultFormatter(typeof(string).GetTypeInfo()), a.Formatter),
-                a => Assert.Same(SerializableMember.GetDefaultFormatter(typeof(StringComparison).GetTypeInfo()), a.Formatter)
+                a => Assert.Same(Formatter.GetDefault(typeof(int?).GetTypeInfo()).Method, a.Formatter.Method),
+                a => Assert.Same(Formatter.GetDefault(typeof(double).GetTypeInfo()).Method, a.Formatter.Method),
+                a => Assert.Same(Formatter.GetDefault(typeof(string).GetTypeInfo()).Method, a.Formatter.Method),
+                a => Assert.Same(Formatter.GetDefault(typeof(StringComparison).GetTypeInfo()).Method, a.Formatter.Method)
             );
 
             // emitDefaultValue

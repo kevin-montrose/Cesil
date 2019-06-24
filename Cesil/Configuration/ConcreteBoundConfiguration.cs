@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.IO;
+using System.Text;
 
 namespace Cesil
 {
@@ -97,6 +98,27 @@ namespace Cesil
             }
 
             return new AsyncWriter<T>(this, inner, context);
+        }
+
+        public override string ToString()
+        {
+            var ret = new StringBuilder();
+            ret.Append($"{nameof(CommentChar)}={CommentChar}");
+            // Dynamic* not included, since not relevant
+            ret.Append($", {nameof(EscapedValueStartAndStop)}={EscapedValueStartAndStop}");
+            ret.Append($", {nameof(EscapeValueEscapeChar)}={EscapeValueEscapeChar}");
+            ret.Append($", {nameof(MemoryPool)}={MemoryPool}");
+            ret.Append($", {nameof(NewCons)}={NewCons}");
+            ret.Append($", {nameof(ReadBufferSizeHint)}={ReadBufferSizeHint}");
+            ret.Append($", {nameof(ReadHeader)}={ReadHeader}");
+            ret.Append($", {nameof(RowEnding)}={RowEnding}");
+            // skipping RowEndingMemory
+            ret.Append($", {nameof(ValueSeparator)}={ValueSeparator}");
+            ret.Append($", {nameof(WriteBufferSizeHint)}={WriteBufferSizeHint}");
+            ret.Append($", {nameof(WriteHeader)}={WriteHeader}");
+            ret.Append($", {nameof(WriteTrailingNewLine)}={WriteTrailingNewLine}");
+
+            return ret.ToString();
         }
     }
 }

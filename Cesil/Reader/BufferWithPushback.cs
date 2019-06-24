@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Cesil
 {
-    internal sealed class BufferWithPushback: ITestableDisposable
+    internal sealed class BufferWithPushback : ITestableDisposable
     {
         private readonly MemoryPool<char> MemoryPool;
 
@@ -25,7 +25,7 @@ namespace Cesil
 
             UpdateBufferAndPushBack();
         }
-        
+
         internal void PushBackFromOutsideBuffer(Memory<char> pushback)
         {
             if (pushback.Length > PushBack.Length)
@@ -102,7 +102,7 @@ namespace Cesil
 
         public void AssertNotDisposed()
         {
-            if(IsDisposed)
+            if (IsDisposed)
             {
                 Throw.ObjectDisposedException(nameof(BufferWithPushback));
             }

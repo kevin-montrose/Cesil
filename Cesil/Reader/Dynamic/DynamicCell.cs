@@ -5,13 +5,13 @@ using System.Reflection;
 
 namespace Cesil
 {
-    internal sealed class DynamicCell: IDynamicMetaObjectProvider
+    internal sealed class DynamicCell : IDynamicMetaObjectProvider
     {
         internal readonly uint Generation;
         internal readonly DynamicRow Row;
         internal readonly int ColumnNumber;
 
-        internal IDynamicTypeConverter Converter => Row.Converter;
+        internal ITypeDescriber Converter => Row.Converter;
 
         public DynamicCell(DynamicRow row, int num)
         {
@@ -22,7 +22,7 @@ namespace Cesil
 
         internal object CoerceTo(TypeInfo toType)
         {
-            var mtd =  Methods.DynamicCell.CastTo.MakeGenericMethod(toType);
+            var mtd = Methods.DynamicCell.CastTo.MakeGenericMethod(toType);
 
             return mtd.Invoke(this, Array.Empty<object>());
         }
@@ -37,7 +37,9 @@ namespace Cesil
         {
             var r = SafeRowGet();
 
-            return new ReadContext(r.RowNumber, ColumnNumber, r.Names?[ColumnNumber], r.Owner.Context);
+            var name = r.Columns[ColumnNumber];
+
+            return ReadContext.ReadingColumn(r.RowNumber, name, r.Owner.Context);
         }
 
         public DynamicMetaObject GetMetaObject(Expression exp)
@@ -50,5 +52,8 @@ namespace Cesil
 
             return ret;
         }
+
+        public override string ToString()
+        => $"{nameof(DynamicCell)}, {nameof(Generation)}={Generation}, {nameof(Row)}={Row}, {nameof(ColumnNumber)}={ColumnNumber}";
     }
 }

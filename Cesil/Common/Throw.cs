@@ -27,7 +27,7 @@ namespace Cesil
         internal static void ArgumentOutOfRangeException(string paramName, int val, int upperExclusive)
         {
             string msg;
-            if(upperExclusive > 0)
+            if (upperExclusive > 0)
             {
                 msg = $"Expected between 0 and {upperExclusive}, was {val}";
             }
@@ -39,7 +39,40 @@ namespace Cesil
             throw new ArgumentOutOfRangeException(paramName, msg);
         }
 
+        internal static void ArgumentOutOfRangeException(string paramName, Index ix, int effective, int upperExclusive)
+        {
+            string msg;
+            if (upperExclusive > 0)
+            {
+                msg = $"Expected index between 0 and {upperExclusive}, was {effective} ({ix})";
+            }
+            else
+            {
+                msg = $"Was empty, index was {effective} ({ix})";
+            }
+
+            throw new ArgumentOutOfRangeException(paramName, msg);
+        }
+
+        internal static void ArgumentOutOfRangeException(string paramName, Range r, int effectiveStart, int effectiveEnd, int upperExclusive)
+        {
+            string msg;
+            if (upperExclusive > 0)
+            {
+                msg = $"Expected range end points to be between 0 and {upperExclusive}, was {effectiveStart}..{effectiveEnd} ({r})";
+            }
+            else
+            {
+                msg = $"Was empty, range was {effectiveStart}..{effectiveEnd} ({r})";
+            }
+
+            throw new ArgumentOutOfRangeException(paramName, msg);
+        }
+
         internal static void KeyNotFoundException(string key)
         => throw new KeyNotFoundException($"Key was {key}");
+
+        internal static void NotSupportedException(string type, string method)
+        => throw new NotSupportedException($"Method {method} on {type} is not supported");
     }
 }

@@ -3,6 +3,7 @@
     /// <summary>
     /// Represents the result of an attempted read operation.
     /// </summary>
+    [NotEquatable("Value is open, hashcode and equality may not be sensible")]
     public readonly struct ReadResult<T>
     {
         internal static readonly ReadResult<T> Empty = new ReadResult<T>(false);
@@ -12,12 +13,15 @@
         /// 
         /// If false, there are no more rows to be read.
         /// </summary>
+        [IntentionallyExposedPrimitive("Best way to expose a presense, it's fine")]
         public bool HasValue { get; }
 
         private readonly T _Value;
 
         /// <summary>
         /// The value read, if HasValue == true.
+        /// 
+        /// Throws otherwise.
         /// </summary>
         public T Value
         {
@@ -42,6 +46,26 @@
         {
             HasValue = v;
             _Value = default;
+        }
+
+        /// <summary>
+        /// Returns a representation of this ReadResult struct.
+        /// 
+        /// Only for debugging, this value is not guaranteed to be stable.
+        /// </summary>
+        public override string ToString()
+        {
+            if (!HasValue)
+            {
+                return "Empty";
+            }
+
+            if (_Value == null)
+            {
+                return "(null)";
+            }
+
+            return _Value.ToString();
         }
     }
 }

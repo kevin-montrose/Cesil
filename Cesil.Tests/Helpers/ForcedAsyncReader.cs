@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Cesil.Tests
 {
-    internal sealed class ForcedAsyncReader: TextReader
+    internal sealed class ForcedAsyncReader : TextReader
     {
         private readonly TextReader Inner;
         public ForcedAsyncReader(TextReader inner)

@@ -1,12 +1,18 @@
-﻿using System.Collections.Generic;
+﻿using Microsoft.CSharp.RuntimeBinder;
+using System;
+using System.Collections.Generic;
+using System.Dynamic;
+using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 
 namespace Cesil
 {
     /// <summary>
     /// The default implementation of ITypeDescriber used to
-    ///   determine how to (de)serialize a type.
+    ///   determine how to (de)serialize types and how to convert
+    ///   dynamic cells and rows.
     ///   
     /// It will serialize all public properties, any fields
     ///   with a [DataMember], and will respect ShouldSerialize()
@@ -16,8 +22,12 @@ namespace Cesil
     ///   with a [DataMember], and will call Reset() methods.  Expects
     ///   a public parameterless constructor for any deserialized types.
     /// 
+    /// It will convert cells to most built-in types, and map rows to
+    ///   POCOs, ValueTuples, Tuples, and IEnumerables.
+    /// 
     /// This type is unsealed to allow for easy extension of it's behavior.
     /// </summary>
+    [IntentionallyExtensible("Does 'what is expected' so minor tweaks can be handled with inheritence.")]
     public class DefaultTypeDescriber : ITypeDescriber
     {
         /// <summary>
@@ -36,7 +46,7 @@ namespace Cesil
         public virtual InstanceBuilder GetInstanceBuilder(TypeInfo forType)
         {
             var cons = forType.GetConstructor(TypeInfo.EmptyTypes);
-            if(cons == null)
+            if (cons == null)
             {
                 Throw.ArgumentException($"No parameterless constructor found for {forType}", nameof(forType));
             }
@@ -75,7 +85,7 @@ namespace Cesil
                 var isRequired = GetIsRequired(forType, f);
                 var reset = GetReset(forType, f);
 
-                buffer.Add((DeserializableMember.Create(forType, name, f, parser, isRequired, reset), order));
+                buffer.Add((DeserializableMember.Create(forType, name, (Setter)f, parser, isRequired, reset), order));
             }
 
             buffer.Sort(TypeDescribers.DeserializableComparer);
@@ -114,7 +124,7 @@ namespace Cesil
                 property.SetMethod.IsPublic &&
                 !property.SetMethod.IsStatic &&
                 property.SetMethod.GetParameters().Length == 1 &&
-                DeserializableMember.GetDefaultParser(property.SetMethod.GetParameters()[0].ParameterType.GetTypeInfo()) != null;
+                Parser.GetDefault(property.SetMethod.GetParameters()[0].ParameterType.GetTypeInfo()) != null;
         }
 
         /// <summary>
@@ -130,15 +140,15 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        protected virtual MethodInfo GetSetter(TypeInfo forType, PropertyInfo property)
-        => property.SetMethod;
+        protected virtual Setter GetSetter(TypeInfo forType, PropertyInfo property)
+        => (Setter)property.SetMethod;
 
         /// <summary>
         /// Returns the parser to use for the column that maps to the given property when deserialized.
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        protected virtual MethodInfo GetParser(TypeInfo forType, PropertyInfo property)
+        protected virtual Parser GetParser(TypeInfo forType, PropertyInfo property)
         => GetParser(property.SetMethod.GetParameters()[0].ParameterType.GetTypeInfo());
 
         /// <summary>
@@ -157,7 +167,7 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        protected virtual bool GetIsRequired(TypeInfo forType, PropertyInfo property)
+        protected virtual IsMemberRequired GetIsRequired(TypeInfo forType, PropertyInfo property)
         => GetIsRequired(property);
 
         /// <summary>
@@ -165,7 +175,7 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        protected virtual MethodInfo GetReset(TypeInfo forType, PropertyInfo property)
+        protected virtual Reset GetReset(TypeInfo forType, PropertyInfo property)
         {
             var mtd = forType.GetMethod("Reset" + property.Name, BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
             if (mtd == null) return null;
@@ -179,7 +189,7 @@ namespace Cesil
                 if (mtd.GetParameters().Length != 0) return null;
             }
 
-            return mtd;
+            return Reset.ForMethod(mtd);
         }
 
         // field deserialization defaults
@@ -214,7 +224,7 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        protected virtual MethodInfo GetParser(TypeInfo forType, FieldInfo field)
+        protected virtual Parser GetParser(TypeInfo forType, FieldInfo field)
         => GetParser(field.FieldType.GetTypeInfo());
 
         /// <summary>
@@ -233,7 +243,7 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        protected virtual bool GetIsRequired(TypeInfo forType, FieldInfo field)
+        protected virtual IsMemberRequired GetIsRequired(TypeInfo forType, FieldInfo field)
         => GetIsRequired(field);
 
         /// <summary>
@@ -241,7 +251,7 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        protected virtual MethodInfo GetReset(TypeInfo forType, FieldInfo field)
+        protected virtual Reset GetReset(TypeInfo forType, FieldInfo field)
         => null;
 
         // common deserialization defaults
@@ -257,18 +267,18 @@ namespace Cesil
             return member.Name;
         }
 
-        private static MethodInfo GetParser(TypeInfo forType)
-        => DeserializableMember.GetDefaultParser(forType);
+        private static Parser GetParser(TypeInfo forType)
+        => Parser.GetDefault(forType);
 
-        private static bool GetIsRequired(MemberInfo member)
+        private static IsMemberRequired GetIsRequired(MemberInfo member)
         {
             var dataMember = member.GetCustomAttribute<DataMemberAttribute>();
             if (dataMember != null)
             {
-                return dataMember.IsRequired;
+                return dataMember.IsRequired ? IsMemberRequired.Yes : IsMemberRequired.No;
             }
 
-            return false;
+            return IsMemberRequired.No;
         }
 
         /// <summary>
@@ -297,12 +307,13 @@ namespace Cesil
                 if (!ShouldSerialize(forType, f)) continue;
 
                 var name = GetSerializationName(forType, f);
+                var getter = Getter.ForField(f);
                 var shouldSerialize = GetShouldSerializeMethod(forType, f);
                 var formatter = GetFormatter(forType, f);
                 var order = GetPosition(forType, f);
                 var emitDefault = GetEmitDefaultValue(forType, f);
 
-                buffer.Add((SerializableMember.Create(forType, name, f, formatter, shouldSerialize, emitDefault), order));
+                buffer.Add((SerializableMember.Create(forType, name, getter, formatter, shouldSerialize, emitDefault), order));
             }
 
             buffer.Sort(TypeDescribers.SerializableComparer);
@@ -315,7 +326,7 @@ namespace Cesil
 
         // property serialization defaults
 
-        
+
         /// <summary>
         /// Returns true if the given property should be serialized.
         /// 
@@ -342,7 +353,7 @@ namespace Cesil
                 !property.GetMethod.IsStatic &&
                 property.GetMethod.GetParameters().Length == 0 &&
                 property.GetMethod.ReturnType != Types.VoidType &&
-                SerializableMember.GetDefaultFormatter(property.GetMethod.ReturnType.GetTypeInfo()) != null;
+                Formatter.GetDefault(property.GetMethod.ReturnType.GetTypeInfo()) != null;
         }
 
         /// <summary>
@@ -358,8 +369,8 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        protected virtual MethodInfo GetGetter(TypeInfo forType, PropertyInfo property)
-        => property.GetMethod;
+        protected virtual Getter GetGetter(TypeInfo forType, PropertyInfo property)
+        => (Getter)property.GetMethod;
 
         /// <summary>
         /// Returns the ShouldXXX()-style method to use for the given property when serializing, if
@@ -370,7 +381,7 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        protected virtual MethodInfo GetShouldSerializeMethod(TypeInfo forType, PropertyInfo property)
+        protected virtual ShouldSerialize GetShouldSerializeMethod(TypeInfo forType, PropertyInfo property)
         {
             var mtd = forType.GetMethod("ShouldSerialize" + property.Name, BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
             if (mtd == null) return null;
@@ -384,7 +395,7 @@ namespace Cesil
                 if (mtd.GetParameters().Length != 0) return null;
             }
 
-            return mtd;
+            return (ShouldSerialize)mtd;
         }
 
         /// <summary>
@@ -392,7 +403,7 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        protected virtual MethodInfo GetFormatter(TypeInfo forType, PropertyInfo property)
+        protected virtual Formatter GetFormatter(TypeInfo forType, PropertyInfo property)
         => GetFormatter(property.PropertyType.GetTypeInfo());
 
         /// <summary>
@@ -404,7 +415,7 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        protected virtual bool GetEmitDefaultValue(TypeInfo forType, PropertyInfo property)
+        protected virtual WillEmitDefaultValue GetEmitDefaultValue(TypeInfo forType, PropertyInfo property)
         => GetEmitDefaultValue(property);
 
         // field serialization defaults
@@ -442,7 +453,7 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        protected virtual MethodInfo GetShouldSerializeMethod(TypeInfo forType, FieldInfo field)
+        protected virtual ShouldSerialize GetShouldSerializeMethod(TypeInfo forType, FieldInfo field)
         => null;
 
         /// <summary>
@@ -450,7 +461,7 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        protected virtual MethodInfo GetFormatter(TypeInfo forType, FieldInfo field)
+        protected virtual Formatter GetFormatter(TypeInfo forType, FieldInfo field)
         => GetFormatter(field.FieldType.GetTypeInfo());
 
         /// <summary>
@@ -462,12 +473,12 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        protected virtual bool GetEmitDefaultValue(TypeInfo forType, FieldInfo field)
+        protected virtual WillEmitDefaultValue GetEmitDefaultValue(TypeInfo forType, FieldInfo field)
         => GetEmitDefaultValue(field);
 
         // common serialization defaults
-        private static MethodInfo GetFormatter(TypeInfo t)
-        => SerializableMember.GetDefaultFormatter(t);
+        private static Formatter GetFormatter(TypeInfo t)
+        => Formatter.GetDefault(t);
 
         private static int? GetPosition(MemberInfo member)
         {
@@ -480,15 +491,435 @@ namespace Cesil
             return null;
         }
 
-        private static bool GetEmitDefaultValue(MemberInfo member)
+        private static WillEmitDefaultValue GetEmitDefaultValue(MemberInfo member)
         {
             var dataMember = member.GetCustomAttribute<DataMemberAttribute>();
             if (dataMember != null)
             {
-                return dataMember.EmitDefaultValue;
+                if (dataMember.EmitDefaultValue)
+                {
+                    return WillEmitDefaultValue.Yes;
+                }
+                else
+                {
+                    return WillEmitDefaultValue.No;
+                }
+            }
+
+            return WillEmitDefaultValue.Yes;
+        }
+
+        /// <summary>
+        /// Enumerates cells on the given dynamic row.
+        /// 
+        /// Null rows have no cells, but are legal.
+        /// 
+        /// Rows created by Cesil have their cells enumerated as strings.
+        /// 
+        /// Other dynamic types will have each member enumerated as either their
+        ///   actual type (if a formatter is available) or as a string.
+        /// 
+        /// Override to tweak behavior.
+        /// </summary>
+        public virtual IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext ctx, dynamic row)
+        {
+            // handle no value
+            var rowObj = row as object;
+            if (rowObj == null)
+            {
+                return Array.Empty<DynamicCellValue>();
+            }
+
+            // handle serializing our own dynamic types
+            if (rowObj is DynamicRow asOwnRow)
+            {
+                var cols = asOwnRow.Columns;
+
+                var ret = new DynamicCellValue[cols.Count];
+
+                var ix = 0;
+                foreach (var col in cols)
+                {
+                    var name = col.Name;
+                    if (!ShouldIncludeCell(name, in ctx, rowObj)) continue;
+
+                    var valueRaw = asOwnRow.GetDataSpan(ix);
+                    var value = new string(valueRaw);
+
+                    var formatter = GetFormatter(Types.StringType, name, in ctx, rowObj);
+
+                    ret[ix] = DynamicCellValue.Create(name, value, formatter);
+                    ix++;
+                }
+
+                return ret;
+            }
+
+            // special case the most convenient dynamic type
+            if (rowObj is ExpandoObject asExpando)
+            {
+                var ret = new List<DynamicCellValue>();
+
+                foreach (var kv in asExpando)
+                {
+                    var name = kv.Key;
+                    var value = kv.Value;
+                    Formatter formatter;
+
+                    if (!ShouldIncludeCell(name, in ctx, rowObj)) continue;
+
+                    if (value == null)
+                    {
+                        formatter = GetFormatter(Types.StringType, name, in ctx, rowObj);
+                    }
+                    else
+                    {
+                        var valueType = value.GetType().GetTypeInfo();
+                        formatter = GetFormatter(valueType, name, in ctx, rowObj);
+                        if (formatter == null)
+                        {
+                            // try and coerce into a string?
+                            var convert = Microsoft.CSharp.RuntimeBinder.Binder.Convert(0, Types.StringType, valueType);
+                            var convertCallSite = CallSite<Func<CallSite, object, object>>.Create(convert);
+                            try
+                            {
+                                value = convertCallSite.Target.Invoke(convertCallSite, value);
+                                formatter = Formatter.GetDefault(Types.StringType);
+                            }
+                            catch
+                            {
+                                /* intentionally left blank */
+                            }
+                        }
+                    }
+
+                    // skip anything that isn't formattable
+                    if (formatter == null) continue;
+
+                    ret.Add(DynamicCellValue.Create(name, value, formatter));
+                }
+
+                return ret;
+            }
+
+            var rowObjType = rowObj.GetType().GetTypeInfo();
+
+            // now the least convenient dynamic type
+            if (rowObj is IDynamicMetaObjectProvider asDynamic)
+            {
+                var ret = new List<DynamicCellValue>();
+
+                var arg = Expressions.Parameter_Object;
+                var metaObj = asDynamic.GetMetaObject(arg);
+
+                var names = metaObj.GetDynamicMemberNames();
+                foreach (var name in names)
+                {
+                    var args = new[] { CSharpArgumentInfo.Create(default, null) };
+                    var getMember = Microsoft.CSharp.RuntimeBinder.Binder.GetMember(default, name, rowObjType, args);
+                    var getMemberCallSite = CallSite<Func<CallSite, object, object>>.Create(getMember);
+
+                    var skip = false;
+                    object value;
+                    Formatter formatter;
+                    try
+                    {
+                        value = getMemberCallSite.Target.Invoke(getMemberCallSite, rowObj);
+                    }
+                    catch
+                    {
+                        value = null;
+                        skip = true;
+                    }
+
+                    // skip it, access failed
+                    if (skip) continue;
+
+                    if (!ShouldIncludeCell(name, in ctx, rowObj)) continue;
+
+                    if (value == null)
+                    {
+                        formatter = GetFormatter(Types.StringType, name, in ctx, rowObj);
+                    }
+                    else
+                    {
+                        var valueType = value.GetType().GetTypeInfo();
+                        formatter = GetFormatter(valueType, name, in ctx, rowObj);
+
+                        if (formatter == null)
+                        {
+                            // try and coerce into a string?
+                            var convert = Microsoft.CSharp.RuntimeBinder.Binder.Convert(0, Types.StringType, valueType);
+                            var convertCallSite = CallSite<Func<CallSite, object, object>>.Create(convert);
+                            try
+                            {
+                                value = convertCallSite.Target.Invoke(convertCallSite, value);
+                                formatter = GetFormatter(Types.StringType, name, in ctx, rowObj);
+                            }
+                            catch
+                            {
+                                /* intentionally left blank */
+                            }
+                        }
+                    }
+
+                    // skip it, can't serialize it
+                    if (formatter == null) continue;
+
+                    ret.Add(DynamicCellValue.Create(name, value, formatter));
+                }
+
+                return ret;
+            }
+
+            // now just plain old types
+            {
+                var ret = new List<DynamicCellValue>();
+
+                var toSerialize = EnumerateMembersToSerialize(rowObjType);
+                foreach (var mem in toSerialize)
+                {
+                    var name = mem.Name;
+                    if (!ShouldIncludeCell(name, in ctx, rowObj)) continue;
+
+                    var getter = mem.Getter;
+
+                    var formatter = GetFormatter(getter.Returns, name, in ctx, rowObj);
+
+                    getter.PrimeDynamicDelegate(DefaultTypeDescriberDelegateCache.Instance);
+                    var value = getter.DynamicDelegate(rowObj);
+
+                    ret.Add(DynamicCellValue.Create(name, value, formatter));
+                }
+
+                return ret;
+            }
+        }
+
+        /// <summary>
+        /// Called in GetCellsForDynamicRow to determine whether a cell should be included.
+        /// 
+        /// Override to customize behavior.
+        /// </summary>
+        protected bool ShouldIncludeCell(string name, in WriteContext ctx, dynamic row)
+        => true;
+
+        /// <summary>
+        /// Called in GetCellsForDynamicRow to determine the formatter that should be used for a cell.
+        /// 
+        /// Override to customize behavior.
+        /// </summary>
+        protected Formatter GetFormatter(TypeInfo forType, string name, in WriteContext ctx, dynamic row)
+        => Formatter.GetDefault(forType);
+
+        /// <summary>
+        /// Returns a Parser that can be used to parse the targetType.
+        /// 
+        /// Override to customize behavior.
+        /// </summary>
+        public virtual Parser GetDynamicCellParserFor(in ReadContext ctx, TypeInfo targetType)
+        {
+            var onePCons = targetType.GetConstructor(BindingFlags.Instance | BindingFlags.Public, null, Types.ParserConstructorOneParameterTypes_Array, null);
+            var twoPCons = targetType.GetConstructor(BindingFlags.Instance | BindingFlags.Public, null, Types.ParserConstructorTwoParameterTypes_Array, null);
+            var cons = onePCons ?? twoPCons;
+            if (cons != null)
+            {
+                return Parser.ForConstructor(cons);
+            }
+
+            var parser = Parser.GetDefault(targetType);
+            if (parser != null)
+            {
+                return parser;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Returns a DynamicRowConverter that can be used to parse the targetType,
+        ///    if a default parser for the type exists or a constructor accepting
+        ///    the appropriate number of objects (can be dynamic in source) is on 
+        ///    the the type.
+        /// </summary>
+        public virtual DynamicRowConverter GetDynamicRowConverter(in ReadContext ctx, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
+        {
+            // handle tuples
+            if (IsValueTuple(targetType))
+            {
+                var mtd = Types.TupleDynamicParsersType.MakeGenericType(targetType);
+                var genMtd = mtd.GetMethod(nameof(TupleDynamicParsers<object>.TryConvertValueTuple), BindingFlags.Static | BindingFlags.NonPublic);
+                return DynamicRowConverter.ForMethod(genMtd);
+            }
+            else if (IsTuple(targetType))
+            {
+                var mtd = Types.TupleDynamicParsersType.MakeGenericType(targetType);
+                var genMtd = mtd.GetMethod(nameof(TupleDynamicParsers<object>.TryConvertTuple), BindingFlags.Static | BindingFlags.NonPublic);
+                return DynamicRowConverter.ForMethod(genMtd);
+            }
+
+            // handle IEnumerables
+            if (targetType.IsGenericType && targetType.GetGenericTypeDefinition().GetTypeInfo() == Types.IEnumerableOfTType)
+            {
+                var elementType = targetType.GetGenericArguments()[0];
+                var genEnum = Types.DynamicRowEnumerableType.MakeGenericType(elementType);
+                var cons = genEnum.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, null, new[] { Types.ObjectType }, null);
+                return DynamicRowConverter.ForConstructorTakingDynamic(cons);
+            }
+            else if (targetType == Types.IEnumerableType)
+            {
+                var cons = Types.DynamicRowEnumerableNonGenericType.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, null, new[] { Types.ObjectType }, null);
+                return DynamicRowConverter.ForConstructorTakingDynamic(cons);
+            }
+
+            var width = columns.Count();
+
+            if (IsConstructorPOCO(width, targetType, out var paramsCons, out var columnIndexes))
+            {
+                return DynamicRowConverter.ForConstructorTakingTypedParameters(paramsCons, columnIndexes);
+            }
+
+            if (IsPropertyPOCO(targetType, columns, out var zeroCons, out var setters, out columnIndexes))
+            {
+                return DynamicRowConverter.ForEmptyConstructorAndSetters(zeroCons, setters, columnIndexes);
+            }
+
+            return null;
+        }
+
+        private static bool IsTuple(TypeInfo t)
+        {
+            if (!t.IsGenericType || t.IsGenericTypeDefinition) return false;
+
+            var genType = t.GetGenericTypeDefinition();
+            return Array.IndexOf(Types.TupleTypes, genType) != -1;
+        }
+
+        private static bool IsValueTuple(TypeInfo t)
+        {
+            if (!t.IsGenericType || t.IsGenericTypeDefinition) return false;
+
+            var genType = t.GetGenericTypeDefinition();
+            return Array.IndexOf(Types.ValueTupleTypes, genType) != -1;
+        }
+
+        private static bool IsConstructorPOCO(int width, TypeInfo type, out ConstructorInfo selectedCons, out ColumnIdentifier[] columnIndexes)
+        {
+            foreach (var cons in type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+            {
+                var consPs = cons.GetParameters();
+                if (consPs.Length != width) continue;
+
+                selectedCons = cons;
+                columnIndexes = new ColumnIdentifier[consPs.Length];
+                for (var i = 0; i < columnIndexes.Length; i++)
+                {
+                    columnIndexes[i] = ColumnIdentifier.Create(i);
+                }
+
+                return true;
+            }
+
+            selectedCons = null;
+            columnIndexes = null;
+            return false;
+        }
+
+        private static bool IsPropertyPOCO(TypeInfo type, IEnumerable<ColumnIdentifier> columns, out ConstructorInfo emptyCons, out Setter[] setters, out ColumnIdentifier[] columnIndexes)
+        {
+            emptyCons = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, Type.EmptyTypes, null);
+            if (emptyCons == null)
+            {
+                setters = null;
+                columnIndexes = null;
+                return false;
+            }
+
+            var allProperties = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+
+            setters = new Setter[allProperties.Length];
+            columnIndexes = new ColumnIdentifier[allProperties.Length];
+
+            var ix = 0;
+            var i = 0;
+            foreach (var col in columns)
+            {
+                if (!col.HasName)
+                {
+                    setters = null;
+                    columnIndexes = null;
+                    return false;
+                }
+
+                var colName = col.Name;
+
+                PropertyInfo prop = null;
+                for (var j = 0; j < allProperties.Length; j++)
+                {
+                    var p = allProperties[j];
+                    if (p.Name == colName)
+                    {
+                        prop = p;
+                    }
+                }
+
+                if (prop == null)
+                {
+                    goto loopEnd;
+                }
+
+                var setterMtd = prop.SetMethod;
+                if (setterMtd == null)
+                {
+                    goto loopEnd;
+                }
+
+                if (setterMtd.ReturnType.GetTypeInfo() != Types.VoidType)
+                {
+                    goto loopEnd;
+                }
+
+                if (setterMtd.GetParameters().Length != 1) continue;
+
+                setters[ix] = Setter.ForMethod(setterMtd);
+                columnIndexes[ix] = ColumnIdentifier.Create(i);
+
+                ix++;
+
+loopEnd:
+                i++;
+            }
+
+            if (ix != setters.Length)
+            {
+                Array.Resize(ref setters, ix);
+                Array.Resize(ref columnIndexes, ix);
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Returns a representation of this DefaultTypeDescriber object.
+        /// 
+        /// Only for debugging, this value is not guaranteed to be stable.
+        /// </summary>
+        public override string ToString()
+        {
+            var isCommon = object.ReferenceEquals(this, TypeDescribers.Default);
+            if (isCommon)
+            {
+                return $"Shared {nameof(DefaultTypeDescriber)}";
+            }
+
+            var t = GetType().GetTypeInfo();
+
+            if (t == Types.DefaultTypeDescriberType)
+            {
+                return $"Unshared {nameof(DefaultTypeDescriber)}";
+            }
+
+            return t.FullName;
         }
     }
 }

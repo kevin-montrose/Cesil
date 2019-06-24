@@ -5,17 +5,16 @@ namespace Cesil
 {
     internal sealed class DynamicRowEnumerator<T> : IEnumerator<T>, ITestableDisposable
     {
-        private DynamicRow Row;
-        private int NextIndex;
+        private DynamicRow.DynamicColumnEnumerator Enumerator;
 
         public bool IsDisposed
         {
             get
             {
-                var r = Row;
-                if (r == null) return true;
+                var e = Enumerator;
+                if (e == null) return true;
 
-                return r.IsDisposed;
+                return e.IsDisposed;
             }
         }
 
@@ -33,24 +32,23 @@ namespace Cesil
 
         internal DynamicRowEnumerator(DynamicRow row)
         {
-            Row = row;
-            Reset();
+            Enumerator = new DynamicRow.DynamicColumnEnumerator(row);
         }
 
         public bool MoveNext()
         {
             AssertNotDisposed();
 
-            if (NextIndex == Row.Width)
+            if (!Enumerator.MoveNext())
             {
                 _Current = default;
                 return false;
             }
 
-            dynamic val = Row.GetCellAt(NextIndex);
-            _Current = val;
+            var col = Enumerator.Current;
 
-            NextIndex++;
+            dynamic val = Enumerator.Row.GetCellAt(col.Index);
+            _Current = val;
 
             return true;
         }
@@ -60,7 +58,7 @@ namespace Cesil
             AssertNotDisposed();
 
             _Current = default;
-            NextIndex = 0;
+            Enumerator.Reset();
         }
 
         public void AssertNotDisposed()
@@ -73,7 +71,11 @@ namespace Cesil
 
         public void Dispose()
         {
-            Row = null;
+            Enumerator?.Dispose();
+            Enumerator = null;
         }
+
+        public override string ToString()
+        => $"{nameof(DynamicRowEnumerator<T>)} bound to {Enumerator}";
     }
 }

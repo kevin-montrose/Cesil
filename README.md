@@ -3,21 +3,21 @@ Modern CSV (De)Serializer
 
 # PRE-RELEASE
 
-This code isn't well tested yet, YOU PROBABLY DON'T WANT TO USE IT!!!
+This code isn't well tested yet, **YOU PROBABLY DON'T WANT TO USE IT!!!**
 
 # Configuration
 
-Before (de)serializing, you must configure a `BoundConfiguration<T>` with some options.
+Before (de)serializing, you must configure a `IBoundConfiguration<T>` with some options.
 
-Default options will be used if you just use `Configuration.For<T>()`.
+Default options will be used if you just use `Configuration.For<T>()` or `Configuration.ForDynamic()`.
 
 Custom options can be built with an `OptionsBuilder`, to base on existing `Options` call `Options.NewBuilder()` 
 (ie. `Options.Default.NewBuilder()` will create an `OptionsBuilder` with default options pre-populated).  Call
-`.Build()` on an `OptionsBuilder` to create an `Options` to pass to `Configuration.For<T>`.
+`.Build()` on an `OptionsBuilder` to create an `Options` to pass to `Configuration.For(<T> | Dynamic)`.
 
 You can configure:
 
- - Value separate character (typically `,`)
+ - Value separator character (typically `,`)
  - Escaped value start/end character (typically `"`)
  - Escape start character (used in escaped values, typically also `"`)
  - Row ending character sequence (typically `\r\n`)
@@ -29,6 +29,7 @@ You can configure:
  - A buffer size hint for writing
  - A buffer size hint for reading
  - A custom `ITypeDescriber` for determining columns to read and write
+ - A custom `IDynamicTypeConverter` for determining how to convert dynamic values to concrete types
  
 ## Buffer Size Hints
 
@@ -42,9 +43,11 @@ If `ReadBufferSizeHint` is set to `0`, Cesil will try to use a single-page of bu
 ## ITypeDescriber
 
 The two methods on `ITypeDescriber` (`EnumerateMembersToSerialize` and `EnumerateMembersToDeserialize`) are used to discover which members
-to de(serialize) on a type.  By default, the instance of `DefaultTypeDesciber` in `TypeDescribers.Default` is used.
+to de(serialize) on a type.  The method `GetInstanceBuilder(TypeInfo)` is used to control how instances of a type are acquired during
+deserialization.
 
 The default type describer (de)serializes public properties, honors `[DataMember]`, and looks for `ShouldSerializeXXX()` and `ResetXXX()` methods.
+It requires deserialized types have a parameterless constructor, which is used to create new instances.
 
 `ManualTypeDescriber` and `SurrogateTypeDescriber` are provided for the cases where you want to explicitly add each member to be
 (de)serialized or when you want to act as if the type being serialized was in fact another (surrogate) type.
@@ -63,10 +66,9 @@ Getters must return a type that can be passed to it's paired formatter.
 
 #### Formatters
 
-Formatters must be static methods that take a type to be serialized, an `IBufferWriter<char>`, and return a bool.
+Formatters must be static methods that take a type to be serialized, an `in WriteContext`, an `IBufferWriter<char>`, and return a bool.
 
 A formatter should return false if it cannot format the given value into the given `IBufferWriter<char>`.
-
 
 #### Should Serialize
 
@@ -91,7 +93,7 @@ is assignable to) and the second value must be the type returned by the paired p
 
 #### Parsers
 
-Parsers must be a static method, and must have two parameters - the first being a `ReadOnlySpan<char>` and the second being an `out T` where
+Parsers must be a static method, and must have three parameters - the first being a `ReadOnlySpan<char>`, the second being an `in ReadContext`, and the third being an `out T` where
 T is the type of the paired field or a value passed to the paired setter.
 
 #### Reset
@@ -104,9 +106,39 @@ If a static method can take 0 or 1 parameters, and if it takes a parameter it mu
 
 A member's reset method is called before it's setter.
 
-# Using `BoundConfiguration<T>`
+# Dynamic Support
+
+`Configuration.ForDynamic(Options)` returns a `BoundConfiguration<dynamic>` that can be used to read (todo: implement write support) dynamic rows of data.
+
+Cesil assumes that rows have a consistent number of cells, but otherwise imposes no constraints on the data in cells during dynamic operations.
+
+Cells in returned rows may be accessed by index (base 0) or (if headers were present) by name.
+
+## Casting `dynamic`
+
+The `IDynamicTypeConverter` configured when reading is used to implement casting individual rows and cells to concrete types - `DefaultDynamicTypeConverter` is used by default and
+supports casting cells to any type which has a default parser, rows to POCOs initialized with either constructors or properties, rows to `ValueTuple`s, or rows to `Tuple`s.
+
+### `IDynamicTypeConverter`
+
+`IDynamicTypeConverter` exposes two methods `GetCellConverter` and `GetRowConverter` for supporting the two cases for casting, either whole rows or individual cell values.
+
+`GetCellConverter` returns a `DynamicCellConverter` which can wrap either:
+
+ - a constructor taking a single `object` (or, equivalently, `dynamic`) parameter 
+ - a method with `ReadOnlySpan<char>`, `in ReadContext`, and an `out` parameters which returns a `bool`
+
+`GetRowConverter` returns a `DynamicRowConverter` which can wrap one of:
  
-A `BoundConfiguration<T>` instance exposes 4 methods: `CreateReader`, `CreateAsyncReader`, `CreateWriter`, and `CreateAsyncWriter`.  These return `IReader<T>`, `IAsyncReader<T>`, `IWriter<T>` and `IAsyncWriter<T>` instances respectively.
+ - a constructor taking a single `object` (or, equivalently, `dynamic`) parameter 
+ - a constructor taking some number of parameters, and a map of each parameter to a column index (base 0)
+ - a constructor taking no parameters, a collection of setter methods on the constructed type, and a map of each setter to a column index (base 0)
+   * setter methods must take a single parameter and return void, ie. behave like auto property setters
+ - a method with `ReadOnlySpan<char>`, `in ReadContext`, and an `out` parameters which returns a `bool`
+
+# Using `IBoundConfiguration<T>`
+ 
+A `IBoundConfiguration<T>` instance expose 4 methods: `CreateReader`, `CreateAsyncReader`, `CreateWriter`, and `CreateAsyncWriter`.  These return `IReader<T>`, `IAsyncReader<T>`, `IWriter<T>` and `IAsyncWriter<T>` instances respectively.
 
 ## Disposing
 
@@ -153,3 +185,15 @@ All methods return `ValueTask`s, and will complete synchronously if possible - o
  
  
 All methods return `ValueTask`s, and will complete synchronously if possible - only invoking async machinery if needed to avoid blocking.
+
+## ReadContext and WriteContext
+
+Parser and formatter methods are called with readonly instances of `ReadContext` and `WriteContext` structs.  These structs expose the following
+
+ - `RowNumber` - the (base 0) index of the row being read or written
+ - `ColumnNumber` - the (base 0) index of the column being read or written
+ - `ColumnName` - the name of the column being written, if the name is known (which is not the case if reading without headers)
+ - `Context` - the object passed to a method on `IBoundConfiguration<T>` when creating a reader or writer, if any
+
+For cases where type describers are not sufficiently flexible, the user specified context item on `ReadContext` and `WriteContext` can be used to pass state 
+that is reader or writer specific to parsers and formatters.

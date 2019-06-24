@@ -2,7 +2,7 @@
 
 namespace Cesil
 {
-    internal interface ITestableDisposable: IDisposable
+    internal interface ITestableDisposable : IDisposable
     {
         bool IsDisposed { get; }
 

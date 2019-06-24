@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Cesil.Tests
 {
-    internal sealed class ConfigurableSyncAsyncWriter: TextWriter
+    internal sealed class ConfigurableSyncAsyncWriter : TextWriter
     {
         private readonly TextWriter Inner;
 
@@ -51,7 +51,7 @@ namespace Cesil.Tests
 
         public override Task FlushAsync()
         {
-            if(ShouldBeAsync())
+            if (ShouldBeAsync())
             {
                 return Async();
             }

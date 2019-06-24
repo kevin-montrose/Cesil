@@ -1,12 +1,10 @@
-﻿using System.Collections.Generic;
-
-namespace Cesil
+﻿namespace Cesil
 {
     internal interface IDynamicRowOwner
     {
         object Context { get; }
 
-        // todo: don't love a list for this
-        List<DynamicRow> NotifyOnDispose { get; }
+        IIntrusiveLinkedList<DynamicRow> NotifyOnDispose { get; }
+        void Remove(DynamicRow row);
     }
 }

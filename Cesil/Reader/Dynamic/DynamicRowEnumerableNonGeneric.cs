@@ -17,5 +17,8 @@ namespace Cesil
 
             return new DynamicRowEnumeratorNonGeneric(Row);
         }
+
+        public override string ToString()
+        => $"{nameof(DynamicRowEnumerableNonGeneric)} bound to {Row}";
     }
 }

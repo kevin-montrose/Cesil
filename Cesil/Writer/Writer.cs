@@ -35,20 +35,7 @@ namespace Cesil
         {
             AssertNotDisposed();
 
-            var shouldEndRecord = true;
-
-            if (IsFirstRow)
-            {
-                if (!CheckHeaders())
-                {
-                    shouldEndRecord = false;
-                }
-            }
-
-            if (shouldEndRecord)
-            {
-                EndRecord();
-            }
+            WriteHeadersAndEndRowIfNeeded();
 
             for (var i = 0; i < Columns.Length; i++)
             {
@@ -61,7 +48,7 @@ namespace Cesil
 
                 var col = Columns[i];
 
-                var ctx = new WriteContext(RowNumber, i, col.Name, Context);
+                var ctx = WriteContext.WritingColumn(RowNumber, ColumnIdentifier.Create(i, col.Name), Context);
 
                 if (!col.Write(row, ctx, Buffer))
                 {
@@ -80,6 +67,69 @@ namespace Cesil
             }
 
             RowNumber++;
+        }
+
+        public void WriteComment(string comment)
+        {
+            if (comment == null)
+            {
+                Throw.ArgumentNullException(nameof(comment));
+            }
+
+            AssertNotDisposed();
+
+            WriteHeadersAndEndRowIfNeeded();
+
+            var segments = SplitCommentIntoLines(comment);
+
+            var commentChar = Config.CommentChar.Value;
+            if (segments.IsSingleSegment)
+            {
+                PlaceCharInStaging(commentChar);
+                var segSpan = segments.First.Span;
+                if (segSpan.Length > 0)
+                {
+                    PlaceAllInStaging(segSpan);
+                }
+            }
+            else
+            {
+                // we know we can write directly now
+                var isFirstRow = true;
+                foreach (var seg in segments)
+                {
+                    if (!isFirstRow)
+                    {
+                        EndRecord();
+                    }
+
+                    PlaceCharInStaging(commentChar);
+                    var segSpan = seg.Span;
+                    if (segSpan.Length > 0)
+                    {
+                        PlaceAllInStaging(segSpan);
+                    }
+                    isFirstRow = false;
+                }
+            }
+        }
+
+        private void WriteHeadersAndEndRowIfNeeded()
+        {
+            var shouldEndRecord = true;
+
+            if (IsFirstRow)
+            {
+                if (!CheckHeaders())
+                {
+                    shouldEndRecord = false;
+                }
+            }
+
+            if (shouldEndRecord)
+            {
+                EndRecord();
+            }
         }
 
         private void EndRecord()
@@ -372,10 +422,15 @@ namespace Cesil
 
         public void AssertNotDisposed()
         {
-            if(IsDisposed)
+            if (IsDisposed)
             {
                 Throw.ObjectDisposedException(nameof(Writer<T>));
             }
+        }
+
+        public override string ToString()
+        {
+            return $"{nameof(Writer<T>)} with {Config}";
         }
     }
 }

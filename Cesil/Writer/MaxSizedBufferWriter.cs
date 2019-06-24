@@ -28,26 +28,6 @@ namespace Cesil
             }
         }
 
-        private class NodeSegment : ReadOnlySequenceSegment<char>
-        {
-            internal NodeSegment(Node n)
-            {
-                Memory = n.Allocation.Slice(0, n.BytesUsed);
-                RunningIndex = 0;
-                Next = null;
-            }
-
-            internal NodeSegment Append(Node n)
-            {
-                var ret = new NodeSegment(n);
-                ret.RunningIndex = RunningIndex + Memory.Length;
-
-                Next = ret;
-
-                return ret;
-            }
-        }
-
         public bool IsDisposed => MemoryPool == null;
 
         internal ReadOnlySequence<char> Buffer => MakeSequence();
@@ -73,7 +53,7 @@ namespace Cesil
             MemoryPool = memoryPool;
             Head = Tail = null;
 
-            if(sizeHint == null || sizeHint == 0)
+            if (sizeHint == null || sizeHint == 0)
             {
                 SizeHint = DEFAULT_STAGING_SIZE;
             }
@@ -167,7 +147,7 @@ namespace Cesil
             }
 
             Node newTail;
-            if(FreeNode != null)
+            if (FreeNode != null)
             {
                 newTail = FreeNode;
                 FreeNode = null;
@@ -178,7 +158,7 @@ namespace Cesil
             }
 
             IMemoryOwner<char> alloc;
-            if(FreeMemory != null && FreeMemory.Memory.Length >= size)
+            if (FreeMemory != null && FreeMemory.Memory.Length >= size)
             {
                 alloc = FreeMemory;
                 FreeMemory = null;
@@ -235,12 +215,12 @@ namespace Cesil
             //   Node represention isn't "finished"
             //   and still has extra space floating around
             //   between each node
-            var headSeg = new NodeSegment(Head);
+            var headSeg = new ReadOnlyCharSegment(Head.Allocation, Head.BytesUsed);
             var n = Head.Next;
             var tailSeg = headSeg;
             while (n != null)
             {
-                tailSeg = tailSeg.Append(n);
+                tailSeg = tailSeg.Append(n.Allocation, n.BytesUsed);
                 n = n.Next;
             }
 
@@ -269,5 +249,8 @@ namespace Cesil
                 MemoryPool = null;
             }
         }
+
+        public override string ToString()
+        => $"{nameof(IsSingleSegment)}={IsSingleSegment}, {nameof(MemoryPool)}={MemoryPool}";
     }
 }

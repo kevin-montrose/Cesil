@@ -4,12 +4,12 @@ using System.IO;
 
 namespace Cesil
 {
-    internal sealed class Reader<T>: ReaderBase<T>, IReader<T>, ITestableDisposable
+    internal sealed class Reader<T> : ReaderBase<T>, IReader<T>, ITestableDisposable
     {
         public bool IsDisposed => Inner == null;
         private TextReader Inner;
 
-        internal Reader(TextReader inner, ConcreteBoundConfiguration<T> config, object context): base(config, context)
+        internal Reader(TextReader inner, ConcreteBoundConfiguration<T> config, object context) : base(config, context)
         {
             Inner = inner;
         }
@@ -38,16 +38,7 @@ namespace Cesil
         {
             AssertNotDisposed();
 
-            return EnumerateAll_Enumerable();
-
-            // make the actually enumerable
-            IEnumerable<T> EnumerateAll_Enumerable()
-            {
-                while (TryRead(out var t))
-                {
-                    yield return t;
-                }
-            }
+            return new Enumerable<T>(this);
         }
 
         public bool TryRead(out T record)
@@ -66,6 +57,34 @@ namespace Cesil
         {
             AssertNotDisposed();
 
+            var res = TryReadInner(false, ref record);
+            if (res.ResultType == ReadWithCommentResultType.HasValue)
+            {
+                record = res.Value;
+                return true;
+            }
+
+            // intentionally not clearing record here
+            return false;
+        }
+
+        public ReadWithCommentResult<T> TryReadWithComment()
+        {
+            AssertNotDisposed();
+
+            var record = default(T);
+            return TryReadWithCommentReuse(ref record);
+        }
+
+        public ReadWithCommentResult<T> TryReadWithCommentReuse(ref T record)
+        {
+            AssertNotDisposed();
+
+            return TryReadInner(true, ref record);
+        }
+
+        private ReadWithCommentResult<T> TryReadInner(bool returnComments, ref T record)
+        {
             if (RowEndings == null)
             {
                 HandleLineEndings();
@@ -87,16 +106,26 @@ namespace Cesil
                     if (HasValueToReturn)
                     {
                         record = GetValueForReturn();
-                        return true;
+                        return new ReadWithCommentResult<T>(record);
+                    }
+
+                    if (HasCommentToReturn)
+                    {
+                        HasCommentToReturn = false;
+                        if (returnComments)
+                        {
+                            var comment = Partial.PendingAsString(Buffer.Buffer);
+                            return new ReadWithCommentResult<T>(comment);
+                        }
                     }
 
                     // intentionally _not_ modifying record here
-                    return false;
+                    return ReadWithCommentResult<T>.Empty;
                 }
 
                 if (!HasValueToReturn)
                 {
-                    if(record == null)
+                    if (record == null)
                     {
                         if (!Configuration.NewCons(out record))
                         {
@@ -107,10 +136,29 @@ namespace Cesil
                 }
 
                 var res = AdvanceWork(available);
-                if (res)
+                if (res == ReadWithCommentResultType.HasValue)
                 {
                     record = GetValueForReturn();
-                    return true;
+                    return new ReadWithCommentResult<T>(record);
+                }
+                if (res == ReadWithCommentResultType.HasComment)
+                {
+                    HasCommentToReturn = false;
+
+                    if (returnComments)
+                    {
+                        // only actually allocate for the comment if it's been asked for
+
+                        var comment = Partial.PendingAsString(Buffer.Buffer);
+                        Partial.ClearValue();
+                        Partial.ClearBuffer();
+                        return new ReadWithCommentResult<T>(comment);
+                    }
+                    else
+                    {
+                        Partial.ClearValue();
+                        Partial.ClearBuffer();
+                    }
                 }
             }
         }
@@ -123,7 +171,7 @@ namespace Cesil
                 ReadHeaders = Cesil.ReadHeaders.Never;
                 TryMakeStateMachine();
                 Columns = Configuration.DeserializeColumns;
-                
+
                 return;
             }
 
@@ -160,7 +208,7 @@ namespace Cesil
                 HandleHeadersReaderResult(headers);
             }
         }
-        
+
         private void HandleLineEndings()
         {
             if (Configuration.RowEnding != Cesil.RowEndings.Detect)
@@ -197,6 +245,11 @@ namespace Cesil
             {
                 Throw.ObjectDisposedException(nameof(Reader<T>));
             }
+        }
+
+        public override string ToString()
+        {
+            return $"{nameof(Reader<T>)} with {Configuration}";
         }
     }
 }

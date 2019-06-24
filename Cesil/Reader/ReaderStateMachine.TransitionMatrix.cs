@@ -11,11 +11,12 @@ namespace Cesil
             Skip_Character,
 
             Append_Character,
+            Append_Previous_And_Current_Character,
 
             Finished_Value,
             Finished_Record,
 
-            Finish_Comment,
+            Finished_Comment,
 
             Exception_InvalidState,
             Exception_StartEscapeInValue,
@@ -24,58 +25,57 @@ namespace Cesil
             Exception_UnexpectedCharacterInEscapeSequence,
             Exception_UnexpectedLineEnding,
             Exception_ExpectedEndOfRecordOrValue
-
         }
 
-        internal const byte IN_COMMENT_MASK       = 0b0000_1001;
+        internal const byte IN_COMMENT_MASK = 0b0000_1001;
         internal const byte IN_ESCAPED_VALUE_MASK = 0b0001_0010;
-        internal const byte CAN_END_RECORD_MASK   = 0b0010_0100;
+        internal const byte CAN_END_RECORD_MASK = 0b0010_0100;
 
         internal enum State : byte
         {
-            NONE                                                = 0b0000_0000,
+            NONE = 0b0000_0000,
 
             // these bit patterns don't matter, so long as they don't collide
             //    with the group rules
-            Header_Start                                        = 0b0000_0001,
-            Header_InEscapedValue_ExpectingEndOfValueOrRecord   = 0b0000_0010,
-            Header_Unescaped_NoValue                            = 0b0000_0011,
-            Header_Unescaped_WithValue                          = 0b0000_0100,
-            Header_ExpectingEndOfRecord                         = 0b0000_0101,
-            Record_Start                                        = 0b0000_0110,
-            Record_InEscapedValue_ExpectingEndOfValueOrRecord   = 0b0000_0111,
-            Record_ExpectingEndOfRecord                         = 0b0000_1000,
+            Header_Start = 0b0000_0001,
+            Header_InEscapedValue_ExpectingEndOfValueOrRecord = 0b0000_0010,
+            Header_Unescaped_NoValue = 0b0000_0011,
+            Header_Unescaped_WithValue = 0b0000_0100,
+            Header_ExpectingEndOfRecord = 0b0000_0101,
+            Record_Start = 0b0000_0110,
+            Record_InEscapedValue_ExpectingEndOfValueOrRecord = 0b0000_0111,
+            Record_ExpectingEndOfRecord = 0b0000_1000,
 
             // grouped together for easier logical checking
             // always has 0b0000_1001 set
-            Comment_BeforeHeader                                = 0b0000_1001,
-            Comment_BeforeHeader_ExpectingEndOfComment          = 0b0000_1011,
-            Comment_BeforeRecord                                = 0b0000_1101,
-            Comment_BeforeRecord_ExpectingEndOfComment          = 0b0000_1111,
+            Comment_BeforeHeader = 0b0000_1001,
+            Comment_BeforeHeader_ExpectingEndOfComment = 0b0000_1011,
+            Comment_BeforeRecord = 0b0000_1101,
+            Comment_BeforeRecord_ExpectingEndOfComment = 0b0000_1111,
 
             // grouped together for easier logical checking
             // always has 0b001_0010 set
-            Header_InEscapedValue                               = 0b0001_0010,
-            Header_InEscapedValueWithPendingEscape              = 0b0001_0011,
-            Record_InEscapedValue                               = 0b0001_0110,
+            Header_InEscapedValue = 0b0001_0010,
+            Header_InEscapedValueWithPendingEscape = 0b0001_0011,
+            Record_InEscapedValue = 0b0001_0110,
 
             // belongs to both preceeding and following group
             // so has both 0b0001_0010 & 0b0010_0100 set
-            Record_InEscapedValueWithPendingEscape              = 0b0011_0110,
+            Record_InEscapedValueWithPendingEscape = 0b0011_0110,
 
             // grouped together for easier logical checking
             // always has 0b0010_0100 set
-            Record_Unescaped_NoValue                            = 0b0010_0100,
-            Record_Unescaped_WithValue                          = 0b0010_0101,
+            Record_Unescaped_NoValue = 0b0010_0100,
+            Record_Unescaped_WithValue = 0b0010_0101,
 
             // at the end for aesthetic reasons, not functional
             //   ones
-            Invalid                                             = 0b0010_0000
+            Invalid = 0b0010_0000
         }
 
         internal enum CharacterType : byte
         {
-            NONE = 0,
+            None = 0,
 
             EscapeStartAndEnd,  // normally "
             Escape,             // normally also "
@@ -99,7 +99,7 @@ namespace Cesil
 
             public override string ToString()
             => $" => ({NextState}, {Result})";
-            
+
 
             public static implicit operator TransitionRule(ValueTuple<State, AdvanceResult> tuple)
             => new TransitionRule(tuple.Item1, tuple.Item2);
@@ -108,9 +108,9 @@ namespace Cesil
         internal const int RuleCacheStateCount = 55;
         internal const int RuleCacheCharacterCount = 8;
         internal const int RuleCacheRowEndingCount = 5;
-        internal const int RuleCacheConfigCount = RuleCacheRowEndingCount * 2;
+        internal const int RuleCacheConfigCount = RuleCacheRowEndingCount * 2 * 2;              // escape char == escape start, and reading or not reading comments
         internal const int RuleCacheConfigSize = RuleCacheStateCount * RuleCacheCharacterCount;
-        
+
         private static readonly TransitionRule[] RuleCache;
 
         static ReaderStateMachine()
@@ -120,94 +120,109 @@ namespace Cesil
             RuleCache = new TransitionRule[CACHE_SIZE];
 
             // init all the transition matrixes
-            for(var i = 0; i < RuleCacheRowEndingCount; i++)
+            for (var i = 0; i < RuleCacheRowEndingCount; i++)
             {
-                InitTransitionMatrix((RowEndings)i, false);
-                InitTransitionMatrix((RowEndings)i, true);
+                InitTransitionMatrix((RowEndings)i, false, false);
+                InitTransitionMatrix((RowEndings)i, false, true);
+                InitTransitionMatrix((RowEndings)i, true, false);
+                InitTransitionMatrix((RowEndings)i, true, true);
             }
         }
 
-        private readonly static TransitionRule Record_InEscapedValueWithPendingEscape_Skip_Character = (State.Record_InEscapedValueWithPendingEscape, AdvanceResult.Skip_Character);
-        private readonly static TransitionRule Header_InEscapedValueWithPendingEscape_Skip_Character = (State.Header_InEscapedValueWithPendingEscape, AdvanceResult.Skip_Character);
+        private static readonly TransitionRule Record_InEscapedValueWithPendingEscape_Skip_Character = (State.Record_InEscapedValueWithPendingEscape, AdvanceResult.Skip_Character);
+        private static readonly TransitionRule Header_InEscapedValueWithPendingEscape_Skip_Character = (State.Header_InEscapedValueWithPendingEscape, AdvanceResult.Skip_Character);
 
-        private readonly static TransitionRule Invalid_Exception_UnexpectedCharacterInEscapeSequence = (State.Invalid, AdvanceResult.Exception_UnexpectedCharacterInEscapeSequence);
-        private readonly static TransitionRule Header_ExpectingEndOfRecord_SkipCharacter = (State.Header_ExpectingEndOfRecord, AdvanceResult.Skip_Character);
-        private readonly static TransitionRule Invalid_Exception_UnexpectedLineEnding = (State.Invalid, AdvanceResult.Exception_UnexpectedLineEnding);
-        private readonly static TransitionRule Invalid_Exception_ExpectedEndOfRecord =(State.Invalid, AdvanceResult.Exception_ExpectedEndOfRecord);
-        private readonly static TransitionRule Record_Start_Finished_Record =  (State.Record_Start, AdvanceResult.Finished_Record);
-        private readonly static TransitionRule Record_Unescaped_NoValue_Finished_Value = (State.Record_Unescaped_NoValue, AdvanceResult.Finished_Value);
-        private readonly static TransitionRule Record_ExpectingEndOfRecord_Skip_Character = (State.Record_ExpectingEndOfRecord, AdvanceResult.Skip_Character);
-        private readonly static TransitionRule Invalid_Exception_InvalidState = (State.Invalid, AdvanceResult.Exception_InvalidState);
-        private readonly static TransitionRule Record_InEscapedValue_Append_Character = (State.Record_InEscapedValue, AdvanceResult.Append_Character);
-        private readonly static TransitionRule Header_InEscapedValue_Skip_Character =  (State.Header_InEscapedValue, AdvanceResult.Skip_Character);
+        private static readonly TransitionRule Invalid_Exception_UnexpectedCharacterInEscapeSequence = (State.Invalid, AdvanceResult.Exception_UnexpectedCharacterInEscapeSequence);
+        private static readonly TransitionRule Header_ExpectingEndOfRecord_SkipCharacter = (State.Header_ExpectingEndOfRecord, AdvanceResult.Skip_Character);
+        private static readonly TransitionRule Invalid_Exception_UnexpectedLineEnding = (State.Invalid, AdvanceResult.Exception_UnexpectedLineEnding);
+        private static readonly TransitionRule Invalid_Exception_ExpectedEndOfRecord = (State.Invalid, AdvanceResult.Exception_ExpectedEndOfRecord);
+        private static readonly TransitionRule Record_Start_Finished_Record = (State.Record_Start, AdvanceResult.Finished_Record);
+        private static readonly TransitionRule Record_Unescaped_NoValue_Finished_Value = (State.Record_Unescaped_NoValue, AdvanceResult.Finished_Value);
+        private static readonly TransitionRule Record_ExpectingEndOfRecord_Skip_Character = (State.Record_ExpectingEndOfRecord, AdvanceResult.Skip_Character);
+        private static readonly TransitionRule Invalid_Exception_InvalidState = (State.Invalid, AdvanceResult.Exception_InvalidState);
+        private static readonly TransitionRule Record_InEscapedValue_Append_Character = (State.Record_InEscapedValue, AdvanceResult.Append_Character);
+        private static readonly TransitionRule Header_InEscapedValue_Skip_Character = (State.Header_InEscapedValue, AdvanceResult.Skip_Character);
 
-        private readonly static TransitionRule Header_Unescaped_NoValue_Skip_Character = (State.Header_Unescaped_NoValue, AdvanceResult.Skip_Character);
-        private readonly static TransitionRule Header_Unescaped_WithValue_Skip_Character =  (State.Header_Unescaped_WithValue, AdvanceResult.Skip_Character);
-        
-        private readonly static TransitionRule Record_Unescaped_WithValue_Append_Character =  (State.Record_Unescaped_WithValue, AdvanceResult.Append_Character);
+        private static readonly TransitionRule Header_Unescaped_NoValue_Skip_Character = (State.Header_Unescaped_NoValue, AdvanceResult.Skip_Character);
+        private static readonly TransitionRule Header_Unescaped_WithValue_Skip_Character = (State.Header_Unescaped_WithValue, AdvanceResult.Skip_Character);
 
-        private readonly static TransitionRule Record_InEscapedValue_Skip_Character = (State.Record_InEscapedValue, AdvanceResult.Skip_Character);
+        private static readonly TransitionRule Record_Unescaped_WithValue_Append_Character = (State.Record_Unescaped_WithValue, AdvanceResult.Append_Character);
 
-        private readonly static TransitionRule Record_InEscapedValue_ExpectingEndOfValueOrRecord_Skip_Character = (State.Record_InEscapedValue_ExpectingEndOfValueOrRecord, AdvanceResult.Skip_Character);
-        private readonly static TransitionRule Header_InEscapedValue_ExpectingEndOfValueOrRecord_Skip_Character = (State.Header_InEscapedValue_ExpectingEndOfValueOrRecord, AdvanceResult.Skip_Character);
+        private static readonly TransitionRule Record_InEscapedValue_Skip_Character = (State.Record_InEscapedValue, AdvanceResult.Skip_Character);
 
-        private readonly static TransitionRule Record_Start_SkipCharacter = (State.Record_Start, AdvanceResult.Skip_Character);
+        private static readonly TransitionRule Record_InEscapedValue_ExpectingEndOfValueOrRecord_Skip_Character = (State.Record_InEscapedValue_ExpectingEndOfValueOrRecord, AdvanceResult.Skip_Character);
+        private static readonly TransitionRule Header_InEscapedValue_ExpectingEndOfValueOrRecord_Skip_Character = (State.Header_InEscapedValue_ExpectingEndOfValueOrRecord, AdvanceResult.Skip_Character);
 
-        private readonly static TransitionRule Invalid_Exception_ExpectedEndOfRecordOrValue = (State.Invalid, AdvanceResult.Exception_ExpectedEndOfRecordOrValue);
-        private readonly static TransitionRule Invalid_ExceptionStartEscapeInValue =  (State.Invalid, AdvanceResult.Exception_StartEscapeInValue);
+        private static readonly TransitionRule Record_Start_SkipCharacter = (State.Record_Start, AdvanceResult.Skip_Character);
 
-        private readonly static TransitionRule Comment_BeforeHeader_Skip_Character = (State.Comment_BeforeHeader, AdvanceResult.Skip_Character);
-        private readonly static TransitionRule Comment_BeforeRecord_Skip_Character = (State.Comment_BeforeRecord, AdvanceResult.Skip_Character);
+        private static readonly TransitionRule Invalid_Exception_ExpectedEndOfRecordOrValue = (State.Invalid, AdvanceResult.Exception_ExpectedEndOfRecordOrValue);
+        private static readonly TransitionRule Invalid_ExceptionStartEscapeInValue = (State.Invalid, AdvanceResult.Exception_StartEscapeInValue);
 
-        private readonly static TransitionRule Header_Start_Skip_Character = (State.Header_Start, AdvanceResult.Skip_Character);
-        private readonly static TransitionRule Record_Start_Skip_Character = (State.Record_Start, AdvanceResult.Skip_Character);
+        private static readonly TransitionRule Comment_BeforeHeader_Skip_Character = (State.Comment_BeforeHeader, AdvanceResult.Skip_Character);
+        private static readonly TransitionRule Comment_BeforeRecord_Skip_Character = (State.Comment_BeforeRecord, AdvanceResult.Skip_Character);
 
-        private readonly static TransitionRule Comment_BeforeHeader_ExpectingEndOfComment_Skip_Character = (State.Comment_BeforeHeader_ExpectingEndOfComment, AdvanceResult.Skip_Character);
-        private readonly static TransitionRule Comment_BeforeRecord_ExpectingEndOfComment_Skip_Character = (State.Comment_BeforeRecord_ExpectingEndOfComment, AdvanceResult.Skip_Character);
+        private static readonly TransitionRule Comment_BeforeHeader_Append_Character = (State.Comment_BeforeHeader, AdvanceResult.Append_Character);
+        private static readonly TransitionRule Comment_BeforeRecord_Append_Character = (State.Comment_BeforeRecord, AdvanceResult.Append_Character);
 
-        private static ReadOnlyMemory<TransitionRule> GetTransitionMatrix(RowEndings rowEndings, bool escapeStartEqualsEscape)
+        private static readonly TransitionRule Header_Start_Skip_Character = (State.Header_Start, AdvanceResult.Skip_Character);
+        private static readonly TransitionRule Header_Start_Finished_Comment = (State.Header_Start, AdvanceResult.Finished_Comment);
+        private static readonly TransitionRule Record_Start_Skip_Character = (State.Record_Start, AdvanceResult.Skip_Character);
+        private static readonly TransitionRule Record_Start_Finished_Comment = (State.Record_Start, AdvanceResult.Finished_Comment);
+
+        private static readonly TransitionRule Comment_BeforeHeader_ExpectingEndOfComment_Skip_Character = (State.Comment_BeforeHeader_ExpectingEndOfComment, AdvanceResult.Skip_Character);
+        private static readonly TransitionRule Comment_BeforeHeader_ExpectingEndOfComment_Append_Character = (State.Comment_BeforeHeader_ExpectingEndOfComment, AdvanceResult.Append_Character);
+
+        private static readonly TransitionRule Comment_BeforeRecord_ExpectingEndOfComment_Skip_Character = (State.Comment_BeforeRecord_ExpectingEndOfComment, AdvanceResult.Skip_Character);
+        private static readonly TransitionRule Comment_BeforeRecord_ExpectingEndOfComment_Append_Character = (State.Comment_BeforeRecord_ExpectingEndOfComment, AdvanceResult.Append_Character);
+
+        private static readonly TransitionRule Comment_BeforeHeader_Append_Previous_And_Current_Character = (State.Comment_BeforeHeader, AdvanceResult.Append_Previous_And_Current_Character);
+        private static readonly TransitionRule Comment_BeforeRecord_Append_Previous_And_Current_Character = (State.Comment_BeforeRecord, AdvanceResult.Append_Previous_And_Current_Character);
+
+        private static ReadOnlyMemory<TransitionRule> GetTransitionMatrix(
+            RowEndings rowEndings,
+            bool escapeStartEqualsEscape,
+            bool readComments
+        )
         {
-            var configStart = GetConfigurationStartIndex(rowEndings, escapeStartEqualsEscape);
+            var configStart = GetConfigurationStartIndex(rowEndings, escapeStartEqualsEscape, readComments);
             var ret = new ReadOnlyMemory<TransitionRule>(RuleCache, configStart, RuleCacheConfigSize);
 
             return ret;
         }
 
-        private static void InitTransitionMatrix(RowEndings rowEndings, bool escapeStartEqualsEscape)
+        private static void InitTransitionMatrix(
+            RowEndings rowEndings,
+            bool escapeStartEqualsEscape,
+            bool readComments
+        )
         {
-            InitTransitionMatrix_Comment_BeforeHeader(rowEndings, GetSpan(State.Comment_BeforeHeader));
-            InitTransitionMatrix_Comment_BeforeHeader_ExpectingEndOfComment(GetSpan(State.Comment_BeforeHeader_ExpectingEndOfComment));
+            InitTransitionMatrix_Comment_BeforeHeader(rowEndings, readComments, GetTransitionRulesSpan(State.Comment_BeforeHeader, rowEndings, escapeStartEqualsEscape, readComments));
+            InitTransitionMatrix_Comment_BeforeHeader_ExpectingEndOfComment(readComments, GetTransitionRulesSpan(State.Comment_BeforeHeader_ExpectingEndOfComment, rowEndings, escapeStartEqualsEscape, readComments));
 
-            InitTransitionMatrix_Header_Start(rowEndings, GetSpan(State.Header_Start));
-            InitTransitionMatrix_Header_InEscapedValue(escapeStartEqualsEscape, GetSpan(State.Header_InEscapedValue));
-            InitTransitionMatrix_Header_InEscapedValueWithPendingEscape(rowEndings, escapeStartEqualsEscape, GetSpan(State.Header_InEscapedValueWithPendingEscape));
-            InitTransitionMatrix_Header_InEscapedValue_ExpectingEndOfValueOrRecord(rowEndings, GetSpan(State.Header_InEscapedValue_ExpectingEndOfValueOrRecord));
-            InitTransitionMatrix_Header_Unescaped_NoValue(rowEndings, escapeStartEqualsEscape, GetSpan(State.Header_Unescaped_NoValue));
-            InitTransitionMatrix_Header_Unescaped_WithValue(rowEndings, escapeStartEqualsEscape, GetSpan(State.Header_Unescaped_WithValue));
-            InitTransitionMatrix_Header_ExpectingEndOfRecord(GetSpan(State.Header_ExpectingEndOfRecord));
+            InitTransitionMatrix_Header_Start(rowEndings, GetTransitionRulesSpan(State.Header_Start, rowEndings, escapeStartEqualsEscape, readComments));
+            InitTransitionMatrix_Header_InEscapedValue(escapeStartEqualsEscape, GetTransitionRulesSpan(State.Header_InEscapedValue, rowEndings, escapeStartEqualsEscape, readComments));
+            InitTransitionMatrix_Header_InEscapedValueWithPendingEscape(rowEndings, escapeStartEqualsEscape, GetTransitionRulesSpan(State.Header_InEscapedValueWithPendingEscape, rowEndings, escapeStartEqualsEscape, readComments));
+            InitTransitionMatrix_Header_InEscapedValue_ExpectingEndOfValueOrRecord(rowEndings, GetTransitionRulesSpan(State.Header_InEscapedValue_ExpectingEndOfValueOrRecord, rowEndings, escapeStartEqualsEscape, readComments));
+            InitTransitionMatrix_Header_Unescaped_NoValue(rowEndings, escapeStartEqualsEscape, GetTransitionRulesSpan(State.Header_Unescaped_NoValue, rowEndings, escapeStartEqualsEscape, readComments));
+            InitTransitionMatrix_Header_Unescaped_WithValue(rowEndings, escapeStartEqualsEscape, GetTransitionRulesSpan(State.Header_Unescaped_WithValue, rowEndings, escapeStartEqualsEscape, readComments));
+            InitTransitionMatrix_Header_ExpectingEndOfRecord(GetTransitionRulesSpan(State.Header_ExpectingEndOfRecord, rowEndings, escapeStartEqualsEscape, readComments));
 
-            InitTransitionMatrix_Comment_BeforeRecord(rowEndings, GetSpan(State.Comment_BeforeRecord));
-            InitTransitionMatrix_Comment_BeforeRecord_ExpectingEndOfComment(GetSpan(State.Comment_BeforeRecord_ExpectingEndOfComment));
+            InitTransitionMatrix_Comment_BeforeRecord(rowEndings, readComments, GetTransitionRulesSpan(State.Comment_BeforeRecord, rowEndings, escapeStartEqualsEscape, readComments));
+            InitTransitionMatrix_Comment_BeforeRecord_ExpectingEndOfComment(readComments, GetTransitionRulesSpan(State.Comment_BeforeRecord_ExpectingEndOfComment, rowEndings, escapeStartEqualsEscape, readComments));
 
-            InitTransitionMatrix_Record_Start(rowEndings, GetSpan(State.Record_Start));
-            InitTransitionMatrix_Record_InEscapedValue(escapeStartEqualsEscape, GetSpan(State.Record_InEscapedValue));
-            InitTransitionMatrix_Record_InEscapedValueWithPendingEscape(rowEndings, escapeStartEqualsEscape, GetSpan(State.Record_InEscapedValueWithPendingEscape));
-            InitTransitionMatrix_Record_InEscapedValue_ExpectingEndOfValueOrRecord(rowEndings, GetSpan(State.Record_InEscapedValue_ExpectingEndOfValueOrRecord));
-            InitTransitionMatrix_Record_Unescaped_NoValue(rowEndings, GetSpan(State.Record_Unescaped_NoValue));
-            InitTransitionMatrix_Record_Unescaped_WithValue(rowEndings, GetSpan(State.Record_Unescaped_WithValue));
-            InitTransitionMatrix_Record_ExpectingEndOfRecord(GetSpan(State.Record_ExpectingEndOfRecord));
-            InitTransitionMatrix_Invalid(GetSpan(State.Invalid));
-
-            // helper to DRY this up
-            Span<TransitionRule> GetSpan(State state)
-            {
-                return GetTransitionRulesSpan(rowEndings, escapeStartEqualsEscape, state);
-            }
+            InitTransitionMatrix_Record_Start(rowEndings, GetTransitionRulesSpan(State.Record_Start, rowEndings, escapeStartEqualsEscape, readComments));
+            InitTransitionMatrix_Record_InEscapedValue(escapeStartEqualsEscape, GetTransitionRulesSpan(State.Record_InEscapedValue, rowEndings, escapeStartEqualsEscape, readComments));
+            InitTransitionMatrix_Record_InEscapedValueWithPendingEscape(rowEndings, escapeStartEqualsEscape, GetTransitionRulesSpan(State.Record_InEscapedValueWithPendingEscape, rowEndings, escapeStartEqualsEscape, readComments));
+            InitTransitionMatrix_Record_InEscapedValue_ExpectingEndOfValueOrRecord(rowEndings, GetTransitionRulesSpan(State.Record_InEscapedValue_ExpectingEndOfValueOrRecord, rowEndings, escapeStartEqualsEscape, readComments));
+            InitTransitionMatrix_Record_Unescaped_NoValue(rowEndings, GetTransitionRulesSpan(State.Record_Unescaped_NoValue, rowEndings, escapeStartEqualsEscape, readComments));
+            InitTransitionMatrix_Record_Unescaped_WithValue(rowEndings, GetTransitionRulesSpan(State.Record_Unescaped_WithValue, rowEndings, escapeStartEqualsEscape, readComments));
+            InitTransitionMatrix_Record_ExpectingEndOfRecord(GetTransitionRulesSpan(State.Record_ExpectingEndOfRecord, rowEndings, escapeStartEqualsEscape, readComments));
+            InitTransitionMatrix_Invalid(GetTransitionRulesSpan(State.Invalid, rowEndings, escapeStartEqualsEscape, readComments));
         }
 
-        private static Span<TransitionRule> GetTransitionRulesSpan(RowEndings rowEndings, bool escapeStartEqualsEscape, State state)
+        private static Span<TransitionRule> GetTransitionRulesSpan(State state, RowEndings rowEndings, bool escapeStartEqualsEscape, bool readComments)
         {
-            var configStart = GetConfigurationStartIndex(rowEndings, escapeStartEqualsEscape);
+            var configStart = GetConfigurationStartIndex(rowEndings, escapeStartEqualsEscape, readComments);
 
             var stateOffset = (byte)state * RuleCacheCharacterCount;
 
@@ -217,12 +232,16 @@ namespace Cesil
             return new Span<TransitionRule>(RuleCache, offset, len);
         }
 
-        private static int GetConfigurationStartIndex(RowEndings rowEndings, bool escapeStartEqualsEscape)
+        private static int GetConfigurationStartIndex(RowEndings rowEndings, bool escapeStartEqualsEscape, bool readComments)
         {
             var configNum = (byte)rowEndings;
             if (escapeStartEqualsEscape)
             {
-                configNum += RuleCacheConfigCount / 2;
+                configNum += RuleCacheConfigCount / 4;
+            }
+            if (readComments)
+            {
+                configNum += RuleCacheConfigCount / 4;
             }
 
             var configStart = configNum * RuleCacheConfigSize;
@@ -231,7 +250,7 @@ namespace Cesil
         }
 
         // moving from Comment_BeforeHeader_ExpectingEndOfComment
-        private static void InitTransitionMatrix_Comment_BeforeHeader_ExpectingEndOfComment(Span<TransitionRule> innerRet)
+        private static void InitTransitionMatrix_Comment_BeforeHeader_ExpectingEndOfComment(bool readComment, Span<TransitionRule> innerRet)
         {
             // Looks like
             // - #\r
@@ -239,26 +258,51 @@ namespace Cesil
             // and we haven't read a header yet (but are expecting one)
             // can only happen if LineEndings is \r\n
 
-            // \
-            innerRet[(int)CharacterType.Escape] = Comment_BeforeHeader_Skip_Character;
-            // "
-            innerRet[(int)CharacterType.EscapeStartAndEnd] = Comment_BeforeHeader_Skip_Character;
-            // ,
-            innerRet[(int)CharacterType.ValueSeparator] = Comment_BeforeHeader_Skip_Character;
-            // # (or whatever)
-            innerRet[(int)CharacterType.CommentStart] = Comment_BeforeHeader_Skip_Character;
-            // \r
-            innerRet[(int)CharacterType.CarriageReturn] = Comment_BeforeHeader_Skip_Character;
-            
-            // \n
-            innerRet[(int)CharacterType.LineFeed] = Header_Start_Skip_Character;
+            if (readComment)
+            {
+                // \
+                innerRet[(int)CharacterType.Escape] = Comment_BeforeHeader_Append_Previous_And_Current_Character;
+                // "
+                innerRet[(int)CharacterType.EscapeStartAndEnd] = Comment_BeforeHeader_Append_Previous_And_Current_Character;
+                // ,
+                innerRet[(int)CharacterType.ValueSeparator] = Comment_BeforeHeader_Append_Previous_And_Current_Character;
+                // # (or whatever)
+                innerRet[(int)CharacterType.CommentStart] = Comment_BeforeHeader_Append_Previous_And_Current_Character;
 
-            // c
-            innerRet[(int)CharacterType.Other] = Comment_BeforeHeader_Skip_Character;
+                // \r
+                // so we're right back where we started
+                innerRet[(int)CharacterType.CarriageReturn] = Comment_BeforeHeader_ExpectingEndOfComment_Append_Character;
+
+                // \n
+                innerRet[(int)CharacterType.LineFeed] = Header_Start_Finished_Comment;
+
+                // c
+                innerRet[(int)CharacterType.Other] = Comment_BeforeHeader_Append_Previous_And_Current_Character;
+            }
+            else
+            {
+                // \
+                innerRet[(int)CharacterType.Escape] = Comment_BeforeHeader_Skip_Character;
+                // "
+                innerRet[(int)CharacterType.EscapeStartAndEnd] = Comment_BeforeHeader_Skip_Character;
+                // ,
+                innerRet[(int)CharacterType.ValueSeparator] = Comment_BeforeHeader_Skip_Character;
+                // # (or whatever)
+                innerRet[(int)CharacterType.CommentStart] = Comment_BeforeHeader_Skip_Character;
+
+                // so we're right back where we started
+                innerRet[(int)CharacterType.CarriageReturn] = Comment_BeforeHeader_ExpectingEndOfComment_Skip_Character;
+
+                // \n
+                innerRet[(int)CharacterType.LineFeed] = Header_Start_Skip_Character;
+
+                // c
+                innerRet[(int)CharacterType.Other] = Comment_BeforeHeader_Skip_Character;
+            }
         }
 
         // moving from Comment_BeforeRecord_ExpectingEndOfComment
-        private static void InitTransitionMatrix_Comment_BeforeRecord_ExpectingEndOfComment(Span<TransitionRule> innerRet)
+        private static void InitTransitionMatrix_Comment_BeforeRecord_ExpectingEndOfComment(bool readComments, Span<TransitionRule> innerRet)
         {
             // Looks like
             // - #\r
@@ -266,40 +310,76 @@ namespace Cesil
             // and we're expecting to read a record (either no header, or we've already read it)
             // can only happen if LineEndings is \r\n
 
-            // \
-            innerRet[(int)CharacterType.Escape] = Comment_BeforeRecord_Skip_Character;
-            // "
-            innerRet[(int)CharacterType.EscapeStartAndEnd] = Comment_BeforeRecord_Skip_Character;
-            // ,
-            innerRet[(int)CharacterType.ValueSeparator] = Comment_BeforeRecord_Skip_Character;
-            // # (or whatever)
-            innerRet[(int)CharacterType.CommentStart] = Comment_BeforeRecord_Skip_Character;
-            // \r
-            innerRet[(int)CharacterType.CarriageReturn] = Comment_BeforeRecord_Skip_Character;
+            if (readComments)
+            {
+                // \
+                innerRet[(int)CharacterType.Escape] = Comment_BeforeRecord_Append_Previous_And_Current_Character;
+                // "
+                innerRet[(int)CharacterType.EscapeStartAndEnd] = Comment_BeforeRecord_Append_Previous_And_Current_Character;
+                // ,
+                innerRet[(int)CharacterType.ValueSeparator] = Comment_BeforeRecord_Append_Previous_And_Current_Character;
+                // # (or whatever)
+                innerRet[(int)CharacterType.CommentStart] = Comment_BeforeRecord_Append_Previous_And_Current_Character;
 
-            // \n
-            innerRet[(int)CharacterType.LineFeed] = Record_Start_Skip_Character;
+                // \r
+                // back where we began
+                innerRet[(int)CharacterType.CarriageReturn] = Comment_BeforeRecord_ExpectingEndOfComment_Append_Character;
 
-            // c
-            innerRet[(int)CharacterType.Other] = Comment_BeforeRecord_Skip_Character;
+                // \n
+                innerRet[(int)CharacterType.LineFeed] = Record_Start_Finished_Comment;
+
+                // c
+                innerRet[(int)CharacterType.Other] = Comment_BeforeRecord_Append_Previous_And_Current_Character;
+            }
+            else
+            {
+                // \
+                innerRet[(int)CharacterType.Escape] = Comment_BeforeRecord_Skip_Character;
+                // "
+                innerRet[(int)CharacterType.EscapeStartAndEnd] = Comment_BeforeRecord_Skip_Character;
+                // ,
+                innerRet[(int)CharacterType.ValueSeparator] = Comment_BeforeRecord_Skip_Character;
+                // # (or whatever)
+                innerRet[(int)CharacterType.CommentStart] = Comment_BeforeRecord_Skip_Character;
+
+                // \r
+                // back where we began
+                innerRet[(int)CharacterType.CarriageReturn] = Comment_BeforeRecord_ExpectingEndOfComment_Skip_Character;
+
+                // \n
+                innerRet[(int)CharacterType.LineFeed] = Record_Start_Skip_Character;
+
+                // c
+                innerRet[(int)CharacterType.Other] = Comment_BeforeRecord_Skip_Character;
+            }
         }
 
         // moving from Comment_BeforeRecord
-        private static void InitTransitionMatrix_Comment_BeforeRecord(RowEndings rowEndings, Span<TransitionRule> innerRet)
+        private static void InitTransitionMatrix_Comment_BeforeRecord(RowEndings rowEndings, bool readComments, Span<TransitionRule> innerRet)
         {
             // Looks like
             // - # 
             //
             // and we haven't yet parsed a header (and are expecting to)
 
+            var commentCharacterTreatment =
+                readComments ?
+                    Comment_BeforeRecord_Append_Character :
+                    Comment_BeforeRecord_Skip_Character;
+
+            var commentEndTreatment =
+                readComments ?
+                    Record_Start_Finished_Comment :
+                    Record_Start_SkipCharacter;
+
             // \
-            innerRet[(int)CharacterType.Escape] = Comment_BeforeRecord_Skip_Character;
+            innerRet[(int)CharacterType.Escape] = commentCharacterTreatment;
             // "
-            innerRet[(int)CharacterType.EscapeStartAndEnd] = Comment_BeforeRecord_Skip_Character;
+            innerRet[(int)CharacterType.EscapeStartAndEnd] = commentCharacterTreatment;
             // ,
-            innerRet[(int)CharacterType.ValueSeparator] = Comment_BeforeRecord_Skip_Character;
+            innerRet[(int)CharacterType.ValueSeparator] = commentCharacterTreatment;
             // # (or whatever)
-            innerRet[(int)CharacterType.CommentStart] = Comment_BeforeRecord_Skip_Character;
+            innerRet[(int)CharacterType.CommentStart] = commentCharacterTreatment;
 
             // \r
             TransitionRule forCarriageReturn;
@@ -307,7 +387,7 @@ namespace Cesil
             {
                 case RowEndings.CarriageReturn:
                     // ends the comment
-                    forCarriageReturn = Record_Start_Skip_Character;
+                    forCarriageReturn = commentEndTreatment;
                     break;
                 case RowEndings.CarriageReturnLineFeed:
                     // may end the comment, if followed by a \n
@@ -315,7 +395,7 @@ namespace Cesil
                     break;
                 case RowEndings.LineFeed:
                     // comment continues
-                    forCarriageReturn = Comment_BeforeRecord_Skip_Character;
+                    forCarriageReturn = commentCharacterTreatment;
                     break;
                 default:
                     forCarriageReturn = Invalid_Exception_UnexpectedLineEnding;
@@ -329,15 +409,15 @@ namespace Cesil
             {
                 case RowEndings.CarriageReturn:
                     // comment continues
-                    forLineFeed = Comment_BeforeRecord_Skip_Character;
+                    forLineFeed = commentCharacterTreatment;
                     break;
                 case RowEndings.CarriageReturnLineFeed:
                     // comment continues
-                    forLineFeed = Comment_BeforeRecord_Skip_Character;
+                    forLineFeed = commentCharacterTreatment;
                     break;
                 case RowEndings.LineFeed:
                     // ends the comment
-                    forLineFeed = Record_Start_Skip_Character;
+                    forLineFeed = commentEndTreatment;
                     break;
                 default:
                     forLineFeed = Invalid_Exception_UnexpectedLineEnding;
@@ -346,25 +426,35 @@ namespace Cesil
             innerRet[(int)CharacterType.LineFeed] = forLineFeed;
 
             // c
-            innerRet[(int)CharacterType.Other] = Comment_BeforeRecord_Skip_Character;
+            innerRet[(int)CharacterType.Other] = commentCharacterTreatment;
         }
 
         // moving from Comment_BeforeHeader
-        private static void InitTransitionMatrix_Comment_BeforeHeader(RowEndings rowEndings, Span<TransitionRule> innerRet)
+        private static void InitTransitionMatrix_Comment_BeforeHeader(RowEndings rowEndings, bool readComments, Span<TransitionRule> innerRet)
         {
             // Looks like
             // - # 
             //
             // and we haven't yet parsed a header (and are expecting to)
 
+            var commentCharacterTreatment =
+                readComments ?
+                    Comment_BeforeHeader_Append_Character :
+                    Comment_BeforeHeader_Skip_Character;
+
+            var commentEndTreatment =
+                readComments ?
+                    Header_Start_Finished_Comment :
+                    Header_Start_Skip_Character;
+
             // \
-            innerRet[(int)CharacterType.Escape] = Comment_BeforeHeader_Skip_Character;
+            innerRet[(int)CharacterType.Escape] = commentCharacterTreatment;
             // "
-            innerRet[(int)CharacterType.EscapeStartAndEnd] = Comment_BeforeHeader_Skip_Character;
+            innerRet[(int)CharacterType.EscapeStartAndEnd] = commentCharacterTreatment;
             // ,
-            innerRet[(int)CharacterType.ValueSeparator] = Comment_BeforeHeader_Skip_Character;
+            innerRet[(int)CharacterType.ValueSeparator] = commentCharacterTreatment;
             // # (or whatever)
-            innerRet[(int)CharacterType.CommentStart] = Comment_BeforeHeader_Skip_Character;
+            innerRet[(int)CharacterType.CommentStart] = commentCharacterTreatment;
 
             // \r
             TransitionRule forCarriageReturn;
@@ -372,7 +462,7 @@ namespace Cesil
             {
                 case RowEndings.CarriageReturn:
                     // ends the comment
-                    forCarriageReturn = Header_Start_Skip_Character;
+                    forCarriageReturn = commentEndTreatment;
                     break;
                 case RowEndings.CarriageReturnLineFeed:
                     // may end the comment, if followed by a \n
@@ -380,7 +470,7 @@ namespace Cesil
                     break;
                 case RowEndings.LineFeed:
                     // comment continues
-                    forCarriageReturn = Comment_BeforeHeader_Skip_Character;
+                    forCarriageReturn = commentCharacterTreatment;
                     break;
                 default:
                     forCarriageReturn = Invalid_Exception_UnexpectedLineEnding;
@@ -394,15 +484,15 @@ namespace Cesil
             {
                 case RowEndings.CarriageReturn:
                     // comment continues
-                    forLineFeed = Comment_BeforeHeader_Skip_Character;
+                    forLineFeed = commentCharacterTreatment;
                     break;
                 case RowEndings.CarriageReturnLineFeed:
                     // comment continues
-                    forLineFeed = Comment_BeforeHeader_Skip_Character;
+                    forLineFeed = commentCharacterTreatment;
                     break;
                 case RowEndings.LineFeed:
                     // ends the comment
-                    forLineFeed = Header_Start_Skip_Character;
+                    forLineFeed = commentEndTreatment;
                     break;
                 default:
                     forLineFeed = Invalid_Exception_UnexpectedLineEnding;
@@ -411,7 +501,7 @@ namespace Cesil
             innerRet[(int)CharacterType.LineFeed] = forLineFeed;
 
             // c
-            innerRet[(int)CharacterType.Other] = Comment_BeforeHeader_Skip_Character;
+            innerRet[(int)CharacterType.Other] = commentCharacterTreatment;
         }
 
         // moving from Header_Start
@@ -641,7 +731,7 @@ namespace Cesil
                 // "df"
                 innerRet[(int)CharacterType.EscapeStartAndEnd] = Header_InEscapedValue_ExpectingEndOfValueOrRecord_Skip_Character;
             }
-           
+
             // "df,
             innerRet[(int)CharacterType.ValueSeparator] = Header_InEscapedValue_Skip_Character;
 

@@ -62,9 +62,9 @@ namespace Cesil.Tests
             {
                 var map = o.GetType().GetInterfaceMap(typeof(ITestableDisposable));
 
-                for(var i = 0; i < map.TargetMethods.Length; i++)
+                for (var i = 0; i < map.TargetMethods.Length; i++)
                 {
-                    if(map.TargetMethods[i].IsPublic)
+                    if (map.TargetMethods[i].IsPublic)
                     {
                         expectedTestCases--;
                     }
@@ -120,7 +120,7 @@ namespace Cesil.Tests
         {
             var defaultConfig = Configuration.For<T>(opts);
             var smallBufferConfig = Configuration.For<T>(opts.NewBuilder().WithReadBufferSizeHint(1).Build());
-            
+
             // default buffer
             {
                 var runCount = 0;
@@ -215,6 +215,14 @@ namespace Cesil.Tests
 
                 Assert.Equal(expectedRuns, runCount);
                 Assert.Equal(0, leakDetector.OutstandingRentals);
+            }
+
+            // forced async
+            {
+                var runCount = 0;
+                await run(defaultConfig, str => { runCount++; return new ForcedAsyncReader(new StringReader(str)); });
+
+                Assert.Equal(expectedRuns, runCount);
             }
         }
 
@@ -459,6 +467,69 @@ namespace Cesil.Tests
             {
                 var leakDetector = new TrackedMemoryPool<char>();
                 var leakConfig = Configuration.For<T>(baseOptions.NewBuilder().WithMemoryPool(leakDetector).WithWriteBufferSizeHint(0).Build());
+
+                var gotWriter = 0;
+                var gotString = 0;
+                run(leakConfig, () => { gotWriter++; return writer; }, () => { gotString++; return writer.ToString(); });
+
+                Assert.Equal(1, gotWriter);
+                Assert.Equal(1, gotString);
+                // you'd think we'd expect NO rentals, but there are cases where we _have_ to buffer
+                //       so just deal with it
+                Assert.Equal(0, leakDetector.OutstandingRentals);
+            }
+        }
+
+        public static void RunSyncDynamicWriterVariants(
+           Options baseOptions,
+           Action<IBoundConfiguration<dynamic>, Func<TextWriter>, Func<string>> run
+        )
+        {
+            var defaultConfig = Configuration.ForDynamic(baseOptions);
+            var noBufferConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).Build());
+
+            // default
+            using (var writer = new StringWriter())
+            {
+                var gotWriter = 0;
+                var gotString = 0;
+                run(defaultConfig, () => { gotWriter++; return writer; }, () => { gotString++; return writer.ToString(); });
+
+                Assert.Equal(1, gotWriter);
+                Assert.Equal(1, gotString);
+            }
+
+            // no buffer
+            using (var writer = new StringWriter())
+            {
+                var gotWriter = 0;
+                var gotString = 0;
+                run(noBufferConfig, () => { gotWriter++; return writer; }, () => { gotString++; return writer.ToString(); });
+
+                Assert.Equal(1, gotWriter);
+                Assert.Equal(1, gotString);
+            }
+
+            // default, leaks
+            using (var writer = new StringWriter())
+            {
+                var leakDetector = new TrackedMemoryPool<char>();
+                var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithMemoryPool(leakDetector).Build());
+
+                var gotWriter = 0;
+                var gotString = 0;
+                run(leakConfig, () => { gotWriter++; return writer; }, () => { gotString++; return writer.ToString(); });
+
+                Assert.Equal(1, gotWriter);
+                Assert.Equal(1, gotString);
+                Assert.Equal(0, leakDetector.OutstandingRentals);
+            }
+
+            // no buffer, leaks
+            using (var writer = new StringWriter())
+            {
+                var leakDetector = new TrackedMemoryPool<char>();
+                var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithMemoryPool(leakDetector).WithWriteBufferSizeHint(0).Build());
 
                 var gotWriter = 0;
                 var gotString = 0;

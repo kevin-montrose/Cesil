@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
+using System.Text;
 
 namespace Cesil
 {
@@ -10,20 +12,12 @@ namespace Cesil
     /// Used when you don't control the type you need to (de)serialize - you markup the surrogate type
     ///   and then the uncontrolled type is (de)serialized as if it were the surrogate type.
     /// </summary>
+    [NotEquatable("Mutable")]
     public sealed class SurrogateTypeDescriber : ITypeDescriber
     {
-        /// <summary>
-        /// The type describer to use when enumerating on a surrogate type.
-        /// </summary>
-        public ITypeDescriber TypeDescriber { get; }
-        /// <summary>
-        /// Whether to throw when no surrogate type is registered for a type
-        ///   that is being described.
-        ///   
-        /// If false, types with no registered surrogate types are described
-        ///   by TypeDescriber.
-        /// </summary>
-        public bool ThrowOnNoRegisteredSurrogate { get; }
+        internal ITypeDescriber TypeDescriber { get; }
+
+        internal bool ThrowOnNoRegisteredSurrogate { get; }
 
         private readonly Dictionary<TypeInfo, TypeInfo> SurrogateTypes;
 
@@ -32,7 +26,7 @@ namespace Cesil
         /// </summary>
         public SurrogateTypeDescriber(ITypeDescriber surrogateTypeDescriber, bool throwOnNoRegisteredSurrogate)
         {
-            if(surrogateTypeDescriber == null)
+            if (surrogateTypeDescriber == null)
             {
                 Throw.ArgumentNullException(nameof(surrogateTypeDescriber));
             }
@@ -64,7 +58,7 @@ namespace Cesil
         /// </summary>
         public void AddSurrogateType(TypeInfo forType, TypeInfo surrogateType)
         {
-            if(forType == null)
+            if (forType == null)
             {
                 Throw.ArgumentNullException(nameof(forType));
             }
@@ -74,7 +68,7 @@ namespace Cesil
                 Throw.ArgumentNullException(nameof(surrogateType));
             }
 
-            if(forType == surrogateType)
+            if (forType == surrogateType)
             {
                 Throw.InvalidOperationException($"Type {forType} cannot be a surrogate for itself");
             }
@@ -97,14 +91,14 @@ namespace Cesil
         /// </summary>
         public IEnumerable<DeserializableMember> EnumerateMembersToDeserialize(TypeInfo forType)
         {
-            if(!SurrogateTypes.TryGetValue(forType, out var proxy))
+            if (!SurrogateTypes.TryGetValue(forType, out var proxy))
             {
                 if (ThrowOnNoRegisteredSurrogate)
                 {
                     Throw.InvalidOperationException($"No surrogate registered for {forType}");
                 }
 
-                foreach(var member in TypeDescriber.EnumerateMembersToDeserialize(forType))
+                foreach (var member in TypeDescriber.EnumerateMembersToDeserialize(forType))
                 {
                     yield return member;
                 }
@@ -113,7 +107,7 @@ namespace Cesil
             }
 
             var fromProxy = TypeDescriber.EnumerateMembersToDeserialize(proxy);
-            foreach(var member in fromProxy)
+            foreach (var member in fromProxy)
             {
                 yield return Map(forType, member);
             }
@@ -165,7 +159,7 @@ namespace Cesil
         /// </summary>
         public InstanceBuilder GetInstanceBuilder(TypeInfo forType)
         {
-            if(!SurrogateTypes.TryGetValue(forType, out var proxy))
+            if (!SurrogateTypes.TryGetValue(forType, out var proxy))
             {
                 if (ThrowOnNoRegisteredSurrogate)
                 {
@@ -184,7 +178,14 @@ namespace Cesil
             MethodInfo resetOnType = null;
             if (member.Reset != null)
             {
-                var surrogateReset = member.Reset;
+                var surrogateResetWrapper = member.Reset;
+                if (surrogateResetWrapper.Mode != BackingMode.Method)
+                {
+                    Throw.InvalidOperationException($"Cannot map reset {surrogateResetWrapper} onto {ontoType}, reset isn't backed by a method");
+                }
+
+                var surrogateReset = surrogateResetWrapper.Method;
+
                 var surrogateResetBinding =
                     // explicitly ignoring DeclaredOnly; shadowing is fine
                     (surrogateReset.IsPublic ? BindingFlags.Public : BindingFlags.NonPublic) |
@@ -197,76 +198,108 @@ namespace Cesil
                 }
             }
 
-            if (member.Field != null)
+            var surrogateSetterWrapper = member.Setter;
+            switch (surrogateSetterWrapper.Mode)
             {
-                var surrogateField = member.Field;
-                var surrogateFieldBinding =
-                    // explicitly ignoring DeclaredOnly; shadowing is fine
-                    (surrogateField.IsPublic ? BindingFlags.Public : BindingFlags.NonPublic) |
-                    (surrogateField.IsStatic ? BindingFlags.Static : BindingFlags.Instance);
+                case BackingMode.Field:
+                    {
+                        var surrogateField = surrogateSetterWrapper.Field;
+                        var surrogateFieldBinding =
+                            // explicitly ignoring DeclaredOnly; shadowing is fine
+                            (surrogateField.IsPublic ? BindingFlags.Public : BindingFlags.NonPublic) |
+                            (surrogateField.IsStatic ? BindingFlags.Static : BindingFlags.Instance);
 
-                var fieldOnType = ontoType.GetField(surrogateField.Name, surrogateFieldBinding);
-                if(fieldOnType == null)
-                {
-                    Throw.InvalidOperationException($"No equivalent to {surrogateField} found on {ontoType}");
-                }
+                        var fieldOnType = ontoType.GetField(surrogateField.Name, surrogateFieldBinding);
+                        if (fieldOnType == null)
+                        {
+                            Throw.InvalidOperationException($"No equivalent to {surrogateField} found on {ontoType}");
+                        }
 
-                if(fieldOnType.FieldType != surrogateField.FieldType)
-                {
-                    Throw.InvalidOperationException($"Field {fieldOnType} type ({fieldOnType.FieldType}) does not match surrogate field {surrogateField} type ({surrogateField.FieldType})");
-                }
-                return DeserializableMember.Create(ontoType, member.Name, fieldOnType, member.Parser, member.IsRequired, resetOnType);
+                        if (fieldOnType.FieldType != surrogateField.FieldType)
+                        {
+                            Throw.InvalidOperationException($"Field {fieldOnType} type ({fieldOnType.FieldType}) does not match surrogate field {surrogateField} type ({surrogateField.FieldType})");
+                        }
+
+                        var required = member.IsRequired ? IsMemberRequired.Yes : IsMemberRequired.No;
+
+                        return DeserializableMember.Create(ontoType, member.Name, (Setter)fieldOnType, member.Parser, required, Reset.ForMethod(resetOnType));
+                    }
+                case BackingMode.Method:
+                    {
+                        var surrogateSetter = surrogateSetterWrapper.Method;
+
+                        var surrogateSetterBinding =
+                                // explicitly ignoring DeclaredOnly; shadowing is fine
+                                (surrogateSetter.IsPublic ? BindingFlags.Public : BindingFlags.NonPublic) |
+                                (surrogateSetter.IsStatic ? BindingFlags.Static : BindingFlags.Instance);
+
+                        var setterOnType = ontoType.GetMethod(surrogateSetter.Name, surrogateSetterBinding);
+                        if (setterOnType == null)
+                        {
+                            Throw.InvalidOperationException($"No equivalent to {surrogateSetter} found on {ontoType}");
+                        }
+
+                        var paramsOnType = setterOnType.GetParameters();
+                        var paramsOnSurrogate = surrogateSetter.GetParameters();
+
+                        if (paramsOnType.Length != paramsOnSurrogate.Length)
+                        {
+                            Throw.InvalidOperationException($"Parameters for {setterOnType} do not match parameters for {surrogateSetter}");
+                        }
+
+                        for (var i = 0; i < paramsOnType.Length; i++)
+                        {
+                            var pOnType = paramsOnType[i];
+                            var pOnSurrogate = paramsOnSurrogate[i];
+
+                            if (pOnType.ParameterType != pOnSurrogate.ParameterType)
+                            {
+                                Throw.InvalidOperationException($"Parameter #{(i + 1)} on {setterOnType} does not match same parameter on {surrogateSetter}");
+                            }
+                        }
+
+                        var required = member.IsRequired ? IsMemberRequired.Yes : IsMemberRequired.No;
+
+                        return DeserializableMember.Create(ontoType, member.Name, (Setter)setterOnType, member.Parser, required, (Reset)resetOnType);
+                    }
+                case BackingMode.Delegate:
+                    Throw.InvalidOperationException($"Cannot map setter {surrogateSetterWrapper} onto {ontoType}, setter is backed by a delegate");
+                    // just for control flow
+                    return default;
+                default:
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {surrogateSetterWrapper.Mode}");
+                    // just for control flow
+                    return default;
             }
-
-            var surrogateSetter = member.Setter;
-            var surrogateSetterBinding =
-                    // explicitly ignoring DeclaredOnly; shadowing is fine
-                    (surrogateSetter.IsPublic ? BindingFlags.Public : BindingFlags.NonPublic) |
-                    (surrogateSetter.IsStatic ? BindingFlags.Static : BindingFlags.Instance);
-
-            var setterOnType = ontoType.GetMethod(surrogateSetter.Name, surrogateSetterBinding);
-            if(setterOnType == null)
-            {
-                Throw.InvalidOperationException($"No equivalent to {surrogateSetter} found on {ontoType}");
-            }
-
-            var paramsOnType = setterOnType.GetParameters();
-            var paramsOnSurrogate = surrogateSetter.GetParameters();
-
-            if(paramsOnType.Length != paramsOnSurrogate.Length)
-            {
-                Throw.InvalidOperationException($"Parameters for {setterOnType} do not match parameters for {surrogateSetter}");
-            }
-
-            for(var i = 0; i < paramsOnType.Length; i++)
-            {
-                var pOnType = paramsOnType[i];
-                var pOnSurrogate = paramsOnSurrogate[i];
-
-                if(pOnType.ParameterType != pOnSurrogate.ParameterType)
-                {
-                    Throw.InvalidOperationException($"Parameter #{(i + 1)} on {setterOnType} does not match same parameter on {surrogateSetter}");
-                }
-            }
-
-            return DeserializableMember.Create(ontoType, member.Name, setterOnType, member.Parser, member.IsRequired, resetOnType);
         }
 
         private static SerializableMember Map(TypeInfo ontoType, SerializableMember member)
         {
-            MethodInfo shouldSerializeOnType;
-            if (member.ShouldSerialize != null)
+            ShouldSerialize shouldSerializeOnType;
+            var surrogateShouldSerializeWrapper = member.ShouldSerialize;
+            if (surrogateShouldSerializeWrapper != null)
             {
-                var surrogateShouldSerialize = member.ShouldSerialize;
-                var surrogateShouldSerializeBinding =
-                    // explicitly ignoring DeclaredOnly; shadowing is fine
-                    (surrogateShouldSerialize.IsPublic ? BindingFlags.Public : BindingFlags.NonPublic) |
-                    (surrogateShouldSerialize.IsStatic ? BindingFlags.Static : BindingFlags.Instance);
-
-                shouldSerializeOnType = ontoType.GetMethod(surrogateShouldSerialize.Name, surrogateShouldSerializeBinding);
-                if (shouldSerializeOnType == null)
+                if (surrogateShouldSerializeWrapper.Mode == BackingMode.Method)
                 {
-                    Throw.InvalidOperationException($"No equivalent to {surrogateShouldSerialize} found on {ontoType}");
+                    var surrogateShouldSerialize = surrogateShouldSerializeWrapper.Method;
+                    var surrogateShouldSerializeBinding =
+                        // explicitly ignoring DeclaredOnly; shadowing is fine
+                        (surrogateShouldSerialize.IsPublic ? BindingFlags.Public : BindingFlags.NonPublic) |
+                        (surrogateShouldSerialize.IsStatic ? BindingFlags.Static : BindingFlags.Instance);
+
+                    var shouldSerializeOnTypeMtd = ontoType.GetMethod(surrogateShouldSerialize.Name, surrogateShouldSerializeBinding);
+                    if (shouldSerializeOnTypeMtd == null)
+                    {
+                        Throw.InvalidOperationException($"No equivalent to {surrogateShouldSerialize} found on {ontoType}");
+                    }
+
+                    shouldSerializeOnType = ShouldSerialize.ForMethod(shouldSerializeOnTypeMtd);
+                }
+                else
+                {
+                    Throw.InvalidOperationException($"Cannot map 'should serialize' {surrogateShouldSerializeWrapper} onto {ontoType}, 'should serialize' isn't backed by a method");
+                    // just for flow control
+                    return default;
                 }
             }
             else
@@ -274,37 +307,52 @@ namespace Cesil
                 shouldSerializeOnType = null;
             }
 
-
-            if (member.Field != null)
+            var surrogateGetterWrapper = member.Getter;
+            switch (surrogateGetterWrapper.Mode)
             {
-                var surrogateField = member.Field;
-                var surrogateFieldBinding =
-                    // explicitly ignoring DeclaredOnly; shadowing is fine
-                    (surrogateField.IsPublic ? BindingFlags.Public : BindingFlags.NonPublic) |
-                    (surrogateField.IsStatic ? BindingFlags.Static : BindingFlags.Instance);
+                case BackingMode.Field:
+                    {
+                        var surrogateField = surrogateGetterWrapper.Field;
+                        var surrogateFieldBinding =
+                            // explicitly ignoring DeclaredOnly; shadowing is fine
+                            (surrogateField.IsPublic ? BindingFlags.Public : BindingFlags.NonPublic) |
+                            (surrogateField.IsStatic ? BindingFlags.Static : BindingFlags.Instance);
 
-                var fieldOnType = ontoType.GetField(surrogateField.Name, surrogateFieldBinding);
-                if (fieldOnType == null)
-                {
-                    Throw.InvalidOperationException($"No equivalent to {surrogateField} found on {ontoType}");
-                }
+                        var fieldOnType = ontoType.GetField(surrogateField.Name, surrogateFieldBinding);
+                        if (fieldOnType == null)
+                        {
+                            Throw.InvalidOperationException($"No equivalent to {surrogateField} found on {ontoType}");
+                        }
 
-                if (fieldOnType.FieldType != surrogateField.FieldType)
-                {
-                    Throw.InvalidOperationException($"Field {fieldOnType} type ({fieldOnType.FieldType}) does not match surrogate field {surrogateField} type ({surrogateField.FieldType})");
-                }
+                        if (fieldOnType.FieldType != surrogateField.FieldType)
+                        {
+                            Throw.InvalidOperationException($"Field {fieldOnType} type ({fieldOnType.FieldType}) does not match surrogate field {surrogateField} type ({surrogateField.FieldType})");
+                        }
 
-                return SerializableMember.Create(ontoType, member.Name, fieldOnType, member.Formatter, shouldSerializeOnType, member.EmitDefaultValue);
+                        var emitDefaultField = member.EmitDefaultValue ? WillEmitDefaultValue.Yes : WillEmitDefaultValue.No;
+                        return SerializableMember.Create(ontoType, member.Name, (Getter)fieldOnType, member.Formatter, shouldSerializeOnType, emitDefaultField);
+                    }
+                case BackingMode.Delegate:
+                    Throw.InvalidOperationException($"Cannot map getter {surrogateGetterWrapper} onto {ontoType}, getter isn't backed by a method");
+                    // just for control flow
+                    return default;
+                case BackingMode.Method:
+                    goto handleMethod;
+                default:
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {surrogateGetterWrapper.Mode}");
+                    // just for control flow
+                    return default;
             }
 
-            var surrogateGetter = member.Getter;
+handleMethod:
+            var surrogateGetter = surrogateGetterWrapper.Method;
             var surrogateGetterBinding =
                     // explicitly ignoring DeclaredOnly; shadowing is fine
                     (surrogateGetter.IsPublic ? BindingFlags.Public : BindingFlags.NonPublic) |
                     (surrogateGetter.IsStatic ? BindingFlags.Static : BindingFlags.Instance);
 
             var getterOnType = ontoType.GetMethod(surrogateGetter.Name, surrogateGetterBinding);
-            if(getterOnType == null)
+            if (getterOnType == null)
             {
                 Throw.InvalidOperationException($"No equivalent to {surrogateGetter} found on {ontoType}");
             }
@@ -312,45 +360,115 @@ namespace Cesil
             var surrogateParams = surrogateGetter.GetParameters();
             var onTypeParams = getterOnType.GetParameters();
 
-            if(surrogateParams.Length != onTypeParams.Length)
+            if (surrogateParams.Length != onTypeParams.Length)
             {
                 Throw.InvalidOperationException($"Parameters for {getterOnType} do not match parameters for {surrogateGetter}");
             }
 
-            for(var i = 0; i < surrogateParams.Length; i++)
+            for (var i = 0; i < surrogateParams.Length; i++)
             {
                 var sP = surrogateParams[i].ParameterType.GetTypeInfo();
                 var tP = onTypeParams[i].ParameterType.GetTypeInfo();
 
-                if(sP != tP)
+                if (sP != tP)
                 {
                     Throw.InvalidOperationException($"Parameter #{(i + 1)} on {getterOnType} does not match same parameter on {surrogateGetter}");
                 }
             }
 
-            return SerializableMember.Create(ontoType, member.Name, getterOnType, member.Formatter, shouldSerializeOnType, member.EmitDefaultValue);
+            var emitDefault = member.EmitDefaultValue ? WillEmitDefaultValue.Yes : WillEmitDefaultValue.No;
+            return SerializableMember.Create(ontoType, member.Name, (Getter)getterOnType, member.Formatter, shouldSerializeOnType, emitDefault);
         }
 
         private static InstanceBuilder Map(TypeInfo ontoType, InstanceBuilder builder)
         {
-            if(builder.Delegate != null)
+            switch (builder.Mode)
             {
-                Throw.InvalidOperationException($"Cannot map a delegate InstanceBuilder between types");
+                case BackingMode.Delegate:
+                    Throw.InvalidOperationException($"Cannot map a delegate InstanceBuilder between types");
+                    // just for control flow
+                    return default;
+                case BackingMode.Constructor:
+                    {
+                        var surrogateCons = builder.Constructor;
+                        var surrogateConsBinding =
+                                // explicitly ignoring DeclaredOnly; shadowing is fine
+                                (surrogateCons.IsPublic ? BindingFlags.Public : BindingFlags.NonPublic) |
+                                BindingFlags.Instance;
+
+                        var consOnType = ontoType.GetConstructor(surrogateConsBinding, null, Type.EmptyTypes, null);
+                        if (consOnType == null)
+                        {
+                            Throw.InvalidOperationException($"No equivalent to {surrogateCons} found on {ontoType}");
+                        }
+
+                        return new InstanceBuilder(consOnType);
+                    }
+                case BackingMode.Method:
+                    Throw.InvalidOperationException($"Cannot map a method InstanceBuilder between types");
+                    // just for control flow
+                    return default;
+                default:
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {builder.Mode}");
+                    // just for control flow
+                    return default;
             }
-
-            var surrogateCons = builder.Constructor;
-            var surrogateConsBinding =
-                    // explicitly ignoring DeclaredOnly; shadowing is fine
-                    (surrogateCons.IsPublic ? BindingFlags.Public : BindingFlags.NonPublic) |
-                    BindingFlags.Instance;
-
-            var consOnType = ontoType.GetConstructor(surrogateConsBinding, null, Type.EmptyTypes, null);
-            if(consOnType == null)
-            {
-                Throw.InvalidOperationException($"No equivalent to {surrogateCons} found on {ontoType}");
-            }
-
-            return new InstanceBuilder(consOnType);
         }
+
+        /// <summary>
+        /// Returns a representation of this SurrogateTypeDescriber object.
+        /// 
+        /// Only for debugging, this value is not guaranteed to be stable.
+        /// </summary>
+        public override string ToString()
+        {
+            var ret = new StringBuilder();
+
+            ret.Append($"{nameof(SurrogateTypeDescriber)} using type describer {this.TypeDescriber}");
+            if (ThrowOnNoRegisteredSurrogate)
+            {
+                ret.Append(" which throws when no surrogate registered");
+            }
+            else
+            {
+                ret.Append(" which delegates when no surrogate registered");
+            }
+
+            if (SurrogateTypes.Any())
+            {
+                ret.Append(" and uses ");
+                var isFirst = true;
+                foreach (var kv in SurrogateTypes)
+                {
+                    if (!isFirst)
+                    {
+                        ret.Append(", ");
+                    }
+
+                    isFirst = false;
+                    ret.Append($"{kv.Value} for {kv.Key}");
+                }
+            }
+
+            return ret.ToString();
+        }
+
+        /// <summary>
+        /// Delegates to DefaultTypeDescriber.
+        /// </summary>
+        public Parser GetDynamicCellParserFor(in ReadContext ctx, TypeInfo targetType)
+        => TypeDescribers.Default.GetDynamicCellParserFor(in ctx, targetType);
+
+        /// <summary>
+        /// Delegates to DefaultTypeDescriber.
+        /// </summary>
+        public DynamicRowConverter GetDynamicRowConverter(in ReadContext ctx, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
+        => TypeDescribers.Default.GetDynamicRowConverter(in ctx, columns, targetType);
+
+        /// <summary>
+        /// Delegates to DefaultTypeDescriber.
+        /// </summary>
+        public IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext ctx, object row)
+        => TypeDescribers.Default.GetCellsForDynamicRow(in ctx, row);
     }
 }

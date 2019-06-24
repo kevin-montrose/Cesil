@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Cesil.Tests
 {
-    public sealed class AsyncCounterReader: TextReader
+    public sealed class AsyncCounterReader : TextReader
     {
         private int _Count;
         public int Count => _Count;

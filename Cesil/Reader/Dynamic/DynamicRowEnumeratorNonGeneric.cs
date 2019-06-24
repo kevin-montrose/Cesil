@@ -4,40 +4,37 @@ namespace Cesil
 {
     internal sealed class DynamicRowEnumeratorNonGeneric : IEnumerator
     {
-        private DynamicRow Row;
-        private int NextIndex;
+        private readonly DynamicRow.DynamicColumnEnumerator Enumerator;
 
         public object Current { get; private set; }
 
         internal DynamicRowEnumeratorNonGeneric(DynamicRow row)
         {
-            Row = row;
-            Reset();
+            Enumerator = new DynamicRow.DynamicColumnEnumerator(row);
         }
 
         public bool MoveNext()
         {
-            Row.AssertNotDisposed();
-
-            if(NextIndex >= Row.Width)
+            if (!Enumerator.MoveNext())
             {
                 Current = null;
                 return false;
             }
 
-            Current = Row.GetCellAt(NextIndex);
+            var col = Enumerator.Current;
 
-            NextIndex++;
+            Current = Enumerator.Row.GetCellAt(col.Index);
 
             return true;
         }
 
         public void Reset()
         {
-            Row.AssertNotDisposed();
-
-            NextIndex = 0;
+            Enumerator.Reset();
             Current = null;
         }
+
+        public override string ToString()
+        => $"{nameof(DynamicRowEnumeratorNonGeneric)} bound to {Enumerator}";
     }
 }

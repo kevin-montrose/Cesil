@@ -14,12 +14,733 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class WriterTests
     {
-        struct _UserDefinedEmitDefaultValue_ValueType
+        private class _WriteComment
+        {
+            public int Foo { get; set; }
+            public int Bar { get; set; }
+        }
+
+        [Fact]
+        public void WriteComment()
+        {
+            // no trailing new line
+            {
+                // first line, no headers
+                {
+                    var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+
+                    // one line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("hello");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#hello", res);
+                        }
+                    );
+
+                    // two lines
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("hello\r\nworld");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#hello\r\n#world", res);
+                        }
+                    );
+                }
+
+                // first line, headers
+                {
+                    var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+
+                    // one line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("hello");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#hello", res);
+                        }
+                    );
+
+                    // two lines
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("hello\r\nworld");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#hello\r\n#world", res);
+                        }
+                    );
+                }
+
+                // second line, no headers
+                {
+                    var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+
+                    // one line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.Write(new _WriteComment { Foo = 123, Bar = 456 });
+                                csv.WriteComment("hello");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("123,456\r\n#hello", res);
+                        }
+                    );
+
+                    // two lines
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.Write(new _WriteComment { Foo = 123, Bar = 456 });
+                                csv.WriteComment("hello\r\nworld");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("123,456\r\n#hello\r\n#world", res);
+                        }
+                    );
+                }
+
+                // second line, headers
+                {
+                    var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+
+                    // one line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.Write(new _WriteComment { Foo = 123, Bar = 456 });
+                                csv.WriteComment("hello");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n123,456\r\n#hello", res);
+                        }
+                    );
+
+                    // two lines
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.Write(new _WriteComment { Foo = 123, Bar = 456 });
+                                csv.WriteComment("hello\r\nworld");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n123,456\r\n#hello\r\n#world", res);
+                        }
+                    );
+                }
+
+                // before row, no headers
+                {
+                    var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+
+                    // one line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("hello");
+                                csv.Write(new _WriteComment { Foo = 123, Bar = 456 });
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#hello\r\n123,456", res);
+                        }
+                    );
+
+                    // two lines
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("hello\r\nworld");
+                                csv.Write(new _WriteComment { Foo = 123, Bar = 456 });
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#hello\r\n#world\r\n123,456", res);
+                        }
+                    );
+                }
+
+                // before row, headers
+                {
+                    var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+
+                    // one line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("hello");
+                                csv.Write(new _WriteComment { Foo = 123, Bar = 456 });
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#hello\r\n123,456", res);
+                        }
+                    );
+
+                    // two lines
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("hello\r\nworld");
+                                csv.Write(new _WriteComment { Foo = 123, Bar = 456 });
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#hello\r\n#world\r\n123,456", res);
+                        }
+                    );
+                }
+            }
+
+            // trailing new line
+            {
+                // first line, no headers
+                {
+                    var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+
+                    // one line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("hello");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#hello\r\n", res);
+                        }
+                    );
+
+                    // two lines
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("hello\r\nworld");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#hello\r\n#world\r\n", res);
+                        }
+                    );
+                }
+
+                // first line, headers
+                {
+                    var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+
+                    // one line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("hello");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#hello\r\n", res);
+                        }
+                    );
+
+                    // two lines
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("hello\r\nworld");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#hello\r\n#world\r\n", res);
+                        }
+                    );
+                }
+
+                // second line, no headers
+                {
+                    var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+
+                    // one line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.Write(new _WriteComment { Foo = 123, Bar = 456 });
+                                csv.WriteComment("hello");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("123,456\r\n#hello\r\n", res);
+                        }
+                    );
+
+                    // two lines
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.Write(new _WriteComment { Foo = 123, Bar = 456 });
+                                csv.WriteComment("hello\r\nworld");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("123,456\r\n#hello\r\n#world\r\n", res);
+                        }
+                    );
+                }
+
+                // second line, headers
+                {
+                    var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+
+                    // one line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.Write(new _WriteComment { Foo = 123, Bar = 456 });
+                                csv.WriteComment("hello");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n123,456\r\n#hello\r\n", res);
+                        }
+                    );
+
+                    // two lines
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.Write(new _WriteComment { Foo = 123, Bar = 456 });
+                                csv.WriteComment("hello\r\nworld");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n123,456\r\n#hello\r\n#world\r\n", res);
+                        }
+                    );
+                }
+
+                // before row, no headers
+                {
+                    var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+
+                    // one line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("hello");
+                                csv.Write(new _WriteComment { Foo = 123, Bar = 456 });
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#hello\r\n123,456\r\n", res);
+                        }
+                    );
+
+                    // two lines
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("hello\r\nworld");
+                                csv.Write(new _WriteComment { Foo = 123, Bar = 456 });
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#hello\r\n#world\r\n123,456\r\n", res);
+                        }
+                    );
+                }
+
+                // before row, headers
+                {
+                    var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+
+                    // one line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("hello");
+                                csv.Write(new _WriteComment { Foo = 123, Bar = 456 });
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#hello\r\n123,456\r\n", res);
+                        }
+                    );
+
+                    // two lines
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("hello\r\nworld");
+                                csv.Write(new _WriteComment { Foo = 123, Bar = 456 });
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#hello\r\n#world\r\n123,456\r\n", res);
+                        }
+                    );
+                }
+            }
+        }
+
+        private class _DelegateShouldSerialize
+        {
+            public int Foo { get; set; }
+        }
+
+        [Fact]
+        public void DelegateStaticShouldSerialize()
+        {
+            var shouldSerializeCalled = 0;
+            StaticShouldSerializeDelegate shouldSerializeDel =
+                () =>
+                {
+                    shouldSerializeCalled++;
+
+                    return false;
+                };
+
+            var name = nameof(_DelegateShouldSerialize.Foo);
+            var getter = (Getter)typeof(_DelegateShouldSerialize).GetProperty(nameof(_DelegateShouldSerialize.Foo)).GetMethod;
+            var formatter = Formatter.GetDefault(typeof(int).GetTypeInfo());
+            var shouldSerialize = Cesil.ShouldSerialize.ForDelegate(shouldSerializeDel);
+
+            var describer = new ManualTypeDescriber();
+            describer.AddExplicitGetter(typeof(_DelegateShouldSerialize).GetTypeInfo(), name, getter, formatter, shouldSerialize);
+            InstanceBuilderDelegate<_DelegateShouldSerialize> del = (out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).WithWriteHeader(WriteHeaders.Always).Build();
+
+            RunSyncWriterVariants<_DelegateShouldSerialize>(
+                opts,
+                (config, getWriter, getStr) =>
+                {
+                    shouldSerializeCalled = 0;
+
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
+                    {
+                        csv.Write(new _DelegateShouldSerialize { Foo = 123 });
+                        csv.Write(new _DelegateShouldSerialize { Foo = 0 });
+                        csv.Write(new _DelegateShouldSerialize { Foo = 456 });
+                    }
+
+                    var res = getStr();
+                    Assert.Equal("Foo\r\n\r\n\r\n", res);
+
+                    Assert.Equal(3, shouldSerializeCalled);
+                }
+            );
+        }
+
+        [Fact]
+        public void DelegateShouldSerialize()
+        {
+            var shouldSerializeCalled = 0;
+            ShouldSerializeDelegate<_DelegateShouldSerialize> shouldSerializeDel =
+                row =>
+                {
+                    shouldSerializeCalled++;
+
+                    return row.Foo % 2 != 0;
+                };
+
+            var name = nameof(_DelegateShouldSerialize.Foo);
+            var getter = (Getter)typeof(_DelegateShouldSerialize).GetProperty(nameof(_DelegateShouldSerialize.Foo)).GetMethod;
+            var formatter = Formatter.GetDefault(typeof(int).GetTypeInfo());
+            var shouldSerialize = Cesil.ShouldSerialize.ForDelegate(shouldSerializeDel);
+
+            var describer = new ManualTypeDescriber();
+            describer.AddExplicitGetter(typeof(_DelegateShouldSerialize).GetTypeInfo(), name, getter, formatter, shouldSerialize);
+            InstanceBuilderDelegate<_DelegateShouldSerialize> del = (out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).WithWriteHeader(WriteHeaders.Always).Build();
+
+            RunSyncWriterVariants<_DelegateShouldSerialize>(
+                opts,
+                (config, getWriter, getStr) =>
+                {
+                    shouldSerializeCalled = 0;
+
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
+                    {
+                        csv.Write(new _DelegateShouldSerialize { Foo = 123 });
+                        csv.Write(new _DelegateShouldSerialize { Foo = 0 });
+                        csv.Write(new _DelegateShouldSerialize { Foo = 456 });
+                    }
+
+                    var res = getStr();
+                    Assert.Equal("Foo\r\n123\r\n\r\n", res);
+
+                    Assert.Equal(3, shouldSerializeCalled);
+                }
+            );
+        }
+
+        private class _DelegateFormatter
+        {
+            public int Foo { get; set; }
+        }
+
+        [Fact]
+        public void DelegateFormatter()
+        {
+            var formatterCalled = 0;
+            FormatterDelegate<int> formatDel =
+                (int val, in WriteContext _, IBufferWriter<char> buffer) =>
+                {
+                    formatterCalled++;
+
+                    var s = val.ToString();
+
+                    buffer.Write(s);
+                    buffer.Write(s);
+
+                    return true;
+                };
+
+            var name = nameof(_DelegateFormatter.Foo);
+            var getter = (Getter)typeof(_DelegateFormatter).GetProperty(nameof(_DelegateFormatter.Foo)).GetMethod;
+            var formatter = Formatter.ForDelegate(formatDel);
+
+            var describer = new ManualTypeDescriber();
+            describer.AddExplicitGetter(typeof(_DelegateFormatter).GetTypeInfo(), name, getter, formatter);
+            InstanceBuilderDelegate<_DelegateFormatter> del = (out _DelegateFormatter i) => { i = new _DelegateFormatter(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).WithWriteHeader(WriteHeaders.Always).Build();
+
+            RunSyncWriterVariants<_DelegateFormatter>(
+                opts,
+                (config, getWriter, getStr) =>
+                {
+                    formatterCalled = 0;
+
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
+                    {
+                        csv.Write(new _DelegateFormatter { Foo = 123 });
+                        csv.Write(new _DelegateFormatter { Foo = 0 });
+                        csv.Write(new _DelegateFormatter { Foo = 456 });
+                    }
+
+                    var res = getStr();
+                    Assert.Equal("Foo\r\n123123\r\n00\r\n456456", res);
+
+                    Assert.Equal(3, formatterCalled);
+                }
+            );
+        }
+
+        private class _DelegateGetter
+        {
+            public int Foo { get; set; }
+        }
+
+        [Fact]
+        public void DelegateStaticGetter()
+        {
+            var getterCalled = 0;
+            StaticGetterDelegate<int> getDel =
+                () =>
+                {
+                    getterCalled++;
+
+                    return getterCalled;
+                };
+
+            var name = nameof(_DelegateGetter.Foo);
+            var getter = Getter.ForDelegate(getDel);
+
+            var describer = new ManualTypeDescriber();
+            describer.AddExplicitGetter(typeof(_DelegateGetter).GetTypeInfo(), name, getter);
+            InstanceBuilderDelegate<_DelegateGetter> del = (out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).WithWriteHeader(WriteHeaders.Always).Build();
+
+            RunSyncWriterVariants<_DelegateGetter>(
+                opts,
+                (config, getWriter, getStr) =>
+                {
+                    getterCalled = 0;
+
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
+                    {
+                        csv.Write(new _DelegateGetter { Foo = 123 });
+                        csv.Write(new _DelegateGetter { Foo = 0 });
+                        csv.Write(new _DelegateGetter { Foo = 456 });
+                    }
+
+                    var res = getStr();
+                    Assert.Equal("Foo\r\n1\r\n2\r\n3", res);
+
+                    Assert.Equal(3, getterCalled);
+                }
+            );
+        }
+
+        [Fact]
+        public void DelegateGetter()
+        {
+            var getterCalled = 0;
+            GetterDelegate<_DelegateGetter, int> getDel =
+                (_DelegateGetter row) =>
+                {
+                    getterCalled++;
+
+                    return row.Foo * 2;
+                };
+
+            var name = nameof(_DelegateGetter.Foo);
+            var getter = Getter.ForDelegate(getDel);
+
+            var describer = new ManualTypeDescriber();
+            describer.AddExplicitGetter(typeof(_DelegateGetter).GetTypeInfo(), name, getter);
+            InstanceBuilderDelegate<_DelegateGetter> del = (out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).WithWriteHeader(WriteHeaders.Always).Build();
+
+            RunSyncWriterVariants<_DelegateGetter>(
+                opts,
+                (config, getWriter, getStr) =>
+                {
+                    getterCalled = 0;
+
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
+                    {
+                        csv.Write(new _DelegateGetter { Foo = 123 });
+                        csv.Write(new _DelegateGetter { Foo = 0 });
+                        csv.Write(new _DelegateGetter { Foo = 456 });
+                    }
+
+                    var res = getStr();
+                    Assert.Equal("Foo\r\n246\r\n0\r\n912", res);
+
+                    Assert.Equal(3, getterCalled);
+                }
+            );
+        }
+
+        private struct _UserDefinedEmitDefaultValue_ValueType
         {
             public int Value { get; set; }
         }
 
-        struct _UserDefinedEmitDefaultValue_ValueType_Equatable: IEquatable<_UserDefinedEmitDefaultValue_ValueType_Equatable>
+        private struct _UserDefinedEmitDefaultValue_ValueType_Equatable : IEquatable<_UserDefinedEmitDefaultValue_ValueType_Equatable>
         {
             public static int EqualsCallCount = 0;
 
@@ -33,7 +754,7 @@ namespace Cesil.Tests
             }
         }
 
-        struct _UserDefinedEmitDefaultValue_ValueType_Operator
+        private struct _UserDefinedEmitDefaultValue_ValueType_Operator
         {
             public static int OperatorCallCount = 0;
 
@@ -51,7 +772,7 @@ namespace Cesil.Tests
 
             public override bool Equals(object obj)
             {
-                if(obj is _UserDefinedEmitDefaultValue_ValueType_Operator o)
+                if (obj is _UserDefinedEmitDefaultValue_ValueType_Operator o)
                 {
                     return this == o;
                 }
@@ -63,28 +784,28 @@ namespace Cesil.Tests
             => Value;
         }
 
-        class _UserDefinedEmitDefaultValue1
+        private class _UserDefinedEmitDefaultValue1
         {
             public string Foo { get; set; }
             [DataMember(EmitDefaultValue = false)]
             public _UserDefinedEmitDefaultValue_ValueType Bar { get; set; }
         }
 
-        class _UserDefinedEmitDefaultValue2
+        private class _UserDefinedEmitDefaultValue2
         {
             public string Foo { get; set; }
             [DataMember(EmitDefaultValue = false)]
             public _UserDefinedEmitDefaultValue_ValueType_Equatable Bar { get; set; }
         }
 
-        class _UserDefinedEmitDefaultValue3
+        private class _UserDefinedEmitDefaultValue3
         {
             public string Foo { get; set; }
             [DataMember(EmitDefaultValue = false)]
             public _UserDefinedEmitDefaultValue_ValueType_Operator Bar { get; set; }
         }
 
-        class _UserDefinedEmitDefaultValue_TypeDescripter: DefaultTypeDescriber
+        private class _UserDefinedEmitDefaultValue_TypeDescripter : DefaultTypeDescriber
         {
             public static bool Format_UserDefinedEmitDefaultValue_ValueType(_UserDefinedEmitDefaultValue_ValueType t, in WriteContext _, IBufferWriter<char> writer)
             {
@@ -130,21 +851,21 @@ namespace Cesil.Tests
                 return base.ShouldDeserialize(forType, property);
             }
 
-            protected override MethodInfo GetFormatter(TypeInfo forType, PropertyInfo property)
+            protected override Formatter GetFormatter(TypeInfo forType, PropertyInfo property)
             {
-                if(forType == typeof(_UserDefinedEmitDefaultValue1).GetTypeInfo() && property.Name == nameof(_UserDefinedEmitDefaultValue1.Bar))
+                if (forType == typeof(_UserDefinedEmitDefaultValue1).GetTypeInfo() && property.Name == nameof(_UserDefinedEmitDefaultValue1.Bar))
                 {
-                    return typeof(_UserDefinedEmitDefaultValue_TypeDescripter).GetMethod(nameof(Format_UserDefinedEmitDefaultValue_ValueType), BindingFlags.Public | BindingFlags.Static);
+                    return (Formatter)typeof(_UserDefinedEmitDefaultValue_TypeDescripter).GetMethod(nameof(Format_UserDefinedEmitDefaultValue_ValueType), BindingFlags.Public | BindingFlags.Static);
                 }
 
                 if (forType == typeof(_UserDefinedEmitDefaultValue2).GetTypeInfo() && property.Name == nameof(_UserDefinedEmitDefaultValue2.Bar))
                 {
-                    return typeof(_UserDefinedEmitDefaultValue_TypeDescripter).GetMethod(nameof(Format_UserDefinedEmitDefaultValue_ValueType_Equatable), BindingFlags.Public | BindingFlags.Static);
+                    return (Formatter)typeof(_UserDefinedEmitDefaultValue_TypeDescripter).GetMethod(nameof(Format_UserDefinedEmitDefaultValue_ValueType_Equatable), BindingFlags.Public | BindingFlags.Static);
                 }
 
                 if (forType == typeof(_UserDefinedEmitDefaultValue3).GetTypeInfo() && property.Name == nameof(_UserDefinedEmitDefaultValue3.Bar))
                 {
-                    return typeof(_UserDefinedEmitDefaultValue_TypeDescripter).GetMethod(nameof(Format_UserDefinedEmitDefaultValue_ValueType_Operator), BindingFlags.Public | BindingFlags.Static);
+                    return (Formatter)typeof(_UserDefinedEmitDefaultValue_TypeDescripter).GetMethod(nameof(Format_UserDefinedEmitDefaultValue_ValueType_Operator), BindingFlags.Public | BindingFlags.Static);
                 }
 
                 return base.GetFormatter(forType, property);
@@ -214,7 +935,7 @@ namespace Cesil.Tests
             );
         }
 
-        class _Context
+        private class _Context
         {
             [DataMember(Order = 1)]
             public string Foo { get; set; }
@@ -225,7 +946,7 @@ namespace Cesil.Tests
         private static List<string> _Context_FormatFoo_Records;
         public static bool _Context_FormatFoo(string data, in WriteContext ctx, IBufferWriter<char> writer)
         {
-            _Context_FormatFoo_Records.Add($"{ctx.RowNumber},{ctx.ColumnName},{ctx.ColumnNumber},{data},{ctx.Context}");
+            _Context_FormatFoo_Records.Add($"{ctx.RowNumber},{ctx.Column.Name},{ctx.Column.Index},{data},{ctx.Context}");
 
             writer.Write(data.AsSpan());
 
@@ -235,7 +956,7 @@ namespace Cesil.Tests
         private static List<string> _Context_FormatBar_Records;
         public static bool _Context_FormatBar(int data, in WriteContext ctx, IBufferWriter<char> writer)
         {
-            _Context_FormatBar_Records.Add($"{ctx.RowNumber},{ctx.ColumnName},{ctx.ColumnNumber},{data},{ctx.Context}");
+            _Context_FormatBar_Records.Add($"{ctx.RowNumber},{ctx.Column.Name},{ctx.Column.Index},{data},{ctx.Context}");
 
             var asStr = data.ToString();
             writer.Write(asStr.AsSpan());
@@ -246,11 +967,11 @@ namespace Cesil.Tests
         [Fact]
         public void Context()
         {
-            var formatFoo = typeof(WriterTests).GetMethod(nameof(_Context_FormatFoo));
-            var formatBar = typeof(WriterTests).GetMethod(nameof(_Context_FormatBar));
+            var formatFoo = (Formatter)typeof(WriterTests).GetMethod(nameof(_Context_FormatFoo));
+            var formatBar = (Formatter)typeof(WriterTests).GetMethod(nameof(_Context_FormatBar));
 
             var describer = new ManualTypeDescriber(false);
-            describer.SetExplicitParameterlessConstructor(typeof(_Context).GetConstructor(Type.EmptyTypes));
+            describer.SetBuilder((InstanceBuilder)typeof(_Context).GetConstructor(Type.EmptyTypes));
             describer.AddSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), formatFoo);
             describer.AddSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), formatBar);
 
@@ -329,7 +1050,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _CommentEscape
+        private class _CommentEscape
         {
             public string A { get; set; }
             public string B { get; set; }
@@ -438,7 +1159,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _Simple
+        private class _Simple
         {
             public string Foo { get; set; }
             public int Bar { get; set; }
@@ -596,7 +1317,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _WriteAll
+        private class _WriteAll
         {
             public string Foo { get; set; }
             public int Bar { get; set; }
@@ -689,7 +1410,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _Headers
+        private class _Headers
         {
             public string Foo { get; set; }
             public int Bar { get; set; }
@@ -818,7 +1539,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts =Options.Default.NewBuilder().WithWriteHeader(WriteHeaders.Always).WithRowEnding(RowEndings.CarriageReturnLineFeed).WithWriteTrailingNewLine(WriteTrailingNewLines.Always).Build();
+                var opts = Options.Default.NewBuilder().WithWriteHeader(WriteHeaders.Always).WithRowEnding(RowEndings.CarriageReturnLineFeed).WithWriteTrailingNewLine(WriteTrailingNewLines.Always).Build();
 
                 RunSyncWriterVariants<_EscapeHeaders>(
                     opts,
@@ -919,7 +1640,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _EscapeLargeHeaders
+        private class _EscapeLargeHeaders
         {
             [DataMember(Name = "A,bcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefgh")]
             public string A { get; set; }
@@ -1042,13 +1763,13 @@ namespace Cesil.Tests
             }
         }
 
-        class _MultiSegmentValue_TypeDescriber : DefaultTypeDescriber
+        private class _MultiSegmentValue_TypeDescriber : DefaultTypeDescriber
         {
-            protected override MethodInfo GetFormatter(TypeInfo forType, PropertyInfo property)
+            protected override Formatter GetFormatter(TypeInfo forType, PropertyInfo property)
             {
                 var ret = typeof(_MultiSegmentValue_TypeDescriber).GetMethod(nameof(TryFormatStringCrazy));
 
-                return ret;
+                return (Formatter)ret;
             }
 
             public static bool TryFormatStringCrazy(string val, in WriteContext ctx, IBufferWriter<char> buffer)
@@ -1064,7 +1785,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _MultiSegmentValue
+        private class _MultiSegmentValue
         {
             public string Foo { get; set; }
         }
@@ -1123,7 +1844,7 @@ namespace Cesil.Tests
             );
         }
 
-        class _ShouldSerialize
+        private class _ShouldSerialize
         {
             public static bool OnOff;
 
@@ -1174,7 +1895,7 @@ namespace Cesil.Tests
             );
         }
 
-        class _StaticGetters
+        private class _StaticGetters
         {
             private int Foo;
 
@@ -1194,9 +1915,9 @@ namespace Cesil.Tests
         public void StaticGetters()
         {
             var m = new ManualTypeDescriber();
-            m.SetExplicitParameterlessConstructor(typeof(_StaticGetters).GetConstructor(Type.EmptyTypes));
-            m.AddExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Bar", typeof(_StaticGetters).GetMethod("GetBar", BindingFlags.Static | BindingFlags.Public));
-            m.AddExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Fizz", typeof(_StaticGetters).GetMethod("GetFizz", BindingFlags.Static | BindingFlags.Public));
+            m.SetBuilder((InstanceBuilder)typeof(_StaticGetters).GetConstructor(Type.EmptyTypes));
+            m.AddExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Bar", (Getter)typeof(_StaticGetters).GetMethod("GetBar", BindingFlags.Static | BindingFlags.Public));
+            m.AddExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Fizz", (Getter)typeof(_StaticGetters).GetMethod("GetFizz", BindingFlags.Static | BindingFlags.Public));
 
             var opts = Options.Default.NewBuilder().WithTypeDescriber(m).Build();
 
@@ -1217,7 +1938,7 @@ namespace Cesil.Tests
             );
         }
 
-        class _EmitDefaultValue
+        private class _EmitDefaultValue
         {
             public enum E
             {
@@ -1259,6 +1980,706 @@ namespace Cesil.Tests
 
                     var txt = getString();
                     Assert.Equal("1,,None,1970-01-01 00:00:00Z\r\n,Fizz,,", txt);
+                }
+            );
+        }
+
+        [Fact]
+        public async Task WriteCommentAsync()
+        {
+            // no trailing new line
+            {
+                // first line, no headers
+                {
+                    var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+
+                    // one line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("hello");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#hello", res);
+                        }
+                    );
+
+                    // two lines
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("hello\r\nworld");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#hello\r\n#world", res);
+                        }
+                    );
+                }
+
+                // first line, headers
+                {
+                    var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+
+                    // one line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("hello");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#hello", res);
+                        }
+                    );
+
+                    // two lines
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("hello\r\nworld");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#hello\r\n#world", res);
+                        }
+                    );
+                }
+
+                // second line, no headers
+                {
+                    var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+
+                    // one line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
+                                await csv.WriteCommentAsync("hello");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("123,456\r\n#hello", res);
+                        }
+                    );
+
+                    // two lines
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
+                                await csv.WriteCommentAsync("hello\r\nworld");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("123,456\r\n#hello\r\n#world", res);
+                        }
+                    );
+                }
+
+                // second line, headers
+                {
+                    var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+
+                    // one line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
+                                await csv.WriteCommentAsync("hello");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n123,456\r\n#hello", res);
+                        }
+                    );
+
+                    // two lines
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
+                                await csv.WriteCommentAsync("hello\r\nworld");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n123,456\r\n#hello\r\n#world", res);
+                        }
+                    );
+                }
+
+                // before row, no headers
+                {
+                    var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+
+                    // one line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("hello");
+                                await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#hello\r\n123,456", res);
+                        }
+                    );
+
+                    // two lines
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("hello\r\nworld");
+                                await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#hello\r\n#world\r\n123,456", res);
+                        }
+                    );
+                }
+
+                // before row, headers
+                {
+                    var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+
+                    // one line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("hello");
+                                await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#hello\r\n123,456", res);
+                        }
+                    );
+
+                    // two lines
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("hello\r\nworld");
+                                await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#hello\r\n#world\r\n123,456", res);
+                        }
+                    );
+                }
+            }
+
+            // trailing new line
+            {
+                // first line, no headers
+                {
+                    var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+
+                    // one line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("hello");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#hello\r\n", res);
+                        }
+                    );
+
+                    // two lines
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("hello\r\nworld");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#hello\r\n#world\r\n", res);
+                        }
+                    );
+                }
+
+                // first line, headers
+                {
+                    var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+
+                    // one line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("hello");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#hello\r\n", res);
+                        }
+                    );
+
+                    // two lines
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("hello\r\nworld");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#hello\r\n#world\r\n", res);
+                        }
+                    );
+                }
+
+                // second line, no headers
+                {
+                    var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+
+                    // one line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
+                                await csv.WriteCommentAsync("hello");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("123,456\r\n#hello\r\n", res);
+                        }
+                    );
+
+                    // two lines
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
+                                await csv.WriteCommentAsync("hello\r\nworld");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("123,456\r\n#hello\r\n#world\r\n", res);
+                        }
+                    );
+                }
+
+                // second line, headers
+                {
+                    var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+
+                    // one line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
+                                await csv.WriteCommentAsync("hello");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n123,456\r\n#hello\r\n", res);
+                        }
+                    );
+
+                    // two lines
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
+                                await csv.WriteCommentAsync("hello\r\nworld");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n123,456\r\n#hello\r\n#world\r\n", res);
+                        }
+                    );
+                }
+
+                // before row, no headers
+                {
+                    var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+
+                    // one line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("hello");
+                                await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#hello\r\n123,456\r\n", res);
+                        }
+                    );
+
+                    // two lines
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("hello\r\nworld");
+                                await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#hello\r\n#world\r\n123,456\r\n", res);
+                        }
+                    );
+                }
+
+                // before row, headers
+                {
+                    var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+
+                    // one line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("hello");
+                                await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#hello\r\n123,456\r\n", res);
+                        }
+                    );
+
+                    // two lines
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("hello\r\nworld");
+                                await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#hello\r\n#world\r\n123,456\r\n", res);
+                        }
+                    );
+                }
+            }
+        }
+
+        [Fact]
+        public async Task DelegateStaticShouldSerializeAsync()
+        {
+            var shouldSerializeCalled = 0;
+            StaticShouldSerializeDelegate shouldSerializeDel =
+                () =>
+                {
+                    shouldSerializeCalled++;
+
+                    return false;
+                };
+
+            var name = nameof(_DelegateShouldSerialize.Foo);
+            var getter = (Getter)typeof(_DelegateShouldSerialize).GetProperty(nameof(_DelegateShouldSerialize.Foo)).GetMethod;
+            var formatter = Formatter.GetDefault(typeof(int).GetTypeInfo());
+            var shouldSerialize = Cesil.ShouldSerialize.ForDelegate(shouldSerializeDel);
+
+            var describer = new ManualTypeDescriber();
+            describer.AddExplicitGetter(typeof(_DelegateShouldSerialize).GetTypeInfo(), name, getter, formatter, shouldSerialize);
+            InstanceBuilderDelegate<_DelegateShouldSerialize> del = (out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).WithWriteHeader(WriteHeaders.Always).Build();
+
+            await RunAsyncWriterVariants<_DelegateShouldSerialize>(
+                opts,
+                async (config, getWriter, getStr) =>
+                {
+                    shouldSerializeCalled = 0;
+
+                    using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        await csv.WriteAsync(new _DelegateShouldSerialize { Foo = 123 });
+                        await csv.WriteAsync(new _DelegateShouldSerialize { Foo = 0 });
+                        await csv.WriteAsync(new _DelegateShouldSerialize { Foo = 456 });
+                    }
+
+                    var res = getStr();
+                    Assert.Equal("Foo\r\n\r\n\r\n", res);
+
+                    Assert.Equal(3, shouldSerializeCalled);
+                }
+            );
+        }
+
+        [Fact]
+        public async Task DelegateShouldSerializeAsync()
+        {
+            var shouldSerializeCalled = 0;
+            ShouldSerializeDelegate<_DelegateShouldSerialize> shouldSerializeDel =
+                row =>
+                {
+                    shouldSerializeCalled++;
+
+                    return row.Foo % 2 != 0;
+                };
+
+            var name = nameof(_DelegateShouldSerialize.Foo);
+            var getter = (Getter)typeof(_DelegateShouldSerialize).GetProperty(nameof(_DelegateShouldSerialize.Foo)).GetMethod;
+            var formatter = Formatter.GetDefault(typeof(int).GetTypeInfo());
+            var shouldSerialize = Cesil.ShouldSerialize.ForDelegate(shouldSerializeDel);
+
+            var describer = new ManualTypeDescriber();
+            describer.AddExplicitGetter(typeof(_DelegateShouldSerialize).GetTypeInfo(), name, getter, formatter, shouldSerialize);
+            InstanceBuilderDelegate<_DelegateShouldSerialize> del = (out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).WithWriteHeader(WriteHeaders.Always).Build();
+
+            await RunAsyncWriterVariants<_DelegateShouldSerialize>(
+                opts,
+                async (config, getWriter, getStr) =>
+                {
+                    shouldSerializeCalled = 0;
+
+                    using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        await csv.WriteAsync(new _DelegateShouldSerialize { Foo = 123 });
+                        await csv.WriteAsync(new _DelegateShouldSerialize { Foo = 0 });
+                        await csv.WriteAsync(new _DelegateShouldSerialize { Foo = 456 });
+                    }
+
+                    var res = getStr();
+                    Assert.Equal("Foo\r\n123\r\n\r\n", res);
+
+                    Assert.Equal(3, shouldSerializeCalled);
+                }
+            );
+        }
+
+        [Fact]
+        public async Task DelegateFormatterAsync()
+        {
+            var formatterCalled = 0;
+            FormatterDelegate<int> formatDel =
+                (int val, in WriteContext _, IBufferWriter<char> buffer) =>
+                {
+                    formatterCalled++;
+
+                    var s = val.ToString();
+
+                    buffer.Write(s);
+                    buffer.Write(s);
+
+                    return true;
+                };
+
+            var name = nameof(_DelegateFormatter.Foo);
+            var getter = (Getter)typeof(_DelegateFormatter).GetProperty(nameof(_DelegateFormatter.Foo)).GetMethod;
+            var formatter = Formatter.ForDelegate(formatDel);
+
+            var describer = new ManualTypeDescriber();
+            describer.AddExplicitGetter(typeof(_DelegateFormatter).GetTypeInfo(), name, getter, formatter);
+            InstanceBuilderDelegate<_DelegateFormatter> del = (out _DelegateFormatter i) => { i = new _DelegateFormatter(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).WithWriteHeader(WriteHeaders.Always).Build();
+
+            await RunAsyncWriterVariants<_DelegateFormatter>(
+                opts,
+                async (config, getWriter, getStr) =>
+                {
+                    formatterCalled = 0;
+
+                    using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        await csv.WriteAsync(new _DelegateFormatter { Foo = 123 });
+                        await csv.WriteAsync(new _DelegateFormatter { Foo = 0 });
+                        await csv.WriteAsync(new _DelegateFormatter { Foo = 456 });
+                    }
+
+                    var res = getStr();
+                    Assert.Equal("Foo\r\n123123\r\n00\r\n456456", res);
+
+                    Assert.Equal(3, formatterCalled);
+                }
+            );
+        }
+
+        [Fact]
+        public async Task DelegateStaticGetterAsync()
+        {
+            var getterCalled = 0;
+            StaticGetterDelegate<int> getDel =
+                () =>
+                {
+                    getterCalled++;
+
+                    return getterCalled;
+                };
+
+            var name = nameof(_DelegateGetter.Foo);
+            var getter = Getter.ForDelegate(getDel);
+
+            var describer = new ManualTypeDescriber();
+            describer.AddExplicitGetter(typeof(_DelegateGetter).GetTypeInfo(), name, getter);
+            InstanceBuilderDelegate<_DelegateGetter> del = (out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).WithWriteHeader(WriteHeaders.Always).Build();
+
+            await RunAsyncWriterVariants<_DelegateGetter>(
+                opts,
+                async (config, getWriter, getStr) =>
+                {
+                    getterCalled = 0;
+
+                    using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        await csv.WriteAsync(new _DelegateGetter { Foo = 123 });
+                        await csv.WriteAsync(new _DelegateGetter { Foo = 0 });
+                        await csv.WriteAsync(new _DelegateGetter { Foo = 456 });
+                    }
+
+                    var res = getStr();
+                    Assert.Equal("Foo\r\n1\r\n2\r\n3", res);
+
+                    Assert.Equal(3, getterCalled);
+                }
+            );
+        }
+
+        [Fact]
+        public async Task DelegateGetterAsync()
+        {
+            var getterCalled = 0;
+            GetterDelegate<_DelegateGetter, int> getDel =
+                (_DelegateGetter row) =>
+                {
+                    getterCalled++;
+
+                    return row.Foo * 2;
+                };
+
+            var name = nameof(_DelegateGetter.Foo);
+            var getter = Getter.ForDelegate(getDel);
+
+            var describer = new ManualTypeDescriber();
+            describer.AddExplicitGetter(typeof(_DelegateGetter).GetTypeInfo(), name, getter);
+            InstanceBuilderDelegate<_DelegateGetter> del = (out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
+            describer.SetBuilder((InstanceBuilder)del);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).WithWriteHeader(WriteHeaders.Always).Build();
+
+            await RunAsyncWriterVariants<_DelegateGetter>(
+                opts,
+                async (config, getWriter, getStr) =>
+                {
+                    getterCalled = 0;
+
+                    using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        await csv.WriteAsync(new _DelegateGetter { Foo = 123 });
+                        await csv.WriteAsync(new _DelegateGetter { Foo = 0 });
+                        await csv.WriteAsync(new _DelegateGetter { Foo = 456 });
+                    }
+
+                    var res = getStr();
+                    Assert.Equal("Foo\r\n246\r\n0\r\n912", res);
+
+                    Assert.Equal(3, getterCalled);
                 }
             );
         }
@@ -1329,11 +2750,11 @@ namespace Cesil.Tests
         [Fact]
         public async Task ContextAsync()
         {
-            var formatFoo = typeof(WriterTests).GetMethod(nameof(_Context_FormatFoo));
-            var formatBar = typeof(WriterTests).GetMethod(nameof(_Context_FormatBar));
+            var formatFoo = (Formatter)typeof(WriterTests).GetMethod(nameof(_Context_FormatFoo));
+            var formatBar = (Formatter)typeof(WriterTests).GetMethod(nameof(_Context_FormatBar));
 
             var describer = new ManualTypeDescriber(false);
-            describer.SetExplicitParameterlessConstructor(typeof(_Context).GetConstructor(Type.EmptyTypes));
+            describer.SetBuilder((InstanceBuilder)typeof(_Context).GetConstructor(Type.EmptyTypes));
             describer.AddSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), formatFoo);
             describer.AddSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), formatBar);
 
@@ -1489,7 +2910,7 @@ namespace Cesil.Tests
                     opts,
                      async (config, getWriter, getString) =>
                     {
-                        await using(var writer = config.CreateAsyncWriter(getWriter()))
+                        await using (var writer = config.CreateAsyncWriter(getWriter()))
                         {
                             await writer.WriteAsync(new _CommentEscape { A = "#hello", B = "foo" });
                         }
@@ -1503,7 +2924,7 @@ namespace Cesil.Tests
                     opts,
                     async (config, getWriter, getString) =>
                     {
-                        await using(var writer = config.CreateAsyncWriter(getWriter()))
+                        await using (var writer = config.CreateAsyncWriter(getWriter()))
                         {
                             await writer.WriteAsync(new _CommentEscape { A = "hello", B = "fo#o" });
                         }
@@ -1662,7 +3083,7 @@ namespace Cesil.Tests
             {
                 var opts = Options.Default.NewBuilder().WithWriteHeader(WriteHeaders.Always).WithRowEnding(RowEndings.CarriageReturn).Build();
 
-                await RunAsyncWriterVariants< _Headers>(
+                await RunAsyncWriterVariants<_Headers>(
                     opts,
                     async (config, getWriter, getStr) =>
                     {
@@ -1678,7 +3099,7 @@ namespace Cesil.Tests
                 );
 
                 // empty
-                await RunAsyncWriterVariants< _Headers>(
+                await RunAsyncWriterVariants<_Headers>(
                     opts,
                     async (config, getWriter, getStr) =>
                     {
@@ -1733,7 +3154,7 @@ namespace Cesil.Tests
             var opts = Options.Default.NewBuilder().WithTypeDescriber(new _MultiSegmentValue_TypeDescriber()).Build();
 
             // no encoding
-            await RunAsyncWriterVariants< _MultiSegmentValue>(
+            await RunAsyncWriterVariants<_MultiSegmentValue>(
                 opts,
                 async (config, getWriter, getStr) =>
                 {
@@ -1902,9 +3323,9 @@ namespace Cesil.Tests
         public async Task StaticGettersAsync()
         {
             var m = new ManualTypeDescriber();
-            m.SetExplicitParameterlessConstructor(typeof(_StaticGetters).GetConstructor(Type.EmptyTypes));
-            m.AddExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Bar", typeof(_StaticGetters).GetMethod("GetBar", BindingFlags.Static | BindingFlags.Public));
-            m.AddExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Fizz", typeof(_StaticGetters).GetMethod("GetFizz", BindingFlags.Static | BindingFlags.Public));
+            m.SetBuilder((InstanceBuilder)typeof(_StaticGetters).GetConstructor(Type.EmptyTypes));
+            m.AddExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Bar", (Getter)typeof(_StaticGetters).GetMethod("GetBar", BindingFlags.Static | BindingFlags.Public));
+            m.AddExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Fizz", (Getter)typeof(_StaticGetters).GetMethod("GetFizz", BindingFlags.Static | BindingFlags.Public));
 
             var opts = Options.Default.NewBuilder().WithTypeDescriber(m).Build();
 
@@ -1932,7 +3353,7 @@ namespace Cesil.Tests
             {
                 var opts = Options.Default.NewBuilder().WithWriteHeader(WriteHeaders.Never).WithRowEnding(RowEndings.CarriageReturnLineFeed).Build();
 
-                await RunAsyncWriterVariants< _Simple>(
+                await RunAsyncWriterVariants<_Simple>(
                     opts,
                     async (config, getWriter, getStr) =>
                     {
@@ -2090,7 +3511,7 @@ namespace Cesil.Tests
             {
                 var opts = Options.Default.NewBuilder().WithWriteHeader(WriteHeaders.Always).WithRowEnding(RowEndings.CarriageReturnLineFeed).Build();
 
-                await RunAsyncWriterVariants< _WriteAll>(
+                await RunAsyncWriterVariants<_WriteAll>(
                     opts,
                     async (config, getWriter, getStr) =>
                     {

@@ -10,7 +10,7 @@ namespace Cesil.Tests
     public class RowEndingDetectorTests
     {
         // just a stub for helper purposes
-        class _Foo { public string A { get; set; } }
+        private class _Foo { public string A { get; set; } }
 
         private class _Test
         {
@@ -44,7 +44,7 @@ namespace Cesil.Tests
         [InlineData("\"foo\nbar\"\r", RowEndings.CarriageReturn)]
         public void Sync(string csv, RowEndings expected)
         {
-            var config = (ConcreteBoundConfiguration<_Test>)Configuration.For<_Test>(Options.Default.NewBuilder().WithReadHeader(ReadHeaders.None).WithRowEnding(RowEndings.Detect).BuildInternal());
+            var config = (ConcreteBoundConfiguration<_Test>)Configuration.For<_Test>(Options.Default.NewBuilder().WithReadHeaderInternal(default).WithRowEnding(RowEndings.Detect).BuildInternal());
 
             using (var str = new StringReader(csv))
             {
@@ -84,7 +84,7 @@ namespace Cesil.Tests
         [InlineData("\"foo\nbar\"\r", RowEndings.CarriageReturn)]
         public async Task Async(string csv, RowEndings expected)
         {
-            var config = (ConcreteBoundConfiguration<_Test>)Configuration.For<_Test>(Options.Default.NewBuilder().WithReadHeader(ReadHeaders.None).WithRowEnding(RowEndings.Detect).BuildInternal());
+            var config = (ConcreteBoundConfiguration<_Test>)Configuration.For<_Test>(Options.Default.NewBuilder().WithReadHeaderInternal(default).WithRowEnding(RowEndings.Detect).BuildInternal());
 
             await RunAsyncReaderVariants<_Foo>(
                     Options.Default,
