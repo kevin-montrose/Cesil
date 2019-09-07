@@ -1,37 +1,13 @@
 ﻿using System;
-using System.Buffers;
-using System.Collections.Generic;
 using System.IO;
 
 namespace Cesil
 {
-    internal sealed class Writer<T> : WriterBase<T>, IWriter<T>, ITestableDisposable
+    internal sealed class Writer<T> : SyncWriterBase<T>
     {
-        private TextWriter Inner;
+        internal Writer(ConcreteBoundConfiguration<T> config, TextWriter inner, object context) : base(config, inner, context) { }
 
-        public bool IsDisposed => Inner == null;
-
-        internal Writer(ConcreteBoundConfiguration<T> config, TextWriter inner, object context) : base(config, context)
-        {
-            Inner = inner;
-        }
-
-        public void WriteAll(IEnumerable<T> rows)
-        {
-            AssertNotDisposed();
-
-            if (rows == null)
-            {
-                Throw.ArgumentNullException(nameof(rows));
-            }
-
-            foreach (var row in rows)
-            {
-                Write(row);
-            }
-        }
-
-        public void Write(T row)
+        public override void Write(T row)
         {
             AssertNotDisposed();
 
@@ -69,7 +45,7 @@ namespace Cesil
             RowNumber++;
         }
 
-        public void WriteComment(string comment)
+        public override void WriteComment(string comment)
         {
             if (comment == null)
             {
@@ -129,105 +105,6 @@ namespace Cesil
             if (shouldEndRecord)
             {
                 EndRecord();
-            }
-        }
-
-        private void EndRecord()
-        {
-            PlaceAllInStaging(Config.RowEndingMemory.Span);
-        }
-
-        private void WriteValue(ReadOnlySequence<char> buffer)
-        {
-            if (buffer.IsSingleSegment)
-            {
-                WriteSingleSegment(buffer.First.Span);
-            }
-            else
-            {
-                WriteMultiSegment(buffer);
-            }
-        }
-
-        private void WriteSingleSegment(ReadOnlySpan<char> charSpan)
-        {
-            if (!NeedsEncode(charSpan))
-            {
-                // most of the time we have no need to encode
-                //   so just blit this write into the stream
-
-                PlaceAllInStaging(charSpan);
-            }
-            else
-            {
-                PlaceCharInStaging(Config.EscapedValueStartAndStop);
-
-                WriteEncoded(charSpan);
-
-                PlaceCharInStaging(Config.EscapedValueStartAndStop);
-            }
-        }
-
-        private void WriteMultiSegment(ReadOnlySequence<char> head)
-        {
-            if (!NeedsEncode(head))
-            {
-                // no encoding, so just blit each segment into the writer
-
-                foreach (var cur in head)
-                {
-                    var charSpan = cur.Span;
-
-                    PlaceAllInStaging(charSpan);
-                }
-            }
-            else
-            {
-                // we have to encode this value, but let's try to do it in only a couple of
-                //    write calls
-
-                WriteEncoded(head);
-            }
-        }
-
-        private void WriteEncoded(ReadOnlySequence<char> head)
-        {
-            // start with whatever the escape is
-            PlaceCharInStaging(Config.EscapedValueStartAndStop);
-
-            foreach (var cur in head)
-            {
-                WriteEncoded(cur.Span);
-            }
-
-            // end with the escape
-            PlaceCharInStaging(Config.EscapedValueStartAndStop);
-        }
-
-        private void WriteEncoded(ReadOnlySpan<char> charSpan)
-        {
-            // try and blit things in in big chunks
-            var start = 0;
-            var end = Utils.FindChar(charSpan, start, Config.EscapedValueStartAndStop);
-
-            while (end != -1)
-            {
-                var len = end - start;
-                var toWrite = charSpan.Slice(start, len);
-
-                PlaceAllInStaging(toWrite);
-
-                PlaceCharInStaging(Config.EscapeValueEscapeChar);
-
-                start += len;
-                end = Utils.FindChar(charSpan, start + 1, Config.EscapedValueStartAndStop);
-            }
-
-            if (start != charSpan.Length)
-            {
-                var toWrite = charSpan.Slice(start);
-
-                PlaceAllInStaging(toWrite);
             }
         }
 
@@ -309,88 +186,7 @@ namespace Cesil
             }
         }
 
-        private void PlaceCharInStaging(char c)
-        {
-            // if we can't buffer, just go straight to the underlying stream
-            if (!HasBuffer)
-            {
-                WriteCharDirectly(c);
-                return;
-            }
-
-            if (PlaceInStaging(c))
-            {
-                FlushStaging();
-            }
-        }
-
-        private void PlaceAllInStaging(ReadOnlySpan<char> charSpan)
-        {
-            // if we can't buffer, just go straight to the underlying stream
-            if (!HasBuffer)
-            {
-                WriteAllDirectly(charSpan);
-                return;
-            }
-
-            var write = charSpan;
-            while (PlaceInStaging(write, out write))
-            {
-                FlushStaging();
-            }
-        }
-
-        // returns true if we need to flush stating, sets remaing to what wasn't placed in staging
-        private bool PlaceInStaging(ReadOnlySpan<char> c, out ReadOnlySpan<char> remaining)
-        {
-            var stagingSpan = Staging.Memory.Span;
-
-            var ix = 0;
-            while (ix < c.Length)
-            {
-                var leftInC = c.Length - ix;
-
-                var left = Math.Min(leftInC, stagingSpan.Length - InStaging);
-
-                var subC = c.Slice(ix, left);
-                var subStaging = stagingSpan.Slice(InStaging);
-
-                subC.CopyTo(subStaging);
-
-                ix += left;
-                InStaging += left;
-
-                if (InStaging == stagingSpan.Length)
-                {
-                    remaining = c.Slice(ix);
-                    return true;
-                }
-            }
-
-            remaining = default;
-            return false;
-        }
-
-        private void WriteCharDirectly(char c)
-        {
-            Inner.Write(c);
-        }
-
-        private void WriteAllDirectly(ReadOnlySpan<char> c)
-        {
-            Inner.Write(c);
-        }
-
-        private void FlushStaging()
-        {
-            var span = Staging.Memory.Span;
-
-            Inner.Write(span.Slice(0, InStaging));
-
-            InStaging = 0;
-        }
-
-        public void Dispose()
+        public override void Dispose()
         {
             if (!IsDisposed)
             {
@@ -417,14 +213,6 @@ namespace Cesil
                 Inner.Dispose();
                 Buffer.Dispose();
                 Inner = null;
-            }
-        }
-
-        public void AssertNotDisposed()
-        {
-            if (IsDisposed)
-            {
-                Throw.ObjectDisposedException(nameof(Writer<T>));
             }
         }
 

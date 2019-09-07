@@ -31,6 +31,10 @@ namespace Cesil
         internal readonly int ReadBufferSizeHint;
         internal readonly DynamicRowDisposal DynamicRowDisposal;
 
+#if DEBUG
+        internal bool ForceAsync;
+#endif
+
         /// <summary>
         /// For working with dynamic.
         /// </summary>

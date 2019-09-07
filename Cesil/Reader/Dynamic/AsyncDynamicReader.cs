@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,15 +6,9 @@ using System.Threading.Tasks;
 namespace Cesil
 {
     internal sealed class AsyncDynamicReader :
-        ReaderBase<dynamic>,
-        IAsyncReader<object>,
-        IDynamicRowOwner,
-        ITestableAsyncDisposable
+        AsyncReaderBase<dynamic>,
+        IDynamicRowOwner
     {
-        public bool IsDisposed => Inner == null;
-
-        private TextReader Inner;
-
         private string[] ColumnNames;
 
         private DynamicRow NotifyOnDisposeHead;
@@ -23,146 +16,9 @@ namespace Cesil
 
         public new object Context => base.Context;
 
-        internal AsyncDynamicReader(TextReader reader, DynamicBoundConfiguration config, object context) : base(config, context)
-        {
-            Inner = reader;
-        }
+        internal AsyncDynamicReader(TextReader reader, DynamicBoundConfiguration config, object context) : base(reader, config, context) { }
 
-        public IAsyncEnumerable<dynamic> EnumerateAllAsync()
-        {
-            AssertNotDisposed();
-
-            return new AsyncEnumerable<dynamic>(this);
-        }
-
-        public ValueTask<List<dynamic>> ReadAllAsync(CancellationToken cancel = default)
-        => ReadAllAsync(new List<dynamic>());
-
-        public ValueTask<List<dynamic>> ReadAllAsync(List<dynamic> into, CancellationToken cancel = default)
-        {
-            AssertNotDisposed();
-
-            if (into == null)
-            {
-                Throw.ArgumentNullException(nameof(into));
-            }
-
-            while (true)
-            {
-                var resTask = TryReadAsync(cancel);
-                if (resTask.IsCompletedSuccessfully)
-                {
-                    var res = resTask.Result;
-                    if (res.HasValue)
-                    {
-                        into.Add(res.Value);
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-                else
-                {
-                    return ReadAllAsync_WaitForRead(this, resTask, into, cancel);
-                }
-            }
-
-            return new ValueTask<List<dynamic>>(into);
-
-            // wait for a TryReadAsync to finish, then continue reading
-            static async ValueTask<List<dynamic>> ReadAllAsync_WaitForRead(AsyncDynamicReader self, ValueTask<ReadResult<dynamic>> toAwait, List<dynamic> into, CancellationToken cancel)
-            {
-                var res = await toAwait;
-
-                if (res.HasValue)
-                {
-                    into.Add(res.Value);
-
-                    while (true)
-                    {
-                        res = await self.TryReadAsync(cancel);
-                        if (res.HasValue)
-                        {
-                            into.Add(res.Value);
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-                }
-
-                return into;
-            }
-        }
-
-        public ValueTask<ReadResult<dynamic>> TryReadAsync(CancellationToken cancel = default)
-        {
-            AssertNotDisposed();
-
-            dynamic row = null;
-            return TryReadWithReuseAsync(ref row);
-        }
-
-        public ValueTask<ReadResult<dynamic>> TryReadWithReuseAsync(ref dynamic row, CancellationToken cancel = default)
-        {
-            AssertNotDisposed();
-
-            var tryReadTask = TryReadInnerAsync(false, ref row, cancel);
-            if (!tryReadTask.IsCompletedSuccessfully)
-            {
-                return TryReadWithReuseAsync_ContinueAfterTryRead(this, tryReadTask, cancel);
-            }
-
-            var res = tryReadTask.Result;
-            switch (res.ResultType)
-            {
-                case ReadWithCommentResultType.HasValue:
-                    return new ValueTask<ReadResult<dynamic>>(new ReadResult<dynamic>(res.Value));
-                case ReadWithCommentResultType.NoValue:
-                    return new ValueTask<ReadResult<dynamic>>(ReadResult<dynamic>.Empty);
-                default:
-                    Throw.InvalidOperationException($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}");
-                    // just for control flow
-                    return default;
-            }
-
-            // continue after waiting for TryReadInnerAsync to complete
-            static async ValueTask<ReadResult<dynamic>> TryReadWithReuseAsync_ContinueAfterTryRead(AsyncDynamicReader self, ValueTask<ReadWithCommentResult<dynamic>> waitFor, CancellationToken cancel)
-            {
-                var res = await waitFor;
-                switch (res.ResultType)
-                {
-                    case ReadWithCommentResultType.HasValue:
-                        return new ReadResult<dynamic>(res.Value);
-                    case ReadWithCommentResultType.NoValue:
-                        return ReadResult<dynamic>.Empty;
-                    default:
-                        Throw.InvalidOperationException($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}");
-                        // just for control flow
-                        return default;
-                }
-            }
-        }
-
-
-        public ValueTask<ReadWithCommentResult<dynamic>> TryReadWithCommentAsync(CancellationToken cancel = default)
-        {
-            AssertNotDisposed();
-
-            dynamic row = null;
-            return TryReadWithCommentReuseAsync(ref row, cancel);
-        }
-
-        public ValueTask<ReadWithCommentResult<dynamic>> TryReadWithCommentReuseAsync(ref dynamic row, CancellationToken cancel = default)
-        {
-            AssertNotDisposed();
-
-            return TryReadInnerAsync(true, ref row, cancel);
-        }
-
-        private ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync(bool returnComments, ref dynamic record, CancellationToken cancel)
+        internal override ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync(bool returnComments, ref dynamic record, CancellationToken cancel)
         {
             if (RowEndings == null)
             {
@@ -770,15 +626,7 @@ namespace Cesil
             }
         }
 
-        public void AssertNotDisposed()
-        {
-            if (IsDisposed)
-            {
-                Throw.ObjectDisposedException(nameof(DynamicReader));
-            }
-        }
-
-        public ValueTask DisposeAsync()
+        public override ValueTask DisposeAsync()
         {
             if (IsDisposed)
             {

@@ -41,8 +41,12 @@ namespace Cesil
 
         public override IAsyncWriter<dynamic> CreateAsyncWriter(TextWriter writer, object context = null)
         {
-            // todo
-            throw new NotImplementedException();
+            if(writer == null)
+            {
+                Throw.ArgumentNullException(nameof(writer));
+            }
+
+            return new AsyncDynamicWriter(this, writer, context);
         }
 
         public override IReader<dynamic> CreateReader(TextReader reader, object context = null)

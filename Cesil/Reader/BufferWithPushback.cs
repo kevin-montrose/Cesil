@@ -18,8 +18,22 @@ namespace Cesil
 
         private int InPushBack;
 
-        internal BufferWithPushback(MemoryPool<char> memoryPool, int initialBufferSize)
+#if DEBUG
+        private readonly bool ForceAsync;
+#endif
+
+        internal BufferWithPushback(
+            MemoryPool<char> memoryPool, 
+            int initialBufferSize
+#if DEBUG
+            , bool forceAsync
+#endif
+        )
         {
+#if DEBUG
+            ForceAsync = forceAsync;
+#endif
+
             MemoryPool = memoryPool;
             BackingOwner = MemoryPool.Rent(initialBufferSize);
 
@@ -70,6 +84,26 @@ namespace Cesil
         }
 
         internal ValueTask<int> ReadAsync(TextReader reader, CancellationToken cancel)
+        {
+#if DEBUG
+            if(ForceAsync)
+            {
+                return ForceAsyncReadAsync(reader, cancel);
+            }
+#endif
+
+            return ReadAsyncInner(reader, cancel);
+        }
+
+#if DEBUG
+        private async ValueTask<int> ForceAsyncReadAsync(TextReader reader, CancellationToken cancel)
+        {
+            await Task.Yield();
+            return await ReadAsyncInner(reader, cancel);
+        }
+#endif
+
+        private ValueTask<int> ReadAsyncInner(TextReader reader, CancellationToken cancel)
         {
             if (InPushBack > 0)
             {

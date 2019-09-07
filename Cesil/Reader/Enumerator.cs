@@ -5,7 +5,7 @@ namespace Cesil
 {
     internal sealed class Enumerator<T> : IEnumerator<T>, ITestableDisposable
     {
-        private Reader<T> Reader;
+        private IReader<T> Reader;
 
         public bool IsDisposed => Reader == null;
 
@@ -22,7 +22,7 @@ namespace Cesil
 
         object IEnumerator.Current => Current;
 
-        public Enumerator(Reader<T> reader)
+        public Enumerator(IReader<T> reader)
         {
             Reader = reader;
         }

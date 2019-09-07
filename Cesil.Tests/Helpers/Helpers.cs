@@ -188,6 +188,10 @@ namespace Cesil.Tests
         {
             var defaultConfig = Configuration.ForDynamic(opts);
             var smallBufferConfig = Configuration.ForDynamic(opts.NewBuilder().WithReadBufferSizeHint(1).Build());
+            var forcedAsyncConfig = (BoundConfigurationBase<dynamic>)Configuration.ForDynamic(opts);
+#if DEBUG
+            forcedAsyncConfig.ForceAsync = true;
+#endif
 
             // default buffer
             {
@@ -220,7 +224,7 @@ namespace Cesil.Tests
             // forced async
             {
                 var runCount = 0;
-                await run(defaultConfig, str => { runCount++; return new ForcedAsyncReader(new StringReader(str)); });
+                await run(forcedAsyncConfig, str => { runCount++; return new ForcedAsyncReader(new StringReader(str)); });
 
                 Assert.Equal(expectedRuns, runCount);
             }
@@ -230,6 +234,14 @@ namespace Cesil.Tests
         {
             var defaultConfig = Configuration.For<T>(opts);
             var smallBufferConfig = Configuration.For<T>(opts.NewBuilder().WithReadBufferSizeHint(1).Build());
+            var forcedAsyncConfig = (BoundConfigurationBase<T>)Configuration.For<T>(opts);
+#if DEBUG
+            forcedAsyncConfig.ForceAsync = true;
+#endif
+            var smallBufferForcedAsyncConfig = (BoundConfigurationBase<T>)Configuration.For<T>(opts.NewBuilder().WithReadBufferSizeHint(1).Build());
+#if DEBUG
+            smallBufferForcedAsyncConfig.ForceAsync = true;
+#endif
 
             // default buffer
             {
@@ -254,13 +266,16 @@ namespace Cesil.Tests
                 // async
                 {
                     var runCount = 0;
-                    await run(defaultConfig, str => { runCount++; return new ForcedAsyncReader(new StringReader(str)); });
+                    await run(forcedAsyncConfig, str => { runCount++; return new ForcedAsyncReader(new StringReader(str)); });
                     Assert.Equal(1, runCount);
 
                     // leaks
                     {
                         var leakDetector = new TrackedMemoryPool<char>();
-                        var leakConfig = Configuration.For<T>(opts.NewBuilder().WithMemoryPool(leakDetector).Build());
+                        var leakConfig = (BoundConfigurationBase<T>)Configuration.For<T>(opts.NewBuilder().WithMemoryPool(leakDetector).Build());
+#if DEBUG
+                        leakConfig.ForceAsync = true;
+#endif
 
                         runCount = 0;
                         await run(leakConfig, str => { runCount++; return new ForcedAsyncReader(new StringReader(str)); });
@@ -347,13 +362,16 @@ namespace Cesil.Tests
                 // async
                 {
                     var runCount = 0;
-                    await run(smallBufferConfig, str => { runCount++; return new ForcedAsyncReader(new StringReader(str)); });
+                    await run(smallBufferForcedAsyncConfig, str => { runCount++; return new ForcedAsyncReader(new StringReader(str)); });
                     Assert.Equal(1, runCount);
 
                     // leaks
                     {
                         var leakDetector = new TrackedMemoryPool<char>();
-                        var leakConfig = Configuration.For<T>(opts.NewBuilder().WithReadBufferSizeHint(1).WithMemoryPool(leakDetector).Build());
+                        var leakConfig = (BoundConfigurationBase<T>)Configuration.For<T>(opts.NewBuilder().WithReadBufferSizeHint(1).WithMemoryPool(leakDetector).Build());
+#if DEBUG
+                        leakConfig.ForceAsync = true;
+#endif
 
                         runCount = 0;
                         await run(leakConfig, str => { runCount++; return new ForcedAsyncReader(new StringReader(str)); });
@@ -790,6 +808,266 @@ namespace Cesil.Tests
                             {
                                 var leakDetector = new TrackedMemoryPool<char>();
                                 var leakConfig = Configuration.For<T>(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).WithMemoryPool(leakDetector).Build());
+
+                                var didRun = false;
+                                await run(defaultConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
+
+                                Assert.True(didRun);
+                                Assert.Equal(0, leakDetector.OutstandingRentals);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        public static async Task RunAsyncDynamicWriterVariants(
+            Options baseOptions,
+            Func<IBoundConfiguration<dynamic>, Func<TextWriter>, Func<string>, Task> run
+        )
+        {
+            var defaultConfig = Configuration.ForDynamic(baseOptions);
+            var noBufferConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).Build());
+
+            // sync or async
+            {
+                var runCount = 0;
+
+                // sync!
+                using (var str = new StringWriter())
+                {
+                    var task = run(defaultConfig, () => str, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
+                    await task;
+                }
+
+                // sync, no buffer!
+                using (var str = new StringWriter())
+                {
+                    var task = run(noBufferConfig, () => str, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
+                    await task;
+                }
+
+                // sync, leaks
+                using (var str = new StringWriter())
+                {
+                    var leakDetector = new TrackedMemoryPool<char>();
+                    var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithMemoryPool(leakDetector).Build());
+
+                    var task = run(leakConfig, () => str, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
+                    await task;
+
+                    Assert.Equal(0, leakDetector.OutstandingRentals);
+                }
+
+                // sync, no buffer, leaks
+                using (var str = new StringWriter())
+                {
+                    var leakDetector = new TrackedMemoryPool<char>();
+                    var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).WithMemoryPool(leakDetector).Build());
+
+                    var task = run(leakConfig, () => str, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
+                    await task;
+
+                    Assert.Equal(0, leakDetector.OutstandingRentals);
+                }
+
+                // async!
+                using (var str = new StringWriter())
+                using (var slow = new ForcedAsyncWriter(str))
+                {
+                    var task = run(defaultConfig, () => slow, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
+                    await task;
+                }
+
+                // async, no buffer!
+                using (var str = new StringWriter())
+                using (var slow = new ForcedAsyncWriter(str))
+                {
+                    var task = run(noBufferConfig, () => slow, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
+                    await task;
+                }
+
+                // async, leaks
+                using (var str = new StringWriter())
+                using (var slow = new ForcedAsyncWriter(str))
+                {
+                    var leakDetector = new TrackedMemoryPool<char>();
+                    var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithMemoryPool(leakDetector).Build());
+
+                    var task = run(leakConfig, () => slow, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
+                    await task;
+
+                    Assert.Equal(0, leakDetector.OutstandingRentals);
+                }
+
+                // async, leaks, no buffer!
+                using (var str = new StringWriter())
+                using (var slow = new ForcedAsyncWriter(str))
+                {
+                    var leakDetector = new TrackedMemoryPool<char>();
+                    var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).WithMemoryPool(leakDetector).Build());
+
+                    var task = run(leakConfig, () => slow, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
+                    await task;
+
+                    Assert.Equal(0, leakDetector.OutstandingRentals);
+                }
+
+                Assert.Equal(8, runCount);
+            }
+
+            // async, default buffer
+            {
+                // figure out how many chances we have to go async in this test
+                int numAsyncCalls;
+                using (var str = new StringWriter())
+                using (var writer = new AsyncCounterWriter(str))
+                {
+                    var task = run(defaultConfig, () => writer, () => { str.Flush(); str.Close(); return str.ToString(); });
+                    await task;
+
+                    numAsyncCalls = writer.Count;
+                }
+
+                var runAllCombos = numAsyncCalls <= MAX_TO_TEST_EXHAUSTIVELY;
+                if (runAllCombos)
+                {
+                    // how many different ways could this flow, sync vs async?
+                    var combos = EnumerateAsynchoronousCompletionOptions(numAsyncCalls);
+                    foreach (var combo in combos)
+                    {
+                        using (var str = new StringWriter())
+                        using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
+                        {
+                            var didRun = false;
+                            await run(defaultConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
+
+                            Assert.True(didRun);
+                        }
+
+                        // leaks
+                        {
+                            using (var str = new StringWriter())
+                            using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
+                            {
+                                var leakDetector = new TrackedMemoryPool<char>();
+                                var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithMemoryPool(leakDetector).Build());
+
+                                var didRun = false;
+                                await run(defaultConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
+
+                                Assert.True(didRun);
+                                Assert.Equal(0, leakDetector.OutstandingRentals);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // too many combos to reasonably try them all, but lets at least try all the different change over points
+                    for (var i = 0; i < numAsyncCalls; i++)
+                    {
+                        var combo = new bool[numAsyncCalls];
+                        combo[i] = true;
+
+                        using (var str = new StringWriter())
+                        using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
+                        {
+                            var didRun = false;
+                            await run(defaultConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
+
+                            Assert.True(didRun);
+                        }
+
+                        // leaks
+                        {
+                            using (var str = new StringWriter())
+                            using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
+                            {
+                                var leakDetector = new TrackedMemoryPool<char>();
+                                var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithMemoryPool(leakDetector).Build());
+
+                                var didRun = false;
+                                await run(defaultConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
+
+                                Assert.True(didRun);
+                                Assert.Equal(0, leakDetector.OutstandingRentals);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // async, no buffer
+            {
+                // figure out how many chances we have to go async in this test
+                int numAsyncCalls;
+                using (var str = new StringWriter())
+                using (var writer = new AsyncCounterWriter(str))
+                {
+                    var task = run(noBufferConfig, () => writer, () => { str.Flush(); str.Close(); return str.ToString(); });
+                    await task;
+
+                    numAsyncCalls = writer.Count;
+                }
+
+                var runAllCombos = numAsyncCalls <= MAX_TO_TEST_EXHAUSTIVELY;
+                if (runAllCombos)
+                {
+                    // how many different ways could this flow, sync vs async?
+                    var combos = EnumerateAsynchoronousCompletionOptions(numAsyncCalls);
+                    foreach (var combo in combos)
+                    {
+                        using (var str = new StringWriter())
+                        using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
+                        {
+                            var didRun = false;
+                            await run(noBufferConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
+
+                            Assert.True(didRun);
+                        }
+
+                        // leaks
+                        {
+                            using (var str = new StringWriter())
+                            using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
+                            {
+                                var leakDetector = new TrackedMemoryPool<char>();
+                                var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).WithMemoryPool(leakDetector).Build());
+
+                                var didRun = false;
+                                await run(defaultConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
+
+                                Assert.True(didRun);
+                                Assert.Equal(0, leakDetector.OutstandingRentals);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // too many combos to reasonably try them all, but lets at least try all the different change over points
+                    for (var i = 0; i < numAsyncCalls; i++)
+                    {
+                        var combo = new bool[numAsyncCalls];
+                        combo[i] = true;
+
+                        using (var str = new StringWriter())
+                        using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
+                        {
+                            var didRun = false;
+                            await run(noBufferConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
+
+                            Assert.True(didRun);
+                        }
+
+                        // leaks
+                        {
+                            using (var str = new StringWriter())
+                            using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
+                            {
+                                var leakDetector = new TrackedMemoryPool<char>();
+                                var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).WithMemoryPool(leakDetector).Build());
 
                                 var didRun = false;
                                 await run(defaultConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });

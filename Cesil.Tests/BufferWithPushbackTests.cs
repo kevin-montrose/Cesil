@@ -18,7 +18,14 @@ namespace Cesil.Tests
 
             using (var str = new StringReader(TEXT))
             {
-                var buf = new BufferWithPushback(MemoryPool<char>.Shared, 500);
+                var buf = 
+                    new BufferWithPushback(
+                        MemoryPool<char>.Shared, 
+                        500
+#if DEBUG
+                        , false
+#endif
+                    );
                 var bytes = buf.Read(str);
                 Assert.Equal(TEXT.Length, bytes);
 
@@ -41,7 +48,14 @@ namespace Cesil.Tests
                 {
                     using (var str = getReader(TEXT))
                     {
-                        var buf = new BufferWithPushback(MemoryPool<char>.Shared, 500);
+                        var buf = 
+                            new BufferWithPushback(
+                                MemoryPool<char>.Shared, 
+                                500
+#if DEBUG
+                                , false
+#endif
+                            );
                         var bytes = await buf.ReadAsync(str, CancellationToken.None);
                         Assert.Equal(TEXT.Length, bytes);
 
@@ -61,7 +75,14 @@ namespace Cesil.Tests
 
             using (var str = new StringReader(TEXT))
             {
-                var buf = new BufferWithPushback(MemoryPool<char>.Shared, 500);
+                var buf = 
+                    new BufferWithPushback(
+                        MemoryPool<char>.Shared, 
+                        500
+#if DEBUG
+                        , false
+#endif
+                    );
                 var bytes = buf.Read(str);
                 Assert.Equal(TEXT.Length, bytes);
 
@@ -92,7 +113,14 @@ namespace Cesil.Tests
                 {
                     using (var str = getReader(TEXT))
                     {
-                        var buf = new BufferWithPushback(MemoryPool<char>.Shared, 500);
+                        var buf = 
+                            new BufferWithPushback(
+                                MemoryPool<char>.Shared, 
+                                500
+#if DEBUG
+                                , false
+#endif
+                            );
                         var bytes = await buf.ReadAsync(str, CancellationToken.None);
                         Assert.Equal(TEXT.Length, bytes);
 

@@ -5,9 +5,9 @@ namespace Cesil
 {
     internal sealed class Enumerable<T> : IEnumerable<T>
     {
-        private readonly Reader<T> Reader;
+        private readonly IReader<T> Reader;
 
-        public Enumerable(Reader<T> reader)
+        public Enumerable(IReader<T> reader)
         {
             Reader = reader;
         }

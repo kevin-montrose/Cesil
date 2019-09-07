@@ -1,89 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 
 namespace Cesil
 {
-    internal sealed class Reader<T> : ReaderBase<T>, IReader<T>, ITestableDisposable
+    internal sealed class Reader<T> : SyncReaderBase<T>
     {
-        public bool IsDisposed => Inner == null;
-        private TextReader Inner;
-
-        internal Reader(TextReader inner, ConcreteBoundConfiguration<T> config, object context) : base(config, context)
+        internal Reader(TextReader inner, ConcreteBoundConfiguration<T> config, object context) : base(inner, config, context)
         {
             Inner = inner;
         }
 
-        public List<T> ReadAll(List<T> into)
-        {
-            AssertNotDisposed();
-
-            if (into == null)
-            {
-                Throw.ArgumentNullException(nameof(into));
-            }
-
-            while (TryRead(out var t))
-            {
-                into.Add(t);
-            }
-
-            return into;
-        }
-
-        public List<T> ReadAll()
-        => ReadAll(new List<T>());
-
-        public IEnumerable<T> EnumerateAll()
-        {
-            AssertNotDisposed();
-
-            return new Enumerable<T>(this);
-        }
-
-        public bool TryRead(out T record)
-        {
-            AssertNotDisposed();
-
-            if (!Configuration.NewCons(out record))
-            {
-                Throw.InvalidOperationException($"Failed to construct new instance of {typeof(T)}");
-            }
-
-            return TryReadWithReuse(ref record);
-        }
-
-        public bool TryReadWithReuse(ref T record)
-        {
-            AssertNotDisposed();
-
-            var res = TryReadInner(false, ref record);
-            if (res.ResultType == ReadWithCommentResultType.HasValue)
-            {
-                record = res.Value;
-                return true;
-            }
-
-            // intentionally not clearing record here
-            return false;
-        }
-
-        public ReadWithCommentResult<T> TryReadWithComment()
-        {
-            AssertNotDisposed();
-
-            var record = default(T);
-            return TryReadWithCommentReuse(ref record);
-        }
-
-        public ReadWithCommentResult<T> TryReadWithCommentReuse(ref T record)
-        {
-            AssertNotDisposed();
-
-            return TryReadInner(true, ref record);
-        }
-
-        private ReadWithCommentResult<T> TryReadInner(bool returnComments, ref T record)
+        internal override ReadWithCommentResult<T> TryReadInner(bool returnComments, ref T record)
         {
             if (RowEndings == null)
             {
@@ -225,7 +152,7 @@ namespace Cesil
             }
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             if (!IsDisposed)
             {
@@ -236,14 +163,6 @@ namespace Cesil
                 SharedCharacterLookup.Dispose();
 
                 Inner = null;
-            }
-        }
-
-        public void AssertNotDisposed()
-        {
-            if (IsDisposed)
-            {
-                Throw.ObjectDisposedException(nameof(Reader<T>));
             }
         }
 

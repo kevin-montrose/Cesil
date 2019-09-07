@@ -41,7 +41,14 @@ namespace Cesil
                 bufferSize = DEFAULT_BUFFER_SIZE;
             }
 
-            Buffer = new BufferWithPushback(config.MemoryPool, bufferSize);
+            Buffer = 
+                new BufferWithPushback(
+                    config.MemoryPool, 
+                    bufferSize
+#if DEBUG
+                    ,config.ForceAsync
+#endif
+                );
             Partial = new Partial<T>(config.MemoryPool);
 
             SharedCharacterLookup =

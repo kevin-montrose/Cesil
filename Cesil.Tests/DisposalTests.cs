@@ -346,7 +346,14 @@ namespace Cesil.Tests
                 // make a buffer that's "good to go"
                 BufferWithPushback MakeBuffer()
                 {
-                    return new BufferWithPushback(MemoryPool<char>.Shared, 64);
+                    return 
+                        new BufferWithPushback(
+                            MemoryPool<char>.Shared, 
+                            64
+#if DEBUG
+                            , false
+#endif
+                        );
                 }
             }
 
@@ -505,7 +512,13 @@ namespace Cesil.Tests
                             config,
                             ReaderStateMachine.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd'),
                             TextReader.Null,
-                            new BufferWithPushback(MemoryPool<char>.Shared, 64)
+                            new BufferWithPushback(
+                                MemoryPool<char>.Shared, 
+                                64
+#if DEBUG
+                                , false
+#endif
+                            )
                         );
                 }
             }
@@ -1153,9 +1166,13 @@ namespace Cesil.Tests
                 {
                     await IAsyncDisposable_AsyncDynamicReaderAsync();
                 }
+                else if (t == typeof(AsyncDynamicWriter))
+                {
+                    await IAsyncDisposable_AsyncDynamicWriterAsync();
+                }
                 else
                 {
-                    throw new XunitException($"No test configured for .Dispose() on {t.Name}");
+                    throw new XunitException($"No test configured for .DisposeAsync() on {t.Name}");
                 }
             }
 
@@ -1446,6 +1463,70 @@ namespace Cesil.Tests
                     return
                         Configuration.ForDynamic(Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build())
                             .CreateAsyncReader(TextReader.Null);
+                }
+            }
+
+            // test async dynamic writer
+            async Task IAsyncDisposable_AsyncDynamicWriterAsync()
+            {
+                // double dispose does not error
+                {
+                    var w = MakeWriter();
+                    await w.DisposeAsync();
+                    await w.DisposeAsync();
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    await using (var w = MakeWriter())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(w);
+                    }
+                }
+
+                // WriteAllAsync(IAsyncEnumerable)
+                {
+                    var w = MakeWriter();
+                    await w.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => w.WriteAllAsync(default(IAsyncEnumerable<_IDisposable>)));
+                    testCases++;
+                }
+
+                // WriteAllAsync(IEnumerable)
+                {
+                    var w = MakeWriter();
+                    await w.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => w.WriteAllAsync(default(IEnumerable<_IDisposable>)));
+                    testCases++;
+                }
+
+                // WriteAsync
+                {
+                    var w = MakeWriter();
+                    await w.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => w.WriteAsync(default(_IDisposable)));
+                    testCases++;
+                }
+
+                // WriteCommentAsync
+                {
+                    var w = MakeWriter();
+                    await w.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => w.WriteCommentAsync(""));
+                    testCases++;
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make a reader that's "good to go"
+                IAsyncWriter<dynamic> MakeWriter()
+                {
+                    return
+                        Configuration.ForDynamic()
+                            .CreateAsyncWriter(TextWriter.Null);
                 }
             }
         }

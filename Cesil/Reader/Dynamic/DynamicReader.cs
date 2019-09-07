@@ -5,15 +5,9 @@ using System.IO;
 namespace Cesil
 {
     internal sealed class DynamicReader :
-        ReaderBase<dynamic>,
-        IReader<object>,
-        IDynamicRowOwner,
-        ITestableDisposable
+        SyncReaderBase<dynamic>,
+        IDynamicRowOwner
     {
-        public bool IsDisposed => Inner == null;
-
-        private TextReader Inner;
-
         private string[] ColumnNames;
 
         private DynamicRow NotifyOnDisposeHead;
@@ -21,86 +15,9 @@ namespace Cesil
 
         public new object Context => base.Context;
 
-        internal DynamicReader(TextReader reader, DynamicBoundConfiguration config, object context) : base(config, context)
-        {
-            Inner = reader;
-        }
+        internal DynamicReader(TextReader reader, DynamicBoundConfiguration config, object context) : base(reader, config, context) { }
 
-        public IEnumerable<dynamic> EnumerateAll()
-        {
-            AssertNotDisposed();
-
-            return EnumerateAll_Enumerable();
-
-            // make the actually enumerable
-            IEnumerable<dynamic> EnumerateAll_Enumerable()
-            {
-                while (TryRead(out var t))
-                {
-                    yield return t;
-                }
-            }
-        }
-
-        public List<dynamic> ReadAll()
-        => ReadAll(new List<dynamic>());
-
-        public List<dynamic> ReadAll(List<dynamic> into)
-        {
-            AssertNotDisposed();
-
-            if (into == null)
-            {
-                Throw.ArgumentNullException(nameof(into));
-            }
-
-            while (TryRead(out var t))
-            {
-                into.Add(t);
-            }
-
-            return into;
-        }
-
-        public bool TryRead(out dynamic row)
-        {
-            AssertNotDisposed();
-
-            row = MakeRow();
-            return TryReadWithReuse(ref row);
-        }
-
-        public bool TryReadWithReuse(ref dynamic row)
-        {
-            AssertNotDisposed();
-
-            var res = TryReadInner(false, ref row);
-            if (res.ResultType == ReadWithCommentResultType.HasValue)
-            {
-                row = res.Value;
-                return true;
-            }
-
-            // intentionally not clearing record here
-            return false;
-        }
-
-        public ReadWithCommentResult<dynamic> TryReadWithComment()
-        {
-            AssertNotDisposed();
-
-            dynamic record = null;
-            return TryReadWithCommentReuse(ref record);
-        }
-
-        public ReadWithCommentResult<dynamic> TryReadWithCommentReuse(ref dynamic row)
-        {
-            AssertNotDisposed();
-
-            return TryReadInner(true, ref row);
-        }
-
-        private ReadWithCommentResult<dynamic> TryReadInner(bool returnComments, ref dynamic row)
+        internal override ReadWithCommentResult<dynamic> TryReadInner(bool returnComments, ref dynamic row)
         {
             if (RowEndings == null)
             {
@@ -295,15 +212,7 @@ namespace Cesil
             }
         }
 
-        public void AssertNotDisposed()
-        {
-            if (IsDisposed)
-            {
-                Throw.ObjectDisposedException(nameof(DynamicReader));
-            }
-        }
-
-        public void Dispose()
+        public override void Dispose()
         {
             if (IsDisposed) return;
 

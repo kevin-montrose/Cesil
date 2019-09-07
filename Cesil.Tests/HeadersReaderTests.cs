@@ -12,6 +12,18 @@ namespace Cesil.Tests
 {
     public class HeadersReaderTests
     {
+        private static BufferWithPushback MakeBuffer()
+        {
+            return
+                new BufferWithPushback(
+                    MemoryPool<char>.Shared,
+                    500
+#if DEBUG
+                    , false
+#endif
+                );
+        }
+
         // just a stub for helper purposes
         private class _Foo { public string A { get; set; } }
 
@@ -56,7 +68,13 @@ namespace Cesil.Tests
                 using (var str = new StringReader("#hello\rfoo\nbar\r\nFoo,Bar"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = 
+                        new HeadersReader<_CommentBeforeHeader>(
+                            config, 
+                            charLookup, 
+                            str,
+                            MakeBuffer()
+                        );
                     var res = reader.Read();
                     Assert.True(res.IsHeader);
                     Assert.Collection(
@@ -82,7 +100,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("#hello\nfoo\n\rFoo,Bar"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, MakeBuffer());
                     var res = reader.Read();
                     Assert.True(res.IsHeader);
                     Assert.Collection(
@@ -108,7 +126,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("#hello\rfoo\r..\nFoo,Bar"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, MakeBuffer());
                     var res = reader.Read();
                     Assert.True(res.IsHeader);
                     Assert.Collection(
@@ -136,7 +154,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("foo,fizz,bar,buzz,baz,nope,nada,zilch,what,who,when,where,qwerty,dvorak"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(MemoryPool<char>.Shared, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using (var reader = new HeadersReader<_BufferToLarge>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500)))
+                    using (var reader = new HeadersReader<_BufferToLarge>(config, charLookup, str, MakeBuffer()))
                     {
                         Assert.Throws<InvalidOperationException>(() => reader.Read());
                     }
@@ -154,7 +172,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("fizz"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("fizz", new string(i.Span)));
                     Assert.False(res.IsHeader);
@@ -166,7 +184,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Foo"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("Foo", new string(i.Span)));
                     Assert.True(res.IsHeader);
@@ -178,7 +196,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Foo,fizz"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -191,7 +209,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("fizz,Bar"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -207,7 +225,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Foo,Bar"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -220,7 +238,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Bar,Foo"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -236,7 +254,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Foo,Bar,Fizz"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -250,7 +268,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Bar,Fizz,Foo"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -304,7 +322,7 @@ namespace Cesil.Tests
             using (var str = new StringReader(csv))
             {
                 using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                using var reader = new HeadersReader<_ManyHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                using var reader = new HeadersReader<_ManyHeaders>(config, charLookup, str, MakeBuffer());
                 var res = reader.Read();
                 Assert.Collection(
                     ToEnumerable(res.Headers),
@@ -333,7 +351,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("fizz\r\n0\r\n"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("fizz", new string(i.Span)));
                     Assert.False(res.IsHeader);
@@ -345,7 +363,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Foo\r\nfoo"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("Foo", new string(i.Span)));
                     Assert.True(res.IsHeader);
@@ -357,7 +375,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Foo,fizz\r\n1,2"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -370,7 +388,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("fizz,Bar\r\n2,blah\r\n"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -386,7 +404,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Foo,Bar\r\nwhatever,something"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -399,7 +417,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Bar,Foo\r\n3,4"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -415,7 +433,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Foo,Bar,Fizz\r\na,b,c\r\n"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -429,7 +447,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Bar,Fizz,Foo\r\n1,2,3"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -460,7 +478,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("#hello\rfoo\nbar\r\nFoo,Bar"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, MakeBuffer());
                     var res = await reader.ReadAsync(default);
                     Assert.True(res.IsHeader);
                     Assert.Collection(
@@ -486,7 +504,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("#hello\nfoo\n\rFoo,Bar"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, MakeBuffer());
                     var res = await reader.ReadAsync(default);
                     Assert.True(res.IsHeader);
                     Assert.Collection(
@@ -512,7 +530,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("#hello\rfoo\r..\nFoo,Bar"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, MakeBuffer());
                     var res = await reader.ReadAsync(default);
                     Assert.True(res.IsHeader);
                     Assert.Collection(
@@ -538,7 +556,7 @@ namespace Cesil.Tests
                         using (var str = getReader("fizz"))
                         {
                             using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("fizz", new string(i.Span)));
                             Assert.False(res.IsHeader);
@@ -556,7 +574,7 @@ namespace Cesil.Tests
                         using (var str = getReader("Foo"))
                         {
                             using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("Foo", new string(i.Span)));
                             Assert.True(res.IsHeader);
@@ -574,7 +592,7 @@ namespace Cesil.Tests
                         using (var str = getReader("Foo,fizz"))
                         {
                             using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -593,7 +611,7 @@ namespace Cesil.Tests
                         using (var str = getReader("fizz,Bar"))
                         {
                             using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -615,7 +633,7 @@ namespace Cesil.Tests
                         using (var str = getReader("Foo,Bar"))
                         {
                             using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -634,7 +652,7 @@ namespace Cesil.Tests
                         using (var str = getReader("Bar,Foo"))
                         {
                             using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -656,7 +674,7 @@ namespace Cesil.Tests
                         using (var str = getReader("Foo,Bar,Fizz"))
                         {
                             using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -676,7 +694,7 @@ namespace Cesil.Tests
                         using (var str = getReader("Bar,Fizz,Foo"))
                         {
                             using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -723,7 +741,7 @@ namespace Cesil.Tests
                     using (var str = makeReader(csv))
                     {
                         using var charLookup = ReaderStateMachine.MakeCharacterLookup(c.MemoryPool, c.EscapedValueStartAndStop, c.ValueSeparator, c.EscapeValueEscapeChar, c.CommentChar);
-                        using var reader = new HeadersReader<_ManyHeaders>(c, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                        using var reader = new HeadersReader<_ManyHeaders>(c, charLookup, str, MakeBuffer());
                         var res = await reader.ReadAsync(default);
                         Assert.Collection(
                             ToEnumerable(res.Headers),
@@ -765,7 +783,7 @@ namespace Cesil.Tests
                         using (var str = getReader("fizz\r\n0\r\n"))
                         {
                             using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("fizz", new string(i.Span)));
                             Assert.False(res.IsHeader);
@@ -783,7 +801,7 @@ namespace Cesil.Tests
                         using (var str = getReader("Foo\r\nfoo"))
                         {
                             using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("Foo", new string(i.Span)));
                             Assert.True(res.IsHeader);
@@ -801,7 +819,7 @@ namespace Cesil.Tests
                         using (var str = getReader("Foo,fizz\r\n1,2"))
                         {
                             using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -820,7 +838,7 @@ namespace Cesil.Tests
                         using (var str = getReader("fizz,Bar\r\n2,blah\r\n"))
                         {
                             using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -842,7 +860,7 @@ namespace Cesil.Tests
                         using (var str = getReader("Foo,Bar\r\nwhatever,something"))
                         {
                             using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -861,7 +879,7 @@ namespace Cesil.Tests
                         using (var str = getReader("Bar,Foo\r\n3,4"))
                         {
                             using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -883,7 +901,7 @@ namespace Cesil.Tests
                         using (var str = getReader("Foo,Bar,Fizz\r\na,b,c\r\n"))
                         {
                             using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -903,7 +921,7 @@ namespace Cesil.Tests
                         using (var str = getReader("Bar,Fizz,Foo\r\n1,2,3"))
                         {
                             using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, new BufferWithPushback(MemoryPool<char>.Shared, 500));
+                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
