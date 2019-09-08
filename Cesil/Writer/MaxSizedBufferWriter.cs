@@ -251,6 +251,6 @@ namespace Cesil
         }
 
         public override string ToString()
-        => $"{nameof(IsSingleSegment)}={IsSingleSegment}, {nameof(MemoryPool)}={MemoryPool}";
+        => $"{nameof(MaxSizedBufferWriter)} with {nameof(IsSingleSegment)}={IsSingleSegment}, {nameof(MemoryPool)}={MemoryPool}";
     }
 }

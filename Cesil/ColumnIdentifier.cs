@@ -29,7 +29,7 @@ namespace Cesil
         {
             get
             {
-                if(_Name == null)
+                if (_Name == null)
                 {
                     Throw.InvalidOperationException("Column does not have a name");
                 }
@@ -52,7 +52,7 @@ namespace Cesil
             string name = null
         )
         {
-            if(index < 0)
+            if (index < 0)
             {
                 Throw.ArgumentException($"Must be >= 0, found {index}", nameof(index));
             }
@@ -94,7 +94,7 @@ namespace Cesil
         /// Returns a stable hash for this ColumnIdentifier.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(ColumnIdentifier), Index, Name);
+        => HashCode.Combine(nameof(ColumnIdentifier), Index, _Name);
 
         /// <summary>
         /// Describes this ColumnIdentifier.

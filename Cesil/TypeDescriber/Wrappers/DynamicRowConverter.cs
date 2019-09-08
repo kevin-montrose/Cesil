@@ -135,7 +135,7 @@ namespace Cesil
         /// Mapping will use column names if available, and fallback to indexes.
         /// </summary>
         public static DynamicRowConverter ForConstructorTakingTypedParameters(
-            ConstructorInfo cons, 
+            ConstructorInfo cons,
             IEnumerable<ColumnIdentifier> columnIndexesForParams
         )
         {

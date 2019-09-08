@@ -68,7 +68,7 @@ namespace Cesil.Tests
 
                 var a = new Version();
                 var b = new Version("1.0");
-                var c = new Version(1,2);
+                var c = new Version(1, 2);
                 var d = new Version(1, 2, 3);
                 var e = new Version(1, 2, 3, 4);
                 var f = new Version(int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue);
@@ -401,6 +401,51 @@ namespace Cesil.Tests
                 Assert.False(del("foo", default, out _));
             }
 
+            // DateTime
+            {
+                var mtd = Parser.GetDefault(typeof(DateTime).GetTypeInfo());
+                Assert.NotNull(mtd);
+
+                var del = (Parse<DateTime>)Delegate.CreateDelegate(typeof(Parse<DateTime>), mtd.Method);
+
+                // max
+                {
+                    var res = del(DateTime.MaxValue.ToString(), default, out var v1);
+                    Assert.True(res);
+                    Assert.Equal(DateTime.MaxValue.ToString(), v1.ToString());
+                }
+
+                // min
+                {
+                    var res = del(DateTime.MinValue.ToString(), default, out var v1);
+                    Assert.True(res);
+                    Assert.Equal(DateTime.MinValue.ToString(), v1.ToString());
+                }
+
+            }
+
+            // DateTimeOffset
+            {
+                var mtd = Parser.GetDefault(typeof(DateTimeOffset).GetTypeInfo());
+                Assert.NotNull(mtd);
+
+                var del = (Parse<DateTimeOffset>)Delegate.CreateDelegate(typeof(Parse<DateTimeOffset>), mtd.Method);
+
+                // max
+                {
+                    var res = del(DateTimeOffset.MaxValue.ToString(), default, out var v1);
+                    Assert.True(res);
+                    Assert.Equal(DateTimeOffset.MaxValue.ToString(), v1.ToString());
+                }
+
+                // min
+                {
+                    var res = del(DateTimeOffset.MinValue.ToString(), default, out var v1);
+                    Assert.True(res);
+                    Assert.Equal(DateTimeOffset.MinValue.ToString(), v1.ToString());
+                }
+            }
+
             // TimeSpan
             {
                 var mtd = Parser.GetDefault(typeof(TimeSpan).GetTypeInfo());
@@ -431,6 +476,15 @@ namespace Cesil.Tests
                 // end 
                 Assert.True(del((^1).ToString(), default, out var v2));
                 Assert.Equal(^1, v2);
+
+                // malformed, empty
+                Assert.False(del("", default, out _));
+
+                // malformed, not int
+                Assert.False(del("abc", default, out _));
+
+                // malformed, not int ^
+                Assert.False(del("^abc", default, out _));
             }
 
             // Range
@@ -459,6 +513,33 @@ namespace Cesil.Tests
                 var endEnd = ^1..^9;
                 Assert.True(del(endEnd.ToString(), default, out var v4));
                 Assert.Equal(endEnd, v4);
+
+                // start-open
+                var startOpen = 1..;
+                Assert.True(del(startOpen.ToString(), default, out var v5));
+                Assert.Equal(startOpen, v5);
+
+                // open-start
+                var openStart = ..5;
+                Assert.True(del(openStart.ToString(), default, out var v6));
+                Assert.Equal(openStart, v6);
+
+                // open-open
+                var openOpen = ..;
+                Assert.True(del(openOpen.ToString(), default, out var v7));
+                Assert.Equal(openOpen, v7);
+
+                // malformed, empty
+                Assert.False(del("", default, out _));
+
+                // malformed, start not int
+                Assert.False(del("abc..123", default, out _));
+
+                // malformed, end not int
+                Assert.False(del("123..abc", default, out _));
+
+                // malformed, single dot
+                Assert.False(del("123.abc", default, out _));
             }
         }
 
@@ -809,6 +890,63 @@ namespace Cesil.Tests
                 Assert.Equal((TimeSpan?)null, v3);
             }
 
+            // DateTime?
+            {
+                var mtd = Parser.GetDefault(typeof(DateTime?).GetTypeInfo());
+                Assert.NotNull(mtd);
+
+                var del = (Parse<DateTime?>)Delegate.CreateDelegate(typeof(Parse<DateTime?>), mtd.Method);
+
+                // max
+                {
+                    var res = del(DateTime.MaxValue.ToString(), default, out var v1);
+                    Assert.True(res);
+                    Assert.Equal(DateTime.MaxValue.ToString(), v1.ToString());
+                }
+
+                // min
+                {
+                    var res = del(DateTime.MinValue.ToString(), default, out var v1);
+                    Assert.True(res);
+                    Assert.Equal(DateTime.MinValue.ToString(), v1.ToString());
+                }
+
+                // null
+                {
+                    Assert.True(del("", default, out var v3));
+                    Assert.Equal((DateTime?)null, v3);
+                }
+
+            }
+
+            // DateTimeOffset
+            {
+                var mtd = Parser.GetDefault(typeof(DateTimeOffset?).GetTypeInfo());
+                Assert.NotNull(mtd);
+
+                var del = (Parse<DateTimeOffset?>)Delegate.CreateDelegate(typeof(Parse<DateTimeOffset?>), mtd.Method);
+
+                // max
+                {
+                    var res = del(DateTimeOffset.MaxValue.ToString(), default, out var v1);
+                    Assert.True(res);
+                    Assert.Equal(DateTimeOffset.MaxValue.ToString(), v1.ToString());
+                }
+
+                // min
+                {
+                    var res = del(DateTimeOffset.MinValue.ToString(), default, out var v1);
+                    Assert.True(res);
+                    Assert.Equal(DateTimeOffset.MinValue.ToString(), v1.ToString());
+                }
+
+                // null
+                {
+                    Assert.True(del("", default, out var v3));
+                    Assert.Equal((DateTimeOffset?)null, v3);
+                }
+            }
+
             // Index?
             {
                 var mtd = Parser.GetDefault(typeof(Index?).GetTypeInfo());
@@ -827,6 +965,9 @@ namespace Cesil.Tests
                 // null
                 Assert.True(del("", default, out var v3));
                 Assert.Equal((Index?)null, v3);
+
+                // malformd
+                Assert.False(del("abc", default, out _));
             }
 
             // Range?
@@ -859,6 +1000,9 @@ namespace Cesil.Tests
                 // null
                 Assert.True(del("", default, out var v5));
                 Assert.Equal((Range?)null, v5);
+
+                // malformd
+                Assert.False(del("abc", default, out _));
             }
         }
 
@@ -2868,6 +3012,97 @@ namespace Cesil.Tests
                 a => Assert.True(a.EmitDefaultValue),
                 a => Assert.False(a.EmitDefaultValue)
             );
+        }
+
+        private class _Formatter_InsufficientMemoryDoesntThrow : IBufferWriter<char>
+        {
+            public static readonly IBufferWriter<char> Singleton = new _Formatter_InsufficientMemoryDoesntThrow();
+
+            private _Formatter_InsufficientMemoryDoesntThrow() { }
+
+            public void Advance(int count)
+            {
+                throw new NotImplementedException();
+            }
+
+            public Memory<char> GetMemory(int sizeHint = 0)
+            => Memory<char>.Empty;
+
+            public Span<char> GetSpan(int sizeHint = 0)
+            => Span<char>.Empty;
+        }
+
+        [Fact]
+        public void Formatter_InsufficientMemoryDoesntThrow()
+        {
+            Try<bool>();
+            Try<bool?>(false);
+
+            Try<byte>();
+            Try<byte?>(1);
+
+            Try<sbyte>();
+            Try<sbyte?>(1);
+
+            Try<short>();
+            Try<short?>(1);
+
+            Try<ushort>();
+            Try<ushort?>(1);
+
+            Try<int>();
+            Try<int?>(1);
+
+            Try<uint>();
+            Try<uint?>(1);
+
+            Try<long>();
+            Try<long?>(1);
+
+            Try<ulong>();
+            Try<ulong?>(1);
+
+            Try<float>();
+            Try<float?>(1);
+
+            Try<double>();
+            Try<double?>(1);
+
+            Try<decimal>();
+            Try<decimal?>(1);
+
+            Try<string>("foo");
+
+            Try<Uri>(new Uri("https://example.com"));
+
+            Try<DateTime>();
+            Try<DateTime?>(DateTime.UtcNow);
+
+            Try<DateTimeOffset>();
+            Try<DateTimeOffset?>(DateTimeOffset.UtcNow);
+
+            Try<TimeSpan>();
+            Try<TimeSpan?>(TimeSpan.Zero);
+
+            Try<Guid>();
+            Try<Guid?>(Guid.NewGuid());
+
+            Try<Version>(new Version(1, 2, 3));
+
+            Try<StringComparison>();
+            Try<StringComparison?>(StringComparison.Ordinal);
+
+            Try<AttributeTargets>();
+            Try<AttributeTargets?>(AttributeTargets.Assembly);
+
+            static void Try<T>(T def = default)
+            {
+                var mtd = Formatter.GetDefault(typeof(T).GetTypeInfo()).Method;
+
+                var res = (bool)mtd.Invoke(null, new object[] { def, default(WriteContext), _Formatter_InsufficientMemoryDoesntThrow.Singleton });
+
+                Assert.False(res);
+            }
         }
     }
 #pragma warning restore IDE1006

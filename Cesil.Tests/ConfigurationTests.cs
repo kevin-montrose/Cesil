@@ -187,6 +187,51 @@ namespace Cesil.Tests
 
             Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithDynamicRowDisposalInternal(default).Build());
             Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithDynamicRowDisposalInternal((DynamicRowDisposal)99).Build());
+
+            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithCommentCharacter('"').Build());
+
+            Assert.Throws<ArgumentException>(() => Options.Default.NewBuilder().WithRowEnding(default));
+
+            Assert.Throws<ArgumentException>(() => Options.Default.NewBuilder().WithReadHeader(default));
+
+            Assert.Throws<ArgumentException>(() => Options.Default.NewBuilder().WithWriteHeader(default));
+
+            Assert.Throws<ArgumentException>(() => Options.Default.NewBuilder().WithWriteTrailingNewLine(default));
+
+            Assert.Throws<ArgumentException>(() => Options.Default.NewBuilder().WithWriteBufferSizeHint(-12));
+
+            Assert.Throws<ArgumentException>(() => Options.Default.NewBuilder().WithReadBufferSizeHint(-12));
+
+            Assert.Throws<ArgumentException>(() => Options.Default.NewBuilder().WithDynamicRowDisposal(default));
+        }
+
+        private class _BadCreateCalls
+        {
+            public int Foo { get; set; }
+        }
+
+        [Fact]
+        public void BadCreateCalls()
+        {
+            // concrete types
+            {
+                var opts = Configuration.For<_BadCreateCalls>();
+
+                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncReader(null));
+                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncWriter(null));
+                Assert.Throws<ArgumentNullException>(() => opts.CreateReader(null));
+                Assert.Throws<ArgumentNullException>(() => opts.CreateWriter(null));
+            }
+
+            // dynamic
+            {
+                var opts = Configuration.ForDynamic();
+
+                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncReader(null));
+                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncWriter(null));
+                Assert.Throws<ArgumentNullException>(() => opts.CreateReader(null));
+                Assert.Throws<ArgumentNullException>(() => opts.CreateWriter(null));
+            }
         }
     }
 #pragma warning restore IDE1006

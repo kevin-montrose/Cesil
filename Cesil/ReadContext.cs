@@ -28,7 +28,7 @@ namespace Cesil
         {
             get
             {
-                switch(Mode)
+                switch (Mode)
                 {
                     case ReadContextMode.ConvertingColumn:
                     case ReadContextMode.ReadingColumn:
@@ -53,20 +53,12 @@ namespace Cesil
         {
             get
             {
-                switch (Mode)
+                if (!HasColumn)
                 {
-                    case ReadContextMode.ConvertingColumn:
-                    case ReadContextMode.ReadingColumn:
-                        return _Column;
-                    case ReadContextMode.ConvertingRow:
-                        Throw.InvalidOperationException($"No column is available when {nameof(Mode)} is {Mode}");
-                        // just for control flow
-                        return default;
-                    default:
-                        Throw.InvalidOperationException($"Unexpected {nameof(ReadContextMode)}: {Mode}");
-                        // just for control flow
-                        return default;
+                    Throw.InvalidOperationException($"No column is available when {nameof(Mode)} is {Mode}");
                 }
+
+                return _Column;
             }
         }
 
@@ -112,7 +104,7 @@ namespace Cesil
         /// Returns true if this object equals the given ReadContext.
         /// </summary>
         public bool Equals(ReadContext r)
-        => r.Column == Column &&
+        => r._Column == _Column &&
            r.Context == Context &&
            r.RowNumber == RowNumber;
 
@@ -120,13 +112,15 @@ namespace Cesil
         /// Returns a stable hash for this ReadContext.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(ReadContext), Column, Context, RowNumber);
+        => HashCode.Combine(nameof(ReadContext), _Column, Context, RowNumber);
 
         /// <summary>
         /// Returns a string representation of this ReadContext.
         /// </summary>
         public override string ToString()
-        => $"{nameof(RowNumber)}={RowNumber}, {nameof(Column)}={Column}, {nameof(Context)}={Context}";
+        => HasColumn ?
+            $"{nameof(ReadContext)} with {nameof(RowNumber)}={RowNumber}, {nameof(Column)}={Column}, {nameof(Context)}={Context}" :
+            $"{nameof(ReadContext)} with {nameof(RowNumber)}={RowNumber}, {nameof(Context)}={Context}";
 
         /// <summary>
         /// Compare two ReadContexts for equality

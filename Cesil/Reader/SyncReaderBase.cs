@@ -3,7 +3,7 @@ using System.IO;
 
 namespace Cesil
 {
-    internal abstract class SyncReaderBase<T>:
+    internal abstract class SyncReaderBase<T> :
         ReaderBase<T>,
         IReader<T>,
         ITestableDisposable
@@ -11,7 +11,7 @@ namespace Cesil
         internal TextReader Inner;
 
         public bool IsDisposed => Inner == null;
-        
+
         internal SyncReaderBase(TextReader inner, BoundConfigurationBase<T> config, object context) : base(config, context)
         {
             Inner = inner;

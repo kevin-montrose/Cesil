@@ -137,22 +137,36 @@ namespace Cesil
         /// Returns true if this object equals the given WriteContext.
         /// </summary>
         public bool Equals(WriteContext w)
-        => w.Column == Column &&
+        => w._Column == _Column &&
            w.Context == Context &&
            w.Mode == Mode &&
-           w.RowNumber == RowNumber;
+           w._RowNumber == _RowNumber;
 
         /// <summary>
         /// Returns a stable hash for this WriteContext.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(WriteContext), Column, Context, Mode, RowNumber);
+        => HashCode.Combine(nameof(WriteContext), _Column, Context, Mode, _RowNumber);
 
         /// <summary>
         /// Returns a string representation of this WriteContext.
         /// </summary>
         public override string ToString()
-        => $"{nameof(Mode)}={Mode}, {nameof(RowNumber)}={RowNumber}, {nameof(Column)}={Column}";
+        {
+            switch (Mode)
+            {
+                case WriteContextMode.DiscoveringCells:
+                    return $"{nameof(WriteContext)} with {nameof(Mode)}={Mode}, {nameof(RowNumber)}={RowNumber}";
+                case WriteContextMode.DiscoveringColumns:
+                    return $"{nameof(WriteContext)} with {nameof(Mode)}={Mode}";
+                case WriteContextMode.WritingColumn:
+                    return $"{nameof(WriteContext)} with {nameof(Mode)}={Mode}, {nameof(RowNumber)}={RowNumber}, {nameof(Column)}={Column}";
+                default:
+                    Throw.InvalidOperationException($"Unexpected {nameof(WriteContextMode)}: {Mode}");
+                    // just for control flow
+                    return default;
+            }
+        }
 
         /// <summary>
         /// Compare two WriteContexts for equality

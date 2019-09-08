@@ -20,6 +20,7 @@ namespace Cesil
         internal static readonly TypeInfo ShouldSerializeDelegateType = typeof(ShouldSerializeDelegate<>).GetTypeInfo();
         internal static readonly TypeInfo StaticShouldSerializeDelegateType = typeof(StaticShouldSerializeDelegate).GetTypeInfo();
         internal static readonly TypeInfo DynamicRowConverterDelegateType = typeof(DynamicRowConverterDelegate<>).GetTypeInfo();
+        internal static readonly TypeInfo ColumnIdentifierType = typeof(ColumnIdentifier).GetTypeInfo();
 
         internal static readonly TypeInfo VoidType = typeof(void).GetTypeInfo();
         internal static readonly TypeInfo BoolType = typeof(bool).GetTypeInfo();

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Cesil.Tests
 {
-    internal sealed class ForcedAsyncWriter : TextWriter
+    internal sealed class ForcedAsyncWriter : TextWriter, IAsyncDisposable
     {
         public override Encoding Encoding => Inner.Encoding;
         public override IFormatProvider FormatProvider => Inner.FormatProvider;
@@ -19,6 +19,13 @@ namespace Cesil.Tests
             Inner = inner;
         }
 
+        public override async ValueTask DisposeAsync()
+        {
+            await Task.Yield();
+
+            await Inner.DisposeAsync();
+        }
+
         public override void Close()
         => Inner.Close();
 
@@ -26,7 +33,7 @@ namespace Cesil.Tests
         => Inner.Dispose();
 
         public override void Flush()
-        => Inner.Flush();
+        => throw new NotImplementedException();
 
         public override async Task FlushAsync()
         {
@@ -38,58 +45,58 @@ namespace Cesil.Tests
         => Inner.InitializeLifetimeService();
 
         public override void Write(bool value)
-        => Inner.Write(value);
+        => throw new NotImplementedException();
 
         public override void Write(char value)
-        => Inner.Write(value);
+        => throw new NotImplementedException();
 
         public override void Write(char[] buffer)
-        => Inner.Write(buffer);
+        => throw new NotImplementedException();
 
         public override void Write(char[] buffer, int index, int count)
-        => Inner.Write(buffer, index, count);
+        => throw new NotImplementedException();
 
         public override void Write(decimal value)
-        => Inner.Write(value);
+        => throw new NotImplementedException();
 
         public override void Write(double value)
-        => Inner.Write(value);
+        => throw new NotImplementedException();
 
         public override void Write(float value)
-        => Inner.Write(value);
+        => throw new NotImplementedException();
 
         public override void Write(int value)
-        => Inner.Write(value);
+        => throw new NotImplementedException();
 
         public override void Write(long value)
-        => Inner.Write(value);
+        => throw new NotImplementedException();
 
         public override void Write(object value)
-        => Inner.Write(value);
+        => throw new NotImplementedException();
 
         public override void Write(ReadOnlySpan<char> buffer)
-        => Inner.Write(buffer);
+        => throw new NotImplementedException();
 
         public override void Write(string format, object arg0)
-        => Inner.Write(format, arg0);
+        => throw new NotImplementedException();
 
         public override void Write(string format, object arg0, object arg1)
-        => Inner.Write(format, arg0, arg1);
+        => throw new NotImplementedException();
 
         public override void Write(string format, object arg0, object arg1, object arg2)
-        => Inner.Write(format, arg0, arg1, arg2);
+        => throw new NotImplementedException();
 
         public override void Write(string format, params object[] arg)
-        => Inner.Write(format, arg);
+        => throw new NotImplementedException();
 
         public override void Write(string value)
-        => Inner.Write(value);
+        => throw new NotImplementedException();
 
         public override void Write(uint value)
-        => Inner.Write(value);
+        => throw new NotImplementedException();
 
         public override void Write(ulong value)
-        => Inner.Write(value);
+        => throw new NotImplementedException();
 
         public override async Task WriteAsync(char value)
         {
@@ -116,61 +123,61 @@ namespace Cesil.Tests
         }
 
         public override void WriteLine()
-        => Inner.WriteLine();
+        => throw new NotImplementedException();
 
         public override void WriteLine(bool value)
-        => Inner.WriteLine(value);
+       => throw new NotImplementedException();
 
         public override void WriteLine(char value)
-        => Inner.WriteLine(value);
+        => throw new NotImplementedException();
 
         public override void WriteLine(char[] buffer)
-        => Inner.WriteLine(buffer);
+       => throw new NotImplementedException();
 
         public override void WriteLine(char[] buffer, int index, int count)
-        => Inner.WriteLine(buffer, index, count);
+       => throw new NotImplementedException();
 
         public override void WriteLine(decimal value)
-        => Inner.WriteLine(value);
+        => throw new NotImplementedException();
 
         public override void WriteLine(double value)
-        => Inner.WriteLine(value);
+        => throw new NotImplementedException();
 
         public override void WriteLine(float value)
-        => Inner.WriteLine(value);
+        => throw new NotImplementedException();
 
         public override void WriteLine(int value)
-        => Inner.WriteLine(value);
+        => throw new NotImplementedException();
 
         public override void WriteLine(long value)
-        => Inner.WriteLine(value);
+        => throw new NotImplementedException();
 
         public override void WriteLine(object value)
-        => Inner.WriteLine(value);
+       => throw new NotImplementedException();
 
         public override void WriteLine(ReadOnlySpan<char> buffer)
-        => Inner.WriteLine(buffer);
+        => throw new NotImplementedException();
 
         public override void WriteLine(string format, object arg0)
-        => Inner.WriteLine(format, arg0);
+       => throw new NotImplementedException();
 
         public override void WriteLine(string format, object arg0, object arg1)
-        => Inner.WriteLine(format, arg0, arg1);
+        => throw new NotImplementedException();
 
         public override void WriteLine(string format, object arg0, object arg1, object arg2)
-        => Inner.WriteLine(format, arg0, arg1, arg2);
+        => throw new NotImplementedException();
 
         public override void WriteLine(string format, params object[] arg)
-        => Inner.WriteLine(format, arg);
+        => throw new NotImplementedException();
 
         public override void WriteLine(string value)
-        => Inner.WriteLine(value);
+        => throw new NotImplementedException();
 
         public override void WriteLine(uint value)
-        => Inner.WriteLine(value);
+        => throw new NotImplementedException();
 
         public override void WriteLine(ulong value)
-        => Inner.WriteLine(value);
+       => throw new NotImplementedException();
 
         public override async Task WriteLineAsync()
         {

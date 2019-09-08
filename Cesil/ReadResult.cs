@@ -57,15 +57,15 @@
         {
             if (!HasValue)
             {
-                return "Empty";
+                return $"{nameof(ReadResult<T>)} which is empty";
             }
 
             if (_Value == null)
             {
-                return "(null)";
+                return $"{nameof(ReadResult<T>)} with (null) Value";
             }
 
-            return _Value.ToString();
+            return $"{nameof(ReadResult<T>)} with {_Value}";
         }
     }
 }

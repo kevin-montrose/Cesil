@@ -99,7 +99,7 @@ namespace Cesil
             }
 
             public override string ToString()
-            => nameof(HeaderEnumerator);
+            => $"{nameof(HeaderEnumerator)} with {nameof(Count)}={Count}";
         }
 
         private readonly Column[] Columns;
@@ -120,7 +120,15 @@ namespace Cesil
 
         private int PushBackLength;
         private IMemoryOwner<char> PushBackOwner;
-        private Memory<char> PushBack => PushBackOwner.Memory;
+        private Memory<char> PushBack
+        {
+            get
+            {
+                if (PushBackOwner == null) return Memory<char>.Empty;
+
+                return PushBackOwner.Memory;
+            }
+        }
 
         internal HeadersReader(
             BoundConfigurationBase<T> config,
@@ -349,7 +357,7 @@ finish:
 
                     continue;
                 }
-                else if (res == ReaderStateMachine.AdvanceResult.Append_Previous_And_Current_Character)
+                else if (res == ReaderStateMachine.AdvanceResult.Append_PreviousAndCurrentCharacter)
                 {
                     if (appendingSince == -1)
                     {

@@ -692,6 +692,11 @@ namespace Cesil
 
                 var ret = Inner.DisposeAsync();
 
+                if (!ret.IsCompletedSuccessfully)
+                {
+                    return DisposeAsync_ContinueAfterInnerDisposedAsync(this, ret);
+                }
+
                 OneCharOwner?.Dispose();
                 Buffer.Dispose();
                 Inner = null;
@@ -758,6 +763,17 @@ namespace Cesil
                 self.Staging?.Dispose();
 
                 await self.Inner.DisposeAsync();
+                self.OneCharOwner?.Dispose();
+                self.Buffer.Dispose();
+
+                self.Inner = null;
+            }
+
+            // wait on Inner.DisposeAsync
+            static async ValueTask DisposeAsync_ContinueAfterInnerDisposedAsync(AsyncWriter<T> self, ValueTask waitFor)
+            {
+                await waitFor;
+
                 self.OneCharOwner?.Dispose();
                 self.Buffer.Dispose();
 

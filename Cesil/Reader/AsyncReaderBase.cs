@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Cesil
 {
-    internal abstract class AsyncReaderBase<T> :
+    internal abstract partial class AsyncReaderBase<T> :
         ReaderBase<T>,
         IAsyncReader<T>,
         ITestableAsyncDisposable
@@ -46,6 +47,7 @@ namespace Cesil
             while (true)
             {
                 var resTask = TryReadAsync(cancel);
+                SwitchAsync(ref resTask);
                 if (resTask.IsCompletedSuccessfully)
                 {
                     var res = resTask.Result;
@@ -82,7 +84,9 @@ namespace Cesil
 
                 while (true)
                 {
-                    var res = await self.TryReadAsync(cancel);
+                    var tryReadTask = self.TryReadAsync(cancel);
+                    self.SwitchAsync(ref tryReadTask);
+                    var res = await tryReadTask;
                     if (res.HasValue)
                     {
                         ret.Add(res.Value);
@@ -109,6 +113,7 @@ namespace Cesil
             AssertNotDisposed();
 
             var tryReadTask = TryReadInnerAsync(false, ref row, cancel);
+            SwitchAsync(ref tryReadTask);
             if (!tryReadTask.IsCompletedSuccessfully)
             {
                 return TryReadWithReuseAsync_ContinueAfterTryReadInnerAsync(tryReadTask, cancel);
@@ -183,4 +188,96 @@ namespace Cesil
             }
         }
     }
+
+    // this is present in all builds, but all MEMBERS are void returning
+    //   methods with a [Conditional] so all the code and calls go away
+    //   in non-DEBUG builds.
+    //
+    // This lets us keep CALLS to these crazy things in normal source without
+    //   a bunch of #if junk, but not actually have any of the calling going
+    //   on in RELEASE builds.
+    internal abstract partial class AsyncReaderBase<T>
+    {
+        [Conditional("DEBUG")]
+        internal protected void SwitchAsync(ref ValueTask task)
+        {
+#if RELEASE
+            Throw.Exception("Shouldn't be present in RELEASE");
+#endif
+
+            var self = (ITestableAsyncProvider)this;
+
+            if (self.ShouldGoAsync())
+            {
+                var taskRef = task;
+                task = SwitchAsync_ForceAsync(taskRef);
+            }
+            else
+            {
+                // make this SYNC
+                task.AsTask().Wait();
+                task = default;
+            }
+
+            static async ValueTask SwitchAsync_ForceAsync(ValueTask t)
+            {
+                await Task.Yield();
+                await t;
+            }
+        }
+
+        [Conditional("DEBUG")]
+        internal protected void SwitchAsync<V>(ref ValueTask<V> task)
+        {
+#if RELEASE
+            Throw.Exception("Shouldn't be present in RELEASE");
+#endif
+
+            var self = (ITestableAsyncProvider)this;
+
+            if (self.ShouldGoAsync())
+            {
+                var taskRef = task;
+                task = SwitchAsync_ForceAsync(taskRef);
+            }
+            else
+            {
+                // make this SYNC
+                var t = task.AsTask();
+                t.Wait();
+                task = new ValueTask<V>(t.Result);
+            }
+
+            static async ValueTask<V> SwitchAsync_ForceAsync(ValueTask<V> t)
+            {
+                await Task.Yield();
+                return await t;
+            }
+        }
+    }
+
+#if DEBUG
+    // this is only implemented in DEBUG builds, so tests (and only tests) can force
+    //    particular async paths
+    internal abstract partial class AsyncReaderBase<T> : ITestableAsyncProvider
+    {
+        private int _GoAsyncAfter;
+        int ITestableAsyncProvider.GoAsyncAfter { set { _GoAsyncAfter = value; } }
+
+        private int _AsyncCounter;
+        int ITestableAsyncProvider.AsyncCounter => _AsyncCounter;
+
+        bool ITestableAsyncProvider.ShouldGoAsync()
+        {
+            lock (this)
+            {
+                _AsyncCounter++;
+
+                var ret = _AsyncCounter >= _GoAsyncAfter;
+
+                return ret;
+            }
+        }
+    }
+#endif
 }

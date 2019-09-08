@@ -84,54 +84,54 @@ namespace Cesil
         /// 
         /// Typically a comma.
         /// </summary>
-        public char ValueSeparator { get; private set; }
+        public char ValueSeparator { get; }
         /// <summary>
         /// Character used to start an escaped value.
         /// 
         /// Typically a double quote.
         /// </summary>
-        public char EscapedValueStartAndEnd { get; private set; }
+        public char EscapedValueStartAndEnd { get; }
         /// <summary>
         /// Character used to escape another character in an
         ///   escaped value.
         ///   
         /// Typically a double quote.
         /// </summary>
-        public char EscapedValueEscapeCharacter { get; private set; }
+        public char EscapedValueEscapeCharacter { get; }
         /// <summary>
         /// The sequence of characters used to end a row.
         /// </summary>
-        public RowEndings RowEnding { get; private set; }
+        public RowEndings RowEnding { get; }
         /// <summary>
         /// Whether or not to read headers when reading a CSV.
         /// </summary>
-        public ReadHeaders ReadHeader { get; private set; }
+        public ReadHeaders ReadHeader { get; }
         /// <summary>
         /// Whether or not to write headers when writing a CSV.
         /// </summary>
-        public WriteHeaders WriteHeader { get; private set; }
+        public WriteHeaders WriteHeader { get; }
         /// <summary>
         /// The instance of ITypeDescriber that will be used to
         ///   discover which columns to read or write, as well
         ///   as the manner of their reading and writing.
         /// </summary>
-        public ITypeDescriber TypeDescriber { get; private set; }
+        public ITypeDescriber TypeDescriber { get; }
         /// <summary>
         /// Whether or not to write a new line after the last row
         /// in a CSV.
         /// </summary>
-        public WriteTrailingNewLines WriteTrailingNewLine { get; private set; }
+        public WriteTrailingNewLines WriteTrailingNewLine { get; }
         /// <summary>
         /// Which MemoryPool to use when reading or writing a CSV.
         /// </summary>
-        public MemoryPool<char> MemoryPool { get; private set; }
+        public MemoryPool<char> MemoryPool { get; }
         /// <summary>
         /// Which character, if any, is used to indicate the start
         /// of a comment.
         /// 
         /// Typically not set, but when set often the octothorpe.
         /// </summary>
-        public char? CommentCharacter { get; private set; }
+        public char? CommentCharacter { get; }
         /// <summary>
         /// How big a buffer to request from the MemoryPool for
         ///   buffering write operations.
@@ -141,7 +141,7 @@ namespace Cesil
         /// Set to null to use a default size.
         /// </summary>
         [IntentionallyExposedPrimitive("Best way to indicate a size")]
-        public int? WriteBufferSizeHint { get; private set; }
+        public int? WriteBufferSizeHint { get; }
         /// <summary>
         /// How big a buffer to request from the MemoryPool for
         ///   servicing read operations.
@@ -149,11 +149,11 @@ namespace Cesil
         /// Set to 0 to use a default size.
         /// </summary>
         [IntentionallyExposedPrimitive("Best way to indicate a size")]
-        public int ReadBufferSizeHint { get; private set; }
+        public int ReadBufferSizeHint { get; }
         /// <summary>
         /// When to dispose any dynamic rows returned by an IReader or IAsyncReader.
         /// </summary>
-        public DynamicRowDisposal DynamicRowDisposal { get; private set; }
+        public DynamicRowDisposal DynamicRowDisposal { get; }
 
         internal Options(OptionsBuilder copy)
         {
@@ -250,6 +250,7 @@ namespace Cesil
         public override string ToString()
         {
             var ret = new StringBuilder();
+            ret.Append($"{nameof(Options)} with ");
             ret.Append($"{nameof(CommentCharacter)}={CommentCharacter}");
             ret.Append($", {nameof(DynamicRowDisposal)}={DynamicRowDisposal}");
             ret.Append($", {nameof(EscapedValueEscapeCharacter)}={EscapedValueEscapeCharacter}");

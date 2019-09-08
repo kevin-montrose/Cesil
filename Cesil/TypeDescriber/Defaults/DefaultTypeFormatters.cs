@@ -154,7 +154,7 @@ namespace Cesil
 
         private static bool TryFormatUri(Uri u, in WriteContext _, IBufferWriter<char> writer)
         {
-            if(u == null)
+            if (u == null)
             {
                 return false;
             }

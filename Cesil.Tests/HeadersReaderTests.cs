@@ -68,10 +68,10 @@ namespace Cesil.Tests
                 using (var str = new StringReader("#hello\rfoo\nbar\r\nFoo,Bar"))
                 {
                     using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = 
+                    using var reader =
                         new HeadersReader<_CommentBeforeHeader>(
-                            config, 
-                            charLookup, 
+                            config,
+                            charLookup,
                             str,
                             MakeBuffer()
                         );
@@ -736,7 +736,7 @@ namespace Cesil.Tests
                 Options.Default,
                 async (config, makeReader) =>
                 {
-                    var c = (ConcreteBoundConfiguration<_ManyHeaders>)config;
+                    var c = (ConcreteBoundConfiguration<_ManyHeaders>)((config as AsyncCountingAndForcingConfig<_ManyHeaders>)?.Inner ?? config);
 
                     using (var str = makeReader(csv))
                     {

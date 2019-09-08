@@ -346,9 +346,9 @@ namespace Cesil.Tests
                 // make a buffer that's "good to go"
                 BufferWithPushback MakeBuffer()
                 {
-                    return 
+                    return
                         new BufferWithPushback(
-                            MemoryPool<char>.Shared, 
+                            MemoryPool<char>.Shared,
                             64
 #if DEBUG
                             , false
@@ -513,7 +513,7 @@ namespace Cesil.Tests
                             ReaderStateMachine.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd'),
                             TextReader.Null,
                             new BufferWithPushback(
-                                MemoryPool<char>.Shared, 
+                                MemoryPool<char>.Shared,
                                 64
 #if DEBUG
                                 , false
@@ -1615,8 +1615,8 @@ namespace Cesil.Tests
                         Assert.Equal(4, (int)c4);
 
                         // old still throws
-                        Assert.Throws<ObjectDisposedException>(() => { int x = c1; });
-                        Assert.Throws<ObjectDisposedException>(() => { int x = c2; });
+                        Assert.Throws<InvalidOperationException>(() => { int x = c1; });
+                        Assert.Throws<InvalidOperationException>(() => { int x = c2; });
 
                         row.Dispose();
 
@@ -1625,8 +1625,8 @@ namespace Cesil.Tests
                         Assert.Throws<ObjectDisposedException>(() => { var x = row[1]; });
 
                         // all old cells throw
-                        Assert.Throws<ObjectDisposedException>(() => { int x = c1; });
-                        Assert.Throws<ObjectDisposedException>(() => { int x = c2; });
+                        Assert.Throws<InvalidOperationException>(() => { int x = c1; });
+                        Assert.Throws<InvalidOperationException>(() => { int x = c2; });
                         Assert.Throws<ObjectDisposedException>(() => { int x = c3; });
                         Assert.Throws<ObjectDisposedException>(() => { int x = c4; });
                     }

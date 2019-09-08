@@ -54,6 +54,6 @@ namespace Cesil
         }
 
         public override string ToString()
-        => $"{nameof(DynamicCell)}, {nameof(Generation)}={Generation}, {nameof(Row)}={Row}, {nameof(ColumnNumber)}={ColumnNumber}";
+        => $"{nameof(DynamicCell)} {nameof(Generation)}={Generation}, {nameof(Row)}={Row}, {nameof(ColumnNumber)}={ColumnNumber}";
     }
 }

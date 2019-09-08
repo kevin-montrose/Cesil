@@ -103,6 +103,7 @@ namespace Cesil
         public override string ToString()
         {
             var ret = new StringBuilder();
+            ret.Append($"{nameof(ConcreteBoundConfiguration<T>)} with ");
             ret.Append($"{nameof(CommentChar)}={CommentChar}");
             // Dynamic* not included, since not relevant
             ret.Append($", {nameof(EscapedValueStartAndStop)}={EscapedValueStartAndStop}");

@@ -11,7 +11,8 @@ namespace Cesil
             Skip_Character,
 
             Append_Character,
-            Append_Previous_And_Current_Character,
+            Append_PreviousAndCurrentCharacter,
+            Append_PreviousAndEndComment,
 
             Finished_Value,
             Finished_Record,
@@ -24,7 +25,8 @@ namespace Cesil
             Exception_ExpectedEndOfRecord,
             Exception_UnexpectedCharacterInEscapeSequence,
             Exception_UnexpectedLineEnding,
-            Exception_ExpectedEndOfRecordOrValue
+            Exception_ExpectedEndOfRecordOrValue,
+            Exception_UnexpectedEnd
         }
 
         internal const byte IN_COMMENT_MASK = 0b0000_1001;
@@ -45,6 +47,7 @@ namespace Cesil
             Record_Start = 0b0000_0110,
             Record_InEscapedValue_ExpectingEndOfValueOrRecord = 0b0000_0111,
             Record_ExpectingEndOfRecord = 0b0000_1000,
+            DataEnded = 0b0010_0001,
 
             // grouped together for easier logical checking
             // always has 0b0000_1001 set
@@ -83,7 +86,9 @@ namespace Cesil
             CarriageReturn,     // always \r
             LineFeed,           // always \n
             CommentStart,       // often not set, but normally # if set
-            Other               // anything not one of the above
+            Other,              // any character not one of the above
+
+            DataEnd             // special end of data symbol
         }
 
         internal readonly struct TransitionRule
@@ -105,9 +110,10 @@ namespace Cesil
             => new TransitionRule(tuple.Item1, tuple.Item2);
         }
 
-        internal const int RuleCacheStateCount = 55;
-        internal const int RuleCacheCharacterCount = 8;
-        internal const int RuleCacheRowEndingCount = 5;
+        internal const int RuleCacheStateCount = 55;            // max VALUE of State enum, + 1
+        internal const int RuleCacheCharacterCount = 9;         // count of CharacterType enum
+        internal const int RuleCacheRowEndingCount = 5;         // max VALUE of RowEndings enum + 1
+
         internal const int RuleCacheConfigCount = RuleCacheRowEndingCount * 2 * 2;              // escape char == escape start, and reading or not reading comments
         internal const int RuleCacheConfigSize = RuleCacheStateCount * RuleCacheCharacterCount;
 
@@ -175,8 +181,17 @@ namespace Cesil
         private static readonly TransitionRule Comment_BeforeRecord_ExpectingEndOfComment_Skip_Character = (State.Comment_BeforeRecord_ExpectingEndOfComment, AdvanceResult.Skip_Character);
         private static readonly TransitionRule Comment_BeforeRecord_ExpectingEndOfComment_Append_Character = (State.Comment_BeforeRecord_ExpectingEndOfComment, AdvanceResult.Append_Character);
 
-        private static readonly TransitionRule Comment_BeforeHeader_Append_Previous_And_Current_Character = (State.Comment_BeforeHeader, AdvanceResult.Append_Previous_And_Current_Character);
-        private static readonly TransitionRule Comment_BeforeRecord_Append_Previous_And_Current_Character = (State.Comment_BeforeRecord, AdvanceResult.Append_Previous_And_Current_Character);
+        private static readonly TransitionRule Comment_BeforeHeader_Append_Previous_And_Current_Character = (State.Comment_BeforeHeader, AdvanceResult.Append_PreviousAndCurrentCharacter);
+        private static readonly TransitionRule Comment_BeforeRecord_Append_Previous_And_Current_Character = (State.Comment_BeforeRecord, AdvanceResult.Append_PreviousAndCurrentCharacter);
+
+        private static readonly TransitionRule Data_Ended_Skip_Character = (State.DataEnded, AdvanceResult.Skip_Character);
+        private static readonly TransitionRule Data_Ended_Finished_Record = (State.DataEnded, AdvanceResult.Finished_Record);
+        private static readonly TransitionRule Data_Ended_Append_Previous_And_End_Comment = (State.DataEnded, AdvanceResult.Append_PreviousAndEndComment);
+        private static readonly TransitionRule Data_Ended_FinishedComment = (State.DataEnded, AdvanceResult.Finished_Comment);
+        private static readonly TransitionRule Data_Ended_Exception_UnexpectedEnd = (State.DataEnded, AdvanceResult.Exception_UnexpectedEnd);
+        private static readonly TransitionRule Data_Ended_Finished_Value = (State.DataEnded, AdvanceResult.Finished_Value);
+
+        private static readonly TransitionRule Invalid_Skip_Character = (State.Invalid, AdvanceResult.Skip_Character);
 
         private static ReadOnlyMemory<TransitionRule> GetTransitionMatrix(
             RowEndings rowEndings,
@@ -217,6 +232,9 @@ namespace Cesil
             InitTransitionMatrix_Record_Unescaped_NoValue(rowEndings, GetTransitionRulesSpan(State.Record_Unescaped_NoValue, rowEndings, escapeStartEqualsEscape, readComments));
             InitTransitionMatrix_Record_Unescaped_WithValue(rowEndings, GetTransitionRulesSpan(State.Record_Unescaped_WithValue, rowEndings, escapeStartEqualsEscape, readComments));
             InitTransitionMatrix_Record_ExpectingEndOfRecord(GetTransitionRulesSpan(State.Record_ExpectingEndOfRecord, rowEndings, escapeStartEqualsEscape, readComments));
+
+            InitTransitionMatrix_DataEnded(GetTransitionRulesSpan(State.DataEnded, rowEndings, escapeStartEqualsEscape, readComments));
+
             InitTransitionMatrix_Invalid(GetTransitionRulesSpan(State.Invalid, rowEndings, escapeStartEqualsEscape, readComments));
         }
 
@@ -278,6 +296,9 @@ namespace Cesil
 
                 // c
                 innerRet[(int)CharacterType.Other] = Comment_BeforeHeader_Append_Previous_And_Current_Character;
+
+                // end
+                innerRet[(int)CharacterType.DataEnd] = Data_Ended_Append_Previous_And_End_Comment;
             }
             else
             {
@@ -298,6 +319,9 @@ namespace Cesil
 
                 // c
                 innerRet[(int)CharacterType.Other] = Comment_BeforeHeader_Skip_Character;
+
+                // end
+                innerRet[(int)CharacterType.DataEnd] = Data_Ended_Skip_Character;
             }
         }
 
@@ -330,6 +354,9 @@ namespace Cesil
 
                 // c
                 innerRet[(int)CharacterType.Other] = Comment_BeforeRecord_Append_Previous_And_Current_Character;
+
+                // end
+                innerRet[(int)CharacterType.DataEnd] = Data_Ended_Append_Previous_And_End_Comment;
             }
             else
             {
@@ -351,6 +378,9 @@ namespace Cesil
 
                 // c
                 innerRet[(int)CharacterType.Other] = Comment_BeforeRecord_Skip_Character;
+
+                // end
+                innerRet[(int)CharacterType.DataEnd] = Data_Ended_Skip_Character;
             }
         }
 
@@ -427,6 +457,9 @@ namespace Cesil
 
             // c
             innerRet[(int)CharacterType.Other] = commentCharacterTreatment;
+
+            // end
+            innerRet[(int)CharacterType.DataEnd] = Data_Ended_FinishedComment;
         }
 
         // moving from Comment_BeforeHeader
@@ -502,6 +535,9 @@ namespace Cesil
 
             // c
             innerRet[(int)CharacterType.Other] = commentCharacterTreatment;
+
+            // end
+            innerRet[(int)CharacterType.DataEnd] = Data_Ended_FinishedComment;
         }
 
         // moving from Header_Start
@@ -555,6 +591,9 @@ namespace Cesil
 
             // c
             innerRet[(int)CharacterType.Other] = Header_Unescaped_WithValue_Skip_Character;
+
+            // end
+            innerRet[(int)CharacterType.DataEnd] = Data_Ended_Skip_Character;
         }
 
         // moving from Record_Start
@@ -608,6 +647,9 @@ namespace Cesil
 
             // c
             innerRet[(int)CharacterType.Other] = Record_Unescaped_WithValue_Append_Character;
+
+            // end
+            innerRet[(int)CharacterType.DataEnd] = Data_Ended_Skip_Character;
         }
 
         // moving from Header_InEscapedValue_ExpectingEndOfValueOrRecord
@@ -658,6 +700,9 @@ namespace Cesil
             innerRet[(int)CharacterType.CommentStart] = Invalid_Exception_ExpectedEndOfRecordOrValue;
             // c
             innerRet[(int)CharacterType.Other] = Invalid_Exception_ExpectedEndOfRecordOrValue;
+
+            // end
+            innerRet[(int)CharacterType.DataEnd] = Data_Ended_Skip_Character;
         }
 
         // moving from Record_InEscapedValue_ExpectingEndOfValueOrRecord
@@ -709,6 +754,9 @@ namespace Cesil
             innerRet[(int)CharacterType.CommentStart] = Invalid_Exception_ExpectedEndOfRecordOrValue;
             // c
             innerRet[(int)CharacterType.Other] = Invalid_Exception_ExpectedEndOfRecordOrValue;
+
+            // end
+            innerRet[(int)CharacterType.DataEnd] = Data_Ended_Finished_Record;
         }
 
         // moving from Header_InEscapedValue
@@ -746,6 +794,9 @@ namespace Cesil
 
             // "dfc
             innerRet[(int)CharacterType.Other] = Header_InEscapedValue_Skip_Character;
+
+            // end
+            innerRet[(int)CharacterType.DataEnd] = Data_Ended_Exception_UnexpectedEnd;
         }
 
         // moving from Header_InEscapedValueWithPendingEscape
@@ -851,6 +902,18 @@ namespace Cesil
             // EXPLOSION (assuming escape = ")
             // "df"c
             innerRet[(int)CharacterType.Other] = Invalid_Exception_UnexpectedCharacterInEscapeSequence;
+
+            // end
+            if (escapeStartCharEqualsEscapeChar)
+            {
+                // "sdafsdf"
+                innerRet[(int)CharacterType.DataEnd] = Data_Ended_Skip_Character;
+            }
+            else
+            {
+                // "asdfasdf\
+                innerRet[(int)CharacterType.DataEnd] = Data_Ended_Exception_UnexpectedEnd;
+            }
         }
 
         // moving from Header_Unescaped_NoValue
@@ -926,6 +989,9 @@ namespace Cesil
 
             // c
             innerRet[(int)CharacterType.Other] = Header_Unescaped_WithValue_Skip_Character;
+
+            // end
+            innerRet[(int)CharacterType.DataEnd] = Data_Ended_Skip_Character;
         }
 
         // moving from Header_Unescaped_WithValue
@@ -1003,6 +1069,9 @@ namespace Cesil
 
             // dfc
             innerRet[(int)CharacterType.Other] = Header_Unescaped_WithValue_Skip_Character;
+
+            // dfc
+            innerRet[(int)CharacterType.DataEnd] = Data_Ended_Skip_Character;
         }
 
         // moving from Header_ExpectingEndOfRecord
@@ -1031,6 +1100,9 @@ namespace Cesil
 
             // foo\rc
             innerRet[(int)CharacterType.Other] = Invalid_Exception_ExpectedEndOfRecord;
+
+            // foo\r
+            innerRet[(int)CharacterType.DataEnd] = Data_Ended_Skip_Character;
         }
 
         // moving from Record_InEscapedValue
@@ -1064,6 +1136,9 @@ namespace Cesil
             innerRet[(int)CharacterType.CommentStart] = Record_InEscapedValue_Append_Character;
             // "dfc
             innerRet[(int)CharacterType.Other] = Record_InEscapedValue_Append_Character;
+
+            // "dfc
+            innerRet[(int)CharacterType.DataEnd] = Data_Ended_Exception_UnexpectedEnd;
         }
 
         // moving from Record_InEscapedValueWithPendingEscape
@@ -1166,6 +1241,18 @@ namespace Cesil
 
             // "foo"c
             innerRet[(int)CharacterType.Other] = Invalid_Exception_UnexpectedCharacterInEscapeSequence;
+
+            // end
+            if (escapeStartCharEqualsEscapeChar)
+            {
+                // "foo"
+                innerRet[(int)CharacterType.DataEnd] = Data_Ended_Finished_Value;
+            }
+            else
+            {
+                // "foo\
+                innerRet[(int)CharacterType.DataEnd] = Data_Ended_Exception_UnexpectedEnd;
+            }
         }
 
         // moving from Record_Unescaped_NoValue
@@ -1232,6 +1319,9 @@ namespace Cesil
 
             // c
             innerRet[(int)CharacterType.Other] = Record_Unescaped_WithValue_Append_Character;
+
+            // end
+            innerRet[(int)CharacterType.DataEnd] = Data_Ended_Finished_Record;
         }
 
         // moving from Record_Unescaped_WithValue
@@ -1298,6 +1388,9 @@ namespace Cesil
 
             // dfc
             innerRet[(int)CharacterType.Other] = Record_Unescaped_WithValue_Append_Character;
+
+            // end
+            innerRet[(int)CharacterType.DataEnd] = Data_Ended_Finished_Value;
         }
 
         // moving from Record_ExpectingEndOfRecord
@@ -1323,6 +1416,23 @@ namespace Cesil
             innerRet[(int)CharacterType.CommentStart] = Invalid_Exception_ExpectedEndOfRecord;
             // \rc
             innerRet[(int)CharacterType.Other] = Invalid_Exception_ExpectedEndOfRecord;
+
+            // end
+            innerRet[(int)CharacterType.DataEnd] = Data_Ended_Exception_UnexpectedEnd;
+        }
+
+        // move from end
+        private static void InitTransitionMatrix_DataEnded(Span<TransitionRule> innerRet)
+        {
+            // end transitions to invalid, and ignores whatever was presented
+            innerRet[(int)CharacterType.Escape] = Invalid_Skip_Character;
+            innerRet[(int)CharacterType.EscapeStartAndEnd] = Invalid_Skip_Character;
+            innerRet[(int)CharacterType.ValueSeparator] = Invalid_Skip_Character;
+            innerRet[(int)CharacterType.CarriageReturn] = Invalid_Skip_Character;
+            innerRet[(int)CharacterType.LineFeed] = Invalid_Skip_Character;
+            innerRet[(int)CharacterType.CommentStart] = Invalid_Skip_Character;
+            innerRet[(int)CharacterType.Other] = Invalid_Skip_Character;
+            innerRet[(int)CharacterType.DataEnd] = Invalid_Skip_Character;
         }
 
         // moving from invalid
@@ -1337,6 +1447,7 @@ namespace Cesil
             innerRet[(int)CharacterType.LineFeed] = Invalid_Exception_InvalidState;
             innerRet[(int)CharacterType.CommentStart] = Invalid_Exception_InvalidState;
             innerRet[(int)CharacterType.Other] = Invalid_Exception_InvalidState;
+            innerRet[(int)CharacterType.DataEnd] = Invalid_Exception_InvalidState;
         }
     }
 }

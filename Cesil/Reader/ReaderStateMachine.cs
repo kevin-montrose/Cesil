@@ -5,6 +5,9 @@ namespace Cesil
 {
     internal sealed unsafe partial class ReaderStateMachine : ITestableDisposable
     {
+        // todo: maybe move this out, and hang it off of Options (or configurationbase)?
+        //       then we can pin it only when it's in use rather than
+        //       keeping gnarly pointers around indefinitely
         internal struct CharacterLookup : ITestableDisposable
         {
             public bool IsDisposed => Memory == null;
@@ -147,6 +150,9 @@ namespace Cesil
             (MinimumCharacter, CharLookupOffset, _, _, CharLookup) = preAllocLookup;
         }
 
+        internal AdvanceResult EndOfData()
+        => AdvanceInner(CurrentState, CharacterType.DataEnd);
+
         internal AdvanceResult Advance(char c)
         {
             var fromState = CurrentState;
@@ -168,6 +174,13 @@ namespace Cesil
                 cType = CharLookup[cOffset];
             }
 
+            return AdvanceInner(fromState, cType);
+        }
+
+        // todo: need to figure out a test to make sure that there's no way for this to 
+        //       reach outside of TransitionMatrix (since it's unsafe)
+        private AdvanceResult AdvanceInner(State fromState, CharacterType cType)
+        {
             var stateOffset = (byte)fromState * RuleCacheCharacterCount;
             var forCharOffset = stateOffset + (byte)cType;
 
@@ -177,6 +190,8 @@ namespace Cesil
             return forChar.Result;
         }
 
+        // todo: need a test to make sure there's no way to reach outside of charLookup
+        //       since it's unsafe
         internal static unsafe CharacterLookup MakeCharacterLookup(
             MemoryPool<char> memoryPool,
             char escapeStartChar,

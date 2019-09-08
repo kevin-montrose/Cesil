@@ -350,7 +350,7 @@ end:
                 switch (res)
                 {
                     case ReaderStateMachine.AdvanceResult.Append_Character:
-                    case ReaderStateMachine.AdvanceResult.Append_Previous_And_Current_Character:
+                    case ReaderStateMachine.AdvanceResult.Append_PreviousAndCurrentCharacter:
                     case ReaderStateMachine.AdvanceResult.Finished_Value:
                     case ReaderStateMachine.AdvanceResult.Skip_Character:
                         break;

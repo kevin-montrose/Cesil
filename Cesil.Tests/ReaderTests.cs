@@ -13,6 +13,130 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ReaderTests
     {
+        class _RowCreationFailure
+        {
+            public int Foo { get; set; }
+        }
+        
+        [Fact]
+        public void RowCreationFailure()
+        {
+            int failAfter = 0;
+            int calls = 0;
+            InstanceBuilderDelegate<_RowCreationFailure> builder =
+                (out _RowCreationFailure row) =>
+                {
+                    if (calls >= failAfter)
+                    {
+                        row = default;
+                        return false;
+                    }
+
+                    calls++;
+
+                    row = new _RowCreationFailure();
+                    return true;
+                };
+
+
+            var typeDesc = new ManualTypeDescriber();
+            typeDesc.AddDeserializableProperty(typeof(_RowCreationFailure).GetProperty(nameof(_RowCreationFailure.Foo)));
+            typeDesc.SetBuilder((InstanceBuilder)builder);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(typeDesc).Build();
+
+            RunSyncReaderVariants<_RowCreationFailure>(
+                opts,
+                (config, makeReader) =>
+                {
+                    calls = 0;
+                    failAfter = 3;
+
+                    using (var reader = makeReader("Foo\r\n1\r\n2\r\n3\r\n4"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        Assert.True(csv.TryRead(out var r1));
+                        Assert.Equal(1, r1.Foo);
+
+                        Assert.True(csv.TryRead(out var r2));
+                        Assert.Equal(2, r2.Foo);
+
+                        Assert.True(csv.TryRead(out var r3));
+                        Assert.Equal(3, r3.Foo);
+
+                        Assert.Throws<InvalidOperationException>(() => csv.TryRead(out _));
+                    }
+                }
+            );
+        }
+
+        private class _EnumeratorNoReset
+        {
+            public int A { get; set; }
+            public int B { get; set; }
+            public int C { get; set; }
+        }
+
+
+        [Fact]
+        public void EnumeratorNoReset()
+        {
+            RunSyncReaderVariants<_EnumeratorNoReset>(
+                Options.Default,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader("1,2,3"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var e = csv.EnumerateAll();
+                        using (var i = e.GetEnumerator())
+                        {
+                            Assert.True(i.MoveNext());
+                            var r = i.Current;
+                            Assert.NotNull(r);
+                            Assert.Equal(1, r.A);
+                            Assert.Equal(2, r.B);
+                            Assert.Equal(3, r.C);
+
+                            Assert.False(i.MoveNext());
+
+                            Assert.Throws<NotSupportedException>(() => i.Reset());
+                        }
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public void ReadContext()
+        {
+            var cr = Cesil.ReadContext.ConvertingRow(0, null);
+            Assert.False(cr.HasColumn);
+            Assert.Throws<InvalidOperationException>(() => cr.Column);
+            Assert.True(HashAndEq(cr, cr));
+
+            var cc = Cesil.ReadContext.ConvertingColumn(1, ColumnIdentifier.Create(0, "foo"), null);
+            Assert.True(cc.HasColumn);
+            Assert.Equal(ColumnIdentifier.Create(0, "foo"), cc.Column);
+            Assert.False(HashAndEq(cr, cc));
+            Assert.True(HashAndEq(cc, cc));
+
+            var rc = Cesil.ReadContext.ReadingColumn(2, ColumnIdentifier.Create(3), null);
+            Assert.True(rc.HasColumn);
+            Assert.Equal(3, (int)rc.Column);
+            Assert.False(HashAndEq(cr, rc));
+            Assert.False(HashAndEq(cc, rc));
+            Assert.True(HashAndEq(rc, rc));
+
+            static bool HashAndEq<T>(T a, T b)
+            {
+                var h = a.GetHashCode() == b.GetHashCode();
+                var e = a.Equals(b);
+
+                return h && e;
+            }
+        }
+
         private class _WithComments
         {
             public string A { get; set; }
@@ -70,6 +194,20 @@ namespace Cesil.Tests
 
                             var res3 = csv.TryReadWithComment();
                             Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // with headers, no comment
+                RunSyncReaderVariants<_WithComments>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,Nope"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var res = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res.ResultType);
                         }
                     }
                 );
@@ -173,6 +311,20 @@ namespace Cesil.Tests
                     }
                 );
 
+                // with headers, no comment
+                RunSyncReaderVariants<_WithComments>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,Nope"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var res = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res.ResultType);
+                        }
+                    }
+                );
+
                 // no headers
                 RunSyncReaderVariants<_WithComments>(
                     opts,
@@ -268,6 +420,20 @@ namespace Cesil.Tests
 
                             var res3 = csv.TryReadWithComment();
                             Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // with headers, no comment
+                RunSyncReaderVariants<_WithComments>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,Nope"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var res = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res.ResultType);
                         }
                     }
                 );
@@ -925,7 +1091,8 @@ namespace Cesil.Tests
                         state == ReaderStateMachine.State.Record_Start ||
                         state == ReaderStateMachine.State.Record_InEscapedValue_ExpectingEndOfValueOrRecord ||
                         state == ReaderStateMachine.State.Record_ExpectingEndOfRecord ||
-                        state == ReaderStateMachine.State.Invalid
+                        state == ReaderStateMachine.State.Invalid ||
+                        state == ReaderStateMachine.State.DataEnded
                     );
                 }
             }
@@ -2486,6 +2653,63 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             }
         }
 
+
+        [Fact]
+        public async Task RowCreationFailureAsync()
+        {
+            int failAfter = 0;
+            int calls = 0;
+            InstanceBuilderDelegate<_RowCreationFailure> builder =
+                (out _RowCreationFailure row) =>
+                {
+                    if (calls >= failAfter)
+                    {
+                        row = default;
+                        return false;
+                    }
+
+                    calls++;
+
+                    row = new _RowCreationFailure();
+                    return true;
+                };
+
+
+            var typeDesc = new ManualTypeDescriber();
+            typeDesc.AddDeserializableProperty(typeof(_RowCreationFailure).GetProperty(nameof(_RowCreationFailure.Foo)));
+            typeDesc.SetBuilder((InstanceBuilder)builder);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(typeDesc).Build();
+
+            await RunAsyncReaderVariants<_RowCreationFailure>(
+                opts,
+                async (config, makeReader) =>
+                {
+                    calls = 0;
+                    failAfter = 3;
+
+                    using (var reader = makeReader("Foo\r\n1\r\n2\r\n3\r\n4"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var res1 = await csv.TryReadAsync();
+                        Assert.True(res1.HasValue);
+                        Assert.Equal(1, res1.Value.Foo);
+
+                        var res2 = await csv.TryReadAsync();
+                        Assert.True(res2.HasValue);
+                        Assert.Equal(2, res2.Value.Foo);
+
+                        var res3 = await csv.TryReadAsync();
+                        Assert.True(res3.HasValue);
+                        Assert.Equal(3, res3.Value.Foo);
+
+                        await Assert.ThrowsAsync<InvalidOperationException>(async () => await csv.TryReadAsync());
+                    }
+                }
+            );
+        }
+
+
         [Fact]
         public async Task WithCommentsAsync()
         {
@@ -2537,6 +2761,20 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
 
                             var res3 = await csv.TryReadWithCommentAsync();
                             Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // with headers, no comment
+                await RunAsyncReaderVariants<_WithComments>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,Nope"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var res = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res.ResultType);
                         }
                     }
                 );
@@ -2640,6 +2878,20 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     }
                 );
 
+                // with headers, no comment
+                await RunAsyncReaderVariants<_WithComments>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,Nope"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var res = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res.ResultType);
+                        }
+                    }
+                );
+
                 // no headers
                 await RunAsyncReaderVariants<_WithComments>(
                     opts,
@@ -2735,6 +2987,20 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
 
                             var res3 = await csv.TryReadWithCommentAsync();
                             Assert.Equal(ReadWithCommentResultType.NoValue, res3.ResultType);
+                        }
+                    }
+                );
+
+                // with headers, no comment
+                await RunAsyncReaderVariants<_WithComments>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,Nope"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var res = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res.ResultType);
                         }
                     }
                 );

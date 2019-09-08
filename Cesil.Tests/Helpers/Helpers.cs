@@ -85,6 +85,20 @@ namespace Cesil.Tests
                 }
             }
 
+            // don't count what ITestableAsyncProvider exposes, if it's not implemented explicitly.
+            if (o.GetType().GetInterfaces().Any(i => i == typeof(ITestableAsyncProvider)))
+            {
+                var map = o.GetType().GetInterfaceMap(typeof(ITestableAsyncProvider));
+
+                for (var i = 0; i < map.TargetMethods.Length; i++)
+                {
+                    if (map.TargetMethods[i].IsPublic)
+                    {
+                        expectedTestCases--;
+                    }
+                }
+            }
+
             // don't count IDynamicMetaObjectProvider methods
             if (o.GetType().GetInterfaces().Any(i => i == typeof(IDynamicMetaObjectProvider)))
             {
@@ -177,259 +191,138 @@ namespace Cesil.Tests
                 var leakDetectorConfig = Configuration.ForDynamic(opts.NewBuilder().WithMemoryPool(leakDetector).Build());
 
                 var runCount = 0;
-                run(defaultConfig, str => { runCount++; return new StringReader(str); });
+                run(leakDetectorConfig, str => { runCount++; return new StringReader(str); });
 
                 Assert.Equal(expectedRuns, runCount);
                 Assert.Equal(0, leakDetector.OutstandingRentals);
             }
         }
 
-        public static async Task RunAsyncDynamicReaderVariants(Options opts, Func<IBoundConfiguration<dynamic>, Func<string, TextReader>, Task> run, int expectedRuns = 1)
+        public static Task RunAsyncDynamicReaderVariants(
+            Options opts,
+            Func<IBoundConfiguration<dynamic>,
+            Func<string, TextReader>, Task> run,
+            bool checkRunCounts = true
+        )
+        => RunAsyncReaderVariantsInnerAsync(Configuration.ForDynamic, opts, run, checkRunCounts);
+
+        public static Task RunAsyncReaderVariants<T>(Options opts, Func<IBoundConfiguration<T>, Func<string, TextReader>, Task> run, bool checkRunCounts = true)
+        => RunAsyncReaderVariantsInnerAsync(Configuration.For<T>, opts, run, checkRunCounts);
+
+        private static async Task RunAsyncReaderVariantsInnerAsync<T>(
+            Func<Options, IBoundConfiguration<T>> bindConfig,
+            Options opts,
+            Func<IBoundConfiguration<T>, Func<string, TextReader>, Task> run,
+            bool checkRunCounts
+        )
         {
-            var defaultConfig = Configuration.ForDynamic(opts);
-            var smallBufferConfig = Configuration.ForDynamic(opts.NewBuilder().WithReadBufferSizeHint(1).Build());
-            var forcedAsyncConfig = (BoundConfigurationBase<dynamic>)Configuration.ForDynamic(opts);
+            var smallBufferOpts = opts.NewBuilder().WithReadBufferSizeHint(1).Build();
+
+            await RunOnce(bindConfig, opts, run, checkRunCounts);
+            await RunOnce(bindConfig, smallBufferOpts, run, checkRunCounts);
+
+            // in DEBUG we have some special stuff built in so we can go ham on different async paths
 #if DEBUG
-            forcedAsyncConfig.ForceAsync = true;
+            await RunForcedAsyncVariantsWithBaseConfig(bindConfig, opts, run, checkRunCounts);
+            await RunForcedAsyncVariantsWithBaseConfig(bindConfig, smallBufferOpts, run, checkRunCounts);
 #endif
 
-            // default buffer
+            static async Task RunOnce(Func<Options, IBoundConfiguration<T>> bind, Options baseOpts, Func<IBoundConfiguration<T>, Func<string, TextReader>, Task> run, bool checkRunCounts)
             {
-                var runCount = 0;
-                await run(defaultConfig, str => { runCount++; return new StringReader(str); });
-
-                Assert.Equal(expectedRuns, runCount);
-            }
-
-            // small buffer
-            {
-                var runCount = 0;
-                await run(smallBufferConfig, str => { runCount++; return new StringReader(str); });
-
-                Assert.Equal(expectedRuns, runCount);
-            }
-
-            // leaks
-            {
-                var leakDetector = new TrackedMemoryPool<char>();
-                var leakDetectorConfig = Configuration.ForDynamic(opts.NewBuilder().WithMemoryPool(leakDetector).Build());
-
-                var runCount = 0;
-                await run(defaultConfig, str => { runCount++; return new StringReader(str); });
-
-                Assert.Equal(expectedRuns, runCount);
-                Assert.Equal(0, leakDetector.OutstandingRentals);
-            }
-
-            // forced async
-            {
-                var runCount = 0;
-                await run(forcedAsyncConfig, str => { runCount++; return new ForcedAsyncReader(new StringReader(str)); });
-
-                Assert.Equal(expectedRuns, runCount);
-            }
-        }
-
-        public static async Task RunAsyncReaderVariants<T>(Options opts, Func<IBoundConfiguration<T>, Func<string, TextReader>, Task> run)
-        {
-            var defaultConfig = Configuration.For<T>(opts);
-            var smallBufferConfig = Configuration.For<T>(opts.NewBuilder().WithReadBufferSizeHint(1).Build());
-            var forcedAsyncConfig = (BoundConfigurationBase<T>)Configuration.For<T>(opts);
-#if DEBUG
-            forcedAsyncConfig.ForceAsync = true;
-#endif
-            var smallBufferForcedAsyncConfig = (BoundConfigurationBase<T>)Configuration.For<T>(opts.NewBuilder().WithReadBufferSizeHint(1).Build());
-#if DEBUG
-            smallBufferForcedAsyncConfig.ForceAsync = true;
-#endif
-
-            // default buffer
-            {
-                // probably sync
+                // run the test once
                 {
-                    var runCount = 0;
-                    await run(defaultConfig, str => { runCount++; return new StringReader(str); });
-                    Assert.Equal(1, runCount);
+                    var config = bind(baseOpts);
 
-                    // leaks
+                    int runCount = 0;
+                    await run(config, str => { runCount++; return new StringReader(str); });
+
+                    if (checkRunCounts)
                     {
-                        var leakDetector = new TrackedMemoryPool<char>();
-                        var leakConfig = Configuration.For<T>(opts.NewBuilder().WithMemoryPool(leakDetector).Build());
-
-                        runCount = 0;
-                        await run(leakConfig, str => { runCount++; return new StringReader(str); });
                         Assert.Equal(1, runCount);
-                        Assert.Equal(0, leakDetector.OutstandingRentals);
                     }
                 }
 
-                // async
+                // run the test with a small buffer
                 {
-                    var runCount = 0;
-                    await run(forcedAsyncConfig, str => { runCount++; return new ForcedAsyncReader(new StringReader(str)); });
-                    Assert.Equal(1, runCount);
+                    var smallBufferOpts = baseOpts.NewBuilder().WithReadBufferSizeHint(1).Build();
+                    var smallBufferConfig = bind(smallBufferOpts);
 
-                    // leaks
-                    {
-                        var leakDetector = new TrackedMemoryPool<char>();
-                        var leakConfig = (BoundConfigurationBase<T>)Configuration.For<T>(opts.NewBuilder().WithMemoryPool(leakDetector).Build());
-#if DEBUG
-                        leakConfig.ForceAsync = true;
-#endif
-
-                        runCount = 0;
-                        await run(leakConfig, str => { runCount++; return new ForcedAsyncReader(new StringReader(str)); });
-                        Assert.Equal(1, runCount);
-                        Assert.Equal(0, leakDetector.OutstandingRentals);
-                    }
-                }
-
-                // figure out how many chances we have to go async in this test
-                AsyncCounterReader reader = null;
-                await run(defaultConfig, str => { return reader ??= new AsyncCounterReader(new StringReader(str)); });
-                var numAsyncCalls = reader.Count;
-
-                var runAllCombos = numAsyncCalls <= MAX_TO_TEST_EXHAUSTIVELY;
-                if (runAllCombos)
-                {
-                    // how many different ways could this flow, sync vs async?
-                    var combos = EnumerateAsynchoronousCompletionOptions(numAsyncCalls);
-                    foreach (var combo in combos)
-                    {
-                        var didRun = false;
-                        await run(defaultConfig, str => { didRun = true; return new ConfigurableSyncAsyncReader(combo, new StringReader(str)); });
-
-                        Assert.True(didRun);
-
-                        // leaks
-                        {
-                            var leakDetector = new TrackedMemoryPool<char>();
-                            var leakConfig = Configuration.For<T>(opts.NewBuilder().WithMemoryPool(leakDetector).Build());
-
-                            var runCount = 0;
-                            await run(leakConfig, str => { runCount++; return new ConfigurableSyncAsyncReader(combo, new StringReader(str)); });
-                            Assert.Equal(1, runCount);
-                            Assert.Equal(0, leakDetector.OutstandingRentals);
-                        }
-                    }
-                }
-                else
-                {
-                    for (var i = 0; i < numAsyncCalls; i++)
-                    {
-                        var combo = new bool[numAsyncCalls];
-                        combo[i] = true;
-
-                        var didRun = false;
-                        await run(defaultConfig, str => { didRun = true; return new ConfigurableSyncAsyncReader(combo, new StringReader(str)); });
-
-                        Assert.True(didRun);
-
-                        // leaks
-                        {
-                            var leakDetector = new TrackedMemoryPool<char>();
-                            var leakConfig = Configuration.For<T>(opts.NewBuilder().WithMemoryPool(leakDetector).Build());
-
-                            var runCount = 0;
-                            await run(leakConfig, str => { runCount++; return new ConfigurableSyncAsyncReader(combo, new StringReader(str)); });
-                            Assert.Equal(1, runCount);
-                            Assert.Equal(0, leakDetector.OutstandingRentals);
-                        }
-                    }
-                }
-            }
-
-            // very small buffer
-            {
-                // probably sync
-                {
-                    var runCount = 0;
+                    int runCount = 0;
                     await run(smallBufferConfig, str => { runCount++; return new StringReader(str); });
-                    Assert.Equal(1, runCount);
-
-                    // leaks
+                    if (checkRunCounts)
                     {
-                        var leakDetector = new TrackedMemoryPool<char>();
-                        var leakConfig = Configuration.For<T>(opts.NewBuilder().WithReadBufferSizeHint(1).WithMemoryPool(leakDetector).Build());
-
-                        runCount = 0;
-                        await run(leakConfig, str => { runCount++; return new StringReader(str); });
-                        Assert.Equal(1, runCount);
-                        Assert.Equal(0, leakDetector.OutstandingRentals);
-                    }
-                }
-
-                // async
-                {
-                    var runCount = 0;
-                    await run(smallBufferForcedAsyncConfig, str => { runCount++; return new ForcedAsyncReader(new StringReader(str)); });
-                    Assert.Equal(1, runCount);
-
-                    // leaks
-                    {
-                        var leakDetector = new TrackedMemoryPool<char>();
-                        var leakConfig = (BoundConfigurationBase<T>)Configuration.For<T>(opts.NewBuilder().WithReadBufferSizeHint(1).WithMemoryPool(leakDetector).Build());
-#if DEBUG
-                        leakConfig.ForceAsync = true;
-#endif
-
-                        runCount = 0;
-                        await run(leakConfig, str => { runCount++; return new ForcedAsyncReader(new StringReader(str)); });
                         Assert.Equal(1, runCount);
                     }
                 }
 
-                // figure out how many chances we have to go async in this test
-                AsyncCounterReader reader = null;
-                await run(smallBufferConfig, str => { return reader ??= new AsyncCounterReader(new StringReader(str)); });
-                var numAsyncCalls = reader.Count;
-
-                var runAllCombos = numAsyncCalls <= MAX_TO_TEST_EXHAUSTIVELY;
-                if (runAllCombos)
+                // run the test once, but look for leaks
                 {
-                    // how many different ways could this flow, sync vs async?
-                    var combos = EnumerateAsynchoronousCompletionOptions(numAsyncCalls);
-                    foreach (var combo in combos)
+                    var leakDetector = new TrackedMemoryPool<char>();
+                    var leakDetectorConfig = bind(baseOpts.NewBuilder().WithMemoryPool(leakDetector).Build());
+
+                    int runCount = 0;
+                    await run(leakDetectorConfig, str => { runCount++; return new StringReader(str); });
+                    if (checkRunCounts)
                     {
-                        var didRun = false;
-                        await run(smallBufferConfig, str => { didRun = true; return new ConfigurableSyncAsyncReader(combo, new StringReader(str)); });
+                        Assert.Equal(1, runCount);
+                    }
+                    Assert.Equal(0, leakDetector.OutstandingRentals);
+                }
+            }
 
-                        Assert.True(didRun);
+            static async Task RunForcedAsyncVariantsWithBaseConfig(Func<Options, IBoundConfiguration<T>> bind, Options baseOpts, Func<IBoundConfiguration<T>, Func<string, TextReader>, Task> run, bool checkRunCounts)
+            {
+                var config = bind(baseOpts);
 
-                        // leaks
-                        {
-                            var leakDetector = new TrackedMemoryPool<char>();
-                            var leakConfig = Configuration.For<T>(opts.NewBuilder().WithReadBufferSizeHint(1).WithMemoryPool(leakDetector).Build());
+                // walk each async transition point
+                var forceUpTo = 0;
+                while (true)
+                {
+                    var wrappedConfig = new AsyncCountingAndForcingConfig<T>(config);
+                    wrappedConfig.GoAsyncAfter = forceUpTo;
 
-                            var runCount = 0;
-                            await run(leakConfig, str => { runCount++; return new ConfigurableSyncAsyncReader(combo, new StringReader(str)); });
-                            Assert.Equal(1, runCount);
-                            Assert.Equal(0, leakDetector.OutstandingRentals);
-                        }
+                    int runCount = 0;
+                    await run(wrappedConfig, str => { runCount++; return new StringReader(str); });
+                    if (checkRunCounts)
+                    {
+                        Assert.Equal(1, runCount);
+                    }
+
+                    if (wrappedConfig.AsyncCounter >= forceUpTo)
+                    {
+                        forceUpTo++;
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
-                else
+
+                // the same, but check for leaks this time
+                forceUpTo = 0;
+                while (true)
                 {
-                    for (var i = 0; i < numAsyncCalls; i++)
+                    var leakDetector = new TrackedMemoryPool<char>();
+                    var leakDetectorConfig = bind(baseOpts.NewBuilder().WithMemoryPool(leakDetector).Build());
+
+                    var wrappedConfig = new AsyncCountingAndForcingConfig<T>(leakDetectorConfig);
+                    wrappedConfig.GoAsyncAfter = forceUpTo;
+
+                    int runCount = 0;
+                    await run(wrappedConfig, str => { runCount++; return new StringReader(str); });
+                    if (checkRunCounts)
                     {
-                        var combo = new bool[numAsyncCalls];
-                        combo[i] = true;
+                        Assert.Equal(1, runCount);
+                    }
+                    Assert.Equal(0, leakDetector.OutstandingRentals);
 
-                        var didRun = false;
-                        await run(defaultConfig, str => { didRun = true; return new ConfigurableSyncAsyncReader(combo, new StringReader(str)); });
-
-                        Assert.True(didRun);
-
-                        // leaks
-                        {
-                            var leakDetector = new TrackedMemoryPool<char>();
-                            var leakConfig = Configuration.For<T>(opts.NewBuilder().WithReadBufferSizeHint(1).WithMemoryPool(leakDetector).Build());
-
-                            var runCount = 0;
-                            await run(leakConfig, str => { runCount++; return new ConfigurableSyncAsyncReader(combo, new StringReader(str)); });
-                            Assert.Equal(1, runCount);
-                            Assert.Equal(0, leakDetector.OutstandingRentals);
-                        }
+                    if (wrappedConfig.AsyncCounter >= forceUpTo)
+                    {
+                        forceUpTo++;
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
             }
@@ -694,7 +587,7 @@ namespace Cesil.Tests
                                 var leakConfig = Configuration.For<T>(baseOptions.NewBuilder().WithMemoryPool(leakDetector).Build());
 
                                 var didRun = false;
-                                await run(defaultConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
+                                await run(leakConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
 
                                 Assert.True(didRun);
                                 Assert.Equal(0, leakDetector.OutstandingRentals);
@@ -728,7 +621,7 @@ namespace Cesil.Tests
                                 var leakConfig = Configuration.For<T>(baseOptions.NewBuilder().WithMemoryPool(leakDetector).Build());
 
                                 var didRun = false;
-                                await run(defaultConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
+                                await run(leakConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
 
                                 Assert.True(didRun);
                                 Assert.Equal(0, leakDetector.OutstandingRentals);
@@ -776,7 +669,7 @@ namespace Cesil.Tests
                                 var leakConfig = Configuration.For<T>(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).WithMemoryPool(leakDetector).Build());
 
                                 var didRun = false;
-                                await run(defaultConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
+                                await run(leakConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
 
                                 Assert.True(didRun);
                                 Assert.Equal(0, leakDetector.OutstandingRentals);
@@ -810,7 +703,7 @@ namespace Cesil.Tests
                                 var leakConfig = Configuration.For<T>(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).WithMemoryPool(leakDetector).Build());
 
                                 var didRun = false;
-                                await run(defaultConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
+                                await run(leakConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
 
                                 Assert.True(didRun);
                                 Assert.Equal(0, leakDetector.OutstandingRentals);
@@ -954,7 +847,7 @@ namespace Cesil.Tests
                                 var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithMemoryPool(leakDetector).Build());
 
                                 var didRun = false;
-                                await run(defaultConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
+                                await run(leakConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
 
                                 Assert.True(didRun);
                                 Assert.Equal(0, leakDetector.OutstandingRentals);
@@ -988,7 +881,7 @@ namespace Cesil.Tests
                                 var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithMemoryPool(leakDetector).Build());
 
                                 var didRun = false;
-                                await run(defaultConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
+                                await run(leakConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
 
                                 Assert.True(didRun);
                                 Assert.Equal(0, leakDetector.OutstandingRentals);
@@ -1036,7 +929,7 @@ namespace Cesil.Tests
                                 var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).WithMemoryPool(leakDetector).Build());
 
                                 var didRun = false;
-                                await run(defaultConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
+                                await run(leakConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
 
                                 Assert.True(didRun);
                                 Assert.Equal(0, leakDetector.OutstandingRentals);
@@ -1070,7 +963,7 @@ namespace Cesil.Tests
                                 var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).WithMemoryPool(leakDetector).Build());
 
                                 var didRun = false;
-                                await run(defaultConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
+                                await run(leakConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
 
                                 Assert.True(didRun);
                                 Assert.Equal(0, leakDetector.OutstandingRentals);

@@ -18,9 +18,9 @@ namespace Cesil.Tests
 
             using (var str = new StringReader(TEXT))
             {
-                var buf = 
+                var buf =
                     new BufferWithPushback(
-                        MemoryPool<char>.Shared, 
+                        MemoryPool<char>.Shared,
                         500
 #if DEBUG
                         , false
@@ -48,9 +48,9 @@ namespace Cesil.Tests
                 {
                     using (var str = getReader(TEXT))
                     {
-                        var buf = 
+                        var buf =
                             new BufferWithPushback(
-                                MemoryPool<char>.Shared, 
+                                MemoryPool<char>.Shared,
                                 500
 #if DEBUG
                                 , false
@@ -75,9 +75,9 @@ namespace Cesil.Tests
 
             using (var str = new StringReader(TEXT))
             {
-                var buf = 
+                var buf =
                     new BufferWithPushback(
-                        MemoryPool<char>.Shared, 
+                        MemoryPool<char>.Shared,
                         500
 #if DEBUG
                         , false
@@ -113,9 +113,9 @@ namespace Cesil.Tests
                 {
                     using (var str = getReader(TEXT))
                     {
-                        var buf = 
+                        var buf =
                             new BufferWithPushback(
-                                MemoryPool<char>.Shared, 
+                                MemoryPool<char>.Shared,
                                 500
 #if DEBUG
                                 , false

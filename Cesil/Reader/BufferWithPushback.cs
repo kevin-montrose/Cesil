@@ -23,7 +23,7 @@ namespace Cesil
 #endif
 
         internal BufferWithPushback(
-            MemoryPool<char> memoryPool, 
+            MemoryPool<char> memoryPool,
             int initialBufferSize
 #if DEBUG
             , bool forceAsync
@@ -86,7 +86,7 @@ namespace Cesil
         internal ValueTask<int> ReadAsync(TextReader reader, CancellationToken cancel)
         {
 #if DEBUG
-            if(ForceAsync)
+            if (ForceAsync)
             {
                 return ForceAsyncReadAsync(reader, cancel);
             }

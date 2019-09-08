@@ -909,17 +909,17 @@ loopEnd:
             var isCommon = object.ReferenceEquals(this, TypeDescribers.Default);
             if (isCommon)
             {
-                return $"Shared {nameof(DefaultTypeDescriber)}";
+                return $"{nameof(DefaultTypeDescriber)} Shared Instance";
             }
 
             var t = GetType().GetTypeInfo();
 
             if (t == Types.DefaultTypeDescriberType)
             {
-                return $"Unshared {nameof(DefaultTypeDescriber)}";
+                return $"{nameof(DefaultTypeDescriber)} Unique Instance";
             }
 
-            return t.FullName;
+            return $"{nameof(DefaultTypeDescriber)} Subclass {t.Name}";
         }
     }
 }

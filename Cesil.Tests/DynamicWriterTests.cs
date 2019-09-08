@@ -43,6 +43,22 @@ namespace Cesil.Tests
                 {
                     var opts = dynOpts.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
 
+                    // empty line
+                    RunSyncDynamicWriterVariants(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#", res);
+                        }
+                    );
+
                     // one line
                     RunSyncDynamicWriterVariants(
                         opts,
@@ -79,6 +95,22 @@ namespace Cesil.Tests
                 // second line, no headers
                 {
                     var opts = dynOpts.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+
+                    // empty line
+                    RunSyncDynamicWriterVariants(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#", res);
+                        }
+                    );
 
                     // one line
                     RunSyncDynamicWriterVariants(
@@ -158,6 +190,22 @@ namespace Cesil.Tests
                 {
                     var opts = dynOpts.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
 
+                    // empty line
+                    RunSyncDynamicWriterVariants(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#", res);
+                        }
+                    );
+
                     // one line
                     RunSyncDynamicWriterVariants(
                         opts,
@@ -200,6 +248,22 @@ namespace Cesil.Tests
                 {
                     var opts = dynOpts.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
 
+                    // empty line
+                    RunSyncDynamicWriterVariants(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#\r\n", res);
+                        }
+                    );
+
                     // one line
                     RunSyncDynamicWriterVariants(
                         opts,
@@ -236,6 +300,22 @@ namespace Cesil.Tests
                 // second line, no headers
                 {
                     var opts = dynOpts.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+
+                    // empty line
+                    RunSyncDynamicWriterVariants(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#\r\n", res);
+                        }
+                    );
 
                     // one line
                     RunSyncDynamicWriterVariants(
@@ -314,6 +394,22 @@ namespace Cesil.Tests
                 // before row, no headers
                 {
                     var opts = dynOpts.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+
+                    // empty line
+                    RunSyncDynamicWriterVariants(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#\r\n", res);
+                        }
+                    );
 
                     // one line
                     RunSyncDynamicWriterVariants(
@@ -837,7 +933,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = 
+                var opts =
                     Options.DynamicDefault.NewBuilder()
                         .WithWriteHeader(WriteHeaders.Never)
                         .WithRowEnding(RowEndings.CarriageReturnLineFeed)
@@ -958,7 +1054,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = 
+                var opts =
                     Options.DynamicDefault
                         .NewBuilder()
                         .WithWriteHeader(WriteHeaders.Always)
@@ -1695,6 +1791,22 @@ namespace Cesil.Tests
                 {
                     var opts = dynOpts.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
 
+                    // empty line
+                    await RunAsyncDynamicWriterVariants(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#", res);
+                        }
+                    );
+
                     // one line
                     await RunAsyncDynamicWriterVariants(
                         opts,
@@ -1731,6 +1843,22 @@ namespace Cesil.Tests
                 // second line, no headers
                 {
                     var opts = dynOpts.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+
+                    // empty line
+                    await RunAsyncDynamicWriterVariants(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#", res);
+                        }
+                    );
 
                     // one line
                     await RunAsyncDynamicWriterVariants(
@@ -1810,6 +1938,22 @@ namespace Cesil.Tests
                 {
                     var opts = dynOpts.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
 
+                    // empty line
+                    await RunAsyncDynamicWriterVariants(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#", res);
+                        }
+                    );
+
                     // one line
                     await RunAsyncDynamicWriterVariants(
                         opts,
@@ -1852,6 +1996,22 @@ namespace Cesil.Tests
                 {
                     var opts = dynOpts.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
 
+                    // empty line
+                    await RunAsyncDynamicWriterVariants(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#\r\n", res);
+                        }
+                    );
+
                     // one line
                     await RunAsyncDynamicWriterVariants(
                         opts,
@@ -1888,6 +2048,22 @@ namespace Cesil.Tests
                 // second line, no headers
                 {
                     var opts = dynOpts.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+
+                    // empty line
+                    await RunAsyncDynamicWriterVariants(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#\r\n", res);
+                        }
+                    );
 
                     // one line
                     await RunAsyncDynamicWriterVariants(
@@ -1966,6 +2142,22 @@ namespace Cesil.Tests
                 // before row, no headers
                 {
                     var opts = dynOpts.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+
+                    // empty line
+                    await RunAsyncDynamicWriterVariants(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#\r\n", res);
+                        }
+                    );
 
                     // one line
                     await RunAsyncDynamicWriterVariants(
@@ -2070,14 +2262,14 @@ namespace Cesil.Tests
                     opts,
                      async (config, getWriter, getString) =>
                      {
-                        await using (var writer = config.CreateAsyncWriter(getWriter()))
-                        {
-                            await writer.WriteAsync(MakeDynamicRow("Hello,World\r\nhello,fo#o"));
-                        }
+                         await using (var writer = config.CreateAsyncWriter(getWriter()))
+                         {
+                             await writer.WriteAsync(MakeDynamicRow("Hello,World\r\nhello,fo#o"));
+                         }
 
-                        var txt = getString();
-                        Assert.Equal("hello,\"fo#o\"\r\n", txt);
-                    }
+                         var txt = getString();
+                         Assert.Equal("hello,\"fo#o\"\r\n", txt);
+                     }
                 );
             }
 
@@ -2095,28 +2287,28 @@ namespace Cesil.Tests
                     opts,
                      async (config, getWriter, getString) =>
                      {
-                        await using (var writer = config.CreateAsyncWriter(getWriter()))
-                        {
-                            await writer.WriteAsync(MakeDynamicRow("Hello,World\r\n#hello,foo"));
-                        }
+                         await using (var writer = config.CreateAsyncWriter(getWriter()))
+                         {
+                             await writer.WriteAsync(MakeDynamicRow("Hello,World\r\n#hello,foo"));
+                         }
 
-                        var txt = getString();
-                        Assert.Equal("\"#hello\",foo\r", txt);
-                    }
+                         var txt = getString();
+                         Assert.Equal("\"#hello\",foo\r", txt);
+                     }
                 );
 
                 await RunAsyncDynamicWriterVariants(
                     opts,
                      async (config, getWriter, getString) =>
                      {
-                        await using (var writer = config.CreateAsyncWriter(getWriter()))
-                        {
-                            await writer.WriteAsync(MakeDynamicRow("Hello,World\r\nhello,fo#o"));
-                        }
+                         await using (var writer = config.CreateAsyncWriter(getWriter()))
+                         {
+                             await writer.WriteAsync(MakeDynamicRow("Hello,World\r\nhello,fo#o"));
+                         }
 
-                        var txt = getString();
-                        Assert.Equal("hello,\"fo#o\"\r", txt);
-                    }
+                         var txt = getString();
+                         Assert.Equal("hello,\"fo#o\"\r", txt);
+                     }
                 );
             }
 
@@ -2134,28 +2326,28 @@ namespace Cesil.Tests
                     opts,
                      async (config, getWriter, getString) =>
                      {
-                        await using (var writer = config.CreateAsyncWriter(getWriter()))
-                        {
-                            await writer.WriteAsync(MakeDynamicRow("Hello,World\r\n#hello,foo"));
-                        }
+                         await using (var writer = config.CreateAsyncWriter(getWriter()))
+                         {
+                             await writer.WriteAsync(MakeDynamicRow("Hello,World\r\n#hello,foo"));
+                         }
 
-                        var txt = getString();
-                        Assert.Equal("\"#hello\",foo\n", txt);
-                    }
+                         var txt = getString();
+                         Assert.Equal("\"#hello\",foo\n", txt);
+                     }
                 );
 
                 await RunAsyncDynamicWriterVariants(
                     opts,
                      async (config, getWriter, getString) =>
                      {
-                        await using (var writer = config.CreateAsyncWriter(getWriter()))
-                        {
-                            await writer.WriteAsync(MakeDynamicRow("Hello,World\r\nhello,fo#o"));
-                        }
+                         await using (var writer = config.CreateAsyncWriter(getWriter()))
+                         {
+                             await writer.WriteAsync(MakeDynamicRow("Hello,World\r\nhello,fo#o"));
+                         }
 
-                        var txt = getString();
-                        Assert.Equal("hello,\"fo#o\"\n", txt);
-                    }
+                         var txt = getString();
+                         Assert.Equal("hello,\"fo#o\"\n", txt);
+                     }
                 );
             }
         }

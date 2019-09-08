@@ -916,6 +916,26 @@ namespace Cesil.Tests
                 row.Dispose();
             }
 
+            // out of range, index
+            {
+                var row = MakeRow();
+
+                Assert.Throws<ArgumentOutOfRangeException>(() => row[-1]);
+                Assert.Throws<ArgumentOutOfRangeException>(() => row[100]);
+
+                row.Dispose();
+            }
+
+            // out of range, range
+            {
+                var row = MakeRow();
+
+                Assert.Throws<ArgumentOutOfRangeException>(() => row[-1..2]);
+                Assert.Throws<ArgumentOutOfRangeException>(() => row[1..16]);
+
+                row.Dispose();
+            }
+
             // missing row conversion
             {
                 var row = MakeRow();
@@ -956,8 +976,65 @@ namespace Cesil.Tests
                 row.Dispose();
             }
 
+            // re-use row while enumerating
+            {
+                var row = MakeRow();
+
+                using (var e = ((IEnumerable<int>)row).GetEnumerator())
+                {
+                    Assert.True(e.MoveNext());
+                    Assert.Equal(1, e.Current);
+
+                    var opts =
+                    Options.Default
+                        .NewBuilder()
+                        .WithReadHeader(ReadHeaders.Never)
+                        .WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose)
+                        .WithTypeDescriber(TypeDescribers.Default)
+                        .Build();
+                    var config = Configuration.ForDynamic(opts);
+
+                    using (var str = new System.IO.StringReader("4,5,6"))
+                    using (var csv = config.CreateReader(str))
+                    {
+                        var res = csv.TryReadWithReuse(ref row);
+                        Assert.True(res);
+                    }
+
+                    Assert.Throws<InvalidOperationException>(() => e.MoveNext());
+                }
+            }
+
+            // re-use row while enumerating (non-generic)
+            {
+                var row = MakeRow();
+
+                var e = ((System.Collections.IEnumerable)row).GetEnumerator();
+                Assert.True(e.MoveNext());
+                dynamic obj = e.Current;
+                Assert.Equal(1, (int)obj);
+
+                var opts =
+                Options.Default
+                    .NewBuilder()
+                    .WithReadHeader(ReadHeaders.Never)
+                    .WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose)
+                    .WithTypeDescriber(TypeDescribers.Default)
+                    .Build();
+                var config = Configuration.ForDynamic(opts);
+
+                using (var str = new System.IO.StringReader("4,5,6"))
+                using (var csv = config.CreateReader(str))
+                {
+                    var res = csv.TryReadWithReuse(ref row);
+                    Assert.True(res);
+                }
+
+                Assert.Throws<InvalidOperationException>(() => e.MoveNext());
+            }
+
             // create a test row
-            dynamic MakeRow(ITypeDescriber c = null)
+            static dynamic MakeRow(ITypeDescriber c = null)
             {
                 var opts =
                     Options.Default
@@ -1623,18 +1700,22 @@ namespace Cesil.Tests
                                 string aIx = row[0];
                                 string aName = row["A"];
                                 string aMem = row.A;
+                                string aCol = row[ColumnIdentifier.Create(0, "A")];
 
                                 Assert.Equal("foo", aIx);
                                 Assert.Equal("foo", aName);
                                 Assert.Equal("foo", aMem);
+                                Assert.Equal("foo", aCol);
 
                                 string bIx = row[1];
                                 string bName = row["B"];
                                 string bMem = row.B;
+                                string bCol = row[(ColumnIdentifier)1];
 
                                 Assert.Equal("bar", bIx);
                                 Assert.Equal("bar", bName);
                                 Assert.Equal("bar", bMem);
+                                Assert.Equal("bar", bCol);
 
                                 // untyped enumerable
                                 {
@@ -4257,18 +4338,22 @@ namespace Cesil.Tests
                                 string aIx = row[0];
                                 string aName = row["A"];
                                 string aMem = row.A;
+                                string aCol = row[ColumnIdentifier.Create(0, "A")];
 
                                 Assert.Equal("foo", aIx);
                                 Assert.Equal("foo", aName);
                                 Assert.Equal("foo", aMem);
+                                Assert.Equal("foo", aCol);
 
                                 string bIx = row[1];
                                 string bName = row["B"];
                                 string bMem = row.B;
+                                string bCol = row[ColumnIdentifier.Create(1)];
 
                                 Assert.Equal("bar", bIx);
                                 Assert.Equal("bar", bName);
                                 Assert.Equal("bar", bMem);
+                                Assert.Equal("bar", bCol);
 
                                 // untyped enumerable
                                 {
@@ -5277,7 +5362,7 @@ namespace Cesil.Tests
                             }
                         );
                     },
-                    expectedRuns: 4
+                    checkRunCounts: false
                 );
             }
 
@@ -5336,7 +5421,7 @@ namespace Cesil.Tests
                             }
                         );
                     },
-                    expectedRuns: 4
+                    checkRunCounts: false
                 );
             }
 
@@ -5397,7 +5482,7 @@ namespace Cesil.Tests
                             }
                         );
                     },
-                    expectedRuns: 4
+                    checkRunCounts: false
                 );
             }
 
@@ -5455,7 +5540,7 @@ namespace Cesil.Tests
                             }
                         );
                     },
-                    expectedRuns: 4
+                    checkRunCounts: false
                 );
             }
         }

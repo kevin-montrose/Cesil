@@ -48,9 +48,9 @@ namespace Cesil
 
             var valType = (val as object)?.GetType().GetTypeInfo();
 
-            if (valType != null && formatter.Takes != valType)
+            if (valType != null && !formatter.Takes.IsAssignableFrom(valType))
             {
-                Throw.ArgumentException("Formatter must accept an object (can be dynamic in source)", nameof(formatter));
+                Throw.ArgumentException($"Formatter must accept an object assignable from {valType}", nameof(formatter));
             }
 
             return new DynamicCellValue(name, val, formatter);
@@ -89,7 +89,7 @@ namespace Cesil
         /// Only for debugging, this value is not guaranteed to be stable.
         /// </summary>
         public override string ToString()
-        => $"{nameof(Name)}={Name}, {nameof(Value)}={Value}, {nameof(Formatter)}={Formatter}";
+        => $"{nameof(DynamicCellValue)} with {nameof(Name)}={Name}, {nameof(Value)}={Value}, {nameof(Formatter)}={Formatter}";
 
         /// <summary>
         /// Compare two DynamicCellValues for equality

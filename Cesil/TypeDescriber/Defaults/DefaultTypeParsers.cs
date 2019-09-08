@@ -167,7 +167,7 @@ namespace Cesil
 
         private static bool TryParseUri(ReadOnlySpan<char> span, in ReadContext _, out Uri val)
         {
-            if(!TryParseString(span, in _,out var asStr))
+            if (!TryParseString(span, in _, out var asStr))
             {
                 val = default;
                 return false;

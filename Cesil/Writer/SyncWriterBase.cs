@@ -5,7 +5,7 @@ using System.IO;
 
 namespace Cesil
 {
-    internal abstract class SyncWriterBase<T>:
+    internal abstract class SyncWriterBase<T> :
         WriterBase<T>,
         IWriter<T>,
         ITestableDisposable

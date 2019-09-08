@@ -199,7 +199,7 @@ namespace Cesil
         public static Formatter GetDefault(TypeInfo forType)
         {
             if (forType.IsEnum)
-            {   
+            {
                 if (forType.GetCustomAttribute<FlagsAttribute>() == null)
                 {
                     var formattingClass = Types.DefaultEnumTypeFormatterType.MakeGenericType(forType).GetTypeInfo();

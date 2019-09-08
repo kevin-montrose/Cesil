@@ -36,6 +36,7 @@ namespace Cesil
             public static readonly MethodInfo GetByIndex = Types.DynamicRowType.GetMethod(nameof(Cesil.DynamicRow.GetByIndex), BindingFlags.Instance | BindingFlags.NonPublic);
             public static readonly MethodInfo GetRange = Types.DynamicRowType.GetMethod(nameof(Cesil.DynamicRow.GetRange), BindingFlags.Instance | BindingFlags.NonPublic);
             public static readonly MethodInfo GetReadContext = Types.DynamicRowType.GetMethod(nameof(Cesil.DynamicRow.GetReadContext), BindingFlags.Instance | BindingFlags.NonPublic);
+            public static readonly MethodInfo GetByIdentifier = Types.DynamicRowType.GetMethod(nameof(Cesil.DynamicRow.GetByIdentifier), BindingFlags.Instance | BindingFlags.NonPublic);
         }
     }
 }

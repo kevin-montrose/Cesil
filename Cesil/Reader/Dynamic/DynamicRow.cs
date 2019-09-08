@@ -34,8 +34,9 @@ namespace Cesil
             internal DynamicColumnEnumerator(DynamicRow row)
             {
                 Row = row;
-                NextIndex = 0;
                 ExpectedGeneration = row.Generation;
+
+                Reset();
             }
 
             public bool MoveNext()
@@ -83,7 +84,7 @@ namespace Cesil
             => $"{nameof(DynamicColumnEnumerator)} backed by {Row}";
         }
 
-        private sealed class DynamicColumnEnumerable : IReadOnlyList<ColumnIdentifier>
+        internal sealed class DynamicColumnEnumerable : IReadOnlyList<ColumnIdentifier>
         {
             private readonly DynamicRow Row;
 
@@ -154,12 +155,12 @@ namespace Cesil
         DynamicRow IIntrusiveLinkedList<DynamicRow>.Previous { get; set; }
 
         internal void Init(
-            IDynamicRowOwner owner, 
-            int rowNumber, 
-            int width, 
+            IDynamicRowOwner owner,
+            int rowNumber,
+            int width,
             object ctx,
-            ITypeDescriber converter, 
-            string[] names, 
+            ITypeDescriber converter,
+            string[] names,
             MemoryPool<char> pool
         )
         {
@@ -259,6 +260,9 @@ namespace Cesil
         }
 
         internal T GetAtTyped<T>(in ColumnIdentifier index)
+        => (T)(dynamic)GetByIdentifier(in index);
+
+        internal object GetByIdentifier(in ColumnIdentifier index)
         {
             AssertNotDisposed();
 
@@ -266,16 +270,14 @@ namespace Cesil
             {
                 if (TryGetValue(index.Name, out dynamic res))
                 {
-                    var ret = (T)res;
-                    return ret;
+                    return res;
                 }
             }
             else
             {
                 if (TryGetIndex(index.Index, out dynamic res))
                 {
-                    var ret = (T)res;
-                    return ret;
+                    return res;
                 }
             }
 
@@ -555,7 +557,7 @@ checkSize:
         {
             if (gen != Generation)
             {
-                Throw.ObjectDisposedException(nameof(DynamicRow));
+                Throw.InvalidOperationException($"Underlying {nameof(DynamicRow)} modified during enumeration, generation mismatch");
             }
         }
 
@@ -581,6 +583,6 @@ checkSize:
         }
 
         public override string ToString()
-        => $"{nameof(DynamicRow)}, {nameof(Generation)}={Generation}, {nameof(Converter)}={Converter}, {nameof(RowNumber)}={RowNumber}";
+        => $"{nameof(DynamicRow)} {nameof(Generation)}={Generation}, {nameof(Converter)}={Converter}, {nameof(RowNumber)}={RowNumber}";
     }
 }

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 
 namespace Cesil
@@ -35,29 +34,11 @@ namespace Cesil
                 var available = Buffer.Read(Inner);
                 if (available == 0)
                 {
-                    EndOfData();
-
-                    if (HasValueToReturn)
-                    {
-                        row = GetValueForReturn();
-                        return new ReadWithCommentResult<dynamic>(row);
-                    }
-
-                    if (HasCommentToReturn)
-                    {
-                        HasCommentToReturn = false;
-                        if (returnComments)
-                        {
-                            var comment = Partial.PendingAsString(Buffer.Buffer);
-                            return new ReadWithCommentResult<dynamic>(comment);
-                        }
-                    }
-
-                    // intentionally _not_ modifying record here
-                    return ReadWithCommentResult<dynamic>.Empty;
+                    var endRes = EndOfData();
+                    return HandleAdvanceResult(endRes, returnComments);
                 }
 
-                if (!HasValueToReturn)
+                if (!Partial.HasPending)
                 {
                     DynamicRow dynRow;
 
@@ -89,29 +70,10 @@ namespace Cesil
                 }
 
                 var res = AdvanceWork(available);
-                if (res == ReadWithCommentResultType.HasValue)
+                var possibleReturn = HandleAdvanceResult(res, returnComments);
+                if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                 {
-                    row = GetValueForReturn();
-                    return new ReadWithCommentResult<dynamic>(row);
-                }
-                if (res == ReadWithCommentResultType.HasComment)
-                {
-                    HasCommentToReturn = false;
-
-                    if (returnComments)
-                    {
-                        // only actually allocate for the comment if it's been asked for
-
-                        var comment = Partial.PendingAsString(Buffer.Buffer);
-                        Partial.ClearValue();
-                        Partial.ClearBuffer();
-                        return new ReadWithCommentResult<dynamic>(comment);
-                    }
-                    else
-                    {
-                        Partial.ClearValue();
-                        Partial.ClearBuffer();
-                    }
+                    return possibleReturn;
                 }
             }
         }
@@ -224,6 +186,11 @@ namespace Cesil
             }
 
             Inner.Dispose();
+            Buffer.Dispose();
+            Partial.Dispose();
+            StateMachine?.Dispose();
+            SharedCharacterLookup.Dispose();
+
             Inner = null;
         }
 

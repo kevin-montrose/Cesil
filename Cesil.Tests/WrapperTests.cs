@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Reflection;
 using Xunit;
 
 namespace Cesil.Tests
@@ -718,6 +719,311 @@ namespace Cesil.Tests
             Assert.NotNull(cOut);
             Assert.Same(c, cWrapped.Delegate);
             Assert.Equal(1, cCalled);
+        }
+
+        private static readonly MethodInfo _Equatable_DynamicRowConverter_Mtd = typeof(WrapperTests).GetMethod(nameof(_Equatable_DynamicRowConverter), BindingFlags.NonPublic | BindingFlags.Static);
+        private static bool _Equatable_DynamicRowConverter(object o, in ReadContext ctx, out _DynamicRowConverterCast res)
+        {
+            res = new _DynamicRowConverterCast();
+            return true;
+        }
+
+        private static readonly MethodInfo _Equatable_Formatter_Mtd = typeof(WrapperTests).GetMethod(nameof(_Equatable_Formatter), BindingFlags.NonPublic | BindingFlags.Static);
+        private static bool _Equatable_Formatter(int a, in WriteContext b, IBufferWriter<char> c)
+        {
+            var mem = c.GetMemory(100);
+            if (!a.TryFormat(mem.Span, out var d)) return false;
+
+            c.Advance(d);
+            return true;
+        }
+
+        private static readonly MethodInfo _Equatable_Getter_Mtd = typeof(WrapperTests).GetMethod(nameof(_Equatable_Getter), BindingFlags.NonPublic | BindingFlags.Static);
+        private static bool _Equatable_Getter(out int b)
+        {
+            b = 123;
+            return true;
+        }
+
+        private static readonly MethodInfo _Equatable_InstanceBuilder_Mtd = typeof(WrapperTests).GetMethod(nameof(_Equatable_InstanceBuilder), BindingFlags.NonPublic | BindingFlags.Static);
+        private static bool _Equatable_InstanceBuilder(out _InstanceBuilderCast a)
+        {
+            a = new _InstanceBuilderCast();
+            return true;
+        }
+
+        private static readonly MethodInfo _Equatable_Parser_Mtd = typeof(WrapperTests).GetMethod(nameof(_Equatable_Parser), BindingFlags.NonPublic | BindingFlags.Static);
+        private static bool _Equatable_Parser(ReadOnlySpan<char> _, in ReadContext __, out int res)
+        {
+            res = 44;
+            return true;
+        }
+
+        private static readonly MethodInfo _Equatable_Reset_Mtd = typeof(WrapperTests).GetMethod(nameof(_Equatable_Reset), BindingFlags.NonPublic | BindingFlags.Static);
+        private static void _Equatable_Reset() { }
+
+        private static readonly MethodInfo _Equatable_Setter_Mtd = typeof(WrapperTests).GetMethod(nameof(_Equatable_Setter), BindingFlags.NonPublic | BindingFlags.Static);
+        private static void _Equatable_Setter(_SetterCast row, int val) { }
+
+        private static readonly MethodInfo _Equatable_ShouldSerialize_Mtd = typeof(WrapperTests).GetMethod(nameof(_Equatable_ShouldSerialize), BindingFlags.NonPublic | BindingFlags.Static);
+        private static bool _Equatable_ShouldSerialize() => true;
+
+        [Fact]
+        public void Equatable()
+        {
+            // DynamicRowConverter
+            {
+                DynamicRowConverterConcreteEquivalentDelegate aDel =
+                    (dynamic row, in ReadContext ctx, out _DynamicRowConverterCast res) =>
+                    {
+                        res = new _DynamicRowConverterCast();
+                        return true;
+                    };
+                var a = (DynamicRowConverter)aDel;
+                var b = (DynamicRowConverter)_Equatable_DynamicRowConverter_Mtd;
+                var c = a;
+                var d = (DynamicRowConverter)aDel;
+                var e = (DynamicRowConverter)_Equatable_DynamicRowConverter_Mtd;
+                Assert.False(a == b);
+
+                Assert.True(CompareHashAndReference(a, c));
+                Assert.True(a == c);
+
+                Assert.False(CompareHashAndReference(a, d));
+                Assert.True(a == d);
+
+                Assert.False(CompareHashAndReference(b, e));
+                Assert.True(b == e);
+            }
+
+            // Formatter
+            {
+                FormatterIntEquivDelegate aDel =
+                    (int _, in WriteContext __, IBufferWriter<char> ___) =>
+                    {
+                        return false;
+                    };
+                var a = (Formatter)aDel;
+                var b = (Formatter)_Equatable_Formatter_Mtd;
+                var c = a;
+                var d = (Formatter)aDel;
+                var e = (Formatter)_Equatable_Formatter_Mtd;
+                Assert.False(a == b);
+
+                Assert.True(CompareHashAndReference(a, c));
+                Assert.True(a == c);
+
+                Assert.False(CompareHashAndReference(a, d));
+                Assert.True(a == d);
+
+                Assert.False(CompareHashAndReference(b, e));
+                Assert.True(b == e);
+            }
+
+            // Getter
+            {
+                GetterIntEquivDelegate aDel =
+                    (row) =>
+                    {
+                        return row.Foo.Length;
+                    };
+                var a = (Getter)aDel;
+                var b = (Getter)_Equatable_Getter_Mtd;
+                var c = a;
+                var d = (Getter)aDel;
+                var e = (Getter)_Equatable_Getter_Mtd;
+                Assert.False(a == b);
+
+                Assert.True(CompareHashAndReference(a, c));
+                Assert.True(a == c);
+
+                Assert.False(CompareHashAndReference(a, d));
+                Assert.True(a == d);
+
+                Assert.False(CompareHashAndReference(b, e));
+                Assert.True(b == e);
+            }
+
+            // InstanceBuilder
+            {
+                InstanceBuilderConcreteEquivalentDelegate aDel =
+                    (out _InstanceBuilderCast res) =>
+                    {
+                        res = new _InstanceBuilderCast();
+                        return true;
+                    };
+                var a = (InstanceBuilder)aDel;
+                var b = (InstanceBuilder)_Equatable_InstanceBuilder_Mtd;
+                var c = a;
+                var d = (InstanceBuilder)aDel;
+                var e = (InstanceBuilder)_Equatable_InstanceBuilder_Mtd;
+                Assert.False(a == b);
+
+                Assert.True(CompareHashAndReference(a, c));
+                Assert.True(a == c);
+
+                Assert.False(CompareHashAndReference(a, d));
+                Assert.True(a == d);
+
+                Assert.False(CompareHashAndReference(b, e));
+                Assert.True(b == e);
+            }
+
+            // Parser
+            {
+                ParserIntEquivDelegate aDel =
+                    (ReadOnlySpan<char> _, in ReadContext __, out int res) =>
+                    {
+                        res = 1;
+                        return true;
+                    };
+                var a = (Parser)aDel;
+                var b = (Parser)_Equatable_Parser_Mtd;
+                var c = a;
+                var d = (Parser)aDel;
+                var e = (Parser)_Equatable_Parser_Mtd;
+                Assert.False(a == b);
+
+                Assert.True(CompareHashAndReference(a, c));
+                Assert.True(a == c);
+
+                Assert.False(CompareHashAndReference(a, d));
+                Assert.True(a == d);
+
+                Assert.False(CompareHashAndReference(b, e));
+                Assert.True(b == e);
+            }
+
+            // Reset
+            {
+                ResetConcreteEquivDelegate aDel =
+                   row =>
+                   {
+                   };
+                var a = (Reset)aDel;
+                var b = (Reset)_Equatable_Reset_Mtd;
+                var c = a;
+                var d = (Reset)aDel;
+                var e = (Reset)_Equatable_Reset_Mtd;
+                Assert.False(a == b);
+
+                Assert.True(CompareHashAndReference(a, c));
+                Assert.True(a == c);
+
+                Assert.False(CompareHashAndReference(a, d));
+                Assert.True(a == d);
+
+                Assert.False(CompareHashAndReference(b, e));
+                Assert.True(b == e);
+            }
+
+            // Setter
+            {
+                SetterConcreteEquivDelegate aDel =
+                    (row, val) =>
+                    {
+                        row.Foo = val.ToString();
+                    };
+                var a = (Setter)aDel;
+                var b = (Setter)_Equatable_Setter_Mtd;
+                var c = a;
+                var d = (Setter)aDel;
+                var e = (Setter)_Equatable_Setter_Mtd;
+                Assert.False(a == b);
+
+                Assert.True(CompareHashAndReference(a, c));
+                Assert.True(a == c);
+
+                Assert.False(CompareHashAndReference(a, d));
+                Assert.True(a == d);
+
+                Assert.False(CompareHashAndReference(b, e));
+                Assert.True(b == e);
+            }
+
+            // ShouldSerialize
+            {
+                ShouldSerializeConcreteEquivDelegate aDel =
+                   row =>
+                   {
+                       return true;
+                   };
+                var a = (ShouldSerialize)aDel;
+                var b = (ShouldSerialize)_Equatable_ShouldSerialize_Mtd;
+                var c = a;
+                var d = (ShouldSerialize)aDel;
+                var e = (ShouldSerialize)_Equatable_ShouldSerialize_Mtd;
+                Assert.False(a == b);
+
+                Assert.True(CompareHashAndReference(a, c));
+                Assert.True(a == c);
+
+                Assert.False(CompareHashAndReference(a, d));
+                Assert.True(a == d);
+
+                Assert.False(CompareHashAndReference(b, e));
+                Assert.True(b == e);
+            }
+
+            static bool CompareHashAndReference(object a, object b)
+            {
+                var code = a.GetHashCode() == b.GetHashCode();
+                var reference = object.ReferenceEquals(a, b);
+
+                return code && reference;
+            }
+        }
+
+        [Fact]
+        public void ColumnIdentifier()
+        {
+            var ci1 = Cesil.ColumnIdentifier.Create(0, "A");
+            var ci2 = Cesil.ColumnIdentifier.Create(1);
+
+            Assert.True(ci1.Equals(ci1));
+            Assert.False(ci1.Equals(ci2));
+
+            Assert.True(CompareHash(ci1, ci1));
+            Assert.False(CompareHash(ci1, ci2));
+
+            Assert.Throws<InvalidOperationException>(() => ci2.Name);
+
+            Assert.Throws<ArgumentException>(() => Cesil.ColumnIdentifier.Create(-1));
+
+            static bool CompareHash<T>(T a, T b)
+            {
+                var code = a.GetHashCode() == b.GetHashCode();
+
+                return code;
+            }
+        }
+
+        [Fact]
+        public void DynamicCellValue()
+        {
+            var dcv1 = Cesil.DynamicCellValue.Create("Foo", "Bar", Formatter.GetDefault(typeof(string).GetTypeInfo()));
+            var dcv2 = dcv1;
+            var dcv3 = Cesil.DynamicCellValue.Create("Foo", "Bar", Formatter.GetDefault(typeof(string).GetTypeInfo()));
+            var dcv4 = Cesil.DynamicCellValue.Create("Foo", 123, Formatter.GetDefault(typeof(int).GetTypeInfo()));
+
+            Assert.True(dcv1 == dcv2);
+            Assert.True(CompareHash(dcv1, dcv2));
+
+            Assert.True(dcv1 == dcv3);
+            Assert.True(CompareHash(dcv1, dcv3));
+
+            Assert.True(dcv1 != dcv4);
+            Assert.False(CompareHash(dcv1, dcv4));
+
+            Assert.Throws<ArgumentNullException>(() => Cesil.DynamicCellValue.Create("foo", "bar", null));
+            Assert.Throws<ArgumentException>(() => Cesil.DynamicCellValue.Create("foo", "bar", Formatter.GetDefault(typeof(int).GetTypeInfo())));
+
+            static bool CompareHash<T>(T a, T b)
+            {
+                var code = a.GetHashCode() == b.GetHashCode();
+
+                return code;
+            }
         }
     }
 }

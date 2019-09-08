@@ -98,11 +98,11 @@
             switch (ResultType)
             {
                 case ReadWithCommentResultType.NoValue:
-                    return "(Empty)";
+                    return $"{nameof(ReadWithCommentResult<T>)} which is empty)";
                 case ReadWithCommentResultType.HasValue:
-                    return Value?.ToString();
+                    return $"{nameof(ReadWithCommentResult<T>)} with {Value}";
                 case ReadWithCommentResultType.HasComment:
-                    return $"Comment: {Comment}";
+                    return $"{nameof(ReadWithCommentResult<T>)} with comment: {Comment}";
                 default:
                     Throw.InvalidOperationException($"Unexpected {nameof(ReadWithCommentResultType)}: {ResultType}");
                     // just for control flow

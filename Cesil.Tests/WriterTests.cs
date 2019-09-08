@@ -14,6 +14,42 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class WriterTests
     {
+        [Fact]
+        public void WriteContext()
+        {
+            var dc = Cesil.WriteContext.DiscoveringCells(1, null);
+            Assert.True(dc.HasRowNumber);
+            Assert.Equal(1, dc.RowNumber);
+            Assert.False(dc.HasColumn);
+            Assert.Throws<InvalidOperationException>(() => dc.Column);
+            Assert.True(HashAndEq(dc, dc));
+
+            var dcol = Cesil.WriteContext.DiscoveringColumns(null);
+            Assert.False(dcol.HasRowNumber);
+            Assert.Throws<InvalidOperationException>(() => dcol.RowNumber);
+            Assert.False(dcol.HasColumn);
+            Assert.Throws<InvalidOperationException>(() => dcol.Column);
+            Assert.True(HashAndEq(dcol, dcol));
+            Assert.False(HashAndEq(dc, dcol));
+
+            var wc = Cesil.WriteContext.WritingColumn(2, ColumnIdentifier.Create(2, "foo"), null);
+            Assert.True(wc.HasRowNumber);
+            Assert.Equal(2, wc.RowNumber);
+            Assert.True(wc.HasColumn);
+            Assert.Equal(ColumnIdentifier.Create(2, "foo"), wc.Column);
+            Assert.True(HashAndEq(wc, wc));
+            Assert.False(HashAndEq(dc, wc));
+            Assert.False(HashAndEq(dcol, wc));
+
+            static bool HashAndEq<T>(T a, T b)
+            {
+                var h = a.GetHashCode() == b.GetHashCode();
+                var e = a.Equals(b);
+
+                return h && e;
+            }
+        }
+
         private class _WriteComment
         {
             public int Foo { get; set; }
@@ -28,6 +64,22 @@ namespace Cesil.Tests
                 // first line, no headers
                 {
                     var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+
+                    // empty line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#", res);
+                        }
+                    );
 
                     // one line
                     RunSyncWriterVariants<_WriteComment>(
@@ -103,6 +155,22 @@ namespace Cesil.Tests
                 {
                     var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
 
+                    // empty line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#", res);
+                        }
+                    );
+
                     // one line
                     RunSyncWriterVariants<_WriteComment>(
                         opts,
@@ -141,6 +209,22 @@ namespace Cesil.Tests
                 // second line, headers
                 {
                     var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+
+                    // empty line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#", res);
+                        }
+                    );
 
                     // one line
                     RunSyncWriterVariants<_WriteComment>(
@@ -181,6 +265,22 @@ namespace Cesil.Tests
                 {
                     var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
 
+                    // empty line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#", res);
+                        }
+                    );
+
                     // one line
                     RunSyncWriterVariants<_WriteComment>(
                         opts,
@@ -219,6 +319,22 @@ namespace Cesil.Tests
                 // before row, headers
                 {
                     var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+
+                    // empty line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#", res);
+                        }
+                    );
 
                     // one line
                     RunSyncWriterVariants<_WriteComment>(
@@ -262,6 +378,22 @@ namespace Cesil.Tests
                 {
                     var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
 
+                    // empty line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#\r\n", res);
+                        }
+                    );
+
                     // one line
                     RunSyncWriterVariants<_WriteComment>(
                         opts,
@@ -298,6 +430,22 @@ namespace Cesil.Tests
                 // first line, headers
                 {
                     var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+
+                    // empty line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#\r\n", res);
+                        }
+                    );
 
                     // one line
                     RunSyncWriterVariants<_WriteComment>(
@@ -375,6 +523,22 @@ namespace Cesil.Tests
                 {
                     var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
 
+                    // empty line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#\r\n", res);
+                        }
+                    );
+
                     // one line
                     RunSyncWriterVariants<_WriteComment>(
                         opts,
@@ -414,6 +578,22 @@ namespace Cesil.Tests
                 {
                     var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
 
+                    // empty line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#\r\n", res);
+                        }
+                    );
+
                     // one line
                     RunSyncWriterVariants<_WriteComment>(
                         opts,
@@ -452,6 +632,22 @@ namespace Cesil.Tests
                 // before row, headers
                 {
                     var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+
+                    // empty line
+                    RunSyncWriterVariants<_WriteComment>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                csv.WriteComment("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#\r\n", res);
+                        }
+                    );
 
                     // one line
                     RunSyncWriterVariants<_WriteComment>(
@@ -1993,6 +2189,22 @@ namespace Cesil.Tests
                 {
                     var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
 
+                    // empty line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#", res);
+                        }
+                    );
+
                     // one line
                     await RunAsyncWriterVariants<_WriteComment>(
                         opts,
@@ -2030,6 +2242,22 @@ namespace Cesil.Tests
                 {
                     var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
 
+                    // empty line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#", res);
+                        }
+                    );
+
                     // one line
                     await RunAsyncWriterVariants<_WriteComment>(
                         opts,
@@ -2066,6 +2294,22 @@ namespace Cesil.Tests
                 // second line, no headers
                 {
                     var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+
+                    // empty line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#", res);
+                        }
+                    );
 
                     // one line
                     await RunAsyncWriterVariants<_WriteComment>(
@@ -2106,6 +2350,22 @@ namespace Cesil.Tests
                 {
                     var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
 
+                    // empty line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#", res);
+                        }
+                    );
+
                     // one line
                     await RunAsyncWriterVariants<_WriteComment>(
                         opts,
@@ -2145,6 +2405,22 @@ namespace Cesil.Tests
                 {
                     var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
 
+                    // empty line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#", res);
+                        }
+                    );
+
                     // one line
                     await RunAsyncWriterVariants<_WriteComment>(
                         opts,
@@ -2183,6 +2459,22 @@ namespace Cesil.Tests
                 // before row, headers
                 {
                     var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+
+                    // empty line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#", res);
+                        }
+                    );
 
                     // one line
                     await RunAsyncWriterVariants<_WriteComment>(
@@ -2226,6 +2518,22 @@ namespace Cesil.Tests
                 {
                     var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
 
+                    // empty line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#\r\n", res);
+                        }
+                    );
+
                     // one line
                     await RunAsyncWriterVariants<_WriteComment>(
                         opts,
@@ -2263,6 +2571,22 @@ namespace Cesil.Tests
                 {
                     var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
 
+                    // empty line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#\r\n", res);
+                        }
+                    );
+
                     // one line
                     await RunAsyncWriterVariants<_WriteComment>(
                         opts,
@@ -2299,6 +2623,22 @@ namespace Cesil.Tests
                 // second line, no headers
                 {
                     var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+
+                    // empty line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#\r\n", res);
+                        }
+                    );
 
                     // one line
                     await RunAsyncWriterVariants<_WriteComment>(
@@ -2339,6 +2679,22 @@ namespace Cesil.Tests
                 {
                     var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
 
+                    // empty line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#\r\n", res);
+                        }
+                    );
+
                     // one line
                     await RunAsyncWriterVariants<_WriteComment>(
                         opts,
@@ -2378,6 +2734,22 @@ namespace Cesil.Tests
                 {
                     var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
 
+                    // empty line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("#\r\n", res);
+                        }
+                    );
+
                     // one line
                     await RunAsyncWriterVariants<_WriteComment>(
                         opts,
@@ -2416,6 +2788,22 @@ namespace Cesil.Tests
                 // before row, headers
                 {
                     var opts = Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+
+                    // empty line
+                    await RunAsyncWriterVariants<_WriteComment>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                await csv.WriteCommentAsync("");
+                            }
+
+                            var res = getStr();
+                            Assert.Equal("Foo,Bar\r\n#\r\n", res);
+                        }
+                    );
 
                     // one line
                     await RunAsyncWriterVariants<_WriteComment>(

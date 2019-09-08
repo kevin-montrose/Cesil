@@ -33,6 +33,35 @@ namespace Cesil
             CurrentMode = Mode.Uninitialized;
         }
 
+        internal void AppendSingle(ReadOnlySpan<T> previousBuffer, T val)
+        {
+            if(CurrentMode == Mode.CopyOnNextAppend || CurrentMode == Mode.InPlace)
+            {
+                SwitchToCopy(previousBuffer);
+            }
+
+            switch (CurrentMode)
+            {
+                case Mode.Uninitialized:
+                    ResizeCopy(1);
+                    Copy[0] = val;
+                    StartIndex = 0;
+                    Length = 1;
+                    break;
+                case Mode.Copy:
+                    if(Copy.Length == Length)
+                    {
+                        ResizeCopy(Copy.Length * 2);
+                    }
+                    Copy[Length] = val;
+                    Length++;
+                    break;
+                default:
+                    Throw.Exception($"Unexpected {nameof(Mode)}: {CurrentMode}");
+                    break;
+            }
+        }
+
         internal void Append(ReadOnlySpan<T> fromBuffer, int index, int length)
         {
             // we figured out that we can't be in place on

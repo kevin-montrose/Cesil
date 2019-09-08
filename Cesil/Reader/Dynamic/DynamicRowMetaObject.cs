@@ -89,6 +89,19 @@ namespace Cesil
                 return new DynamicMetaObject(callOnSelf, finalRestrictions);
             }
 
+            if (indexType == Types.ColumnIdentifierType)
+            {
+                var indexExpressionIsRangeRestriction = BindingRestrictions.GetTypeRestriction(indexExp, Types.ColumnIdentifierType);
+
+                var castToRow = Expression.Convert(Expression, Types.DynamicRowType);
+
+                var colId = Expression.Convert(indexExp, Types.ColumnIdentifierType);
+                var callOnSelf = Expression.Call(castToRow, Methods.DynamicRow.GetByIdentifier, colId);
+
+                var finalRestrictions = expressionIsDynamicRowRestriction.Merge(indexExpressionIsRangeRestriction);
+                return new DynamicMetaObject(callOnSelf, finalRestrictions);
+            }
+
             // no binder
             {
                 var msg = Expression.Constant($"Only string, int, index, and range indexers are supported.");

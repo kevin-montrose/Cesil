@@ -28,29 +28,11 @@ namespace Cesil
                 var available = Buffer.Read(Inner);
                 if (available == 0)
                 {
-                    EndOfData();
-
-                    if (HasValueToReturn)
-                    {
-                        record = GetValueForReturn();
-                        return new ReadWithCommentResult<T>(record);
-                    }
-
-                    if (HasCommentToReturn)
-                    {
-                        HasCommentToReturn = false;
-                        if (returnComments)
-                        {
-                            var comment = Partial.PendingAsString(Buffer.Buffer);
-                            return new ReadWithCommentResult<T>(comment);
-                        }
-                    }
-
-                    // intentionally _not_ modifying record here
-                    return ReadWithCommentResult<T>.Empty;
+                    var endRes = EndOfData();
+                    return HandleAdvanceResult(endRes, returnComments);
                 }
 
-                if (!HasValueToReturn)
+                if (!Partial.HasPending)
                 {
                     if (record == null)
                     {
@@ -63,29 +45,10 @@ namespace Cesil
                 }
 
                 var res = AdvanceWork(available);
-                if (res == ReadWithCommentResultType.HasValue)
+                var possibleReturn = HandleAdvanceResult(res, returnComments);
+                if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                 {
-                    record = GetValueForReturn();
-                    return new ReadWithCommentResult<T>(record);
-                }
-                if (res == ReadWithCommentResultType.HasComment)
-                {
-                    HasCommentToReturn = false;
-
-                    if (returnComments)
-                    {
-                        // only actually allocate for the comment if it's been asked for
-
-                        var comment = Partial.PendingAsString(Buffer.Buffer);
-                        Partial.ClearValue();
-                        Partial.ClearBuffer();
-                        return new ReadWithCommentResult<T>(comment);
-                    }
-                    else
-                    {
-                        Partial.ClearValue();
-                        Partial.ClearBuffer();
-                    }
+                    return possibleReturn;
                 }
             }
         }

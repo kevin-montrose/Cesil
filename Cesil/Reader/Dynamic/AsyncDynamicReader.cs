@@ -23,6 +23,7 @@ namespace Cesil
             if (RowEndings == null)
             {
                 var handleLineEndingsTask = HandleLineEndingsAsync(cancel);
+                SwitchAsync(ref handleLineEndingsTask);
                 if (!handleLineEndingsTask.IsCompletedSuccessfully)
                 {
                     DynamicRow dynRow;
@@ -34,6 +35,7 @@ namespace Cesil
             if (ReadHeaders == null)
             {
                 var handleHeadersTask = HandleHeadersAsync(cancel);
+                SwitchAsync(ref handleHeadersTask);
                 if (!handleHeadersTask.IsCompletedSuccessfully)
                 {
                     DynamicRow dynRow;
@@ -50,6 +52,7 @@ namespace Cesil
             {
                 PreparingToWriteToBuffer();
                 var availableTask = Buffer.ReadAsync(Inner, cancel);
+                SwitchAsync(ref availableTask);
                 if (!availableTask.IsCompletedSuccessfully)
                 {
                     return TryReadInnerAsync_ContinueAfterReadAsync(this, availableTask, returnComments, row, needsInit, cancel);
@@ -58,29 +61,11 @@ namespace Cesil
                 var available = availableTask.Result;
                 if (available == 0)
                 {
-                    EndOfData();
-
-                    if (HasValueToReturn)
-                    {
-                        var ret = GetValueForReturn();
-                        return new ValueTask<ReadWithCommentResult<dynamic>>(new ReadWithCommentResult<dynamic>(ret));
-                    }
-
-                    if (HasCommentToReturn)
-                    {
-                        HasCommentToReturn = false;
-                        if (returnComments)
-                        {
-                            var comment = Partial.PendingAsString(Buffer.Buffer);
-                            return new ValueTask<ReadWithCommentResult<dynamic>>(new ReadWithCommentResult<dynamic>(comment));
-                        }
-                    }
-
-                    // intentionally _not_ modifying record here
-                    return new ValueTask<ReadWithCommentResult<dynamic>>(ReadWithCommentResult<dynamic>.Empty);
+                    var endRes = EndOfData();
+                    return new ValueTask<ReadWithCommentResult<dynamic>>(HandleAdvanceResult(endRes, returnComments));
                 }
 
-                if (!HasValueToReturn)
+                if (!Partial.HasPending)
                 {
                     if (needsInit)
                     {
@@ -91,28 +76,10 @@ namespace Cesil
                 }
 
                 var res = AdvanceWork(available);
-                if (res == ReadWithCommentResultType.HasValue)
+                var possibleReturn = HandleAdvanceResult(res, returnComments);
+                if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                 {
-                    var ret = GetValueForReturn();
-                    return new ValueTask<ReadWithCommentResult<dynamic>>(new ReadWithCommentResult<dynamic>(ret));
-                }
-                if (res == ReadWithCommentResultType.HasComment)
-                {
-                    HasCommentToReturn = false;
-
-                    if (returnComments)
-                    {
-                        // only actually allocate for the comment if it's been asked for
-                        var comment = Partial.PendingAsString(Buffer.Buffer);
-                        Partial.ClearValue();
-                        Partial.ClearBuffer();
-                        return new ValueTask<ReadWithCommentResult<dynamic>>(new ReadWithCommentResult<dynamic>(comment));
-                    }
-                    else
-                    {
-                        Partial.ClearValue();
-                        Partial.ClearBuffer();
-                    }
+                    return new ValueTask<ReadWithCommentResult<dynamic>>(possibleReturn);
                 }
             }
 
@@ -157,42 +124,29 @@ namespace Cesil
             static async ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync_ContinueAfterHandleLineEndingsAsync(AsyncDynamicReader self, ValueTask waitFor, bool returnComments, DynamicRow record, CancellationToken cancel)
             {
                 var needsInit = true;
-                
+
                 await waitFor;
 
                 if (self.ReadHeaders == null)
                 {
-                    await self.HandleHeadersAsync(cancel);
+                    var handleHeadersTask = self.HandleHeadersAsync(cancel);
+                    self.SwitchAsync(ref handleHeadersTask);
+                    await handleHeadersTask;
                 }
 
                 while (true)
                 {
                     self.PreparingToWriteToBuffer();
-                    var available = await self.Buffer.ReadAsync(self.Inner, cancel);
+                    var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
+                    self.SwitchAsync(ref availableTask);
+                    var available = await availableTask;
                     if (available == 0)
                     {
-                        self.EndOfData();
-
-                        if (self.HasValueToReturn)
-                        {
-                            var ret = self.GetValueForReturn();
-                            return new ReadWithCommentResult<dynamic>(ret);
-                        }
-
-                        if (self.HasCommentToReturn)
-                        {
-                            self.HasCommentToReturn = false;
-                            if (returnComments)
-                            {
-                                var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
-                                return new ReadWithCommentResult<dynamic>(comment);
-                            }
-                        }
-
-                        return ReadWithCommentResult<dynamic>.Empty;
+                        var endRes = self.EndOfData();
+                        return self.HandleAdvanceResult(endRes, returnComments);
                     }
 
-                    if (!self.HasValueToReturn)
+                    if (!self.Partial.HasPending)
                     {
                         if (needsInit)
                         {
@@ -203,28 +157,10 @@ namespace Cesil
                     }
 
                     var res = self.AdvanceWork(available);
-                    if (res == ReadWithCommentResultType.HasValue)
+                    var possibleReturn = self.HandleAdvanceResult(res, returnComments);
+                    if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
-                        var ret = self.GetValueForReturn();
-                        return new ReadWithCommentResult<dynamic>(ret);
-                    }
-                    if (res == ReadWithCommentResultType.HasComment)
-                    {
-                        self.HasCommentToReturn = false;
-
-                        if (returnComments)
-                        {
-                            // only actually allocate for the comment if it's been asked for
-                            var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
-                            self.Partial.ClearValue();
-                            self.Partial.ClearBuffer();
-                            return new ReadWithCommentResult<dynamic>(comment);
-                        }
-                        else
-                        {
-                            self.Partial.ClearValue();
-                            self.Partial.ClearBuffer();
-                        }
+                        return possibleReturn;
                     }
                 }
             }
@@ -239,31 +175,16 @@ namespace Cesil
                 while (true)
                 {
                     self.PreparingToWriteToBuffer();
-                    var available = await self.Buffer.ReadAsync(self.Inner, cancel);
+                    var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
+                    self.SwitchAsync(ref availableTask);
+                    var available = await availableTask;
                     if (available == 0)
                     {
-                        self.EndOfData();
-
-                        if (self.HasValueToReturn)
-                        {
-                            var ret = self.GetValueForReturn();
-                            return new ReadWithCommentResult<dynamic>(ret);
-                        }
-
-                        if (self.HasCommentToReturn)
-                        {
-                            self.HasCommentToReturn = false;
-                            if (returnComments)
-                            {
-                                var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
-                                return new ReadWithCommentResult<dynamic>(comment);
-                            }
-                        }
-
-                        return ReadWithCommentResult<dynamic>.Empty;
+                        var endRes = self.EndOfData();
+                        return self.HandleAdvanceResult(endRes, returnComments);
                     }
 
-                    if (!self.HasValueToReturn)
+                    if (!self.Partial.HasPending)
                     {
                         if (needsInit)
                         {
@@ -274,28 +195,10 @@ namespace Cesil
                     }
 
                     var res = self.AdvanceWork(available);
-                    if (res == ReadWithCommentResultType.HasValue)
+                    var possibleReturn = self.HandleAdvanceResult(res, returnComments);
+                    if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
-                        var ret = self.GetValueForReturn();
-                        return new ReadWithCommentResult<dynamic>(ret);
-                    }
-                    if (res == ReadWithCommentResultType.HasComment)
-                    {
-                        self.HasCommentToReturn = false;
-
-                        if (returnComments)
-                        {
-                            // only actually allocate for the comment if it's been asked for
-                            var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
-                            self.Partial.ClearValue();
-                            self.Partial.ClearBuffer();
-                            return new ReadWithCommentResult<dynamic>(comment);
-                        }
-                        else
-                        {
-                            self.Partial.ClearValue();
-                            self.Partial.ClearBuffer();
-                        }
+                        return possibleReturn;
                     }
                 }
             }
@@ -308,29 +211,11 @@ namespace Cesil
                     var available = await waitFor;
                     if (available == 0)
                     {
-                        self.EndOfData();
-
-                        if (self.HasValueToReturn)
-                        {
-                            var ret = self.GetValueForReturn();
-                            return new ReadWithCommentResult<dynamic>(ret);
-                        }
-
-                        if (self.HasCommentToReturn)
-                        {
-                            self.HasCommentToReturn = false;
-                            if (returnComments)
-                            {
-                                var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
-                                return new ReadWithCommentResult<dynamic>(comment);
-                            }
-                        }
-
-                        // intentionally _not_ modifying record here
-                        return ReadWithCommentResult<dynamic>.Empty;
+                        var endRes = self.EndOfData();
+                        return self.HandleAdvanceResult(endRes, returnComments);
                     }
 
-                    if (!self.HasValueToReturn)
+                    if (!self.Partial.HasPending)
                     {
                         if (needsInit)
                         {
@@ -341,28 +226,10 @@ namespace Cesil
                     }
 
                     var res = self.AdvanceWork(available);
-                    if (res == ReadWithCommentResultType.HasValue)
+                    var possibleReturn = self.HandleAdvanceResult(res, returnComments);
+                    if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
-                        var ret = self.GetValueForReturn();
-                        return new ReadWithCommentResult<dynamic>(ret);
-                    }
-                    if (res == ReadWithCommentResultType.HasComment)
-                    {
-                        self.HasCommentToReturn = false;
-
-                        if (returnComments)
-                        {
-                            // only actually allocate for the comment if it's been asked for
-                            var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
-                            self.Partial.ClearValue();
-                            self.Partial.ClearBuffer();
-                            return new ReadWithCommentResult<dynamic>(comment);
-                        }
-                        else
-                        {
-                            self.Partial.ClearValue();
-                            self.Partial.ClearBuffer();
-                        }
+                        return possibleReturn;
                     }
                 }
 
@@ -370,32 +237,16 @@ namespace Cesil
                 while (true)
                 {
                     self.PreparingToWriteToBuffer();
-                    var available = await self.Buffer.ReadAsync(self.Inner, cancel);
+                    var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
+                    self.SwitchAsync(ref availableTask);
+                    var available = await availableTask;
                     if (available == 0)
                     {
-                        self.EndOfData();
-
-                        if (self.HasValueToReturn)
-                        {
-                            var ret = self.GetValueForReturn();
-                            return new ReadWithCommentResult<dynamic>(ret);
-                        }
-
-                        if (self.HasCommentToReturn)
-                        {
-                            self.HasCommentToReturn = false;
-                            if (returnComments)
-                            {
-                                var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
-                                return new ReadWithCommentResult<dynamic>(comment);
-                            }
-                        }
-
-                        // intentionally _not_ modifying record here
-                        return ReadWithCommentResult<dynamic>.Empty;
+                        var endRes = self.EndOfData();
+                        return self.HandleAdvanceResult(endRes, returnComments);
                     }
 
-                    if (!self.HasValueToReturn)
+                    if (!self.Partial.HasPending)
                     {
                         if (needsInit)
                         {
@@ -406,28 +257,10 @@ namespace Cesil
                     }
 
                     var res = self.AdvanceWork(available);
-                    if (res == ReadWithCommentResultType.HasValue)
+                    var possibleReturn = self.HandleAdvanceResult(res, returnComments);
+                    if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
-                        var ret = self.GetValueForReturn();
-                        return new ReadWithCommentResult<dynamic>(ret);
-                    }
-                    if (res == ReadWithCommentResultType.HasComment)
-                    {
-                        self.HasCommentToReturn = false;
-
-                        if (returnComments)
-                        {
-                            // only actually allocate for the comment if it's been asked for
-                            var comment = self.Partial.PendingAsString(self.Buffer.Buffer);
-                            self.Partial.ClearValue();
-                            self.Partial.ClearBuffer();
-                            return new ReadWithCommentResult<dynamic>(comment);
-                        }
-                        else
-                        {
-                            self.Partial.ClearValue();
-                            self.Partial.ClearBuffer();
-                        }
+                        return possibleReturn;
                     }
                 }
             }
@@ -475,6 +308,7 @@ namespace Cesil
             try
             {
                 var resTask = reader.ReadAsync(cancel);
+                SwitchAsync(ref resTask);
                 if (resTask.IsCompletedSuccessfully)
                 {
                     var res = resTask.Result;
@@ -593,7 +427,7 @@ namespace Cesil
             try
             {
                 var resTask = detector.DetectAsync(cancel);
-
+                SwitchAsync(ref resTask);
                 if (resTask.IsCompletedSuccessfully)
                 {
                     HandleLineEndingsDetectionResult(resTask.Result);
@@ -643,10 +477,16 @@ namespace Cesil
             if (Inner is IAsyncDisposable iad)
             {
                 var disposeTask = iad.DisposeAsync();
-                if (disposeTask.IsCompletedSuccessfully)
+                SwitchAsync(ref disposeTask);
+                if (!disposeTask.IsCompletedSuccessfully)
                 {
                     return DisposeAsync_WaitForInnerDispose(this, disposeTask);
                 }
+
+                Buffer.Dispose();
+                Partial.Dispose();
+                StateMachine?.Dispose();
+                SharedCharacterLookup.Dispose();
 
                 Inner = null;
                 return default;
@@ -654,6 +494,11 @@ namespace Cesil
             else
             {
                 Inner.Dispose();
+                Buffer.Dispose();
+                Partial.Dispose();
+                StateMachine?.Dispose();
+                SharedCharacterLookup.Dispose();
+
                 Inner = null;
 
                 return default;
@@ -663,6 +508,11 @@ namespace Cesil
             static async ValueTask DisposeAsync_WaitForInnerDispose(AsyncDynamicReader self, ValueTask toAwait)
             {
                 await toAwait;
+
+                self.Buffer.Dispose();
+                self.Partial.Dispose();
+                self.StateMachine?.Dispose();
+                self.SharedCharacterLookup.Dispose();
 
                 self.Inner = null;
                 return;

@@ -414,6 +414,7 @@ namespace Cesil
         public override string ToString()
         {
             var ret = new StringBuilder();
+            ret.Append($"{nameof(OptionsBuilder)} with ");
             ret.Append($"{nameof(CommentCharacter)}={CommentCharacter}");
             ret.Append($", {nameof(DynamicRowDisposal)}={DynamicRowDisposal}");
             ret.Append($", {nameof(EscapedValueEscapeCharacter)}={EscapedValueEscapeCharacter}");

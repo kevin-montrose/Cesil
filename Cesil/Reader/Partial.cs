@@ -76,6 +76,11 @@ namespace Cesil
             HasPending = false;
         }
 
+        internal void AppendCarriageReturn(ReadOnlySpan<char> from)
+        {
+            PendingCharacters.AppendSingle(from, '\r');
+        }
+
         internal void AppendCharacters(ReadOnlySpan<char> from, int atIndex, int length)
         {
             PendingCharacters.Append(from, atIndex, length);

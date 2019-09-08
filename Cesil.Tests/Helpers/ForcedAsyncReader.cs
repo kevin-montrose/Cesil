@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Cesil.Tests
 {
-    internal sealed class ForcedAsyncReader : TextReader
+    internal sealed class ForcedAsyncReader : TextReader, IAsyncDisposable
     {
         private readonly TextReader Inner;
         public ForcedAsyncReader(TextReader inner)
@@ -47,6 +47,13 @@ namespace Cesil.Tests
         {
             await Task.Yield();
             return await Inner.ReadToEndAsync();
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            await Task.Yield();
+
+            Inner.Dispose();
         }
 
         protected override void Dispose(bool disposing)

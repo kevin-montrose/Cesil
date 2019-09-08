@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Reflection;
 
 namespace Cesil
@@ -147,7 +146,7 @@ namespace Cesil
 
             bool isRequiredBool;
 
-            switch(isRequired)
+            switch (isRequired)
             {
                 case IsMemberRequired.Yes:
                     isRequiredBool = true;
@@ -219,7 +218,7 @@ namespace Cesil
         /// This is provided for debugging purposes, and the format is not guaranteed to be stable between releases.
         /// </summary>
         public override string ToString()
-        => $"{nameof(Name)}: {Name}\r\n{nameof(Setter)}: {Setter}\r\n{Parser}\r\n{nameof(IsRequired)}: {IsRequired}\r\n{nameof(Reset)}: {Reset}";
+        => $"{nameof(DeserializableMember)} with {nameof(Name)}: {Name}\r\n{nameof(Setter)}: {Setter}\r\n{Parser}\r\n{nameof(IsRequired)}: {IsRequired}\r\n{nameof(Reset)}: {Reset}";
 
         /// <summary>
         /// Compare two DeserializableMembers for equality

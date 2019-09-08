@@ -1,5 +1,4 @@
-﻿using System;
-using System.Buffers;
+﻿using System.Buffers;
 using System.IO;
 using System.Text;
 
@@ -41,7 +40,7 @@ namespace Cesil
 
         public override IAsyncWriter<dynamic> CreateAsyncWriter(TextWriter writer, object context = null)
         {
-            if(writer == null)
+            if (writer == null)
             {
                 Throw.ArgumentNullException(nameof(writer));
             }
@@ -82,6 +81,7 @@ namespace Cesil
         public override string ToString()
         {
             var ret = new StringBuilder();
+            ret.Append($"{nameof(DynamicBoundConfiguration)} with ");
             ret.Append($"{nameof(CommentChar)}={CommentChar}");
             ret.Append($", {nameof(DynamicRowDisposal)}={DynamicRowDisposal}");
             ret.Append($", {nameof(TypeDescriber)}={TypeDescriber}");

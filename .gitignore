@@ -7,6 +7,9 @@
 # Docs file
 Cesil.xml
 
+# Code Coverage
+TestCoverageResults/
+
 # User-specific files
 *.suo
 *.user
