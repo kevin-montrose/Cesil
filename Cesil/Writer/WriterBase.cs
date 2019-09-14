@@ -64,7 +64,7 @@ namespace Cesil
         {
             if (Config.CommentChar == null)
             {
-                Throw.InvalidOperationException($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
+                return Throw.InvalidOperationException<ReadOnlySequence<char>>($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
             }
 
             var commentMem = comment.AsMemory();

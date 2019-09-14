@@ -38,43 +38,23 @@ namespace Cesil
             )
         { }
 
-        public override IAsyncWriter<dynamic> CreateAsyncWriter(TextWriter writer, object context = null)
+        internal override IAsyncWriter<dynamic> CreateAsyncWriter(IAsyncWriterAdapter writer, object context = null)
         {
-            if (writer == null)
-            {
-                Throw.ArgumentNullException(nameof(writer));
-            }
-
             return new AsyncDynamicWriter(this, writer, context);
         }
 
-        public override IReader<dynamic> CreateReader(TextReader reader, object context = null)
+        internal override IReader<dynamic> CreateReader(IReaderAdapter reader, object context = null)
         {
-            if (reader == null)
-            {
-                Throw.ArgumentNullException(nameof(reader));
-            }
-
             return new DynamicReader(reader, this, context);
         }
 
-        public override IAsyncReader<dynamic> CreateAsyncReader(TextReader reader, object context = null)
+        internal override IAsyncReader<dynamic> CreateAsyncReader(IAsyncReaderAdapter reader, object context = null)
         {
-            if (reader == null)
-            {
-                Throw.ArgumentNullException(nameof(reader));
-            }
-
             return new AsyncDynamicReader(reader, this, context);
         }
 
-        public override IWriter<dynamic> CreateWriter(TextWriter writer, object context = null)
+        internal override IWriter<dynamic> CreateWriter(IWriterAdapter writer, object context = null)
         {
-            if (writer == null)
-            {
-                Throw.ArgumentNullException(nameof(writer));
-            }
-
             return new DynamicWriter(this, writer, context);
         }
 

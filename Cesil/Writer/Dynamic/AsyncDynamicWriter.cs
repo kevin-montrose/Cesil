@@ -5,6 +5,8 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
+using static Cesil.DisposableHelper;
+
 namespace Cesil
 {
     internal sealed class AsyncDynamicWriter :
@@ -22,7 +24,7 @@ namespace Cesil
 
         private Dictionary<object, Delegate> DelegateCache;
 
-        internal AsyncDynamicWriter(DynamicBoundConfiguration config, TextWriter inner, object context) : base(config, inner, context) { }
+        internal AsyncDynamicWriter(DynamicBoundConfiguration config, IAsyncWriterAdapter inner, object context) : base(config, inner, context) { }
 
         bool IDelegateCache.TryGet<T, V>(T key, out V del)
         {
@@ -54,10 +56,12 @@ namespace Cesil
 
         public override ValueTask WriteAsync(dynamic row, CancellationToken cancel = default)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
-            var writeHeadersTask = WriteHeadersAndEndRowIfNeededAsync(row, cancel);
-            if (!writeHeadersTask.IsCompletedSuccessfully)
+            var rowAsObj = row as object;
+
+            var writeHeadersTask = WriteHeadersAndEndRowIfNeededAsync(rowAsObj, cancel);
+            if (!writeHeadersTask.IsCompletedSuccessfully(this))
             {
                 return WriteAsync_ContinueAfterWriteHeadersAsync(this, writeHeadersTask, row, cancel);
             }
@@ -80,7 +84,7 @@ namespace Cesil
                     if (needsSeparator)
                     {
                         var placeCharTask = PlaceCharInStagingAsync(Config.ValueSeparator, cancel);
-                        if (!placeCharTask.IsCompletedSuccessfully)
+                        if (!placeCharTask.IsCompletedSuccessfully(this))
                         {
                             disposeE = false;
                             return WriteAsync_ContinueAfterPlaceCharAsync(this, placeCharTask, cell, i, e, cancel);
@@ -92,13 +96,14 @@ namespace Cesil
                     var ctx = WriteContext.WritingColumn(RowNumber, ColumnIdentifier.Create(i, col), Context);
 
                     var formatter = cell.Formatter;
-                    formatter.PrimeDynamicDelegate(this);
-                    var del = formatter.DynamicDelegate;
+                    var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
+                    delProvider.Guarantee(this);
+                    var del = delProvider.CachedDelegate;
 
                     var val = cell.Value as object;
                     if (!del(val, in ctx, Buffer))
                     {
-                        Throw.SerializationException($"Could not write column {col}, formatter {formatter} returned false");
+                        return Throw.SerializationException<ValueTask>($"Could not write column {col}, formatter {formatter} returned false");
                     }
 
                     var res = Buffer.Buffer;
@@ -109,7 +114,7 @@ namespace Cesil
                     }
 
                     var writeValueTask = WriteValueAsync(res, cancel);
-                    if (!writeValueTask.IsCompletedSuccessfully)
+                    if (!writeValueTask.IsCompletedSuccessfully(this))
                     {
                         disposeE = false;
                         return WriteAsync_ContinueAfterWriteValueAsync(this, writeValueTask, i, e, cancel);
@@ -120,7 +125,7 @@ end:
                     i++;
                 }
             }
-            catch
+            finally
             {
                 if (disposeE)
                 {
@@ -149,7 +154,8 @@ end:
 
                     if (needsSeparator)
                     {
-                        await self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
+                        var placeTask = self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
+                        await placeTask;
                     }
 
                     var col = i < self.ColumnNames.Length ? self.ColumnNames[i].Name : null;
@@ -157,13 +163,14 @@ end:
                     var ctx = WriteContext.WritingColumn(self.RowNumber, ColumnIdentifier.Create(i, col), self.Context);
 
                     var formatter = cell.Formatter;
-                    formatter.PrimeDynamicDelegate(self);
-                    var del = formatter.DynamicDelegate;
+                    var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
+                    delProvider.Guarantee(self);
+                    var del = delProvider.CachedDelegate;
 
                     var val = cell.Value as object;
                     if (!del(val, in ctx, self.Buffer))
                     {
-                        Throw.SerializationException($"Could not write column {col}, formatter {formatter} returned false");
+                        Throw.SerializationException<object>($"Could not write column {col}, formatter {formatter} returned false");
                     }
 
                     var res = self.Buffer.Buffer;
@@ -172,8 +179,9 @@ end:
                         // nothing was written, so just move on
                         goto end;
                     }
-
-                    await self.WriteValueAsync(res, cancel);
+                    
+                    var writeValueTask = self.WriteValueAsync(res, cancel);
+                    await writeValueTask;
                     self.Buffer.Reset();
 
 end:
@@ -184,7 +192,7 @@ end:
             }
 
             // continue after PlaceCharInStagingAsync completes
-            static async ValueTask WriteAsync_ContinueAfterPlaceCharAsync(AsyncDynamicWriter self, Task waitFor, DynamicCellValue cell, int i, IEnumerator<DynamicCellValue> e, CancellationToken cancel)
+            static async ValueTask WriteAsync_ContinueAfterPlaceCharAsync(AsyncDynamicWriter self, ValueTask waitFor, DynamicCellValue cell, int i, IEnumerator<DynamicCellValue> e, CancellationToken cancel)
             {
                 try
                 {
@@ -197,13 +205,14 @@ end:
                         var ctx = WriteContext.WritingColumn(self.RowNumber, ColumnIdentifier.Create(i, col), self.Context);
 
                         var formatter = cell.Formatter;
-                        formatter.PrimeDynamicDelegate(self);
-                        var del = formatter.DynamicDelegate;
+                        var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
+                        delProvider.Guarantee(self);
+                        var del = delProvider.CachedDelegate;
 
                         var val = cell.Value as object;
                         if (!del(val, in ctx, self.Buffer))
                         {
-                            Throw.SerializationException($"Could not write column {col}, formatter {formatter} returned false");
+                            Throw.SerializationException<object>($"Could not write column {col}, formatter {formatter} returned false");
                         }
 
                         var res = self.Buffer.Buffer;
@@ -213,7 +222,8 @@ end:
                             goto end;
                         }
 
-                        await self.WriteValueAsync(res, cancel);
+                        var writeValueTask = self.WriteValueAsync(res, cancel);
+                        await writeValueTask;
                         self.Buffer.Reset();
 
 end:
@@ -228,7 +238,8 @@ end:
 
                         if (needsSeparator)
                         {
-                            await self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
+                            var placeTask = self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
+                            await placeTask;
                         }
 
                         var col = i < self.ColumnNames.Length ? self.ColumnNames[i].Name : null;
@@ -236,13 +247,14 @@ end:
                         var ctx = WriteContext.WritingColumn(self.RowNumber, ColumnIdentifier.Create(i, col), self.Context);
 
                         var formatter = cell.Formatter;
-                        formatter.PrimeDynamicDelegate(self);
-                        var del = formatter.DynamicDelegate;
+                        var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
+                        delProvider.Guarantee(self);
+                        var del = delProvider.CachedDelegate;
 
                         var val = cell.Value as object;
                         if (!del(val, in ctx, self.Buffer))
                         {
-                            Throw.SerializationException($"Could not write column {col}, formatter {formatter} returned false");
+                            Throw.SerializationException<object>($"Could not write column {col}, formatter {formatter} returned false");
                         }
 
                         var res = self.Buffer.Buffer;
@@ -252,7 +264,8 @@ end:
                             goto end;
                         }
 
-                        await self.WriteValueAsync(res, cancel);
+                        var writeValueTask = self.WriteValueAsync(res, cancel);
+                        await writeValueTask;
                         self.Buffer.Reset();
 
 end:
@@ -289,7 +302,8 @@ end:
 
                         if (needsSeparator)
                         {
-                            await self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
+                            var placeTask = self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
+                            await placeTask;
                         }
 
                         var col = i < self.ColumnNames.Length ? self.ColumnNames[i].Name : null;
@@ -297,13 +311,14 @@ end:
                         var ctx = WriteContext.WritingColumn(self.RowNumber, ColumnIdentifier.Create(i, col), self.Context);
 
                         var formatter = cell.Formatter;
-                        formatter.PrimeDynamicDelegate(self);
-                        var del = formatter.DynamicDelegate;
+                        var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
+                        delProvider.Guarantee(self);
+                        var del = delProvider.CachedDelegate;
 
                         var val = cell.Value as object;
                         if (!del(val, in ctx, self.Buffer))
                         {
-                            Throw.SerializationException($"Could not write column {col}, formatter {formatter} returned false");
+                            Throw.SerializationException<object>($"Could not write column {col}, formatter {formatter} returned false");
                         }
 
                         var res = self.Buffer.Buffer;
@@ -313,7 +328,8 @@ end:
                             goto end;
                         }
 
-                        await self.WriteValueAsync(res, cancel);
+                        var writeValueTask = self.WriteValueAsync(res, cancel);
+                        await writeValueTask;
                         self.Buffer.Reset();
 
 end:
@@ -333,21 +349,21 @@ end:
         {
             if (comment == null)
             {
-                Throw.ArgumentNullException(nameof(comment));
+                return Throw.ArgumentNullException<ValueTask>(nameof(comment));
             }
 
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             var shouldEndRecord = true;
             if (IsFirstRow)
             {
                 if (Config.WriteHeader == WriteHeaders.Always)
                 {
-                    Throw.InvalidOperationException($"First operation on a dynamic writer cannot be {nameof(WriteCommentAsync)} if configured to write headers, headers cannot be inferred");
+                    return Throw.InvalidOperationException<ValueTask>($"First operation on a dynamic writer cannot be {nameof(WriteCommentAsync)} if configured to write headers, headers cannot be inferred");
                 }
 
                 var checkHeaders = CheckHeadersAsync(null, cancel);
-                if (!checkHeaders.IsCompletedSuccessfully)
+                if (!checkHeaders.IsCompletedSuccessfully(this))
                 {
                     return WriteCommentAsync_ContinueAfterCheckHeadersAsync(this, checkHeaders, comment, cancel);
                 }
@@ -361,7 +377,7 @@ end:
             if (shouldEndRecord)
             {
                 var endRecordTask = EndRecordAsync(cancel);
-                if (!endRecordTask.IsCompletedSuccessfully)
+                if (!endRecordTask.IsCompletedSuccessfully(this))
                 {
                     return WriteCommentAsync_ContinueAfterEndRecordAsync(this, endRecordTask, comment, cancel);
                 }
@@ -381,14 +397,14 @@ end:
                 if (!isFirstRow)
                 {
                     var endRowTask = EndRecordAsync(cancel);
-                    if (!endRowTask.IsCompletedSuccessfully)
+                    if (!endRowTask.IsCompletedSuccessfully(this))
                     {
                         return WriteCommentAsync_ContinueAfterEndRowAsync(this, endRowTask, seg, e, cancel);
                     }
                 }
 
                 var placeCharTask = PlaceCharInStagingAsync(commentChar, cancel);
-                if (!placeCharTask.IsCompletedSuccessfully)
+                if (!placeCharTask.IsCompletedSuccessfully(this))
                 {
                     return WriteCommentAsync_ContinueAfterPlaceCharAsync(this, placeCharTask, seg, e, cancel);
                 }
@@ -396,7 +412,7 @@ end:
                 if (seg.Length > 0)
                 {
                     var placeTask = PlaceInStagingAsync(seg, cancel);
-                    if (!placeTask.IsCompletedSuccessfully)
+                    if (!placeTask.IsCompletedSuccessfully(this))
                     {
                         return WriteCommentAsync_ContinueAfterPlaceSegementAsync(this, placeTask, e, cancel);
                     }
@@ -421,7 +437,8 @@ end:
 
                 if (shouldEndRecord)
                 {
-                    await self.EndRecordAsync(cancel);
+                    var endTask = self.EndRecordAsync(cancel);
+                    await endTask;
                 }
 
                 var segments = self.SplitCommentIntoLines(comment);
@@ -434,13 +451,16 @@ end:
                 {
                     if (!isFirstRow)
                     {
-                        await self.EndRecordAsync(cancel);
+                        var endTask = self.EndRecordAsync(cancel);
+                        await endTask;
                     }
 
-                    await self.PlaceCharInStagingAsync(commentChar, cancel);
+                    var placeTask = self.PlaceCharInStagingAsync(commentChar, cancel);
+                    await placeTask;
                     if (seg.Length > 0)
                     {
-                        await self.PlaceInStagingAsync(seg, cancel);
+                        var secondPlaceTask = self.PlaceInStagingAsync(seg, cancel);
+                        await secondPlaceTask;
                     }
 
                     isFirstRow = false;
@@ -462,13 +482,16 @@ end:
                 {
                     if (!isFirstRow)
                     {
-                        await self.EndRecordAsync(cancel);
+                        var endTask = self.EndRecordAsync(cancel);
+                        await endTask;
                     }
 
-                    await self.PlaceCharInStagingAsync(commentChar, cancel);
+                    var placeTask = self.PlaceCharInStagingAsync(commentChar, cancel);
+                    await placeTask;
                     if (seg.Length > 0)
                     {
-                        await self.PlaceInStagingAsync(seg, cancel);
+                        var secondPlaceTask = self.PlaceInStagingAsync(seg, cancel);
+                        await secondPlaceTask;
                     }
 
                     isFirstRow = false;
@@ -483,10 +506,12 @@ end:
 
                 // finish loop
                 {
-                    await self.PlaceCharInStagingAsync(commentChar, cancel);
+                    var placeTask = self.PlaceCharInStagingAsync(commentChar, cancel);
+                    await placeTask;
                     if (seg.Length > 0)
                     {
-                        await self.PlaceInStagingAsync(seg, cancel);
+                        var secondPlaceTask = self.PlaceInStagingAsync(seg, cancel);
+                        await secondPlaceTask;
                     }
                 }
 
@@ -496,18 +521,21 @@ end:
                     seg = e.Current;
 
                     // by definition, not in the first row so we can skip the if
-                    await self.EndRecordAsync(cancel);
+                    var endTask = self.EndRecordAsync(cancel);
+                    await endTask;
 
-                    await self.PlaceCharInStagingAsync(commentChar, cancel);
+                    var thirdPlaceTask = self.PlaceCharInStagingAsync(commentChar, cancel);
+                    await thirdPlaceTask;
                     if (seg.Length > 0)
                     {
-                        await self.PlaceInStagingAsync(seg, cancel);
+                        var fourthPlaceTask = self.PlaceInStagingAsync(seg, cancel);
+                        await fourthPlaceTask;
                     }
                 }
             }
 
             // continue after writing the comment start char completes
-            static async ValueTask WriteCommentAsync_ContinueAfterPlaceCharAsync(AsyncDynamicWriter self, Task waitFor, ReadOnlyMemory<char> seg, ReadOnlySequence<char>.Enumerator e, CancellationToken cancel)
+            static async ValueTask WriteCommentAsync_ContinueAfterPlaceCharAsync(AsyncDynamicWriter self, ValueTask waitFor, ReadOnlyMemory<char> seg, ReadOnlySequence<char>.Enumerator e, CancellationToken cancel)
             {
                 await waitFor;
 
@@ -515,7 +543,8 @@ end:
                 {
                     if (seg.Length > 0)
                     {
-                        await self.PlaceInStagingAsync(seg, cancel);
+                        var placeTask = self.PlaceInStagingAsync(seg, cancel);
+                        await placeTask;
                     }
                 }
 
@@ -527,12 +556,15 @@ end:
                     seg = e.Current;
 
                     // by definition, not in the first row so we can skip the if
-                    await self.EndRecordAsync(cancel);
+                    var endTask = self.EndRecordAsync(cancel);
+                    await endTask;
 
-                    await self.PlaceCharInStagingAsync(commentChar, cancel);
+                    var secondPlaceTask = self.PlaceCharInStagingAsync(commentChar, cancel);
+                    await secondPlaceTask;
                     if (seg.Length > 0)
                     {
-                        await self.PlaceInStagingAsync(seg, cancel);
+                        var thirdPlaceTask = self.PlaceInStagingAsync(seg, cancel);
+                        await thirdPlaceTask;
                     }
                 }
             }
@@ -549,12 +581,15 @@ end:
                     var seg = e.Current;
 
                     // by definition, not in the first row so we can skip the if
-                    await self.EndRecordAsync(cancel);
+                    var endTask = self.EndRecordAsync(cancel);
+                    await endTask;
 
-                    await self.PlaceCharInStagingAsync(commentChar, cancel);
+                    var placeTask = self.PlaceCharInStagingAsync(commentChar, cancel);
+                    await placeTask;
                     if (seg.Length > 0)
                     {
-                        await self.PlaceInStagingAsync(seg, cancel);
+                        var secondPlaceTask = self.PlaceInStagingAsync(seg, cancel);
+                        await secondPlaceTask;
                     }
                 }
             }
@@ -566,8 +601,9 @@ end:
 
             if (IsFirstRow)
             {
-                var checkHeadersTask = CheckHeadersAsync(row, cancel);
-                if (!checkHeadersTask.IsCompletedSuccessfully)
+                var rowAsObj = row as object;
+                var checkHeadersTask = CheckHeadersAsync(rowAsObj, cancel);
+                if (!checkHeadersTask.IsCompletedSuccessfully(this))
                 {
                     return WriteHeadersAndEndRowIfNeededAsync_ContinueAfterCheckHeadersAsync(this, checkHeadersTask, cancel);
                 }
@@ -581,7 +617,7 @@ end:
             if (shouldEndRecord)
             {
                 var endRecordTask = EndRecordAsync(cancel);
-                if (!endRecordTask.IsCompletedSuccessfully)
+                if (!endRecordTask.IsCompletedSuccessfully(this))
                 {
                     return endRecordTask;
                 }
@@ -602,7 +638,8 @@ end:
 
                 if (shouldEndRecord)
                 {
-                    await self.EndRecordAsync(cancel);
+                    var endTask = self.EndRecordAsync(cancel);
+                    await endTask;
                 }
             }
         }
@@ -619,7 +656,7 @@ end:
             {
                 if (i == ColumnNames.Length)
                 {
-                    Throw.InvalidOperationException("Too many cells returned, could not place in desired order");
+                    return Throw.InvalidOperationException<IEnumerable<DynamicCellValue>>("Too many cells returned, could not place in desired order");
                 }
 
                 var expectedName = ColumnNames[i];
@@ -657,7 +694,7 @@ end:
             DiscoverColumns(firstRow);
 
             var writeHeadersTask = WriteHeadersAsync(cancel);
-            if (!writeHeadersTask.IsCompletedSuccessfully)
+            if (!writeHeadersTask.IsCompletedSuccessfully(this))
             {
                 return CheckHeadersAsync_ContinueAfterWriteHeadersAsync(writeHeadersTask, cancel);
             }
@@ -686,7 +723,7 @@ end:
 
                 if (colName == null)
                 {
-                    Throw.InvalidOperationException($"No column name found at index {colIx} when {nameof(Cesil.WriteHeaders)} = {Config.WriteHeader}");
+                    Throw.InvalidOperationException<object>($"No column name found at index {colIx} when {nameof(Cesil.WriteHeaders)} = {Config.WriteHeader}");
                 }
 
                 var encodedColName = colName;
@@ -734,7 +771,7 @@ end:
                 if (i != 0)
                 {
                     var placeCharTask = PlaceCharInStagingAsync(Config.ValueSeparator, cancel);
-                    if (!placeCharTask.IsCompletedSuccessfully)
+                    if (!placeCharTask.IsCompletedSuccessfully(this))
                     {
                         return WriteHeadersAsync_ContinueAfterPlaceCharAsync(this, placeCharTask, i, cancel);
                     }
@@ -745,7 +782,7 @@ end:
                 // can colName is always gonna be encoded correctly, because we just discovered them
                 //   (ie. they're always correct for this config)
                 var placeInStagingTask = PlaceInStagingAsync(colName.AsMemory(), cancel);
-                if (!placeInStagingTask.IsCompletedSuccessfully)
+                if (!placeInStagingTask.IsCompletedSuccessfully(this))
                 {
                     return WriteHeadersAsync_ContinueAfterPlaceInStagingAsync(this, placeInStagingTask, i, cancel);
                 }
@@ -754,7 +791,7 @@ end:
             return default;
 
             // continue after a PlaceCharInStagingAsync call
-            static async ValueTask WriteHeadersAsync_ContinueAfterPlaceCharAsync(AsyncDynamicWriter self, Task waitFor, int i, CancellationToken cancel)
+            static async ValueTask WriteHeadersAsync_ContinueAfterPlaceCharAsync(AsyncDynamicWriter self, ValueTask waitFor, int i, CancellationToken cancel)
             {
                 await waitFor;
 
@@ -764,7 +801,8 @@ end:
 
                     // can colName is always gonna be encoded correctly, because we just discovered them
                     //   (ie. they're always correct for this config)
-                    await self.PlaceInStagingAsync(colName.AsMemory(), cancel);
+                    var placeTask = self.PlaceInStagingAsync(colName.AsMemory(), cancel);
+                    await placeTask;
 
                     i++;
                 }
@@ -772,13 +810,15 @@ end:
                 for (; i < self.ColumnNames.Length; i++)
                 {
                     // by defintion i != 0, so no need for the if
-                    await self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
+                    var secondPlaceTask = self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
+                    await secondPlaceTask;
 
                     var colName = self.ColumnNames[i].EncodedName;
 
                     // can colName is always gonna be encoded correctly, because we just discovered them
                     //   (ie. they're always correct for this config)
-                    await self.PlaceInStagingAsync(colName.AsMemory(), cancel);
+                    var thirdPlaceTask = self.PlaceInStagingAsync(colName.AsMemory(), cancel);
+                    await thirdPlaceTask;
                 }
             }
 
@@ -791,13 +831,15 @@ end:
                 for (; i < self.ColumnNames.Length; i++)
                 {
                     // by defintion i != 0, so no need for the if
-                    await self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
+                    var placeTask = self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
+                    await placeTask;
 
                     var colName = self.ColumnNames[i].EncodedName;
 
                     // can colName is always gonna be encoded correctly, because we just discovered them
                     //   (ie. they're always correct for this config)
-                    await self.PlaceInStagingAsync(colName.AsMemory(), cancel);
+                    var secondPlaceTask = self.PlaceInStagingAsync(colName.AsMemory(), cancel);
+                    await secondPlaceTask;
                 }
             }
         }
@@ -809,7 +851,7 @@ end:
                 if (IsFirstRow)
                 {
                     var checkHeadersTask = CheckHeadersAsync(null, CancellationToken.None);
-                    if (!checkHeadersTask.IsCompletedSuccessfully)
+                    if (!checkHeadersTask.IsCompletedSuccessfully(this))
                     {
                         return DisposeAsync_ContinueAfterCheckHeadersAsync(this, checkHeadersTask);
                     }
@@ -818,7 +860,7 @@ end:
                 if (Config.WriteTrailingNewLine == WriteTrailingNewLines.Always)
                 {
                     var endRecordTask = EndRecordAsync(CancellationToken.None);
-                    if (!endRecordTask.IsCompletedSuccessfully)
+                    if (!endRecordTask.IsCompletedSuccessfully(this))
                     {
                         return DisposeAsync_ContinueAfterEndRecordAsync(this, endRecordTask);
                     }
@@ -829,7 +871,7 @@ end:
                     if (InStaging > 0)
                     {
                         var flushStagingTask = FlushStagingAsync(CancellationToken.None);
-                        if (!flushStagingTask.IsCompletedSuccessfully)
+                        if (!flushStagingTask.IsCompletedSuccessfully(this))
                         {
                             return DisposeAsync_ContinueAfterFlushStagingAsync(this, flushStagingTask);
                         }
@@ -839,7 +881,7 @@ end:
                 }
 
                 var innerDisposeTask = Inner.DisposeAsync();
-                if (!innerDisposeTask.IsCompletedSuccessfully)
+                if (!innerDisposeTask.IsCompletedSuccessfully(this))
                 {
                     return DisposeAsync_ContinueAfterDisposeAsync(this, innerDisposeTask);
                 }
@@ -858,20 +900,23 @@ end:
 
                 if (self.Config.WriteTrailingNewLine == WriteTrailingNewLines.Always)
                 {
-                    await self.EndRecordAsync(CancellationToken.None);
+                    var endTask = self.EndRecordAsync(CancellationToken.None);
+                    await endTask;
                 }
 
                 if (self.HasBuffer)
                 {
                     if (self.InStaging > 0)
                     {
-                        await self.FlushStagingAsync(CancellationToken.None);
+                        var flushTask = self.FlushStagingAsync(CancellationToken.None);
+                        await flushTask;
                     }
 
                     self.Staging.Dispose();
                 }
 
-                await self.Inner.DisposeAsync();
+                var disposeTask = self.Inner.DisposeAsync();
+                await disposeTask;
 
                 self.OneCharOwner?.Dispose();
                 self.Buffer.Dispose();
@@ -887,13 +932,15 @@ end:
                 {
                     if (self.InStaging > 0)
                     {
-                        await self.FlushStagingAsync(CancellationToken.None);
+                        var flushTask = self.FlushStagingAsync(CancellationToken.None);
+                        await flushTask;
                     }
 
                     self.Staging.Dispose();
                 }
 
-                await self.Inner.DisposeAsync();
+                var disposeTask = self.Inner.DisposeAsync();
+                await disposeTask;
 
                 self.OneCharOwner?.Dispose();
                 self.Buffer.Dispose();
@@ -901,13 +948,14 @@ end:
             }
 
             // continue after FlushStagingAsync completes
-            static async ValueTask DisposeAsync_ContinueAfterFlushStagingAsync(AsyncDynamicWriter self, Task waitFor)
+            static async ValueTask DisposeAsync_ContinueAfterFlushStagingAsync(AsyncDynamicWriter self, ValueTask waitFor)
             {
                 await waitFor;
 
                 self.Staging.Dispose();
 
-                await self.Inner.DisposeAsync();
+                var disposeTask = self.Inner.DisposeAsync();
+                await disposeTask;
 
                 self.OneCharOwner?.Dispose();
                 self.Buffer.Dispose();

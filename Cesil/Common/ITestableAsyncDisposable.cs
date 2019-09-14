@@ -6,6 +6,14 @@ namespace Cesil
     {
         bool IsDisposed { get; }
 
-        void AssertNotDisposed();
+        public void AssertNotDisposed()
+        {
+            if (IsDisposed)
+            {
+                var name = GetType().Name;
+
+                Throw.ObjectDisposedException<object>(name);
+            }
+        }
     }
 }

@@ -15,6 +15,7 @@ namespace Cesil
             Row = outer;
         }
 
+        // todo: remove Linq here
         public override IEnumerable<string> GetDynamicMemberNames()
         => Row.Columns.Where(c => c.HasName).Select(c => c.Name);
 
@@ -25,13 +26,11 @@ namespace Cesil
             if (indexes.Length != 1)
             {
                 var msg = Expression.Constant($"Only single indexers are supported.");
-                var call = Expression.Call(Methods.Throw.InvalidOperationException, msg);
-                var def = Expressions.Default_Object;
-
-                var block = Expression.Block(call, def);
+                var invalidOpCall = Methods.Throw.InvalidOperationExceptionOfObject;
+                var call = Expression.Call(invalidOpCall, msg);
 
                 // we can cache this forever (for this type), since there's no scenario under which indexes != 1 becomes correct
-                return new DynamicMetaObject(block, expressionIsDynamicRowRestriction);
+                return new DynamicMetaObject(call, expressionIsDynamicRowRestriction);
             }
 
             var indexExp = indexes[0].Expression;
@@ -105,13 +104,11 @@ namespace Cesil
             // no binder
             {
                 var msg = Expression.Constant($"Only string, int, index, and range indexers are supported.");
-                var call = Expression.Call(Methods.Throw.InvalidOperationException, msg);
-                var def = Expressions.Default_Object;
-
-                var block = Expression.Block(call, def);
+                var invalidOpCall = Methods.Throw.InvalidOperationExceptionOfObject;
+                var call = Expression.Call(invalidOpCall, msg);
 
                 // we can cache this forever (for this type), since there's no scenario under which incorrect index types become correct
-                return new DynamicMetaObject(block, expressionIsDynamicRowRestriction);
+                return new DynamicMetaObject(call, expressionIsDynamicRowRestriction);
             }
         }
 
@@ -172,22 +169,18 @@ namespace Cesil
 
             if (converter == null)
             {
-                var throwMsg = Expression.Call(Methods.Throw.InvalidOperationException, Expression.Constant($"No row converter discovered for {retType}"));
-                var def = Expression.Default(retType);
+                var invalidOpCall = Methods.Throw.InvalidOperationException.MakeGenericMethod(retType);
+                var throwMsg = Expression.Call(invalidOpCall, Expression.Constant($"No row converter discovered for {retType}"));
 
-                var block = Expression.Block(throwMsg, def);
-
-                return new DynamicMetaObject(block, restrictions);
+                return new DynamicMetaObject(throwMsg, restrictions);
             }
 
             if (!binder.ReturnType.IsAssignableFrom(converter.TargetType))
             {
-                var throwMsg = Expression.Call(Methods.Throw.InvalidOperationException, Expression.Constant($"Row converter {converter} does not create a type assignable to {binder.ReturnType}, returns {converter.TargetType}"));
-                var def = Expression.Default(retType);
+                var invalidOpCall = Methods.Throw.InvalidOperationException.MakeGenericMethod(retType);
+                var throwMsg = Expression.Call(invalidOpCall, Expression.Constant($"Row converter {converter} does not create a type assignable to {binder.ReturnType}, returns {converter.TargetType}"));
 
-                var block = Expression.Block(throwMsg, def);
-
-                return new DynamicMetaObject(block, restrictions);
+                return new DynamicMetaObject(throwMsg, restrictions);
             }
 
             var selfAsRow = Expression.Convert(Expression, Types.DynamicRowType);
@@ -286,9 +279,7 @@ namespace Cesil
                                         }
                                         break;
                                     default:
-                                        Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {setter.Mode}");
-                                        // just for control flow
-                                        return default;
+                                        return Throw.InvalidOperationException<DynamicMetaObject>($"Unexpected {nameof(BackingMode)}: {setter.Mode}");
                                 }
                                 statements.Add(callSetter);
                             }
@@ -301,9 +292,7 @@ namespace Cesil
                             return new DynamicMetaObject(block, restrictions);
                         }
 
-                        Throw.Exception($"Constructor converter couldn't be turned into an expression, shouldn't be possible");
-                        // just for control flow
-                        return default;
+                        return Throw.Exception<DynamicMetaObject>($"Constructor converter couldn't be turned into an expression, shouldn't be possible");
                     }
                 case BackingMode.Method:
                     {
@@ -320,7 +309,8 @@ namespace Cesil
 
                         statements.Add(assignRes);
 
-                        var callThrow = Expression.Call(Methods.Throw.InvalidOperationException, Expression.Constant($"{nameof(DynamicRowConverter)} returned false"));
+                        var invalidOpCall = Methods.Throw.InvalidOperationExceptionOfObject;
+                        var callThrow = Expression.Call(invalidOpCall, Expression.Constant($"{nameof(DynamicRowConverter)} returned false"));
 
                         var ifNot = Expression.IfThen(Expression.Not(resVar), callThrow);
                         statements.Add(ifNot);
@@ -348,7 +338,8 @@ namespace Cesil
 
                         statements.Add(assignRes);
 
-                        var callThrow = Expression.Call(Methods.Throw.InvalidOperationException, Expression.Constant($"{nameof(DynamicRowConverter)} returned false"));
+                        var invalidOpCall = Methods.Throw.InvalidOperationExceptionOfObject;
+                        var callThrow = Expression.Call(invalidOpCall, Expression.Constant($"{nameof(DynamicRowConverter)} returned false"));
 
                         var ifNot = Expression.IfThen(Expression.Not(resVar), callThrow);
                         statements.Add(ifNot);
@@ -361,9 +352,7 @@ namespace Cesil
                         return new DynamicMetaObject(block, restrictions);
                     }
                 default:
-                    Throw.Exception($"Unexpected {nameof(BackingMode)}: {converter.Mode}");
-                    // just for control flow
-                    return default;
+                    return Throw.Exception<DynamicMetaObject>($"Unexpected {nameof(BackingMode)}: {converter.Mode}");
             }
         }
     }

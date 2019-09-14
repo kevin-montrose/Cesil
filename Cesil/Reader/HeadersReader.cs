@@ -7,9 +7,11 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
+using static Cesil.DisposableHelper;
+
 namespace Cesil
 {
-    internal sealed class HeadersReader<T> : ITestableDisposable
+    internal sealed partial class HeadersReader<T> : ITestableDisposable
     {
         private const int LENGTH_SIZE = sizeof(uint) / sizeof(char);
 
@@ -28,7 +30,7 @@ namespace Cesil
             {
                 get
                 {
-                    AssertNotDisposed();
+                    AssertNotDisposed(this);
                     return _Current;
                 }
                 private set
@@ -51,7 +53,7 @@ namespace Cesil
 
             public bool MoveNext()
             {
-                AssertNotDisposed();
+                AssertNotDisposed(this);
 
                 if (NextHeaderIndex >= Count)
                 {
@@ -76,7 +78,8 @@ namespace Cesil
 
             public void Reset()
             {
-                AssertNotDisposed();
+                AssertNotDisposed(this);
+
                 Current = default;
                 NextHeaderIndex = 0;
                 CurrentBufferIndex = 0;
@@ -90,20 +93,14 @@ namespace Cesil
                 }
             }
 
-            public void AssertNotDisposed()
-            {
-                if (IsDisposed)
-                {
-                    Throw.ObjectDisposedException(nameof(HeaderEnumerator));
-                }
-            }
-
             public override string ToString()
             => $"{nameof(HeaderEnumerator)} with {nameof(Count)}={Count}";
         }
 
+        private readonly IReaderAdapter Inner;
+        private readonly IAsyncReaderAdapter InnerAsync;
+
         private readonly Column[] Columns;
-        private readonly TextReader Inner;
         private readonly ReaderStateMachine StateMachine;
         private readonly BufferWithPushback Buffer;
         private readonly int BufferSizeHint;
@@ -131,26 +128,48 @@ namespace Cesil
         }
 
         internal HeadersReader(
+            ReaderStateMachine stateMachine,
             BoundConfigurationBase<T> config,
-            ReaderStateMachine.CharacterLookup charLookup,
-            TextReader inner,
+            CharacterLookup charLookup,
+            IReaderAdapter inner,
+            BufferWithPushback buffer
+        )
+        : this(stateMachine, config, charLookup, inner, null, buffer) { }
+
+        internal HeadersReader(
+            ReaderStateMachine stateMachine,
+            BoundConfigurationBase<T> config,
+            CharacterLookup charLookup,
+            IAsyncReaderAdapter inner,
+            BufferWithPushback buffer
+        )
+        : this(stateMachine, config, charLookup, null, inner, buffer) { }
+
+        private HeadersReader(
+            ReaderStateMachine stateMachine,
+            BoundConfigurationBase<T> config,
+            CharacterLookup charLookup,
+            IReaderAdapter inner,
+            IAsyncReaderAdapter innerAsync,
             BufferWithPushback buffer
         )
         {
+            Inner = inner;
+            InnerAsync = innerAsync;
+
             MemoryPool = config.MemoryPool;
             BufferSizeHint = config.ReadBufferSizeHint;
             Columns = config.DeserializeColumns;
-            Inner = inner;
 
-            StateMachine =
-                new ReaderStateMachine(
-                    charLookup,
-                    config.EscapedValueStartAndStop,
-                    config.EscapeValueEscapeChar,
-                    config.RowEnding,
-                    ReadHeaders.Never,
-                    false
-                );
+            StateMachine = stateMachine;
+            stateMachine.Initialize(
+                charLookup,
+                config.EscapedValueStartAndStop,
+                config.EscapeValueEscapeChar,
+                config.RowEnding,
+                ReadHeaders.Never,
+                false
+            );
 
             Buffer = buffer;
 
@@ -160,6 +179,8 @@ namespace Cesil
 
         internal (HeaderEnumerator Headers, bool IsHeader, Memory<char> PushBack) Read()
         {
+            StateMachine.Pin();
+
             while (true)
             {
                 var available = Buffer.Read(Inner);
@@ -181,6 +202,8 @@ namespace Cesil
                     break;
                 }
             }
+
+            StateMachine.Unpin();
 
             return IsHeaderResult();
         }
@@ -206,7 +229,7 @@ namespace Cesil
 
             if (PushBackLength + c.Length > PushBackOwner.Memory.Length)
             {
-                Throw.InvalidOperationException($"Could not allocate large enough buffer to read headers");
+                Throw.InvalidOperationException<object>($"Could not allocate large enough buffer to read headers");
             }
 
             c.CopyTo(PushBack.Span.Slice(PushBackLength));
@@ -215,10 +238,12 @@ namespace Cesil
 
         internal ValueTask<(HeaderEnumerator Headers, bool IsHeader, Memory<char> PushBack)> ReadAsync(CancellationToken cancel)
         {
+            StateMachine.Pin();
+
             while (true)
             {
-                var availableTask = Buffer.ReadAsync(Inner, cancel);
-                if (!availableTask.IsCompletedSuccessfully)
+                var availableTask = Buffer.ReadAsync(InnerAsync, cancel);
+                if (!availableTask.IsCompletedSuccessfully(this))
                 {
                     return ReadAsync_ContinueAfterReadAsync(this, availableTask, cancel);
                 }
@@ -243,12 +268,18 @@ namespace Cesil
                 }
             }
 
+            StateMachine.Unpin();
+
             return new ValueTask<(HeaderEnumerator Headers, bool IsHeader, Memory<char> PushBack)>(IsHeaderResult());
 
             // wait for read to complete, then continue async
             static async ValueTask<(HeaderEnumerator Headers, bool IsHeader, Memory<char> PushBack)> ReadAsync_ContinueAfterReadAsync(HeadersReader<T> self, ValueTask<int> waitFor, CancellationToken cancel)
             {
-                var available = await waitFor;
+                int available;
+                using (self.StateMachine.ReleaseAndRePinForAsync(waitFor))
+                {
+                    available = await waitFor;
+                }
 
                 // handle the in flight task
                 if (available == 0)
@@ -257,6 +288,8 @@ namespace Cesil
                     {
                         self.PushPendingCharactersToValue();
                     }
+
+                    self.StateMachine.Unpin();
 
                     return self.IsHeaderResult();
                 }
@@ -267,6 +300,8 @@ namespace Cesil
 
                 if (self.AdvanceWork(available))
                 {
+                    self.StateMachine.Unpin();
+
                     return self.IsHeaderResult();
                 }
 
@@ -274,7 +309,11 @@ namespace Cesil
                 // go back into the loop
                 while (true)
                 {
-                    available = await self.Buffer.ReadAsync(self.Inner, cancel);
+                    var readTask = self.Buffer.ReadAsync(self.InnerAsync, cancel);
+                    using (self.StateMachine.ReleaseAndRePinForAsync(readTask))
+                    {
+                        available = await readTask;
+                    }
 
                     if (available == 0)
                     {
@@ -294,6 +333,8 @@ namespace Cesil
                         break;
                     }
                 }
+
+                self.StateMachine.Unpin();
 
                 return self.IsHeaderResult();
             }
@@ -357,7 +398,7 @@ finish:
 
                     continue;
                 }
-                else if (res == ReaderStateMachine.AdvanceResult.Append_PreviousAndCurrentCharacter)
+                else if (res == ReaderStateMachine.AdvanceResult.Append_CarriageReturnAndCurrentCharacter)
                 {
                     if (appendingSince == -1)
                     {
@@ -401,30 +442,30 @@ finish:
                         return true;
 
                     case ReaderStateMachine.AdvanceResult.Exception_ExpectedEndOfRecord:
-                        Throw.InvalidOperationException($"Encountered '{c}' when expecting end of record");
-                        break;
+                        unprocessedCharacters = default;
+                        return Throw.InvalidOperationException<bool>($"Encountered '{c}' when expecting end of record");
                     case ReaderStateMachine.AdvanceResult.Exception_InvalidState:
-                        Throw.InvalidOperationException($"Internal state machine is in an invalid state due to a previous error");
-                        break;
+                        unprocessedCharacters = default;
+                        return Throw.InvalidOperationException<bool>($"Internal state machine is in an invalid state due to a previous error");
                     case ReaderStateMachine.AdvanceResult.Exception_StartEscapeInValue:
-                        Throw.InvalidOperationException($"Encountered '{c}', starting an escaped value, when already in a value");
-                        break;
+                        unprocessedCharacters = default;
+                        return Throw.InvalidOperationException<bool>($"Encountered '{c}', starting an escaped value, when already in a value");
                     case ReaderStateMachine.AdvanceResult.Exception_UnexpectedCharacterInEscapeSequence:
-                        Throw.InvalidOperationException($"Encountered '{c}' in an escape sequence, which is invalid");
-                        break;
+                        unprocessedCharacters = default;
+                        return Throw.InvalidOperationException<bool>($"Encountered '{c}' in an escape sequence, which is invalid");
                     case ReaderStateMachine.AdvanceResult.Exception_UnexpectedLineEnding:
-                        Throw.Exception($"Unexpected {nameof(RowEndings)} value encountered");
-                        break;
+                        unprocessedCharacters = default;
+                        return Throw.Exception<bool>($"Unexpected {nameof(RowEndings)} value encountered");
                     case ReaderStateMachine.AdvanceResult.Exception_UnexpectedState:
-                        Throw.Exception($"Unexpected state value entered");
-                        break;
+                        unprocessedCharacters = default;
+                        return Throw.Exception<bool>($"Unexpected state value entered");
                     case ReaderStateMachine.AdvanceResult.Exception_ExpectedEndOfRecordOrValue:
-                        Throw.InvalidOperationException($"Encountered '{c}' when expecting the end of a record or value");
-                        break;
+                        unprocessedCharacters = default;
+                        return Throw.InvalidOperationException<bool>($"Encountered '{c}' when expecting the end of a record or value");
 
                     default:
-                        Throw.Exception($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {res}");
-                        break;
+                        unprocessedCharacters = default;
+                        return Throw.Exception<bool>($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {res}");
                 }
             }
 
@@ -497,20 +538,37 @@ finish:
         {
             if (!IsDisposed)
             {
+                // Intentionally NOT disposing StateMachine, it's reused
                 PushBackOwner?.Dispose();
                 BuilderOwner?.Dispose();
-                StateMachine.Dispose();
                 PushBackOwner = null;
                 MemoryPool = null;
             }
         }
+    }
 
-        public void AssertNotDisposed()
+#if DEBUG
+    // this is only implemented in DEBUG builds, so tests (and only tests) can force
+    //    particular async paths
+    internal sealed partial class HeadersReader<T> : ITestableAsyncProvider
+    {
+        private int _GoAsyncAfter;
+        int ITestableAsyncProvider.GoAsyncAfter { set { _GoAsyncAfter = value; } }
+
+        private int _AsyncCounter;
+        int ITestableAsyncProvider.AsyncCounter => _AsyncCounter;
+
+        bool ITestableAsyncProvider.ShouldGoAsync()
         {
-            if (IsDisposed)
+            lock (this)
             {
-                Throw.ObjectDisposedException(nameof(HeadersReader<T>));
+                _AsyncCounter++;
+
+                var ret = _AsyncCounter >= _GoAsyncAfter;
+
+                return ret;
             }
         }
     }
+#endif
 }

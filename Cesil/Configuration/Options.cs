@@ -203,7 +203,7 @@ namespace Cesil
         /// </summary>
         public bool Equals(Options opts)
         {
-            if (opts == null) return false;
+            if (ReferenceEquals(opts, null)) return false;
 
             return
                 opts.CommentCharacter == CommentCharacter &&
@@ -211,14 +211,14 @@ namespace Cesil
                 opts.EscapedValueEscapeCharacter == EscapedValueEscapeCharacter &&
                 opts.EscapedValueStartAndEnd == EscapedValueStartAndEnd &&
                 opts.MemoryPool == MemoryPool &&
-                opts.ReadBufferSizeHint == opts.ReadBufferSizeHint &&
+                opts.ReadBufferSizeHint == ReadBufferSizeHint &&
                 opts.ReadHeader == ReadHeader &&
-                opts.RowEnding == opts.RowEnding &&
-                opts.TypeDescriber == opts.TypeDescriber &&
-                opts.ValueSeparator == opts.ValueSeparator &&
-                opts.WriteBufferSizeHint == opts.WriteBufferSizeHint &&
-                opts.WriteHeader == opts.WriteHeader &&
-                opts.WriteTrailingNewLine == opts.WriteTrailingNewLine;
+                opts.RowEnding == RowEnding &&
+                opts.TypeDescriber == TypeDescriber &&
+                opts.ValueSeparator == ValueSeparator &&
+                opts.WriteBufferSizeHint == WriteBufferSizeHint &&
+                opts.WriteHeader == WriteHeader &&
+                opts.WriteTrailingNewLine == WriteTrailingNewLine;
         }
 
         /// <summary>

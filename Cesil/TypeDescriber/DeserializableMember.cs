@@ -58,13 +58,21 @@ namespace Cesil
         /// Creates a DeserializableMember for the given property.
         /// </summary>
         public static DeserializableMember ForProperty(PropertyInfo property)
-        => Create(property?.DeclaringType?.GetTypeInfo(), property?.Name, (Setter)property?.SetMethod, Parser.GetDefault(property?.PropertyType?.GetTypeInfo()), IsMemberRequired.No, null);
+        {
+            var propType = property?.PropertyType?.GetTypeInfo();
+            var parser = propType != null ? Parser.GetDefault(propType) : null;
+            return Create(property?.DeclaringType?.GetTypeInfo(), property?.Name, (Setter)property?.SetMethod, parser, IsMemberRequired.No, null);
+        }
 
         /// <summary>
         /// Creates a DeserializableMember for the given property, with the given name.
         /// </summary>
         public static DeserializableMember ForProperty(PropertyInfo property, string name)
-        => Create(property?.DeclaringType?.GetTypeInfo(), name, (Setter)property?.SetMethod, Parser.GetDefault(property?.PropertyType?.GetTypeInfo()), IsMemberRequired.No, null);
+        {
+            var propType = property?.PropertyType?.GetTypeInfo();
+            var parser = propType != null ? Parser.GetDefault(propType) : null;
+            return Create(property?.DeclaringType?.GetTypeInfo(), name, (Setter)property?.SetMethod, parser, IsMemberRequired.No, null);
+        }
 
         /// <summary>
         /// Creates a DeserializableMember for the given property, with the given name and parser.
@@ -88,13 +96,21 @@ namespace Cesil
         /// Creates a DeserializableMember for the given field.
         /// </summary>
         public static DeserializableMember ForField(FieldInfo field)
-        => Create(field?.DeclaringType?.GetTypeInfo(), field.Name, (Setter)field, Parser.GetDefault(field?.FieldType?.GetTypeInfo()), IsMemberRequired.No, null);
+        {
+            var fieldType = field?.FieldType?.GetTypeInfo();
+            var parser = fieldType != null ? Parser.GetDefault(fieldType) : null;
+            return Create(field?.DeclaringType?.GetTypeInfo(), field?.Name, (Setter)field, parser, IsMemberRequired.No, null);
+        }
 
         /// <summary>
         /// Creates a DeserializableMember for the given field, with the given name.
         /// </summary>
         public static DeserializableMember ForField(FieldInfo field, string name)
-        => Create(field?.DeclaringType?.GetTypeInfo(), name, (Setter)field, Parser.GetDefault(field?.FieldType?.GetTypeInfo()), IsMemberRequired.No, null);
+        {
+            var fieldType = field?.FieldType?.GetTypeInfo();
+            var parser = fieldType != null ? Parser.GetDefault(fieldType) : null;
+            return Create(field?.DeclaringType?.GetTypeInfo(), name, (Setter)field, parser, IsMemberRequired.No, null);
+        }
 
         /// <summary>
         /// Creates a DeserializableMember for the given field, with the given name and parser.
@@ -121,27 +137,27 @@ namespace Cesil
         {
             if (beingDeserializedType == null)
             {
-                Throw.ArgumentNullException(nameof(beingDeserializedType));
+                return Throw.ArgumentNullException<DeserializableMember>(nameof(beingDeserializedType));
             }
 
             if (name == null)
             {
-                Throw.ArgumentNullException(nameof(name));
+                return Throw.ArgumentNullException<DeserializableMember>(nameof(name));
             }
 
             if (setter == null)
             {
-                Throw.ArgumentNullException(nameof(setter));
+                return Throw.ArgumentNullException<DeserializableMember>(nameof(setter));
             }
 
             if (parser == null)
             {
-                Throw.ArgumentNullException(nameof(parser));
+                return Throw.ArgumentNullException<DeserializableMember>(nameof(parser));
             }
 
             if (name.Length == 0)
             {
-                Throw.ArgumentException($"{nameof(name)} must be at least 1 character long", nameof(name));
+                return Throw.ArgumentException<DeserializableMember>($"{nameof(name)} must be at least 1 character long", nameof(name));
             }
 
             bool isRequiredBool;
@@ -155,23 +171,21 @@ namespace Cesil
                     isRequiredBool = false;
                     break;
                 default:
-                    Throw.ArgumentException($"Unexpected {nameof(IsMemberRequired)}: {isRequired}", nameof(isRequired));
-                    // just for control flow
-                    return default;
+                    return Throw.ArgumentException<DeserializableMember>($"Unexpected {nameof(IsMemberRequired)}: {isRequired}", nameof(isRequired));
             }
 
             var valueType = setter.Takes;
 
             if (!valueType.IsAssignableFrom(parser.Creates))
             {
-                Throw.InvalidOperationException($"Provided {nameof(Parser)} creates a {parser.Creates}, which cannot be passed to {setter} which expectes a {valueType}");
+                return Throw.ArgumentException<DeserializableMember>($"Provided {nameof(Parser)} creates a {parser.Creates}, which cannot be passed to {setter} which expectes a {valueType}", nameof(setter));
             }
 
             if (reset != null && reset.RowType != null)
             {
                 if (!reset.RowType.IsAssignableFrom(beingDeserializedType))
                 {
-                    Throw.ArgumentException($"{nameof(reset)} must be callable on {beingDeserializedType}", nameof(reset));
+                    return Throw.ArgumentException<DeserializableMember>($"{nameof(reset)} must be callable on {beingDeserializedType}", nameof(reset));
                 }
             }
 
@@ -196,7 +210,7 @@ namespace Cesil
         /// </summary>
         public bool Equals(DeserializableMember d)
         {
-            if (d == null) return false;
+            if (ReferenceEquals(d, null)) return false;
 
             return
                 d.IsRequired == IsRequired &&

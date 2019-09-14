@@ -29,7 +29,7 @@
             {
                 if (!HasValue)
                 {
-                    Throw.InvalidOperationException($"{nameof(ReadResult<T>)} has no value");
+                    return Throw.InvalidOperationException<T>($"{nameof(ReadResult<T>)} has no value");
                 }
 
                 return _Value;

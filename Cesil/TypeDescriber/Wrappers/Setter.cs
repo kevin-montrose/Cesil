@@ -53,10 +53,7 @@ namespace Cesil
                     case BackingMode.Method: return Method.IsStatic;
                     case BackingMode.Delegate: return RowType == null;
                     default:
-                        Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
-
-                        // just for flow control
-                        return default;
+                        return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}");
                 }
             }
         }
@@ -106,14 +103,14 @@ namespace Cesil
         {
             if (setter == null)
             {
-                Throw.ArgumentNullException(nameof(setter));
+                return Throw.ArgumentNullException<Setter>(nameof(setter));
             }
 
             var returnsNoValue = setter.ReturnType == Types.VoidType;
 
             if (!returnsNoValue)
             {
-                Throw.ArgumentException($"{nameof(setter)} must not return a value", nameof(setter));
+                return Throw.ArgumentException<Setter>($"{nameof(setter)} must not return a value", nameof(setter));
             }
 
             TypeInfo setOnType;
@@ -140,13 +137,12 @@ namespace Cesil
 
                 if (!setter.IsStatic)
                 {
-                    Throw.ArgumentException($"{nameof(setter)} taking two parameters must be static", nameof(setter));
+                    return Throw.ArgumentException<Setter>($"{nameof(setter)} taking two parameters must be static", nameof(setter));
                 }
             }
             else
             {
-                Throw.ArgumentException($"{nameof(setter)} must take one or two parameters", nameof(setter));
-                return default; // just for flow control, the above won't actually return
+                return Throw.ArgumentException<Setter>($"{nameof(setter)} must take one or two parameters", nameof(setter));
             }
 
             return new Setter(setOnType, takesType, setter);
@@ -161,7 +157,7 @@ namespace Cesil
         {
             if (field == null)
             {
-                Throw.ArgumentNullException(nameof(field));
+                return Throw.ArgumentNullException<Setter>(nameof(field));
             }
 
             TypeInfo rowType;
@@ -186,7 +182,7 @@ namespace Cesil
         {
             if (del == null)
             {
-                Throw.ArgumentNullException(nameof(del));
+                return Throw.ArgumentNullException<Setter>(nameof(del));
             }
 
             var takesType = typeof(V).GetTypeInfo();
@@ -201,7 +197,7 @@ namespace Cesil
         {
             if (del == null)
             {
-                Throw.ArgumentNullException(nameof(del));
+                return Throw.ArgumentNullException<Setter>(nameof(del));
             }
 
             var setOnType = typeof(T).GetTypeInfo();
@@ -228,7 +224,7 @@ namespace Cesil
         /// </summary>
         public bool Equals(Setter s)
         {
-            if (s == null) return false;
+            if (ReferenceEquals(s, null)) return false;
 
             return
                 s.Delegate == Delegate &&
@@ -283,9 +279,7 @@ namespace Cesil
                         return $"{nameof(Setter)} on {RowType} backed by field {Field} of {Takes}";
                     }
                 default:
-                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
-                    // just for control flow
-                    return default;
+                    return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
             }
         }
 
@@ -339,7 +333,7 @@ namespace Cesil
             var retType = mtd.ReturnType.GetTypeInfo();
             if (retType != Types.VoidType)
             {
-                Throw.InvalidOperationException($"Delegate must return void, found {retType}");
+                return Throw.InvalidOperationException<Setter>($"Delegate must return void, found {retType}");
             }
 
             var ps = mtd.GetParameters();
@@ -366,9 +360,7 @@ namespace Cesil
             }
             else
             {
-                Throw.InvalidOperationException("Delegate must take 1 or 2 parameters");
-                // just for control flow
-                return default;
+                return Throw.InvalidOperationException<Setter>("Delegate must take 1 or 2 parameters");
             }
         }
 

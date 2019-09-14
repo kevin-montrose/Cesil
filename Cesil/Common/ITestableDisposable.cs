@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 
 namespace Cesil
 {
@@ -6,6 +7,14 @@ namespace Cesil
     {
         bool IsDisposed { get; }
 
-        void AssertNotDisposed();
+        void AssertNotDisposed()
+        {
+            if (IsDisposed)
+            {
+                var name = GetType().Name;
+
+                Throw.ObjectDisposedException<object>(name);
+            }
+        }
     }
 }

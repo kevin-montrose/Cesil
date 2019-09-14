@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,31 +15,29 @@ namespace Cesil
 
         public new object Context => base.Context;
 
-        internal AsyncDynamicReader(TextReader reader, DynamicBoundConfiguration config, object context) : base(reader, config, context) { }
+        internal AsyncDynamicReader(IAsyncReaderAdapter reader, DynamicBoundConfiguration config, object context) : base(reader, config, context) { }
 
-        internal override ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync(bool returnComments, ref dynamic record, CancellationToken cancel)
+        internal override ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync(bool returnComments, bool pinAcquired, ref dynamic record, CancellationToken cancel)
         {
             if (RowEndings == null)
             {
                 var handleLineEndingsTask = HandleLineEndingsAsync(cancel);
-                SwitchAsync(ref handleLineEndingsTask);
-                if (!handleLineEndingsTask.IsCompletedSuccessfully)
+                if (!handleLineEndingsTask.IsCompletedSuccessfully(this))
                 {
                     DynamicRow dynRow;
                     record = dynRow = GuaranteeUninitializedDynamicRow(this, ref record);
-                    return TryReadInnerAsync_ContinueAfterHandleLineEndingsAsync(this, handleLineEndingsTask, returnComments, dynRow, cancel);
+                    return TryReadInnerAsync_ContinueAfterHandleLineEndingsAsync(this, handleLineEndingsTask, pinAcquired, returnComments, dynRow, cancel);
                 }
             }
 
             if (ReadHeaders == null)
             {
                 var handleHeadersTask = HandleHeadersAsync(cancel);
-                SwitchAsync(ref handleHeadersTask);
-                if (!handleHeadersTask.IsCompletedSuccessfully)
+                if (!handleHeadersTask.IsCompletedSuccessfully(this))
                 {
                     DynamicRow dynRow;
                     record = dynRow = GuaranteeUninitializedDynamicRow(this, ref record);
-                    return TryReadInnerAsync_ContinueAfterHandleHeadersAsync(this, handleHeadersTask, returnComments, dynRow, cancel);
+                    return TryReadInnerAsync_ContinueAfterHandleHeadersAsync(this, handleHeadersTask, pinAcquired, returnComments, dynRow, cancel);
                 }
             }
 
@@ -48,20 +45,29 @@ namespace Cesil
             var row = GuaranteeUninitializedDynamicRow(this, ref record);
             var needsInit = true;
 
+            if (!pinAcquired)
+            {
+                StateMachine.Pin();
+            }
+
             while (true)
             {
                 PreparingToWriteToBuffer();
                 var availableTask = Buffer.ReadAsync(Inner, cancel);
-                SwitchAsync(ref availableTask);
-                if (!availableTask.IsCompletedSuccessfully)
+                if (!availableTask.IsCompletedSuccessfully(this))
                 {
-                    return TryReadInnerAsync_ContinueAfterReadAsync(this, availableTask, returnComments, row, needsInit, cancel);
+                    return TryReadInnerAsync_ContinueAfterReadAsync(this, availableTask, pinAcquired, returnComments, row, needsInit, cancel);
                 }
 
                 var available = availableTask.Result;
                 if (available == 0)
                 {
                     var endRes = EndOfData();
+
+                    if (!pinAcquired)
+                    {
+                        StateMachine.Unpin();
+                    }
                     return new ValueTask<ReadWithCommentResult<dynamic>>(HandleAdvanceResult(endRes, returnComments));
                 }
 
@@ -79,6 +85,10 @@ namespace Cesil
                 var possibleReturn = HandleAdvanceResult(res, returnComments);
                 if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                 {
+                    if (!pinAcquired)
+                    {
+                        StateMachine.Unpin();
+                    }
                     return new ValueTask<ReadWithCommentResult<dynamic>>(possibleReturn);
                 }
             }
@@ -121,7 +131,7 @@ namespace Cesil
             }
 
             // continue after we handle detecting line endings
-            static async ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync_ContinueAfterHandleLineEndingsAsync(AsyncDynamicReader self, ValueTask waitFor, bool returnComments, DynamicRow record, CancellationToken cancel)
+            static async ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync_ContinueAfterHandleLineEndingsAsync(AsyncDynamicReader self, ValueTask waitFor, bool pinAcquired, bool returnComments, DynamicRow record, CancellationToken cancel)
             {
                 var needsInit = true;
 
@@ -130,19 +140,31 @@ namespace Cesil
                 if (self.ReadHeaders == null)
                 {
                     var handleHeadersTask = self.HandleHeadersAsync(cancel);
-                    self.SwitchAsync(ref handleHeadersTask);
                     await handleHeadersTask;
+                }
+
+                if (!pinAcquired)
+                {
+                    self.StateMachine.Pin();
                 }
 
                 while (true)
                 {
                     self.PreparingToWriteToBuffer();
                     var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
-                    self.SwitchAsync(ref availableTask);
-                    var available = await availableTask;
+                    int available;
+                    using(self.StateMachine.ReleaseAndRePinForAsync(availableTask))
+                    {
+                        available = await availableTask;
+                    }
                     if (available == 0)
                     {
                         var endRes = self.EndOfData();
+
+                        if (!pinAcquired)
+                        {
+                            self.StateMachine.Unpin();
+                        }
                         return self.HandleAdvanceResult(endRes, returnComments);
                     }
 
@@ -160,27 +182,44 @@ namespace Cesil
                     var possibleReturn = self.HandleAdvanceResult(res, returnComments);
                     if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
+                        if (!pinAcquired)
+                        {
+                            self.StateMachine.Unpin();
+                        }
                         return possibleReturn;
                     }
                 }
             }
 
             // continue after we handle detecting headers
-            static async ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync_ContinueAfterHandleHeadersAsync(AsyncDynamicReader self, ValueTask waitFor, bool returnComments, DynamicRow record, CancellationToken cancel)
+            static async ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync_ContinueAfterHandleHeadersAsync(AsyncDynamicReader self, ValueTask waitFor, bool pinAcquired, bool returnComments, DynamicRow record, CancellationToken cancel)
             {
                 var needsInit = true;
 
                 await waitFor;
 
+                if (!pinAcquired)
+                {
+                    self.StateMachine.Pin();
+                }
+
                 while (true)
                 {
                     self.PreparingToWriteToBuffer();
                     var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
-                    self.SwitchAsync(ref availableTask);
-                    var available = await availableTask;
+                    int available;
+                    using (self.StateMachine.ReleaseAndRePinForAsync(availableTask))
+                    {
+                        available = await availableTask;
+                    }
                     if (available == 0)
                     {
                         var endRes = self.EndOfData();
+
+                        if (!pinAcquired)
+                        {
+                            self.StateMachine.Unpin();
+                        }
                         return self.HandleAdvanceResult(endRes, returnComments);
                     }
 
@@ -198,20 +237,33 @@ namespace Cesil
                     var possibleReturn = self.HandleAdvanceResult(res, returnComments);
                     if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
+                        if (!pinAcquired)
+                        {
+                            self.StateMachine.Unpin();
+                        }
                         return possibleReturn;
                     }
                 }
             }
 
             // continue after we read a chunk into a buffer
-            static async ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync_ContinueAfterReadAsync(AsyncDynamicReader self, ValueTask<int> waitFor, bool returnComments, DynamicRow record, bool needsInit, CancellationToken cancel)
+            static async ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync_ContinueAfterReadAsync(AsyncDynamicReader self, ValueTask<int> waitFor, bool pinAcquired, bool returnComments, DynamicRow record, bool needsInit, CancellationToken cancel)
             {
                 // finish this loop up
                 {
-                    var available = await waitFor;
+                    int available;
+                    using (self.StateMachine.ReleaseAndRePinForAsync(waitFor))
+                    {
+                        available = await waitFor;
+                    }
                     if (available == 0)
                     {
                         var endRes = self.EndOfData();
+
+                        if (!pinAcquired)
+                        {
+                            self.StateMachine.Unpin();
+                        }
                         return self.HandleAdvanceResult(endRes, returnComments);
                     }
 
@@ -229,6 +281,10 @@ namespace Cesil
                     var possibleReturn = self.HandleAdvanceResult(res, returnComments);
                     if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
+                        if (!pinAcquired)
+                        {
+                            self.StateMachine.Unpin();
+                        }
                         return possibleReturn;
                     }
                 }
@@ -238,11 +294,19 @@ namespace Cesil
                 {
                     self.PreparingToWriteToBuffer();
                     var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
-                    self.SwitchAsync(ref availableTask);
-                    var available = await availableTask;
+                    int available;
+                    using (self.StateMachine.ReleaseAndRePinForAsync(availableTask))
+                    {
+                        available = await availableTask;
+                    }
                     if (available == 0)
                     {
                         var endRes = self.EndOfData();
+
+                        if (!pinAcquired)
+                        {
+                            self.StateMachine.Unpin();
+                        }
                         return self.HandleAdvanceResult(endRes, returnComments);
                     }
 
@@ -260,6 +324,10 @@ namespace Cesil
                     var possibleReturn = self.HandleAdvanceResult(res, returnComments);
                     if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
+                        if (!pinAcquired)
+                        {
+                            self.StateMachine.Unpin();
+                        }
                         return possibleReturn;
                     }
                 }
@@ -282,8 +350,7 @@ namespace Cesil
         private ValueTask HandleHeadersAsync(CancellationToken cancel)
         {
             ReadHeaders = Configuration.ReadHeader;
-            TryMakeStateMachine();
-
+            
             var headerConfig =
                 new DynamicBoundConfiguration(
                     Configuration.TypeDescriber,
@@ -303,58 +370,57 @@ namespace Cesil
 
             var allowColumnsByName = Configuration.ReadHeader == Cesil.ReadHeaders.Always;
 
-            var reader = new HeadersReader<object>(headerConfig, SharedCharacterLookup, Inner, Buffer);
+            var reader = new HeadersReader<object>(StateMachine, headerConfig, SharedCharacterLookup, Inner, Buffer);
             var disposeReader = true;
             try
             {
                 var resTask = reader.ReadAsync(cancel);
-                SwitchAsync(ref resTask);
-                if (resTask.IsCompletedSuccessfully)
-                {
-                    var res = resTask.Result;
-
-                    var foundHeaders = res.Headers.Count;
-                    if (foundHeaders == 0)
-                    {
-                        // rare, but possible if the file is empty or all comments or something like that
-                        Columns = Array.Empty<Column>();
-                        ColumnNames = Array.Empty<string>();
-                    }
-                    else
-                    {
-                        Columns = new Column[foundHeaders];
-                        if (allowColumnsByName)
-                        {
-                            ColumnNames = new string[foundHeaders];
-                        }
-
-                        using (var e = res.Headers)
-                        {
-                            var ix = 0;
-                            while (e.MoveNext())
-                            {
-                                var name = allowColumnsByName ? new string(e.Current.Span) : null;
-                                if (name != null)
-                                {
-                                    ColumnNames[ix] = name;
-                                }
-                                var col = new Column(name, Column.MakeDynamicSetter(name, ix), null, false);
-                                Columns[ix] = col;
-
-                                ix++;
-                            }
-                        }
-                    }
-
-                    Buffer.PushBackFromOutsideBuffer(res.PushBack);
-
-                    return default;
-                }
-                else
+                if (!resTask.IsCompletedSuccessfully(this))
                 {
                     disposeReader = false;
                     return HandleHeadersAsync_WaitForRead(this, resTask, allowColumnsByName, reader);
                 }
+
+                var res = resTask.Result;
+
+                var foundHeaders = res.Headers.Count;
+                if (foundHeaders == 0)
+                {
+                    // rare, but possible if the file is empty or all comments or something like that
+                    Columns = Array.Empty<Column>();
+                    ColumnNames = Array.Empty<string>();
+                }
+                else
+                {
+                    Columns = new Column[foundHeaders];
+                    if (allowColumnsByName)
+                    {
+                        ColumnNames = new string[foundHeaders];
+                    }
+
+                    using (var e = res.Headers)
+                    {
+                        var ix = 0;
+                        while (e.MoveNext())
+                        {
+                            var name = allowColumnsByName ? new string(e.Current.Span) : null;
+                            if (name != null)
+                            {
+                                ColumnNames[ix] = name;
+                            }
+                            var col = new Column(name, ColumnSetter.CreateDynamic(name, ix), null, false);
+                            Columns[ix] = col;
+
+                            ix++;
+                        }
+                    }
+                }
+
+                Buffer.PushBackFromOutsideBuffer(res.PushBack);
+
+                TryMakeStateMachine();
+
+                return default;
             }
             finally
             {
@@ -396,7 +462,7 @@ namespace Cesil
                                 {
                                     self.ColumnNames[ix] = name;
                                 }
-                                var col = new Column(name, Column.MakeDynamicSetter(name, ix), null, false);
+                                var col = new Column(name, ColumnSetter.CreateDynamic(name, ix), null, false);
                                 self.Columns[ix] = col;
 
                                 ix++;
@@ -405,6 +471,7 @@ namespace Cesil
                     }
 
                     self.Buffer.PushBackFromOutsideBuffer(res.PushBack);
+                    self.TryMakeStateMachine();
                 }
                 finally
                 {
@@ -422,20 +489,19 @@ namespace Cesil
                 return default;
             }
 
-            var detector = new RowEndingDetector<object>(Configuration, SharedCharacterLookup, Inner);
+            var detector = new RowEndingDetector<object>(StateMachine, Configuration, SharedCharacterLookup, Inner);
             var disposeDetector = true;
             try
             {
                 var resTask = detector.DetectAsync(cancel);
-                SwitchAsync(ref resTask);
-                if (resTask.IsCompletedSuccessfully)
+                if (!resTask.IsCompletedSuccessfully(this))
                 {
-                    HandleLineEndingsDetectionResult(resTask.Result);
-                    return default;
+                    disposeDetector = false;
+                    return HandleLineEndingsAsync_WaitForDetector(this, resTask, detector);
                 }
 
-                disposeDetector = false;
-                return HandleLineEndingsAsync_WaitForDetector(this, resTask, detector);
+                HandleLineEndingsDetectionResult(resTask.Result);
+                return default;
             }
             finally
             {
@@ -474,35 +540,19 @@ namespace Cesil
                 NotifyOnDisposeHead.Remove(ref NotifyOnDisposeHead, NotifyOnDisposeHead);
             }
 
-            if (Inner is IAsyncDisposable iad)
+            var disposeTask = Inner.DisposeAsync();
+            if (!disposeTask.IsCompletedSuccessfully(this))
             {
-                var disposeTask = iad.DisposeAsync();
-                SwitchAsync(ref disposeTask);
-                if (!disposeTask.IsCompletedSuccessfully)
-                {
-                    return DisposeAsync_WaitForInnerDispose(this, disposeTask);
-                }
-
-                Buffer.Dispose();
-                Partial.Dispose();
-                StateMachine?.Dispose();
-                SharedCharacterLookup.Dispose();
-
-                Inner = null;
-                return default;
+                return DisposeAsync_WaitForInnerDispose(this, disposeTask);
             }
-            else
-            {
-                Inner.Dispose();
-                Buffer.Dispose();
-                Partial.Dispose();
-                StateMachine?.Dispose();
-                SharedCharacterLookup.Dispose();
 
-                Inner = null;
+            Buffer.Dispose();
+            Partial.Dispose();
+            StateMachine?.Dispose();
+            SharedCharacterLookup.Dispose();
 
-                return default;
-            }
+            Inner = null;
+            return default;
 
             // wait for Inner's DisposeAsync call to finish, then finish disposing self
             static async ValueTask DisposeAsync_WaitForInnerDispose(AsyncDynamicReader self, ValueTask toAwait)

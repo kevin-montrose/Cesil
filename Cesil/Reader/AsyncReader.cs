@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,53 +7,60 @@ namespace Cesil
     internal sealed class AsyncReader<T> :
         AsyncReaderBase<T>
     {
-        internal AsyncReader(TextReader inner, ConcreteBoundConfiguration<T> config, object context) : base(inner, config, context) { }
+        internal AsyncReader(IAsyncReaderAdapter inner, ConcreteBoundConfiguration<T> config, object context) : base(inner, config, context) { }
 
-        internal override ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync(bool returnComments, ref T record, CancellationToken cancel)
+        internal override ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync(bool returnComments, bool pinAcquired, ref T record, CancellationToken cancel)
         {
             if (RowEndings == null)
             {
                 var handleLineEndingsTask = HandleLineEndingsAsync(cancel);
-                SwitchAsync(ref handleLineEndingsTask);
-                if (!handleLineEndingsTask.IsCompletedSuccessfully)
+                if (!handleLineEndingsTask.IsCompletedSuccessfully(this))
                 {
-                    var row = GuaranteeRecord(this, ref record);
-                    return TryReadInnerAsync_ContinueAfterHandleLineEndingsAsync(this, handleLineEndingsTask, returnComments, row, cancel);
+                    var row = GuaranteeRecord(this, pinAcquired, ref record);
+                    return TryReadInnerAsync_ContinueAfterHandleLineEndingsAsync(this, handleLineEndingsTask, pinAcquired, returnComments, row, cancel);
                 }
             }
 
             if (ReadHeaders == null)
             {
                 var handleHeadersTask = HandleHeadersAsync(cancel);
-                SwitchAsync(ref handleHeadersTask);
-                if (!handleHeadersTask.IsCompletedSuccessfully)
+                if (!handleHeadersTask.IsCompletedSuccessfully(this))
                 {
-                    var row = GuaranteeRecord(this, ref record);
-                    return TryReadInnerAsync_ContinueAfterHandleHeadersAsync(this, handleHeadersTask, returnComments, row, cancel);
+                    var row = GuaranteeRecord(this, pinAcquired, ref record);
+                    return TryReadInnerAsync_ContinueAfterHandleHeadersAsync(this, handleHeadersTask, pinAcquired, returnComments, row, cancel);
                 }
+            }
+
+            if (!pinAcquired)
+            {
+                StateMachine.Pin();
             }
 
             while (true)
             {
                 PreparingToWriteToBuffer();
                 var availableTask = Buffer.ReadAsync(Inner, cancel);
-                SwitchAsync(ref availableTask);
-                if (!availableTask.IsCompletedSuccessfully)
+                if (!availableTask.IsCompletedSuccessfully(this))
                 {
-                    var row = GuaranteeRecord(this, ref record);
-                    return TryReadInnerAsync_ContinueAfterReadAsync(this, availableTask, returnComments, row, cancel);
+                    var row = GuaranteeRecord(this, pinAcquired, ref record);
+                    return TryReadInnerAsync_ContinueAfterReadAsync(this, availableTask, pinAcquired, returnComments, row, cancel);
                 }
 
                 var available = availableTask.Result;
                 if (available == 0)
                 {
                     var endRes = EndOfData();
+
+                    if (!pinAcquired)
+                    {
+                        StateMachine.Unpin();
+                    }
                     return new ValueTask<ReadWithCommentResult<T>>(HandleAdvanceResult(endRes, returnComments));
                 }
 
                 if (!Partial.HasPending)
                 {
-                    record = GuaranteeRecord(this, ref record);
+                    record = GuaranteeRecord(this, pinAcquired, ref record);
                     SetValueToPopulate(record);
                 }
 
@@ -62,12 +68,16 @@ namespace Cesil
                 var possibleReturn = HandleAdvanceResult(res, returnComments);
                 if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                 {
+                    if (!pinAcquired)
+                    {
+                        StateMachine.Unpin();
+                    }
                     return new ValueTask<ReadWithCommentResult<T>>(possibleReturn);
                 }
             }
 
             // make sure we've got a row to work with
-            static T GuaranteeRecord(AsyncReader<T> self, ref T preallocd)
+            static T GuaranteeRecord(AsyncReader<T> self, bool pinAcquired, ref T preallocd)
             {
                 if (preallocd != null)
                 {
@@ -76,33 +86,49 @@ namespace Cesil
 
                 if (!self.Configuration.NewCons(out preallocd))
                 {
-                    Throw.InvalidOperationException($"Failed to construct new instance of {typeof(T)}");
+                    if (!pinAcquired)
+                    {
+                        self.StateMachine.Unpin();
+                    }
+                    return Throw.InvalidOperationException<T>($"Failed to construct new instance of {typeof(T)}");
                 }
 
                 return preallocd;
             }
 
             // continue after we handle detecting line endings
-            static async ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync_ContinueAfterHandleLineEndingsAsync(AsyncReader<T> self, ValueTask waitFor, bool returnComments, T record, CancellationToken cancel)
+            static async ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync_ContinueAfterHandleLineEndingsAsync(AsyncReader<T> self, ValueTask waitFor, bool pinAcquired, bool returnComments, T record, CancellationToken cancel)
             {
                 await waitFor;
 
                 if (self.ReadHeaders == null)
                 {
                     var handleTask = self.HandleHeadersAsync(cancel);
-                    self.SwitchAsync(ref handleTask);
                     await handleTask;
+                }
+
+                if (!pinAcquired)
+                {
+                    self.StateMachine.Pin();
                 }
 
                 while (true)
                 {
                     self.PreparingToWriteToBuffer();
                     var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
-                    self.SwitchAsync(ref availableTask);
-                    var available = await availableTask;
+                    int available;
+                    using (self.StateMachine.ReleaseAndRePinForAsync(availableTask))
+                    {
+                        available = await availableTask;
+                    }
                     if (available == 0)
                     {
                         var endRes = self.EndOfData();
+
+                        if (!pinAcquired)
+                        {
+                            self.StateMachine.Unpin();
+                        }
                         return self.HandleAdvanceResult(endRes, returnComments);
                     }
 
@@ -115,25 +141,42 @@ namespace Cesil
                     var possibleReturn = self.HandleAdvanceResult(res, returnComments);
                     if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
+                        if (!pinAcquired)
+                        {
+                            self.StateMachine.Unpin();
+                        }
                         return possibleReturn;
                     }
                 }
             }
 
             // continue after we handle detecting headers
-            static async ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync_ContinueAfterHandleHeadersAsync(AsyncReader<T> self, ValueTask waitFor, bool returnComments, T record, CancellationToken cancel)
+            static async ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync_ContinueAfterHandleHeadersAsync(AsyncReader<T> self, ValueTask waitFor, bool pinAcquired, bool returnComments, T record, CancellationToken cancel)
             {
                 await waitFor;
+
+                if (!pinAcquired)
+                {
+                    self.StateMachine.Pin();
+                }
 
                 while (true)
                 {
                     self.PreparingToWriteToBuffer();
                     var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
-                    self.SwitchAsync(ref availableTask);
-                    var available = await availableTask;
+                    int available;
+                    using (self.StateMachine.ReleaseAndRePinForAsync(availableTask))
+                    {
+                        available = await availableTask;
+                    }
                     if (available == 0)
                     {
                         var endRes = self.EndOfData();
+
+                        if (!pinAcquired)
+                        {
+                            self.StateMachine.Unpin();
+                        }
                         return self.HandleAdvanceResult(endRes, returnComments);
                     }
 
@@ -146,26 +189,39 @@ namespace Cesil
                     var possibleReturn = self.HandleAdvanceResult(res, returnComments);
                     if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
+                        if (!pinAcquired)
+                        {
+                            self.StateMachine.Unpin();
+                        }
                         return possibleReturn;
                     }
                 }
             }
 
             // continue after we read a chunk into a buffer
-            static async ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync_ContinueAfterReadAsync(AsyncReader<T> self, ValueTask<int> waitFor, bool returnComments, T record, CancellationToken cancel)
+            static async ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync_ContinueAfterReadAsync(AsyncReader<T> self, ValueTask<int> waitFor, bool pinAcquired, bool returnComments, T record, CancellationToken cancel)
             {
                 // finish this loop up
                 {
-                    var available = await waitFor;
+                    int available;
+                    using (self.StateMachine.ReleaseAndRePinForAsync(waitFor))
+                    {
+                        available = await waitFor;
+                    }
                     if (available == 0)
                     {
                         var endRes = self.EndOfData();
+
+                        if (!pinAcquired)
+                        {
+                            self.StateMachine.Unpin();
+                        }
                         return self.HandleAdvanceResult(endRes, returnComments);
                     }
 
                     if (!self.Partial.HasPending)
                     {
-                        record = GuaranteeRecord(self, ref record);
+                        record = GuaranteeRecord(self, pinAcquired, ref record);
                         self.SetValueToPopulate(record);
                     }
 
@@ -173,6 +229,10 @@ namespace Cesil
                     var possibleReturn = self.HandleAdvanceResult(res, returnComments);
                     if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
+                        if (!pinAcquired)
+                        {
+                            self.StateMachine.Unpin();
+                        }
                         return possibleReturn;
                     }
                 }
@@ -182,11 +242,19 @@ namespace Cesil
                 {
                     self.PreparingToWriteToBuffer();
                     var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
-                    self.SwitchAsync(ref availableTask);
-                    var available = await availableTask;
+                    int available;
+                    using (self.StateMachine.ReleaseAndRePinForAsync(availableTask))
+                    {
+                        available = await availableTask;
+                    }
                     if (available == 0)
                     {
                         var endRes = self.EndOfData();
+
+                        if (!pinAcquired)
+                        {
+                            self.StateMachine.Unpin();
+                        }
                         return self.HandleAdvanceResult(endRes, returnComments);
                     }
 
@@ -199,6 +267,10 @@ namespace Cesil
                     var possibleReturn = self.HandleAdvanceResult(res, returnComments);
                     if(possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
+                        if (!pinAcquired)
+                        {
+                            self.StateMachine.Unpin();
+                        }
                         return possibleReturn;
                     }
                 }
@@ -215,21 +287,20 @@ namespace Cesil
             }
 
             var disposeDetector = true;
-            var detector = new RowEndingDetector<T>(Configuration, SharedCharacterLookup, Inner);
+            var detector = new RowEndingDetector<T>(StateMachine, Configuration, SharedCharacterLookup, Inner);
             try
             {
                 var resTask = detector.DetectAsync(cancel);
-                SwitchAsync(ref resTask);
-                if (resTask.IsCompletedSuccessfully)
+                if (!resTask.IsCompletedSuccessfully(this))
                 {
-                    var res = resTask.Result;
-                    HandleLineEndingsDetectionResult(res);
-                    return default;
+                    // whelp, async time!
+                    disposeDetector = false;
+                    return HandleLineEndingsAsync_ContinueAfterDetectAsync(this, resTask, detector, cancel);
                 }
 
-                // whelp, async time!
-                disposeDetector = false;
-                return HandleLineEndingsAsync_ContinueAfterDetectAsync(this, resTask, detector, cancel);
+                var res = resTask.Result;
+                HandleLineEndingsDetectionResult(res);
+                return default;
             }
             finally
             {
@@ -289,6 +360,7 @@ namespace Cesil
             var disposeReader = true;
             var headerReader =
                 new HeadersReader<T>(
+                    StateMachine,
                     headerConfig,
                     SharedCharacterLookup,
                     Inner,
@@ -297,8 +369,7 @@ namespace Cesil
             try
             {
                 var headersTask = headerReader.ReadAsync(cancel);
-                SwitchAsync(ref headersTask);
-                if (!headersTask.IsCompletedSuccessfully)
+                if (!headersTask.IsCompletedSuccessfully(this))
                 {
                     // whelp, async time!
                     disposeReader = false;
@@ -336,20 +407,12 @@ namespace Cesil
         {
             if (!IsDisposed)
             {
-                if (Inner is IAsyncDisposable innerAsync)
+                var disposeTask = Inner.DisposeAsync();
+                if (!disposeTask.IsCompletedSuccessfully(this))
                 {
-                    var disposeTask = innerAsync.DisposeAsync();
-                    SwitchAsync(ref disposeTask);
-                    if (!disposeTask.IsCompletedSuccessfully)
-                    {
-                        return DisposeAsync_ContinueAfterInnerDisposedAsync(this, disposeTask);
-                    }
+                    return DisposeAsync_ContinueAfterInnerDisposedAsync(this, disposeTask);
                 }
-                else
-                {
-                    Inner.Dispose();
-                }
-
+                
                 Buffer.Dispose();
                 Partial.Dispose();
                 StateMachine?.Dispose();

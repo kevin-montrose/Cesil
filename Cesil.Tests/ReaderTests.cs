@@ -13,11 +13,526 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ReaderTests
     {
+        private sealed class _FailingParser
+        {
+            public string Foo { get; set; }
+        }
+
+        [Fact]
+        public void FailingParser()
+        {
+            var m = new ManualTypeDescriber(ManualTypeDescriberFallbackBehavior.UseDefault);
+
+            m.SetBuilder(InstanceBuilder.ForDelegate((out _FailingParser val) => { val = new _FailingParser(); return true; }));
+
+            var t = typeof(_FailingParser).GetTypeInfo();
+            var s = Setter.ForMethod(t.GetProperty(nameof(_FailingParser.Foo)).SetMethod);
+            var p = Parser.ForDelegate((ReadOnlySpan<char> data, in ReadContext ctx, out string result) => { result = ""; return false; });
+
+            m.AddExplicitSetter(t, "Foo", s, p);
+
+            var opt = Options.Default.NewBuilder().WithTypeDescriber(m).Build();
+
+            RunSyncReaderVariants<_FailingParser>(
+                opt,
+                (config, getReader) =>
+                {
+                    using (var r = getReader("hello"))
+                    using (var csv = config.CreateReader(r))
+                    {
+                        Assert.Throws<SerializationException>(() => csv.ReadAll());
+                    }
+                }
+            );
+        }
+
+        class _NonGenericEnumerator
+        {
+            public string Foo { get; set; }
+            public string Bar { get; set; }
+        }
+
+        [Fact]
+        public void NonGenericEnumerator()
+        {
+            RunSyncReaderVariants<_NonGenericEnumerator>(
+                Options.Default,
+                (config, getReader) =>
+                {
+                    using(var reader = getReader("hello,world\r\nfizz,buzz"))
+                    using(var csv = config.CreateReader(reader))
+                    {
+                        System.Collections.IEnumerable e = csv.EnumerateAll();
+
+                        int ix = 0;
+                        var i = e.GetEnumerator();
+                        while (i.MoveNext())
+                        {
+                            object c = i.Current;
+                            switch (ix)
+                            {
+                                case 0:
+                                    {
+                                        var a = (_NonGenericEnumerator)c;
+                                        Assert.Equal("hello", a.Foo);
+                                        Assert.Equal("world", a.Bar);
+                                    }
+                                    break;
+                                case 1:
+                                    {
+                                        var a = (_NonGenericEnumerator)c;
+                                        Assert.Equal("fizz", a.Foo);
+                                        Assert.Equal("buzz", a.Bar);
+                                    }
+                                    break;
+                                default:
+                                    Assert.NotNull("Shouldn't be possible");
+                                    break;
+                            }
+
+                            ix++;
+                        }
+
+                        Assert.Equal(2, ix);
+
+                        Assert.Throws<NotSupportedException>(() => i.Reset());
+                    }
+                }
+            );
+        }
+
+        class _DeserializableMemberHelpers
+        {
+#pragma warning disable CS0649
+            public int Field;
+#pragma warning restore CS0649
+            public string Prop { get; set; }
+        }
+
+        [Fact]
+        public void DeserializableMemberHelpers()
+        {
+            var t = typeof(_DeserializableMemberHelpers).GetTypeInfo();
+
+            // fields
+            {
+                var f = t.GetField(nameof(_DeserializableMemberHelpers.Field));
+
+                // 1
+                {
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(null));
+
+                    var d1 = DeserializableMember.ForField(f);
+                    Assert.False(d1.IsRequired);
+                    Assert.Equal("Field", d1.Name);
+                    Assert.Equal(Parser.GetDefault(typeof(int).GetTypeInfo()), d1.Parser);
+                    Assert.Null(d1.Reset);
+                    Assert.Equal(Setter.ForField(f), d1.Setter);
+                }
+
+                // 2
+                {
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(null, "Foo"));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(f, null));
+
+                    var d1 = DeserializableMember.ForField(f, "Foo");
+                    Assert.False(d1.IsRequired);
+                    Assert.Equal("Foo", d1.Name);
+                    Assert.Equal(Parser.GetDefault(typeof(int).GetTypeInfo()), d1.Parser);
+                    Assert.Null(d1.Reset);
+                    Assert.Equal(Setter.ForField(f), d1.Setter);
+                }
+
+                var parser = Parser.ForDelegate<int>((ReadOnlySpan<char> _, in ReadContext rc, out int v) => { v = 1; return true; });
+
+                // 3
+                {
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(null, "Bar", parser));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(f, null, parser));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(f, "Bar", null));
+
+                    var d1 = DeserializableMember.ForField(f, "Bar", parser);
+                    Assert.False(d1.IsRequired);
+                    Assert.Equal("Bar", d1.Name);
+                    Assert.Equal(parser, d1.Parser);
+                    Assert.Null(d1.Reset);
+                    Assert.Equal(Setter.ForField(f), d1.Setter);
+                }
+
+                // 4
+                {
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(null, "Baf", parser, IsMemberRequired.Yes));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(f, null, parser, IsMemberRequired.Yes));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(f, "Baf", null, IsMemberRequired.Yes));
+                    // there's a separate test for bogus IsMemberRequired
+
+                    var d1 = DeserializableMember.ForField(f, "Baf", parser, IsMemberRequired.Yes);
+                    Assert.True(d1.IsRequired);
+                    Assert.Equal("Baf", d1.Name);
+                    Assert.Equal(parser, d1.Parser);
+                    Assert.Null(d1.Reset);
+                    Assert.Equal(Setter.ForField(f), d1.Setter);
+                }
+
+                var reset = Reset.ForDelegate(() => { });
+
+                // 5
+                {
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(null, "Baz", parser, IsMemberRequired.Yes, reset));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(f, null, parser, IsMemberRequired.Yes, reset));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(f, "Baz", null, IsMemberRequired.Yes, reset));
+                    // there's a separate test for bogus IsMemberRequired
+                    // it's ok for reset = null
+
+                    var d1 = DeserializableMember.ForField(f, "Baz", parser, IsMemberRequired.Yes, reset);
+                    Assert.True(d1.IsRequired);
+                    Assert.Equal("Baz", d1.Name);
+                    Assert.Equal(parser, d1.Parser);
+                    Assert.Equal(reset, d1.Reset);
+                    Assert.Equal(Setter.ForField(f), d1.Setter);
+                }
+            }
+
+            // properties
+            {
+                var p = t.GetProperty(nameof(_DeserializableMemberHelpers.Prop));
+
+                // 1
+                {
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(null));
+
+                    var d1 = DeserializableMember.ForProperty(p);
+                    Assert.False(d1.IsRequired);
+                    Assert.Equal("Prop", d1.Name);
+                    Assert.Equal(Parser.GetDefault(typeof(string).GetTypeInfo()), d1.Parser);
+                    Assert.Null(d1.Reset);
+                    Assert.Equal(Setter.ForMethod(p.SetMethod), d1.Setter);
+                }
+
+                // 2
+                {
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(null, "Foo"));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(p, null));
+
+                    var d1 = DeserializableMember.ForProperty(p, "Foo");
+                    Assert.False(d1.IsRequired);
+                    Assert.Equal("Foo", d1.Name);
+                    Assert.Equal(Parser.GetDefault(typeof(string).GetTypeInfo()), d1.Parser);
+                    Assert.Null(d1.Reset);
+                    Assert.Equal(Setter.ForMethod(p.SetMethod), d1.Setter);
+                }
+
+                var parser = Parser.ForDelegate<string>((ReadOnlySpan<char> _, in ReadContext rc, out string v) => { v = "1"; return true; });
+
+                // 3
+                {
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(null, "Bar", parser));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(p, null, parser));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(p, "Bar", null));
+
+                    var d1 = DeserializableMember.ForProperty(p, "Bar", parser);
+                    Assert.False(d1.IsRequired);
+                    Assert.Equal("Bar", d1.Name);
+                    Assert.Equal(parser, d1.Parser);
+                    Assert.Null(d1.Reset);
+                    Assert.Equal(Setter.ForMethod(p.SetMethod), d1.Setter);
+                }
+
+                // 4
+                {
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(null, "Baf", parser, IsMemberRequired.Yes));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(p, null, parser, IsMemberRequired.Yes));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(p, "Baf", null, IsMemberRequired.Yes));
+                    // there's a separate test for bogus IsMemberRequired
+
+                    var d1 = DeserializableMember.ForProperty(p, "Baf", parser, IsMemberRequired.Yes);
+                    Assert.True(d1.IsRequired);
+                    Assert.Equal("Baf", d1.Name);
+                    Assert.Equal(parser, d1.Parser);
+                    Assert.Null(d1.Reset);
+                    Assert.Equal(Setter.ForMethod(p.SetMethod), d1.Setter);
+                }
+
+                var reset = Reset.ForDelegate(() => { });
+
+                // 5
+                {
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(null, "Baz", parser, IsMemberRequired.Yes, reset));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(p, null, parser, IsMemberRequired.Yes, reset));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(p, "Baz", null, IsMemberRequired.Yes, reset));
+                    // there's a separate test for bogus IsMemberRequired
+                    // it's ok for reset = null
+
+                    var d1 = DeserializableMember.ForProperty(p, "Baz", parser, IsMemberRequired.Yes, reset);
+                    Assert.True(d1.IsRequired);
+                    Assert.Equal("Baz", d1.Name);
+                    Assert.Equal(parser, d1.Parser);
+                    Assert.Equal(reset, d1.Reset);
+                    Assert.Equal(Setter.ForMethod(p.SetMethod), d1.Setter);
+                }
+            }
+        }
+
+        class _DeserializableMemberEquality
+        {
+            public int Foo { get; set; }
+            public int Bar { get; set; }
+        }
+
+        [Fact]
+        public void DeserializableMemberEquality()
+        {
+            var t = typeof(_DeserializableMemberEquality).GetTypeInfo();
+            var names = new[] { nameof(_DeserializableMemberEquality.Foo), nameof(_DeserializableMemberEquality.Bar) };
+            var setters = new[] { Setter.ForMethod(t.GetProperty(names[0]).SetMethod), Setter.ForMethod(t.GetProperty(names[1]).SetMethod) };
+            IEnumerable<Parser> parsers;
+            {
+                var a = Parser.GetDefault(typeof(int).GetTypeInfo());
+                var b = Parser.ForDelegate<int>((ReadOnlySpan<char> s, in ReadContext rc, out int val) => { val = 123; return true; });
+                parsers = new[] { a, b };
+            }
+            var isMemberRequireds = new[] { IsMemberRequired.Yes, IsMemberRequired.No };
+            IEnumerable<Reset> resets;
+            {
+                var a = Reset.ForDelegate(() => { });
+                var b = Reset.ForDelegate<_DeserializableMemberEquality>(_ => { });
+                resets = new[] { a, b, null };
+            }
+
+            var members = new List<DeserializableMember>();
+
+            foreach (var n in names)
+            {
+                foreach(var s in setters)
+                {
+                    foreach(var p in parsers)
+                    {
+                        foreach(var i in isMemberRequireds)
+                        {
+                            foreach(var r in resets)
+                            {
+                                members.Add(DeserializableMember.Create(t, n, s, p, i, r));
+                            }
+                        }
+                    }
+                }
+            }
+
+            var notSerializableMember = "";
+
+            for (var i = 0; i < members.Count; i++)
+            {
+                var m1 = members[i];
+
+                Assert.False(m1.Equals(notSerializableMember));
+
+                for (var j = i; j < members.Count; j++)
+                {
+
+                    var m2 = members[j];
+
+                    var eq = m1 == m2;
+                    var neq = m1 != m2;
+                    var hashEq = m1.GetHashCode() == m2.GetHashCode();
+                    var objEq = m1.Equals((object)m2);
+
+                    if (i == j)
+                    {
+                        Assert.True(eq);
+                        Assert.False(neq);
+                        Assert.True(hashEq);
+                        Assert.True(objEq);
+                    }
+                    else
+                    {
+                        Assert.False(eq);
+                        Assert.True(neq);
+                        Assert.False(objEq);
+                    }
+                }
+            }
+        }
+
+        class _DeserializeMemberErrors
+        {
+            public string Foo { get; set; }
+        }
+
+        [Fact]
+        public void DeserializableMemberErrors()
+        {
+            var type = typeof(_DeserializeMemberErrors).GetTypeInfo();
+            var name = nameof(_DeserializeMemberErrors.Foo);
+            var setter = Setter.ForMethod(type.GetProperty(name).SetMethod);
+            var parser = Parser.GetDefault(typeof(string).GetTypeInfo());
+
+            Assert.Throws<ArgumentNullException>(() => DeserializableMember.Create(null, name, setter, parser, IsMemberRequired.Yes, null));
+            Assert.Throws<ArgumentNullException>(() => DeserializableMember.Create(type, null, setter, parser, IsMemberRequired.Yes, null));
+            Assert.Throws<ArgumentNullException>(() => DeserializableMember.Create(type, name, null, parser, IsMemberRequired.Yes, null));
+            Assert.Throws<ArgumentNullException>(() => DeserializableMember.Create(type, name, setter, null, IsMemberRequired.Yes, null));
+            Assert.Throws<ArgumentException>(() => DeserializableMember.Create(type, name, setter, parser, 0, null));
+
+            var badParser = Parser.GetDefault(typeof(int).GetTypeInfo());
+            Assert.Throws<ArgumentException>(() => DeserializableMember.Create(type, name, setter, badParser, IsMemberRequired.Yes, null));
+
+            var badReset = Reset.ForDelegate<string>((_) => { });
+            Assert.Throws<ArgumentException>(() => DeserializableMember.Create(type, name, setter, parser, IsMemberRequired.Yes, badReset));
+        }
+
+        [Fact]
+        public void ReadContexts()
+        {
+            // columns
+            {
+                var cc = Cesil.ReadContext.ConvertingColumn(1, ColumnIdentifier.Create(1), null);
+                var cr = Cesil.ReadContext.ConvertingRow(1, null);
+                var rc = Cesil.ReadContext.ReadingColumn(1, ColumnIdentifier.Create(1), null);
+
+                Assert.True(cc.HasColumn);
+                Assert.Equal(ColumnIdentifier.Create(1), cc.Column);
+
+                Assert.False(cr.HasColumn);
+                Assert.Throws<InvalidOperationException>(() => cr.Column);
+
+                Assert.True(rc.HasColumn);
+                Assert.Equal(ColumnIdentifier.Create(1), rc.Column);
+            }
+
+            // equality
+            {
+                var cc1 = Cesil.ReadContext.ConvertingColumn(1, ColumnIdentifier.Create(1), null);
+                var cc2 = Cesil.ReadContext.ConvertingColumn(1, ColumnIdentifier.Create(1), "foo");
+                var cc3 = Cesil.ReadContext.ConvertingColumn(1, ColumnIdentifier.Create(2), null);
+                var cc4 = Cesil.ReadContext.ConvertingColumn(2, ColumnIdentifier.Create(1), null);
+
+                var cr1 = Cesil.ReadContext.ConvertingRow(1, null);
+                var cr2 = Cesil.ReadContext.ConvertingRow(1, "foo");
+                var cr3 = Cesil.ReadContext.ConvertingRow(2, null);
+
+                var rc1 = Cesil.ReadContext.ReadingColumn(1, ColumnIdentifier.Create(1), null);
+                var rc2 = Cesil.ReadContext.ReadingColumn(1, ColumnIdentifier.Create(1), "foo");
+                var rc3 = Cesil.ReadContext.ReadingColumn(1, ColumnIdentifier.Create(2), null);
+                var rc4 = Cesil.ReadContext.ReadingColumn(2, ColumnIdentifier.Create(1), null);
+
+                var contexts = new[] { cc1, cc2, cc3, cc4, cr1, cr2, cr3, rc1, rc2, rc3, rc4 };
+
+                var notContext = "";
+
+                for (var i = 0; i < contexts.Length; i++)
+                {
+                    var ctx1 = contexts[i];
+                    Assert.False(ctx1.Equals(notContext));
+                    Assert.NotNull(ctx1.ToString());
+
+                    for (var j = i; j < contexts.Length; j++)
+                    {
+                        var ctx2 = contexts[j];
+
+                        var objEq = ctx1.Equals((object)ctx2);
+                        var eq = ctx1 == ctx2;
+                        var neq = ctx1 != ctx2;
+                        var hashEq = ctx1.GetHashCode() == ctx2.GetHashCode();
+
+                        if (i == j)
+                        {
+                            Assert.True(objEq);
+                            Assert.True(eq);
+                            Assert.False(neq);
+                            Assert.True(hashEq);
+                        }
+                        else
+                        {
+                            Assert.False(objEq);
+                            Assert.False(eq);
+                            Assert.True(neq);
+                        }
+                    }
+                }
+            }
+        }
+
+        class _ResultsErrors
+        {
+            public string Foo { get; set; }
+        }
+
+        [Fact]
+        public async Task ResultErrorsAsync()
+        {
+            // without comments
+            {
+                await RunAsyncReaderVariants<_ResultsErrors>(
+                    Options.Default,
+                    async (config, makeReader) =>
+                    {
+                        await using (var reader = await makeReader("hello"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var resValue = await csv.TryReadAsync();
+                            Assert.True(resValue.HasValue);
+                            Assert.Equal("hello", resValue.Value.Foo);
+                            var resValueStr = resValue.ToString();
+                            Assert.NotNull(resValueStr);
+                            Assert.NotEqual(-1, resValueStr.IndexOf(resValue.Value.ToString()));
+
+                            var resNone = await csv.TryReadAsync();
+                            Assert.False(resNone.HasValue);
+                            Assert.NotNull(resNone.ToString());
+                            Assert.Throws<InvalidOperationException>(() => resNone.Value);
+                        }
+                    }
+                );
+            }
+
+            // with comments
+            {
+                var withComments = Options.Default.NewBuilder().WithCommentCharacter('#').Build();
+
+                await RunAsyncReaderVariants<_ResultsErrors>(
+                    withComments,
+                    async (config, makeReader) =>
+                    {
+                        await using (var reader = await makeReader("hello\r\n#foo"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var resValue = await csv.TryReadWithCommentAsync();
+                            Assert.True(resValue.HasValue);
+                            Assert.False(resValue.HasComment);
+                            Assert.Equal(ReadWithCommentResultType.HasValue, resValue.ResultType);
+                            Assert.Equal("hello", resValue.Value.Foo);
+                            var resValueStr = resValue.ToString();
+                            Assert.NotNull(resValueStr);
+                            Assert.NotEqual(-1, resValueStr.IndexOf(resValue.Value.ToString()));
+                            Assert.Throws<InvalidOperationException>(() => resValue.Comment);
+
+                            var resComment = await csv.TryReadWithCommentAsync();
+                            Assert.False(resComment.HasValue);
+                            Assert.True(resComment.HasComment);
+                            Assert.Equal(ReadWithCommentResultType.HasComment, resComment.ResultType);
+                            Assert.Equal("foo", resComment.Comment);
+                            var resCommentStr = resComment.ToString();
+                            Assert.NotNull(resCommentStr);
+                            Assert.NotEqual(-1, resCommentStr.IndexOf("foo"));
+                            Assert.Throws<InvalidOperationException>(() => resComment.Value);
+
+                            var resNone = await csv.TryReadWithCommentAsync();
+                            Assert.False(resNone.HasValue);
+                            Assert.False(resNone.HasComment);
+                            Assert.Equal(ReadWithCommentResultType.NoValue, resNone.ResultType);
+                            Assert.NotNull(resNone.ToString());
+                            Assert.Throws<InvalidOperationException>(() => resNone.Comment);
+                            Assert.Throws<InvalidOperationException>(() => resNone.Value);
+                        }
+                    }
+                );
+            }
+        }
+
         class _RowCreationFailure
         {
             public int Foo { get; set; }
         }
-        
+
         [Fact]
         public void RowCreationFailure()
         {
@@ -105,36 +620,6 @@ namespace Cesil.Tests
                     }
                 }
             );
-        }
-
-        [Fact]
-        public void ReadContext()
-        {
-            var cr = Cesil.ReadContext.ConvertingRow(0, null);
-            Assert.False(cr.HasColumn);
-            Assert.Throws<InvalidOperationException>(() => cr.Column);
-            Assert.True(HashAndEq(cr, cr));
-
-            var cc = Cesil.ReadContext.ConvertingColumn(1, ColumnIdentifier.Create(0, "foo"), null);
-            Assert.True(cc.HasColumn);
-            Assert.Equal(ColumnIdentifier.Create(0, "foo"), cc.Column);
-            Assert.False(HashAndEq(cr, cc));
-            Assert.True(HashAndEq(cc, cc));
-
-            var rc = Cesil.ReadContext.ReadingColumn(2, ColumnIdentifier.Create(3), null);
-            Assert.True(rc.HasColumn);
-            Assert.Equal(3, (int)rc.Column);
-            Assert.False(HashAndEq(cr, rc));
-            Assert.False(HashAndEq(cc, rc));
-            Assert.True(HashAndEq(rc, rc));
-
-            static bool HashAndEq<T>(T a, T b)
-            {
-                var h = a.GetHashCode() == b.GetHashCode();
-                var e = a.Equals(b);
-
-                return h && e;
-            }
         }
 
         private class _WithComments
@@ -2575,7 +3060,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             var parseFoo = (Parser)typeof(ReaderTests).GetMethod(nameof(_Context_ParseFoo));
             var parseBar = (Parser)typeof(ReaderTests).GetMethod(nameof(_Context_ParseBar));
 
-            var describer = new ManualTypeDescriber(false);
+            var describer = new ManualTypeDescriber(ManualTypeDescriberFallbackBehavior.UseDefault);
             describer.SetBuilder((InstanceBuilder)typeof(_Context).GetConstructor(Type.EmptyTypes));
             describer.AddDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), parseFoo);
             describer.AddDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), parseBar);
@@ -2653,6 +3138,123 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             }
         }
 
+        [Fact]
+        public async Task FailingParserAsync()
+        {
+            var m = new ManualTypeDescriber(ManualTypeDescriberFallbackBehavior.UseDefault);
+
+            m.SetBuilder(InstanceBuilder.ForDelegate((out _FailingParser val) => { val = new _FailingParser(); return true; }));
+
+            var t = typeof(_FailingParser).GetTypeInfo();
+            var s = Setter.ForMethod(t.GetProperty(nameof(_FailingParser.Foo)).SetMethod);
+            var p = Parser.ForDelegate((ReadOnlySpan<char> data, in ReadContext ctx, out string result) => { result = ""; return false; });
+
+            m.AddExplicitSetter(t, "Foo", s, p);
+
+            var opt = Options.Default.NewBuilder().WithTypeDescriber(m).Build();
+
+            await RunAsyncReaderVariants<_FailingParser>(
+                opt,
+                async (config, getReader) =>
+                {
+                    await using (var r = await getReader("hello"))
+                    await using (var csv = config.CreateAsyncReader(r))
+                    {
+                        await Assert.ThrowsAsync<SerializationException>(async () => await csv.ReadAllAsync());
+                    }
+                }
+            );
+        }
+
+#if DEBUG
+        private sealed class _AsyncEnumerableAsync
+        {
+            public string Foo { get; set; }
+        }
+
+        [Fact]
+        public async Task AsyncEnumerableAsync()
+        {
+            await RunAsyncReaderVariants<_AsyncEnumerableAsync>(
+                Options.Default,
+                async (config, getReader) =>
+                {
+                    var testConfig = config as AsyncCountingAndForcingConfig<_AsyncEnumerableAsync>;
+
+                    await using (var reader = await getReader("foo\r\n123\r\nnope"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var e = csv.EnumerateAllAsync();
+                        testConfig?.Set(e);
+
+                        var ix = 0;
+                        await foreach(var row in e)
+                        {
+                            switch (ix)
+                            {
+                                case 0:
+                                    Assert.Equal("foo", row.Foo);
+                                    break;
+                                case 1:
+                                    Assert.Equal("123", row.Foo);
+                                    break;
+                                case 2:
+                                    Assert.Equal("nope", row.Foo);
+                                    break;
+                                default:
+                                    Assert.NotNull("Shouldn't be possible");
+                                    break;
+                            }
+                            ix++;
+                        }
+
+                        Assert.Equal(3, ix);
+                    }
+                }
+            );
+
+            await RunAsyncReaderVariants<_AsyncEnumerableAsync>(
+                Options.Default,
+                async (config, getReader) =>
+                {
+                    var testConfig = config as AsyncCountingAndForcingConfig<_AsyncEnumerableAsync>;
+
+                    await using (var reader = await getReader("foo\r\n123\r\nnope"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var e = csv.EnumerateAllAsync();
+                        var i = e.GetAsyncEnumerator();
+
+                        testConfig?.Set(i);
+
+                        var ix = 0;
+                        while(await i.MoveNextAsync())
+                        {
+                            var row = i.Current;
+                            switch (ix)
+                            {
+                                case 0:
+                                    Assert.Equal("foo", row.Foo);
+                                    break;
+                                case 1:
+                                    Assert.Equal("123", row.Foo);
+                                    break;
+                                case 2:
+                                    Assert.Equal("nope", row.Foo);
+                                    break;
+                                default:
+                                    Assert.NotNull("Shouldn't be possible");
+                                    break;
+                            }
+                            ix++;
+                        }
+
+                        Assert.Equal(3, ix);
+                    }
+                }
+            );
+        }
+#endif
 
         [Fact]
         public async Task RowCreationFailureAsync()
@@ -2688,7 +3290,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     calls = 0;
                     failAfter = 3;
 
-                    using (var reader = makeReader("Foo\r\n1\r\n2\r\n3\r\n4"))
+                    await using (var reader = await makeReader("Foo\r\n1\r\n2\r\n3\r\n4"))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var res1 = await csv.TryReadAsync();
@@ -2722,7 +3324,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("A,Nope\r\n#comment\rwhatever\r\nhello,123"))
+                        await using (var reader = await getReader("A,Nope\r\n#comment\rwhatever\r\nhello,123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -2746,7 +3348,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("#comment\rwhatever\r\nA,Nope\r\nhello,123"))
+                        await using (var reader = await getReader("#comment\rwhatever\r\nA,Nope\r\nhello,123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -2770,7 +3372,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("A,Nope"))
+                        await using (var reader = await getReader("A,Nope"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res = await csv.TryReadWithCommentAsync();
@@ -2784,7 +3386,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("#comment\rwhatever\r\nhello,123"))
+                        await using (var reader = await getReader("#comment\rwhatever\r\nhello,123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -2808,7 +3410,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("#comment\rwhatever\r\n#again!###foo###"))
+                        await using (var reader = await getReader("#comment\rwhatever\r\n#again!###foo###"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -2835,7 +3437,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("A,Nope\r#comment\nwhatever\rhello,123"))
+                        await using (var reader = await getReader("A,Nope\r#comment\nwhatever\rhello,123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -2859,7 +3461,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("#comment\nwhatever\rA,Nope\rhello,123"))
+                        await using (var reader = await getReader("#comment\nwhatever\rA,Nope\rhello,123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -2883,7 +3485,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("A,Nope"))
+                        await using (var reader = await getReader("A,Nope"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res = await csv.TryReadWithCommentAsync();
@@ -2897,7 +3499,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("#comment\nwhatever\rhello,123"))
+                        await using (var reader = await getReader("#comment\nwhatever\rhello,123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -2921,7 +3523,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("#comment\nwhatever\r#again!###foo###"))
+                        await using (var reader = await getReader("#comment\nwhatever\r#again!###foo###"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -2948,7 +3550,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("A,Nope\n#comment\rwhatever\nhello,123"))
+                        await using (var reader = await getReader("A,Nope\n#comment\rwhatever\nhello,123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -2972,7 +3574,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("#comment\rwhatever\nA,Nope\nhello,123"))
+                        await using (var reader = await getReader("#comment\rwhatever\nA,Nope\nhello,123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -2996,7 +3598,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("A,Nope"))
+                        await using (var reader = await getReader("A,Nope"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res = await csv.TryReadWithCommentAsync();
@@ -3010,7 +3612,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("#comment\rwhatever\nhello,123"))
+                        await using (var reader = await getReader("#comment\rwhatever\nhello,123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -3034,7 +3636,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("#comment\rwhatever\n#again!###foo###"))
+                        await using (var reader = await getReader("#comment\rwhatever\n#again!###foo###"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -3063,7 +3665,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     async (config, getReader) =>
                     {
                         var CSV = "#this is a test comment!\r\nhello,world\nfoo,bar";
-                        using (var str = getReader(CSV))
+                        await using (var str = await getReader(CSV))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -3077,7 +3679,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     async (config, getReader) =>
                     {
                         var CSV = "hello,world\n#this is a test comment!\r\nfoo,bar";
-                        using (var str = getReader(CSV))
+                        await using (var str = await getReader(CSV))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -3094,7 +3696,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     async (config, getReader) =>
                     {
                         var CSV = "#this is a test comment!\n\rhello,world\rfoo,bar";
-                        using (var str = getReader(CSV))
+                        await using (var str = await getReader(CSV))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -3108,7 +3710,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     async (config, getReader) =>
                     {
                         var CSV = "hello,world\r#this is a test comment!\n\rfoo,bar";
-                        using (var str = getReader(CSV))
+                        await using (var str = await getReader(CSV))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -3125,7 +3727,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     async (config, getReader) =>
                     {
                         var CSV = "#this is a test comment!\n\r\nhello,world\r\nfoo,bar";
-                        using (var str = getReader(CSV))
+                        await using (var str = await getReader(CSV))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -3139,7 +3741,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                    async (config, getReader) =>
                    {
                        var CSV = "#this is a test comment!\r\r\nhello,world\r\nfoo,bar";
-                       using (var str = getReader(CSV))
+                       await using (var str = await getReader(CSV))
                        await using (var csv = config.CreateAsyncReader(str))
                        {
                            var rows = await csv.ReadAllAsync();
@@ -3153,7 +3755,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     async (config, getReader) =>
                     {
                         var CSV = "hello,world\r\n#this is a test comment!\n\r\nfoo,bar";
-                        using (var str = getReader(CSV))
+                        await using (var str = await getReader(CSV))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -3167,7 +3769,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     async (config, getReader) =>
                     {
                         var CSV = "hello,world\r\n#this is a test comment!\r\r\nfoo,bar";
-                        using (var str = getReader(CSV))
+                        await using (var str = await getReader(CSV))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -3206,7 +3808,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                 {
                     resetCalled = 0;
 
-                    using (var reader = getReader("1\r\n23\r\n456\r\n7\r\n"))
+                    await using (var reader = await getReader("1\r\n23\r\n456\r\n7\r\n"))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var row = await csv.ReadAllAsync();
@@ -3253,7 +3855,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                 {
                     resetCalled = 0;
 
-                    using (var reader = getReader("1\r\n23\r\n456\r\n7\r\n"))
+                    await using (var reader = await getReader("1\r\n23\r\n456\r\n7\r\n"))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var row = await csv.ReadAllAsync();
@@ -3296,7 +3898,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                 {
                     setterCalled = 0;
 
-                    using (var reader = getReader("1\r\n23\r\n456\r\n7\r\n"))
+                    await using (var reader = await getReader("1\r\n23\r\n456\r\n7\r\n"))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var row = await csv.ReadAllAsync();
@@ -3341,7 +3943,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                 {
                     setterCalled = 0;
 
-                    using (var reader = getReader("1\r\n23\r\n456\r\n7\r\n"))
+                    await using (var reader = await getReader("1\r\n23\r\n456\r\n7\r\n"))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var row = await csv.ReadAllAsync();
@@ -3385,7 +3987,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     {
                         _ConstructorParser.Cons1Called = 0;
 
-                        using (var reader = getReader("1\r\n23\r\n456\r\n7\r\n"))
+                        await using (var reader = await getReader("1\r\n23\r\n456\r\n7\r\n"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var row = await csv.ReadAllAsync();
@@ -3423,7 +4025,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     {
                         _ConstructorParser.Cons2Called = 0;
 
-                        using (var reader = getReader("1\r\n23\r\n456\r\n7\r\n"))
+                        await using (var reader = await getReader("1\r\n23\r\n456\r\n7\r\n"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var row = await csv.ReadAllAsync();
@@ -3474,7 +4076,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                 {
                     parserCalled = 0;
 
-                    using (var reader = getReader("1\r\n23\r\n456\r\n7\r\n"))
+                    await using (var reader = await getReader("1\r\n23\r\n456\r\n7\r\n"))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var row = await csv.ReadAllAsync();
@@ -3504,7 +4106,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, makeReader) =>
                     {
-                        using (var reader = makeReader(CSV))
+                        await using (var reader = await makeReader(CSV))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -3527,7 +4129,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, makeReader) =>
                     {
-                        using (var reader = makeReader(CSV))
+                        await using (var reader = await makeReader(CSV))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             _WithReset_Static.Count = 0;
@@ -3554,7 +4156,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, makeReader) =>
                     {
-                        using (var reader = makeReader(CSV))
+                        await using (var reader = await makeReader(CSV))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -3580,10 +4182,31 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                 opts,
                 async (config, makeReader) =>
                 {
-                    using (var reader = makeReader(CSV))
+                    await using (var reader = await makeReader(CSV))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
-                        await Assert.ThrowsAsync<InvalidOperationException>(async () => await csv.ReadAllAsync());
+                        try
+                        {
+                            await csv.ReadAllAsync();
+                        }
+                        catch (Exception e)
+                        {
+                            switch (e)
+                            {
+                                case AggregateException ae:
+                                    Assert.Collection(
+                                        ae.InnerExceptions,
+                                        (e) => Assert.True(e is InvalidOperationException)
+                                    );
+                                    break;
+                                case InvalidOperationException ioe:
+                                    break;
+                                default:
+                                    // intentionally fail
+                                    Assert.Null(e);
+                                    break;
+                            }
+                        }
                     }
                 }
             );
@@ -3600,7 +4223,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                 {
                     _TryReadWithReuse pre = null;
 
-                    using (var reader = getReader(CSV))
+                    await using (var reader = await getReader(CSV))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var ret1 = await csv.TryReadWithReuseAsync(ref pre);
@@ -3640,7 +4263,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                 opts,
                 async (config, makeReader) =>
                 {
-                    using (var reader = makeReader(CSV))
+                    await using (var reader = await makeReader(CSV))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var read = await csv.ReadAllAsync();
@@ -3691,7 +4314,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                 opts,
                 async (config, makeReader) =>
                 {
-                    using (var reader = makeReader(CSV))
+                    await using (var reader = await makeReader(CSV))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var pre = new List<_ReadAll>();
@@ -3752,7 +4375,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                 opts,
                 async (config, makeReader) =>
                 {
-                    using (var reader = makeReader(CSV))
+                    await using (var reader = await makeReader(CSV))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var enumerable = csv.EnumerateAllAsync();
@@ -3803,7 +4426,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                 opts,
                 async (config, makeReader) =>
                 {
-                    using (var reader = makeReader(CSV))
+                    await using (var reader = await makeReader(CSV))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var rows = new List<_ReadAll>();
@@ -3853,7 +4476,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var str = getReader("hello"))
+                        await using (var str = await getReader("hello"))
                         await using (var reader = config.CreateAsyncReader(str))
                         {
                             var t = await reader.TryReadAsync();
@@ -3876,7 +4499,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var str = getReader("\"hello world\""))
+                        await using (var str = await getReader("\"hello world\""))
                         await using (var reader = config.CreateAsyncReader(str))
                         {
                             var t = await reader.TryReadAsync();
@@ -3898,7 +4521,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var str = getReader("\"hello \"\" world\""))
+                        await using (var str = await getReader("\"hello \"\" world\""))
                         await using (var reader = config.CreateAsyncReader(str))
                         {
                             var t = await reader.TryReadAsync();
@@ -3926,7 +4549,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var str = getReader("hello,world"))
+                        await using (var str = await getReader("hello,world"))
                         await using (var reader = config.CreateAsyncReader(str))
                         {
                             var t = await reader.TryReadAsync();
@@ -3948,7 +4571,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var str = getReader("\"hello,world\",\"fizz,buzz\""))
+                        await using (var str = await getReader("\"hello,world\",\"fizz,buzz\""))
                         await using (var reader = config.CreateAsyncReader(str))
                         {
                             var t = await reader.TryReadAsync();
@@ -3970,7 +4593,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var str = getReader("\"hello\"\"world\",\"fizz\"\"buzz\""))
+                        await using (var str = await getReader("\"hello\"\"world\",\"fizz\"\"buzz\""))
                         await using (var reader = config.CreateAsyncReader(str))
                         {
                             var t = await reader.TryReadAsync();
@@ -3998,7 +4621,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var str = getReader("hello,world\r\nfoo,bar"))
+                        await using (var str = await getReader("hello,world\r\nfoo,bar"))
                         await using (var reader = config.CreateAsyncReader(str))
                         {
                             var t = await reader.TryReadAsync();
@@ -4024,7 +4647,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var str = getReader("\"hello,world\",whatever\r\n\"foo,bar\",whoever"))
+                        await using (var str = await getReader("\"hello,world\",whatever\r\n\"foo,bar\",whoever"))
                         await using (var reader = config.CreateAsyncReader(str))
                         {
                             var t = await reader.TryReadAsync();
@@ -4050,7 +4673,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var str = getReader("\"hello\"\"world\",whatever\r\n\"foo\"\"bar\",whoever"))
+                        await using (var str = await getReader("\"hello\"\"world\",whatever\r\n\"foo\"\"bar\",whoever"))
                         await using (var reader = config.CreateAsyncReader(str))
                         {
                             var t = await reader.TryReadAsync();
@@ -4084,7 +4707,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                         opts,
                         async (config, getReader) =>
                         {
-                            using (var str = getReader("a,bb,ccc\r\ndddd,eeeee,ffffff\r\n1,2,3\r\n"))
+                            await using (var str = await getReader("a,bb,ccc\r\ndddd,eeeee,ffffff\r\n1,2,3\r\n"))
                             await using (var reader = config.CreateAsyncReader(str))
                             {
                                 var t1 = await reader.TryReadAsync();
@@ -4115,7 +4738,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                         opts,
                         async (config, getReader) =>
                         {
-                            using (var str = getReader("a,bb,ccc\rdddd,eeeee,ffffff\r1,2,3\r"))
+                            await using (var str = await getReader("a,bb,ccc\rdddd,eeeee,ffffff\r1,2,3\r"))
                             await using (var reader = config.CreateAsyncReader(str))
                             {
                                 var t1 = await reader.TryReadAsync();
@@ -4146,7 +4769,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                         opts,
                         async (config, getReader) =>
                         {
-                            using (var str = getReader("a,bb,ccc\ndddd,eeeee,ffffff\n1,2,3\n"))
+                            await using (var str = await getReader("a,bb,ccc\ndddd,eeeee,ffffff\n1,2,3\n"))
                             await using (var reader = config.CreateAsyncReader(str))
                             {
                                 var t1 = await reader.TryReadAsync();
@@ -4180,7 +4803,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                         opts,
                         async (config, getReader) =>
                         {
-                            using (var str = getReader("\"a\r\",bb,ccc\r\ndddd,\"ee\neee\",ffffff\r\n1,2,\"3\r\n\"\r\n"))
+                            await using (var str = await getReader("\"a\r\",bb,ccc\r\ndddd,\"ee\neee\",ffffff\r\n1,2,\"3\r\n\"\r\n"))
                             await using (var reader = config.CreateAsyncReader(str))
                             {
                                 var t1 = await reader.TryReadAsync();
@@ -4211,7 +4834,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                         opts,
                         async (config, getReader) =>
                         {
-                            using (var str = getReader("\"a\r\",bb,ccc\rdddd,\"ee\neee\",ffffff\r1,2,\"3\r\n\"\r"))
+                            await using (var str = await getReader("\"a\r\",bb,ccc\rdddd,\"ee\neee\",ffffff\r1,2,\"3\r\n\"\r"))
                             await using (var reader = config.CreateAsyncReader(str))
                             {
                                 var t1 = await reader.TryReadAsync();
@@ -4242,7 +4865,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                         opts,
                         async (config, getReader) =>
                         {
-                            using (var str = getReader("\"a\r\",bb,ccc\ndddd,\"ee\neee\",ffffff\n1,2,\"3\r\n\"\n"))
+                            await using (var str = await getReader("\"a\r\",bb,ccc\ndddd,\"ee\neee\",ffffff\n1,2,\"3\r\n\"\n"))
                             await using (var reader = config.CreateAsyncReader(str))
                             {
                                 var t1 = await reader.TryReadAsync();
@@ -4276,7 +4899,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                         opts,
                         async (config, getReader) =>
                         {
-                            using (var str = getReader("\"a\r\",\"b\"\"b\",ccc\r\n\"\"\"dddd\",\"ee\neee\",ffffff\r\n1,\"\"\"2\"\"\",\"3\r\n\"\r\n"))
+                            await using (var str = await getReader("\"a\r\",\"b\"\"b\",ccc\r\n\"\"\"dddd\",\"ee\neee\",ffffff\r\n1,\"\"\"2\"\"\",\"3\r\n\"\r\n"))
                             await using (var reader = config.CreateAsyncReader(str))
                             {
                                 var t1 = await reader.TryReadAsync();
@@ -4307,7 +4930,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                          opts,
                          async (config, getReader) =>
                          {
-                             using (var str = getReader("\"a\r\",\"b\"\"b\",ccc\r\"\"\"dddd\",\"ee\neee\",ffffff\r1,\"\"\"2\"\"\",\"3\r\n\"\r"))
+                             await using (var str = await getReader("\"a\r\",\"b\"\"b\",ccc\r\"\"\"dddd\",\"ee\neee\",ffffff\r1,\"\"\"2\"\"\",\"3\r\n\"\r"))
                              await using (var reader = config.CreateAsyncReader(str))
                              {
                                  var t1 = await reader.TryReadAsync();
@@ -4338,7 +4961,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                         opts,
                         async (config, getReader) =>
                         {
-                            using (var str = getReader("\"a\r\",\"b\"\"b\",ccc\n\"\"\"dddd\",\"ee\neee\",ffffff\n1,\"\"\"2\"\"\",\"3\r\n\"\n"))
+                            await using (var str = await getReader("\"a\r\",\"b\"\"b\",ccc\n\"\"\"dddd\",\"ee\neee\",ffffff\n1,\"\"\"2\"\"\",\"3\r\n\"\n"))
                             await using (var reader = config.CreateAsyncReader(str))
                             {
                                 var t1 = await reader.TryReadAsync();
@@ -4377,7 +5000,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                 opts,
                 async (config, del) =>
                 {
-                    using (var str = del("123,4.56"))
+                    await using (var str = await del("123,4.56"))
                     await using (var reader = (AsyncReader<_DetectHeaders>)config.CreateAsyncReader(str))
                     {
                         var t = await reader.TryReadAsync();
@@ -4406,7 +5029,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, del) =>
                     {
-                        using (var str = del("Hello,World\r\n123,4.56\r\n789,0.12\r\n"))
+                        await using (var str = await del("Hello,World\r\n123,4.56\r\n789,0.12\r\n"))
                         await using (var reader = (AsyncReader<_DetectHeaders>)config.CreateAsyncReader(str))
                         {
                             var t = await reader.TryReadAsync();
@@ -4438,7 +5061,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, del) =>
                     {
-                        using (var str = del("Hello,World\n123,4.56\n789,0.12\n"))
+                        await using (var str = await del("Hello,World\n123,4.56\n789,0.12\n"))
                         await using (var reader = (AsyncReader<_DetectHeaders>)config.CreateAsyncReader(str))
                         {
                             var t = await reader.TryReadAsync();
@@ -4470,7 +5093,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, del) =>
                     {
-                        using (var str = del("Hello,World\r123,4.56\r789,0.12\r"))
+                        await using (var str = await del("Hello,World\r123,4.56\r789,0.12\r"))
                         await using (var reader = (AsyncReader<_DetectHeaders>)config.CreateAsyncReader(str))
                         {
                             var t = await reader.TryReadAsync();
@@ -4505,7 +5128,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, del) =>
                     {
-                        using (var str = del("World,Hello\r\n4.56,123\r\n0.12,789\r\n"))
+                        await using (var str = await del("World,Hello\r\n4.56,123\r\n0.12,789\r\n"))
                         await using (var reader = (AsyncReader<_DetectHeaders>)config.CreateAsyncReader(str))
                         {
                             var t = await reader.TryReadAsync();
@@ -4537,7 +5160,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, del) =>
                     {
-                        using (var str = del("World,Hello\n4.56,123\n0.12,789\n"))
+                        await using (var str = await del("World,Hello\n4.56,123\n0.12,789\n"))
                         await using (var reader = (AsyncReader<_DetectHeaders>)config.CreateAsyncReader(str))
                         {
                             var t = await reader.TryReadAsync();
@@ -4569,7 +5192,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, del) =>
                     {
-                        using (var str = del("World,Hello\r4.56,123\r0.12,789\r"))
+                        await using (var str = await del("World,Hello\r4.56,123\r0.12,789\r"))
                         await using (var reader = (AsyncReader<_DetectHeaders>)config.CreateAsyncReader(str))
                         {
                             var t = await reader.TryReadAsync();
@@ -4604,7 +5227,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, del) =>
                     {
-                        using (var str = del("World,Foo\r\n4.56,123\r\n0.12,789\r\n"))
+                        await using (var str = await del("World,Foo\r\n4.56,123\r\n0.12,789\r\n"))
                         await using (var reader = (AsyncReader<_DetectHeaders>)config.CreateAsyncReader(str))
                         {
                             var t = await reader.TryReadAsync();
@@ -4636,7 +5259,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, del) =>
                     {
-                        using (var str = del("World,Foo\n4.56,123\n0.12,789\n"))
+                        await using (var str = await del("World,Foo\n4.56,123\n0.12,789\n"))
                         await using (var reader = (AsyncReader<_DetectHeaders>)config.CreateAsyncReader(str))
                         {
                             var t = await reader.TryReadAsync();
@@ -4668,7 +5291,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, del) =>
                     {
-                        using (var str = del("World,Foo\r4.56,123\r0.12,789\r"))
+                        await using (var str = await del("World,Foo\r4.56,123\r0.12,789\r"))
                         await using (var reader = (AsyncReader<_DetectHeaders>)config.CreateAsyncReader(str))
                         {
                             var t = await reader.TryReadAsync();
@@ -4707,7 +5330,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                 opts,
                 async (config, makeReader) =>
                 {
-                    await using (var csv = config.CreateAsyncReader(makeReader(CSV)))
+                    await using (var reader = await makeReader(CSV))
+                    await using (var csv = config.CreateAsyncReader(reader))
                     {
                         await Assert.ThrowsAsync<SerializationException>(async () => await csv.ReadAllAsync());
                     }
@@ -4728,7 +5352,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, makeReader) =>
                     {
-                        await using (var csv = config.CreateAsyncReader(makeReader(CSV)))
+                        await using (var reader = await makeReader(CSV))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             await Assert.ThrowsAsync<SerializationException>(async () => await csv.ReadAllAsync());
                         }
@@ -4744,7 +5369,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, makeReader) =>
                     {
-                        await using (var csv = config.CreateAsyncReader(makeReader(CSV)))
+                        await using (var reader = await makeReader(CSV))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             await Assert.ThrowsAsync<SerializationException>(async () => await csv.ReadAllAsync());
                         }
@@ -4760,7 +5386,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, makeReader) =>
                     {
-                        await using (var csv = config.CreateAsyncReader(makeReader(CSV)))
+                        await using (var reader = await makeReader(CSV))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             await Assert.ThrowsAsync<SerializationException>(async () => await csv.ReadAllAsync());
                         }
@@ -4780,7 +5407,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, makeReader) =>
                     {
-                        using (var reader = makeReader("Foo,Bar\r\nhello,world"))
+                        await using (var reader = await makeReader("Foo,Bar\r\nhello,world"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -4800,7 +5427,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, makeReader) =>
                     {
-                        using (var reader = makeReader("Foo,Bar\r\n\"hello\",\"world\""))
+                        await using (var reader = await makeReader("Foo,Bar\r\n\"hello\",\"world\""))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -4820,7 +5447,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, makeReader) =>
                     {
-                        using (var reader = makeReader("Foo,Bar\r\n\"he\\\"llo\",\"world\""))
+                        await using (var reader = await makeReader("Foo,Bar\r\n\"he\\\"llo\",\"world\""))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -4840,7 +5467,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, makeReader) =>
                     {
-                        using (var reader = makeReader("Foo,Bar\r\n\"hello\",\"w\\\\orld\""))
+                        await using (var reader = await makeReader("Foo,Bar\r\n\"hello\",\"w\\\\orld\""))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -4860,7 +5487,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, makeReader) =>
                     {
-                        using (var reader = makeReader("Foo,Bar\r\n\\,\\ooo"))
+                        await using (var reader = await makeReader("Foo,Bar\r\n\\,\\ooo"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -4887,7 +5514,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                 opts,
                 async (config, getReader) =>
                 {
-                    using (var reader = getReader(TSV))
+                    await using (var reader = await getReader(TSV))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var rows = await csv.ReadAllAsync();
@@ -4913,7 +5540,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader(CSV))
+                        await using (var reader = await getReader(CSV))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -4930,7 +5557,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader(CSV))
+                        await using (var reader = await getReader(CSV))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -4947,7 +5574,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader(CSV))
+                        await using (var reader = await getReader(CSV))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -4968,7 +5595,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader(CSV))
+                        await using (var reader = await getReader(CSV))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -4985,7 +5612,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             var parseFoo = (Parser)typeof(ReaderTests).GetMethod(nameof(_Context_ParseFoo));
             var parseBar = (Parser)typeof(ReaderTests).GetMethod(nameof(_Context_ParseBar));
 
-            var describer = new ManualTypeDescriber(false);
+            var describer = new ManualTypeDescriber(ManualTypeDescriberFallbackBehavior.UseDefault);
             describer.SetBuilder((InstanceBuilder)typeof(_Context).GetConstructor(Type.EmptyTypes));
             describer.AddDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), parseFoo);
             describer.AddDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), parseBar);
@@ -5001,7 +5628,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                         _Context_ParseFoo_Records = new List<string>();
                         _Context_ParseBar_Records = new List<string>();
 
-                        using (var reader = getReader("hello,123\r\nfoo,456\r\n,\r\nnope,7"))
+                        await using (var reader = await getReader("hello,123\r\nfoo,456\r\n,\r\nnope,7"))
                         await using (var csv = config.CreateAsyncReader(reader, -22))
                         {
                             var r = await csv.ReadAllAsync();
@@ -5036,7 +5663,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                         _Context_ParseFoo_Records = new List<string>();
                         _Context_ParseBar_Records = new List<string>();
 
-                        using (var reader = getReader("Bar,Foo\r\n123,hello\r\n456,foo\r\n8,\r\n7,nope"))
+                        await using (var reader = await getReader("Bar,Foo\r\n123,hello\r\n456,foo\r\n8,\r\n7,nope"))
                         await using (var csv = config.CreateAsyncReader(reader, "world"))
                         {
                             var r = await csv.ReadAllAsync();
@@ -5079,7 +5706,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                 {
                     _StaticSetter.Foo = 123;
 
-                    using (var reader = getReader("456"))
+                    await using (var reader = await getReader("456"))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var row = await csv.ReadAllAsync();

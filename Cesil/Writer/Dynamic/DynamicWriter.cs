@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 
+using static Cesil.DisposableHelper;
+
 namespace Cesil
 {
     internal sealed class DynamicWriter :
@@ -17,7 +19,7 @@ namespace Cesil
 
         private Dictionary<object, Delegate> DelegateCache;
 
-        internal DynamicWriter(DynamicBoundConfiguration config, TextWriter inner, object context) : base(config, inner, context) { }
+        internal DynamicWriter(DynamicBoundConfiguration config, IWriterAdapter inner, object context) : base(config, inner, context) { }
 
         bool IDelegateCache.TryGet<T, V>(T key, out V del)
         {
@@ -49,7 +51,7 @@ namespace Cesil
 
         public override void Write(dynamic row)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             WriteHeadersAndEndRowIfNeeded(row);
 
@@ -73,13 +75,14 @@ namespace Cesil
                 var ctx = WriteContext.WritingColumn(RowNumber, ColumnIdentifier.Create(i, col), Context);
 
                 var formatter = cell.Formatter;
-                formatter.PrimeDynamicDelegate(this);
-                var del = formatter.DynamicDelegate;
+                var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
+                delProvider.Guarantee(this);
+                var del = delProvider.CachedDelegate;
 
                 var val = cell.Value as object;
                 if (!del(val, in ctx, Buffer))
                 {
-                    Throw.SerializationException($"Could not write column {col}, formatter {formatter} returned false");
+                    Throw.SerializationException<object>($"Could not write column {col}, formatter {formatter} returned false");
                 }
 
                 var res = Buffer.Buffer;
@@ -103,17 +106,17 @@ end:
         {
             if (comment == null)
             {
-                Throw.ArgumentNullException(nameof(comment));
+                Throw.ArgumentNullException<object>(nameof(comment));
             }
 
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             var shouldEndRecord = true;
             if (IsFirstRow)
             {
                 if (Config.WriteHeader == Cesil.WriteHeaders.Always)
                 {
-                    Throw.InvalidOperationException($"First operation on a dynamic writer cannot be {nameof(WriteComment)} if configured to write headers, headers cannot be inferred");
+                    Throw.InvalidOperationException<object>($"First operation on a dynamic writer cannot be {nameof(WriteComment)} if configured to write headers, headers cannot be inferred");
                 }
 
                 if (!CheckHeaders(null))
@@ -180,7 +183,7 @@ end:
             {
                 if (i == ColumnNames.Length)
                 {
-                    Throw.InvalidOperationException("Too many cells returned, could not place in desired order");
+                    return Throw.InvalidOperationException<IEnumerable<DynamicCellValue>>("Too many cells returned, could not place in desired order");
                 }
 
                 var expectedName = ColumnNames[i];
@@ -235,7 +238,7 @@ end:
 
                 if (colName == null)
                 {
-                    Throw.InvalidOperationException($"No column name found at index {colIx} when {nameof(Cesil.WriteHeaders)} = {Config.WriteHeader}");
+                    Throw.InvalidOperationException<object>($"No column name found at index {colIx} when {nameof(Cesil.WriteHeaders)} = {Config.WriteHeader}");
                 }
 
                 var encodedColName = colName;

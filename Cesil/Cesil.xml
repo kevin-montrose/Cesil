@@ -76,6 +76,13 @@
             Equivalent to Index property.
             </summary>
         </member>
+        <member name="M:Cesil.BoundConfigurationBase`1.#ctor">
+            <summary>
+            For some testing scenarios.
+            
+            Created instance is nearly unusable.
+            </summary>
+        </member>
         <member name="M:Cesil.BoundConfigurationBase`1.#ctor(Cesil.ITypeDescriber,System.Char,System.Char,System.Char,Cesil.RowEndings,Cesil.ReadHeaders,Cesil.WriteHeaders,Cesil.WriteTrailingNewLines,System.Buffers.MemoryPool{System.Char},System.Nullable{System.Char},System.Nullable{System.Int32},System.Int32,Cesil.DynamicRowDisposal)">
             <summary>
             For working with dynamic.
@@ -141,9 +148,28 @@
             Used to create readers and writers.
             </summary>
         </member>
+        <member name="M:Cesil.IBoundConfiguration`1.CreateReader(System.Buffers.ReadOnlySequence{System.Char},System.Object)">
+            <summary>
+            Create a synchronous reader for the given sequence.
+            
+            Takes an optional context object which is made available
+              during certain operations as a member on ReadContext.
+            </summary>
+        </member>
         <member name="M:Cesil.IBoundConfiguration`1.CreateReader(System.IO.TextReader,System.Object)">
             <summary>
             Create a synchronous reader for the given reader.
+            
+            Takes an optional context object which is made available
+              during certain operations as a member on ReadContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.IBoundConfiguration`1.CreateAsyncReader(System.IO.Pipelines.PipeReader,System.Text.Encoding,System.Object)">
+            <summary>
+            Create an asynchronous reader for the given reader.
+            
+            The provided encoding is used to convert the bytes provided by the reader
+              into characters for parsing.
             
             Takes an optional context object which is made available
               during certain operations as a member on ReadContext.
@@ -157,9 +183,28 @@
               during certain operations as a member on ReadContext.
             </summary>
         </member>
+        <member name="M:Cesil.IBoundConfiguration`1.CreateWriter(System.Buffers.IBufferWriter{System.Char},System.Object)">
+            <summary>
+            Create a synchronous writer for the given writer.
+            
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
+            </summary>
+        </member>
         <member name="M:Cesil.IBoundConfiguration`1.CreateWriter(System.IO.TextWriter,System.Object)">
             <summary>
             Create a synchronous writer for the given writer.
+            
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.IBoundConfiguration`1.CreateAsyncWriter(System.IO.Pipelines.PipeWriter,System.Text.Encoding,System.Object)">
+            <summary>
+            Create an asynchronous writer for the given writer.
+            
+            The provided encoding is used to convert characers into 
+              bytes.
             
             Takes an optional context object which is made available
               during certain operations as a member on WriteContext.
@@ -622,9 +667,9 @@
             but will not block if results are not available.
             </summary>
         </member>
-        <member name="M:Cesil.IAsyncReader`1.ReadAllAsync(System.Collections.Generic.List{`0},System.Threading.CancellationToken)">
+        <member name="M:Cesil.IAsyncReader`1.ReadAllAsync``1(``0,System.Threading.CancellationToken)">
             <summary>
-            Asynchronously reads all rows, storing into the provided list.
+            Asynchronously reads all rows, storing into the provided collection.
             
             into must be non-null, and will be returned wrapped in a ValueTask.
             
@@ -634,7 +679,7 @@
         </member>
         <member name="M:Cesil.IAsyncReader`1.ReadAllAsync(System.Threading.CancellationToken)">
             <summary>
-            Asynchronously reads all rows, returning the entire set at once.
+            Asynchronously reads all rows into a list, returning the entire set at once.
             
             The task will attempt to complete synchronously, 
             but will not block if results are not available.
@@ -743,9 +788,9 @@
             Interface for a synchronous reader.
             </summary>
         </member>
-        <member name="M:Cesil.IReader`1.ReadAll(System.Collections.Generic.List{`0})">
+        <member name="M:Cesil.IReader`1.ReadAll``1(``0)">
             <summary>
-            Reads all rows into the provided list, returning the entire set at once.
+            Reads all rows into the provided collection, returning the entire set at once.
             
             into must be non-null.
             </summary>
@@ -1539,13 +1584,29 @@
             Called to determine the cells that make up the given dynamic row.
             </summary>
         </member>
+        <member name="T:Cesil.ManualTypeDescriberFallbackBehavior">
+            <summary>
+            How to behave if a ManualTypeDescriber needs to
+              describe a type that isn't explicitly configured.
+            </summary>
+        </member>
+        <member name="F:Cesil.ManualTypeDescriberFallbackBehavior.Throw">
+            <summary>
+            Throw if no type is configured.
+            </summary>
+        </member>
+        <member name="F:Cesil.ManualTypeDescriberFallbackBehavior.UseDefault">
+            <summary>
+            Use DefaultTypeDescriber if no type is configured.
+            </summary>
+        </member>
         <member name="T:Cesil.ManualTypeDescriber">
             <summary>
             An ITypeDescriber that takes lets you register explicit members to return
               when one of the EnumerateXXX() methods are called.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.#ctor(System.Boolean)">
+        <member name="M:Cesil.ManualTypeDescriber.#ctor(Cesil.ManualTypeDescriberFallbackBehavior)">
             <summary>
             Creates a new ManualTypeDescriber.
             </summary>
@@ -1554,7 +1615,7 @@
             <summary>
             Creates a new ManualTypeDescriber.
             
-            Does not throw if no type is configured for a given enumeration.
+            Uses DefaultTypeDescriber if no type is configured for a given enumeration.
             </summary>
         </member>
         <member name="M:Cesil.ManualTypeDescriber.SetBuilder(Cesil.InstanceBuilder)">
@@ -1605,6 +1666,11 @@
             </summary>
         </member>
         <member name="M:Cesil.ManualTypeDescriber.AddSerializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize)">
+            <summary>
+            Add a field to serialize for the given type, using the given name, formatter, and ShouldSerialize method.
+            </summary>
+        </member>
+        <member name="M:Cesil.ManualTypeDescriber.AddSerializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.WillEmitDefaultValue)">
             <summary>
             Add a field to serialize for the given type, using the given name, formatter, and ShouldSerialize method.
             </summary>
@@ -1965,6 +2031,27 @@
             Compare two SerializableMembers for inequality
             </summary>
         </member>
+        <member name="T:Cesil.SurrogateTypeDescriberFallbackBehavior">
+            <summary>
+            How to behave if a ManualTypeDescriber needs to
+              describe a type that isn't explicitly configured.
+            </summary>
+        </member>
+        <member name="F:Cesil.SurrogateTypeDescriberFallbackBehavior.Throw">
+            <summary>
+            Throw if no type is configured.
+            </summary>
+        </member>
+        <member name="F:Cesil.SurrogateTypeDescriberFallbackBehavior.UseDefault">
+            <summary>
+            Use DefaultTypeDescriber if no type is configured.
+            </summary>
+        </member>
+        <member name="F:Cesil.SurrogateTypeDescriberFallbackBehavior.UseProvided">
+            <summary>
+            Use the ITypeDescriber provided for use on registered surrogate types.
+            </summary>
+        </member>
         <member name="T:Cesil.SurrogateTypeDescriber">
             <summary>
             A ITypeDesciber that enumerates members on a surrogate type and maps them to another type.
@@ -1973,7 +2060,7 @@
               and then the uncontrolled type is (de)serialized as if it were the surrogate type.
             </summary>
         </member>
-        <member name="M:Cesil.SurrogateTypeDescriber.#ctor(Cesil.ITypeDescriber,System.Boolean)">
+        <member name="M:Cesil.SurrogateTypeDescriber.#ctor(Cesil.ITypeDescriber,Cesil.SurrogateTypeDescriberFallbackBehavior)">
             <summary>
             Create a new SurrogateTypeDescriber.
             </summary>
@@ -1982,12 +2069,12 @@
             <summary>
             Create a new SurrogateTypeDescriber, using the given ITypeDescriber.
             
-            Does not throw if no surrogate is registered for an enumerated type.
+            Uses the given ITypeDescriber on types that are not explicitly registered.
             </summary>
         </member>
-        <member name="M:Cesil.SurrogateTypeDescriber.#ctor(System.Boolean)">
+        <member name="M:Cesil.SurrogateTypeDescriber.#ctor(Cesil.SurrogateTypeDescriberFallbackBehavior)">
             <summary>
-            Create a new SurrogateTypeDescriber, using the given ITypeDescriber.
+            Create a new SurrogateTypeDescriber, using the given SurrogateTypeDescriberFallbackBehavior.
             
             Uses TypeDescribers.Default as it's inner ITypeDescriber.
             </summary>
@@ -2046,17 +2133,17 @@
         </member>
         <member name="M:Cesil.SurrogateTypeDescriber.GetDynamicCellParserFor(Cesil.ReadContext@,System.Reflection.TypeInfo)">
             <summary>
-            Delegates to DefaultTypeDescriber.
+            Delegates to TypeDescriber.
             </summary>
         </member>
         <member name="M:Cesil.SurrogateTypeDescriber.GetDynamicRowConverter(Cesil.ReadContext@,System.Collections.Generic.IEnumerable{Cesil.ColumnIdentifier},System.Reflection.TypeInfo)">
             <summary>
-            Delegates to DefaultTypeDescriber.
+            Delegates to TypeDescriber.
             </summary>
         </member>
         <member name="M:Cesil.SurrogateTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)">
             <summary>
-            Delegates to DefaultTypeDescriber.
+            Delegates to TypeDescriber.
             </summary>
         </member>
         <member name="T:Cesil.TypeDescribers">

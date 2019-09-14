@@ -49,13 +49,9 @@ namespace Cesil
                     case WriteContextMode.DiscoveringCells:
                         return _RowNumber;
                     case WriteContextMode.DiscoveringColumns:
-                        Throw.InvalidOperationException($"No row number is available (we haven't started writing) when {nameof(Mode)} is {Mode}");
-                        // just for control flow
-                        return default;
+                        return Throw.InvalidOperationException<int>($"No row number is available (we haven't started writing) when {nameof(Mode)} is {Mode}");
                     default:
-                        Throw.InvalidOperationException($"Unexpected {nameof(WriteContextMode)}: {Mode}");
-                        // just for control flow
-                        return default;
+                        return Throw.InvalidOperationException<int>($"Unexpected {nameof(WriteContextMode)}: {Mode}");
                 }
             }
         }
@@ -84,13 +80,9 @@ namespace Cesil
                         return _Column;
                     case WriteContextMode.DiscoveringCells:
                     case WriteContextMode.DiscoveringColumns:
-                        Throw.InvalidOperationException($"No column is available when {nameof(Mode)} is {Mode}");
-                        // just for control flow
-                        return default;
+                        return Throw.InvalidOperationException<ColumnIdentifier>($"No column is available when {nameof(Mode)} is {Mode}");
                     default:
-                        Throw.InvalidOperationException($"Unexpected {nameof(WriteContextMode)}: {Mode}");
-                        // just for control flow
-                        return default;
+                        return Throw.InvalidOperationException<ColumnIdentifier>($"Unexpected {nameof(WriteContextMode)}: {Mode}");
                 }
             }
         }
@@ -162,9 +154,7 @@ namespace Cesil
                 case WriteContextMode.WritingColumn:
                     return $"{nameof(WriteContext)} with {nameof(Mode)}={Mode}, {nameof(RowNumber)}={RowNumber}, {nameof(Column)}={Column}";
                 default:
-                    Throw.InvalidOperationException($"Unexpected {nameof(WriteContextMode)}: {Mode}");
-                    // just for control flow
-                    return default;
+                    return Throw.InvalidOperationException<string>($"Unexpected {nameof(WriteContextMode)}: {Mode}");
             }
         }
 

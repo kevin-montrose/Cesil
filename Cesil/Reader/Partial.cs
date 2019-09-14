@@ -127,13 +127,5 @@ namespace Cesil
                 PendingCharacters = null;
             }
         }
-
-        public void AssertNotDisposed()
-        {
-            if (IsDisposed)
-            {
-                Throw.ObjectDisposedException(nameof(Partial<T>));
-            }
-        }
     }
 }

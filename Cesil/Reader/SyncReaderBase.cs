@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 
+using static Cesil.DisposableHelper;
+
 namespace Cesil
 {
     internal abstract class SyncReaderBase<T> :
@@ -8,27 +10,57 @@ namespace Cesil
         IReader<T>,
         ITestableDisposable
     {
-        internal TextReader Inner;
+        internal IReaderAdapter Inner;
 
         public bool IsDisposed => Inner == null;
 
-        internal SyncReaderBase(TextReader inner, BoundConfigurationBase<T> config, object context) : base(config, context)
+        internal SyncReaderBase(IReaderAdapter inner, BoundConfigurationBase<T> config, object context) : base(config, context)
         {
             Inner = inner;
         }
 
-        public List<T> ReadAll(List<T> into)
+        public TCollection ReadAll<TCollection>(TCollection into)
+            where TCollection : class, ICollection<T>
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             if (into == null)
             {
-                Throw.ArgumentNullException(nameof(into));
+                return Throw.ArgumentNullException<TCollection>(nameof(into));
             }
 
-            while (TryRead(out var t))
+            bool prePinned;
+            if (!StateMachineInitialized)
             {
-                into.Add(t);
+                prePinned = false;
+            }
+            else
+            {
+                StateMachine.Pin();
+                prePinned = true;
+            }
+
+            while (true)
+            {
+                T _ = default;
+                var res = TryReadInner(false, prePinned, ref _);
+                if (!res.HasValue)
+                {
+                    break;
+                }
+
+                into.Add(res.Value);
+
+                if(!prePinned && StateMachineInitialized)
+                {
+                    StateMachine.Pin();
+                    prePinned = true;
+                }
+            }
+
+            if (prePinned)
+            {
+                StateMachine.Unpin();
             }
 
             return into;
@@ -39,14 +71,14 @@ namespace Cesil
 
         public IEnumerable<T> EnumerateAll()
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             return new Enumerable<T>(this);
         }
 
         public bool TryRead(out T record)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             record = default;
             return TryReadWithReuse(ref record);
@@ -54,9 +86,9 @@ namespace Cesil
 
         public bool TryReadWithReuse(ref T record)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
-            var res = TryReadInner(false, ref record);
+            var res = TryReadInner(false, false, ref record);
             if (res.ResultType == ReadWithCommentResultType.HasValue)
             {
                 record = res.Value;
@@ -69,7 +101,7 @@ namespace Cesil
 
         public ReadWithCommentResult<T> TryReadWithComment()
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             var record = default(T);
             return TryReadWithCommentReuse(ref record);
@@ -77,21 +109,12 @@ namespace Cesil
 
         public ReadWithCommentResult<T> TryReadWithCommentReuse(ref T record)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
-            return TryReadInner(true, ref record);
+            return TryReadInner(true, false, ref record);
         }
 
-        internal abstract ReadWithCommentResult<T> TryReadInner(bool returnComments, ref T record);
-
-        public void AssertNotDisposed()
-        {
-            if (IsDisposed)
-            {
-                var name = this.GetType().Name;
-                Throw.ObjectDisposedException(name);
-            }
-        }
+        internal abstract ReadWithCommentResult<T> TryReadInner(bool returnComments, bool pinAcquired, ref T record);
 
         public abstract void Dispose();
     }

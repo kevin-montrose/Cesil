@@ -5,12 +5,9 @@ namespace Cesil
 {
     internal sealed class Reader<T> : SyncReaderBase<T>
     {
-        internal Reader(TextReader inner, ConcreteBoundConfiguration<T> config, object context) : base(inner, config, context)
-        {
-            Inner = inner;
-        }
+        internal Reader(IReaderAdapter inner, ConcreteBoundConfiguration<T> config, object context) : base(inner, config, context) { }
 
-        internal override ReadWithCommentResult<T> TryReadInner(bool returnComments, ref T record)
+        internal override ReadWithCommentResult<T> TryReadInner(bool returnComments, bool pinAcquired, ref T record)
         {
             if (RowEndings == null)
             {
@@ -22,6 +19,11 @@ namespace Cesil
                 HandleHeaders();
             }
 
+            if (!pinAcquired)
+            {
+                StateMachine.Pin();
+            }
+
             while (true)
             {
                 PreparingToWriteToBuffer();
@@ -29,6 +31,11 @@ namespace Cesil
                 if (available == 0)
                 {
                     var endRes = EndOfData();
+
+                    if (!pinAcquired)
+                    {
+                        StateMachine.Unpin();
+                    }
                     return HandleAdvanceResult(endRes, returnComments);
                 }
 
@@ -38,7 +45,11 @@ namespace Cesil
                     {
                         if (!Configuration.NewCons(out record))
                         {
-                            Throw.InvalidOperationException($"Failed to construct new instance of {typeof(T)}");
+                            if (!pinAcquired)
+                            {
+                                StateMachine.Unpin();
+                            }
+                            return Throw.InvalidOperationException<ReadWithCommentResult<T>>($"Failed to construct new instance of {typeof(T)}");
                         }
                     }
                     SetValueToPopulate(record);
@@ -48,6 +59,10 @@ namespace Cesil
                 var possibleReturn = HandleAdvanceResult(res, returnComments);
                 if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                 {
+                    if (!pinAcquired)
+                    {
+                        StateMachine.Unpin();
+                    }
                     return possibleReturn;
                 }
             }
@@ -86,6 +101,7 @@ namespace Cesil
 
             using (
                 var headerReader = new HeadersReader<T>(
+                    StateMachine,
                     headerConfig,
                     SharedCharacterLookup,
                     Inner,
@@ -108,7 +124,7 @@ namespace Cesil
                 return;
             }
 
-            using (var detector = new RowEndingDetector<T>(Configuration, SharedCharacterLookup, Inner))
+            using (var detector = new RowEndingDetector<T>(StateMachine, Configuration, SharedCharacterLookup, Inner))
             {
                 var res = detector.Detect();
                 HandleLineEndingsDetectionResult(res);

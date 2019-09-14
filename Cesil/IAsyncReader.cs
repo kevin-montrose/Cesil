@@ -20,17 +20,18 @@ namespace Cesil
         IAsyncEnumerable<T> EnumerateAllAsync();
 
         /// <summary>
-        /// Asynchronously reads all rows, storing into the provided list.
+        /// Asynchronously reads all rows, storing into the provided collection.
         /// 
         /// into must be non-null, and will be returned wrapped in a ValueTask.
         /// 
         /// The task will attempt to complete synchronously, 
         /// but will not block if results are not available.
         /// </summary>
-        ValueTask<List<T>> ReadAllAsync(List<T> into, CancellationToken cancel = default);
+        ValueTask<TCollection> ReadAllAsync<TCollection>(TCollection into, CancellationToken cancel = default)
+        where TCollection : class, ICollection<T>;
 
         /// <summary>
-        /// Asynchronously reads all rows, returning the entire set at once.
+        /// Asynchronously reads all rows into a list, returning the entire set at once.
         /// 
         /// The task will attempt to complete synchronously, 
         /// but will not block if results are not available.

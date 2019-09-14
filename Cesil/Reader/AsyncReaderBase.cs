@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+
+using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
@@ -13,64 +14,78 @@ namespace Cesil
     {
         public bool IsDisposed => Inner == null;
 
-        internal TextReader Inner;
+        internal IAsyncReaderAdapter Inner;
 
-        internal AsyncReaderBase(TextReader reader, BoundConfigurationBase<T> config, object context) : base(config, context)
+        internal AsyncReaderBase(IAsyncReaderAdapter reader, BoundConfigurationBase<T> config, object context) : base(config, context)
         {
             Inner = reader;
         }
 
-        public ValueTask<List<T>> ReadAllAsync(List<T> into, CancellationToken cancel = default)
+        public ValueTask<TCollection> ReadAllAsync<TCollection>(TCollection into, CancellationToken cancel = default)
+        where TCollection: class, ICollection<T>
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
-            if (into == null)
-            {
-                Throw.ArgumentNullException(nameof(into));
-            }
-
-            return ReadAllIntoListAsync(into, cancel);
+            return ReadAllIntoCollectionAsync(into, cancel);
         }
 
         public ValueTask<List<T>> ReadAllAsync(CancellationToken cancel = default)
         => ReadAllAsync(new List<T>(), cancel);
 
-        private ValueTask<List<T>> ReadAllIntoListAsync(List<T> into, CancellationToken cancel)
+        private ValueTask<TCollection> ReadAllIntoCollectionAsync<TCollection>(TCollection into, CancellationToken cancel)
+        where TCollection : class, ICollection<T>
         {
-            AssertNotDisposed();
-
             if (into == null)
             {
-                Throw.ArgumentNullException(nameof(into));
+                return Throw.ArgumentNullException<ValueTask<TCollection>>(nameof(into));
+            }
+
+            bool pinAcquired;
+            if(!StateMachineInitialized)
+            {
+                pinAcquired = false;
+            }
+            else
+            {
+                StateMachine.Pin();
+                pinAcquired = true;
             }
 
             while (true)
             {
-                var resTask = TryReadAsync(cancel);
-                SwitchAsync(ref resTask);
-                if (resTask.IsCompletedSuccessfully)
+                T _ = default;
+                var resTask = TryReadInnerAsync(false, pinAcquired, ref _, cancel);
+                if (!resTask.IsCompletedSuccessfully(this))
                 {
-                    var res = resTask.Result;
+                    return ReadAllAsync_ContinueAfterTryReadAsync(this, resTask, pinAcquired, into, cancel);
+                }
 
-                    if (res.HasValue)
-                    {
-                        into.Add(res.Value);
-                    }
-                    else
-                    {
-                        break;
-                    }
+                var res = resTask.Result;
+                if (res.HasValue)
+                {
+                    into.Add(res.Value);
                 }
                 else
                 {
-                    return ReadAllAsync_ContinueAfterTryReadAsync(this, resTask, into, cancel);
+                    break;
+                }
+
+                if (!pinAcquired && StateMachineInitialized)
+                {
+                    StateMachine.Pin();
+                    pinAcquired = true;
                 }
             }
 
-            return new ValueTask<List<T>>(into);
+            if (pinAcquired)
+            {
+                StateMachine.Unpin();
+            }
+
+            return new ValueTask<TCollection>(into);
 
             // wait for a tryreadasync to finish, then continue async
-            static async ValueTask<List<T>> ReadAllAsync_ContinueAfterTryReadAsync(AsyncReaderBase<T> self, ValueTask<ReadResult<T>> waitFor, List<T> ret, CancellationToken cancel)
+            static async ValueTask<TCollection> ReadAllAsync_ContinueAfterTryReadAsync(AsyncReaderBase<T> self, ValueTask<ReadWithCommentResult<T>> waitFor, bool pinAcquired, TCollection ret, CancellationToken cancel)
             {
                 var other = await waitFor;
                 if (other.HasValue)
@@ -84,8 +99,8 @@ namespace Cesil
 
                 while (true)
                 {
-                    var tryReadTask = self.TryReadAsync(cancel);
-                    self.SwitchAsync(ref tryReadTask);
+                    T _ = default;
+                    var tryReadTask = self.TryReadInnerAsync(false, pinAcquired, ref _, cancel);
                     var res = await tryReadTask;
                     if (res.HasValue)
                     {
@@ -95,6 +110,12 @@ namespace Cesil
                     {
                         break;
                     }
+
+                    if(!pinAcquired && self.StateMachineInitialized)
+                    {
+                        self.StateMachine.Pin();
+                        pinAcquired = true;
+                    }
                 }
 
                 return ret;
@@ -103,18 +124,17 @@ namespace Cesil
 
         public IAsyncEnumerable<T> EnumerateAllAsync()
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             return new AsyncEnumerable<T>(this);
         }
 
         public ValueTask<ReadResult<T>> TryReadWithReuseAsync(ref T row, CancellationToken cancel = default)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
-            var tryReadTask = TryReadInnerAsync(false, ref row, cancel);
-            SwitchAsync(ref tryReadTask);
-            if (!tryReadTask.IsCompletedSuccessfully)
+            var tryReadTask = TryReadInnerAsync(false, false, ref row, cancel);
+            if (!tryReadTask.IsCompletedSuccessfully(this))
             {
                 return TryReadWithReuseAsync_ContinueAfterTryReadInnerAsync(tryReadTask, cancel);
             }
@@ -127,9 +147,7 @@ namespace Cesil
                 case ReadWithCommentResultType.NoValue:
                     return new ValueTask<ReadResult<T>>(ReadResult<T>.Empty);
                 default:
-                    Throw.InvalidOperationException($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}");
-                    // just for control flow
-                    return default;
+                    return Throw.InvalidOperationException<ValueTask<ReadResult<T>>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}");
             }
 
             // wait for the inner call to finish
@@ -144,16 +162,14 @@ namespace Cesil
                     case ReadWithCommentResultType.NoValue:
                         return ReadResult<T>.Empty;
                     default:
-                        Throw.InvalidOperationException($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}");
-                        // just for control flow
-                        return default;
+                        return Throw.InvalidOperationException<ReadResult<T>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}");
                 }
             }
         }
 
         public ValueTask<ReadResult<T>> TryReadAsync(CancellationToken cancel = default)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             var record = default(T);
             return TryReadWithReuseAsync(ref record, cancel);
@@ -161,7 +177,7 @@ namespace Cesil
 
         public ValueTask<ReadWithCommentResult<T>> TryReadWithCommentAsync(CancellationToken cancel = default)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             var record = default(T);
             return TryReadWithCommentReuseAsync(ref record, cancel);
@@ -169,91 +185,14 @@ namespace Cesil
 
         public ValueTask<ReadWithCommentResult<T>> TryReadWithCommentReuseAsync(ref T record, CancellationToken cancel = default)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
-            return TryReadInnerAsync(true, ref record, cancel);
+            return TryReadInnerAsync(true, false, ref record, cancel);
         }
 
-        internal abstract ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync(bool returnComments, ref T record, CancellationToken cancel);
+        internal abstract ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync(bool returnComments, bool pinAcquired, ref T record, CancellationToken cancel);
 
         public abstract ValueTask DisposeAsync();
-
-        public void AssertNotDisposed()
-        {
-            if (IsDisposed)
-            {
-                var name = this.GetType().Name;
-
-                Throw.ObjectDisposedException(name);
-            }
-        }
-    }
-
-    // this is present in all builds, but all MEMBERS are void returning
-    //   methods with a [Conditional] so all the code and calls go away
-    //   in non-DEBUG builds.
-    //
-    // This lets us keep CALLS to these crazy things in normal source without
-    //   a bunch of #if junk, but not actually have any of the calling going
-    //   on in RELEASE builds.
-    internal abstract partial class AsyncReaderBase<T>
-    {
-        [Conditional("DEBUG")]
-        internal protected void SwitchAsync(ref ValueTask task)
-        {
-#if RELEASE
-            Throw.Exception("Shouldn't be present in RELEASE");
-#endif
-
-            var self = (ITestableAsyncProvider)this;
-
-            if (self.ShouldGoAsync())
-            {
-                var taskRef = task;
-                task = SwitchAsync_ForceAsync(taskRef);
-            }
-            else
-            {
-                // make this SYNC
-                task.AsTask().Wait();
-                task = default;
-            }
-
-            static async ValueTask SwitchAsync_ForceAsync(ValueTask t)
-            {
-                await Task.Yield();
-                await t;
-            }
-        }
-
-        [Conditional("DEBUG")]
-        internal protected void SwitchAsync<V>(ref ValueTask<V> task)
-        {
-#if RELEASE
-            Throw.Exception("Shouldn't be present in RELEASE");
-#endif
-
-            var self = (ITestableAsyncProvider)this;
-
-            if (self.ShouldGoAsync())
-            {
-                var taskRef = task;
-                task = SwitchAsync_ForceAsync(taskRef);
-            }
-            else
-            {
-                // make this SYNC
-                var t = task.AsTask();
-                t.Wait();
-                task = new ValueTask<V>(t.Result);
-            }
-
-            static async ValueTask<V> SwitchAsync_ForceAsync(ValueTask<V> t)
-            {
-                await Task.Yield();
-                return await t;
-            }
-        }
     }
 
 #if DEBUG

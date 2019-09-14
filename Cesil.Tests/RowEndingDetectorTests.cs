@@ -48,9 +48,9 @@ namespace Cesil.Tests
 
             using (var str = new StringReader(csv))
             {
-                using (var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar))
+                using (var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _))
                 {
-                    var detector = new RowEndingDetector<_Test>(config, charLookup, str);
+                    var detector = new RowEndingDetector<_Test>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str));
                     var detect = detector.Detect();
                     Assert.True(detect.HasValue);
                     Assert.Equal(expected, detect.Value.Ending);
@@ -84,17 +84,28 @@ namespace Cesil.Tests
         [InlineData("\"foo\nbar\"\r", RowEndings.CarriageReturn)]
         public async Task Async(string csv, RowEndings expected)
         {
-            var config = (ConcreteBoundConfiguration<_Test>)Configuration.For<_Test>(Options.Default.NewBuilder().WithReadHeaderInternal(default).WithRowEnding(RowEndings.Detect).BuildInternal());
+            var opts = Options.Default.NewBuilder().WithReadHeaderInternal(default).WithRowEnding(RowEndings.Detect).BuildInternal();
 
-            await RunAsyncReaderVariants<_Foo>(
+            await RunAsyncReaderVariants<_Test>(
                     Options.Default,
-                    async (_, getReader) =>
+                    async (config, getReader) =>
                     {
-                        using (var str = getReader(csv))
+                        var configForced = config as AsyncCountingAndForcingConfig<_Test>;
+                        var configUnpin = config as AsyncInstrumentedPinConfig<_Test>;
+                        var cInner = (ConcreteBoundConfiguration<_Test>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+
+                        await using (var str = await getReader(csv))
+                        await using (configUnpin?.CreateAsyncReader(str))
                         {
-                            using (var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar))
+                            var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
+                            using (var charLookup = CharacterLookup.MakeCharacterLookup(cInner.MemoryPool, cInner.EscapedValueStartAndStop, cInner.ValueSeparator, cInner.EscapeValueEscapeChar, cInner.CommentChar, out _))
+                            using (var detector = new RowEndingDetector<_Test>(stateMachine, cInner, charLookup, str))
                             {
-                                var detector = new RowEndingDetector<_Test>(config, charLookup, str);
+                                if (configForced != null)
+                                {
+                                    configForced.Set(detector);
+                                }
+
                                 var detect = await detector.DetectAsync(CancellationToken.None);
                                 Assert.True(detect.HasValue);
                                 Assert.Equal(expected, detect.Value.Ending);

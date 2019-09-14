@@ -31,7 +31,7 @@ namespace Cesil
             {
                 if (_Name == null)
                 {
-                    Throw.InvalidOperationException("Column does not have a name");
+                    return Throw.InvalidOperationException<string>("Column does not have a name");
                 }
 
                 return _Name;
@@ -54,11 +54,15 @@ namespace Cesil
         {
             if (index < 0)
             {
-                Throw.ArgumentException($"Must be >= 0, found {index}", nameof(index));
+                return Throw.ArgumentException<ColumnIdentifier>($"Must be >= 0, found {index}", nameof(index));
             }
 
-            return new ColumnIdentifier(index, name);
+            return CreateInner(index, name);
         }
+
+        // just for testing
+        internal static ColumnIdentifier CreateInner(int index, string name)
+        => new ColumnIdentifier(index, name);
 
         /// <summary>
         /// Returns true if the given object is equivalent to this one

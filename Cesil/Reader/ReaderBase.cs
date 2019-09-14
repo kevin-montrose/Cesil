@@ -12,10 +12,11 @@ namespace Cesil
         internal readonly BufferWithPushback Buffer;
         internal readonly Partial<T> Partial;
 
-        internal readonly ReaderStateMachine.CharacterLookup SharedCharacterLookup;
+        internal readonly CharacterLookup SharedCharacterLookup;
 
         internal readonly object Context;
 
+        internal bool StateMachineInitialized;
         internal ReaderStateMachine StateMachine;
 
         internal BoundConfigurationBase<T> Configuration { get; }
@@ -42,20 +43,19 @@ namespace Cesil
                 new BufferWithPushback(
                     config.MemoryPool,
                     bufferSize
-#if DEBUG
-                    , config.ForceAsync
-#endif
                 );
             Partial = new Partial<T>(config.MemoryPool);
 
             SharedCharacterLookup =
-                ReaderStateMachine.MakeCharacterLookup(
+                CharacterLookup.MakeCharacterLookup(
                     config.MemoryPool,
                     config.EscapedValueStartAndStop,
                     config.ValueSeparator,
                     config.EscapeValueEscapeChar,
-                    config.CommentChar
+                    config.CommentChar,
+                    out _
                 );
+            StateMachine = new ReaderStateMachine();
         }
 
         protected internal ReadWithCommentResultType AdvanceWork(int numInBuffer)
@@ -92,9 +92,7 @@ namespace Cesil
                     return ReadWithCommentResult<T>.Empty;
 
                 default:
-                    Throw.InvalidOperationException($"Unexpected {nameof(ReadWithCommentResultType)}: {res}");
-                    // just for control flow
-                    return default;
+                    return Throw.InvalidOperationException<ReadWithCommentResult<T>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res}");
             }
         }
 
@@ -111,7 +109,7 @@ namespace Cesil
                 var res = StateMachine.Advance(c);
 
                 var state = StateMachine.CurrentState;
-                
+
                 // try and batch skips and appends
                 //   to save time on copying AND on 
                 //   basically pointless method calls
@@ -137,8 +135,8 @@ namespace Cesil
                                 Partial.AppendCharacters(buffSpan, consistentResultSince, length);
                                 break;
                             default:
-                                Throw.Exception($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {inBatchableResult.Value}");
-                                break;
+                                unprocessedCharacters = default;
+                                return Throw.Exception<ReadWithCommentResultType>($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {inBatchableResult.Value}");
                         }
 
                         inBatchableResult = null;
@@ -172,20 +170,18 @@ namespace Cesil
                         Partial.AppendCharacters(buffSpan, i, 1);
                         break;
 
-                    case ReaderStateMachine.AdvanceResult.Append_PreviousAndCurrentCharacter:
-                        // todo: change name (to append carriage return?)
+                    case ReaderStateMachine.AdvanceResult.Append_CarriageReturnAndCurrentCharacter:
                         Partial.AppendCarriageReturn(buffSpan);
 
                         Partial.AppendCharacters(buffSpan, i, 1);
                         break;
 
-                    case ReaderStateMachine.AdvanceResult.Append_PreviousAndEndComment:
-                        // todo: change name (to append carriage return?)
+                    case ReaderStateMachine.AdvanceResult.Append_CarriageReturnAndEndComment:
                         Partial.AppendCarriageReturn(buffSpan);
 
                         unprocessedCharacters = bufferLen - i - 1;
                         return ReadWithCommentResultType.HasComment;
-                        
+
                     case ReaderStateMachine.AdvanceResult.Finished_Value:
                         PushPendingCharactersToValue();
                         break;
@@ -225,8 +221,8 @@ namespace Cesil
                         Partial.AppendCharacters(buffSpan, consistentResultSince, length);
                         break;
                     default:
-                        Throw.Exception($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {inBatchableResult.Value}");
-                        break;
+                        unprocessedCharacters = default;
+                        return Throw.Exception<ReadWithCommentResultType>($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {inBatchableResult.Value}");
                 }
             }
 
@@ -244,14 +240,11 @@ namespace Cesil
                     // nothing to be done!
                     return ReadWithCommentResultType.NoValue;
 
-                case ReaderStateMachine.AdvanceResult.Append_PreviousAndCurrentCharacter:
+                case ReaderStateMachine.AdvanceResult.Append_CarriageReturnAndCurrentCharacter:
                 case ReaderStateMachine.AdvanceResult.Append_Character:
-                    Throw.Exception($"Attempted to append end of data with {nameof(ReaderStateMachine.Advance)} = {res}");
-                    // just for control flow
-                    return default;
+                    return Throw.Exception<ReadWithCommentResultType>($"Attempted to append end of data with {nameof(ReaderStateMachine.Advance)} = {res}");
 
-                case ReaderStateMachine.AdvanceResult.Append_PreviousAndEndComment:
-                    // todo: change name (to append carriage return?)
+                case ReaderStateMachine.AdvanceResult.Append_CarriageReturnAndEndComment:
                     Partial.AppendCarriageReturn(ReadOnlySpan<char>.Empty);
                     return ReadWithCommentResultType.HasComment;
 
@@ -269,16 +262,14 @@ namespace Cesil
 
 
                 default:
-                    HandleUncommonAdvanceResults(res, null);
-                    // just for control flow
-                    return default;
+                    return HandleUncommonAdvanceResults(res, null);
             }
         }
 
-        private void HandleUncommonAdvanceResults(ReaderStateMachine.AdvanceResult res, char? lastRead)
+        private ReadWithCommentResultType HandleUncommonAdvanceResults(ReaderStateMachine.AdvanceResult res, char? lastRead)
         {
             string c;
-            if(lastRead.HasValue)
+            if (lastRead.HasValue)
             {
                 c = $"'{lastRead.Value}'";
             }
@@ -290,34 +281,25 @@ namespace Cesil
             switch (res)
             {
                 case ReaderStateMachine.AdvanceResult.Exception_ExpectedEndOfRecord:
-                    Throw.InvalidOperationException($"Encountered '{c}' when expecting end of record");
-                    break;
+                    return Throw.InvalidOperationException<ReadWithCommentResultType>($"Encountered '{c}' when expecting end of record");
                 case ReaderStateMachine.AdvanceResult.Exception_InvalidState:
-                    Throw.InvalidOperationException($"Internal state machine is in an invalid state due to a previous error");
-                    break;
+                    return Throw.InvalidOperationException<ReadWithCommentResultType>($"Internal state machine is in an invalid state due to a previous error");
                 case ReaderStateMachine.AdvanceResult.Exception_StartEscapeInValue:
-                    Throw.InvalidOperationException($"Encountered '{c}', starting an escaped value, when already in a value");
-                    break;
+                    return Throw.InvalidOperationException<ReadWithCommentResultType>($"Encountered '{c}', starting an escaped value, when already in a value");
                 case ReaderStateMachine.AdvanceResult.Exception_UnexpectedCharacterInEscapeSequence:
-                    Throw.InvalidOperationException($"Encountered '{c}' in an escape sequence, which is invalid");
-                    break;
+                    return Throw.InvalidOperationException<ReadWithCommentResultType>($"Encountered '{c}' in an escape sequence, which is invalid");
                 case ReaderStateMachine.AdvanceResult.Exception_UnexpectedLineEnding:
-                    Throw.Exception($"Unexpected {nameof(Cesil.RowEndings)} value encountered");
-                    break;
+                    return Throw.Exception<ReadWithCommentResultType>($"Unexpected {nameof(Cesil.RowEndings)} value encountered");
                 case ReaderStateMachine.AdvanceResult.Exception_UnexpectedState:
-                    Throw.Exception($"Unexpected state value entered");
-                    break;
+                    return Throw.Exception<ReadWithCommentResultType>($"Unexpected state value entered");
                 case ReaderStateMachine.AdvanceResult.Exception_ExpectedEndOfRecordOrValue:
-                    Throw.InvalidOperationException($"Encountered '{c}' when expecting the end of a record or value");
-                    break;
+                    return Throw.InvalidOperationException<ReadWithCommentResultType>($"Encountered '{c}' when expecting the end of a record or value");
 
                 case ReaderStateMachine.AdvanceResult.Exception_UnexpectedEnd:
-                    Throw.InvalidOperationException($"Data ended unexpectedly");
-                    break;
+                    return Throw.InvalidOperationException<ReadWithCommentResultType>($"Data ended unexpectedly");
 
                 default:
-                    Throw.Exception($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {res}");
-                    break;
+                    return Throw.Exception<ReadWithCommentResultType>($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {res}");
             }
         }
 
@@ -328,7 +310,7 @@ namespace Cesil
                 var col = Columns[i];
                 if (col.IsRequired)
                 {
-                    Throw.SerializationException($"Column [{col.Name}] is required, but was not found in row");
+                    return Throw.SerializationException<T>($"Column [{col.Name}] is required, but was not found in row");
                 }
             }
 
@@ -354,7 +336,7 @@ namespace Cesil
         {
             if (Partial.CurrentColumnIndex >= Columns.Length)
             {
-                Throw.InvalidOperationException($"Unexpected column (Index={Partial.CurrentColumnIndex})");
+                Throw.InvalidOperationException<object>($"Unexpected column (Index={Partial.CurrentColumnIndex})");
             }
 
             var dataSpan = Partial.PendingAsMemory(Buffer.Buffer);
@@ -364,14 +346,14 @@ namespace Cesil
 
             if (column.IsRequired && dataSpan.Length == 0)
             {
-                Throw.SerializationException($"Column [{column.Name}] is required, but was not found in row");
+                Throw.SerializationException<object>($"Column [{column.Name}] is required, but was not found in row");
             }
 
             var ctx = ReadContext.ReadingColumn(RowNumber, ColumnIdentifier.Create(colIx, Columns[colIx].Name), Context);
 
             if (!column.Set(dataSpan.Span, in ctx, Partial.Value))
             {
-                Throw.InvalidOperationException($"Could not assign value \"{Partial.PendingAsString(Buffer.Buffer)}\" to column \"{column.Name}\" (Index={Partial.CurrentColumnIndex})");
+                Throw.SerializationException<object>($"Could not assign value \"{Partial.PendingAsString(Buffer.Buffer)}\" to column \"{column.Name}\" (Index={Partial.CurrentColumnIndex})");
             }
 
             Partial.ClearBufferAndAdvanceColumnIndex();
@@ -383,8 +365,7 @@ namespace Cesil
             {
                 if (Configuration.ReadHeader == Cesil.ReadHeaders.Always)
                 {
-                    Throw.InvalidOperationException("First row of input was not a row of headers");
-                    return;
+                    Throw.InvalidOperationException<object>("First row of input was not a row of headers");
                 }
             }
 
@@ -420,7 +401,7 @@ namespace Cesil
 
                     if (isRequired && !found)
                     {
-                        Throw.SerializationException($"Column [{col.Name}] is required, but was not found in the header");
+                        Throw.SerializationException<object>($"Column [{col.Name}] is required, but was not found in the header");
                     }
                 }
 
@@ -446,7 +427,7 @@ namespace Cesil
         {
             if (res == null)
             {
-                Throw.InvalidOperationException($"Unable to automatically detect row endings");
+                Throw.InvalidOperationException<object>($"Unable to automatically detect row endings");
             }
 
             RowEndings = res.Value.Ending;
@@ -457,12 +438,12 @@ namespace Cesil
 
         internal void TryMakeStateMachine()
         {
-            if (StateMachine != null) return;
+            if (StateMachineInitialized) return;
 
             if (RowEndings == null || ReadHeaders == null) return;
 
-            StateMachine =
-                new ReaderStateMachine(
+            StateMachineInitialized = true;
+            StateMachine.Initialize(
                     SharedCharacterLookup,
                     Configuration.EscapedValueStartAndStop,
                     Configuration.EscapeValueEscapeChar,

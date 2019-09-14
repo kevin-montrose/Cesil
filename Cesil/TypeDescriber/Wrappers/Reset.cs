@@ -42,10 +42,7 @@ namespace Cesil
                     case BackingMode.Delegate: return RowType == null;
 
                     default:
-                        Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
-                        // just for control flow
-                        return default;
-                }
+                        return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}");                }
             }
         }
 
@@ -80,7 +77,7 @@ namespace Cesil
         {
             if (resetMethod == null)
             {
-                Throw.ArgumentNullException(nameof(resetMethod));
+                return Throw.ArgumentNullException<Reset>(nameof(resetMethod));
             }
 
             TypeInfo rowType;
@@ -99,16 +96,14 @@ namespace Cesil
                 }
                 else
                 {
-                    Throw.ArgumentException($"{resetMethod} is static, it must take 0 or 1 parameters", nameof(resetMethod));
-                    // won't actually be reached
-                    return default;
+                    return Throw.ArgumentException<Reset>($"{resetMethod} is static, it must take 0 or 1 parameters", nameof(resetMethod));
                 }
             }
             else
             {
                 if (args.Length != 0)
                 {
-                    Throw.ArgumentException($"{resetMethod} is an instance method, it must take 0 parameters", nameof(resetMethod));
+                    return Throw.ArgumentException<Reset>($"{resetMethod} is an instance method, it must take 0 parameters", nameof(resetMethod));
                 }
 
                 rowType = resetMethod.DeclaringType.GetTypeInfo();
@@ -125,7 +120,7 @@ namespace Cesil
         {
             if (del == null)
             {
-                Throw.ArgumentNullException(nameof(del));
+                return Throw.ArgumentNullException<Reset>(nameof(del));
             }
 
             return new Reset(typeof(T).GetTypeInfo(), del);
@@ -138,7 +133,7 @@ namespace Cesil
         {
             if (del == null)
             {
-                Throw.ArgumentNullException(nameof(del));
+                return Throw.ArgumentNullException<Reset>(nameof(del));
             }
 
             return new Reset(null, del);
@@ -162,7 +157,7 @@ namespace Cesil
         /// </summary>
         public bool Equals(Reset r)
         {
-            if (r == null) return false;
+            if (ReferenceEquals(r, null)) return false;
 
             return
                 r.Delegate == Delegate &&
@@ -207,9 +202,7 @@ namespace Cesil
                         return $"{nameof(Reset)} backed by delegate {Delegate} taking {RowType}";
                     }
                 default:
-                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
-                    // just for control flow
-                    return default;
+                    return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
             }
         }
 
@@ -247,7 +240,7 @@ namespace Cesil
             var retType = mtd.ReturnType.GetTypeInfo();
             if (retType != Types.VoidType)
             {
-                Throw.InvalidOperationException($"Delegate must return void, found {retType}");
+                return Throw.InvalidOperationException<Reset>($"Delegate must return void, found {retType}");
             }
 
             var invoke = delType.GetMethod("Invoke");
@@ -270,9 +263,7 @@ namespace Cesil
             }
             else
             {
-                Throw.InvalidOperationException("Delegate must take 0 or 1 parameters");
-                // just for control flow
-                return default;
+                return Throw.InvalidOperationException<Reset>("Delegate must take 0 or 1 parameters");
             }
         }
 

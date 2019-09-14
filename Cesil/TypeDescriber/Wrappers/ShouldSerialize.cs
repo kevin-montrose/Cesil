@@ -40,9 +40,7 @@ namespace Cesil
                     case BackingMode.Method: return Method.IsStatic;
                     case BackingMode.Delegate: return Takes == null;
                     default:
-                        Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
-                        // just for control flow
-                        return default;
+                        return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}");
                 }
             }
         }
@@ -76,19 +74,19 @@ namespace Cesil
         {
             if (method == null)
             {
-                Throw.ArgumentNullException(nameof(method));
+                return Throw.ArgumentNullException<ShouldSerialize>(nameof(method));
             }
 
             var args = method.GetParameters();
             if (args.Length > 0)
             {
-                Throw.ArgumentException($"{nameof(method)} cannot take parameters", nameof(method));
+                return Throw.ArgumentException<ShouldSerialize>($"{nameof(method)} cannot take parameters", nameof(method));
             }
 
             var ret = method.ReturnType.GetTypeInfo();
             if (ret != Types.BoolType)
             {
-                Throw.ArgumentException($"{nameof(method)} must return a boolean", nameof(method));
+                return Throw.ArgumentException<ShouldSerialize>($"{nameof(method)} must return a boolean", nameof(method));
             }
 
             TypeInfo takes;
@@ -114,7 +112,7 @@ namespace Cesil
         {
             if (del == null)
             {
-                Throw.ArgumentNullException(nameof(del));
+                return Throw.ArgumentNullException<ShouldSerialize>(nameof(del));
             }
 
             return new ShouldSerialize(typeof(T).GetTypeInfo(), del);
@@ -127,7 +125,7 @@ namespace Cesil
         {
             if (del == null)
             {
-                Throw.ArgumentNullException(nameof(del));
+                return Throw.ArgumentNullException<ShouldSerialize>(nameof(del));
             }
 
             return new ShouldSerialize(null, del);
@@ -151,7 +149,7 @@ namespace Cesil
         /// </summary>
         public bool Equals(ShouldSerialize s)
         {
-            if (s == null) return false;
+            if (ReferenceEquals(s, null)) return false;
 
             return
                 s.Delegate == Delegate &&
@@ -195,9 +193,7 @@ namespace Cesil
                         return $"{nameof(ShouldSerialize)} backed by delegate {Delegate} taking {Takes}";
                     }
                 default:
-                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
-                    // just for control flow
-                    return default;
+                    return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
             }
         }
 
@@ -236,7 +232,7 @@ namespace Cesil
             var retType = mtd.ReturnType.GetTypeInfo();
             if (retType != Types.BoolType)
             {
-                Throw.InvalidOperationException($"Delegate must return boolean, found {retType}");
+                return Throw.InvalidOperationException<ShouldSerialize>($"Delegate must return boolean, found {retType}");
             }
 
             var invoke = delType.GetMethod("Invoke");
@@ -258,9 +254,7 @@ namespace Cesil
             }
             else
             {
-                Throw.InvalidOperationException($"Delegate must take 0 or 1 paramters");
-                // just for control flow
-                return default;
+                return Throw.InvalidOperationException<ShouldSerialize>($"Delegate must take 0 or 1 paramters");
             }
         }
 

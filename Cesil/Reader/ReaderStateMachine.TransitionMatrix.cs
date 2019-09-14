@@ -11,8 +11,8 @@ namespace Cesil
             Skip_Character,
 
             Append_Character,
-            Append_PreviousAndCurrentCharacter,
-            Append_PreviousAndEndComment,
+            Append_CarriageReturnAndCurrentCharacter,
+            Append_CarriageReturnAndEndComment,
 
             Finished_Value,
             Finished_Record,
@@ -181,12 +181,12 @@ namespace Cesil
         private static readonly TransitionRule Comment_BeforeRecord_ExpectingEndOfComment_Skip_Character = (State.Comment_BeforeRecord_ExpectingEndOfComment, AdvanceResult.Skip_Character);
         private static readonly TransitionRule Comment_BeforeRecord_ExpectingEndOfComment_Append_Character = (State.Comment_BeforeRecord_ExpectingEndOfComment, AdvanceResult.Append_Character);
 
-        private static readonly TransitionRule Comment_BeforeHeader_Append_Previous_And_Current_Character = (State.Comment_BeforeHeader, AdvanceResult.Append_PreviousAndCurrentCharacter);
-        private static readonly TransitionRule Comment_BeforeRecord_Append_Previous_And_Current_Character = (State.Comment_BeforeRecord, AdvanceResult.Append_PreviousAndCurrentCharacter);
+        private static readonly TransitionRule Comment_BeforeHeader_Append_CarriageReturn_And_Current_Character = (State.Comment_BeforeHeader, AdvanceResult.Append_CarriageReturnAndCurrentCharacter);
+        private static readonly TransitionRule Comment_BeforeRecord_Append_CarriageReturn_And_Current_Character = (State.Comment_BeforeRecord, AdvanceResult.Append_CarriageReturnAndCurrentCharacter);
 
         private static readonly TransitionRule Data_Ended_Skip_Character = (State.DataEnded, AdvanceResult.Skip_Character);
         private static readonly TransitionRule Data_Ended_Finished_Record = (State.DataEnded, AdvanceResult.Finished_Record);
-        private static readonly TransitionRule Data_Ended_Append_Previous_And_End_Comment = (State.DataEnded, AdvanceResult.Append_PreviousAndEndComment);
+        private static readonly TransitionRule Data_Ended_Append_CarriageReturn_And_End_Comment = (State.DataEnded, AdvanceResult.Append_CarriageReturnAndEndComment);
         private static readonly TransitionRule Data_Ended_FinishedComment = (State.DataEnded, AdvanceResult.Finished_Comment);
         private static readonly TransitionRule Data_Ended_Exception_UnexpectedEnd = (State.DataEnded, AdvanceResult.Exception_UnexpectedEnd);
         private static readonly TransitionRule Data_Ended_Finished_Value = (State.DataEnded, AdvanceResult.Finished_Value);
@@ -279,13 +279,13 @@ namespace Cesil
             if (readComment)
             {
                 // \
-                innerRet[(int)CharacterType.Escape] = Comment_BeforeHeader_Append_Previous_And_Current_Character;
+                innerRet[(int)CharacterType.Escape] = Comment_BeforeHeader_Append_CarriageReturn_And_Current_Character;
                 // "
-                innerRet[(int)CharacterType.EscapeStartAndEnd] = Comment_BeforeHeader_Append_Previous_And_Current_Character;
+                innerRet[(int)CharacterType.EscapeStartAndEnd] = Comment_BeforeHeader_Append_CarriageReturn_And_Current_Character;
                 // ,
-                innerRet[(int)CharacterType.ValueSeparator] = Comment_BeforeHeader_Append_Previous_And_Current_Character;
+                innerRet[(int)CharacterType.ValueSeparator] = Comment_BeforeHeader_Append_CarriageReturn_And_Current_Character;
                 // # (or whatever)
-                innerRet[(int)CharacterType.CommentStart] = Comment_BeforeHeader_Append_Previous_And_Current_Character;
+                innerRet[(int)CharacterType.CommentStart] = Comment_BeforeHeader_Append_CarriageReturn_And_Current_Character;
 
                 // \r
                 // so we're right back where we started
@@ -295,10 +295,10 @@ namespace Cesil
                 innerRet[(int)CharacterType.LineFeed] = Header_Start_Finished_Comment;
 
                 // c
-                innerRet[(int)CharacterType.Other] = Comment_BeforeHeader_Append_Previous_And_Current_Character;
+                innerRet[(int)CharacterType.Other] = Comment_BeforeHeader_Append_CarriageReturn_And_Current_Character;
 
                 // end
-                innerRet[(int)CharacterType.DataEnd] = Data_Ended_Append_Previous_And_End_Comment;
+                innerRet[(int)CharacterType.DataEnd] = Data_Ended_Append_CarriageReturn_And_End_Comment;
             }
             else
             {
@@ -337,13 +337,13 @@ namespace Cesil
             if (readComments)
             {
                 // \
-                innerRet[(int)CharacterType.Escape] = Comment_BeforeRecord_Append_Previous_And_Current_Character;
+                innerRet[(int)CharacterType.Escape] = Comment_BeforeRecord_Append_CarriageReturn_And_Current_Character;
                 // "
-                innerRet[(int)CharacterType.EscapeStartAndEnd] = Comment_BeforeRecord_Append_Previous_And_Current_Character;
+                innerRet[(int)CharacterType.EscapeStartAndEnd] = Comment_BeforeRecord_Append_CarriageReturn_And_Current_Character;
                 // ,
-                innerRet[(int)CharacterType.ValueSeparator] = Comment_BeforeRecord_Append_Previous_And_Current_Character;
+                innerRet[(int)CharacterType.ValueSeparator] = Comment_BeforeRecord_Append_CarriageReturn_And_Current_Character;
                 // # (or whatever)
-                innerRet[(int)CharacterType.CommentStart] = Comment_BeforeRecord_Append_Previous_And_Current_Character;
+                innerRet[(int)CharacterType.CommentStart] = Comment_BeforeRecord_Append_CarriageReturn_And_Current_Character;
 
                 // \r
                 // back where we began
@@ -353,10 +353,10 @@ namespace Cesil
                 innerRet[(int)CharacterType.LineFeed] = Record_Start_Finished_Comment;
 
                 // c
-                innerRet[(int)CharacterType.Other] = Comment_BeforeRecord_Append_Previous_And_Current_Character;
+                innerRet[(int)CharacterType.Other] = Comment_BeforeRecord_Append_CarriageReturn_And_Current_Character;
 
                 // end
-                innerRet[(int)CharacterType.DataEnd] = Data_Ended_Append_Previous_And_End_Comment;
+                innerRet[(int)CharacterType.DataEnd] = Data_Ended_Append_CarriageReturn_And_End_Comment;
             }
             else
             {

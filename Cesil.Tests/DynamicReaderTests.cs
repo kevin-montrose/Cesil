@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -11,6 +12,190 @@ namespace Cesil.Tests
 {
     public class DynamicReaderTests
     {
+        private sealed class _CustomRowConverters
+        {
+#pragma warning disable CS0649
+            public int Field;
+#pragma warning restore CS0649
+            public static int StaticField;
+
+            internal int ByMethod;
+            public void Method(int a) { ByMethod = a; }
+
+            internal static int ByStaticMethod;
+            public static void StaticMethod(int v) { ByStaticMethod = v; }
+
+            public int Delegate { get; set; }
+            public static int StaticDelegate { get; set; }
+        }
+
+        private sealed class _CustomRowConverters_TypeDescriber : ITypeDescriber
+        {
+            private readonly DynamicRowConverter Converter;
+
+            public _CustomRowConverters_TypeDescriber(DynamicRowConverter converter)
+            {
+                Converter = converter;
+            }
+
+            public IEnumerable<DeserializableMember> EnumerateMembersToDeserialize(TypeInfo forType)
+            {
+                throw new NotImplementedException();
+            }
+
+            public IEnumerable<SerializableMember> EnumerateMembersToSerialize(TypeInfo forType)
+            {
+                throw new NotImplementedException();
+            }
+
+            public IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext ctx, object row)
+            {
+                throw new NotImplementedException();
+            }
+
+            public Parser GetDynamicCellParserFor(in ReadContext ctx, TypeInfo targetType)
+            => TypeDescribers.Default.GetDynamicCellParserFor(in ctx, targetType);
+
+            public DynamicRowConverter GetDynamicRowConverter(in ReadContext ctx, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
+            {
+                return Converter;
+            }
+
+            public InstanceBuilder GetInstanceBuilder(TypeInfo forType)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        [Fact]
+        public void CustomRowConverters()
+        {
+            var t = typeof(_CustomRowConverters);
+
+            var cons = t.GetConstructor(Type.EmptyTypes);
+            Assert.NotNull(cons);
+
+            var field = Setter.ForField(t.GetField(nameof(_CustomRowConverters.Field)));
+            var staticField = Setter.ForField(t.GetField(nameof(_CustomRowConverters.StaticField)));
+            var method = Setter.ForMethod(t.GetMethod(nameof(_CustomRowConverters.Method)));
+            var staticMethod = Setter.ForMethod(t.GetMethod(nameof(_CustomRowConverters.StaticMethod)));
+            var del = Setter.ForDelegate((_CustomRowConverters row, int v) => row.Delegate = v);
+            var staticDel = Setter.ForDelegate((int v) => _CustomRowConverters.StaticDelegate = v);
+
+            var setters = new[] { field, staticField, method, staticMethod, del, staticDel };
+
+            var cols =
+                new[]
+                {
+                    ColumnIdentifier.Create(0),
+                    ColumnIdentifier.Create(1),
+                    ColumnIdentifier.Create(2),
+                    ColumnIdentifier.Create(3),
+                    ColumnIdentifier.Create(4),
+                    ColumnIdentifier.Create(5),
+
+                };
+
+            var converter =
+                DynamicRowConverter.ForEmptyConstructorAndSetters(
+                    cons,
+                    setters,
+                    cols
+                );
+
+            var describer = new _CustomRowConverters_TypeDescriber(converter);
+
+            var opts = Options.DynamicDefault.NewBuilder().WithTypeDescriber(describer).Build();
+
+            RunSyncDynamicReaderVariants(
+                opts,
+                (config, getReader) =>
+                {
+                    using(var reader = getReader("A,B,C,D,E,F\r\n1,2,3,4,5,6\r\n7,8,9,0,1,2"))
+                    using(var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+
+                        Assert.Collection(
+                            rows,
+                            a =>
+                            {
+                                _CustomRowConverters.ByStaticMethod = default;
+                                _CustomRowConverters.StaticDelegate = default;
+                                _CustomRowConverters.StaticField = default;
+
+                                var val = (_CustomRowConverters)a;
+                                Assert.Equal(1, val.Field);
+                                Assert.Equal(2, _CustomRowConverters.StaticField);
+                                Assert.Equal(3, val.ByMethod);
+                                Assert.Equal(4, _CustomRowConverters.ByStaticMethod);
+                                Assert.Equal(5, val.Delegate);
+                                Assert.Equal(6, _CustomRowConverters.StaticDelegate);
+                            },
+                            b =>
+                            {
+                                _CustomRowConverters.ByStaticMethod = default;
+                                _CustomRowConverters.StaticDelegate = default;
+                                _CustomRowConverters.StaticField = default;
+
+                                var val = (_CustomRowConverters)b;
+                                Assert.Equal(7, val.Field);
+                                Assert.Equal(8, _CustomRowConverters.StaticField);
+                                Assert.Equal(9, val.ByMethod);
+                                Assert.Equal(0, _CustomRowConverters.ByStaticMethod);
+                                Assert.Equal(1, val.Delegate);
+                                Assert.Equal(2, _CustomRowConverters.StaticDelegate);
+                            }
+                        );
+
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public void GetDynamicMemberNames()
+        {
+            RunSyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                (config, getTextReader) =>
+                {
+                    using(var reader = getTextReader("Hello,World,Foo,Bar\r\n1,2,3,4"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+                        Assert.Collection(
+                            rows,
+                            r =>
+                            {
+                                var provider = r as IDynamicMetaObjectProvider;
+                                var metaObj = provider.GetMetaObject(System.Linq.Expressions.Expression.Variable(typeof(object)));
+                                var names = metaObj.GetDynamicMemberNames();
+
+                                var ix = 0;
+                                foreach(var n in names)
+                                {
+                                    var v = r[n];
+                                    switch (n)
+                                    {
+                                        case "Hello": Assert.Equal(1, (int)v); Assert.Equal(0, ix); break;
+                                        case "World": Assert.Equal(2, (int)v); Assert.Equal(1, ix); break;
+                                        case "Foo": Assert.Equal(3, (int)v); Assert.Equal(2, ix); break;
+                                        case "Bar": Assert.Equal(4, (int)v); Assert.Equal(3, ix); break;
+                                        default:
+                                            Assert.Null("Shouldn't be possible");
+                                            break;
+                                    }
+
+                                    ix++;
+                                }
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
         [Fact]
         public void WithComments()
         {
@@ -926,6 +1111,15 @@ namespace Cesil.Tests
                 row.Dispose();
             }
 
+            // out of range, System.Index
+            {
+                var row = MakeRow();
+
+                Assert.Throws<ArgumentOutOfRangeException>(() => row[(System.Index)100]);
+
+                row.Dispose();
+            }
+
             // out of range, range
             {
                 var row = MakeRow();
@@ -1031,6 +1225,13 @@ namespace Cesil.Tests
                 }
 
                 Assert.Throws<InvalidOperationException>(() => e.MoveNext());
+            }
+
+            // missing key
+            {
+                var row = MakeRow();
+
+                Assert.Throws<KeyNotFoundException>(() => row["foo"]);
             }
 
             // create a test row
@@ -1727,6 +1928,38 @@ namespace Cesil.Tests
                                     );
                                 }
 
+                                // untyped enumerator
+                                {
+                                    System.Collections.IEnumerable e = row;
+                                    var i = e.GetEnumerator();
+
+                                    var reset = true;
+                                    loop:
+                                    var ix = 0;
+                                    while (i.MoveNext())
+                                    {
+                                        string val = (dynamic)i.Current;
+                                        switch (ix)
+                                        {
+                                            case 0: Assert.Equal("foo", val); break;
+                                            case 1: Assert.Equal("bar", val); break;
+                                            default:
+                                                Assert.Null("Shouldn't be possible");
+                                                break;
+                                        }
+                                        ix++;
+                                    }
+
+                                    Assert.Equal(2, ix);
+
+                                    if (reset)
+                                    {
+                                        reset = false;
+                                        i.Reset();
+                                        goto loop;
+                                    }
+                                }
+
                                 // typed enumerable
                                 {
                                     IEnumerable<string> e = row;
@@ -1735,6 +1968,39 @@ namespace Cesil.Tests
                                         a => Assert.Equal("foo", a),
                                         b => Assert.Equal("bar", b)
                                     );
+                                }
+
+                                // typed enumerator
+                                {
+                                    IEnumerable<string> e = row;
+                                    using (var i = e.GetEnumerator())
+                                    {
+                                        var reset = true;
+loop:
+                                        var ix = 0;
+                                        while (i.MoveNext())
+                                        {
+                                            string val = i.Current;
+                                            switch (ix)
+                                            {
+                                                case 0: Assert.Equal("foo", val); break;
+                                                case 1: Assert.Equal("bar", val); break;
+                                                default:
+                                                    Assert.Null("Shouldn't be possible");
+                                                    break;
+                                            }
+                                            ix++;
+                                        }
+
+                                        Assert.Equal(2, ix);
+
+                                        if (reset)
+                                        {
+                                            reset = false;
+                                            i.Reset();
+                                            goto loop;
+                                        }
+                                    }
                                 }
                             }
                         );
@@ -1776,6 +2042,38 @@ namespace Cesil.Tests
                                     );
                                 }
 
+                                // untyped enumerator
+                                {
+                                    System.Collections.IEnumerable e = row;
+                                    var i = e.GetEnumerator();
+
+                                    var reset = true;
+                                    loop:
+                                    var ix = 0;
+                                    while (i.MoveNext())
+                                    {
+                                        string val = (dynamic)i.Current;
+                                        switch (ix)
+                                        {
+                                            case 0: Assert.Equal("foo", val); break;
+                                            case 1: Assert.Equal("bar", val); break;
+                                            default:
+                                                Assert.Null("Shouldn't be possible");
+                                                break;
+                                        }
+                                        ix++;
+                                    }
+
+                                    Assert.Equal(2, ix);
+
+                                    if (reset)
+                                    {
+                                        reset = false;
+                                        i.Reset();
+                                        goto loop;
+                                    }
+                                }
+
                                 // typed enumerable
                                 {
                                     IEnumerable<string> e = row;
@@ -1784,6 +2082,39 @@ namespace Cesil.Tests
                                         a => Assert.Equal("foo", a),
                                         b => Assert.Equal("bar", b)
                                     );
+                                }
+
+                                // typed enumerator
+                                {
+                                    IEnumerable<string> e = row;
+                                    using (var i = e.GetEnumerator())
+                                    {
+                                        var reset = true;
+loop:
+                                        var ix = 0;
+                                        while (i.MoveNext())
+                                        {
+                                            string val = i.Current;
+                                            switch (ix)
+                                            {
+                                                case 0: Assert.Equal("foo", val); break;
+                                                case 1: Assert.Equal("bar", val); break;
+                                                default:
+                                                    Assert.Null("Shouldn't be possible");
+                                                    break;
+                                            }
+                                            ix++;
+                                        }
+
+                                        Assert.Equal(2, ix);
+
+                                        if (reset)
+                                        {
+                                            reset = false;
+                                            i.Reset();
+                                            goto loop;
+                                        }
+                                    }
                                 }
                             }
                         );
@@ -1953,6 +2284,37 @@ namespace Cesil.Tests
                     }
                 );
 
+                // skipped
+                RunSyncDynamicReaderVariants(
+                    optWithHeaders,
+                    (config, makeReader) =>
+                    {
+                        using (var reader = makeReader("A,B,C\r\n1,,57DEC02E-BDD6-4AF1-90F5-037596E08500\r\nfoo,,-123"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var read = csv.ReadAll();
+
+                            Assert.Collection(
+                                read,
+                                row1 =>
+                                {
+                                    Tuple<int, string, Guid> typed = row1;
+                                    Assert.Equal(1, typed.Item1);
+                                    Assert.Equal("", typed.Item2);
+                                    Assert.Equal(Guid.Parse("57DEC02E-BDD6-4AF1-90F5-037596E08500"), typed.Item3);
+                                },
+                                row2 =>
+                                {
+                                    Tuple<string, int?, short> typed = row2;
+                                    Assert.Equal("foo", typed.Item1);
+                                    Assert.Equal(default, typed.Item2);
+                                    Assert.Equal(-123, typed.Item3);
+                                }
+                            );
+                        }
+                    }
+                );
+
                 // 17
                 {
                     var row1Val =
@@ -2095,6 +2457,37 @@ namespace Cesil.Tests
                                     Tuple<string, short> typed = row2;
                                     Assert.Equal("foo", typed.Item1);
                                     Assert.Equal(-123, typed.Item2);
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // skipped
+                RunSyncDynamicReaderVariants(
+                    optNoHeaders,
+                    (config, makeReader) =>
+                    {
+                        using (var reader = makeReader("1,,57DEC02E-BDD6-4AF1-90F5-037596E08500\r\nfoo,,-123"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var read = csv.ReadAll();
+
+                            Assert.Collection(
+                                read,
+                                row1 =>
+                                {
+                                    Tuple<int, string, Guid> typed = row1;
+                                    Assert.Equal(1, typed.Item1);
+                                    Assert.Equal("", typed.Item2);
+                                    Assert.Equal(Guid.Parse("57DEC02E-BDD6-4AF1-90F5-037596E08500"), typed.Item3);
+                                },
+                                row2 =>
+                                {
+                                    Tuple<string, int?, short> typed = row2;
+                                    Assert.Equal("foo", typed.Item1);
+                                    Assert.Equal(default, typed.Item2);
+                                    Assert.Equal(-123, typed.Item3);
                                 }
                             );
                         }
@@ -2253,6 +2646,37 @@ namespace Cesil.Tests
                     }
                 );
 
+                // skipped
+                RunSyncDynamicReaderVariants(
+                    opts,
+                    (config, makeReader) =>
+                    {
+                        using (var reader = makeReader("A,B,C\r\n1,,57DEC02E-BDD6-4AF1-90F5-037596E08500\r\nfoo,,-123"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var read = csv.ReadAll();
+
+                            Assert.Collection(
+                                read,
+                                row1 =>
+                                {
+                                    ValueTuple<int, string, Guid> typed = row1;
+                                    Assert.Equal(1, typed.Item1);
+                                    Assert.Equal("", typed.Item2);
+                                    Assert.Equal(Guid.Parse("57DEC02E-BDD6-4AF1-90F5-037596E08500"), typed.Item3);
+                                },
+                                row2 =>
+                                {
+                                    ValueTuple<string, int?, short> typed = row2;
+                                    Assert.Equal("foo", typed.Item1);
+                                    Assert.Equal(default, typed.Item2);
+                                    Assert.Equal(-123, typed.Item3);
+                                }
+                            );
+                        }
+                    }
+                );
+
                 // 17
                 {
                     var row1Val =
@@ -2394,6 +2818,37 @@ namespace Cesil.Tests
                                     ValueTuple<string, short> typed = row2;
                                     Assert.Equal("foo", typed.Item1);
                                     Assert.Equal(-123, typed.Item2);
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // skipped
+                RunSyncDynamicReaderVariants(
+                    opts,
+                    (config, makeReader) =>
+                    {
+                        using (var reader = makeReader("1,,57DEC02E-BDD6-4AF1-90F5-037596E08500\r\nfoo,,-123"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var read = csv.ReadAll();
+
+                            Assert.Collection(
+                                read,
+                                row1 =>
+                                {
+                                    ValueTuple<int, string, Guid> typed = row1;
+                                    Assert.Equal(1, typed.Item1);
+                                    Assert.Equal("", typed.Item2);
+                                    Assert.Equal(Guid.Parse("57DEC02E-BDD6-4AF1-90F5-037596E08500"), typed.Item3);
+                                },
+                                row2 =>
+                                {
+                                    ValueTuple<string, int?, short> typed = row2;
+                                    Assert.Equal("foo", typed.Item1);
+                                    Assert.Equal(default, typed.Item2);
+                                    Assert.Equal(-123, typed.Item3);
                                 }
                             );
                         }
@@ -2603,6 +3058,147 @@ namespace Cesil.Tests
             );
         }
 
+        private class _POCO_Fields : ITypeDescriber
+        {
+            private readonly DynamicRowConverter Converter;
+
+            public _POCO_Fields(DynamicRowConverter conv)
+            {
+                Converter = conv;
+            }
+
+            public IEnumerable<DeserializableMember> EnumerateMembersToDeserialize(TypeInfo forType)
+            => TypeDescribers.Default.EnumerateMembersToDeserialize(forType);
+
+            public IEnumerable<SerializableMember> EnumerateMembersToSerialize(TypeInfo forType)
+            => TypeDescribers.Default.EnumerateMembersToSerialize(forType);
+
+            public IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext ctx, object row)
+            => TypeDescribers.Default.GetCellsForDynamicRow(in ctx, row);
+
+            public Parser GetDynamicCellParserFor(in ReadContext ctx, TypeInfo targetType)
+            => TypeDescribers.Default.GetDynamicCellParserFor(in ctx, targetType);
+
+
+            public DynamicRowConverter GetDynamicRowConverter(in ReadContext ctx, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
+            => Converter;
+
+            public InstanceBuilder GetInstanceBuilder(TypeInfo forType)
+            => TypeDescribers.Default.GetInstanceBuilder(forType);
+        }
+
+        private class _POCO_Fields_Obj
+        {
+#pragma warning disable CS0649
+            public int A;
+            public string B;
+#pragma warning restore CS0649
+        }
+
+        [Fact]
+        public void POCO_Fields()
+        {
+            var t = typeof(_POCO_Fields_Obj).GetTypeInfo();
+            var conv =
+                DynamicRowConverter.ForEmptyConstructorAndSetters(
+                    t.GetConstructor(Type.EmptyTypes),
+                    new[]
+                    {
+                        Setter.ForField(t.GetField(nameof(_POCO_Fields_Obj.A))),
+                        Setter.ForField(t.GetField(nameof(_POCO_Fields_Obj.B)))
+                    },
+                    new[]
+                    {
+                        ColumnIdentifier.Create(0),
+                        ColumnIdentifier.Create(1)
+                    }
+                );
+
+            var describer = new _POCO_Fields(conv);
+
+            var opts = Options.DynamicDefault.NewBuilder().WithTypeDescriber(describer).Build();
+
+            RunSyncDynamicReaderVariants(
+                opts,
+                (config, getReader) =>
+                {
+                    using(var reader = getReader("A,B\r\n1234,foo\r\n567,\"yup, man\""))
+                    using(var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+                        var typed = rows.Select(r => (_POCO_Fields_Obj)r).ToArray();
+                        Assert.Collection(
+                            typed,
+                            a => { Assert.Equal(1234, a.A); Assert.Equal("foo", a.B); },
+                            a => { Assert.Equal(567, a.A); Assert.Equal("yup, man", a.B); }
+                        );
+                    }
+                }
+            );
+        }
+
+        private class _POCO_Delegates_Obj
+        {
+            public int A;
+            public string B { get; set; }
+            public Guid C { get; set; }
+            public double D { get; set; }
+        }
+
+        [Fact]
+        public void POCO_Delegates()
+        {
+            var t = typeof(_POCO_Delegates_Obj).GetTypeInfo();
+            var conv =
+                DynamicRowConverter.ForEmptyConstructorAndSetters(
+                    t.GetConstructor(Type.EmptyTypes),
+                    new[]
+                    {
+                        Setter.ForDelegate<_POCO_Delegates_Obj, int>((row, val) => {row.A = val; row.B = val+" "+val; }),
+                        Setter.ForDelegate<_POCO_Delegates_Obj, string>((row, val) => {row.C = Guid.Parse("5CEAD5D9-142B-4971-8211-3E2D497BE8BB"); row.D = 3.14159; })
+                    },
+                    new[]
+                    {
+                        ColumnIdentifier.Create(0),
+                        ColumnIdentifier.Create(1)
+                    }
+                ); ;
+
+            var describer = new _POCO_Fields(conv);
+
+            var opts = Options.DynamicDefault.NewBuilder().WithTypeDescriber(describer).Build();
+
+            RunSyncDynamicReaderVariants(
+                opts,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader("A,B\r\n9876,foo\r\n0,bar"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+                        var typed = rows.Select(r => (_POCO_Delegates_Obj)r).ToArray();
+                        Assert.Collection(
+                            typed,
+                            a =>
+                            {
+                                Assert.Equal(9876, a.A);
+                                Assert.Equal("9876 9876", a.B);
+                                Assert.Equal(Guid.Parse("5CEAD5D9-142B-4971-8211-3E2D497BE8BB"), a.C);
+                                Assert.Equal(3.14159, a.D);
+                            },
+                            a =>
+                            {
+                                Assert.Equal(0, a.A);
+                                Assert.Equal("0 0", a.B);
+                                Assert.Equal(Guid.Parse("5CEAD5D9-142B-4971-8211-3E2D497BE8BB"), a.C);
+                                Assert.Equal(3.14159, a.D);
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
         [Fact]
         public void DynamicRowDisposalOptions()
         {
@@ -2753,7 +3349,7 @@ namespace Cesil.Tests
                             }
                         );
                     },
-                    expectedRuns: 3
+                    expectedRuns: 9
                 );
             }
 
@@ -2804,7 +3400,7 @@ namespace Cesil.Tests
                             }
                         );
                     },
-                    expectedRuns: 3
+                    expectedRuns: 9
                 );
             }
 
@@ -2857,7 +3453,7 @@ namespace Cesil.Tests
                             }
                         );
                     },
-                    expectedRuns: 3
+                    expectedRuns: 9
                 );
             }
 
@@ -2907,7 +3503,7 @@ namespace Cesil.Tests
                             }
                         );
                     },
-                    expectedRuns: 3
+                    expectedRuns: 9
                 );
             }
         }
@@ -3022,6 +3618,145 @@ namespace Cesil.Tests
         // async tests
 
         [Fact]
+        public async Task GetDynamicMemberNamesAsync()
+        {
+            await RunAsyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                async (config, getTextReader) =>
+                {
+                    await using (var reader = await getTextReader("Hello,World,Foo,Bar\r\n1,2,3,4"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+                        Assert.Collection(
+                            rows,
+                            r =>
+                            {
+                                var provider = r as IDynamicMetaObjectProvider;
+                                var metaObj = provider.GetMetaObject(System.Linq.Expressions.Expression.Variable(typeof(object)));
+                                var names = metaObj.GetDynamicMemberNames();
+
+                                var ix = 0;
+                                foreach (var n in names)
+                                {
+                                    var v = r[n];
+                                    switch (n)
+                                    {
+                                        case "Hello": Assert.Equal(1, (int)v); Assert.Equal(0, ix); break;
+                                        case "World": Assert.Equal(2, (int)v); Assert.Equal(1, ix); break;
+                                        case "Foo": Assert.Equal(3, (int)v); Assert.Equal(2, ix); break;
+                                        case "Bar": Assert.Equal(4, (int)v); Assert.Equal(3, ix); break;
+                                        default:
+                                            Assert.Null("Shouldn't be possible");
+                                            break;
+                                    }
+
+                                    ix++;
+                                }
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public async Task POCO_DelegatesAsync()
+        {
+            var t = typeof(_POCO_Delegates_Obj).GetTypeInfo();
+            var conv =
+                DynamicRowConverter.ForEmptyConstructorAndSetters(
+                    t.GetConstructor(Type.EmptyTypes),
+                    new[]
+                    {
+                        Setter.ForDelegate<_POCO_Delegates_Obj, int>((row, val) => {row.A = val; row.B = val+" "+val; }),
+                        Setter.ForDelegate<_POCO_Delegates_Obj, string>((row, val) => {row.C = Guid.Parse("5CEAD5D9-142B-4971-8211-3E2D497BE8BB"); row.D = 3.14159; })
+                    },
+                    new[]
+                    {
+                        ColumnIdentifier.Create(0),
+                        ColumnIdentifier.Create(1)
+                    }
+                ); ;
+
+            var describer = new _POCO_Fields(conv);
+
+            var opts = Options.DynamicDefault.NewBuilder().WithTypeDescriber(describer).Build();
+
+            await RunAsyncDynamicReaderVariants(
+                opts,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("A,B\r\n9876,foo\r\n0,bar"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+                        var typed = rows.Select(r => (_POCO_Delegates_Obj)r).ToArray();
+                        Assert.Collection(
+                            typed,
+                            a =>
+                            {
+                                Assert.Equal(9876, a.A);
+                                Assert.Equal("9876 9876", a.B);
+                                Assert.Equal(Guid.Parse("5CEAD5D9-142B-4971-8211-3E2D497BE8BB"), a.C);
+                                Assert.Equal(3.14159, a.D);
+                            },
+                            a =>
+                            {
+                                Assert.Equal(0, a.A);
+                                Assert.Equal("0 0", a.B);
+                                Assert.Equal(Guid.Parse("5CEAD5D9-142B-4971-8211-3E2D497BE8BB"), a.C);
+                                Assert.Equal(3.14159, a.D);
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public async Task POCO_FieldsAsync()
+        {
+            var t = typeof(_POCO_Fields_Obj).GetTypeInfo();
+            var conv =
+                DynamicRowConverter.ForEmptyConstructorAndSetters(
+                    t.GetConstructor(Type.EmptyTypes),
+                    new[]
+                    {
+                        Setter.ForField(t.GetField(nameof(_POCO_Fields_Obj.A))),
+                        Setter.ForField(t.GetField(nameof(_POCO_Fields_Obj.B)))
+                    },
+                    new[]
+                    {
+                        ColumnIdentifier.Create(0),
+                        ColumnIdentifier.Create(1)
+                    }
+                );
+
+            var describer = new _POCO_Fields(conv);
+
+            var opts = Options.DynamicDefault.NewBuilder().WithTypeDescriber(describer).Build();
+
+            await RunAsyncDynamicReaderVariants(
+                opts,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("A,B\r\n1234,foo\r\n567,\"yup, man\""))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+                        var typed = rows.Select(r => (_POCO_Fields_Obj)r).ToArray();
+                        Assert.Collection(
+                            typed,
+                            a => { Assert.Equal(1234, a.A); Assert.Equal("foo", a.B); },
+                            a => { Assert.Equal(567, a.A); Assert.Equal("yup, man", a.B); }
+                        );
+                    }
+                }
+            );
+        }
+
+        [Fact]
         public async Task WithCommentsAsync()
         {
             // \r\n
@@ -3034,7 +3769,7 @@ namespace Cesil.Tests
                     opts1,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("A,Nope\r\n#comment\rwhatever\r\nhello,123"))
+                        await using (var reader = await getReader("A,Nope\r\n#comment\rwhatever\r\nhello,123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -3058,7 +3793,7 @@ namespace Cesil.Tests
                     opts1,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("#comment\rwhatever\r\nA,Nope\r\nhello,123"))
+                        await using (var reader = await getReader("#comment\rwhatever\r\nA,Nope\r\nhello,123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -3082,7 +3817,7 @@ namespace Cesil.Tests
                     opts2,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("#comment\rwhatever\r\nhello,123"))
+                        await using (var reader = await getReader("#comment\rwhatever\r\nhello,123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -3106,7 +3841,7 @@ namespace Cesil.Tests
                     opts2,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("#comment\rwhatever\r\n#again!###foo###"))
+                        await using (var reader = await getReader("#comment\rwhatever\r\n#again!###foo###"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -3134,7 +3869,7 @@ namespace Cesil.Tests
                     opts1,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("A,Nope\r#comment\nwhatever\rhello,123"))
+                        await using (var reader = await getReader("A,Nope\r#comment\nwhatever\rhello,123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -3158,7 +3893,7 @@ namespace Cesil.Tests
                     opts1,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("#comment\nwhatever\rA,Nope\rhello,123"))
+                        await using (var reader = await getReader("#comment\nwhatever\rA,Nope\rhello,123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -3182,7 +3917,7 @@ namespace Cesil.Tests
                     opts2,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("#comment\nwhatever\rhello,123"))
+                        await using (var reader = await getReader("#comment\nwhatever\rhello,123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -3206,7 +3941,7 @@ namespace Cesil.Tests
                     opts2,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("#comment\nwhatever\r#again!###foo###"))
+                        await using (var reader = await getReader("#comment\nwhatever\r#again!###foo###"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -3234,7 +3969,7 @@ namespace Cesil.Tests
                     opts1,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("A,Nope\n#comment\rwhatever\nhello,123"))
+                        await using (var reader = await getReader("A,Nope\n#comment\rwhatever\nhello,123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -3258,7 +3993,7 @@ namespace Cesil.Tests
                     opts1,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("#comment\rwhatever\nA,Nope\nhello,123"))
+                        await using (var reader = await getReader("#comment\rwhatever\nA,Nope\nhello,123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -3282,7 +4017,7 @@ namespace Cesil.Tests
                     opts2,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("#comment\rwhatever\nhello,123"))
+                        await using (var reader = await getReader("#comment\rwhatever\nhello,123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -3306,7 +4041,7 @@ namespace Cesil.Tests
                     opts2,
                     async (config, getReader) =>
                     {
-                        using (var reader = getReader("#comment\rwhatever\n#again!###foo###"))
+                        await using (var reader = await getReader("#comment\rwhatever\n#again!###foo###"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var res1 = await csv.TryReadWithCommentAsync();
@@ -3335,7 +4070,7 @@ namespace Cesil.Tests
                     async (config, getReader) =>
                     {
                         var CSV = "#this is a test comment!\r\nhello,world\nfoo,bar";
-                        using (var str = getReader(CSV))
+                        await using (var str = await getReader(CSV))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -3349,7 +4084,7 @@ namespace Cesil.Tests
                     async (config, getReader) =>
                     {
                         var CSV = "hello,world\n#this is a test comment!\r\nfoo,bar";
-                        using (var str = getReader(CSV))
+                        await using (var str = await getReader(CSV))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -3366,7 +4101,7 @@ namespace Cesil.Tests
                     async (config, getReader) =>
                     {
                         var CSV = "#this is a test comment!\n\rhello,world\rfoo,bar";
-                        using (var str = getReader(CSV))
+                        await using (var str = await getReader(CSV))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -3380,7 +4115,7 @@ namespace Cesil.Tests
                     async (config, getReader) =>
                     {
                         var CSV = "hello,world\r#this is a test comment!\n\rfoo,bar";
-                        using (var str = getReader(CSV))
+                        await using (var str = await getReader(CSV))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -3397,7 +4132,7 @@ namespace Cesil.Tests
                     async (config, getReader) =>
                     {
                         var CSV = "#this is a test comment!\n\r\nhello,world\r\nfoo,bar";
-                        using (var str = getReader(CSV))
+                        await using (var str = await getReader(CSV))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -3411,7 +4146,7 @@ namespace Cesil.Tests
                    async (config, getReader) =>
                    {
                        var CSV = "#this is a test comment!\r\r\nhello,world\r\nfoo,bar";
-                       using (var str = getReader(CSV))
+                       await using (var str = await getReader(CSV))
                        await using (var csv = config.CreateAsyncReader(str))
                        {
                            var rows = await csv.ReadAllAsync();
@@ -3425,7 +4160,7 @@ namespace Cesil.Tests
                     async (config, getReader) =>
                     {
                         var CSV = "hello,world\r\n#this is a test comment!\n\r\nfoo,bar";
-                        using (var str = getReader(CSV))
+                        await using (var str = await getReader(CSV))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -3439,7 +4174,7 @@ namespace Cesil.Tests
                     async (config, getReader) =>
                     {
                         var CSV = "hello,world\r\n#this is a test comment!\r\r\nfoo,bar";
-                        using (var str = getReader(CSV))
+                        await using (var str = await getReader(CSV))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var rows = await csv.ReadAllAsync();
@@ -3461,7 +4196,7 @@ namespace Cesil.Tests
                 async (config, getReader) =>
                 {
                     var CSV = "#this is a test comment!\r\nhello,world\r\nfoo,bar";
-                    using (var str = getReader(CSV))
+                    await using (var str = await getReader(CSV))
                     await using (var csv = config.CreateAsyncReader(str))
                     {
                         var rows = await csv.ReadAllAsync();
@@ -3476,7 +4211,7 @@ namespace Cesil.Tests
                 async (config, getReader) =>
                 {
                     var CSV = "hello,world\r\n#this is a test comment\r\nfoo,bar";
-                    using (var str = getReader(CSV))
+                    await using (var str = await getReader(CSV))
                     await using (var csv = config.CreateAsyncReader(str))
                     {
                         var rows = await csv.ReadAllAsync();
@@ -3491,7 +4226,7 @@ namespace Cesil.Tests
                 async (config, getReader) =>
                 {
                     var CSV = "hello,world\r\nfoo,bar\r\n#comment!\r\nfizz,buzz";
-                    using (var str = getReader(CSV))
+                    await using (var str = await getReader(CSV))
                     await using (var csv = config.CreateAsyncReader(str))
                     {
                         var rows = await csv.ReadAllAsync();
@@ -3510,7 +4245,7 @@ namespace Cesil.Tests
                 async (config, getReader) =>
                 {
                     var CSV = "hello,world\r\nfoo,bar\r\n#comment!";
-                    using (var str = getReader(CSV))
+                    await using (var str = await getReader(CSV))
                     await using (var csv = config.CreateAsyncReader(str))
                     {
                         var rows = await csv.ReadAllAsync();
@@ -3531,7 +4266,7 @@ namespace Cesil.Tests
                 opts,
                 async (config, makeReader) =>
                 {
-                    using (var reader = makeReader("a,b,c\r\n1,2,3"))
+                    await using (var reader = await makeReader("a,b,c\r\n1,2,3"))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var r1 = await csv.TryReadAsync();
@@ -3630,7 +4365,7 @@ namespace Cesil.Tests
                 opts,
                 async (config, makeReader) =>
                 {
-                    using (var reader = makeReader("a,b,c\r\n1,2,3"))
+                    await using (var reader = await makeReader("a,b,c\r\n1,2,3"))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var res1 = await csv.TryReadAsync();
@@ -3701,7 +4436,7 @@ namespace Cesil.Tests
                     {
                         _CustomDynamicCellConverter_Int_Calls = 0;
 
-                        using (var str = getReader("a,bb,ccc"))
+                        await using (var str = await getReader("a,bb,ccc"))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var x = await csv.TryReadAsync();
@@ -3751,7 +4486,7 @@ namespace Cesil.Tests
                     {
                         called = 0;
 
-                        using (var str = getReader("a,bb,ccc"))
+                        await using (var str = await getReader("a,bb,ccc"))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var x = await csv.TryReadAsync();
@@ -3792,7 +4527,7 @@ namespace Cesil.Tests
                     {
                         _CustomDynamicCellConverter_Cons1_Called = 0;
 
-                        using (var str = getReader("a,bb,ccc"))
+                        await using (var str = await getReader("a,bb,ccc"))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var x = await csv.TryReadAsync();
@@ -3833,7 +4568,7 @@ namespace Cesil.Tests
                     {
                         _CustomDynamicCellConverter_Cons2_Called = 0;
 
-                        using (var str = getReader("a,bb,ccc"))
+                        await using (var str = await getReader("a,bb,ccc"))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var r = await csv.TryReadAsync();
@@ -3872,7 +4607,7 @@ namespace Cesil.Tests
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var str = getReader("a,bb,ccc\r\ndddd,eeeee,ffffff\r\n1,2,3\r\n"))
+                        await using (var str = await getReader("a,bb,ccc\r\ndddd,eeeee,ffffff\r\n1,2,3\r\n"))
                         await using (var reader = config.CreateAsyncReader(str))
                         {
                             var res = await reader.TryReadAsync();
@@ -3907,7 +4642,7 @@ namespace Cesil.Tests
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var str = getReader("a,bb,ccc\rdddd,eeeee,ffffff\r1,2,3\r"))
+                        await using (var str = await getReader("a,bb,ccc\rdddd,eeeee,ffffff\r1,2,3\r"))
                         await using (var reader = config.CreateAsyncReader(str))
                         {
                             var res = await reader.TryReadAsync();
@@ -3942,7 +4677,7 @@ namespace Cesil.Tests
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var str = getReader("a,bb,ccc\ndddd,eeeee,ffffff\n1,2,3\n"))
+                        await using (var str = await getReader("a,bb,ccc\ndddd,eeeee,ffffff\n1,2,3\n"))
                         await using (var reader = config.CreateAsyncReader(str))
                         {
                             var res = await reader.TryReadAsync();
@@ -3980,7 +4715,7 @@ namespace Cesil.Tests
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var str = getReader("\"a\r\",bb,ccc\r\ndddd,\"ee\neee\",ffffff\r\n1,2,\"3\r\n\"\r\n"))
+                        await using (var str = await getReader("\"a\r\",bb,ccc\r\ndddd,\"ee\neee\",ffffff\r\n1,2,\"3\r\n\"\r\n"))
                         await using (var reader = config.CreateAsyncReader(str))
                         {
                             var res = await reader.TryReadAsync();
@@ -4015,7 +4750,7 @@ namespace Cesil.Tests
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var str = getReader("\"a\r\",bb,ccc\rdddd,\"ee\neee\",ffffff\r1,2,\"3\r\n\"\r"))
+                        await using (var str = await getReader("\"a\r\",bb,ccc\rdddd,\"ee\neee\",ffffff\r1,2,\"3\r\n\"\r"))
                         await using (var reader = config.CreateAsyncReader(str))
                         {
                             var res = await reader.TryReadAsync();
@@ -4050,7 +4785,7 @@ namespace Cesil.Tests
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var str = getReader("\"a\r\",bb,ccc\ndddd,\"ee\neee\",ffffff\n1,2,\"3\r\n\"\n"))
+                        await using (var str = await getReader("\"a\r\",bb,ccc\ndddd,\"ee\neee\",ffffff\n1,2,\"3\r\n\"\n"))
                         await using (var reader = config.CreateAsyncReader(str))
                         {
                             var res = await reader.TryReadAsync();
@@ -4088,7 +4823,7 @@ namespace Cesil.Tests
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var str = getReader("\"a\r\",\"b\"\"b\",ccc\r\n\"\"\"dddd\",\"ee\neee\",ffffff\r\n1,\"\"\"2\"\"\",\"3\r\n\"\r\n"))
+                        await using (var str = await getReader("\"a\r\",\"b\"\"b\",ccc\r\n\"\"\"dddd\",\"ee\neee\",ffffff\r\n1,\"\"\"2\"\"\",\"3\r\n\"\r\n"))
                         await using (var reader = config.CreateAsyncReader(str))
                         {
                             var res = await reader.TryReadAsync();
@@ -4123,7 +4858,7 @@ namespace Cesil.Tests
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var str = getReader("\"a\r\",\"b\"\"b\",ccc\r\"\"\"dddd\",\"ee\neee\",ffffff\r1,\"\"\"2\"\"\",\"3\r\n\"\r"))
+                        await using (var str = await getReader("\"a\r\",\"b\"\"b\",ccc\r\"\"\"dddd\",\"ee\neee\",ffffff\r1,\"\"\"2\"\"\",\"3\r\n\"\r"))
                         await using (var reader = config.CreateAsyncReader(str))
                         {
                             var res = await reader.TryReadAsync();
@@ -4158,7 +4893,7 @@ namespace Cesil.Tests
                     opts,
                     async (config, getReader) =>
                     {
-                        using (var str = getReader("\"a\r\",\"b\"\"b\",ccc\n\"\"\"dddd\",\"ee\neee\",ffffff\n1,\"\"\"2\"\"\",\"3\r\n\"\n"))
+                        await using (var str = await getReader("\"a\r\",\"b\"\"b\",ccc\n\"\"\"dddd\",\"ee\neee\",ffffff\n1,\"\"\"2\"\"\",\"3\r\n\"\n"))
                         await using (var reader = config.CreateAsyncReader(str))
                         {
                             var res = await reader.TryReadAsync();
@@ -4200,7 +4935,7 @@ namespace Cesil.Tests
                 optsHeader,
                 async (config, makeReader) =>
                 {
-                    using (var reader = makeReader("A,B\r\nfoo,bar\r\n1,3.3\r\n2019-01-01,d"))
+                    await using (var reader = await makeReader("A,B\r\nfoo,bar\r\n1,3.3\r\n2019-01-01,d"))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var read = await csv.ReadAllAsync();
@@ -4273,7 +5008,7 @@ namespace Cesil.Tests
                 optsNoHeader,
                 async (config, makeReader) =>
                 {
-                    using (var reader = makeReader("foo,bar\r\n1,3.3\r\n2019-01-01,d"))
+                    await using (var reader = await makeReader("foo,bar\r\n1,3.3\r\n2019-01-01,d"))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var read = await csv.ReadAllAsync();
@@ -4326,7 +5061,7 @@ namespace Cesil.Tests
                 optsHeader,
                 async (config, makeReader) =>
                 {
-                    using (var reader = makeReader("A,B\r\nfoo,bar"))
+                    await using (var reader = await makeReader("A,B\r\nfoo,bar"))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var read = await csv.ReadAllAsync();
@@ -4365,6 +5100,38 @@ namespace Cesil.Tests
                                     );
                                 }
 
+                                // untyped enumerator
+                                {
+                                    System.Collections.IEnumerable e = row;
+                                    var i = e.GetEnumerator();
+
+                                    var reset = true;
+                                    loop:
+                                    var ix = 0;
+                                    while (i.MoveNext())
+                                    {
+                                        string val = (dynamic)i.Current;
+                                        switch (ix)
+                                        {
+                                            case 0: Assert.Equal("foo", val); break;
+                                            case 1: Assert.Equal("bar", val); break;
+                                            default:
+                                                Assert.Null("Shouldn't be possible");
+                                                break;
+                                        }
+                                        ix++;
+                                    }
+
+                                    Assert.Equal(2, ix);
+
+                                    if (reset)
+                                    {
+                                        reset = false;
+                                        i.Reset();
+                                        goto loop;
+                                    }
+                                }
+
                                 // typed enumerable
                                 {
                                     IEnumerable<string> e = row;
@@ -4373,6 +5140,39 @@ namespace Cesil.Tests
                                         a => Assert.Equal("foo", a),
                                         b => Assert.Equal("bar", b)
                                     );
+                                }
+
+                                // typed enumerator
+                                {
+                                    IEnumerable<string> e = row;
+                                    using(var i = e.GetEnumerator())
+                                    {
+                                        var reset = true;
+loop:
+                                        var ix = 0;
+                                        while (i.MoveNext())
+                                        {
+                                            string val = i.Current;
+                                            switch (ix)
+                                            {
+                                                case 0: Assert.Equal("foo", val); break;
+                                                case 1: Assert.Equal("bar", val); break;
+                                                default:
+                                                    Assert.Null("Shouldn't be possible");
+                                                    break;
+                                            }
+                                            ix++;
+                                        }
+
+                                        Assert.Equal(2, ix);
+
+                                        if (reset)
+                                        {
+                                            reset = false;
+                                            i.Reset();
+                                            goto loop;
+                                        }
+                                    }
                                 }
                             }
                         );
@@ -4387,7 +5187,7 @@ namespace Cesil.Tests
                 optsNoHeader,
                 async (config, makeReader) =>
                 {
-                    using (var reader = makeReader("foo,bar"))
+                    await using (var reader = await makeReader("foo,bar"))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var read = await csv.ReadAllAsync();
@@ -4414,6 +5214,38 @@ namespace Cesil.Tests
                                     );
                                 }
 
+                                // untyped enumerator
+                                {
+                                    System.Collections.IEnumerable e = row;
+                                    var i = e.GetEnumerator();
+
+                                    var reset = true;
+                                    loop:
+                                    var ix = 0;
+                                    while (i.MoveNext())
+                                    {
+                                        string val = (dynamic)i.Current;
+                                        switch (ix)
+                                        {
+                                            case 0: Assert.Equal("foo", val); break;
+                                            case 1: Assert.Equal("bar", val); break;
+                                            default:
+                                                Assert.Null("Shouldn't be possible");
+                                                break;
+                                        }
+                                        ix++;
+                                    }
+
+                                    Assert.Equal(2, ix);
+
+                                    if (reset)
+                                    {
+                                        reset = false;
+                                        i.Reset();
+                                        goto loop;
+                                    }
+                                }
+
                                 // typed enumerable
                                 {
                                     IEnumerable<string> e = row;
@@ -4422,6 +5254,39 @@ namespace Cesil.Tests
                                         a => Assert.Equal("foo", a),
                                         b => Assert.Equal("bar", b)
                                     );
+                                }
+
+                                // typed enumerator
+                                {
+                                    IEnumerable<string> e = row;
+                                    using (var i = e.GetEnumerator())
+                                    {
+                                        var reset = true;
+loop:
+                                        var ix = 0;
+                                        while (i.MoveNext())
+                                        {
+                                            string val = i.Current;
+                                            switch (ix)
+                                            {
+                                                case 0: Assert.Equal("foo", val); break;
+                                                case 1: Assert.Equal("bar", val); break;
+                                                default:
+                                                    Assert.Null("Shouldn't be possible");
+                                                    break;
+                                            }
+                                            ix++;
+                                        }
+
+                                        Assert.Equal(2, ix);
+
+                                        if (reset)
+                                        {
+                                            reset = false;
+                                            i.Reset();
+                                            goto loop;
+                                        }
+                                    }
                                 }
                             }
                         );
@@ -4440,7 +5305,7 @@ namespace Cesil.Tests
                 optsHeaders,
                 async (config, makeReader) =>
                 {
-                    using (var reader = makeReader("A,B\r\n1,57DEC02E-BDD6-4AF1-90F5-037596E08500"))
+                    await using (var reader = await makeReader("A,B\r\n1,57DEC02E-BDD6-4AF1-90F5-037596E08500"))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var read = await csv.ReadAllAsync();
@@ -4479,7 +5344,7 @@ namespace Cesil.Tests
                 optsNoHeaders,
                 async (config, makeReader) =>
                 {
-                    using (var reader = makeReader("1,57DEC02E-BDD6-4AF1-90F5-037596E08500"))
+                    await using (var reader = await makeReader("1,57DEC02E-BDD6-4AF1-90F5-037596E08500"))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var read = await csv.ReadAllAsync();
@@ -4524,7 +5389,7 @@ namespace Cesil.Tests
                     optWithHeaders,
                     async (config, makeReader) =>
                     {
-                        using (var reader = makeReader("A\r\n1\r\nfoo"))
+                        await using (var reader = await makeReader("A\r\n1\r\nfoo"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var read = await csv.ReadAllAsync();
@@ -4551,7 +5416,7 @@ namespace Cesil.Tests
                     optWithHeaders,
                     async (config, makeReader) =>
                     {
-                        using (var reader = makeReader("A,B\r\n1,57DEC02E-BDD6-4AF1-90F5-037596E08500\r\nfoo,-123"))
+                        await using (var reader = await makeReader("A,B\r\n1,57DEC02E-BDD6-4AF1-90F5-037596E08500\r\nfoo,-123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var read = await csv.ReadAllAsync();
@@ -4569,6 +5434,37 @@ namespace Cesil.Tests
                                     Tuple<string, short> typed = row2;
                                     Assert.Equal("foo", typed.Item1);
                                     Assert.Equal(-123, typed.Item2);
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // skipped
+                await RunAsyncDynamicReaderVariants(
+                    optWithHeaders,
+                    async (config, makeReader) =>
+                    {
+                        await using (var reader = await makeReader("A,B,C\r\n1,,57DEC02E-BDD6-4AF1-90F5-037596E08500\r\nfoo,,-123"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var read = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                read,
+                                row1 =>
+                                {
+                                    Tuple<int, string, Guid> typed = row1;
+                                    Assert.Equal(1, typed.Item1);
+                                    Assert.Equal("", typed.Item2);
+                                    Assert.Equal(Guid.Parse("57DEC02E-BDD6-4AF1-90F5-037596E08500"), typed.Item3);
+                                },
+                                row2 =>
+                                {
+                                    Tuple<string, int?, short> typed = row2;
+                                    Assert.Equal("foo", typed.Item1);
+                                    Assert.Equal(default, typed.Item2);
+                                    Assert.Equal(-123, typed.Item3);
                                 }
                             );
                         }
@@ -4605,7 +5501,7 @@ namespace Cesil.Tests
                         optWithHeaders,
                         async (config, makeReader) =>
                         {
-                            using (var reader = makeReader($"A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q\r\n{row1}"))
+                            await using (var reader = await makeReader($"A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q\r\n{row1}"))
                             await using (var csv = config.CreateAsyncReader(reader))
                             {
                                 var read = await csv.ReadAllAsync();
@@ -4672,7 +5568,7 @@ namespace Cesil.Tests
                     optNoHeaders,
                     async (config, makeReader) =>
                     {
-                        using (var reader = makeReader("1\r\nfoo"))
+                        await using (var reader = await makeReader("1\r\nfoo"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var read = await csv.ReadAllAsync();
@@ -4699,7 +5595,7 @@ namespace Cesil.Tests
                     optNoHeaders,
                     async (config, makeReader) =>
                     {
-                        using (var reader = makeReader("1,57DEC02E-BDD6-4AF1-90F5-037596E08500\r\nfoo,-123"))
+                        await using (var reader = await makeReader("1,57DEC02E-BDD6-4AF1-90F5-037596E08500\r\nfoo,-123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var read = await csv.ReadAllAsync();
@@ -4717,6 +5613,37 @@ namespace Cesil.Tests
                                     Tuple<string, short> typed = row2;
                                     Assert.Equal("foo", typed.Item1);
                                     Assert.Equal(-123, typed.Item2);
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // skipped
+                await RunAsyncDynamicReaderVariants(
+                    optNoHeaders,
+                    async (config, makeReader) =>
+                    {
+                        await using (var reader = await makeReader("1,,57DEC02E-BDD6-4AF1-90F5-037596E08500\r\nfoo,,-123"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var read = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                read,
+                                row1 =>
+                                {
+                                    Tuple<int, string, Guid> typed = row1;
+                                    Assert.Equal(1, typed.Item1);
+                                    Assert.Equal("", typed.Item2);
+                                    Assert.Equal(Guid.Parse("57DEC02E-BDD6-4AF1-90F5-037596E08500"), typed.Item3);
+                                },
+                                row2 =>
+                                {
+                                    Tuple<string, int?, short> typed = row2;
+                                    Assert.Equal("foo", typed.Item1);
+                                    Assert.Equal(default, typed.Item2);
+                                    Assert.Equal(-123, typed.Item3);
                                 }
                             );
                         }
@@ -4753,7 +5680,7 @@ namespace Cesil.Tests
                         optNoHeaders,
                         async (config, makeReader) =>
                         {
-                            using (var reader = makeReader(row1))
+                            await using (var reader = await makeReader(row1))
                             await using (var csv = config.CreateAsyncReader(reader))
                             {
                                 var read = await csv.ReadAllAsync();
@@ -4824,7 +5751,7 @@ namespace Cesil.Tests
                     opts,
                     async (config, makeReader) =>
                     {
-                        using (var reader = makeReader("A\r\n1\r\nfoo"))
+                        await using (var reader = await makeReader("A\r\n1\r\nfoo"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var read = await csv.ReadAllAsync();
@@ -4851,7 +5778,7 @@ namespace Cesil.Tests
                     opts,
                     async (config, makeReader) =>
                     {
-                        using (var reader = makeReader("A,B\r\n1,57DEC02E-BDD6-4AF1-90F5-037596E08500\r\nfoo,-123"))
+                        await using (var reader = await makeReader("A,B\r\n1,57DEC02E-BDD6-4AF1-90F5-037596E08500\r\nfoo,-123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var read = await csv.ReadAllAsync();
@@ -4869,6 +5796,37 @@ namespace Cesil.Tests
                                     ValueTuple<string, short> typed = row2;
                                     Assert.Equal("foo", typed.Item1);
                                     Assert.Equal(-123, typed.Item2);
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // skipped
+                await RunAsyncDynamicReaderVariants(
+                    opts,
+                    async (config, makeReader) =>
+                    {
+                        await using (var reader = await makeReader("A,B,C\r\n1,,57DEC02E-BDD6-4AF1-90F5-037596E08500\r\nfoo,,-123"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var read = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                read,
+                                row1 =>
+                                {
+                                    ValueTuple<int, string, Guid> typed = row1;
+                                    Assert.Equal(1, typed.Item1);
+                                    Assert.Equal("", typed.Item2);
+                                    Assert.Equal(Guid.Parse("57DEC02E-BDD6-4AF1-90F5-037596E08500"), typed.Item3);
+                                },
+                                row2 =>
+                                {
+                                    ValueTuple<string, int?, short> typed = row2;
+                                    Assert.Equal("foo", typed.Item1);
+                                    Assert.Equal(default, typed.Item2);
+                                    Assert.Equal(-123, typed.Item3);
                                 }
                             );
                         }
@@ -4905,7 +5863,7 @@ namespace Cesil.Tests
                         opts,
                         async (config, makeReader) =>
                         {
-                            using (var reader = makeReader($"A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q\r\n{row1}"))
+                            await using (var reader = await makeReader($"A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q\r\n{row1}"))
                             await using (var csv = config.CreateAsyncReader(reader))
                             {
                                 var read = await csv.ReadAllAsync();
@@ -4971,7 +5929,7 @@ namespace Cesil.Tests
                     opts,
                     async (config, makeReader) =>
                     {
-                        using (var reader = makeReader("1\r\nfoo"))
+                        await using (var reader = await makeReader("1\r\nfoo"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var read = await csv.ReadAllAsync();
@@ -4998,7 +5956,7 @@ namespace Cesil.Tests
                     opts,
                     async (config, makeReader) =>
                     {
-                        using (var reader = makeReader("1,57DEC02E-BDD6-4AF1-90F5-037596E08500\r\nfoo,-123"))
+                        await using (var reader = await makeReader("1,57DEC02E-BDD6-4AF1-90F5-037596E08500\r\nfoo,-123"))
                         await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var read = await csv.ReadAllAsync();
@@ -5016,6 +5974,37 @@ namespace Cesil.Tests
                                     ValueTuple<string, short> typed = row2;
                                     Assert.Equal("foo", typed.Item1);
                                     Assert.Equal(-123, typed.Item2);
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // skipped
+                await RunAsyncDynamicReaderVariants(
+                    opts,
+                    async (config, makeReader) =>
+                    {
+                        await using (var reader = await makeReader("1,,57DEC02E-BDD6-4AF1-90F5-037596E08500\r\nfoo,,-123"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var read = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                read,
+                                row1 =>
+                                {
+                                    ValueTuple<int, string, Guid> typed = row1;
+                                    Assert.Equal(1, typed.Item1);
+                                    Assert.Equal("", typed.Item2);
+                                    Assert.Equal(Guid.Parse("57DEC02E-BDD6-4AF1-90F5-037596E08500"), typed.Item3);
+                                },
+                                row2 =>
+                                {
+                                    ValueTuple<string, int?, short> typed = row2;
+                                    Assert.Equal("foo", typed.Item1);
+                                    Assert.Equal(default, typed.Item2);
+                                    Assert.Equal(-123, typed.Item3);
                                 }
                             );
                         }
@@ -5052,7 +6041,7 @@ namespace Cesil.Tests
                         opts,
                         async (config, makeReader) =>
                         {
-                            using (var reader = makeReader(row1))
+                            await using (var reader = await makeReader(row1))
                             await using (var csv = config.CreateAsyncReader(reader))
                             {
                                 var read = await csv.ReadAllAsync();
@@ -5121,7 +6110,7 @@ namespace Cesil.Tests
                     opts,
                     async (config, makeReader) =>
                     {
-                        using (var str = makeReader("A,B,C\r\n1,foo,2019-01-03"))
+                        await using (var str = await makeReader("A,B,C\r\n1,foo,2019-01-03"))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var read = await csv.ReadAllAsync();
@@ -5150,7 +6139,7 @@ namespace Cesil.Tests
                     opts,
                     async (config, makeReader) =>
                     {
-                        using (var str = makeReader("1,foo,2019-01-03"))
+                        await using (var str = await makeReader("1,foo,2019-01-03"))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var read = await csv.ReadAllAsync();
@@ -5181,7 +6170,7 @@ namespace Cesil.Tests
                 opts,
                 async (config, makeReader) =>
                 {
-                    using (var str = makeReader("A,B,C\r\n1,foo,2019-01-03"))
+                    await using (var str = await makeReader("A,B,C\r\n1,foo,2019-01-03"))
                     await using (var csv = config.CreateAsyncReader(str))
                     {
                         var read = await csv.ReadAllAsync();
@@ -5214,7 +6203,7 @@ namespace Cesil.Tests
                     {
                         List<dynamic> read;
 
-                        using (var str = makeReader("1,2,3"))
+                        await using (var str = await makeReader("1,2,3"))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             read = await csv.ReadAllAsync();
@@ -5255,7 +6244,7 @@ namespace Cesil.Tests
                     {
                         List<dynamic> read;
 
-                        using (var str = makeReader("1,2,3"))
+                        await using (var str = await makeReader("1,2,3"))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             read = await csv.ReadAllAsync();
@@ -5322,8 +6311,8 @@ namespace Cesil.Tests
                             opts,
                             async (config2, makeReader2) =>
                             {
-                                using (var r1 = makeReader1("1,2,3\r\n4,5,6"))
-                                using (var r2 = makeReader2("7,8\r\n9,10"))
+                                await using (var r1 = await makeReader1("1,2,3\r\n4,5,6"))
+                                await using (var r2 = await makeReader2("7,8\r\n9,10"))
                                 await using (var csv1 = config1.CreateAsyncReader(r1))
                                 await using (var csv2 = config2.CreateAsyncReader(r2))
                                 {
@@ -5380,8 +6369,8 @@ namespace Cesil.Tests
                             {
                                 dynamic row = null;
 
-                                using (var r1 = makeReader1("1,2,3\r\n4,5,6"))
-                                using (var r2 = makeReader2("7,8\r\n9,10"))
+                                await using (var r1 = await makeReader1("1,2,3\r\n4,5,6"))
+                                await using (var r2 = await makeReader2("7,8\r\n9,10"))
                                 await using (var csv1 = config1.CreateAsyncReader(r1))
                                 await using (var csv2 = config2.CreateAsyncReader(r2))
                                 {
@@ -5439,8 +6428,8 @@ namespace Cesil.Tests
                             {
                                 dynamic row = null;
 
-                                using (var r1 = makeReader1("1,2,3\r\n4,5,6"))
-                                using (var r2 = makeReader2("7,8\r\n9,10"))
+                                await using (var r1 = await makeReader1("1,2,3\r\n4,5,6"))
+                                await using (var r2 = await makeReader2("7,8\r\n9,10"))
                                 await using (var csv1 = config1.CreateAsyncReader(r1))
                                 await using (var csv2 = config2.CreateAsyncReader(r2))
                                 {
@@ -5499,8 +6488,8 @@ namespace Cesil.Tests
                             {
                                 dynamic row = null;
 
-                                using (var r1 = makeReader1("1,2,3\r\n4,5,6"))
-                                using (var r2 = makeReader2("7,8\r\n9,10"))
+                                await using (var r1 = await makeReader1("1,2,3\r\n4,5,6"))
+                                await using (var r2 = await makeReader2("7,8\r\n9,10"))
                                 await using (var csv1 = config1.CreateAsyncReader(r1))
                                 await using (var csv2 = config2.CreateAsyncReader(r2))
                                 {
@@ -5572,7 +6561,7 @@ namespace Cesil.Tests
                     opts,
                     async (config, makeReader) =>
                     {
-                        using (var str = makeReader("A,B,C\r\n1,foo,2019-01-03"))
+                        await using (var str = await makeReader("A,B,C\r\n1,foo,2019-01-03"))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var read = await csv.ReadAllAsync();
@@ -5599,7 +6588,7 @@ namespace Cesil.Tests
                     opts,
                     async (config, makeReader) =>
                     {
-                        using (var str = makeReader("1,foo,2019-01-03"))
+                        await using (var str = await makeReader("1,foo,2019-01-03"))
                         await using (var csv = config.CreateAsyncReader(str))
                         {
                             var read = await csv.ReadAllAsync();

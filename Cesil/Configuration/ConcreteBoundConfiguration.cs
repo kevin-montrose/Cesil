@@ -40,61 +40,41 @@ namespace Cesil
             )
         { }
 
-        public override IReader<T> CreateReader(TextReader inner, object context = null)
+        internal override IReader<T> CreateReader(IReaderAdapter inner, object context = null)
         {
             if (DeserializeColumns.Length == 0)
             {
-                Throw.InvalidOperationException($"No columns configured to read for {typeof(T).FullName}");
-            }
-
-            if (inner == null)
-            {
-                Throw.ArgumentNullException(nameof(inner));
+                return Throw.InvalidOperationException<IReader<T>>($"No columns configured to read for {typeof(T).FullName}");
             }
 
             return new Reader<T>(inner, this, context);
         }
 
-        public override IAsyncReader<T> CreateAsyncReader(TextReader inner, object context = null)
+        internal override IAsyncReader<T> CreateAsyncReader(IAsyncReaderAdapter inner, object context = null)
         {
             if (DeserializeColumns.Length == 0)
             {
-                Throw.InvalidOperationException($"No columns configured to read for {typeof(T).FullName}");
-            }
-
-            if (inner == null)
-            {
-                Throw.ArgumentNullException(nameof(inner));
+                return Throw.InvalidOperationException<IAsyncReader<T>>($"No columns configured to read for {typeof(T).FullName}");
             }
 
             return new AsyncReader<T>(inner, this, context);
         }
 
-        public override IWriter<T> CreateWriter(TextWriter inner, object context = null)
+        internal override IWriter<T> CreateWriter(IWriterAdapter inner, object context = null)
         {
             if (SerializeColumns.Length == 0)
             {
-                Throw.InvalidOperationException($"No columns configured to write for {typeof(T).FullName}");
-            }
-
-            if (inner == null)
-            {
-                Throw.ArgumentNullException(nameof(inner));
+                return Throw.InvalidOperationException<IWriter<T>>($"No columns configured to write for {typeof(T).FullName}");
             }
 
             return new Writer<T>(this, inner, context);
         }
 
-        public override IAsyncWriter<T> CreateAsyncWriter(TextWriter inner, object context = null)
+        internal override IAsyncWriter<T> CreateAsyncWriter(IAsyncWriterAdapter inner, object context = null)
         {
             if (SerializeColumns.Length == 0)
             {
-                Throw.InvalidOperationException($"No columns configured to write for {typeof(T).FullName}");
-            }
-
-            if (inner == null)
-            {
-                Throw.ArgumentNullException(nameof(inner));
+                return Throw.InvalidOperationException<IAsyncWriter<T>>($"No columns configured to write for {typeof(T).FullName}");
             }
 
             return new AsyncWriter<T>(this, inner, context);

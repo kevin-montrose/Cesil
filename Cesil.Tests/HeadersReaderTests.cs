@@ -18,9 +18,6 @@ namespace Cesil.Tests
                 new BufferWithPushback(
                     MemoryPool<char>.Shared,
                     500
-#if DEBUG
-                    , false
-#endif
                 );
         }
 
@@ -67,12 +64,13 @@ namespace Cesil.Tests
 
                 using (var str = new StringReader("#hello\rfoo\nbar\r\nFoo,Bar"))
                 {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
+                    using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
                     using var reader =
                         new HeadersReader<_CommentBeforeHeader>(
+                            new ReaderStateMachine(),
                             config,
                             charLookup,
-                            str,
+                            new TextReaderAdapter(str),
                             MakeBuffer()
                         );
                     var res = reader.Read();
@@ -99,8 +97,8 @@ namespace Cesil.Tests
 
                 using (var str = new StringReader("#hello\nfoo\n\rFoo,Bar"))
                 {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, MakeBuffer());
+                    using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                    using var reader = new HeadersReader<_CommentBeforeHeader>(new ReaderStateMachine(), config,  charLookup, new TextReaderAdapter(str), MakeBuffer());
                     var res = reader.Read();
                     Assert.True(res.IsHeader);
                     Assert.Collection(
@@ -125,8 +123,8 @@ namespace Cesil.Tests
 
                 using (var str = new StringReader("#hello\rfoo\r..\nFoo,Bar"))
                 {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, MakeBuffer());
+                    using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                    using var reader = new HeadersReader<_CommentBeforeHeader>(new ReaderStateMachine(), config,  charLookup, new TextReaderAdapter(str), MakeBuffer());
                     var res = reader.Read();
                     Assert.True(res.IsHeader);
                     Assert.Collection(
@@ -153,8 +151,8 @@ namespace Cesil.Tests
             {
                 using (var str = new StringReader("foo,fizz,bar,buzz,baz,nope,nada,zilch,what,who,when,where,qwerty,dvorak"))
                 {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(MemoryPool<char>.Shared, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using (var reader = new HeadersReader<_BufferToLarge>(config, charLookup, str, MakeBuffer()))
+                    using var charLookup = CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                    using (var reader = new HeadersReader<_BufferToLarge>(new ReaderStateMachine(), config,  charLookup, new TextReaderAdapter(str), MakeBuffer()))
                     {
                         Assert.Throws<InvalidOperationException>(() => reader.Read());
                     }
@@ -171,8 +169,8 @@ namespace Cesil.Tests
             {
                 using (var str = new StringReader("fizz"))
                 {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                    using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config,  charLookup, new TextReaderAdapter(str), MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("fizz", new string(i.Span)));
                     Assert.False(res.IsHeader);
@@ -183,8 +181,8 @@ namespace Cesil.Tests
             {
                 using (var str = new StringReader("Foo"))
                 {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                    using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config,  charLookup, new TextReaderAdapter(str), MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("Foo", new string(i.Span)));
                     Assert.True(res.IsHeader);
@@ -195,8 +193,8 @@ namespace Cesil.Tests
             {
                 using (var str = new StringReader("Foo,fizz"))
                 {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                    using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config,  charLookup, new TextReaderAdapter(str), MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -208,8 +206,8 @@ namespace Cesil.Tests
 
                 using (var str = new StringReader("fizz,Bar"))
                 {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                    using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config,  charLookup, new TextReaderAdapter(str), MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -224,8 +222,8 @@ namespace Cesil.Tests
             {
                 using (var str = new StringReader("Foo,Bar"))
                 {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                    using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config,  charLookup, new TextReaderAdapter(str), MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -237,8 +235,8 @@ namespace Cesil.Tests
 
                 using (var str = new StringReader("Bar,Foo"))
                 {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                    using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config,  charLookup, new TextReaderAdapter(str), MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -253,8 +251,8 @@ namespace Cesil.Tests
             {
                 using (var str = new StringReader("Foo,Bar,Fizz"))
                 {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                    using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config,  charLookup, new TextReaderAdapter(str), MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -267,8 +265,8 @@ namespace Cesil.Tests
 
                 using (var str = new StringReader("Bar,Fizz,Foo"))
                 {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                    using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config,  charLookup, new TextReaderAdapter(str), MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -321,8 +319,8 @@ namespace Cesil.Tests
 
             using (var str = new StringReader(csv))
             {
-                using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                using var reader = new HeadersReader<_ManyHeaders>(config, charLookup, str, MakeBuffer());
+                using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                using var reader = new HeadersReader<_ManyHeaders>(new ReaderStateMachine(), config,  charLookup, new TextReaderAdapter(str), MakeBuffer());
                 var res = reader.Read();
                 Assert.Collection(
                     ToEnumerable(res.Headers),
@@ -350,8 +348,8 @@ namespace Cesil.Tests
             {
                 using (var str = new StringReader("fizz\r\n0\r\n"))
                 {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                    using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config,  charLookup, new TextReaderAdapter(str), MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("fizz", new string(i.Span)));
                     Assert.False(res.IsHeader);
@@ -362,8 +360,8 @@ namespace Cesil.Tests
             {
                 using (var str = new StringReader("Foo\r\nfoo"))
                 {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                    using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config,  charLookup, new TextReaderAdapter(str), MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("Foo", new string(i.Span)));
                     Assert.True(res.IsHeader);
@@ -374,8 +372,8 @@ namespace Cesil.Tests
             {
                 using (var str = new StringReader("Foo,fizz\r\n1,2"))
                 {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                    using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config,  charLookup, new TextReaderAdapter(str), MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -387,8 +385,8 @@ namespace Cesil.Tests
 
                 using (var str = new StringReader("fizz,Bar\r\n2,blah\r\n"))
                 {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                    using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config,  charLookup, new TextReaderAdapter(str), MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -403,8 +401,8 @@ namespace Cesil.Tests
             {
                 using (var str = new StringReader("Foo,Bar\r\nwhatever,something"))
                 {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                    using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config,  charLookup, new TextReaderAdapter(str), MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -416,8 +414,8 @@ namespace Cesil.Tests
 
                 using (var str = new StringReader("Bar,Foo\r\n3,4"))
                 {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                    using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config,  charLookup, new TextReaderAdapter(str), MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -432,8 +430,8 @@ namespace Cesil.Tests
             {
                 using (var str = new StringReader("Foo,Bar,Fizz\r\na,b,c\r\n"))
                 {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                    using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config,  charLookup, new TextReaderAdapter(str), MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -446,8 +444,8 @@ namespace Cesil.Tests
 
                 using (var str = new StringReader("Bar,Fizz,Foo\r\n1,2,3"))
                 {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                    using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config,  charLookup, new TextReaderAdapter(str), MakeBuffer());
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -465,98 +463,161 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var config =
-                    (ConcreteBoundConfiguration<_CommentBeforeHeader>)
-                        Configuration.For<_CommentBeforeHeader>(
-                            Options.Default
-                                .NewBuilder()
-                                .WithCommentCharacter('#')
-                                .WithRowEnding(RowEndings.CarriageReturnLineFeed)
-                                .Build()
-                        );
+                var opts =
+                    Options.Default
+                        .NewBuilder()
+                        .WithCommentCharacter('#')
+                        .WithRowEnding(RowEndings.CarriageReturnLineFeed)
+                        .Build();
 
-                using (var str = new StringReader("#hello\rfoo\nbar\r\nFoo,Bar"))
-                {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, MakeBuffer());
-                    var res = await reader.ReadAsync(default);
-                    Assert.True(res.IsHeader);
-                    Assert.Collection(
-                        ToEnumerable(res.Headers),
-                        i => Assert.Equal("Foo", new string(i.Span)),
-                        i => Assert.Equal("Bar", new string(i.Span))
-                    );
-                }
+                await RunAsyncReaderVariants<_CommentBeforeHeader>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        var configForced = config as AsyncCountingAndForcingConfig<_CommentBeforeHeader>;
+                        var configUnpin = config as AsyncInstrumentedPinConfig<_CommentBeforeHeader>;
+                        var cInner = (ConcreteBoundConfiguration<_CommentBeforeHeader>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+
+
+
+                        await using (var str = await getReader("#hello\rfoo\nbar\r\nFoo,Bar"))
+                        await using (configUnpin?.CreateAsyncReader(str))
+                        {
+                            var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
+
+                            using (var charLookup = CharacterLookup.MakeCharacterLookup(cInner.MemoryPool, cInner.EscapedValueStartAndStop, cInner.ValueSeparator, cInner.EscapeValueEscapeChar, cInner.CommentChar, out _))
+                            using (var reader = new HeadersReader<_CommentBeforeHeader>(stateMachine, cInner, charLookup, str, MakeBuffer()))
+                            {
+                                if (configForced != null)
+                                {
+                                    configForced.Set(reader);
+                                }
+
+                                var res = await reader.ReadAsync(default);
+                                Assert.True(res.IsHeader);
+                                Assert.Collection(
+                                    ToEnumerable(res.Headers),
+                                    i => Assert.Equal("Foo", new string(i.Span)),
+                                    i => Assert.Equal("Bar", new string(i.Span))
+                                );
+                            }
+                        }
+                    }
+                );
             }
 
             // \r
             {
-                var config =
-                    (ConcreteBoundConfiguration<_CommentBeforeHeader>)
-                        Configuration.For<_CommentBeforeHeader>(
-                            Options.Default
-                                .NewBuilder()
-                                .WithCommentCharacter('#')
-                                .WithRowEnding(RowEndings.CarriageReturn)
-                                .Build()
-                        );
+                var opts =
+                    Options.Default
+                        .NewBuilder()
+                        .WithCommentCharacter('#')
+                        .WithRowEnding(RowEndings.CarriageReturn)
+                        .Build();
 
-                using (var str = new StringReader("#hello\nfoo\n\rFoo,Bar"))
-                {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, MakeBuffer());
-                    var res = await reader.ReadAsync(default);
-                    Assert.True(res.IsHeader);
-                    Assert.Collection(
-                        ToEnumerable(res.Headers),
-                        i => Assert.Equal("Foo", new string(i.Span)),
-                        i => Assert.Equal("Bar", new string(i.Span))
-                    );
-                }
+                await RunAsyncReaderVariants<_CommentBeforeHeader>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        var configForced = config as AsyncCountingAndForcingConfig<_CommentBeforeHeader>;
+                        var configUnpin = config as AsyncInstrumentedPinConfig<_CommentBeforeHeader>;
+                        var cInner = (ConcreteBoundConfiguration<_CommentBeforeHeader>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+
+                        await using (var str = await getReader("#hello\nfoo\n\rFoo,Bar"))
+                        await using (configUnpin?.CreateAsyncReader(str))
+                        {
+                            var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
+
+                            using (var charLookup = CharacterLookup.MakeCharacterLookup(cInner.MemoryPool, cInner.EscapedValueStartAndStop, cInner.ValueSeparator, cInner.EscapeValueEscapeChar, cInner.CommentChar, out _))
+                            using (var reader = new HeadersReader<_CommentBeforeHeader>(stateMachine, cInner, charLookup, str, MakeBuffer()))
+                            {
+                                if (configForced != null)
+                                {
+                                    configForced.Set(reader);
+                                }
+
+                                var res = await reader.ReadAsync(default);
+                                Assert.True(res.IsHeader);
+                                Assert.Collection(
+                                    ToEnumerable(res.Headers),
+                                    i => Assert.Equal("Foo", new string(i.Span)),
+                                    i => Assert.Equal("Bar", new string(i.Span))
+                                );
+                            }
+                        }
+                    }
+                );
             }
 
             // \n
             {
-                var config =
-                    (ConcreteBoundConfiguration<_CommentBeforeHeader>)
-                        Configuration.For<_CommentBeforeHeader>(
-                            Options.Default
-                                .NewBuilder()
-                                .WithCommentCharacter('#')
-                                .WithRowEnding(RowEndings.LineFeed)
-                                .Build()
-                        );
+                var opts =
+                    Options.Default
+                        .NewBuilder()
+                        .WithCommentCharacter('#')
+                        .WithRowEnding(RowEndings.LineFeed)
+                        .Build();
 
-                using (var str = new StringReader("#hello\rfoo\r..\nFoo,Bar"))
-                {
-                    using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                    using var reader = new HeadersReader<_CommentBeforeHeader>(config, charLookup, str, MakeBuffer());
-                    var res = await reader.ReadAsync(default);
-                    Assert.True(res.IsHeader);
-                    Assert.Collection(
-                        ToEnumerable(res.Headers),
-                        i => Assert.Equal("Foo", new string(i.Span)),
-                        i => Assert.Equal("Bar", new string(i.Span))
-                    );
-                }
+                await RunAsyncReaderVariants<_CommentBeforeHeader>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        var configForced = config as AsyncCountingAndForcingConfig<_CommentBeforeHeader>;
+                        var configUnpin = config as AsyncInstrumentedPinConfig<_CommentBeforeHeader>;
+                        var cInner = (ConcreteBoundConfiguration<_CommentBeforeHeader>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+
+                        await using (var str = await getReader("#hello\rfoo\r..\nFoo,Bar"))
+                        await using (configUnpin?.CreateAsyncReader(str))
+                        {
+                            var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
+
+                            using (var charLookup = CharacterLookup.MakeCharacterLookup(cInner.MemoryPool, cInner.EscapedValueStartAndStop, cInner.ValueSeparator, cInner.EscapeValueEscapeChar, cInner.CommentChar, out _))
+                            using (var reader = new HeadersReader<_CommentBeforeHeader>(stateMachine, cInner, charLookup, str, MakeBuffer()))
+                            {
+                                if (configForced != null)
+                                {
+                                    configForced.Set(reader);
+                                }
+
+                                var res = await reader.ReadAsync(default);
+                                Assert.True(res.IsHeader);
+                                Assert.Collection(
+                                    ToEnumerable(res.Headers),
+                                    i => Assert.Equal("Foo", new string(i.Span)),
+                                    i => Assert.Equal("Bar", new string(i.Span))
+                                );
+                            }
+                        }
+                    }
+                );
             }
         }
 
         [Fact]
         public async Task JustHeadersAsync()
         {
-            var config = (ConcreteBoundConfiguration<_JustHeaders>)Configuration.For<_JustHeaders>(Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).Build());
-
             // none
             {
-                await RunAsyncReaderVariants<_Foo>(
+                await RunAsyncReaderVariants<_JustHeaders>(
                     Options.Default,
-                    async (_, getReader) =>
+                    async (config , getReader) =>
                     {
-                        using (var str = getReader("fizz"))
+                        var configForced = config as AsyncCountingAndForcingConfig<_JustHeaders>;
+                        var configUnpin = config as AsyncInstrumentedPinConfig<_JustHeaders>;
+                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+
+                        await using (var str = await getReader("fizz"))
+                        await using (configUnpin?.CreateAsyncReader(str))
                         {
-                            using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                            var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
+                            using var charLookup = CharacterLookup.MakeCharacterLookup(cInner.MemoryPool, cInner.EscapedValueStartAndStop, cInner.ValueSeparator, cInner.EscapeValueEscapeChar, cInner.CommentChar, out _);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner,  charLookup, str, MakeBuffer());
+
+                            if (configForced != null)
+                            {
+                                configForced.Set(reader);
+                            }
+
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("fizz", new string(i.Span)));
                             Assert.False(res.IsHeader);
@@ -567,14 +628,26 @@ namespace Cesil.Tests
 
             // one, exact
             {
-                await RunAsyncReaderVariants<_Foo>(
+                await RunAsyncReaderVariants<_JustHeaders>(
                     Options.Default,
-                    async (_, getReader) =>
+                    async (config, getReader) =>
                     {
-                        using (var str = getReader("Foo"))
+                        var configForced = config as AsyncCountingAndForcingConfig<_JustHeaders>;
+                        var configUnpin = config as AsyncInstrumentedPinConfig<_JustHeaders>;
+                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+
+                        await using (var str = await getReader("Foo"))
+                        await using (configUnpin?.CreateAsyncReader(str))
                         {
-                            using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                            var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
+                            using var charLookup = CharacterLookup.MakeCharacterLookup(cInner.MemoryPool, cInner.EscapedValueStartAndStop, cInner.ValueSeparator, cInner.EscapeValueEscapeChar, cInner.CommentChar, out _);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner,  charLookup, str, MakeBuffer());
+
+                            if (configForced != null)
+                            {
+                                configForced.Set(reader);
+                            }
+
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("Foo", new string(i.Span)));
                             Assert.True(res.IsHeader);
@@ -585,14 +658,26 @@ namespace Cesil.Tests
 
             // one, inexact
             {
-                await RunAsyncReaderVariants<_Foo>(
+                await RunAsyncReaderVariants<_JustHeaders>(
                     Options.Default,
-                    async (_, getReader) =>
+                    async (config, getReader) =>
                     {
-                        using (var str = getReader("Foo,fizz"))
+                        var configForced = config as AsyncCountingAndForcingConfig<_JustHeaders>;
+                        var configUnpin = config as AsyncInstrumentedPinConfig<_JustHeaders>;
+                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+
+                        await using (var str = await getReader("Foo,fizz"))
+                        await using (configUnpin?.CreateAsyncReader(str))
                         {
-                            using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                            var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
+                            using var charLookup = CharacterLookup.MakeCharacterLookup(cInner.MemoryPool, cInner.EscapedValueStartAndStop, cInner.ValueSeparator, cInner.EscapeValueEscapeChar, cInner.CommentChar, out _);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner,  charLookup, str, MakeBuffer());
+
+                            if (configForced != null)
+                            {
+                                configForced.Set(reader);
+                            }
+
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -604,14 +689,26 @@ namespace Cesil.Tests
                     }
                 );
 
-                await RunAsyncReaderVariants<_Foo>(
+                await RunAsyncReaderVariants<_JustHeaders>(
                     Options.Default,
-                    async (_, getReader) =>
+                    async (config, getReader) =>
                     {
-                        using (var str = getReader("fizz,Bar"))
+                        var configForced = config as AsyncCountingAndForcingConfig<_JustHeaders>;
+                        var configUnpin = config as AsyncInstrumentedPinConfig<_JustHeaders>;
+                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+
+                        await using (var str = await getReader("fizz,Bar"))
+                        await using (configUnpin?.CreateAsyncReader(str))
                         {
-                            using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                            var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
+                            using var charLookup = CharacterLookup.MakeCharacterLookup(cInner.MemoryPool, cInner.EscapedValueStartAndStop, cInner.ValueSeparator, cInner.EscapeValueEscapeChar, cInner.CommentChar, out _);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner,  charLookup, str, MakeBuffer());
+
+                            if (configForced != null)
+                            {
+                                configForced.Set(reader);
+                            }
+
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -626,14 +723,26 @@ namespace Cesil.Tests
 
             // two, exact
             {
-                await RunAsyncReaderVariants<_Foo>(
+                await RunAsyncReaderVariants<_JustHeaders>(
                     Options.Default,
-                    async (_, getReader) =>
+                    async (config, getReader) =>
                     {
-                        using (var str = getReader("Foo,Bar"))
+                        var configForced = config as AsyncCountingAndForcingConfig<_JustHeaders>;
+                        var configUnpin = config as AsyncInstrumentedPinConfig<_JustHeaders>;
+                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+
+                        await using (var str = await getReader("Foo,Bar"))
+                        await using (configUnpin?.CreateAsyncReader(str))
                         {
-                            using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                            var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
+                            using var charLookup = CharacterLookup.MakeCharacterLookup(cInner.MemoryPool, cInner.EscapedValueStartAndStop, cInner.ValueSeparator, cInner.EscapeValueEscapeChar, cInner.CommentChar, out _);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner,  charLookup, str, MakeBuffer());
+
+                            if (configForced != null)
+                            {
+                                configForced.Set(reader);
+                            }
+
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -645,14 +754,26 @@ namespace Cesil.Tests
                     }
                 );
 
-                await RunAsyncReaderVariants<_Foo>(
+                await RunAsyncReaderVariants<_JustHeaders>(
                     Options.Default,
-                    async (_, getReader) =>
+                    async (config, getReader) =>
                     {
-                        using (var str = getReader("Bar,Foo"))
+                        var configForced = config as AsyncCountingAndForcingConfig<_JustHeaders>;
+                        var configUnpin = config as AsyncInstrumentedPinConfig<_JustHeaders>;
+                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+
+                        await using (var str = await getReader("Bar,Foo"))
+                        await using (configUnpin?.CreateAsyncReader(str))
                         {
-                            using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                            var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
+                            using var charLookup = CharacterLookup.MakeCharacterLookup(cInner.MemoryPool, cInner.EscapedValueStartAndStop, cInner.ValueSeparator, cInner.EscapeValueEscapeChar, cInner.CommentChar, out _);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner,  charLookup, str, MakeBuffer());
+
+                            if (configForced != null)
+                            {
+                                configForced.Set(reader);
+                            }
+
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -667,14 +788,26 @@ namespace Cesil.Tests
 
             // two, inexact
             {
-                await RunAsyncReaderVariants<_Foo>(
+                await RunAsyncReaderVariants<_JustHeaders>(
                     Options.Default,
-                    async (_, getReader) =>
+                    async (config, getReader) =>
                     {
-                        using (var str = getReader("Foo,Bar,Fizz"))
+                        var configForced = config as AsyncCountingAndForcingConfig<_JustHeaders>;
+                        var configUnpin = config as AsyncInstrumentedPinConfig<_JustHeaders>;
+                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+
+                        await using (var str = await getReader("Foo,Bar,Fizz"))
+                        await using (configUnpin?.CreateAsyncReader(str))
                         {
-                            using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                            var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
+                            using var charLookup = CharacterLookup.MakeCharacterLookup(cInner.MemoryPool, cInner.EscapedValueStartAndStop, cInner.ValueSeparator, cInner.EscapeValueEscapeChar, cInner.CommentChar, out _);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner,  charLookup, str, MakeBuffer());
+
+                            if (configForced != null)
+                            {
+                                configForced.Set(reader);
+                            }
+
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -687,14 +820,26 @@ namespace Cesil.Tests
                     }
                 );
 
-                await RunAsyncReaderVariants<_Foo>(
+                await RunAsyncReaderVariants<_JustHeaders>(
                     Options.Default,
-                    async (_, getReader) =>
+                    async (config, getReader) =>
                     {
-                        using (var str = getReader("Bar,Fizz,Foo"))
+                        var configForced = config as AsyncCountingAndForcingConfig<_JustHeaders>;
+                        var configUnpin = config as AsyncInstrumentedPinConfig<_JustHeaders>;
+                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+
+                        await using (var str = await getReader("Bar,Fizz,Foo"))
+                        await using (configUnpin?.CreateAsyncReader(str))
                         {
-                            using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                            var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
+                            using var charLookup = CharacterLookup.MakeCharacterLookup(cInner.MemoryPool, cInner.EscapedValueStartAndStop, cInner.ValueSeparator, cInner.EscapeValueEscapeChar, cInner.CommentChar, out _);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner,  charLookup, str, MakeBuffer());
+
+                            if (configForced != null)
+                            {
+                                configForced.Set(reader);
+                            }
+
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -736,12 +881,22 @@ namespace Cesil.Tests
                 Options.Default,
                 async (config, makeReader) =>
                 {
-                    var c = (ConcreteBoundConfiguration<_ManyHeaders>)((config as AsyncCountingAndForcingConfig<_ManyHeaders>)?.Inner ?? config);
+                    var forcedConfig = config as AsyncCountingAndForcingConfig<_ManyHeaders>;
+                    var configUnpin = config as AsyncInstrumentedPinConfig<_ManyHeaders>;
+                    var c = (ConcreteBoundConfiguration<_ManyHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? config);
 
-                    using (var str = makeReader(csv))
+                    await using (var str = await makeReader(csv))
+                    await using (configUnpin?.CreateAsyncReader(str))
                     {
-                        using var charLookup = ReaderStateMachine.MakeCharacterLookup(c.MemoryPool, c.EscapedValueStartAndStop, c.ValueSeparator, c.EscapeValueEscapeChar, c.CommentChar);
-                        using var reader = new HeadersReader<_ManyHeaders>(c, charLookup, str, MakeBuffer());
+                        var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
+                        using var charLookup = CharacterLookup.MakeCharacterLookup(c.MemoryPool, c.EscapedValueStartAndStop, c.ValueSeparator, c.EscapeValueEscapeChar, c.CommentChar, out _);
+                        using var reader = new HeadersReader<_ManyHeaders>(stateMachine, c, charLookup, str, MakeBuffer());
+
+                        if(forcedConfig != null)
+                        {
+                            forcedConfig.Set(reader);
+                        }
+
                         var res = await reader.ReadAsync(default);
                         Assert.Collection(
                             ToEnumerable(res.Headers),
@@ -765,8 +920,6 @@ namespace Cesil.Tests
         [Fact]
         public async Task TrailingRecordsAsync()
         {
-            var config = (ConcreteBoundConfiguration<_JustHeaders>)Configuration.For<_JustHeaders>(Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).Build());
-
             var columns =
                 new[]
                 {
@@ -776,14 +929,26 @@ namespace Cesil.Tests
 
             // none
             {
-                await RunAsyncReaderVariants<_Foo>(
+                await RunAsyncReaderVariants<_JustHeaders>(
                     Options.Default,
-                    async (_, getReader) =>
+                    async (c, getReader) =>
                     {
-                        using (var str = getReader("fizz\r\n0\r\n"))
+                        var forcedConfig = c as AsyncCountingAndForcingConfig<_JustHeaders>;
+                        var configUnpin = c as AsyncInstrumentedPinConfig<_JustHeaders>;
+                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? c);
+
+                        await using (var str = await getReader("fizz\r\n0\r\n"))
+                        await using (configUnpin?.CreateAsyncReader(str))
                         {
-                            using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                            var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
+                            using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config,  charLookup, str, MakeBuffer());
+
+                            if(forcedConfig != null)
+                            {
+                                forcedConfig.Set(reader);
+                            }
+
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("fizz", new string(i.Span)));
                             Assert.False(res.IsHeader);
@@ -794,14 +959,26 @@ namespace Cesil.Tests
 
             // one, exact
             {
-                await RunAsyncReaderVariants<_Foo>(
+                await RunAsyncReaderVariants<_JustHeaders>(
                     Options.Default,
-                    async (_, getReader) =>
+                    async (c, getReader) =>
                     {
-                        using (var str = getReader("Foo\r\nfoo"))
+                        var forcedConfig = c as AsyncCountingAndForcingConfig<_JustHeaders>;
+                        var configUnpin = c as AsyncInstrumentedPinConfig<_JustHeaders>;
+                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? c);
+
+                        await using (var str = await getReader("Foo\r\nfoo"))
+                        await using (configUnpin?.CreateAsyncReader(str))
                         {
-                            using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                            var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
+                            using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config,  charLookup, str, MakeBuffer());
+
+                            if(forcedConfig != null)
+                            {
+                                forcedConfig.Set(reader);
+                            }
+
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("Foo", new string(i.Span)));
                             Assert.True(res.IsHeader);
@@ -812,14 +989,26 @@ namespace Cesil.Tests
 
             // one, inexact
             {
-                await RunAsyncReaderVariants<_Foo>(
+                await RunAsyncReaderVariants<_JustHeaders>(
                     Options.Default,
-                    async (_, getReader) =>
+                    async (c, getReader) =>
                     {
-                        using (var str = getReader("Foo,fizz\r\n1,2"))
+                        var forcedConfig = c as AsyncCountingAndForcingConfig<_JustHeaders>;
+                        var configUnpin = c as AsyncInstrumentedPinConfig<_JustHeaders>;
+                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? c);
+
+                        await using (var str = await getReader("Foo,fizz\r\n1,2"))
+                        await using (configUnpin?.CreateAsyncReader(str))
                         {
-                            using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                            var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
+                            using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config,  charLookup, str, MakeBuffer());
+
+                            if(forcedConfig != null)
+                            {
+                                forcedConfig.Set(reader);
+                            }
+
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -831,14 +1020,26 @@ namespace Cesil.Tests
                     }
                 );
 
-                await RunAsyncReaderVariants<_Foo>(
+                await RunAsyncReaderVariants<_JustHeaders>(
                     Options.Default,
-                    async (_, getReader) =>
+                    async (c, getReader) =>
                     {
-                        using (var str = getReader("fizz,Bar\r\n2,blah\r\n"))
+                        var forcedConfig = c as AsyncCountingAndForcingConfig<_JustHeaders>;
+                        var configUnpin = c as AsyncInstrumentedPinConfig<_JustHeaders>;
+                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? c);
+
+                        await using (var str = await getReader("fizz,Bar\r\n2,blah\r\n"))
+                        await using (configUnpin?.CreateAsyncReader(str))
                         {
-                            using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                            var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
+                            using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config,  charLookup, str, MakeBuffer());
+
+                            if(forcedConfig != null)
+                            {
+                                forcedConfig.Set(reader);
+                            }
+
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -853,14 +1054,26 @@ namespace Cesil.Tests
 
             // two, exact
             {
-                await RunAsyncReaderVariants<_Foo>(
+                await RunAsyncReaderVariants<_JustHeaders>(
                     Options.Default,
-                    async (_, getReader) =>
+                    async (c, getReader) =>
                     {
-                        using (var str = getReader("Foo,Bar\r\nwhatever,something"))
+                        var forcedConfig = c as AsyncCountingAndForcingConfig<_JustHeaders>;
+                        var configUnpin = c as AsyncInstrumentedPinConfig<_JustHeaders>;
+                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? c);
+
+                        await using (var str = await getReader("Foo,Bar\r\nwhatever,something"))
+                        await using (configUnpin?.CreateAsyncReader(str))
                         {
-                            using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                            var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
+                            using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config,  charLookup, str, MakeBuffer());
+
+                            if(forcedConfig != null)
+                            {
+                                forcedConfig.Set(reader);
+                            }
+
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -872,14 +1085,26 @@ namespace Cesil.Tests
                     }
                 );
 
-                await RunAsyncReaderVariants<_Foo>(
+                await RunAsyncReaderVariants<_JustHeaders>(
                     Options.Default,
-                    async (_, getReader) =>
+                    async (c, getReader) =>
                     {
-                        using (var str = getReader("Bar,Foo\r\n3,4"))
+                        var forcedConfig = c as AsyncCountingAndForcingConfig<_JustHeaders>;
+                        var configUnpin = c as AsyncInstrumentedPinConfig<_JustHeaders>;
+                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? c);
+
+                        await using (var str = await getReader("Bar,Foo\r\n3,4"))
+                        await using (configUnpin?.CreateAsyncReader(str))
                         {
-                            using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                            var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
+                            using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config,  charLookup, str, MakeBuffer());
+
+                            if(forcedConfig != null)
+                            {
+                                forcedConfig.Set(reader);
+                            }
+
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -894,14 +1119,26 @@ namespace Cesil.Tests
 
             // two, inexact
             {
-                await RunAsyncReaderVariants<_Foo>(
+                await RunAsyncReaderVariants<_JustHeaders>(
                     Options.Default,
-                    async (_, getReader) =>
+                    async (c, getReader) =>
                     {
-                        using (var str = getReader("Foo,Bar,Fizz\r\na,b,c\r\n"))
+                        var forcedConfig = c as AsyncCountingAndForcingConfig<_JustHeaders>;
+                        var configUnpin = c as AsyncInstrumentedPinConfig<_JustHeaders>;
+                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? c);
+
+                        await using (var str = await getReader("Foo,Bar,Fizz\r\na,b,c\r\n"))
+                        await using (configUnpin?.CreateAsyncReader(str))
                         {
-                            using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                            var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
+                            using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config,  charLookup, str, MakeBuffer());
+
+                            if(forcedConfig != null)
+                            {
+                                forcedConfig.Set(reader);
+                            }
+
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),
@@ -914,14 +1151,26 @@ namespace Cesil.Tests
                     }
                 );
 
-                await RunAsyncReaderVariants<_Foo>(
+                await RunAsyncReaderVariants<_JustHeaders>(
                     Options.Default,
-                    async (_, getReader) =>
+                    async (c, getReader) =>
                     {
-                        using (var str = getReader("Bar,Fizz,Foo\r\n1,2,3"))
+                        var forcedConfig = c as AsyncCountingAndForcingConfig<_JustHeaders>;
+                        var configUnpin = c as AsyncInstrumentedPinConfig<_JustHeaders>;
+                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? c);
+
+                        await using (var str = await getReader("Bar,Fizz,Foo\r\n1,2,3"))
+                        await using (configUnpin?.CreateAsyncReader(str))
                         {
-                            using var charLookup = ReaderStateMachine.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar);
-                            using var reader = new HeadersReader<_JustHeaders>(config, charLookup, str, MakeBuffer());
+                            var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
+                            using var charLookup = CharacterLookup.MakeCharacterLookup(config.MemoryPool, config.EscapedValueStartAndStop, config.ValueSeparator, config.EscapeValueEscapeChar, config.CommentChar, out _);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config,  charLookup, str, MakeBuffer());
+
+                            if(forcedConfig != null)
+                            {
+                                forcedConfig.Set(reader);
+                            }
+
                             var res = await reader.ReadAsync(CancellationToken.None);
                             Assert.Collection(
                                 ToEnumerable(res.Headers),

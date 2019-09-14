@@ -1,6 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 
+using static Cesil.DisposableHelper;
+
 namespace Cesil
 {
     internal sealed class Enumerator<T> : IEnumerator<T>, ITestableDisposable
@@ -14,7 +16,7 @@ namespace Cesil
         {
             get
             {
-                AssertNotDisposed();
+                AssertNotDisposed(this);
 
                 return _Current;
             }
@@ -29,24 +31,16 @@ namespace Cesil
 
         public bool MoveNext()
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             return Reader.TryRead(out _Current);
         }
 
         public void Reset()
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
-            Throw.NotSupportedException(nameof(Enumerator<T>), nameof(Reset));
-        }
-
-        public void AssertNotDisposed()
-        {
-            if (IsDisposed)
-            {
-                Throw.ObjectDisposedException(nameof(Enumerator<T>));
-            }
+            Throw.NotSupportedException<object>(nameof(Enumerator<T>), nameof(Reset));
         }
 
         public void Dispose()

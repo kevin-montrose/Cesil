@@ -17,7 +17,6 @@ namespace Cesil.Tests
     {
         private delegate bool Parse<T>(ReadOnlySpan<char> foo, in ReadContext ctx, out T val);
 
-
         private enum _TestEnum
         {
             None = 0,
@@ -1156,35 +1155,6 @@ namespace Cesil.Tests
                 a => Assert.False(a.IsRequired),
                 a => Assert.False(a.IsRequired)
             );
-        }
-
-        private class CharWriter : IBufferWriter<char>
-        {
-            private readonly PipeWriter Inner;
-
-            public CharWriter(PipeWriter inner)
-            {
-                Inner = inner;
-            }
-
-            public void Advance(int count)
-            => Inner.Advance(count * sizeof(char));
-
-            public Memory<char> GetMemory(int sizeHint = 0)
-            {
-                throw new NotImplementedException();
-            }
-
-            public Span<char> GetSpan(int sizeHint = 0)
-            {
-                var bytes = Inner.GetSpan(sizeHint * sizeof(char));
-                var chars = MemoryMarshal.Cast<byte, char>(bytes);
-
-                return chars;
-            }
-
-            public ValueTask<FlushResult> FlushAsync()
-            => Inner.FlushAsync();
         }
 
         [Fact]
@@ -2876,6 +2846,81 @@ namespace Cesil.Tests
                     await writer.FlushAsync();
 
                     Assert.False(reader.TryRead(out _));
+                }
+            }
+        }
+
+        class _Formatter_Failable : IBufferWriter<char>
+        {
+            private readonly char[] Buffer;
+
+            public _Formatter_Failable(int maxSize)
+            {
+                Buffer = new char[maxSize];
+            }
+
+            public void Advance(int count)
+            {
+                Array.Clear(Buffer, 0, Buffer.Length);
+            }
+
+            public Memory<char> GetMemory(int sizeHint = 0)
+            => Buffer.AsMemory();
+
+            public Span<char> GetSpan(int sizeHint = 0)
+            => GetMemory(sizeHint).Span;
+        }
+
+        [Fact]
+        public void Formatter_FailableDefaults()
+        {
+            // uri
+            {
+                var a = new Uri("https://example.com/");
+                var needed = a.ToString().Length;
+                var mtd = Formatter.GetDefault(typeof(Uri).GetTypeInfo()).Method;
+
+                for (var i = 0; i < needed; i++)
+                {
+                    var res = (bool)mtd.Invoke(null, new object[] { a, default(WriteContext), new _Formatter_Failable(i) });
+                    Assert.False(res);
+                }
+
+                var nullRes = (bool)mtd.Invoke(null, new object[] { null, default(WriteContext), new _Formatter_Failable(10) });
+                Assert.False(nullRes);
+            }
+
+            // bool
+            {
+                var a = true;
+                var needed = a.ToString().Length;
+                var mtd = Formatter.GetDefault(typeof(bool).GetTypeInfo()).Method;
+
+                for (var i = 0; i < needed; i++)
+                {
+                    var res = (bool)mtd.Invoke(null, new object[] { a, default(WriteContext), new _Formatter_Failable(i) });
+                    Assert.False(res);
+                }
+
+                var b = false;
+                needed = b.ToString().Length;
+                for (var i = 0; i < needed; i++)
+                {
+                    var res = (bool)mtd.Invoke(null, new object[] { b, default(WriteContext), new _Formatter_Failable(i) });
+                    Assert.False(res);
+                }
+            }
+
+            // char
+            {
+                var a = 'c';
+                var needed = 1;
+                var mtd = Formatter.GetDefault(typeof(char).GetTypeInfo()).Method;
+
+                for (var i = 0; i < needed; i++)
+                {
+                    var res = (bool)mtd.Invoke(null, new object[] { a, default(WriteContext), new _Formatter_Failable(i) });
+                    Assert.False(res);
                 }
             }
         }

@@ -14,39 +14,462 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class WriterTests
     {
-        [Fact]
-        public void WriteContext()
+        private sealed class _FailingGetter
         {
-            var dc = Cesil.WriteContext.DiscoveringCells(1, null);
-            Assert.True(dc.HasRowNumber);
-            Assert.Equal(1, dc.RowNumber);
-            Assert.False(dc.HasColumn);
-            Assert.Throws<InvalidOperationException>(() => dc.Column);
-            Assert.True(HashAndEq(dc, dc));
+            public int Foo { get; set; }
+        }
 
-            var dcol = Cesil.WriteContext.DiscoveringColumns(null);
-            Assert.False(dcol.HasRowNumber);
-            Assert.Throws<InvalidOperationException>(() => dcol.RowNumber);
-            Assert.False(dcol.HasColumn);
-            Assert.Throws<InvalidOperationException>(() => dcol.Column);
-            Assert.True(HashAndEq(dcol, dcol));
-            Assert.False(HashAndEq(dc, dcol));
+        [Fact]
+        public void FailingGetter()
+        {
+            var m = new ManualTypeDescriber(ManualTypeDescriberFallbackBehavior.UseDefault);
+            var t = typeof(_FailingGetter).GetTypeInfo();
+            var g = Getter.ForMethod(t.GetProperty(nameof(_FailingGetter.Foo)).GetMethod);
+            var f = Formatter.ForDelegate((int value, in WriteContext context, IBufferWriter<char> buffer) => false);
 
-            var wc = Cesil.WriteContext.WritingColumn(2, ColumnIdentifier.Create(2, "foo"), null);
-            Assert.True(wc.HasRowNumber);
-            Assert.Equal(2, wc.RowNumber);
-            Assert.True(wc.HasColumn);
-            Assert.Equal(ColumnIdentifier.Create(2, "foo"), wc.Column);
-            Assert.True(HashAndEq(wc, wc));
-            Assert.False(HashAndEq(dc, wc));
-            Assert.False(HashAndEq(dcol, wc));
+            m.SetBuilder(InstanceBuilder.ForDelegate((out _FailingGetter val) => { val = new _FailingGetter(); return true; }));
+            m.AddExplicitGetter(t, "bar", g, f);
 
-            static bool HashAndEq<T>(T a, T b)
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(m).Build();
+
+            RunSyncWriterVariants<_FailingGetter>(
+                opts,
+                (config, getWriter, getStr) =>
+                {
+                    using (var w = getWriter())
+                    using (var csv = config.CreateWriter(w))
+                    {
+                        Assert.Throws<SerializationException>(() => csv.Write(new _FailingGetter()));
+                    }
+
+                    var res = getStr();
+                    Assert.Equal("bar\r\n", res);
+                }
+            );
+        }
+
+        class _SerializableMemberDefaults
+        {
+            public int Prop { get; set; }
+#pragma warning disable CS0649
+            public string Field;
+#pragma warning restore CS0649
+        }
+
+        [Fact]
+        public void SerializableMemberHelpers()
+        {
+            // fields
             {
-                var h = a.GetHashCode() == b.GetHashCode();
-                var e = a.Equals(b);
+                var f = typeof(_SerializableMemberDefaults).GetField(nameof(_SerializableMemberDefaults.Field));
 
-                return h && e;
+                // 1
+                {
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForField(null));
+
+                    var s1 = SerializableMember.ForField(f);
+                    Assert.True(s1.EmitDefaultValue);
+                    Assert.Equal(Formatter.GetDefault(typeof(string).GetTypeInfo()), s1.Formatter);
+                    Assert.Equal(Getter.ForField(f), s1.Getter);
+                    Assert.Equal("Field", s1.Name);
+                    Assert.Null(s1.ShouldSerialize);
+                }
+
+                // 2
+                {
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForField(null, "Nope"));
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForField(f, null));
+
+                    var s2 = SerializableMember.ForField(f, "Nope");
+                    Assert.True(s2.EmitDefaultValue);
+                    Assert.Equal(Formatter.GetDefault(typeof(string).GetTypeInfo()), s2.Formatter);
+                    Assert.Equal(Getter.ForField(f), s2.Getter);
+                    Assert.Equal("Nope", s2.Name);
+                    Assert.Null(s2.ShouldSerialize);
+                }
+
+                var formatter =
+                    Formatter.ForDelegate(
+                        (string val, in WriteContext ctx, IBufferWriter<char> buffer) =>
+                        {
+                            return true;
+                        }
+                    );
+                
+                // 3
+                {
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForField(null, "Yep", formatter));
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForField(f, null, formatter));
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForField(f, "Yep", null));
+
+                    var s3 = SerializableMember.ForField(f, "Yep", formatter);
+                    Assert.True(s3.EmitDefaultValue);
+                    Assert.Equal(formatter, s3.Formatter);
+                    Assert.Equal(Getter.ForField(f), s3.Getter);
+                    Assert.Equal("Yep", s3.Name);
+                    Assert.Null(s3.ShouldSerialize);
+                }
+
+                var shouldSerialize =
+                    Cesil.ShouldSerialize.ForDelegate(
+                        () => true
+                    );
+
+                // 4
+                {
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForField(null, "Yep", formatter, shouldSerialize));
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForField(f, null, formatter, shouldSerialize));
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForField(f, "Yep", null, shouldSerialize));
+                    // it's ok if shouldSerialize == null
+
+                    var s4 = SerializableMember.ForField(f, "Fizz", formatter, shouldSerialize);
+                    Assert.True(s4.EmitDefaultValue);
+                    Assert.Equal(formatter, s4.Formatter);
+                    Assert.Equal(Getter.ForField(f), s4.Getter);
+                    Assert.Equal("Fizz", s4.Name);
+                    Assert.Equal(shouldSerialize, s4.ShouldSerialize);
+                }
+
+                // 5
+                {
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForField(null, "Yep", formatter, shouldSerialize, WillEmitDefaultValue.Yes));
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForField(f, null, formatter, shouldSerialize, WillEmitDefaultValue.Yes));
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForField(f, "Yep", null, shouldSerialize, WillEmitDefaultValue.Yes));
+                    // it's ok if shouldSerialize == null
+                    // bad values for WillEmitDefaultValue are tested elsewhere
+
+                    var s5 = SerializableMember.ForField(f, "Buzz", formatter, shouldSerialize, WillEmitDefaultValue.No);
+                    Assert.False(s5.EmitDefaultValue);
+                    Assert.Equal(formatter, s5.Formatter);
+                    Assert.Equal(Getter.ForField(f), s5.Getter);
+                    Assert.Equal("Buzz", s5.Name);
+                    Assert.Equal(shouldSerialize, s5.ShouldSerialize);
+                }
+            }
+
+            // property
+            {
+                var p = typeof(_SerializableMemberDefaults).GetProperty(nameof(_SerializableMemberDefaults.Prop));
+
+                // 1
+                {
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForProperty(null));
+
+                    var s1 = SerializableMember.ForProperty(p);
+                    Assert.True(s1.EmitDefaultValue);
+                    Assert.Equal(Formatter.GetDefault(typeof(int).GetTypeInfo()), s1.Formatter);
+                    Assert.Equal((Getter)p.GetMethod, s1.Getter);
+                    Assert.Equal("Prop", s1.Name);
+                    Assert.Null(s1.ShouldSerialize);
+                }
+
+                // 2
+                {
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForProperty(null, "Hello"));
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForProperty(p, null));
+
+                    var s2 = SerializableMember.ForProperty(p, "Hello");
+                    Assert.True(s2.EmitDefaultValue);
+                    Assert.Equal(Formatter.GetDefault(typeof(int).GetTypeInfo()), s2.Formatter);
+                    Assert.Equal((Getter)p.GetMethod, s2.Getter);
+                    Assert.Equal("Hello", s2.Name);
+                    Assert.Null(s2.ShouldSerialize);
+                }
+
+                var formatter =
+                    Formatter.ForDelegate(
+                        (int val, in WriteContext ctx, IBufferWriter<char> buffer) =>
+                        {
+                            return true;
+                        }
+                    );
+
+                // 3
+                {
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForProperty(null, "World", formatter));
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForProperty(p, null, formatter));
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForProperty(p, "World", null));
+
+                    var s3 = SerializableMember.ForProperty(p, "World", formatter);
+                    Assert.True(s3.EmitDefaultValue);
+                    Assert.Equal(formatter, s3.Formatter);
+                    Assert.Equal((Getter)p.GetMethod, s3.Getter);
+                    Assert.Equal("World", s3.Name);
+                    Assert.Null(s3.ShouldSerialize);
+                }
+
+                var shouldSerialize =
+                    Cesil.ShouldSerialize.ForDelegate(
+                        () => true
+                    );
+
+                // 4
+                {
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForProperty(null, "Blogo", formatter, shouldSerialize));
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForProperty(p, null, formatter, shouldSerialize));
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForProperty(p, "Blogo", null, shouldSerialize));
+                    // it's ok if shouldSerialize == null
+
+                    var s4 = SerializableMember.ForProperty(p, "Blogo", formatter, shouldSerialize);
+                    Assert.True(s4.EmitDefaultValue);
+                    Assert.Equal(formatter, s4.Formatter);
+                    Assert.Equal((Getter)p.GetMethod, s4.Getter);
+                    Assert.Equal("Blogo", s4.Name);
+                    Assert.Equal(shouldSerialize, s4.ShouldSerialize);
+                }
+
+                // 5
+                {
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForProperty(null, "Blogo", formatter, shouldSerialize, WillEmitDefaultValue.Yes));
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForProperty(p, null, formatter, shouldSerialize, WillEmitDefaultValue.Yes));
+                    Assert.Throws<ArgumentNullException>(() => SerializableMember.ForProperty(p, "Blogo", null, shouldSerialize, WillEmitDefaultValue.Yes));
+                    // it's ok if shouldSerialize == null
+                    // bad values for WillEmitDefaultValue are tested elsewhere
+
+                    var s5 = SerializableMember.ForProperty(p, "Sphere", formatter, shouldSerialize, WillEmitDefaultValue.No);
+                    Assert.False(s5.EmitDefaultValue);
+                    Assert.Equal(formatter, s5.Formatter);
+                    Assert.Equal((Getter)p.GetMethod, s5.Getter);
+                    Assert.Equal("Sphere", s5.Name);
+                    Assert.Equal(shouldSerialize, s5.ShouldSerialize);
+                }
+            }
+        }
+
+        [Fact]
+        public void SerializableMemberEquality()
+        {
+            var t = typeof(WriterTests).GetTypeInfo();
+
+            var emitDefaults = new[] { WillEmitDefaultValue.Yes, WillEmitDefaultValue.No };
+            IEnumerable<Formatter> formatters;
+            {
+                var a = (Formatter)(FormatterDelegate<int>)_Formatter;
+                var b = Formatter.GetDefault(typeof(int).GetTypeInfo());
+
+                formatters = new[] { a, b };
+            }
+            IEnumerable<Getter> getters;
+            {
+                var a = (Getter)(StaticGetterDelegate<int>)(() => 1);
+                var b = (Getter)(StaticGetterDelegate<int>)(() => 2);
+
+                getters = new[] { a, b };
+            }
+            var names = new[] { "foo", "bar" };
+            IEnumerable<Cesil.ShouldSerialize> shouldSerializes;
+            {
+                var a = (Cesil.ShouldSerialize)(StaticShouldSerializeDelegate)(() => true);
+                var b = (Cesil.ShouldSerialize)(StaticShouldSerializeDelegate)(() => false);
+                shouldSerializes = new[] { a, b, null };
+            }
+
+            var members = new List<SerializableMember>();
+            foreach (var e in emitDefaults)
+            {
+                foreach (var f in formatters)
+                {
+                    foreach (var g in getters)
+                    {
+                        foreach (var n in names)
+                        {
+                            foreach (var s in shouldSerializes)
+                            {
+                                members.Add(SerializableMember.Create(t, n, g, f, s, e));
+                            }
+                        }
+                    }
+                }
+            }
+
+            var notSerializableMember = "";
+
+            for (var i = 0; i < members.Count; i++)
+            {
+                var m1 = members[i];
+
+                Assert.False(m1.Equals(notSerializableMember));
+
+                for (var j = i; j < members.Count; j++)
+                {
+
+                    var m2 = members[j];
+
+                    var eq = m1 == m2;
+                    var neq = m1 != m2;
+                    var hashEq = m1.GetHashCode() == m2.GetHashCode();
+                    var objEq = m1.Equals((object)m2);
+
+                    if(i == j)
+                    {
+                        Assert.True(eq);
+                        Assert.False(neq);
+                        Assert.True(hashEq);
+                        Assert.True(objEq);
+                    }
+                    else
+                    {
+                        Assert.False(eq);
+                        Assert.True(neq);
+                        Assert.False(objEq);
+                    }
+                }
+            }
+
+            static bool _Formatter(int v, in WriteContext wc, IBufferWriter<char> b)
+            {
+                return true;
+            }
+        }
+
+        class _SerializableMemberErrors
+        {
+#pragma warning disable CS0649
+            public int A;
+#pragma warning restore CS0649
+        }
+
+        class _SerializeMemberErrors_Unreleated
+        {
+            public bool ShouldSerializeA() { return true; }
+        }
+
+        [Fact]
+        public void SerializableMemberErrors()
+        {
+            var type = typeof(_SerializableMemberErrors).GetTypeInfo();
+            Assert.NotNull(type);
+            var getter = Getter.ForField(typeof(_SerializableMemberErrors).GetField(nameof(_SerializableMemberErrors.A)));
+            Assert.NotNull(getter);
+            var formatter = Formatter.GetDefault(typeof(int).GetTypeInfo());
+            Assert.NotNull(formatter);
+
+            Assert.Throws<ArgumentNullException>(() => SerializableMember.Create(null, "foo", getter, formatter, null, WillEmitDefaultValue.Yes));
+            Assert.Throws<ArgumentNullException>(() => SerializableMember.Create(type, null, getter, formatter, null, WillEmitDefaultValue.Yes));
+            Assert.Throws<ArgumentNullException>(() => SerializableMember.Create(type, "foo", null, formatter, null, WillEmitDefaultValue.Yes));
+            Assert.Throws<ArgumentNullException>(() => SerializableMember.Create(type, "foo", getter, null, null, WillEmitDefaultValue.Yes));
+            Assert.Throws<InvalidOperationException>(() => SerializableMember.Create(type, "foo", getter, formatter, null, 0));
+
+            var shouldSerialize = (ShouldSerialize)typeof(_SerializeMemberErrors_Unreleated).GetMethod(nameof(_SerializeMemberErrors_Unreleated.ShouldSerializeA));
+            Assert.NotNull(shouldSerialize);
+
+            Assert.Throws<ArgumentException>(() => SerializableMember.Create(type, "foo", getter, formatter, shouldSerialize, WillEmitDefaultValue.Yes));
+        }
+
+        class _LotsOfComments
+        {
+            public string Hello { get; set; }
+        }
+
+        [Fact]
+        public void LotsOfComments()
+        {
+            var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+
+            RunSyncWriterVariants<_LotsOfComments>(
+                opts,
+                (config, getWriter, getStr) =>
+                {
+                    var cs = string.Join("\r\n", Enumerable.Repeat("foo", 1_000));
+
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
+                    {
+                        csv.WriteComment(cs);
+                    }
+
+                    var str = getStr();
+                    var expected = nameof(_LotsOfComments.Hello) + "\r\n" + string.Join("\r\n", Enumerable.Repeat("#foo", 1_000));
+                    Assert.Equal(expected, str);
+                }
+            );
+        }
+
+        class _NullCommentError
+        {
+            public string Foo { get; set; }
+        }
+
+        [Fact]
+        public void NullCommentError()
+        {
+            RunSyncWriterVariants<_NullCommentError>(
+                Options.Default,
+                (config, getWriter, getStr) =>
+                {
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
+                    {
+                        Assert.Throws<ArgumentNullException>(() => csv.WriteComment(null));
+                    }
+
+                    var _ = getStr();
+                    Assert.NotNull(_);
+                }
+            );
+        }
+
+        [Fact]
+        public void WriteContexts()
+        {
+            var dc1 = Cesil.WriteContext.DiscoveringCells(1, null);
+            var dc2 = Cesil.WriteContext.DiscoveringCells(1, "foo");
+
+            Assert.Equal(WriteContextMode.DiscoveringCells, dc1.Mode);
+            Assert.False(dc1.HasColumn);
+            Assert.True(dc1.HasRowNumber);
+            Assert.Equal(1, dc1.RowNumber);
+            Assert.Throws<InvalidOperationException>(() => dc1.Column);
+
+            var dcol1 = Cesil.WriteContext.DiscoveringColumns(null);
+            var dcol2 = Cesil.WriteContext.DiscoveringColumns("foo");
+            Assert.Equal(WriteContextMode.DiscoveringColumns, dcol1.Mode);
+            Assert.False(dcol1.HasRowNumber);
+            Assert.False(dcol1.HasColumn);
+            Assert.Throws<InvalidOperationException>(() => dcol1.RowNumber);
+            Assert.Throws<InvalidOperationException>(() => dcol1.Column);
+
+            var wc1 = Cesil.WriteContext.WritingColumn(1, ColumnIdentifier.Create(1), null);
+            var wc2 = Cesil.WriteContext.WritingColumn(1, ColumnIdentifier.Create(1), "foo");
+            var wc3 = Cesil.WriteContext.WritingColumn(1, ColumnIdentifier.Create(2), null);
+            var wc4 = Cesil.WriteContext.WritingColumn(2, ColumnIdentifier.Create(1), null);
+            Assert.Equal(WriteContextMode.WritingColumn, wc1.Mode);
+            Assert.True(wc1.HasColumn);
+            Assert.True(wc1.HasRowNumber);
+
+            var contexts = new[] { dc1, dc2, dcol1, dcol2, wc1, wc2, wc3, wc4 };
+
+            var notContext = "";
+
+            for (var i = 0; i < contexts.Length; i++)
+            {
+                var ctx1 = contexts[i];
+                Assert.False(ctx1.Equals(notContext));
+                Assert.NotNull(ctx1.ToString());
+
+                for (var j = i; j < contexts.Length; j++)
+                {
+                    var ctx2 = contexts[j];
+
+                    var eq = ctx1 == ctx2;
+                    var neq = ctx1 != ctx2;
+                    var hashEq = ctx1.GetHashCode() == ctx2.GetHashCode();
+                    var objEq = ctx1.Equals((object)ctx2);
+
+                    if (i == j)
+                    {
+                        Assert.True(eq);
+                        Assert.True(objEq);
+                        Assert.False(neq);
+                        Assert.True(hashEq);
+                    }
+                    else
+                    {
+                        Assert.False(eq);
+                        Assert.False(objEq);
+                        Assert.True(neq);
+                    }
+                }
             }
         }
 
@@ -1144,7 +1567,18 @@ namespace Cesil.Tests
         {
             _Context_FormatFoo_Records.Add($"{ctx.RowNumber},{ctx.Column.Name},{ctx.Column.Index},{data},{ctx.Context}");
 
-            writer.Write(data.AsSpan());
+            var span = data.AsSpan();
+
+            while (!span.IsEmpty)
+            {
+                var writeTo = writer.GetSpan(span.Length);
+                var len = Math.Min(span.Length, writeTo.Length);
+
+                span.Slice(0, len).CopyTo(writeTo);
+                writer.Advance(len);
+
+                span = span.Slice(len);
+            }
 
             return true;
         }
@@ -1166,7 +1600,7 @@ namespace Cesil.Tests
             var formatFoo = (Formatter)typeof(WriterTests).GetMethod(nameof(_Context_FormatFoo));
             var formatBar = (Formatter)typeof(WriterTests).GetMethod(nameof(_Context_FormatBar));
 
-            var describer = new ManualTypeDescriber(false);
+            var describer = new ManualTypeDescriber(ManualTypeDescriberFallbackBehavior.UseDefault);
             describer.SetBuilder((InstanceBuilder)typeof(_Context).GetConstructor(Type.EmptyTypes));
             describer.AddSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), formatFoo);
             describer.AddSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), formatBar);
@@ -2181,6 +2615,78 @@ namespace Cesil.Tests
         }
 
         [Fact]
+        public async Task FailingGetterAsync()
+        {
+            var m = new ManualTypeDescriber(ManualTypeDescriberFallbackBehavior.UseDefault);
+            var t = typeof(_FailingGetter).GetTypeInfo();
+            var g = Getter.ForMethod(t.GetProperty(nameof(_FailingGetter.Foo)).GetMethod);
+            var f = Formatter.ForDelegate((int value, in WriteContext context, IBufferWriter<char> buffer) => false);
+
+            m.SetBuilder(InstanceBuilder.ForDelegate((out _FailingGetter val) => { val = new _FailingGetter(); return true; }));
+            m.AddExplicitGetter(t, "bar", g, f);
+
+            var opts = Options.Default.NewBuilder().WithTypeDescriber(m).Build();
+
+            await RunAsyncWriterVariants<_FailingGetter>(
+                opts,
+                async (config, getWriter, getStr) =>
+                {
+                    await using (var w = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(w))
+                    {
+                        await Assert.ThrowsAsync<SerializationException>(async () => await csv.WriteAsync(new _FailingGetter()));
+                    }
+
+                    var res = await getStr();
+                    Assert.Equal("bar\r\n", res);
+                }
+            );
+        }
+
+        [Fact]
+        public async Task LotsOfCommentsAsync()
+        {
+            var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+
+            await RunAsyncWriterVariants<_LotsOfComments>(
+                opts,
+                async (config, getWriter, getStr) =>
+                {
+                    var cs = string.Join("\r\n", Enumerable.Repeat("foo", 1_000));
+
+                    await using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        await csv.WriteCommentAsync(cs);
+                    }
+
+                    var str = await getStr();
+                    var expected = nameof(_LotsOfComments.Hello) + "\r\n" + string.Join("\r\n", Enumerable.Repeat("#foo", 1_000));
+                    Assert.Equal(expected, str);
+                }
+            );
+        }
+
+        [Fact]
+        public async Task NullCommentErrorAsync()
+        {
+            await RunAsyncWriterVariants<_NullCommentError>(
+                Options.Default,
+                async (config, getWriter, getStr) =>
+                {
+                    await using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        await Assert.ThrowsAsync<ArgumentNullException>(async () => await csv.WriteCommentAsync(null));
+                    }
+
+                    var _ = await getStr();
+                    Assert.NotNull(_);
+                }
+            );
+        }
+
+        [Fact]
         public async Task WriteCommentAsync()
         {
             // no trailing new line
@@ -2194,13 +2700,13 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("#", res);
                         }
                     );
@@ -2210,13 +2716,13 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("hello");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("#hello", res);
                         }
                     );
@@ -2226,13 +2732,13 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("hello\r\nworld");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("#hello\r\n#world", res);
                         }
                     );
@@ -2247,13 +2753,13 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("Foo,Bar\r\n#", res);
                         }
                     );
@@ -2263,13 +2769,13 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("hello");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("Foo,Bar\r\n#hello", res);
                         }
                     );
@@ -2279,13 +2785,13 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("hello\r\nworld");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("Foo,Bar\r\n#hello\r\n#world", res);
                         }
                     );
@@ -2300,13 +2806,13 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("#", res);
                         }
                     );
@@ -2316,14 +2822,14 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
                                 await csv.WriteCommentAsync("hello");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("123,456\r\n#hello", res);
                         }
                     );
@@ -2333,14 +2839,14 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
                                 await csv.WriteCommentAsync("hello\r\nworld");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("123,456\r\n#hello\r\n#world", res);
                         }
                     );
@@ -2355,13 +2861,13 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("Foo,Bar\r\n#", res);
                         }
                     );
@@ -2371,14 +2877,14 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
                                 await csv.WriteCommentAsync("hello");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("Foo,Bar\r\n123,456\r\n#hello", res);
                         }
                     );
@@ -2388,14 +2894,14 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
                                 await csv.WriteCommentAsync("hello\r\nworld");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("Foo,Bar\r\n123,456\r\n#hello\r\n#world", res);
                         }
                     );
@@ -2410,13 +2916,13 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("#", res);
                         }
                     );
@@ -2426,14 +2932,14 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("hello");
                                 await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("#hello\r\n123,456", res);
                         }
                     );
@@ -2443,14 +2949,14 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("hello\r\nworld");
                                 await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("#hello\r\n#world\r\n123,456", res);
                         }
                     );
@@ -2465,13 +2971,13 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("Foo,Bar\r\n#", res);
                         }
                     );
@@ -2481,14 +2987,14 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("hello");
                                 await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("Foo,Bar\r\n#hello\r\n123,456", res);
                         }
                     );
@@ -2498,14 +3004,14 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("hello\r\nworld");
                                 await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("Foo,Bar\r\n#hello\r\n#world\r\n123,456", res);
                         }
                     );
@@ -2523,13 +3029,13 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("#\r\n", res);
                         }
                     );
@@ -2539,13 +3045,13 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("hello");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("#hello\r\n", res);
                         }
                     );
@@ -2555,13 +3061,13 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("hello\r\nworld");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("#hello\r\n#world\r\n", res);
                         }
                     );
@@ -2576,13 +3082,13 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("Foo,Bar\r\n#\r\n", res);
                         }
                     );
@@ -2592,13 +3098,13 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("hello");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("Foo,Bar\r\n#hello\r\n", res);
                         }
                     );
@@ -2608,13 +3114,13 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("hello\r\nworld");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("Foo,Bar\r\n#hello\r\n#world\r\n", res);
                         }
                     );
@@ -2629,13 +3135,13 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("#\r\n", res);
                         }
                     );
@@ -2645,14 +3151,14 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
                                 await csv.WriteCommentAsync("hello");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("123,456\r\n#hello\r\n", res);
                         }
                     );
@@ -2662,14 +3168,14 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
                                 await csv.WriteCommentAsync("hello\r\nworld");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("123,456\r\n#hello\r\n#world\r\n", res);
                         }
                     );
@@ -2684,13 +3190,13 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("Foo,Bar\r\n#\r\n", res);
                         }
                     );
@@ -2700,14 +3206,14 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
                                 await csv.WriteCommentAsync("hello");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("Foo,Bar\r\n123,456\r\n#hello\r\n", res);
                         }
                     );
@@ -2717,14 +3223,14 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
                                 await csv.WriteCommentAsync("hello\r\nworld");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("Foo,Bar\r\n123,456\r\n#hello\r\n#world\r\n", res);
                         }
                     );
@@ -2739,13 +3245,13 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("#\r\n", res);
                         }
                     );
@@ -2755,14 +3261,14 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("hello");
                                 await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("#hello\r\n123,456\r\n", res);
                         }
                     );
@@ -2772,14 +3278,14 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("hello\r\nworld");
                                 await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("#hello\r\n#world\r\n123,456\r\n", res);
                         }
                     );
@@ -2794,13 +3300,13 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("");
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("Foo,Bar\r\n#\r\n", res);
                         }
                     );
@@ -2810,14 +3316,14 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("hello");
                                 await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("Foo,Bar\r\n#hello\r\n123,456\r\n", res);
                         }
                     );
@@ -2827,14 +3333,14 @@ namespace Cesil.Tests
                         opts,
                         async (config, getWriter, getStr) =>
                         {
-                            using (var writer = getWriter())
+                            await using (var writer = getWriter())
                             await using (var csv = config.CreateAsyncWriter(writer))
                             {
                                 await csv.WriteCommentAsync("hello\r\nworld");
                                 await csv.WriteAsync(new _WriteComment { Foo = 123, Bar = 456 });
                             }
 
-                            var res = getStr();
+                            var res = await getStr();
                             Assert.Equal("Foo,Bar\r\n#hello\r\n#world\r\n123,456\r\n", res);
                         }
                     );
@@ -2872,7 +3378,7 @@ namespace Cesil.Tests
                 {
                     shouldSerializeCalled = 0;
 
-                    using (var writer = getWriter())
+                    await using (var writer = getWriter())
                     await using (var csv = config.CreateAsyncWriter(writer))
                     {
                         await csv.WriteAsync(new _DelegateShouldSerialize { Foo = 123 });
@@ -2880,7 +3386,7 @@ namespace Cesil.Tests
                         await csv.WriteAsync(new _DelegateShouldSerialize { Foo = 456 });
                     }
 
-                    var res = getStr();
+                    var res = await getStr();
                     Assert.Equal("Foo\r\n\r\n\r\n", res);
 
                     Assert.Equal(3, shouldSerializeCalled);
@@ -2918,7 +3424,7 @@ namespace Cesil.Tests
                 {
                     shouldSerializeCalled = 0;
 
-                    using (var writer = getWriter())
+                    await using (var writer = getWriter())
                     await using (var csv = config.CreateAsyncWriter(writer))
                     {
                         await csv.WriteAsync(new _DelegateShouldSerialize { Foo = 123 });
@@ -2926,7 +3432,7 @@ namespace Cesil.Tests
                         await csv.WriteAsync(new _DelegateShouldSerialize { Foo = 456 });
                     }
 
-                    var res = getStr();
+                    var res = await getStr();
                     Assert.Equal("Foo\r\n123\r\n\r\n", res);
 
                     Assert.Equal(3, shouldSerializeCalled);
@@ -2945,8 +3451,31 @@ namespace Cesil.Tests
 
                     var s = val.ToString();
 
-                    buffer.Write(s);
-                    buffer.Write(s);
+                    var span = s.AsSpan();
+                    while (!span.IsEmpty)
+                    {
+                        var writeTo = buffer.GetSpan(span.Length);
+                        var len = Math.Min(span.Length, writeTo.Length);
+
+                        var toWrite = span.Slice(0, len);
+                        toWrite.CopyTo(writeTo);
+                        buffer.Advance(len);
+
+                        span = span.Slice(len);
+                    }
+
+                    span = s.AsSpan();
+                    while (!span.IsEmpty)
+                    {
+                        var writeTo = buffer.GetSpan(span.Length);
+                        var len = Math.Min(span.Length, writeTo.Length);
+
+                        var toWrite = span.Slice(0, len);
+                        toWrite.CopyTo(writeTo);
+                        buffer.Advance(len);
+
+                        span = span.Slice(len);
+                    }
 
                     return true;
                 };
@@ -2968,7 +3497,7 @@ namespace Cesil.Tests
                 {
                     formatterCalled = 0;
 
-                    using (var writer = getWriter())
+                    await using (var writer = getWriter())
                     await using (var csv = config.CreateAsyncWriter(writer))
                     {
                         await csv.WriteAsync(new _DelegateFormatter { Foo = 123 });
@@ -2976,7 +3505,7 @@ namespace Cesil.Tests
                         await csv.WriteAsync(new _DelegateFormatter { Foo = 456 });
                     }
 
-                    var res = getStr();
+                    var res = await getStr();
                     Assert.Equal("Foo\r\n123123\r\n00\r\n456456", res);
 
                     Assert.Equal(3, formatterCalled);
@@ -3012,7 +3541,7 @@ namespace Cesil.Tests
                 {
                     getterCalled = 0;
 
-                    using (var writer = getWriter())
+                    await using (var writer = getWriter())
                     await using (var csv = config.CreateAsyncWriter(writer))
                     {
                         await csv.WriteAsync(new _DelegateGetter { Foo = 123 });
@@ -3020,7 +3549,7 @@ namespace Cesil.Tests
                         await csv.WriteAsync(new _DelegateGetter { Foo = 456 });
                     }
 
-                    var res = getStr();
+                    var res = await getStr();
                     Assert.Equal("Foo\r\n1\r\n2\r\n3", res);
 
                     Assert.Equal(3, getterCalled);
@@ -3056,7 +3585,7 @@ namespace Cesil.Tests
                 {
                     getterCalled = 0;
 
-                    using (var writer = getWriter())
+                    await using (var writer = getWriter())
                     await using (var csv = config.CreateAsyncWriter(writer))
                     {
                         await csv.WriteAsync(new _DelegateGetter { Foo = 123 });
@@ -3064,7 +3593,7 @@ namespace Cesil.Tests
                         await csv.WriteAsync(new _DelegateGetter { Foo = 456 });
                     }
 
-                    var res = getStr();
+                    var res = await getStr();
                     Assert.Equal("Foo\r\n246\r\n0\r\n912", res);
 
                     Assert.Equal(3, getterCalled);
@@ -3082,14 +3611,14 @@ namespace Cesil.Tests
                 opts,
                 async (config, getWriter, getStr) =>
                 {
-                    using (var writer = getWriter())
+                    await using (var writer = getWriter())
                     await using (var csv = config.CreateAsyncWriter(writer))
                     {
                         await csv.WriteAsync(new _UserDefinedEmitDefaultValue1 { Foo = "hello", Bar = default });
                         await csv.WriteAsync(new _UserDefinedEmitDefaultValue1 { Foo = "world", Bar = new _UserDefinedEmitDefaultValue_ValueType { Value = 2 } });
                     }
 
-                    var res = getStr();
+                    var res = await getStr();
                     Assert.Equal("Bar,Foo\r\n,hello\r\n2,world", res);
                 }
             );
@@ -3101,14 +3630,14 @@ namespace Cesil.Tests
                 {
                     _UserDefinedEmitDefaultValue_ValueType_Equatable.EqualsCallCount = 0;
 
-                    using (var writer = getWriter())
+                    await using (var writer = getWriter())
                     await using (var csv = config.CreateAsyncWriter(writer))
                     {
                         await csv.WriteAsync(new _UserDefinedEmitDefaultValue2 { Foo = "hello", Bar = default });
                         await csv.WriteAsync(new _UserDefinedEmitDefaultValue2 { Foo = "world", Bar = new _UserDefinedEmitDefaultValue_ValueType_Equatable { Value = 2 } });
                     }
 
-                    var res = getStr();
+                    var res = await getStr();
                     Assert.Equal("Bar,Foo\r\n,hello\r\n2,world", res);
                     Assert.Equal(2, _UserDefinedEmitDefaultValue_ValueType_Equatable.EqualsCallCount);
                 }
@@ -3121,14 +3650,14 @@ namespace Cesil.Tests
                 {
                     _UserDefinedEmitDefaultValue_ValueType_Operator.OperatorCallCount = 0;
 
-                    using (var writer = getWriter())
+                    await using (var writer = getWriter())
                     await using (var csv = config.CreateAsyncWriter(writer))
                     {
                         await csv.WriteAsync(new _UserDefinedEmitDefaultValue3 { Foo = "hello", Bar = default });
                         await csv.WriteAsync(new _UserDefinedEmitDefaultValue3 { Foo = "world", Bar = new _UserDefinedEmitDefaultValue_ValueType_Operator { Value = 2 } });
                     }
 
-                    var res = getStr();
+                    var res = await getStr();
                     Assert.Equal("Bar,Foo\r\n,hello\r\n2,world", res);
                     Assert.Equal(2, _UserDefinedEmitDefaultValue_ValueType_Operator.OperatorCallCount);
                 }
@@ -3141,7 +3670,7 @@ namespace Cesil.Tests
             var formatFoo = (Formatter)typeof(WriterTests).GetMethod(nameof(_Context_FormatFoo));
             var formatBar = (Formatter)typeof(WriterTests).GetMethod(nameof(_Context_FormatBar));
 
-            var describer = new ManualTypeDescriber(false);
+            var describer = new ManualTypeDescriber(ManualTypeDescriberFallbackBehavior.UseDefault);
             describer.SetBuilder((InstanceBuilder)typeof(_Context).GetConstructor(Type.EmptyTypes));
             describer.AddSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), formatFoo);
             describer.AddSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), formatBar);
@@ -3159,14 +3688,14 @@ namespace Cesil.Tests
                         _Context_FormatFoo_Records = new List<string>();
                         _Context_FormatBar_Records = new List<string>();
 
-                        using (var writer = getWriter())
+                        await using (var writer = getWriter())
                         await using (var csv = config.CreateAsyncWriter(writer, "context!"))
                         {
                             await csv.WriteAsync(new _Context { Bar = 123, Foo = "whatever" });
                             await csv.WriteAsync(new _Context { Bar = 456, Foo = "indeed" });
                         }
 
-                        var res = getStr();
+                        var res = await getStr();
                         Assert.Equal("whatever,123\r\nindeed,456", res);
 
                         Assert.Collection(
@@ -3195,14 +3724,14 @@ namespace Cesil.Tests
                         _Context_FormatFoo_Records = new List<string>();
                         _Context_FormatBar_Records = new List<string>();
 
-                        using (var writer = getWriter())
+                        await using (var writer = getWriter())
                         await using (var csv = config.CreateAsyncWriter(writer, "context!"))
                         {
                             await csv.WriteAsync(new _Context { Bar = 123, Foo = "whatever" });
                             await csv.WriteAsync(new _Context { Bar = 456, Foo = "indeed" });
                         }
 
-                        var res = getStr();
+                        var res = await getStr();
                         Assert.Equal("Foo,Bar\r\nwhatever,123\r\nindeed,456", res);
 
                         Assert.Collection(
@@ -3237,7 +3766,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _CommentEscape { A = "#hello", B = "foo" });
                         }
 
-                        var txt = getString();
+                        var txt = await getString();
                         Assert.Equal("\"#hello\",foo\r\n", txt);
                     }
                 );
@@ -3251,7 +3780,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _CommentEscape { A = "hello", B = "fo#o" });
                         }
 
-                        var txt = getString();
+                        var txt = await getString();
                         Assert.Equal("hello,\"fo#o\"\r\n", txt);
                     }
                 );
@@ -3270,7 +3799,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _CommentEscape { A = "#hello", B = "foo" });
                         }
 
-                        var txt = getString();
+                        var txt = await getString();
                         Assert.Equal("\"#hello\",foo\r", txt);
                     }
                 );
@@ -3284,7 +3813,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _CommentEscape { A = "hello", B = "fo#o" });
                         }
 
-                        var txt = getString();
+                        var txt = await getString();
                         Assert.Equal("hello,\"fo#o\"\r", txt);
                     }
                 );
@@ -3303,7 +3832,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _CommentEscape { A = "#hello", B = "foo" });
                         }
 
-                        var txt = getString();
+                        var txt = await getString();
                         Assert.Equal("\"#hello\",foo\n", txt);
                     }
                 );
@@ -3317,7 +3846,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _CommentEscape { A = "hello", B = "fo#o" });
                         }
 
-                        var txt = getString();
+                        var txt = await getString();
                         Assert.Equal("hello,\"fo#o\"\n", txt);
                     }
                 );
@@ -3341,7 +3870,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _EscapeHeaders { A = "ping", B = "pong", C = "no" });
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("\"hello\r\nworld\",\"foo,bar\",yup\r\nfizz,buzz,yes\r\nping,pong,no\r\n", txt);
                     }
                 );
@@ -3355,7 +3884,7 @@ namespace Cesil.Tests
                         {
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("\"hello\r\nworld\",\"foo,bar\",yup\r\n", txt);
                     }
                 );
@@ -3375,7 +3904,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _EscapeHeaders { A = "ping", B = "pong", C = "no" });
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("\"hello\r\nworld\",\"foo,bar\",yup\rfizz,buzz,yes\rping,pong,no\r", txt);
                     }
                 );
@@ -3389,7 +3918,7 @@ namespace Cesil.Tests
                         {
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("\"hello\r\nworld\",\"foo,bar\",yup\r", txt);
                     }
                 );
@@ -3409,7 +3938,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _EscapeHeaders { A = "ping", B = "pong", C = "no" });
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("\"hello\r\nworld\",\"foo,bar\",yup\nfizz,buzz,yes\nping,pong,no\n", txt);
                     }
                 );
@@ -3423,7 +3952,7 @@ namespace Cesil.Tests
                         {
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("\"hello\r\nworld\",\"foo,bar\",yup\n", txt);
                     }
                 );
@@ -3447,7 +3976,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _Headers { Foo = "foo", Bar = 789 });
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("Foo,Bar\r\nhello,123\r\nfoo,789", txt);
                     }
                 );
@@ -3461,7 +3990,7 @@ namespace Cesil.Tests
                         {
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("Foo,Bar", txt);
                     }
                 );
@@ -3481,7 +4010,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _Headers { Foo = "foo", Bar = 789 });
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("Foo,Bar\rhello,123\rfoo,789", txt);
                     }
                 );
@@ -3495,7 +4024,7 @@ namespace Cesil.Tests
                         {
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("Foo,Bar", txt);
                     }
                 );
@@ -3515,7 +4044,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _Headers { Foo = "foo", Bar = 789 });
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("Foo,Bar\nhello,123\nfoo,789", txt);
                     }
                 );
@@ -3529,7 +4058,7 @@ namespace Cesil.Tests
                         {
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("Foo,Bar", txt);
                     }
                 );
@@ -3552,7 +4081,7 @@ namespace Cesil.Tests
                         await writer.WriteAsync(row);
                     }
 
-                    var txt = getStr();
+                    var txt = await getStr();
                     Assert.Equal("Foo\r\n" + string.Join("", Enumerable.Repeat('c', 5_000)), txt);
                 }
             );
@@ -3568,7 +4097,7 @@ namespace Cesil.Tests
                         await writer.WriteAsync(row);
                     }
 
-                    var txt = getStr();
+                    var txt = await getStr();
                     Assert.Equal("Foo\r\n\"" + string.Join("", Enumerable.Repeat("d,", 5_000)) + "\"", txt);
                 }
             );
@@ -3584,7 +4113,7 @@ namespace Cesil.Tests
                         await writer.WriteAsync(row);
                     }
 
-                    var txt = getStr();
+                    var txt = await getStr();
                     Assert.Equal("Foo\r\n\"" + string.Join("", Enumerable.Repeat("foo\"\"bar", 1_000)) + "\"", txt);
                 }
             );
@@ -3608,7 +4137,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _Simple { Foo = "fizz\r\nbuzz", Bar = -12, Nope = 34 });
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("\"hello,world\",123,456\r\n\"foo\"\"bar\",789,\r\n\"fizz\r\nbuzz\",-12,34", txt);
                     }
                 );
@@ -3629,7 +4158,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _Simple { Foo = "fizz\r\nbuzz", Bar = -12, Nope = 34 });
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("\"hello,world\",123,456\r\"foo\"\"bar\",789,\r\"fizz\r\nbuzz\",-12,34", txt);
                     }
                 );
@@ -3650,7 +4179,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _Simple { Foo = "fizz\r\nbuzz", Bar = -12, Nope = 34 });
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("\"hello,world\",123,456\n\"foo\"\"bar\",789,\n\"fizz\r\nbuzz\",-12,34", txt);
                     }
                 );
@@ -3670,7 +4199,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _Simple { Foo = val, Bar = 001, Nope = 009 });
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("Foo,Bar,Nope\r\n\"abc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\nabc\r\n\",1,9", txt);
                     }
                 );
@@ -3701,7 +4230,7 @@ namespace Cesil.Tests
                         await csv.WriteAsync(new _ShouldSerialize { Foo = 10, Bar = "bonzai" });
                     }
 
-                    var txt = getStr();
+                    var txt = await getStr();
                     Assert.Equal("Foo,Bar\r\n,\r\n,world\r\n4,\r\n,buzz\r\n10,bonzai", txt);
                 }
             );
@@ -3728,7 +4257,7 @@ namespace Cesil.Tests
                         await csv.WriteAsync(new _StaticGetters(3));
                     }
 
-                    var str = getStr();
+                    var str = await getStr();
                     Assert.Equal("Bar,Fizz\r\n2,3\r\n2,4\r\n2,5", str);
                 }
             );
@@ -3751,7 +4280,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _Simple { Foo = null, Bar = 789, Nope = null });
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("hello,123,456\r\n,789,", txt);
                     }
                 );
@@ -3771,7 +4300,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _Simple { Foo = null, Bar = 789, Nope = null });
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("hello,123,456\n,789,", txt);
                     }
                 );
@@ -3791,7 +4320,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _Simple { Foo = null, Bar = 789, Nope = null });
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("hello,123,456\r,789,", txt);
                     }
                 );
@@ -3822,7 +4351,7 @@ namespace Cesil.Tests
                             );
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("Foo,Bar,Fizz,Buzz\r\nhello,123,5dc798f5-6477-4216-8567-9d17c05fa87e,1970-01-01 00:00:00Z\r\nhello,456,,1980-02-02 01:01:01Z\r\n,789,5dc798f5-6477-4216-8567-9d17c05fa87e,1990-03-03 02:02:02Z\r\n,12,,2000-04-04 03:03:03Z", txt);
                     }
                 );
@@ -3849,7 +4378,7 @@ namespace Cesil.Tests
                             );
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("Foo,Bar,Fizz,Buzz\rhello,123,5dc798f5-6477-4216-8567-9d17c05fa87e,1970-01-01 00:00:00Z\rhello,456,,1980-02-02 01:01:01Z\r,789,5dc798f5-6477-4216-8567-9d17c05fa87e,1990-03-03 02:02:02Z\r,12,,2000-04-04 03:03:03Z", txt);
                     }
                 );
@@ -3876,7 +4405,7 @@ namespace Cesil.Tests
                             );
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("Foo,Bar,Fizz,Buzz\nhello,123,5dc798f5-6477-4216-8567-9d17c05fa87e,1970-01-01 00:00:00Z\nhello,456,,1980-02-02 01:01:01Z\n,789,5dc798f5-6477-4216-8567-9d17c05fa87e,1990-03-03 02:02:02Z\n,12,,2000-04-04 03:03:03Z", txt);
                     }
                 );
@@ -3908,7 +4437,7 @@ namespace Cesil.Tests
                             await writer.WriteAllAsync(rows);
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("Foo,Bar,Fizz,Buzz\r\nhello,123,5dc798f5-6477-4216-8567-9d17c05fa87e,1970-01-01 00:00:00Z\r\nhello,456,,1980-02-02 01:01:01Z\r\n,789,5dc798f5-6477-4216-8567-9d17c05fa87e,1990-03-03 02:02:02Z\r\n,12,,2000-04-04 03:03:03Z", txt);
                     }
                 );
@@ -3928,7 +4457,7 @@ namespace Cesil.Tests
                             await writer.WriteAllAsync(enumerable);
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("Foo,Bar,Fizz,Buzz\r\nhello,123,5dc798f5-6477-4216-8567-9d17c05fa87e,1970-01-01 00:00:00Z\r\nhello,456,,1980-02-02 01:01:01Z\r\n,789,5dc798f5-6477-4216-8567-9d17c05fa87e,1990-03-03 02:02:02Z\r\n,12,,2000-04-04 03:03:03Z", txt);
                     }
                 );
@@ -3956,7 +4485,7 @@ namespace Cesil.Tests
                         await writer.WriteAllAsync(rows);
                     }
 
-                    var txt = getStr();
+                    var txt = await getStr();
                     Assert.Equal("1,,None,1970-01-01 00:00:00Z\r\n,Fizz,,", txt);
                 }
             );
@@ -3978,7 +4507,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _EscapeLargeHeaders { A = "a", B = "b", C = "c", D = "d", E = "e", F = "f", G = "g", H = "h" });
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("\"A,bcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefgh\",\"Ij,klmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnop\",\"Qrs,tuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwx\",\"0123,4567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567\",\",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\",\"hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world\",\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\",\"fizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\"\r\na,b,c,d,e,f,g,h\r\n", txt);
                     }
                 );
@@ -3992,7 +4521,7 @@ namespace Cesil.Tests
                         {
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("\"A,bcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefgh\",\"Ij,klmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnop\",\"Qrs,tuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwx\",\"0123,4567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567\",\",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\",\"hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world\",\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\",\"fizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\"\r\n", txt);
                     }
                 );
@@ -4011,7 +4540,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _EscapeLargeHeaders { A = "a", B = "b", C = "c", D = "d", E = "e", F = "f", G = "g", H = "h" });
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("\"A,bcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefgh\",\"Ij,klmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnop\",\"Qrs,tuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwx\",\"0123,4567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567\",\",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\",\"hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world\",\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\",\"fizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\"\ra,b,c,d,e,f,g,h\r", txt);
                     }
                 );
@@ -4025,7 +4554,7 @@ namespace Cesil.Tests
                         {
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("\"A,bcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefgh\",\"Ij,klmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnop\",\"Qrs,tuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwx\",\"0123,4567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567\",\",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\",\"hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world\",\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\",\"fizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\"\r", txt);
                     }
                 );
@@ -4044,7 +4573,7 @@ namespace Cesil.Tests
                             await writer.WriteAsync(new _EscapeLargeHeaders { A = "a", B = "b", C = "c", D = "d", E = "e", F = "f", G = "g", H = "h" });
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("\"A,bcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefgh\",\"Ij,klmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnop\",\"Qrs,tuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwx\",\"0123,4567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567\",\",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\",\"hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world\",\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\",\"fizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\"\na,b,c,d,e,f,g,h\n", txt);
                     }
                 );
@@ -4058,7 +4587,7 @@ namespace Cesil.Tests
                         {
                         }
 
-                        var txt = getStr();
+                        var txt = await getStr();
                         Assert.Equal("\"A,bcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefghAbcdefgh\",\"Ij,klmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnopIjklmnop\",\"Qrs,tuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwxQrstuvwx\",\"0123,4567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567\",\",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\",\"hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world hello\"\"world\",\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\"\"foo,bar\",\"fizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\r\nfizz\nbuzz\rbazz\"\n", txt);
                     }
                 );

@@ -3,6 +3,8 @@ using System.Reflection;
 
 namespace Cesil
 {
+    // todo: builder implies the wrong thing... creator maybe?
+
     /// <summary>
     /// Delegate used to create InstanceBuilders.
     /// </summary>
@@ -63,29 +65,29 @@ namespace Cesil
         {
             if (mtd == null)
             {
-                Throw.ArgumentNullException(nameof(mtd));
+                return Throw.ArgumentNullException<InstanceBuilder>(nameof(mtd));
             }
 
             if (!mtd.IsStatic)
             {
-                Throw.ArgumentException("Method must be static", nameof(mtd));
+                return Throw.ArgumentException<InstanceBuilder>("Method must be static", nameof(mtd));
             }
 
             if (mtd.ReturnType.GetTypeInfo() != Types.BoolType)
             {
-                Throw.ArgumentException("Method must return a boolean", nameof(mtd));
+                return Throw.ArgumentException<InstanceBuilder>("Method must return a boolean", nameof(mtd));
             }
 
             var ps = mtd.GetParameters();
             if (ps.Length != 1)
             {
-                Throw.ArgumentException("Method must have a single out parameter", nameof(mtd));
+                return Throw.ArgumentException<InstanceBuilder>("Method must have a single out parameter", nameof(mtd));
             }
 
             var outP = ps[0].ParameterType.GetTypeInfo();
             if (!outP.IsByRef)
             {
-                Throw.ArgumentException("Method must have a single out parameter, parameter was not by ref", nameof(mtd));
+                return Throw.ArgumentException<InstanceBuilder>("Method must have a single out parameter, parameter was not by ref", nameof(mtd));
             }
 
             var constructs = outP.GetElementType().GetTypeInfo();
@@ -106,34 +108,34 @@ namespace Cesil
         {
             if (cons == null)
             {
-                Throw.ArgumentNullException(nameof(cons));
+                return Throw.ArgumentNullException<InstanceBuilder>(nameof(cons));
             }
 
             var ps = cons.GetParameters();
             if (ps.Length != 0)
             {
-                Throw.ArgumentException("Constructor must take 0 parameters", nameof(cons));
+                return Throw.ArgumentException<InstanceBuilder>("Constructor must take 0 parameters", nameof(cons));
             }
 
             var t = cons.DeclaringType.GetTypeInfo();
             if (t.IsInterface)
             {
-                Throw.ArgumentException("Constructed type must be concrete, found an interface", nameof(cons));
+                return Throw.ArgumentException<InstanceBuilder>("Constructed type must be concrete, found an interface", nameof(cons));
             }
 
             if (t.IsAbstract)
             {
-                Throw.ArgumentException("Constructed type must be concrete, found an abstract class", nameof(cons));
+                return Throw.ArgumentException<InstanceBuilder>("Constructed type must be concrete, found an abstract class", nameof(cons));
             }
 
             if (t.IsGenericTypeParameter)
             {
-                Throw.ArgumentException("Constructed type must be concrete, found a generic parameter", nameof(cons));
+                return Throw.ArgumentException<InstanceBuilder>("Constructed type must be concrete, found a generic parameter", nameof(cons));
             }
 
             if (t.IsGenericTypeDefinition)
             {
-                Throw.ArgumentException("Constructed type must be concrete, found a generic type definition", nameof(cons));
+                return Throw.ArgumentException<InstanceBuilder>("Constructed type must be concrete, found a generic type definition", nameof(cons));
             }
 
             return new InstanceBuilder(cons);
@@ -149,7 +151,7 @@ namespace Cesil
         {
             if (del == null)
             {
-                Throw.ArgumentNullException(nameof(del));
+                return Throw.ArgumentNullException<InstanceBuilder>(nameof(del));
             }
 
             return new InstanceBuilder(del, typeof(T).GetTypeInfo());
@@ -173,7 +175,7 @@ namespace Cesil
         /// </summary>
         public bool Equals(InstanceBuilder i)
         {
-            if (i == null) return false;
+            if (ReferenceEquals(i, null)) return false;
 
             return
                 i.Constructor == Constructor &&
@@ -205,9 +207,7 @@ namespace Cesil
                 case BackingMode.Method:
                     return $"{nameof(InstanceBuilder)} using method {Method} to create {ConstructsType}";
                 default:
-                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
-                    // just for control flow
-                    return default;
+                    return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
             }
         }
 
@@ -253,19 +253,19 @@ namespace Cesil
             var ret = mtd.ReturnType.GetTypeInfo();
             if (ret != Types.BoolType)
             {
-                Throw.InvalidOperationException($"Delegate must return boolean, found {ret}");
+                return Throw.InvalidOperationException<InstanceBuilder>($"Delegate must return boolean, found {ret}");
             }
 
             var ps = mtd.GetParameters();
             if (ps.Length != 1)
             {
-                Throw.InvalidOperationException($"Delegate must have a single out parameter");
+                return Throw.InvalidOperationException<InstanceBuilder>($"Delegate must have a single out parameter");
             }
 
             var outP = ps[0].ParameterType.GetTypeInfo();
             if (!outP.IsByRef)
             {
-                Throw.InvalidOperationException("Delegate must have a single out parameter, parameter was not by ref");
+                return Throw.InvalidOperationException<InstanceBuilder>("Delegate must have a single out parameter, parameter was not by ref");
             }
 
             var constructs = outP.GetElementType().GetTypeInfo();

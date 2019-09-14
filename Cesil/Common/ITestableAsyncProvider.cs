@@ -1,5 +1,4 @@
-﻿// todo: add a test that makes sure nothing implements this in RELEASE builds
-namespace Cesil
+﻿namespace Cesil
 {
     internal interface ITestableAsyncProvider
     {

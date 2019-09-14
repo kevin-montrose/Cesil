@@ -1,35 +1,38 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
+using static Cesil.DisposableHelper;
+
 namespace Cesil
 {
-    internal abstract class AsyncWriterBase<T> :
+    internal abstract partial class AsyncWriterBase<T> :
         WriterBase<T>,
         IAsyncWriter<T>,
         ITestableAsyncDisposable
     {
         public abstract bool IsDisposed { get; }
 
-        internal TextWriter Inner;
+        internal IAsyncWriterAdapter Inner;
         internal IMemoryOwner<char> OneCharOwner;
         private Memory<char> OneCharMemory;
 
-        internal AsyncWriterBase(BoundConfigurationBase<T> config, TextWriter inner, object context) : base(config, context)
+        internal AsyncWriterBase(BoundConfigurationBase<T> config, IAsyncWriterAdapter inner, object context) : base(config, context)
         {
             Inner = inner;
         }
 
         public ValueTask WriteAllAsync(IEnumerable<T> rows, CancellationToken cancel = default)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             if (rows == null)
             {
-                Throw.ArgumentNullException(nameof(rows));
+                return Throw.ArgumentNullException<ValueTask>(nameof(rows));
             }
 
             var e = rows.GetEnumerator();
@@ -40,8 +43,7 @@ namespace Cesil
                 {
                     var row = e.Current;
                     var writeTask = WriteAsync(row, cancel);
-
-                    if (!writeTask.IsCompletedSuccessfully)
+                    if (!writeTask.IsCompletedSuccessfully(this))
                     {
                         disposeE = false;
                         return WriteAllAsync_CompleteAsync(this, writeTask, e, cancel);
@@ -68,7 +70,8 @@ namespace Cesil
                     while (e.MoveNext())
                     {
                         var row = e.Current;
-                        await self.WriteAsync(row, cancel);
+                        var writeAsyncTask = self.WriteAsync(row, cancel);
+                        await writeAsyncTask;
                     }
                 }
                 finally
@@ -80,11 +83,11 @@ namespace Cesil
 
         public ValueTask WriteAllAsync(IAsyncEnumerable<T> rows, CancellationToken cancel = default)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             if (rows == null)
             {
-                Throw.ArgumentNullException(nameof(rows));
+                return Throw.ArgumentNullException<ValueTask>(nameof(rows));
             }
 
             ValueTask ret;
@@ -96,7 +99,7 @@ namespace Cesil
                 while (true)
                 {
                     var nextTask = e.MoveNextAsync();
-                    if (!nextTask.IsCompletedSuccessfully)
+                    if (!nextTask.IsCompletedSuccessfully(this))
                     {
                         disposeE = false;
                         return WriteAllAsync_ContinueAfterNextAsync(this, nextTask, e, cancel);
@@ -111,7 +114,7 @@ namespace Cesil
 
                     var row = e.Current;
                     var writeTask = WriteAsync(row, cancel);
-                    if (!writeTask.IsCompletedSuccessfully)
+                    if (!writeTask.IsCompletedSuccessfully(this))
                     {
                         disposeE = false;
                         return WriteAllAsync_ContinueAfterWriteAsync(this, writeTask, e, cancel);
@@ -123,7 +126,7 @@ namespace Cesil
                 if (disposeE)
                 {
                     var disposeTask = e.DisposeAsync();
-                    if (!disposeTask.IsCompletedSuccessfully)
+                    if (!disposeTask.IsCompletedSuccessfully(this))
                     {
                         ret = disposeTask;
                     }
@@ -149,17 +152,20 @@ namespace Cesil
                     if (!res) return;
 
                     var row = e.Current;
-                    await self.WriteAsync(row, cancel);
+                    var writeAsyncTask = self.WriteAsync(row, cancel);
+                    await writeAsyncTask;
 
                     while (await e.MoveNextAsync())
                     {
                         row = e.Current;
-                        await self.WriteAsync(row, cancel);
+                        var secondWriteTask = self.WriteAsync(row, cancel);
+                        await secondWriteTask;
                     }
                 }
                 finally
                 {
-                    await e.DisposeAsync();
+                    var disposeTask = e.DisposeAsync();
+                    await disposeTask;
                 }
             }
 
@@ -173,12 +179,14 @@ namespace Cesil
                     while (await e.MoveNextAsync())
                     {
                         var row = e.Current;
-                        await self.WriteAsync(row, cancel);
+                        var writeTask = self.WriteAsync(row, cancel);
+                        await writeTask;
                     }
                 }
                 finally
                 {
-                    await e.DisposeAsync();
+                    var disposeTask = e.DisposeAsync();
+                    await disposeTask;
                 }
             }
         }
@@ -200,7 +208,7 @@ namespace Cesil
             while (PlaceInStaging(toWrite, out toWrite))
             {
                 var flushTask = FlushStagingAsync(cancel);
-                if (!flushTask.IsCompletedSuccessfully)
+                if (!flushTask.IsCompletedSuccessfully(this))
                 {
                     return PlaceInStagingAsync_FinishAsync(this, flushTask, toWrite, cancel);
                 }
@@ -209,14 +217,15 @@ namespace Cesil
             return default;
 
             // Finish TryPlaceInStagingSync asynchrounsly
-            static async ValueTask PlaceInStagingAsync_FinishAsync(AsyncWriterBase<T> self, Task waitFor, ReadOnlyMemory<char> remainingWork, CancellationToken subCancel)
+            static async ValueTask PlaceInStagingAsync_FinishAsync(AsyncWriterBase<T> self, ValueTask waitFor, ReadOnlyMemory<char> remainingWork, CancellationToken subCancel)
             {
                 await waitFor;
 
                 var nextWrite = remainingWork;
                 while (self.PlaceInStaging(nextWrite, out nextWrite))
                 {
-                    await self.FlushStagingAsync(subCancel);
+                    var flushTask = self.FlushStagingAsync(subCancel);
+                    await flushTask;
                 }
             }
         }
@@ -224,15 +233,15 @@ namespace Cesil
         internal ValueTask WriteDirectlyAsync(ReadOnlyMemory<char> chars, CancellationToken cancel)
         {
             var writeTask = Inner.WriteAsync(chars, cancel);
-            if (!writeTask.IsCompletedSuccessfully)
+            if (!writeTask.IsCompletedSuccessfully(this))
             {
-                return new ValueTask(writeTask);
+                return writeTask;
             }
 
             return default;
         }
 
-        internal Task FlushStagingAsync(CancellationToken cancel)
+        internal ValueTask FlushStagingAsync(CancellationToken cancel)
         {
             var toWrite = Staging.Memory.Slice(0, InStaging);
             InStaging = 0;
@@ -261,34 +270,36 @@ namespace Cesil
             else
             {
                 var startEscapeTask = PlaceCharInStagingAsync(Config.EscapedValueStartAndStop, cancel);
-                if (!startEscapeTask.IsCompletedSuccessfully)
+                if (!startEscapeTask.IsCompletedSuccessfully(this))
                 {
                     return WriteSingleSegmentAsync_CompleteAfterFirstFlushAsync(this, startEscapeTask, charMem, cancel);
                 }
 
                 var writeTask = WriteEncodedAsync(charMem, cancel);
-                if (!writeTask.IsCompleted)
+                if (!writeTask.IsCompletedSuccessfully(this))
                 {
                     return WriteSingleSegmentAsync_CompleteAfterWriteAsync(this, writeTask, cancel);
                 }
 
                 var endEscapeTask = PlaceCharInStagingAsync(Config.EscapedValueStartAndStop, cancel);
-                if (!endEscapeTask.IsCompletedSuccessfully)
+                if (!endEscapeTask.IsCompletedSuccessfully(this))
                 {
-                    return new ValueTask(endEscapeTask);
+                    return endEscapeTask;
                 }
 
                 return default;
             }
 
             // complete async after trying to write the first escaped character
-            static async ValueTask WriteSingleSegmentAsync_CompleteAfterFirstFlushAsync(AsyncWriterBase<T> self, Task waitFor, ReadOnlyMemory<char> charMem, CancellationToken cancel)
+            static async ValueTask WriteSingleSegmentAsync_CompleteAfterFirstFlushAsync(AsyncWriterBase<T> self, ValueTask waitFor, ReadOnlyMemory<char> charMem, CancellationToken cancel)
             {
                 await waitFor;
 
-                await self.WriteEncodedAsync(charMem, cancel);
+                var writeEncodedTask = self.WriteEncodedAsync(charMem, cancel);
+                await writeEncodedTask;
 
-                await self.PlaceCharInStagingAsync(self.Config.EscapedValueStartAndStop, cancel);
+                var placeTask = self.PlaceCharInStagingAsync(self.Config.EscapedValueStartAndStop, cancel);
+                await placeTask;
             }
 
             // complete async after writing the encoded value
@@ -296,7 +307,8 @@ namespace Cesil
             {
                 await waitFor;
 
-                await self.PlaceCharInStagingAsync(self.Config.EscapedValueStartAndStop, cancel);
+                var placeTask = self.PlaceCharInStagingAsync(self.Config.EscapedValueStartAndStop, cancel);
+                await placeTask;
             }
         }
 
@@ -315,8 +327,7 @@ namespace Cesil
                     var write = charMem;
 
                     var placeTask = PlaceInStagingAsync(write, cancel);
-
-                    if (!placeTask.IsCompletedSuccessfully)
+                    if (!placeTask.IsCompletedSuccessfully(this))
                     {
                         return WriteMultiSegmentAsync_CompleteAsync(this, placeTask, e, cancel);
                     }
@@ -340,7 +351,8 @@ namespace Cesil
                 {
                     var c = e.Current;
 
-                    await self.PlaceInStagingAsync(c, cancel);
+                    var placeTask = self.PlaceInStagingAsync(c, cancel);
+                    await placeTask;
                 }
             }
         }
@@ -349,7 +361,7 @@ namespace Cesil
         {
             // start with whatever the escape is
             var startEscapeTask = PlaceCharInStagingAsync(Config.EscapedValueStartAndStop, cancel);
-            if (!startEscapeTask.IsCompletedSuccessfully)
+            if (!startEscapeTask.IsCompletedSuccessfully(this))
             {
                 return WriteEncodedAsync_CompleteAfterFirstAsync(this, startEscapeTask, head, cancel);
             }
@@ -359,8 +371,7 @@ namespace Cesil
             {
                 var cur = e.Current;
                 var writeTask = WriteEncodedAsync(cur, cancel);
-
-                if (!writeTask.IsCompletedSuccessfully)
+                if (!writeTask.IsCompletedSuccessfully(this))
                 {
                     return WriteEncodedAsync_CompleteEnumerating(this, writeTask, e, cancel);
                 }
@@ -368,24 +379,26 @@ namespace Cesil
 
             // end with the escape
             var endEscapeTask = PlaceCharInStagingAsync(Config.EscapedValueStartAndStop, cancel);
-            if (!endEscapeTask.IsCompletedSuccessfully)
+            if (!endEscapeTask.IsCompletedSuccessfully(this))
             {
-                return new ValueTask(endEscapeTask);
+                return endEscapeTask;
             }
 
             return default;
 
             // wait for the flush, then proceed for after the first char
-            static async ValueTask WriteEncodedAsync_CompleteAfterFirstAsync(AsyncWriterBase<T> self, Task waitFor, ReadOnlySequence<char> head, CancellationToken cancel)
+            static async ValueTask WriteEncodedAsync_CompleteAfterFirstAsync(AsyncWriterBase<T> self, ValueTask waitFor, ReadOnlySequence<char> head, CancellationToken cancel)
             {
                 await waitFor;
 
                 foreach (var cur in head)
                 {
-                    await self.WriteEncodedAsync(cur, cancel);
+                    var writeTask = self.WriteEncodedAsync(cur, cancel);
+                    await writeTask;
                 }
 
-                await self.PlaceCharInStagingAsync(self.Config.EscapedValueStartAndStop, cancel);
+                var placeTask = self.PlaceCharInStagingAsync(self.Config.EscapedValueStartAndStop, cancel);
+                await placeTask;
             }
 
             // wait for the encoded to finish, then proceed with the remaining
@@ -397,10 +410,12 @@ namespace Cesil
                 {
                     var c = e.Current;
 
-                    await self.WriteEncodedAsync(c, cancel);
+                    var writeTask = self.WriteEncodedAsync(c, cancel);
+                    await writeTask;
                 }
 
-                await self.PlaceCharInStagingAsync(self.Config.EscapedValueStartAndStop, cancel);
+                var placeTask = self.PlaceCharInStagingAsync(self.Config.EscapedValueStartAndStop, cancel);
+                await placeTask;
             }
         }
 
@@ -416,14 +431,13 @@ namespace Cesil
                 var toWrite = charMem.Slice(start, len);
 
                 var writeTask = PlaceInStagingAsync(toWrite, cancel);
-
-                if (!writeTask.IsCompletedSuccessfully)
+                if (!writeTask.IsCompletedSuccessfully(this))
                 {
                     return WriteEncodedAsync_CompleteWritesBeforeFlushAsync(this, writeTask, charMem, start, len, cancel);
                 }
 
                 var escapeCharTask = PlaceCharInStagingAsync(Config.EscapeValueEscapeChar, cancel);
-                if (!escapeCharTask.IsCompletedSuccessfully)
+                if (!escapeCharTask.IsCompletedSuccessfully(this))
                 {
                     return WriteEncodedAsync_CompleteWritesAfterFlushAsync(this, escapeCharTask, charMem, start, len, cancel);
                 }
@@ -446,7 +460,8 @@ namespace Cesil
             {
                 await waitFor;
 
-                await self.PlaceCharInStagingAsync(self.Config.EscapeValueEscapeChar, cancel);
+                var placeTask = self.PlaceCharInStagingAsync(self.Config.EscapeValueEscapeChar, cancel);
+                await placeTask;
 
                 start += len;
                 var end = Utils.FindChar(charMem, start + 1, self.Config.EscapedValueStartAndStop);
@@ -456,9 +471,11 @@ namespace Cesil
                     len = end - start;
                     var toWrite = charMem.Slice(start, len);
 
-                    await self.PlaceInStagingAsync(toWrite, cancel);
+                    var secondPlaceTask = self.PlaceInStagingAsync(toWrite, cancel);
+                    await secondPlaceTask;
 
-                    await self.PlaceCharInStagingAsync(self.Config.EscapeValueEscapeChar, cancel);
+                    var thirdPlaceTask = self.PlaceCharInStagingAsync(self.Config.EscapeValueEscapeChar, cancel);
+                    await thirdPlaceTask;
 
                     start += len;
                     end = Utils.FindChar(charMem, start + 1, self.Config.EscapedValueStartAndStop);
@@ -468,12 +485,13 @@ namespace Cesil
                 {
                     var toWrite = charMem.Slice(start);
 
-                    await self.PlaceInStagingAsync(toWrite, cancel);
+                    var writeTask = self.PlaceInStagingAsync(toWrite, cancel);
+                    await writeTask;
                 }
             }
 
             // wait for a flush, then continue the while loop
-            static async ValueTask WriteEncodedAsync_CompleteWritesAfterFlushAsync(AsyncWriterBase<T> self, Task waitFor, ReadOnlyMemory<char> charMem, int start, int len, CancellationToken cancel)
+            static async ValueTask WriteEncodedAsync_CompleteWritesAfterFlushAsync(AsyncWriterBase<T> self, ValueTask waitFor, ReadOnlyMemory<char> charMem, int start, int len, CancellationToken cancel)
             {
                 await waitFor;
 
@@ -485,9 +503,11 @@ namespace Cesil
                     len = end - start;
                     var toWrite = charMem.Slice(start, len);
 
-                    await self.PlaceInStagingAsync(toWrite, cancel);
+                    var placeTask = self.PlaceInStagingAsync(toWrite, cancel);
+                    await placeTask;
 
-                    await self.PlaceCharInStagingAsync(self.Config.EscapeValueEscapeChar, cancel);
+                    var secondPlaceTask = self.PlaceCharInStagingAsync(self.Config.EscapeValueEscapeChar, cancel);
+                    await secondPlaceTask;
 
                     start += len;
                     end = Utils.FindChar(charMem, start + 1, self.Config.EscapedValueStartAndStop);
@@ -497,7 +517,8 @@ namespace Cesil
                 {
                     var toWrite = charMem.Slice(start);
 
-                    await self.PlaceInStagingAsync(toWrite, cancel);
+                    var writeTask = self.PlaceInStagingAsync(toWrite, cancel);
+                    await writeTask;
                 }
             }
         }
@@ -533,7 +554,7 @@ namespace Cesil
             return false;
         }
 
-        internal Task PlaceCharInStagingAsync(char c, CancellationToken cancel)
+        internal ValueTask PlaceCharInStagingAsync(char c, CancellationToken cancel)
         {
             if (!HasBuffer)
             {
@@ -545,10 +566,10 @@ namespace Cesil
                 return FlushStagingAsync(cancel);
             }
 
-            return Task.CompletedTask;
+            return default;
         }
 
-        internal Task WriteCharDirectlyAsync(char c, CancellationToken cancel)
+        internal ValueTask WriteCharDirectlyAsync(char c, CancellationToken cancel)
         {
             if (OneCharOwner == null)
             {
@@ -558,12 +579,12 @@ namespace Cesil
 
             OneCharMemory.Span[0] = c;
             var writeTask = Inner.WriteAsync(OneCharMemory, cancel);
-            if (!writeTask.IsCompletedSuccessfully)
+            if (!writeTask.IsCompletedSuccessfully(this))
             {
                 return writeTask;
             }
 
-            return Task.CompletedTask;
+            return default;
         }
 
         public abstract ValueTask WriteAsync(T row, CancellationToken cancel = default);
@@ -571,15 +592,30 @@ namespace Cesil
         public abstract ValueTask WriteCommentAsync(string comment, CancellationToken cancel = default);
 
         public abstract ValueTask DisposeAsync();
+    }
 
-        public void AssertNotDisposed()
+#if DEBUG
+    // this is only implemented in DEBUG builds, so tests (and only tests) can force
+    //    particular async paths
+    internal abstract partial class AsyncWriterBase<T> : ITestableAsyncProvider
+    {
+        private int _GoAsyncAfter;
+        int ITestableAsyncProvider.GoAsyncAfter { set { _GoAsyncAfter = value; } }
+
+        private int _AsyncCounter;
+        int ITestableAsyncProvider.AsyncCounter => _AsyncCounter;
+
+        bool ITestableAsyncProvider.ShouldGoAsync()
         {
-            if (IsDisposed)
+            lock (this)
             {
-                var name = this.GetType().Name;
+                _AsyncCounter++;
 
-                Throw.ObjectDisposedException(name);
+                var ret = _AsyncCounter >= _GoAsyncAfter;
+
+                return ret;
             }
         }
     }
+#endif
 }

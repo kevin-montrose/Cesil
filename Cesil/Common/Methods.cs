@@ -26,6 +26,7 @@ namespace Cesil
         internal static class Throw
         {
             public static readonly MethodInfo InvalidOperationException = Types.ThrowType.GetMethod(nameof(Cesil.Throw.InvalidOperationException), BindingFlags.Static | BindingFlags.NonPublic);
+            public static readonly MethodInfo InvalidOperationExceptionOfObject = Types.ThrowType.GetMethod(nameof(Cesil.Throw.InvalidOperationException), BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(Types.ObjectType);
         }
 
         internal static class DynamicRow

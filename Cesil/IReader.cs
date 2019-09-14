@@ -9,11 +9,12 @@ namespace Cesil
     public interface IReader<T> : IDisposable
     {
         /// <summary>
-        /// Reads all rows into the provided list, returning the entire set at once.
+        /// Reads all rows into the provided collection, returning the entire set at once.
         /// 
         /// into must be non-null.
         /// </summary>
-        List<T> ReadAll(List<T> into);
+        TCollection ReadAll<TCollection>(TCollection into)
+        where TCollection : class, ICollection<T>;
 
         /// <summary>
         /// Reads all rows, returning the entire set at once.

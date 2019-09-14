@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Cesil
 {
-    internal class RowEndingDetector<T> : ITestableDisposable
+    internal sealed partial class RowEndingDetector<T> : ITestableDisposable
     {
         private enum AdvanceResult : byte
         {
@@ -20,7 +20,8 @@ namespace Cesil
             Exception_UnexpectedState
         }
 
-        private readonly TextReader Inner;
+        private IAsyncReaderAdapter InnerAsync;
+        private IReaderAdapter Inner;
 
         private RowEndings Ending;
 
@@ -37,19 +38,26 @@ namespace Cesil
         private IMemoryOwner<char> PushbackOwner;
         private Memory<char> Pushback => PushbackOwner.Memory;
 
-        internal RowEndingDetector(BoundConfigurationBase<T> config, ReaderStateMachine.CharacterLookup charLookup, TextReader inner)
+        internal RowEndingDetector(ReaderStateMachine stateMachine, BoundConfigurationBase<T> config, CharacterLookup charLookup, IReaderAdapter inner)
+            : this(stateMachine, config, charLookup, inner, null) { }
+
+        internal RowEndingDetector(ReaderStateMachine stateMachine, BoundConfigurationBase<T> config, CharacterLookup charLookup, IAsyncReaderAdapter innerAsync)
+            : this(stateMachine, config, charLookup, null, innerAsync) { }
+
+        private RowEndingDetector(ReaderStateMachine stateMachine, BoundConfigurationBase<T> config, CharacterLookup charLookup, IReaderAdapter inner, IAsyncReaderAdapter innerAsync)
         {
             Inner = inner;
+            InnerAsync = innerAsync;
 
-            State =
-                new ReaderStateMachine(
-                    charLookup,
-                    config.EscapedValueStartAndStop,
-                    config.EscapeValueEscapeChar,
-                    default,
-                    ReadHeaders.Never,
-                    false
-                );
+            State = stateMachine;
+            stateMachine.Initialize(
+                charLookup,
+                config.EscapedValueStartAndStop,
+                config.EscapeValueEscapeChar,
+                default,
+                ReadHeaders.Never,
+                false
+            );
 
             MemoryPool = config.MemoryPool;
 
@@ -65,22 +73,20 @@ namespace Cesil
 
         internal ValueTask<(RowEndings Ending, Memory<char> PushBack)?> DetectAsync(CancellationToken cancel)
         {
+            State.Pin();
+
             var continueScan = true;
             while (continueScan)
             {
                 var mem = BufferOwner.Memory.Slice(BufferStart, BufferOwner.Memory.Length - BufferStart);
-                var endTask = Inner.ReadAsync(mem, cancel);
+                var endTask = InnerAsync.ReadAsync(mem, cancel);
 
-                int end;
-                if (endTask.IsCompletedSuccessfully)
-                {
-                    end = endTask.Result;
-                }
-                else
+                if (!endTask.IsCompletedSuccessfully(this))
                 {
                     return DetectAsync_ContinueAfterReadAsync(this, endTask, cancel);
                 }
 
+                var end = endTask.Result;
                 var buffSpan = BufferOwner.Memory.Span;
 
                 if (end == 0)
@@ -114,6 +120,7 @@ namespace Cesil
                             BufferStart = 1;
                             continue;
                         default:
+                            State.Unpin();
                             return new ValueTask<(RowEndings Ending, Memory<char> PushBack)?>(default((RowEndings Ending, Memory<char> PushBack)?));
                     }
                 }
@@ -125,11 +132,17 @@ namespace Cesil
                 Ending = RowEndings.CarriageReturnLineFeed;
             }
 
+            State.Unpin();
+
             return new ValueTask<(RowEndings Ending, Memory<char> PushBack)?>((Ending, Pushback.Slice(0, PushbackLength)));
 
             static async ValueTask<(RowEndings Ending, Memory<char> PushBack)?> DetectAsync_ContinueAfterReadAsync(RowEndingDetector<T> self, ValueTask<int> waitFor, CancellationToken cancel)
             {
-                var end = await waitFor;
+                int end;
+                using (self.State.ReleaseAndRePinForAsync(waitFor))
+                {
+                    end = await waitFor;
+                }
 
                 // handle the results that were in flight
                 var continueScan = true;
@@ -167,6 +180,7 @@ namespace Cesil
                             self.BufferStart = 1;
                             goto loopStart;
                         default:
+                            self.State.Unpin();
                             return default;
                     }
                 }
@@ -177,7 +191,12 @@ loopStart:
                 while (continueScan)
                 {
                     var mem = self.BufferOwner.Memory.Slice(self.BufferStart, self.BufferOwner.Memory.Length - self.BufferStart);
-                    end = await self.Inner.ReadAsync(mem, cancel);
+
+                    var readTask = self.InnerAsync.ReadAsync(mem, cancel);
+                    using (self.State.ReleaseAndRePinForAsync(readTask))
+                    {
+                        end = await readTask;
+                    }
 
                     if (end == 0)
                     {
@@ -212,6 +231,7 @@ loopStart:
                                 self.BufferStart = 1;
                                 continue;
                             default:
+                                self.State.Unpin();
                                 return default;
                         }
                     }
@@ -223,12 +243,16 @@ end:
                     self.Ending = RowEndings.CarriageReturnLineFeed;
                 }
 
+                self.State.Unpin();
+
                 return (self.Ending, self.Pushback.Slice(0, self.PushbackLength));
             }
         }
 
         internal (RowEndings Ending, Memory<char> PushBack)? Detect()
         {
+            State.Pin();
+
             var buffSpan = BufferOwner.Memory.Span;
 
             var continueScan = true;
@@ -266,6 +290,7 @@ end:
                             BufferStart = 1;
                             continue;
                         default:
+                            State.Unpin();
                             return null;
                     }
                 }
@@ -276,6 +301,8 @@ end:
             {
                 Ending = RowEndings.CarriageReturnLineFeed;
             }
+
+            State.Unpin();
 
             return (Ending, Pushback.Slice(0, PushbackLength));
         }
@@ -350,7 +377,7 @@ end:
                 switch (res)
                 {
                     case ReaderStateMachine.AdvanceResult.Append_Character:
-                    case ReaderStateMachine.AdvanceResult.Append_PreviousAndCurrentCharacter:
+                    case ReaderStateMachine.AdvanceResult.Append_CarriageReturnAndCurrentCharacter:
                     case ReaderStateMachine.AdvanceResult.Finished_Value:
                     case ReaderStateMachine.AdvanceResult.Skip_Character:
                         break;
@@ -367,20 +394,37 @@ end:
         {
             if (!IsDisposed)
             {
+                // Intentionally NOT disposing State, it's reused
                 BufferOwner.Dispose();
                 PushbackOwner?.Dispose();
-                State.Dispose();
 
                 MemoryPool = null;
             }
         }
+    }
 
-        public void AssertNotDisposed()
+#if DEBUG
+    // this is only implemented in DEBUG builds, so tests (and only tests) can force
+    //    particular async paths
+    internal sealed partial class RowEndingDetector<T> : ITestableAsyncProvider
+    {
+        private int _GoAsyncAfter;
+        int ITestableAsyncProvider.GoAsyncAfter { set { _GoAsyncAfter = value; } }
+
+        private int _AsyncCounter;
+        int ITestableAsyncProvider.AsyncCounter => _AsyncCounter;
+
+        bool ITestableAsyncProvider.ShouldGoAsync()
         {
-            if (IsDisposed)
+            lock (this)
             {
-                Throw.ObjectDisposedException(nameof(RowEndingDetector<T>));
+                _AsyncCounter++;
+
+                var ret = _AsyncCounter >= _GoAsyncAfter;
+
+                return ret;
             }
         }
     }
+#endif
 }

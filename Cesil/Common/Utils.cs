@@ -139,7 +139,7 @@ tryAgain:
             {
                 if (oldSize >= pool.MaxBufferSize)
                 {
-                    Throw.InvalidOperationException($"Needed a larger memory segment than could be requested, needed {newSize:N0}; {nameof(MemoryPool<T>.MaxBufferSize)} = {pool.MaxBufferSize:N0}");
+                    return Throw.InvalidOperationException<IMemoryOwner<T>>($"Needed a larger memory segment than could be requested, needed {newSize:N0}; {nameof(MemoryPool<T>.MaxBufferSize)} = {pool.MaxBufferSize:N0}");
                 }
 
                 requestSize = pool.MaxBufferSize;

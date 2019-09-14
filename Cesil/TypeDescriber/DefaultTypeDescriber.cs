@@ -48,7 +48,7 @@ namespace Cesil
             var cons = forType.GetConstructor(TypeInfo.EmptyTypes);
             if (cons == null)
             {
-                Throw.ArgumentException($"No parameterless constructor found for {forType}", nameof(forType));
+                return Throw.ArgumentException<InstanceBuilder>($"No parameterless constructor found for {forType}", nameof(forType));
             }
 
             return InstanceBuilder.ForParameterlessConstructor(cons);
@@ -686,8 +686,9 @@ namespace Cesil
 
                     var formatter = GetFormatter(getter.Returns, name, in ctx, rowObj);
 
-                    getter.PrimeDynamicDelegate(DefaultTypeDescriberDelegateCache.Instance);
-                    var value = getter.DynamicDelegate(rowObj);
+                    var delProvider = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)getter);
+                    delProvider.Guarantee(DefaultTypeDescriberDelegateCache.Instance);
+                    var value = delProvider.CachedDelegate(rowObj);
 
                     ret.Add(DynamicCellValue.Create(name, value, formatter));
                 }

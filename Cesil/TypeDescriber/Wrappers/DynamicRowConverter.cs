@@ -93,7 +93,7 @@ namespace Cesil
         {
             if (del == null)
             {
-                Throw.ArgumentNullException(nameof(del));
+                return Throw.ArgumentNullException<DynamicRowConverter>(nameof(del));
             }
 
             return new DynamicRowConverter(typeof(T).GetTypeInfo(), del);
@@ -108,19 +108,19 @@ namespace Cesil
         {
             if (cons == null)
             {
-                Throw.ArgumentNullException(nameof(cons));
+                return Throw.ArgumentNullException<DynamicRowConverter>(nameof(cons));
             }
 
             var ps = cons.GetParameters();
             if (ps.Length != 1)
             {
-                Throw.ArgumentException($"Constructor {cons} must take a single object", nameof(cons));
+                return Throw.ArgumentException<DynamicRowConverter>($"Constructor {cons} must take a single object", nameof(cons));
             }
 
             var p = ps[0].ParameterType.GetTypeInfo();
             if (p != Types.ObjectType)
             {
-                Throw.ArgumentException($"Constructor {cons} must take a object, found a {p}", nameof(cons));
+                return Throw.ArgumentException<DynamicRowConverter>($"Constructor {cons} must take a object, found a {p}", nameof(cons));
             }
 
             return new DynamicRowConverter(cons);
@@ -141,12 +141,12 @@ namespace Cesil
         {
             if (cons == null)
             {
-                Throw.ArgumentNullException(nameof(cons));
+                return Throw.ArgumentNullException<DynamicRowConverter>(nameof(cons));
             }
 
             if (columnIndexesForParams == null)
             {
-                Throw.ArgumentNullException(nameof(columnIndexesForParams));
+                return Throw.ArgumentNullException<DynamicRowConverter>(nameof(columnIndexesForParams));
             }
 
             var cifp = columnIndexesForParams.ToArray();
@@ -154,7 +154,7 @@ namespace Cesil
             var ps = cons.GetParameters();
             if (ps.Length != cifp.Length)
             {
-                Throw.InvalidOperationException($"Constructor {cons} takes {ps.Length} parameters, while only {cifp.Length} column indexes were passed");
+                return Throw.InvalidOperationException<DynamicRowConverter>($"Constructor {cons} takes {ps.Length} parameters, while only {cifp.Length} column indexes were passed");
             }
 
             for (var i = 0; i < cifp.Length; i++)
@@ -162,7 +162,7 @@ namespace Cesil
                 var colIx = cifp[i].Index;
                 if (colIx < 0)
                 {
-                    Throw.ArgumentException($"Column indexes must be >= 0, found {colIx} at {i}", nameof(columnIndexesForParams));
+                    return Throw.ArgumentException<DynamicRowConverter>($"Column indexes must be >= 0, found {colIx} at {i}", nameof(columnIndexesForParams));
                 }
             }
 
@@ -191,23 +191,23 @@ namespace Cesil
         {
             if (cons == null)
             {
-                Throw.ArgumentNullException(nameof(cons));
+                return Throw.ArgumentNullException<DynamicRowConverter>(nameof(cons));
             }
 
             var consPs = cons.GetParameters();
             if (consPs.Length != 0)
             {
-                Throw.ArgumentException($"Constructor {cons} must take zero parameters", nameof(cons));
+                return Throw.ArgumentException<DynamicRowConverter>($"Constructor {cons} must take zero parameters", nameof(cons));
             }
 
             if (setters == null)
             {
-                Throw.ArgumentNullException(nameof(setters));
+                return Throw.ArgumentNullException<DynamicRowConverter>(nameof(setters));
             }
 
             if (colsToSetters == null)
             {
-                Throw.ArgumentNullException(nameof(colsToSetters));
+                return Throw.ArgumentNullException<DynamicRowConverter>(nameof(colsToSetters));
             }
 
             var s = setters.ToArray();
@@ -215,7 +215,7 @@ namespace Cesil
 
             if (s.Length != cts.Length)
             {
-                Throw.InvalidOperationException($"{nameof(setters)} and {nameof(colsToSetters)} must be the same length, found {s.Length} and {cts.Length}");
+                return Throw.InvalidOperationException<DynamicRowConverter>($"{nameof(setters)} and {nameof(colsToSetters)} must be the same length, found {s.Length} and {cts.Length}");
             }
 
             var constructedType = cons.DeclaringType.GetTypeInfo();
@@ -231,7 +231,7 @@ namespace Cesil
 
                 if (!setterOnType.IsAssignableFrom(constructedType))
                 {
-                    Throw.ArgumentException($"Setter {setter} at {i} cannot be called on {constructedType}", nameof(setters));
+                    return Throw.ArgumentException<DynamicRowConverter>($"Setter {setter} at {i} cannot be called on {constructedType}", nameof(setters));
                 }
             }
 
@@ -240,7 +240,7 @@ namespace Cesil
                 var colIx = cts[i].Index;
                 if (colIx < 0)
                 {
-                    Throw.ArgumentException($"Column indexes must be >= 0, found {colIx} at {i}", nameof(colsToSetters));
+                    return Throw.ArgumentException<DynamicRowConverter>($"Column indexes must be >= 0, found {colIx} at {i}", nameof(colsToSetters));
                 }
             }
 
@@ -258,47 +258,47 @@ namespace Cesil
         {
             if (method == null)
             {
-                Throw.ArgumentNullException(nameof(method));
+                return Throw.ArgumentNullException<DynamicRowConverter>(nameof(method));
             }
 
             if (!method.IsStatic)
             {
-                Throw.ArgumentException($"Method {method} must be static", nameof(method));
+                return Throw.ArgumentException<DynamicRowConverter>($"Method {method} must be static", nameof(method));
             }
 
             if (method.ReturnType.GetTypeInfo() != Types.BoolType)
             {
-                Throw.ArgumentException($"Method {method} must return a bool", nameof(method));
+                return Throw.ArgumentException<DynamicRowConverter>($"Method {method} must return a bool", nameof(method));
             }
 
             var ps = method.GetParameters();
             if (ps.Length != 3)
             {
-                Throw.ArgumentException($"Method {method} must take three parameters", nameof(method));
+                return Throw.ArgumentException<DynamicRowConverter>($"Method {method} must take three parameters", nameof(method));
             }
 
             var p1 = ps[0].ParameterType.GetTypeInfo();
             if (p1 != Types.ObjectType)
             {
-                Throw.ArgumentException($"Method {method}'s first parameter must be an object", nameof(method));
+                return Throw.ArgumentException<DynamicRowConverter>($"Method {method}'s first parameter must be an object", nameof(method));
             }
 
             var p2 = ps[1].ParameterType.GetTypeInfo();
             if (!p2.IsByRef)
             {
-                Throw.ArgumentException($"Method {method}'s second parameter must be an in {nameof(ReadContext)}, was not passed by reference", nameof(method));
+                return Throw.ArgumentException<DynamicRowConverter>($"Method {method}'s second parameter must be an in {nameof(ReadContext)}, was not passed by reference", nameof(method));
             }
 
             var p2Elem = p2.GetElementType().GetTypeInfo();
             if (p2Elem != Types.ReadContextType)
             {
-                Throw.ArgumentException($"Method {method}'s second parameter must be a {nameof(ReadContext)}", nameof(method));
+                return Throw.ArgumentException<DynamicRowConverter>($"Method {method}'s second parameter must be a {nameof(ReadContext)}", nameof(method));
             }
 
             var p3 = ps[2].ParameterType.GetTypeInfo();
             if (!p3.IsByRef)
             {
-                Throw.ArgumentException($"Method {method}'s second parameter must be a by ref type", nameof(method));
+                return Throw.ArgumentException<DynamicRowConverter>($"Method {method}'s second parameter must be a by ref type", nameof(method));
             }
 
             var targetType = p3.GetElementType().GetTypeInfo();
@@ -368,9 +368,7 @@ namespace Cesil
                             return $"{nameof(DynamicRowConverter)} using parameterless constructor {EmptyConstructor} then invoking ({setterMap}) creating {TargetType}";
                         }
 
-                        Throw.Exception("Shouldn't be possible");
-                        // just for control flow
-                        return default;
+                        return Throw.Exception<string>("Shouldn't be possible");
                     }
                 case BackingMode.Method:
                     {
@@ -381,9 +379,7 @@ namespace Cesil
                         return $"{nameof(DynamicRowConverter)} using delegate {Delegate} creation {TargetType}";
                     }
                 default:
-                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
-                    // just for control flow
-                    return default;
+                    return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
             }
         }
 
@@ -405,7 +401,7 @@ namespace Cesil
         /// </summary>
         public bool Equals(DynamicRowConverter other)
         {
-            if (other == null) return false;
+            if (ReferenceEquals(other, null)) return false;
 
             var thisMode = Mode;
             var otherMode = other.Mode;
@@ -425,22 +421,60 @@ namespace Cesil
 
                     if (ConstructorTakingParams != null)
                     {
-                        return ConstructorTakingParams.Equals(other.ConstructorTakingParams);
+                        if (!ConstructorTakingParams.Equals(other.ConstructorTakingParams))
+                        {
+                            return false;
+                        }
+
+                        // type compatibility is implicitly checked by comparing constructors
+
+                        for (var i = 0; i < ParameterTypes.Length; i++)
+                        {
+                            var thisCol = ColumnsForParameters[i];
+                            var otherCol = other.ColumnsForParameters[i];
+
+                            if (thisCol != otherCol)
+                            {
+                                return false;
+                            }
+                        }
+
+                        return true;
                     }
 
                     if (EmptyConstructor != null)
                     {
-                        return EmptyConstructor.Equals(other.EmptyConstructor);
+                        if (!EmptyConstructor.Equals(other.EmptyConstructor))
+                        {
+                            return false;
+                        }
+
+                        if (Setters.Length != other.Setters.Length)
+                        {
+                            return false;
+                        }
+
+                        for (var i = 0; i < Setters.Length; i++)
+                        {
+                            var thisSetter = Setters[i];
+                            var otherSetter = other.Setters[i];
+
+                            var thisCol = ColumnsForSetters[i];
+                            var otherCol = other.ColumnsForSetters[i];
+
+                            if (thisSetter != otherSetter || thisCol != otherCol)
+                            {
+                                return false;
+                            }
+                        }
+
+                        return true;
                     }
 
-                    Throw.Exception($"Shouldn't be possible, unexpected Constructor configuration");
-                    // just for control flow
-                    return default;
+                    return Throw.Exception<bool>($"Shouldn't be possible, unexpected Constructor configuration");
                 case BackingMode.Delegate: return Delegate.Equals(other.Delegate);
                 default:
-                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {thisMode}");
-                    // just for control flow
-                    return default;
+                    return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {thisMode}");
             }
         }
 
@@ -500,36 +534,36 @@ namespace Cesil
             var ret = mtd.ReturnType.GetTypeInfo();
             if (ret != Types.BoolType)
             {
-                Throw.InvalidOperationException($"Delegate must return a bool");
+                return Throw.InvalidOperationException<DynamicRowConverter>($"Delegate must return a bool");
             }
 
             var args = mtd.GetParameters();
             if (args.Length != 3)
             {
-                Throw.InvalidOperationException($"Delegate must take 3 parameters");
+                return Throw.InvalidOperationException<DynamicRowConverter>($"Delegate must take 3 parameters");
             }
 
             var p1 = args[0].ParameterType.GetTypeInfo();
             if (p1 != Types.ObjectType)
             {
-                Throw.InvalidOperationException($"The first parameter to the delegate must be an object (can be dynamic in source)");
+                return Throw.InvalidOperationException<DynamicRowConverter>($"The first parameter to the delegate must be an object (can be dynamic in source)");
             }
 
             var p2 = args[1].ParameterType.GetTypeInfo();
             if (!p2.IsByRef)
             {
-                Throw.InvalidOperationException($"The second paramater to the delegate must be an in {nameof(ReadContext)}, was not by ref");
+                return Throw.InvalidOperationException<DynamicRowConverter>($"The second paramater to the delegate must be an in {nameof(ReadContext)}, was not by ref");
             }
 
             if (p2.GetElementType() != Types.ReadContextType)
             {
-                Throw.InvalidOperationException($"The second paramater to the delegate must be an in {nameof(ReadContext)}");
+                return Throw.InvalidOperationException<DynamicRowConverter>($"The second paramater to the delegate must be an in {nameof(ReadContext)}");
             }
 
             var createsRef = args[2].ParameterType.GetTypeInfo();
             if (!createsRef.IsByRef)
             {
-                Throw.InvalidOperationException($"The third paramater to the delegate must be an out type, was not by ref");
+                return Throw.InvalidOperationException<DynamicRowConverter>($"The third paramater to the delegate must be an out type, was not by ref");
             }
 
             var creates = createsRef.GetElementType().GetTypeInfo();

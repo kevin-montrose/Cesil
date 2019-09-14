@@ -16,10 +16,9 @@ namespace Cesil
     /// 
     /// Wraps either a MethodInfo or a FormatterDelegate.
     /// </summary>
-    public sealed class Formatter : IEquatable<Formatter>
+    public sealed class Formatter : IEquatable<Formatter>, ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>
     {
         internal delegate bool DynamicFormatterDelegate(object value, in WriteContext context, IBufferWriter<char> buffer);
-
 
         private static readonly IReadOnlyDictionary<TypeInfo, Formatter> TypeFormatters;
 
@@ -54,7 +53,7 @@ namespace Cesil
 
         internal TypeInfo Takes { get; }
 
-        internal DynamicFormatterDelegate DynamicDelegate;
+        DynamicFormatterDelegate ICreatesCacheableDelegate<DynamicFormatterDelegate>.CachedDelegate { get; set; }
 
         private Formatter(TypeInfo takes, MethodInfo method)
         {
@@ -70,16 +69,8 @@ namespace Cesil
             Delegate = del;
         }
 
-        internal void PrimeDynamicDelegate(IDelegateCache cache)
+        DynamicFormatterDelegate ICreatesCacheableDelegate<DynamicFormatterDelegate>.CreateDelegate()
         {
-            if (DynamicDelegate != null) return;
-
-            if (cache.TryGet<Formatter, DynamicFormatterDelegate>(this, out var cached))
-            {
-                DynamicDelegate = cached;
-                return;
-            }
-
             switch (Mode)
             {
                 case BackingMode.Method:
@@ -96,9 +87,8 @@ namespace Cesil
                         var lambda = Expression.Lambda<DynamicFormatterDelegate>(block, p0, p1, p2);
                         var del = lambda.Compile();
 
-                        DynamicDelegate = del;
+                        return del;
                     }
-                    break;
                 case BackingMode.Delegate:
                     {
                         var p0 = Expressions.Parameter_Object;
@@ -116,18 +106,15 @@ namespace Cesil
                         var lambda = Expression.Lambda<DynamicFormatterDelegate>(block, p0, p1, p2);
                         var del = lambda.Compile();
 
-                        DynamicDelegate = del;
+                        return del;
                     }
-                    break;
-
                 default:
-                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
-                    // just for control flow
-                    break;
+                    return Throw.InvalidOperationException<DynamicFormatterDelegate>($"Unexpected {nameof(BackingMode)}: {Mode}");
             }
-
-            cache.Add(this, DynamicDelegate);
         }
+
+        void ICreatesCacheableDelegate<DynamicFormatterDelegate>.Guarantee(IDelegateCache cache)
+        => IDelegateCacheHelpers.GuaranteeImpl<Formatter, DynamicFormatterDelegate>(this, cache);
 
         /// <summary>
         /// Create a formatter from a method.
@@ -142,21 +129,26 @@ namespace Cesil
         /// </summary>
         public static Formatter ForMethod(MethodInfo formatter)
         {
+            if (formatter == null)
+            {
+                return Throw.ArgumentNullException<Formatter>(nameof(formatter));
+            }
+
             if (!formatter.IsStatic)
             {
-                Throw.ArgumentException($"{nameof(formatter)} must be a static method", nameof(formatter));
+                return Throw.ArgumentException<Formatter>($"{nameof(formatter)} must be a static method", nameof(formatter));
             }
 
             var formatterRetType = formatter.ReturnType.GetTypeInfo();
             if (formatterRetType != Types.BoolType)
             {
-                Throw.ArgumentException($"{nameof(formatter)} must return bool", nameof(formatter));
+                return Throw.ArgumentException<Formatter>($"{nameof(formatter)} must return bool", nameof(formatter));
             }
 
             var args = formatter.GetParameters();
             if (args.Length != 3)
             {
-                Throw.ArgumentException($"{nameof(formatter)} must take 3 parameters", nameof(formatter));
+                return Throw.ArgumentException<Formatter>($"{nameof(formatter)} must take 3 parameters", nameof(formatter));
             }
 
             var takes = args[0].ParameterType.GetTypeInfo();
@@ -164,17 +156,17 @@ namespace Cesil
             var p2 = args[1].ParameterType.GetTypeInfo();
             if (!p2.IsByRef)
             {
-                Throw.ArgumentException($"The second paramater to {nameof(formatter)} must be an in {nameof(WriteContext)}, was not by ref", nameof(formatter));
+                return Throw.ArgumentException<Formatter>($"The second paramater to {nameof(formatter)} must be an in {nameof(WriteContext)}, was not by ref", nameof(formatter));
             }
 
             if (p2.GetElementType() != Types.WriteContextType)
             {
-                Throw.ArgumentException($"The second paramater to {nameof(formatter)} must be an in {nameof(WriteContext)}", nameof(formatter));
+                return Throw.ArgumentException<Formatter>($"The second paramater to {nameof(formatter)} must be an in {nameof(WriteContext)}", nameof(formatter));
             }
 
             if (args[2].ParameterType.GetTypeInfo() != Types.IBufferWriterOfCharType)
             {
-                Throw.ArgumentException($"The third paramater to {nameof(formatter)} must be a {nameof(IBufferWriter<char>)}", nameof(formatter));
+                return Throw.ArgumentException<Formatter>($"The third paramater to {nameof(formatter)} must be a {nameof(IBufferWriter<char>)}", nameof(formatter));
             }
 
             return new Formatter(takes, formatter);
@@ -187,7 +179,7 @@ namespace Cesil
         {
             if (formatter == null)
             {
-                Throw.ArgumentNullException(nameof(formatter));
+                return Throw.ArgumentNullException<Formatter>(nameof(formatter));
             }
 
             return new Formatter(typeof(T).GetTypeInfo(), formatter);
@@ -198,6 +190,11 @@ namespace Cesil
         /// </summary>
         public static Formatter GetDefault(TypeInfo forType)
         {
+            if(forType == null)
+            {
+                return Throw.ArgumentNullException<Formatter>(nameof(forType));
+            }
+
             if (forType.IsEnum)
             {
                 if (forType.GetCustomAttribute<FlagsAttribute>() == null)
@@ -265,7 +262,7 @@ namespace Cesil
         /// </summary>
         public bool Equals(Formatter f)
         {
-            if (f == null) return false;
+            if (ReferenceEquals(f, null)) return false;
 
             if (Takes != f.Takes) return false;
 
@@ -279,9 +276,7 @@ namespace Cesil
                 case BackingMode.Delegate:
                     return Delegate == f.Delegate;
                 default:
-                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {otherMode}");
-                    // just for control flow
-                    return default;
+                    return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {otherMode}");
             }
         }
 
@@ -305,9 +300,7 @@ namespace Cesil
                 case BackingMode.Delegate:
                     return $"{nameof(Formatter)} for {Takes} backed by delegate {Delegate}";
                 default:
-                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
-                    // just for control flow
-                    return default;
+                    return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
             }
         }
 
@@ -341,13 +334,13 @@ namespace Cesil
             var ret = mtd.ReturnType.GetTypeInfo();
             if (ret != Types.BoolType)
             {
-                Throw.InvalidOperationException($"Delegate must return a bool");
+                return Throw.InvalidOperationException<Formatter>($"Delegate must return a bool");
             }
 
             var args = mtd.GetParameters();
             if (args.Length != 3)
             {
-                Throw.InvalidOperationException($"Delegate must take 3 parameters");
+                return Throw.InvalidOperationException<Formatter>($"Delegate must take 3 parameters");
             }
 
             var takes = args[0].ParameterType.GetTypeInfo();
@@ -355,17 +348,17 @@ namespace Cesil
             var p2 = args[1].ParameterType.GetTypeInfo();
             if (!p2.IsByRef)
             {
-                Throw.InvalidOperationException($"The second paramater to the delegate must be an in {nameof(WriteContext)}, was not by ref");
+                return Throw.InvalidOperationException<Formatter>($"The second paramater to the delegate must be an in {nameof(WriteContext)}, was not by ref");
             }
 
             if (p2.GetElementType() != Types.WriteContextType)
             {
-                Throw.InvalidOperationException($"The second paramater to the delegate must be an in {nameof(WriteContext)}");
+                return Throw.InvalidOperationException<Formatter>($"The second paramater to the delegate must be an in {nameof(WriteContext)}");
             }
 
             if (args[2].ParameterType.GetTypeInfo() != Types.IBufferWriterOfCharType)
             {
-                Throw.InvalidOperationException($"The third paramater to the delegate must be a {nameof(IBufferWriter<char>)}");
+                return Throw.InvalidOperationException<Formatter>($"The third paramater to the delegate must be a {nameof(IBufferWriter<char>)}");
             }
 
             var formatterDel = Types.FormatterDelegateType.MakeGenericType(takes);

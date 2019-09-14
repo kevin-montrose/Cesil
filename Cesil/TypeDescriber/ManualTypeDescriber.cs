@@ -6,6 +6,22 @@ using System.Text;
 namespace Cesil
 {
     /// <summary>
+    /// How to behave if a ManualTypeDescriber needs to
+    ///   describe a type that isn't explicitly configured.
+    /// </summary>
+    public enum ManualTypeDescriberFallbackBehavior : byte
+    {   
+        /// <summary>
+        /// Throw if no type is configured.
+        /// </summary>
+        Throw = 1,
+        /// <summary>
+        /// Use DefaultTypeDescriber if no type is configured.
+        /// </summary>
+        UseDefault = 2
+    }
+
+    /// <summary>
     /// An ITypeDescriber that takes lets you register explicit members to return
     ///   when one of the EnumerateXXX() methods are called.
     /// </summary>
@@ -22,9 +38,16 @@ namespace Cesil
         /// <summary>
         /// Creates a new ManualTypeDescriber.
         /// </summary>
-        public ManualTypeDescriber(bool throwOnNoConfiguredType)
+        public ManualTypeDescriber(ManualTypeDescriberFallbackBehavior fallbackBehavior)
         {
-            ThrowsOnNoConfiguredType = throwOnNoConfiguredType;
+            switch (fallbackBehavior)
+            {
+                case ManualTypeDescriberFallbackBehavior.Throw: ThrowsOnNoConfiguredType = true; break;
+                case ManualTypeDescriberFallbackBehavior.UseDefault: ThrowsOnNoConfiguredType = false; break;
+                default:
+                    Throw.ArgumentException<object>($"Unexpected {nameof(ManualTypeDescriberFallbackBehavior)}: {fallbackBehavior}", nameof(fallbackBehavior));
+                    return;
+            }
 
             Builders = new Dictionary<TypeInfo, InstanceBuilder>();
             Serializers = new Dictionary<TypeInfo, List<SerializableMember>>();
@@ -34,9 +57,9 @@ namespace Cesil
         /// <summary>
         /// Creates a new ManualTypeDescriber.
         /// 
-        /// Does not throw if no type is configured for a given enumeration.
+        /// Uses DefaultTypeDescriber if no type is configured for a given enumeration.
         /// </summary>
-        public ManualTypeDescriber() : this(false) { }
+        public ManualTypeDescriber() : this(ManualTypeDescriberFallbackBehavior.UseDefault) { }
 
         // set builders
 
@@ -55,18 +78,18 @@ namespace Cesil
         {
             if (forType == null)
             {
-                Throw.ArgumentNullException(nameof(forType));
+                Throw.ArgumentNullException<object>(nameof(forType));
             }
 
             if (builder == null)
             {
-                Throw.ArgumentNullException(nameof(builder));
+                Throw.ArgumentNullException<object>(nameof(builder));
             }
 
             var createdType = builder.ConstructsType;
             if (!forType.IsAssignableFrom(createdType))
             {
-                Throw.InvalidOperationException($"{forType} cannot be assigned from {createdType}, constructed by {builder}");
+                Throw.InvalidOperationException<object>($"{forType} cannot be assigned from {createdType}, constructed by {builder}");
             }
 
             Builders[forType] = builder;
@@ -78,7 +101,10 @@ namespace Cesil
         /// Add a getter for the given type, with the given name, using the given getter.
         /// </summary>
         public void AddExplicitGetter(TypeInfo forType, string name, Getter getter)
-        => AddSerializableMember(forType, getter, name, Formatter.GetDefault(getter?.Returns?.GetTypeInfo()), null, WillEmitDefaultValue.Yes);
+        {
+            var formatter = getter != null ? Formatter.GetDefault(getter.Returns) : null;
+            AddSerializableMember(forType, getter, name, formatter, null, WillEmitDefaultValue.Yes);
+        }
 
         /// <summary>
         /// Add a getter for the given type, with the given name, using the given getter, and formatter.
@@ -90,13 +116,27 @@ namespace Cesil
         /// Add a getter for the given type, with the given name, using the given getter, formatter, and ShouldSerialize method.
         /// </summary>
         public void AddExplicitGetter(TypeInfo forType, string name, Getter getter, Formatter formatter, ShouldSerialize shouldSerialize)
-        => AddSerializableMember(forType, getter, name, formatter, shouldSerialize, WillEmitDefaultValue.Yes);
+        {
+            if (shouldSerialize == null)
+            {
+                Throw.ArgumentNullException<object>(nameof(shouldSerialize));
+            }
+
+            AddSerializableMember(forType, getter, name, formatter, shouldSerialize, WillEmitDefaultValue.Yes);
+        }
 
         /// <summary>
         /// Add a getter for the given type, with the given name, using the given getter, formatter, ShouldSerialize method, and whether to emit a default value.
         /// </summary>
         public void AddExplicitGetter(TypeInfo forType, string name, Getter getter, Formatter formatter, ShouldSerialize shouldSerialize, WillEmitDefaultValue emitDefaultValue)
-        => AddSerializableMember(forType, getter, name, formatter, shouldSerialize, emitDefaultValue);
+        {
+            if (shouldSerialize == null)
+            {
+                Throw.ArgumentNullException<object>(nameof(shouldSerialize));
+            }
+
+            AddSerializableMember(forType, getter, name, formatter, shouldSerialize, emitDefaultValue);
+        }
 
         // serializing fields
 
@@ -104,13 +144,19 @@ namespace Cesil
         /// Add a field to serialize for the given type.
         /// </summary>
         public void AddSerializableField(TypeInfo forType, FieldInfo field)
-        => AddSerializableMember(forType, (Getter)field, field.Name, Formatter.GetDefault(field?.FieldType?.GetTypeInfo()), null, WillEmitDefaultValue.Yes);
+        {
+            var formatter = field != null ? Formatter.GetDefault(field.FieldType.GetTypeInfo()) : null;
+            AddSerializableMember(forType, (Getter)field, field?.Name, formatter, null, WillEmitDefaultValue.Yes);
+        }
 
         /// <summary>
         /// Add a field to serialize for the given type, using the given name.
         /// </summary>
         public void AddSerializableField(TypeInfo forType, FieldInfo field, string name)
-        => AddSerializableMember(forType, (Getter)field, name, Formatter.GetDefault(field?.FieldType?.GetTypeInfo()), null, WillEmitDefaultValue.Yes);
+        {
+            var formatter = field != null ? Formatter.GetDefault(field.FieldType.GetTypeInfo()) : null;
+            AddSerializableMember(forType, (Getter)field, name, formatter, null, WillEmitDefaultValue.Yes);
+        }
 
         /// <summary>
         /// Add a field to serialize for the given type, using the given name and formatter.
@@ -122,37 +168,79 @@ namespace Cesil
         /// Add a field to serialize for the given type, using the given name, formatter, and ShouldSerialize method.
         /// </summary>
         public void AddSerializableField(TypeInfo forType, FieldInfo field, string name, Formatter formatter, ShouldSerialize shouldSerialize)
-        => AddSerializableMember(forType, (Getter)field, name, formatter, shouldSerialize, WillEmitDefaultValue.Yes);
+        {
+            if (shouldSerialize == null)
+            {
+                Throw.ArgumentNullException<object>(nameof(shouldSerialize));
+            }
+
+            AddSerializableMember(forType, (Getter)field, name, formatter, shouldSerialize, WillEmitDefaultValue.Yes);
+        }
+
+        /// <summary>
+        /// Add a field to serialize for the given type, using the given name, formatter, and ShouldSerialize method.
+        /// </summary>
+        public void AddSerializableField(TypeInfo forType, FieldInfo field, string name, Formatter formatter, ShouldSerialize shouldSerialize, WillEmitDefaultValue emitDefaultValue)
+        {
+            if (shouldSerialize == null)
+            {
+                Throw.ArgumentNullException<object>(nameof(shouldSerialize));
+            }
+
+            AddSerializableMember(forType, (Getter)field, name, formatter, shouldSerialize, emitDefaultValue);
+        }
 
         /// <summary>
         /// Add a field to serialize for the type which declares the field.
         /// </summary>
         public void AddSerializableField(FieldInfo field)
-        => AddSerializableMember(field?.DeclaringType?.GetTypeInfo(), (Getter)field, field.Name, Formatter.GetDefault(field?.FieldType?.GetTypeInfo()), null, WillEmitDefaultValue.Yes);
+        {
+            var formatter = field != null ? Formatter.GetDefault(field.FieldType.GetTypeInfo()) : null;
+
+            AddSerializableMember(field?.DeclaringType.GetTypeInfo(), (Getter)field, field?.Name, formatter, null, WillEmitDefaultValue.Yes);
+        }
 
         /// <summary>
         /// Add a field to serialize with the given name - for the type which declares the field.
         /// </summary>
         public void AddSerializableField(FieldInfo field, string name)
-        => AddSerializableMember(field?.DeclaringType?.GetTypeInfo(), (Getter)field, name, Formatter.GetDefault(field?.FieldType?.GetTypeInfo()), null, WillEmitDefaultValue.Yes);
+        {
+            var formatter = field != null ? Formatter.GetDefault(field.FieldType.GetTypeInfo()) : null;
+
+            AddSerializableMember(field?.DeclaringType.GetTypeInfo(), (Getter)field, name, formatter, null, WillEmitDefaultValue.Yes);
+        }
 
         /// <summary>
         /// Add a field to serialize with the given name and formatter - for the type which declares the field.
         /// </summary>
         public void AddSerializableField(FieldInfo field, string name, Formatter formatter)
-        => AddSerializableMember(field?.DeclaringType?.GetTypeInfo(), (Getter)field, name, formatter, null, WillEmitDefaultValue.Yes);
+        => AddSerializableMember(field?.DeclaringType.GetTypeInfo(), (Getter)field, name, formatter, null, WillEmitDefaultValue.Yes);
 
         /// <summary>
         /// Add a field to serialize with the given name, formatter, and ShouldSerialize method - for the type which declares the field.
         /// </summary>
         public void AddSerializableField(FieldInfo field, string name, Formatter formatter, ShouldSerialize shouldSerialize)
-        => AddSerializableMember(field?.DeclaringType?.GetTypeInfo(), (Getter)field, name, formatter, shouldSerialize, WillEmitDefaultValue.Yes);
+        {
+            if (shouldSerialize == null)
+            {
+                Throw.ArgumentNullException<object>(nameof(shouldSerialize));
+            }
+
+            AddSerializableMember(field?.DeclaringType.GetTypeInfo(), (Getter)field, name, formatter, shouldSerialize, WillEmitDefaultValue.Yes);
+        }
 
         /// <summary>
         /// Add a field to serialize with the given name, formatter, ShouldSerialize method, and whether to emit a default value - for the type which declares the field.
         /// </summary>
         public void AddSerializableField(FieldInfo field, string name, Formatter formatter, ShouldSerialize shouldSerialize, WillEmitDefaultValue emitDefaultValue)
-        => AddSerializableMember(field?.DeclaringType?.GetTypeInfo(), (Getter)field, name, formatter, shouldSerialize, emitDefaultValue);
+        {
+            if (shouldSerialize == null)
+            {
+                Throw.ArgumentNullException<object>(nameof(shouldSerialize));
+            }
+
+            AddSerializableMember(field?.DeclaringType.GetTypeInfo(), (Getter)field, name, formatter, shouldSerialize, emitDefaultValue);
+        }
 
         // serializing properties
 
@@ -160,13 +248,21 @@ namespace Cesil
         /// Add a property to serialize for the given type.
         /// </summary>
         public void AddSerializableProperty(TypeInfo forType, PropertyInfo prop)
-        => AddSerializableMember(forType, (Getter)prop?.GetMethod, prop.Name, Formatter.GetDefault(prop?.PropertyType?.GetTypeInfo()), null, WillEmitDefaultValue.Yes);
+        {
+            var formatter = prop != null ? Formatter.GetDefault(prop.PropertyType.GetTypeInfo()) : null;
+
+            AddSerializableMember(forType, (Getter)prop?.GetMethod, prop?.Name, formatter, null, WillEmitDefaultValue.Yes);
+        }
 
         /// <summary>
         /// Add a property to serialize for the given type with the given name.
         /// </summary>
         public void AddSerializableProperty(TypeInfo forType, PropertyInfo prop, string name)
-        => AddSerializableMember(forType, (Getter)prop?.GetMethod, name, Formatter.GetDefault(prop?.PropertyType?.GetTypeInfo()), null, WillEmitDefaultValue.Yes);
+        {
+            var formatter = prop != null ? Formatter.GetDefault(prop.PropertyType.GetTypeInfo()) : null;
+
+            AddSerializableMember(forType, (Getter)prop?.GetMethod, name, formatter, null, WillEmitDefaultValue.Yes);
+        }
 
         /// <summary>
         /// Add a property to serialize for the given type with the given name and formatter.
@@ -178,64 +274,101 @@ namespace Cesil
         /// Add a property to serialize for the given type with the given name, formatter, and ShouldSerialize method.
         /// </summary>
         public void AddSerializableProperty(TypeInfo forType, PropertyInfo prop, string name, Formatter formatter, ShouldSerialize shouldSerialize)
-        => AddSerializableMember(forType, (Getter)prop?.GetMethod, name, formatter, shouldSerialize, WillEmitDefaultValue.Yes);
+        {
+            if (shouldSerialize == null)
+            {
+                Throw.ArgumentNullException<object>(nameof(shouldSerialize));
+            }
+
+            AddSerializableMember(forType, (Getter)prop?.GetMethod, name, formatter, shouldSerialize, WillEmitDefaultValue.Yes);
+        }
 
         /// <summary>
         /// Add a property to serialize for the given type with the given name, formatter, ShouldSerialize method, and whether to emit a default value.
         /// </summary>
         public void AddSerializableProperty(TypeInfo forType, PropertyInfo prop, string name, Formatter formatter, ShouldSerialize shouldSerialize, WillEmitDefaultValue emitDefaultValue)
-        => AddSerializableMember(forType, (Getter)prop?.GetMethod, name, formatter, shouldSerialize, emitDefaultValue);
+        {
+            if (shouldSerialize == null)
+            {
+                Throw.ArgumentNullException<object>(nameof(shouldSerialize));
+            }
+
+            AddSerializableMember(forType, (Getter)prop?.GetMethod, name, formatter, shouldSerialize, emitDefaultValue);
+        }
 
         /// <summary>
         /// Add a property to serialize for the type which declares the property.
         /// </summary>
         public void AddSerializableProperty(PropertyInfo prop)
-        => AddSerializableMember(prop?.DeclaringType?.GetTypeInfo(), (Getter)prop?.GetMethod, prop?.Name, Formatter.GetDefault(prop?.PropertyType?.GetTypeInfo()), null, WillEmitDefaultValue.Yes);
+        {
+            var formatter = prop != null ? Formatter.GetDefault(prop.PropertyType.GetTypeInfo()) : null;
+
+            AddSerializableMember(prop?.DeclaringType.GetTypeInfo(), (Getter)prop?.GetMethod, prop?.Name, formatter, null, WillEmitDefaultValue.Yes);
+        }
 
         /// <summary>
         /// Add a property to serialize with the given name - for the type which declares the property.
         /// </summary>
         public void AddSerializableProperty(PropertyInfo prop, string name)
-        => AddSerializableMember(prop?.DeclaringType?.GetTypeInfo(), (Getter)prop?.GetMethod, name, Formatter.GetDefault(prop?.PropertyType?.GetTypeInfo()), null, WillEmitDefaultValue.Yes);
+        {
+            var formatter = prop != null ? Formatter.GetDefault(prop.PropertyType.GetTypeInfo()) : null;
+
+            AddSerializableMember(prop?.DeclaringType.GetTypeInfo(), (Getter)prop?.GetMethod, name, formatter, null, WillEmitDefaultValue.Yes);
+        }
 
         /// <summary>
         /// Add a property to serialize with the given name and formatter - for the type which declares the property.
         /// </summary>
         public void AddSerializableProperty(PropertyInfo prop, string name, Formatter formatter)
-        => AddSerializableMember(prop?.DeclaringType?.GetTypeInfo(), (Getter)prop?.GetMethod, name, formatter, null, WillEmitDefaultValue.Yes);
+        => AddSerializableMember(prop?.DeclaringType.GetTypeInfo(), (Getter)prop?.GetMethod, name, formatter, null, WillEmitDefaultValue.Yes);
 
         /// <summary>
         /// Add a property to serialize with the given name, formatter, and ShouldSerialize method - for the type which declares the property.
         /// </summary>
         public void AddSerializableProperty(PropertyInfo prop, string name, Formatter formatter, ShouldSerialize shouldSerialize)
-        => AddSerializableMember(prop?.DeclaringType?.GetTypeInfo(), (Getter)prop?.GetMethod, name, formatter, shouldSerialize, WillEmitDefaultValue.Yes);
+        {
+            if (shouldSerialize == null)
+            {
+                Throw.ArgumentNullException<object>(nameof(shouldSerialize));
+            }
+
+            AddSerializableMember(prop?.DeclaringType.GetTypeInfo(), (Getter)prop?.GetMethod, name, formatter, shouldSerialize, WillEmitDefaultValue.Yes);
+        }
 
         /// <summary>
         /// Add a property to serialize with the given name, formatter, ShouldSerialize method, and whether to emit a default value - for the type which declares the property.
         /// </summary>
         public void AddSerializableProperty(PropertyInfo prop, string name, Formatter formatter, ShouldSerialize shouldSerialize, WillEmitDefaultValue emitDefaultValue)
-        => AddSerializableMember(prop?.DeclaringType?.GetTypeInfo(), (Getter)prop?.GetMethod, name, formatter, shouldSerialize, emitDefaultValue);
+        {
+            if (shouldSerialize == null)
+            {
+                Throw.ArgumentNullException<object>(nameof(shouldSerialize));
+            }
 
-        private void AddSerializableMember(TypeInfo forType, Getter getter, string name, Formatter formatter, ShouldSerialize shouldSerialize, WillEmitDefaultValue emitDefaultValue)
+            AddSerializableMember(prop?.DeclaringType.GetTypeInfo(), (Getter)prop?.GetMethod, name, formatter, shouldSerialize, emitDefaultValue);
+        }
+
+        // internal for testing purposes
+        internal void AddSerializableMember(TypeInfo forType, Getter getter, string name, Formatter formatter, ShouldSerialize shouldSerialize, WillEmitDefaultValue emitDefaultValue)
         {
             if (forType == null)
             {
-                Throw.ArgumentNullException(nameof(forType));
+                Throw.ArgumentNullException<object>(nameof(forType));
             }
 
             if (getter == null)
             {
-                Throw.ArgumentNullException(nameof(getter));
+                Throw.ArgumentNullException<object>(nameof(getter));
             }
 
             if (name == null)
             {
-                Throw.ArgumentNullException(nameof(name));
+                Throw.ArgumentNullException<object>(nameof(name));
             }
 
             if (formatter == null)
             {
-                Throw.ArgumentNullException(nameof(name));
+                Throw.ArgumentNullException<object>(nameof(name));
             }
 
             // shouldSerialize can be null
@@ -244,11 +377,11 @@ namespace Cesil
             {
                 var getterOnType = getter.RowType;
                 var isLegal = false;
-                var cur = getterOnType;
+                var cur = forType;
 
                 while (cur != null)
                 {
-                    if (cur == forType)
+                    if (cur == getterOnType)
                     {
                         isLegal = true;
                         break;
@@ -259,7 +392,7 @@ namespace Cesil
 
                 if (!isLegal)
                 {
-                    Throw.ArgumentException($"Provided getter ({getter}) is not on the given type or one of it's base types.", nameof(getter));
+                    Throw.InvalidOperationException<object>($"Provided getter ({getter}) is not on {forType} or one of it's base types.");
                 }
             }
 
@@ -302,7 +435,14 @@ namespace Cesil
         /// Add a setter for the given type, with the given name, using the given setter, parser, whether the column is required, and a reset method.
         /// </summary>
         public void AddExplicitSetter(TypeInfo forType, string name, Setter setter, Parser parser, IsMemberRequired isRequired, Reset reset)
-        => AddDeserializeMember(forType, setter, name, parser, isRequired, reset);
+        {
+            if (reset == null)
+            {
+                Throw.ArgumentNullException<object>(nameof(reset));
+            }
+
+            AddDeserializeMember(forType, setter, name, parser, isRequired, reset);
+        }
 
         // deserialize fields
 
@@ -310,13 +450,21 @@ namespace Cesil
         /// Add a field to deserialize for the given type.
         /// </summary>
         public void AddDeserializableField(TypeInfo forType, FieldInfo field)
-        => AddDeserializeMember(forType, (Setter)field, field?.Name, Parser.GetDefault(field?.FieldType?.GetTypeInfo()), IsMemberRequired.No, null);
+        {
+            var parser = field != null ? Parser.GetDefault(field.FieldType.GetTypeInfo()) : null;
+
+            AddDeserializeMember(forType, (Setter)field, field?.Name, parser, IsMemberRequired.No, null);
+        }
 
         /// <summary>
         /// Add a field to deserialize for the given type with the given name.
         /// </summary>
         public void AddDeserializableField(TypeInfo forType, FieldInfo field, string name)
-        => AddDeserializeMember(forType, (Setter)field, name, Parser.GetDefault(field?.FieldType?.GetTypeInfo()), IsMemberRequired.No, null);
+        {
+            var parser = field != null ? Parser.GetDefault(field.FieldType.GetTypeInfo()) : null;
+
+            AddDeserializeMember(forType, (Setter)field, name, parser, IsMemberRequired.No, null);
+        }
 
         /// <summary>
         /// Add a field to deserialize for the given type with the given name and parser.
@@ -334,37 +482,59 @@ namespace Cesil
         /// Add a field to deserialize for the given type with the given name, parser, whether the column is required, and a reset method.
         /// </summary>
         public void AddDeserializableField(TypeInfo forType, FieldInfo field, string name, Parser parser, IsMemberRequired isRequired, Reset reset)
-        => AddDeserializeMember(forType, (Setter)field, name, parser, isRequired, reset);
+        {
+            if (reset == null)
+            {
+                Throw.ArgumentNullException<object>(nameof(reset));
+            }
+
+            AddDeserializeMember(forType, (Setter)field, name, parser, isRequired, reset);
+        }
 
         /// <summary>
         /// Add a field to deserialize for the type which declares the field.
         /// </summary>
         public void AddDeserializableField(FieldInfo field)
-        => AddDeserializeMember(field?.DeclaringType?.GetTypeInfo(), (Setter)field, field?.Name, Parser.GetDefault(field?.FieldType?.GetTypeInfo()), IsMemberRequired.No, null);
+        {
+            var parser = field != null ? Parser.GetDefault(field.FieldType.GetTypeInfo()) : null;
+
+            AddDeserializeMember(field?.DeclaringType.GetTypeInfo(), (Setter)field, field?.Name, parser, IsMemberRequired.No, null);
+        }
 
         /// <summary>
         /// Add a field to deserialize with the given name - for the type which declares the field.
         /// </summary>
         public void AddDeserializableField(FieldInfo field, string name)
-        => AddDeserializeMember(field?.DeclaringType?.GetTypeInfo(), (Setter)field, name, Parser.GetDefault(field?.FieldType?.GetTypeInfo()), IsMemberRequired.No, null);
+        {
+            var parser = field != null ? Parser.GetDefault(field.FieldType.GetTypeInfo()) : null;
+
+            AddDeserializeMember(field?.DeclaringType.GetTypeInfo(), (Setter)field, name, parser, IsMemberRequired.No, null);
+        }
 
         /// <summary>
         /// Add a field to deserialize with the given name and parser - for the type which declares the field.
         /// </summary>
         public void AddDeserializableField(FieldInfo field, string name, Parser parser)
-        => AddDeserializeMember(field?.DeclaringType?.GetTypeInfo(), (Setter)field, name, parser, IsMemberRequired.No, null);
+        => AddDeserializeMember(field?.DeclaringType.GetTypeInfo(), (Setter)field, name, parser, IsMemberRequired.No, null);
 
         /// <summary>
         /// Add a field to deserialize with the given name, parser, and whether the column is required - for the type which declares the field.
         /// </summary>
         public void AddDeserializableField(FieldInfo field, string name, Parser parser, IsMemberRequired isRequired)
-        => AddDeserializeMember(field?.DeclaringType?.GetTypeInfo(), (Setter)field, name, parser, isRequired, null);
+        => AddDeserializeMember(field?.DeclaringType.GetTypeInfo(), (Setter)field, name, parser, isRequired, null);
 
         /// <summary>
         /// Add a field to deserialize with the given name, parser, whether the column is required, and a reset method - for the type which declares the field.
         /// </summary>
         public void AddDeserializableField(FieldInfo field, string name, Parser parser, IsMemberRequired isRequired, Reset reset)
-        => AddDeserializeMember(field?.DeclaringType?.GetTypeInfo(), (Setter)field, name, parser, isRequired, reset);
+        {
+            if (reset == null)
+            {
+                Throw.ArgumentNullException<object>(nameof(reset));
+            }
+
+            AddDeserializeMember(field?.DeclaringType.GetTypeInfo(), (Setter)field, name, parser, isRequired, reset);
+        }
 
         // deserialize properties
 
@@ -372,13 +542,21 @@ namespace Cesil
         /// Add a property to deserialize for the given type.
         /// </summary>
         public void AddDeserializableProperty(TypeInfo forType, PropertyInfo prop)
-        => AddDeserializeMember(forType, (Setter)prop?.SetMethod, prop?.Name, Parser.GetDefault(prop?.PropertyType?.GetTypeInfo()), IsMemberRequired.No, null);
+        {
+            var parser = prop != null ? Parser.GetDefault(prop.PropertyType.GetTypeInfo()) : null;
+
+            AddDeserializeMember(forType, (Setter)prop?.SetMethod, prop?.Name, parser, IsMemberRequired.No, null);
+        }
 
         /// <summary>
         /// Add a property to deserialize for the given type with the given name.
         /// </summary>
         public void AddDeserializableProperty(TypeInfo forType, PropertyInfo prop, string name)
-        => AddDeserializeMember(forType, (Setter)prop?.SetMethod, name, Parser.GetDefault(prop?.PropertyType?.GetTypeInfo()), IsMemberRequired.No, null);
+        {
+            var parser = prop != null ? Parser.GetDefault(prop.PropertyType.GetTypeInfo()) : null;
+
+            AddDeserializeMember(forType, (Setter)prop?.SetMethod, name, parser, IsMemberRequired.No, null);
+        }
 
         /// <summary>
         /// Add a property to deserialize for the given type with the given name and parser.
@@ -396,58 +574,80 @@ namespace Cesil
         /// Add a property to deserialize for the given type with the given name and parser, whether the column is required, and a reset method.
         /// </summary>
         public void AddDeserializableProperty(TypeInfo forType, PropertyInfo prop, string name, Parser parser, IsMemberRequired isRequired, Reset reset)
-        => AddDeserializeMember(forType, (Setter)prop?.SetMethod, name, parser, isRequired, reset);
+        {
+            if (reset == null)
+            {
+                Throw.ArgumentNullException<object>(nameof(reset));
+            }
+
+            AddDeserializeMember(forType, (Setter)prop?.SetMethod, name, parser, isRequired, reset);
+        }
 
         /// <summary>
         /// Add a property to deserialize for the type which declares the property.
         /// </summary>
         public void AddDeserializableProperty(PropertyInfo prop)
-        => AddDeserializeMember(prop?.DeclaringType?.GetTypeInfo(), (Setter)prop?.SetMethod, prop?.Name, Parser.GetDefault(prop?.PropertyType?.GetTypeInfo()), IsMemberRequired.No, null);
+        {
+            var parser = prop != null ? Parser.GetDefault(prop.PropertyType.GetTypeInfo()) : null;
+
+            AddDeserializeMember(prop?.DeclaringType.GetTypeInfo(), (Setter)prop?.SetMethod, prop?.Name, parser, IsMemberRequired.No, null);
+        }
 
         /// <summary>
         /// Add a property to deserialize with the given name - for the type which declares the property.
         /// </summary>
         public void AddDeserializableProperty(PropertyInfo prop, string name)
-        => AddDeserializeMember(prop?.DeclaringType?.GetTypeInfo(), (Setter)prop?.SetMethod, name, Parser.GetDefault(prop?.PropertyType?.GetTypeInfo()), IsMemberRequired.No, null);
+        {
+            var parser = prop != null ? Parser.GetDefault(prop.PropertyType.GetTypeInfo()) : null;
+
+            AddDeserializeMember(prop?.DeclaringType.GetTypeInfo(), (Setter)prop?.SetMethod, name, parser, IsMemberRequired.No, null);
+        }
 
         /// <summary>
         /// Add a property to deserialize with the given name and parser - for the type which declares the property.
         /// </summary>
         public void AddDeserializableProperty(PropertyInfo prop, string name, Parser parser)
-        => AddDeserializeMember(prop?.DeclaringType?.GetTypeInfo(), (Setter)prop?.SetMethod, name, parser, IsMemberRequired.No, null);
+        => AddDeserializeMember(prop?.DeclaringType.GetTypeInfo(), (Setter)prop?.SetMethod, name, parser, IsMemberRequired.No, null);
 
         /// <summary>
         /// Add a property to deserialize with the given name, parser, and whether the column is required - for the type which declares the property.
         /// </summary>
         public void AddDeserializableProperty(PropertyInfo prop, string name, Parser parser, IsMemberRequired isRequired)
-        => AddDeserializeMember(prop?.DeclaringType?.GetTypeInfo(), (Setter)prop?.SetMethod, name, parser, isRequired, null);
+        => AddDeserializeMember(prop?.DeclaringType.GetTypeInfo(), (Setter)prop?.SetMethod, name, parser, isRequired, null);
 
         /// <summary>
         /// Add a property to deserialize with the given name, parser, whether the column is required, and a reset method - for the type which declares the property.
         /// </summary>
         public void AddDeserializableProperty(PropertyInfo prop, string name, Parser parser, IsMemberRequired isRequired, Reset reset)
-        => AddDeserializeMember(prop?.DeclaringType?.GetTypeInfo(), (Setter)prop?.SetMethod, name, parser, isRequired, reset);
+        {
+            if (reset == null)
+            {
+                Throw.ArgumentNullException<object>(nameof(reset));
+            }
+
+            AddDeserializeMember(prop?.DeclaringType.GetTypeInfo(), (Setter)prop?.SetMethod, name, parser, isRequired, reset);
+        }
 
         private void AddDeserializeMember(TypeInfo forType, Setter setter, string name, Parser parser, IsMemberRequired isRequired, Reset reset)
         {
             if (forType == null)
             {
-                Throw.ArgumentNullException(nameof(forType));
+                Throw.ArgumentNullException<object>(nameof(forType));
             }
 
             if (setter == null)
             {
-                Throw.ArgumentNullException(nameof(setter));
+                Throw.ArgumentNullException<object>(nameof(setter));
             }
 
             if (name == null)
             {
-                Throw.ArgumentNullException(nameof(name));
+                Throw.ArgumentNullException<object>(nameof(name));
             }
 
             if (parser == null)
             {
-                Throw.ArgumentNullException(nameof(parser));
+                Throw.ArgumentNullException<object>(nameof(parser));
             }
 
             var toAdd = DeserializableMember.Create(forType, name, setter, parser, isRequired, reset);
@@ -469,12 +669,12 @@ namespace Cesil
         {
             if (forType == null)
             {
-                Throw.ArgumentNullException(nameof(forType));
+                return Throw.ArgumentNullException<InstanceBuilder>(nameof(forType));
             }
 
             if (!Builders.TryGetValue(forType, out var builder))
             {
-                Throw.InvalidOperationException($"No builder set for {forType}");
+                return Throw.InvalidOperationException<InstanceBuilder>($"No builder set for {forType}");
             }
 
             return builder;
@@ -493,7 +693,7 @@ namespace Cesil
             {
                 if (ThrowsOnNoConfiguredType)
                 {
-                    Throw.InvalidOperationException($"No configured members to deserialize for {forType} ({nameof(ThrowsOnNoConfiguredType)} is set)");
+                    return Throw.InvalidOperationException<IEnumerable<DeserializableMember>>($"No configured members to deserialize for {forType} ({nameof(ThrowsOnNoConfiguredType)} is set)");
                 }
 
                 return Enumerable.Empty<DeserializableMember>();
@@ -515,7 +715,7 @@ namespace Cesil
             {
                 if (ThrowsOnNoConfiguredType)
                 {
-                    Throw.InvalidOperationException($"No configured members to serialize for {forType} ({nameof(ThrowsOnNoConfiguredType)} is set)");
+                    return Throw.InvalidOperationException<IEnumerable<SerializableMember>>($"No configured members to serialize for {forType} ({nameof(ThrowsOnNoConfiguredType)} is set)");
                 }
 
                 return Enumerable.Empty<SerializableMember>();
@@ -631,18 +831,18 @@ namespace Cesil
         /// Delegates to DefaultTypeDescriber.
         /// </summary>
         public Parser GetDynamicCellParserFor(in ReadContext ctx, TypeInfo targetType)
-        => TypeDescribers.Default.GetDynamicCellParserFor(in ctx, targetType);
+        => Throw.NotSupportedException<Parser>(nameof(ManualTypeDescriber), nameof(GetDynamicCellParserFor));
 
         /// <summary>
         /// Delegates to DefaultTypeDescriber.
         /// </summary>
         public DynamicRowConverter GetDynamicRowConverter(in ReadContext ctx, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
-        => TypeDescribers.Default.GetDynamicRowConverter(in ctx, columns, targetType);
+        => Throw.NotSupportedException<DynamicRowConverter>(nameof(ManualTypeDescriber), nameof(GetDynamicRowConverter));
 
         /// <summary>
         /// Delegates to DefaultTypeDescriber.
         /// </summary>
         public IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext ctx, object row)
-        => TypeDescribers.Default.GetCellsForDynamicRow(in ctx, row);
+        => Throw.NotSupportedException<IEnumerable<DynamicCellValue>>(nameof(ManualTypeDescriber), nameof(GetCellsForDynamicRow));
     }
 }

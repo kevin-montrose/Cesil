@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Buffers;
 using System.IO;
+using System.IO.Pipelines;
+using System.Text;
 
 namespace Cesil
 {
@@ -31,9 +33,15 @@ namespace Cesil
         internal readonly int ReadBufferSizeHint;
         internal readonly DynamicRowDisposal DynamicRowDisposal;
 
-#if DEBUG
-        internal bool ForceAsync;
-#endif
+        /// <summary>
+        /// For some testing scenarios.
+        /// 
+        /// Created instance is nearly unusable.
+        /// </summary>
+        protected BoundConfigurationBase()
+        {
+
+        }
 
         /// <summary>
         /// For working with dynamic.
@@ -149,12 +157,127 @@ namespace Cesil
             CommentChar = commentChar;
         }
 
-        public abstract IAsyncReader<T> CreateAsyncReader(TextReader reader, object context = null);
+        public IAsyncReader<T> CreateAsyncReader(PipeReader reader, Encoding encoding, object context = null)
+        {
+            if(reader == null)
+            {
+                return Throw.ArgumentNullException<IAsyncReader<T>>(nameof(reader));
+            }
 
-        public abstract IAsyncWriter<T> CreateAsyncWriter(TextWriter writer, object context = null);
+            if (encoding == null)
+            {
+                return Throw.ArgumentNullException<IAsyncReader<T>>(nameof(encoding));
+            }
 
-        public abstract IReader<T> CreateReader(TextReader reader, object context = null);
+            // context is legally null
 
-        public abstract IWriter<T> CreateWriter(TextWriter writer, object context = null);
+            var wrapper = new PipeReaderAdapter(reader, encoding);
+
+            return CreateAsyncReader(wrapper, context);
+        }
+
+        public IAsyncReader<T> CreateAsyncReader(TextReader reader, object context = null)
+        {
+            if (reader == null)
+            {
+                return Throw.ArgumentNullException<IAsyncReader<T>>(nameof(reader));
+            }
+
+            // context is legally null
+
+            var wrapper = new AsyncTextReaderAdapter(reader);
+
+            return CreateAsyncReader(wrapper, context);
+        }
+
+        public IAsyncWriter<T> CreateAsyncWriter(PipeWriter writer, Encoding encoding, object context = null)
+        {
+            if(writer == null)
+            {
+                return Throw.ArgumentNullException<IAsyncWriter<T>>(nameof(writer));
+            }
+
+            if (encoding == null)
+            {
+                return Throw.ArgumentNullException<IAsyncWriter<T>>(nameof(encoding));
+            }
+
+            // context is legally null
+
+            var wrapper = new PipeWriterAdapter(writer, encoding, MemoryPool);
+
+            return CreateAsyncWriter(wrapper, context);
+        }
+
+        public IAsyncWriter<T> CreateAsyncWriter(TextWriter writer, object context = null)
+        {
+            if(writer == null)
+            {
+                return Throw.ArgumentNullException<IAsyncWriter<T>>(nameof(writer));
+            }
+
+            // context is legally null
+
+            var wrapper = new AsyncTextWriterAdapter(writer);
+
+            return CreateAsyncWriter(wrapper, context);
+        }
+
+        public IReader<T> CreateReader(ReadOnlySequence<char> sequence, object context = null)
+        {
+            // context is legally null
+
+            var wrapper = new ReadOnlySequenceAdapter(sequence);
+
+            return CreateReader(wrapper, context);
+        }
+
+        public IReader<T> CreateReader(TextReader reader, object context = null)
+        {
+            if(reader == null)
+            {
+                return Throw.ArgumentNullException<IReader<T>>(nameof(reader));
+            }
+
+            // context is legeally null
+
+            var wrapper = new TextReaderAdapter(reader);
+
+            return CreateReader(wrapper, context);
+        }
+
+        public IWriter<T> CreateWriter(IBufferWriter<char> writer, object context = null)
+        {
+            if(writer == null)
+            {
+                return Throw.ArgumentNullException<IWriter<T>>(nameof(writer));
+            }
+
+            // context is legally null
+
+            var wrapper = new BufferWriterAdapter(writer);
+
+            return CreateWriter(wrapper, context);
+        }
+
+        public IWriter<T> CreateWriter(TextWriter writer, object context = null)
+        {
+            if(writer == null)
+            {
+                return Throw.ArgumentNullException<IWriter<T>>(nameof(writer));
+            }
+
+            // context is legally null
+
+            var wrapper = new TextWriterAdapter(writer);
+
+            return CreateWriter(wrapper, context);
+        }
+
+        internal abstract IReader<T> CreateReader(IReaderAdapter reader, object context = null);
+        internal abstract IWriter<T> CreateWriter(IWriterAdapter writer, object context = null);
+
+        internal abstract IAsyncWriter<T> CreateAsyncWriter(IAsyncWriterAdapter writer, object context = null);
+        internal abstract IAsyncReader<T> CreateAsyncReader(IAsyncReaderAdapter reader, object context = null);
     }
 }

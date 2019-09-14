@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Buffers;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,22 +17,11 @@ namespace Cesil
 
         private int InPushBack;
 
-#if DEBUG
-        private readonly bool ForceAsync;
-#endif
-
         internal BufferWithPushback(
             MemoryPool<char> memoryPool,
             int initialBufferSize
-#if DEBUG
-            , bool forceAsync
-#endif
         )
         {
-#if DEBUG
-            ForceAsync = forceAsync;
-#endif
-
             MemoryPool = memoryPool;
             BackingOwner = MemoryPool.Rent(initialBufferSize);
 
@@ -69,7 +57,7 @@ namespace Cesil
             PushBack = BackingOwner.Memory.Slice(halfPoint);
         }
 
-        internal int Read(TextReader reader)
+        internal int Read(IReaderAdapter reader)
         {
             if (InPushBack > 0)
             {
@@ -83,27 +71,7 @@ namespace Cesil
             return reader.Read(Buffer.Span);
         }
 
-        internal ValueTask<int> ReadAsync(TextReader reader, CancellationToken cancel)
-        {
-#if DEBUG
-            if (ForceAsync)
-            {
-                return ForceAsyncReadAsync(reader, cancel);
-            }
-#endif
-
-            return ReadAsyncInner(reader, cancel);
-        }
-
-#if DEBUG
-        private async ValueTask<int> ForceAsyncReadAsync(TextReader reader, CancellationToken cancel)
-        {
-            await Task.Yield();
-            return await ReadAsyncInner(reader, cancel);
-        }
-#endif
-
-        private ValueTask<int> ReadAsyncInner(TextReader reader, CancellationToken cancel)
+        internal ValueTask<int> ReadAsync(IAsyncReaderAdapter reader, CancellationToken cancel)
         {
             if (InPushBack > 0)
             {
@@ -131,14 +99,6 @@ namespace Cesil
                 BackingOwner.Dispose();
 
                 BackingOwner = null;
-            }
-        }
-
-        public void AssertNotDisposed()
-        {
-            if (IsDisposed)
-            {
-                Throw.ObjectDisposedException(nameof(BufferWithPushback));
             }
         }
     }

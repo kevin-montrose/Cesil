@@ -43,14 +43,14 @@ namespace Cesil
 
             if (formatter == null)
             {
-                Throw.ArgumentNullException(nameof(formatter));
+                return Throw.ArgumentNullException<DynamicCellValue>(nameof(formatter));
             }
 
             var valType = (val as object)?.GetType().GetTypeInfo();
 
             if (valType != null && !formatter.Takes.IsAssignableFrom(valType))
             {
-                Throw.ArgumentException($"Formatter must accept an object assignable from {valType}", nameof(formatter));
+                return Throw.ArgumentException<DynamicCellValue>($"Formatter must accept an object assignable from {valType}", nameof(formatter));
             }
 
             return new DynamicCellValue(name, val, formatter);
@@ -73,9 +73,20 @@ namespace Cesil
         /// Returns true if this object equals the given DynamicCellValue.
         /// </summary>
         public bool Equals(DynamicCellValue d)
-        => d.Formatter == Formatter &&
-           d.Name == Name &&
-           ((d.Value as object)?.Equals(Value as object) ?? false);
+        {
+            if (d.Formatter != Formatter) return false;
+            if (d.Name != Name) return false;
+
+            var selfAsObj = Value as object;
+            var dAsObj = d.Value as object;
+
+            if(selfAsObj == null)
+            {
+                return dAsObj == null;
+            }
+
+            return selfAsObj.Equals(dAsObj);
+        }
 
         /// <summary>
         /// Returns a stable hash for this DynamicCellValue.

@@ -1,6 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 
+using static Cesil.DisposableHelper;
+
 namespace Cesil
 {
     internal sealed class DynamicRowEnumerable<T> : IEnumerable<T>, ITestableDisposable
@@ -23,14 +25,6 @@ namespace Cesil
             Row = (DynamicRow)row;
         }
 
-        public void AssertNotDisposed()
-        {
-            if (IsDisposed)
-            {
-                Throw.ObjectDisposedException(nameof(DynamicRowEnumerable<T>));
-            }
-        }
-
         public void Dispose()
         {
             Row = null;
@@ -38,7 +32,7 @@ namespace Cesil
 
         public IEnumerator<T> GetEnumerator()
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             return new DynamicRowEnumerator<T>(Row);
         }

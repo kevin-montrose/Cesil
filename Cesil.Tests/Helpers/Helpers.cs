@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.IO;
+using System.IO.Pipelines;
 using System.Linq;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -10,231 +14,376 @@ namespace Cesil.Tests
 {
     public static class Helpers
     {
-        private const int MAX_TO_TEST_EXHAUSTIVELY = 8;
-
-        private class BoolArrayComparer : IEqualityComparer<bool[]>
-        {
-            public static readonly BoolArrayComparer Singleton = new BoolArrayComparer();
-
-            private BoolArrayComparer() { }
-
-            public bool Equals(bool[] x, bool[] y)
-            {
-                if (x.Length != y.Length) return false;
-
-                for (var i = 0; i < x.Length; i++)
-                {
-                    var a = x[i];
-                    var b = y[i];
-
-                    if (a != b) return false;
-                }
-
-                return true;
-            }
-
-            public int GetHashCode(bool[] obj)
-            {
-                var ret = obj.Length;
-                for (var i = 0; i < obj.Length; i++)
-                {
-                    ret *= 17;
-                    ret += obj[i].GetHashCode();
-                }
-
-                return ret;
-            }
-        }
-
         public static int GetNumberExpectedDisposableTestCases(object o)
         {
-            var mtds = o.GetType().GetMethods();
+            var onType = o.GetType();
+            var mtds = onType.GetMethods();
 
             var expectedTestCases = mtds.Length;
             expectedTestCases--;    // object.Equals
             expectedTestCases--;    // object.GetHashCode
             expectedTestCases--;    // object.GetType
             expectedTestCases--;    // object.ToString
-            expectedTestCases--;    // IDisposable.Dispose
 
-            // don't count what ITestableDisposable exposes, if it's not implemented explicitly.
-            if (o.GetType().GetInterfaces().Any(i => i == typeof(ITestableDisposable)))
-            {
-                var map = o.GetType().GetInterfaceMap(typeof(ITestableDisposable));
+            expectedTestCases--;    // for either IDisposable.Dispose or IAsyncDisposable.DisposeAsync
 
-                for (var i = 0; i < map.TargetMethods.Length; i++)
-                {
-                    if (map.TargetMethods[i].IsPublic)
-                    {
-                        expectedTestCases--;
-                    }
-                }
-            }
-
-            // don't count what ITestableAsyncDisposable exposes, if it's not implemented explicitly.
-            if (o.GetType().GetInterfaces().Any(i => i == typeof(ITestableAsyncDisposable)))
-            {
-                var map = o.GetType().GetInterfaceMap(typeof(ITestableAsyncDisposable));
-
-                for (var i = 0; i < map.TargetMethods.Length; i++)
-                {
-                    if (map.TargetMethods[i].IsPublic)
-                    {
-                        expectedTestCases--;
-                    }
-                }
-            }
-
-            // don't count what ITestableAsyncProvider exposes, if it's not implemented explicitly.
-            if (o.GetType().GetInterfaces().Any(i => i == typeof(ITestableAsyncProvider)))
-            {
-                var map = o.GetType().GetInterfaceMap(typeof(ITestableAsyncProvider));
-
-                for (var i = 0; i < map.TargetMethods.Length; i++)
-                {
-                    if (map.TargetMethods[i].IsPublic)
-                    {
-                        expectedTestCases--;
-                    }
-                }
-            }
-
-            // don't count IDynamicMetaObjectProvider methods
-            if (o.GetType().GetInterfaces().Any(i => i == typeof(IDynamicMetaObjectProvider)))
-            {
-                var map = o.GetType().GetInterfaceMap(typeof(IDynamicMetaObjectProvider));
-
-                for (var i = 0; i < map.TargetMethods.Length; i++)
-                {
-                    if (map.TargetMethods[i].IsPublic)
-                    {
-                        expectedTestCases--;
-                    }
-                }
-            }
-
-            // don't count IDynamicRowOwner methods
-            if (o.GetType().GetInterfaces().Any(i => i == typeof(IDynamicRowOwner)))
-            {
-                var map = o.GetType().GetInterfaceMap(typeof(IDynamicRowOwner));
-
-                for (var i = 0; i < map.TargetMethods.Length; i++)
-                {
-                    if (map.TargetMethods[i].IsPublic)
-                    {
-                        expectedTestCases--;
-                    }
-                }
-            }
+            DontCount(onType, typeof(ITestableDisposable), ref expectedTestCases);
+            DontCount(onType, typeof(ITestableAsyncDisposable), ref expectedTestCases);
+            DontCount(onType, typeof(ITestableAsyncProvider), ref expectedTestCases);
+            DontCount(onType, typeof(IDynamicMetaObjectProvider), ref expectedTestCases);
+            DontCount(onType, typeof(IDynamicRowOwner), ref expectedTestCases);
 
             return expectedTestCases;
+
+            static void DontCount(
+                Type onType,
+                Type fromInterface,
+                ref int count
+            )
+            {
+                if (onType.GetInterfaces().Any(i => i == fromInterface))
+                {
+                    var map = onType.GetInterfaceMap(fromInterface);
+
+                    foreach (var targetMtd in map.TargetMethods)
+                    {
+                        var decl = targetMtd.DeclaringType;
+                        if (decl == fromInterface) continue;
+
+                        if (targetMtd.IsPublic)
+                        {
+                            count--;
+                        }
+                    }
+                }
+            }
         }
 
-        public static void RunSyncReaderVariants<T>(Options opts, Action<IBoundConfiguration<T>, Func<string, TextReader>> run)
+        internal static void RunSyncReaderVariants<T>(Options opts, Action<BoundConfigurationBase<T>, Func<string, IReaderAdapter>> run)
+        => RunSyncReaderVariantsInner(
+            opt => (BoundConfigurationBase<T>)Configuration.For<T>(opt),
+            opts,
+            run,
+            1
+        );
+
+        internal static void RunSyncDynamicReaderVariants(Options opts, Action<BoundConfigurationBase<dynamic>, Func<string, IReaderAdapter>> run, int expectedRuns = 1)
+        => RunSyncReaderVariantsInner(
+            opt => (BoundConfigurationBase<dynamic>)Configuration.ForDynamic(opt),
+            opts,
+            run,
+            expectedRuns
+        );
+
+        class SyncReaderAdapter_CharNode : ReadOnlySequenceSegment<char>
         {
-            var defaultConfig = Configuration.For<T>(opts);
-            var smallBufferConfig = Configuration.For<T>(opts.NewBuilder().WithReadBufferSizeHint(1).Build());
-
-            // default buffer
+            public SyncReaderAdapter_CharNode(ReadOnlyMemory<char> m)
             {
-                var runCount = 0;
-                run(defaultConfig, str => { runCount++; return new StringReader(str); });
-
-                Assert.Equal(1, runCount);
+                this.Memory = m;
+                this.RunningIndex = 0;
             }
 
-            // small buffer
+            public SyncReaderAdapter_CharNode Append(ReadOnlyMemory<char> m)
             {
-                var runCount = 0;
-                run(smallBufferConfig, str => { runCount++; return new StringReader(str); });
+                var ret = new SyncReaderAdapter_CharNode(m);
+                ret.RunningIndex = this.Memory.Length;
 
-                Assert.Equal(1, runCount);
-            }
+                this.Next = ret;
 
-            // leaks
-            {
-                var leakDetector = new TrackedMemoryPool<char>();
-                var leakDetectorConfig = Configuration.For<T>(opts.NewBuilder().WithMemoryPool(leakDetector).Build());
-
-                var runCount = 0;
-                run(defaultConfig, str => { runCount++; return new StringReader(str); });
-
-                Assert.Equal(1, runCount);
-                Assert.Equal(0, leakDetector.OutstandingRentals);
+                return ret;
             }
         }
 
-        public static void RunSyncDynamicReaderVariants(Options opts, Action<IBoundConfiguration<dynamic>, Func<string, TextReader>> run, int expectedRuns = 1)
-        {
-            var defaultConfig = Configuration.ForDynamic(opts);
-            var smallBufferConfig = Configuration.ForDynamic(opts.NewBuilder().WithReadBufferSizeHint(1).Build());
-
-            // default buffer
+        private static readonly Func<string, IReaderAdapter>[] SyncReaderAdapters =
+            new Func<string, IReaderAdapter>[]
             {
-                var runCount = 0;
-                run(defaultConfig, str => { runCount++; return new StringReader(str); });
+                str => new TextReaderAdapter(new StringReader(str)),
+                str =>
+                {
+                    // single segment ReadOnlySequence
 
-                Assert.Equal(expectedRuns, runCount);
-            }
+                    var bytes = str.AsMemory();
 
-            // small buffer
-            {
-                var runCount = 0;
-                run(smallBufferConfig, str => { runCount++; return new StringReader(str); });
+                    var seq = new ReadOnlySequence<char>(bytes);
 
-                Assert.Equal(expectedRuns, runCount);
-            }
+                    return new ReadOnlySequenceAdapter(seq);
+                },
+                str =>
+                {
+                    // multi segment ReadOnlySequence
 
-            // leaks
-            {
-                var leakDetector = new TrackedMemoryPool<char>();
-                var leakDetectorConfig = Configuration.ForDynamic(opts.NewBuilder().WithMemoryPool(leakDetector).Build());
+                    var bytes = str.AsMemory();
 
-                var runCount = 0;
-                run(leakDetectorConfig, str => { runCount++; return new StringReader(str); });
+                    var firstThirdIx = bytes.Length / 3;
+                    var secondThirdIx = firstThirdIx * 2;
 
-                Assert.Equal(expectedRuns, runCount);
-                Assert.Equal(0, leakDetector.OutstandingRentals);
-            }
-        }
+                    if(firstThirdIx >= bytes.Length || secondThirdIx >= bytes.Length)
+                    {
+                        // not big enough, just do single again
+                        var seq = new ReadOnlySequence<char>(bytes);
 
-        public static Task RunAsyncDynamicReaderVariants(
+                        return new ReadOnlySequenceAdapter(seq);
+                    }
+
+                    var m1 = bytes.Slice(0, firstThirdIx);
+                    var m2 = bytes.Slice(firstThirdIx, secondThirdIx - firstThirdIx);
+                    var m3 = bytes.Slice(secondThirdIx);
+
+                    if(m1.Length == 0 || m2 .Length == 0 || m3.Length == 0)
+                    {
+                        // not big enough, just do single again
+                        var seq = new ReadOnlySequence<char>(bytes);
+
+                        return new ReadOnlySequenceAdapter(seq);
+                    }
+
+                    var s1 = new SyncReaderAdapter_CharNode(m1);
+                    var s2 = s1.Append(m2);
+                    var s3 = s2.Append(m3);
+
+                    var multiSeq = new ReadOnlySequence<char>(s1, 0, s3, s3.Memory.Length);
+
+                    return new ReadOnlySequenceAdapter(multiSeq);
+                }
+            };
+
+        private static void RunSyncReaderVariantsInner<T>(
+            Func<Options, BoundConfigurationBase<T>> bindConfig,
             Options opts,
-            Func<IBoundConfiguration<dynamic>,
-            Func<string, TextReader>, Task> run,
-            bool checkRunCounts = true
+            Action<BoundConfigurationBase<T>, Func<string, IReaderAdapter>> run,
+            int expectedRuns
         )
-        => RunAsyncReaderVariantsInnerAsync(Configuration.ForDynamic, opts, run, checkRunCounts);
+        {
+            foreach (var maker in SyncReaderAdapters)
+            {
+                var defaultConfig = bindConfig(opts);
+                var smallBufferConfig = bindConfig(opts.NewBuilder().WithReadBufferSizeHint(1).Build());
 
-        public static Task RunAsyncReaderVariants<T>(Options opts, Func<IBoundConfiguration<T>, Func<string, TextReader>, Task> run, bool checkRunCounts = true)
-        => RunAsyncReaderVariantsInnerAsync(Configuration.For<T>, opts, run, checkRunCounts);
+                // default buffer
+                {
+                    var runCount = 0;
+                    run(defaultConfig, str => { runCount++; return maker(str); });
+
+                    Assert.Equal(expectedRuns, runCount);
+                }
+
+                // small buffer
+                {
+                    var runCount = 0;
+                    run(smallBufferConfig, str => { runCount++; return maker(str); });
+
+                    Assert.Equal(expectedRuns, runCount);
+                }
+
+                // leaks
+                {
+                    var leakDetector = new TrackedMemoryPool<char>();
+                    var leakDetectorConfig = bindConfig(opts.NewBuilder().WithMemoryPool(leakDetector).Build());
+
+                    var runCount = 0;
+                    run(leakDetectorConfig, str => { runCount++; return maker(str); });
+
+                    Assert.Equal(expectedRuns, runCount);
+                    Assert.Equal(0, leakDetector.OutstandingRentals);
+                }
+            }
+        }
+
+        internal static Task RunAsyncDynamicReaderVariants(
+            Options opts,
+            Func<BoundConfigurationBase<dynamic>,
+            Func<string, ValueTask<IAsyncReaderAdapter>>, Task> run,
+            bool checkRunCounts = true,
+            bool releasePinsAcrossYields = true
+        )
+        => RunAsyncReaderVariantsInnerAsync(
+            opts => (BoundConfigurationBase<dynamic>)Configuration.ForDynamic(opts),
+            opts,
+            run,
+            checkRunCounts,
+            releasePinsAcrossYields
+            );
+
+        internal static Task RunAsyncReaderVariants<T>(Options opts, Func<BoundConfigurationBase<T>, Func<string, ValueTask<IAsyncReaderAdapter>>, Task> run, bool checkRunCounts = true, bool releasePinsAcrossYields = true)
+        => RunAsyncReaderVariantsInnerAsync(
+            opts => (BoundConfigurationBase<T>)Configuration.For<T>(opts),
+            opts,
+            run,
+            checkRunCounts,
+            releasePinsAcrossYields
+        );
+
+        private static readonly Func<string, ValueTask<IAsyncReaderAdapter>>[] AsyncReaderAdapters =
+            new Func<string, ValueTask<IAsyncReaderAdapter>>[]
+            {
+                str => new ValueTask<IAsyncReaderAdapter>(new AsyncTextReaderAdapter(new StringReader(str))),
+                async str =>
+                {
+                    var pipe = new Pipe();
+                    var writer = pipe.Writer;
+                    var bytes = Encoding.UTF8.GetBytes(str);
+
+                    await writer.WriteAsync(bytes.AsMemory());
+                    writer.Complete();
+
+                    return new PipeReaderAdapter(pipe.Reader, Encoding.UTF8);
+                }
+            };
+
+        private sealed class AsyncInstrumentedPinReaderAdapter : IAsyncReaderAdapter
+        {
+            private IAsyncReaderAdapter Inner;
+
+            public bool WaitingForUnpin { get; private set; }
+            public SemaphoreSlim Semaphore { get; }
+
+            public AsyncInstrumentedPinReaderAdapter(IAsyncReaderAdapter inner)
+            {
+                Inner = inner;
+                Semaphore = new SemaphoreSlim(0, 1);
+            }
+
+            public void UnpinObserved()
+            {
+                WaitingForUnpin = false;
+                Semaphore.Release();
+            }
+
+            public bool IsDisposed => Inner == null;
+
+            public async ValueTask DisposeAsync()
+            {
+                if (!IsDisposed)
+                {
+                    await Inner.DisposeAsync();
+                    Inner = null;
+                }
+            }
+
+            public async ValueTask<int> ReadAsync(Memory<char> into, CancellationToken cancel)
+            {
+                WaitingForUnpin = true;
+                var gotIt = await Semaphore.WaitAsync(TimeSpan.FromSeconds(1));
+                if (!gotIt)
+                {
+                    throw new Exception("Did not observe unpin in time, probably held a pin over an await");
+                }
+
+                return await Inner.ReadAsync(into, cancel);
+            }
+        }
 
         private static async Task RunAsyncReaderVariantsInnerAsync<T>(
-            Func<Options, IBoundConfiguration<T>> bindConfig,
+            Func<Options, BoundConfigurationBase<T>> bindConfig,
             Options opts,
-            Func<IBoundConfiguration<T>, Func<string, TextReader>, Task> run,
-            bool checkRunCounts
+            Func<BoundConfigurationBase<T>, Func<string, ValueTask<IAsyncReaderAdapter>>, Task> run,
+            bool checkRunCounts,
+            bool releasePinsAcrossYields
         )
         {
-            var smallBufferOpts = opts.NewBuilder().WithReadBufferSizeHint(1).Build();
-
-            await RunOnce(bindConfig, opts, run, checkRunCounts);
-            await RunOnce(bindConfig, smallBufferOpts, run, checkRunCounts);
-
-            // in DEBUG we have some special stuff built in so we can go ham on different async paths
-#if DEBUG
-            await RunForcedAsyncVariantsWithBaseConfig(bindConfig, opts, run, checkRunCounts);
-            await RunForcedAsyncVariantsWithBaseConfig(bindConfig, smallBufferOpts, run, checkRunCounts);
-#endif
-
-            static async Task RunOnce(Func<Options, IBoundConfiguration<T>> bind, Options baseOpts, Func<IBoundConfiguration<T>, Func<string, TextReader>, Task> run, bool checkRunCounts)
+            foreach (var maker in AsyncReaderAdapters)
             {
-                // run the test once
+                // the easy one
+                await RunOnce(bindConfig, maker, opts, run, checkRunCounts);
+
+                // with a small buffer
+                var smallBufferOpts = opts.NewBuilder().WithReadBufferSizeHint(1).Build();
+                await RunOnce(bindConfig, maker, smallBufferOpts, run, checkRunCounts);
+
+                // checking that we don't hold any pins across awaits
+                if (releasePinsAcrossYields)
+                {
+                    await RunCheckPins(bindConfig, maker, opts, run);
+                }
+
+                // in DEBUG we have some special stuff built in so we can go ham on different async paths
+#if DEBUG
+                await RunForcedAsyncVariantsWithBaseConfig(bindConfig, maker, opts, run, checkRunCounts);
+                await RunForcedAsyncVariantsWithBaseConfig(bindConfig, maker, smallBufferOpts, run, checkRunCounts);
+#endif
+            }
+
+            static async Task RunCheckPins(
+                Func<Options, BoundConfigurationBase<T>> bind,
+                Func<string, ValueTask<IAsyncReaderAdapter>> readerMaker,
+                Options baseOpts,
+                Func<BoundConfigurationBase<T>, Func<string, ValueTask<IAsyncReaderAdapter>>, Task> run
+            )
+            {
+                AsyncInstrumentedPinReaderAdapter adapter = null;
+                AsyncInstrumentedPinConfig<T> config = null;
+                var running = true;
+
+                var monitoringThread =
+                    new Thread(
+                        () =>
+                        {
+                            while (running)
+                            {
+                                if (adapter == null || config == null)
+                                {
+                                    Thread.Sleep(0);
+                                    continue;
+                                }
+
+                                if (adapter.WaitingForUnpin)
+                                {
+                                    if (config.IsUnpinned)
+                                    {
+                                        adapter.UnpinObserved();
+                                        Thread.Sleep(0);
+                                    }
+                                }
+                            }
+                        }
+                    );
+                monitoringThread.Name = "RunCheckPins.Montor";
+                monitoringThread.Start();
+
+                // this will force us to await EVERY SINGLE TIME
+                //   and also make the await block until we explicitly
+                //   signal to continue
+                //
+                // before we signal, we'll confirm that the StateMachine has been
+                //   unpinned
+                config = new AsyncInstrumentedPinConfig<T>(bind(baseOpts));
+
+                try
+                {
+                    int runCount = 0;
+                    await run(
+                        config,
+                        async str =>
+                        {
+                            runCount++;
+                            var innerAdapter = await readerMaker(str);
+                            adapter = new AsyncInstrumentedPinReaderAdapter(innerAdapter);
+                            return adapter;
+                        }
+                    );
+                }
+                finally
+                {
+                    running = false;
+                }
+
+                monitoringThread.Join();
+            }
+
+            static async Task RunOnce(
+                Func<Options, BoundConfigurationBase<T>> bind,
+                Func<string, ValueTask<IAsyncReaderAdapter>> readerMaker,
+                Options baseOpts,
+                Func<BoundConfigurationBase<T>, Func<string, ValueTask<IAsyncReaderAdapter>>, Task> run,
+                bool checkRunCounts
+            )
+            {
+                //run the test once
                 {
                     var config = bind(baseOpts);
 
                     int runCount = 0;
-                    await run(config, str => { runCount++; return new StringReader(str); });
+                    await run(config, str => { runCount++; return readerMaker(str); });
 
                     if (checkRunCounts)
                     {
@@ -242,26 +391,26 @@ namespace Cesil.Tests
                     }
                 }
 
-                // run the test with a small buffer
+                //run the test with a small buffer
                 {
                     var smallBufferOpts = baseOpts.NewBuilder().WithReadBufferSizeHint(1).Build();
                     var smallBufferConfig = bind(smallBufferOpts);
 
                     int runCount = 0;
-                    await run(smallBufferConfig, str => { runCount++; return new StringReader(str); });
+                    await run(smallBufferConfig, str => { runCount++; return readerMaker(str); });
                     if (checkRunCounts)
                     {
                         Assert.Equal(1, runCount);
                     }
                 }
 
-                // run the test once, but look for leaks
+                //run the test once, but look for leaks
                 {
                     var leakDetector = new TrackedMemoryPool<char>();
                     var leakDetectorConfig = bind(baseOpts.NewBuilder().WithMemoryPool(leakDetector).Build());
 
                     int runCount = 0;
-                    await run(leakDetectorConfig, str => { runCount++; return new StringReader(str); });
+                    await run(leakDetectorConfig, str => { runCount++; return readerMaker(str); });
                     if (checkRunCounts)
                     {
                         Assert.Equal(1, runCount);
@@ -270,7 +419,396 @@ namespace Cesil.Tests
                 }
             }
 
-            static async Task RunForcedAsyncVariantsWithBaseConfig(Func<Options, IBoundConfiguration<T>> bind, Options baseOpts, Func<IBoundConfiguration<T>, Func<string, TextReader>, Task> run, bool checkRunCounts)
+            static async Task RunForcedAsyncVariantsWithBaseConfig(
+                Func<Options, BoundConfigurationBase<T>> bind,
+                Func<string, ValueTask<IAsyncReaderAdapter>> readerMaker,
+                Options baseOpts,
+                Func<BoundConfigurationBase<T>, Func<string, ValueTask<IAsyncReaderAdapter>>, Task> run,
+                bool checkRunCounts
+            )
+            {
+                var config = bind(baseOpts);
+
+                //walk each async transition point
+                var forceUpTo = 0;
+                while (true)
+                {
+                    var wrappedConfig = new AsyncCountingAndForcingConfig<T>(config);
+                    wrappedConfig.GoAsyncAfter = forceUpTo;
+
+                    int runCount = 0;
+                    await run(wrappedConfig, str => { runCount++; return readerMaker(str); });
+                    if (checkRunCounts)
+                    {
+                        Assert.Equal(1, runCount);
+                    }
+
+                    if (wrappedConfig.AsyncCounter >= forceUpTo)
+                    {
+                        forceUpTo++;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                //the same, but check for leaks this time
+
+                forceUpTo = 0;
+                while (true)
+                {
+                    var leakDetector = new TrackedMemoryPool<char>();
+                    var leakDetectorConfig = bind(baseOpts.NewBuilder().WithMemoryPool(leakDetector).Build());
+
+                    var wrappedConfig = new AsyncCountingAndForcingConfig<T>(leakDetectorConfig);
+                    wrappedConfig.GoAsyncAfter = forceUpTo;
+
+                    int runCount = 0;
+                    await run(wrappedConfig, str => { runCount++; return readerMaker(str); });
+                    if (checkRunCounts)
+                    {
+                        Assert.Equal(1, runCount);
+                    }
+                    Assert.Equal(0, leakDetector.OutstandingRentals);
+
+                    if (wrappedConfig.AsyncCounter >= forceUpTo)
+                    {
+                        forceUpTo++;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+
+        internal static void RunSyncWriterVariants<T>(
+           Options baseOptions,
+           Action<BoundConfigurationBase<T>, Func<IWriterAdapter>, Func<string>> run
+        )
+        => RunSyncWriterVariantsInner(opt => (BoundConfigurationBase<T>)Configuration.For<T>(opt), baseOptions, run);
+
+        internal static void RunSyncDynamicWriterVariants(
+           Options baseOptions,
+           Action<BoundConfigurationBase<dynamic>, Func<IWriterAdapter>, Func<string>> run
+        )
+        => RunSyncWriterVariantsInner(opt => (BoundConfigurationBase<dynamic>)Configuration.ForDynamic(opt), baseOptions, run);
+
+        private sealed class HelperBufferWriter<T> : IBufferWriter<T>
+        {
+            public List<T> Data;
+
+            private T[] Arr;
+
+            public HelperBufferWriter(int backingSize)
+            {
+                Arr = new T[backingSize];
+                Data = new List<T>();
+            }
+
+            public void Advance(int count)
+            {
+                Data.AddRange(Arr.Take(count));
+            }
+
+            public Memory<T> GetMemory(int sizeHint = 0)
+            => Arr.AsMemory();
+
+            public Span<T> GetSpan(int sizeHint = 0)
+            => GetMemory(sizeHint).Span;
+        }
+
+        private static readonly Func<(IWriterAdapter Adapter, Func<string> Getter)>[] SyncWriterAdapters
+            = new Func<(IWriterAdapter Adapter, Func<string> Getter)>[]
+            {
+                () =>
+                {
+                    var writer = new StringWriter();
+                    var adapter = new TextWriterAdapter(writer);
+
+                    Func<string> getter =
+                        () =>
+                        {
+                            return writer.ToString();
+                        };
+
+                    return (adapter, getter);
+                },
+                () =>
+                {
+                    var writer = new HelperBufferWriter<char>(4098);
+                    var adapter = new BufferWriterAdapter(writer);
+
+                    Func<string> getter =
+                        () =>
+                        {
+                            return new string(writer.Data.ToArray());
+                        };
+
+                    return (adapter, getter);
+                },
+                () =>
+                {
+                    var writer = new HelperBufferWriter<char>(4);
+                    var adapter = new BufferWriterAdapter(writer);
+
+                    Func<string> getter =
+                        () =>
+                        {
+                            return new string(writer.Data.ToArray());
+                        };
+
+                    return (adapter, getter);
+                }
+            };
+
+        internal static void RunSyncWriterVariantsInner<T>(
+            Func<Options, BoundConfigurationBase<T>> bindConfig,
+            Options baseOptions,
+            Action<BoundConfigurationBase<T>, Func<IWriterAdapter>, Func<string>> run
+        )
+        {
+            var defaultConfig = bindConfig(baseOptions);
+            var noBufferConfig = bindConfig(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).Build());
+
+            foreach (var maker in SyncWriterAdapters)
+            {
+                // default
+                var (writer, getter) = maker();
+                {
+                    var gotWriter = 0;
+                    var gotString = 0;
+                    run(defaultConfig, () => { gotWriter++; return writer; }, () => { gotString++; return getter(); });
+
+                    Assert.Equal(1, gotWriter);
+                    Assert.Equal(1, gotString);
+                }
+
+                // no buffer
+                (writer, getter) = maker();
+                {
+                    var gotWriter = 0;
+                    var gotString = 0;
+                    run(noBufferConfig, () => { gotWriter++; return writer; }, () => { gotString++; return getter(); });
+
+                    Assert.Equal(1, gotWriter);
+                    Assert.Equal(1, gotString);
+                }
+
+                // default, leaks
+                (writer, getter) = maker();
+                {
+                    var leakDetector = new TrackedMemoryPool<char>();
+                    var leakConfig = bindConfig(baseOptions.NewBuilder().WithMemoryPool(leakDetector).Build());
+
+                    var gotWriter = 0;
+                    var gotString = 0;
+                    run(leakConfig, () => { gotWriter++; return writer; }, () => { gotString++; return getter(); });
+
+                    Assert.Equal(1, gotWriter);
+                    Assert.Equal(1, gotString);
+                    Assert.Equal(0, leakDetector.OutstandingRentals);
+                }
+
+                // no buffer, leaks
+                (writer, getter) = maker();
+                {
+                    var leakDetector = new TrackedMemoryPool<char>();
+                    var leakConfig = bindConfig(baseOptions.NewBuilder().WithMemoryPool(leakDetector).WithWriteBufferSizeHint(0).Build());
+
+                    var gotWriter = 0;
+                    var gotString = 0;
+                    run(leakConfig, () => { gotWriter++; return writer; }, () => { gotString++; return getter(); });
+
+                    Assert.Equal(1, gotWriter);
+                    Assert.Equal(1, gotString);
+                    // you'd think we'd expect NO rentals, but there are cases where we _have_ to buffer
+                    //       so just deal with it
+                    Assert.Equal(0, leakDetector.OutstandingRentals);
+                }
+            }
+        }
+
+        internal static Task RunAsyncWriterVariants<T>(
+            Options baseOptions,
+            Func<BoundConfigurationBase<T>, Func<IAsyncWriterAdapter>, Func<ValueTask<string>>, Task> run
+        )
+        => RunAsyncWriterVariantsInnerAsync(
+                (Options opts) =>
+                    (BoundConfigurationBase<T>)
+                    Configuration.For<T>(opts)
+                ,
+                baseOptions,
+                run,
+                true
+            );
+
+        internal static Task RunAsyncDynamicWriterVariants(
+            Options baseOptions,
+            Func<BoundConfigurationBase<dynamic>, Func<IAsyncWriterAdapter>, Func<ValueTask<string>>, Task> run
+        )
+        => RunAsyncWriterVariantsInnerAsync(
+            (Options opts) =>
+                (BoundConfigurationBase<dynamic>)
+                    Configuration.ForDynamic(opts),
+                        baseOptions,
+                        run,
+                        true
+                    );
+
+        private static readonly Func<(IAsyncWriterAdapter Adapter, Func<ValueTask<string>> Getter)>[] AsyncWriterAdapters =
+            new Func<(IAsyncWriterAdapter Adapter, Func<ValueTask<string>> Getter)>[]
+            {
+                () =>
+                {
+                    var writer = new StringWriter();
+                    var adapter = new AsyncTextWriterAdapter(writer);
+
+                    Func<ValueTask<string>> getter =
+                        () =>
+                        {
+                            writer.Flush();
+                            writer.Close();
+                            return new ValueTask<string>(writer.ToString());
+                        };
+
+                    return (adapter, getter);
+                },
+                () =>
+                {
+                    var pipe = new Pipe();
+                    var reader = pipe.Reader;
+                    var writer = pipe.Writer;
+                    var adapter = new PipeWriterAdapter(writer, Encoding.UTF8, MemoryPool<char>.Shared);
+
+                    Func<ValueTask<string>> getter =
+                        async () =>
+                        {
+                            writer.Complete();
+
+                            var bytes = new List<byte>();
+
+                            var complete = false;
+
+                            while(!complete)
+                            {
+                                var res = await reader.ReadAsync();
+                                foreach(var seg in res.Buffer)
+                                {
+                                    bytes.AddRange(seg.ToArray());
+                                }
+
+                                complete = res.IsCompleted;
+                            }
+
+                            var str = Encoding.UTF8.GetString(bytes.ToArray());
+
+                            return str;
+                        };
+
+                    return (adapter, getter);
+                }
+            };
+
+        private static async Task RunAsyncWriterVariantsInnerAsync<T>(
+            Func<Options, BoundConfigurationBase<T>> bindConfig,
+            Options opts,
+            Func<BoundConfigurationBase<T>, Func<IAsyncWriterAdapter>, Func<ValueTask<string>>, Task> run,
+            bool checkRunCounts
+        )
+        {
+            foreach (var maker in AsyncWriterAdapters)
+            {
+                var smallBufferOpts = opts.NewBuilder().WithWriteBufferSizeHint(0).Build();
+
+                await RunOnce(bindConfig, maker, opts, run, checkRunCounts);
+                await RunOnce(bindConfig, maker, smallBufferOpts, run, checkRunCounts);
+
+                // in DEBUG we have some special stuff built in so we can go ham on different async paths
+#if DEBUG
+                await RunForcedAsyncVariantsWithBaseConfig(bindConfig, maker, opts, run, checkRunCounts);
+                await RunForcedAsyncVariantsWithBaseConfig(bindConfig, maker, smallBufferOpts, run, checkRunCounts);
+#endif
+            }
+
+            static async Task RunOnce(
+                Func<Options, BoundConfigurationBase<T>> bind,
+                Func<(IAsyncWriterAdapter Adapter, Func<ValueTask<string>> Getter)> maker,
+                Options baseOpts,
+                Func<BoundConfigurationBase<T>, Func<IAsyncWriterAdapter>, Func<ValueTask<string>>, Task> run,
+                bool checkRunCounts)
+            {
+                // run the test once
+                {
+                    var config = bind(baseOpts);
+
+                    int writerCount = 0;
+                    int stringCount = 0;
+                    var (adapter, getter) = maker();
+                    await using (adapter)
+                    {
+                        await run(config, () => { writerCount++; return adapter; }, () => { stringCount++; return getter(); });
+                    }
+
+                    if (checkRunCounts)
+                    {
+                        Assert.Equal(1, writerCount);
+                        Assert.Equal(1, stringCount);
+                    }
+                }
+
+                // run the test with a small buffer
+                {
+                    var smallBufferOpts = baseOpts.NewBuilder().WithWriteBufferSizeHint(1).Build();
+                    var smallBufferConfig = bind(smallBufferOpts);
+
+                    int writerCount = 0;
+                    int stringCount = 0;
+                    var (adapter, getter) = maker();
+                    await using (adapter)
+                    {
+                        await run(smallBufferConfig, () => { writerCount++; return adapter; }, () => { stringCount++; return getter(); });
+                    }
+
+                    if (checkRunCounts)
+                    {
+                        Assert.Equal(1, writerCount);
+                        Assert.Equal(1, stringCount);
+                    }
+                }
+
+                // run the test once, but look for leaks
+                {
+                    var leakDetector = new TrackedMemoryPool<char>();
+                    var leakDetectorConfig = bind(baseOpts.NewBuilder().WithMemoryPool(leakDetector).Build());
+
+                    int writerCount = 0;
+                    int stringCount = 0;
+                    var (adapter, getter) = maker();
+                    await using (adapter)
+                    {
+                        await run(leakDetectorConfig, () => { writerCount++; return adapter; }, () => { stringCount++; return getter(); });
+                    }
+
+                    if (checkRunCounts)
+                    {
+                        Assert.Equal(1, writerCount);
+                        Assert.Equal(1, stringCount);
+                    }
+
+                    Assert.Equal(0, leakDetector.OutstandingRentals);
+                }
+            }
+
+            static async Task RunForcedAsyncVariantsWithBaseConfig(
+                Func<Options, BoundConfigurationBase<T>> bind,
+                Func<(IAsyncWriterAdapter Adapter, Func<ValueTask<string>> Getter)> maker,
+                Options baseOpts,
+                Func<BoundConfigurationBase<T>, Func<IAsyncWriterAdapter>, Func<ValueTask<string>>, Task> run,
+                bool checkRunCounts
+            )
             {
                 var config = bind(baseOpts);
 
@@ -281,11 +819,18 @@ namespace Cesil.Tests
                     var wrappedConfig = new AsyncCountingAndForcingConfig<T>(config);
                     wrappedConfig.GoAsyncAfter = forceUpTo;
 
-                    int runCount = 0;
-                    await run(wrappedConfig, str => { runCount++; return new StringReader(str); });
+                    int writerCount = 0;
+                    int stringCount = 0;
+                    var (adapter, getter) = maker();
+                    await using (adapter)
+                    {
+                        await run(wrappedConfig, () => { writerCount++; return adapter; }, () => { stringCount++; return getter(); });
+                    }
+
                     if (checkRunCounts)
                     {
-                        Assert.Equal(1, runCount);
+                        Assert.Equal(1, writerCount);
+                        Assert.Equal(1, stringCount);
                     }
 
                     if (wrappedConfig.AsyncCounter >= forceUpTo)
@@ -308,12 +853,20 @@ namespace Cesil.Tests
                     var wrappedConfig = new AsyncCountingAndForcingConfig<T>(leakDetectorConfig);
                     wrappedConfig.GoAsyncAfter = forceUpTo;
 
-                    int runCount = 0;
-                    await run(wrappedConfig, str => { runCount++; return new StringReader(str); });
+                    int writerCount = 0;
+                    int stringCount = 0;
+                    var (adapter, getter) = maker();
+                    await using (adapter)
+                    {
+                        await run(wrappedConfig, () => { writerCount++; return adapter; }, () => { stringCount++; return getter(); });
+                    }
+
                     if (checkRunCounts)
                     {
-                        Assert.Equal(1, runCount);
+                        Assert.Equal(1, writerCount);
+                        Assert.Equal(1, stringCount);
                     }
+
                     Assert.Equal(0, leakDetector.OutstandingRentals);
 
                     if (wrappedConfig.AsyncCounter >= forceUpTo)
@@ -325,736 +878,6 @@ namespace Cesil.Tests
                         break;
                     }
                 }
-            }
-        }
-
-        public static void RunSyncWriterVariants<T>(
-           Options baseOptions,
-           Action<IBoundConfiguration<T>, Func<TextWriter>, Func<string>> run
-        )
-        {
-            var defaultConfig = Configuration.For<T>(baseOptions);
-            var noBufferConfig = Configuration.For<T>(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).Build());
-
-            // default
-            using (var writer = new StringWriter())
-            {
-                var gotWriter = 0;
-                var gotString = 0;
-                run(defaultConfig, () => { gotWriter++; return writer; }, () => { gotString++; return writer.ToString(); });
-
-                Assert.Equal(1, gotWriter);
-                Assert.Equal(1, gotString);
-            }
-
-            // no buffer
-            using (var writer = new StringWriter())
-            {
-                var gotWriter = 0;
-                var gotString = 0;
-                run(noBufferConfig, () => { gotWriter++; return writer; }, () => { gotString++; return writer.ToString(); });
-
-                Assert.Equal(1, gotWriter);
-                Assert.Equal(1, gotString);
-            }
-
-            // default, leaks
-            using (var writer = new StringWriter())
-            {
-                var leakDetector = new TrackedMemoryPool<char>();
-                var leakConfig = Configuration.For<T>(baseOptions.NewBuilder().WithMemoryPool(leakDetector).Build());
-
-                var gotWriter = 0;
-                var gotString = 0;
-                run(leakConfig, () => { gotWriter++; return writer; }, () => { gotString++; return writer.ToString(); });
-
-                Assert.Equal(1, gotWriter);
-                Assert.Equal(1, gotString);
-                Assert.Equal(0, leakDetector.OutstandingRentals);
-            }
-
-            // no buffer, leaks
-            using (var writer = new StringWriter())
-            {
-                var leakDetector = new TrackedMemoryPool<char>();
-                var leakConfig = Configuration.For<T>(baseOptions.NewBuilder().WithMemoryPool(leakDetector).WithWriteBufferSizeHint(0).Build());
-
-                var gotWriter = 0;
-                var gotString = 0;
-                run(leakConfig, () => { gotWriter++; return writer; }, () => { gotString++; return writer.ToString(); });
-
-                Assert.Equal(1, gotWriter);
-                Assert.Equal(1, gotString);
-                // you'd think we'd expect NO rentals, but there are cases where we _have_ to buffer
-                //       so just deal with it
-                Assert.Equal(0, leakDetector.OutstandingRentals);
-            }
-        }
-
-        public static void RunSyncDynamicWriterVariants(
-           Options baseOptions,
-           Action<IBoundConfiguration<dynamic>, Func<TextWriter>, Func<string>> run
-        )
-        {
-            var defaultConfig = Configuration.ForDynamic(baseOptions);
-            var noBufferConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).Build());
-
-            // default
-            using (var writer = new StringWriter())
-            {
-                var gotWriter = 0;
-                var gotString = 0;
-                run(defaultConfig, () => { gotWriter++; return writer; }, () => { gotString++; return writer.ToString(); });
-
-                Assert.Equal(1, gotWriter);
-                Assert.Equal(1, gotString);
-            }
-
-            // no buffer
-            using (var writer = new StringWriter())
-            {
-                var gotWriter = 0;
-                var gotString = 0;
-                run(noBufferConfig, () => { gotWriter++; return writer; }, () => { gotString++; return writer.ToString(); });
-
-                Assert.Equal(1, gotWriter);
-                Assert.Equal(1, gotString);
-            }
-
-            // default, leaks
-            using (var writer = new StringWriter())
-            {
-                var leakDetector = new TrackedMemoryPool<char>();
-                var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithMemoryPool(leakDetector).Build());
-
-                var gotWriter = 0;
-                var gotString = 0;
-                run(leakConfig, () => { gotWriter++; return writer; }, () => { gotString++; return writer.ToString(); });
-
-                Assert.Equal(1, gotWriter);
-                Assert.Equal(1, gotString);
-                Assert.Equal(0, leakDetector.OutstandingRentals);
-            }
-
-            // no buffer, leaks
-            using (var writer = new StringWriter())
-            {
-                var leakDetector = new TrackedMemoryPool<char>();
-                var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithMemoryPool(leakDetector).WithWriteBufferSizeHint(0).Build());
-
-                var gotWriter = 0;
-                var gotString = 0;
-                run(leakConfig, () => { gotWriter++; return writer; }, () => { gotString++; return writer.ToString(); });
-
-                Assert.Equal(1, gotWriter);
-                Assert.Equal(1, gotString);
-                // you'd think we'd expect NO rentals, but there are cases where we _have_ to buffer
-                //       so just deal with it
-                Assert.Equal(0, leakDetector.OutstandingRentals);
-            }
-        }
-
-        public static async Task RunAsyncWriterVariants<T>(
-            Options baseOptions,
-            Func<IBoundConfiguration<T>, Func<TextWriter>, Func<string>, Task> run
-        )
-        {
-            var defaultConfig = Configuration.For<T>(baseOptions);
-            var noBufferConfig = Configuration.For<T>(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).Build());
-
-            // sync or async
-            {
-                var runCount = 0;
-
-                // sync!
-                using (var str = new StringWriter())
-                {
-                    var task = run(defaultConfig, () => str, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
-                    await task;
-                }
-
-                // sync, no buffer!
-                using (var str = new StringWriter())
-                {
-                    var task = run(noBufferConfig, () => str, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
-                    await task;
-                }
-
-                // sync, leaks
-                using (var str = new StringWriter())
-                {
-                    var leakDetector = new TrackedMemoryPool<char>();
-                    var leakConfig = Configuration.For<T>(baseOptions.NewBuilder().WithMemoryPool(leakDetector).Build());
-
-                    var task = run(leakConfig, () => str, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
-                    await task;
-
-                    Assert.Equal(0, leakDetector.OutstandingRentals);
-                }
-
-                // sync, no buffer, leaks
-                using (var str = new StringWriter())
-                {
-                    var leakDetector = new TrackedMemoryPool<char>();
-                    var leakConfig = Configuration.For<T>(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).WithMemoryPool(leakDetector).Build());
-
-                    var task = run(leakConfig, () => str, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
-                    await task;
-
-                    Assert.Equal(0, leakDetector.OutstandingRentals);
-                }
-
-                // async!
-                using (var str = new StringWriter())
-                using (var slow = new ForcedAsyncWriter(str))
-                {
-                    var task = run(defaultConfig, () => slow, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
-                    await task;
-                }
-
-                // async, no buffer!
-                using (var str = new StringWriter())
-                using (var slow = new ForcedAsyncWriter(str))
-                {
-                    var task = run(noBufferConfig, () => slow, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
-                    await task;
-                }
-
-                // async, leaks
-                using (var str = new StringWriter())
-                using (var slow = new ForcedAsyncWriter(str))
-                {
-                    var leakDetector = new TrackedMemoryPool<char>();
-                    var leakConfig = Configuration.For<T>(baseOptions.NewBuilder().WithMemoryPool(leakDetector).Build());
-
-                    var task = run(leakConfig, () => slow, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
-                    await task;
-
-                    Assert.Equal(0, leakDetector.OutstandingRentals);
-                }
-
-                // async, leaks, no buffer!
-                using (var str = new StringWriter())
-                using (var slow = new ForcedAsyncWriter(str))
-                {
-                    var leakDetector = new TrackedMemoryPool<char>();
-                    var leakConfig = Configuration.For<T>(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).WithMemoryPool(leakDetector).Build());
-
-                    var task = run(leakConfig, () => slow, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
-                    await task;
-
-                    Assert.Equal(0, leakDetector.OutstandingRentals);
-                }
-
-                Assert.Equal(8, runCount);
-            }
-
-            // async, default buffer
-            {
-                // figure out how many chances we have to go async in this test
-                int numAsyncCalls;
-                using (var str = new StringWriter())
-                using (var writer = new AsyncCounterWriter(str))
-                {
-                    var task = run(defaultConfig, () => writer, () => { str.Flush(); str.Close(); return str.ToString(); });
-                    await task;
-
-                    numAsyncCalls = writer.Count;
-                }
-
-                var runAllCombos = numAsyncCalls <= MAX_TO_TEST_EXHAUSTIVELY;
-                if (runAllCombos)
-                {
-                    // how many different ways could this flow, sync vs async?
-                    var combos = EnumerateAsynchoronousCompletionOptions(numAsyncCalls);
-                    foreach (var combo in combos)
-                    {
-                        using (var str = new StringWriter())
-                        using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
-                        {
-                            var didRun = false;
-                            await run(defaultConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
-
-                            Assert.True(didRun);
-                        }
-
-                        // leaks
-                        {
-                            using (var str = new StringWriter())
-                            using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
-                            {
-                                var leakDetector = new TrackedMemoryPool<char>();
-                                var leakConfig = Configuration.For<T>(baseOptions.NewBuilder().WithMemoryPool(leakDetector).Build());
-
-                                var didRun = false;
-                                await run(leakConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
-
-                                Assert.True(didRun);
-                                Assert.Equal(0, leakDetector.OutstandingRentals);
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    // too many combos to reasonably try them all, but lets at least try all the different change over points
-                    for (var i = 0; i < numAsyncCalls; i++)
-                    {
-                        var combo = new bool[numAsyncCalls];
-                        combo[i] = true;
-
-                        using (var str = new StringWriter())
-                        using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
-                        {
-                            var didRun = false;
-                            await run(defaultConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
-
-                            Assert.True(didRun);
-                        }
-
-                        // leaks
-                        {
-                            using (var str = new StringWriter())
-                            using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
-                            {
-                                var leakDetector = new TrackedMemoryPool<char>();
-                                var leakConfig = Configuration.For<T>(baseOptions.NewBuilder().WithMemoryPool(leakDetector).Build());
-
-                                var didRun = false;
-                                await run(leakConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
-
-                                Assert.True(didRun);
-                                Assert.Equal(0, leakDetector.OutstandingRentals);
-                            }
-                        }
-                    }
-                }
-            }
-
-            // async, no buffer
-            {
-                // figure out how many chances we have to go async in this test
-                int numAsyncCalls;
-                using (var str = new StringWriter())
-                using (var writer = new AsyncCounterWriter(str))
-                {
-                    var task = run(noBufferConfig, () => writer, () => { str.Flush(); str.Close(); return str.ToString(); });
-                    await task;
-
-                    numAsyncCalls = writer.Count;
-                }
-
-                var runAllCombos = numAsyncCalls <= MAX_TO_TEST_EXHAUSTIVELY;
-                if (runAllCombos)
-                {
-                    // how many different ways could this flow, sync vs async?
-                    var combos = EnumerateAsynchoronousCompletionOptions(numAsyncCalls);
-                    foreach (var combo in combos)
-                    {
-                        using (var str = new StringWriter())
-                        using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
-                        {
-                            var didRun = false;
-                            await run(noBufferConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
-
-                            Assert.True(didRun);
-                        }
-
-                        // leaks
-                        {
-                            using (var str = new StringWriter())
-                            using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
-                            {
-                                var leakDetector = new TrackedMemoryPool<char>();
-                                var leakConfig = Configuration.For<T>(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).WithMemoryPool(leakDetector).Build());
-
-                                var didRun = false;
-                                await run(leakConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
-
-                                Assert.True(didRun);
-                                Assert.Equal(0, leakDetector.OutstandingRentals);
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    // too many combos to reasonably try them all, but lets at least try all the different change over points
-                    for (var i = 0; i < numAsyncCalls; i++)
-                    {
-                        var combo = new bool[numAsyncCalls];
-                        combo[i] = true;
-
-                        using (var str = new StringWriter())
-                        using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
-                        {
-                            var didRun = false;
-                            await run(noBufferConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
-
-                            Assert.True(didRun);
-                        }
-
-                        // leaks
-                        {
-                            using (var str = new StringWriter())
-                            using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
-                            {
-                                var leakDetector = new TrackedMemoryPool<char>();
-                                var leakConfig = Configuration.For<T>(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).WithMemoryPool(leakDetector).Build());
-
-                                var didRun = false;
-                                await run(leakConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
-
-                                Assert.True(didRun);
-                                Assert.Equal(0, leakDetector.OutstandingRentals);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        public static async Task RunAsyncDynamicWriterVariants(
-            Options baseOptions,
-            Func<IBoundConfiguration<dynamic>, Func<TextWriter>, Func<string>, Task> run
-        )
-        {
-            var defaultConfig = Configuration.ForDynamic(baseOptions);
-            var noBufferConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).Build());
-
-            // sync or async
-            {
-                var runCount = 0;
-
-                // sync!
-                using (var str = new StringWriter())
-                {
-                    var task = run(defaultConfig, () => str, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
-                    await task;
-                }
-
-                // sync, no buffer!
-                using (var str = new StringWriter())
-                {
-                    var task = run(noBufferConfig, () => str, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
-                    await task;
-                }
-
-                // sync, leaks
-                using (var str = new StringWriter())
-                {
-                    var leakDetector = new TrackedMemoryPool<char>();
-                    var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithMemoryPool(leakDetector).Build());
-
-                    var task = run(leakConfig, () => str, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
-                    await task;
-
-                    Assert.Equal(0, leakDetector.OutstandingRentals);
-                }
-
-                // sync, no buffer, leaks
-                using (var str = new StringWriter())
-                {
-                    var leakDetector = new TrackedMemoryPool<char>();
-                    var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).WithMemoryPool(leakDetector).Build());
-
-                    var task = run(leakConfig, () => str, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
-                    await task;
-
-                    Assert.Equal(0, leakDetector.OutstandingRentals);
-                }
-
-                // async!
-                using (var str = new StringWriter())
-                using (var slow = new ForcedAsyncWriter(str))
-                {
-                    var task = run(defaultConfig, () => slow, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
-                    await task;
-                }
-
-                // async, no buffer!
-                using (var str = new StringWriter())
-                using (var slow = new ForcedAsyncWriter(str))
-                {
-                    var task = run(noBufferConfig, () => slow, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
-                    await task;
-                }
-
-                // async, leaks
-                using (var str = new StringWriter())
-                using (var slow = new ForcedAsyncWriter(str))
-                {
-                    var leakDetector = new TrackedMemoryPool<char>();
-                    var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithMemoryPool(leakDetector).Build());
-
-                    var task = run(leakConfig, () => slow, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
-                    await task;
-
-                    Assert.Equal(0, leakDetector.OutstandingRentals);
-                }
-
-                // async, leaks, no buffer!
-                using (var str = new StringWriter())
-                using (var slow = new ForcedAsyncWriter(str))
-                {
-                    var leakDetector = new TrackedMemoryPool<char>();
-                    var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).WithMemoryPool(leakDetector).Build());
-
-                    var task = run(leakConfig, () => slow, () => { runCount++; str.Flush(); str.Close(); return str.ToString(); });
-                    await task;
-
-                    Assert.Equal(0, leakDetector.OutstandingRentals);
-                }
-
-                Assert.Equal(8, runCount);
-            }
-
-            // async, default buffer
-            {
-                // figure out how many chances we have to go async in this test
-                int numAsyncCalls;
-                using (var str = new StringWriter())
-                using (var writer = new AsyncCounterWriter(str))
-                {
-                    var task = run(defaultConfig, () => writer, () => { str.Flush(); str.Close(); return str.ToString(); });
-                    await task;
-
-                    numAsyncCalls = writer.Count;
-                }
-
-                var runAllCombos = numAsyncCalls <= MAX_TO_TEST_EXHAUSTIVELY;
-                if (runAllCombos)
-                {
-                    // how many different ways could this flow, sync vs async?
-                    var combos = EnumerateAsynchoronousCompletionOptions(numAsyncCalls);
-                    foreach (var combo in combos)
-                    {
-                        using (var str = new StringWriter())
-                        using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
-                        {
-                            var didRun = false;
-                            await run(defaultConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
-
-                            Assert.True(didRun);
-                        }
-
-                        // leaks
-                        {
-                            using (var str = new StringWriter())
-                            using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
-                            {
-                                var leakDetector = new TrackedMemoryPool<char>();
-                                var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithMemoryPool(leakDetector).Build());
-
-                                var didRun = false;
-                                await run(leakConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
-
-                                Assert.True(didRun);
-                                Assert.Equal(0, leakDetector.OutstandingRentals);
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    // too many combos to reasonably try them all, but lets at least try all the different change over points
-                    for (var i = 0; i < numAsyncCalls; i++)
-                    {
-                        var combo = new bool[numAsyncCalls];
-                        combo[i] = true;
-
-                        using (var str = new StringWriter())
-                        using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
-                        {
-                            var didRun = false;
-                            await run(defaultConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
-
-                            Assert.True(didRun);
-                        }
-
-                        // leaks
-                        {
-                            using (var str = new StringWriter())
-                            using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
-                            {
-                                var leakDetector = new TrackedMemoryPool<char>();
-                                var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithMemoryPool(leakDetector).Build());
-
-                                var didRun = false;
-                                await run(leakConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
-
-                                Assert.True(didRun);
-                                Assert.Equal(0, leakDetector.OutstandingRentals);
-                            }
-                        }
-                    }
-                }
-            }
-
-            // async, no buffer
-            {
-                // figure out how many chances we have to go async in this test
-                int numAsyncCalls;
-                using (var str = new StringWriter())
-                using (var writer = new AsyncCounterWriter(str))
-                {
-                    var task = run(noBufferConfig, () => writer, () => { str.Flush(); str.Close(); return str.ToString(); });
-                    await task;
-
-                    numAsyncCalls = writer.Count;
-                }
-
-                var runAllCombos = numAsyncCalls <= MAX_TO_TEST_EXHAUSTIVELY;
-                if (runAllCombos)
-                {
-                    // how many different ways could this flow, sync vs async?
-                    var combos = EnumerateAsynchoronousCompletionOptions(numAsyncCalls);
-                    foreach (var combo in combos)
-                    {
-                        using (var str = new StringWriter())
-                        using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
-                        {
-                            var didRun = false;
-                            await run(noBufferConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
-
-                            Assert.True(didRun);
-                        }
-
-                        // leaks
-                        {
-                            using (var str = new StringWriter())
-                            using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
-                            {
-                                var leakDetector = new TrackedMemoryPool<char>();
-                                var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).WithMemoryPool(leakDetector).Build());
-
-                                var didRun = false;
-                                await run(leakConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
-
-                                Assert.True(didRun);
-                                Assert.Equal(0, leakDetector.OutstandingRentals);
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    // too many combos to reasonably try them all, but lets at least try all the different change over points
-                    for (var i = 0; i < numAsyncCalls; i++)
-                    {
-                        var combo = new bool[numAsyncCalls];
-                        combo[i] = true;
-
-                        using (var str = new StringWriter())
-                        using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
-                        {
-                            var didRun = false;
-                            await run(noBufferConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
-
-                            Assert.True(didRun);
-                        }
-
-                        // leaks
-                        {
-                            using (var str = new StringWriter())
-                            using (var writer = new ConfigurableSyncAsyncWriter(combo, str))
-                            {
-                                var leakDetector = new TrackedMemoryPool<char>();
-                                var leakConfig = Configuration.ForDynamic(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).WithMemoryPool(leakDetector).Build());
-
-                                var didRun = false;
-                                await run(leakConfig, () => writer, () => { didRun = true; str.Flush(); str.Close(); return str.ToString(); });
-
-                                Assert.True(didRun);
-                                Assert.Equal(0, leakDetector.OutstandingRentals);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        private static readonly HashSet<bool[]> TRUE_PERM = new HashSet<bool[]>(new[] { new[] { true } }, BoolArrayComparer.Singleton);
-        private static readonly HashSet<bool[]> FALSE_PERM = new HashSet<bool[]>(new[] { new[] { false } }, BoolArrayComparer.Singleton);
-        private static readonly Dictionary<bool[], HashSet<bool[]>> MemoizedPermutations = new Dictionary<bool[], HashSet<bool[]>>(BoolArrayComparer.Singleton);
-
-        private static List<bool[]> EnumerateAsynchoronousCompletionOptions(int numAsyncCalls)
-        {
-
-            return
-                Enumerable.Range(1, numAsyncCalls)
-                    .AsParallel()
-                    .SelectMany(
-                        i =>
-                        {
-                            var subRet = new HashSet<bool[]>(BoolArrayComparer.Singleton);
-
-                            var shouldBeAsync = new bool[numAsyncCalls];
-                            for (var j = 0; j < i; j++)
-                            {
-                                shouldBeAsync[j] = true;
-                            }
-
-                            var perms = PermutationsOf(shouldBeAsync);
-                            foreach (var perm in perms)
-                            {
-                                subRet.Add(perm);
-                            }
-
-                            return subRet;
-                        }
-                    )
-                    .Distinct(BoolArrayComparer.Singleton)
-                    .ToList();
-
-            // finally, a chance to use my degree
-            HashSet<bool[]> PermutationsOf(bool[] e)
-            {
-                lock (MemoizedPermutations)
-                {
-                    if (MemoizedPermutations.TryGetValue(e, out var earlyRet))
-                    {
-                        return earlyRet;
-                    }
-                }
-
-                var a = e.ToArray();
-
-                if (a.Length == 1)
-                {
-                    if (a[0] == true) return TRUE_PERM;
-
-                    return FALSE_PERM;
-                }
-
-                var perms =
-                    Enumerable
-                        .Range(0, a.Length)
-                        .SelectMany(
-                            i =>
-                            {
-                                var subRet = new HashSet<bool[]>(BoolArrayComparer.Singleton);
-
-                                var item = a[i];
-                                var rest = a.Take(i).Concat(a.Skip(i + 1)).ToArray();
-
-                                foreach (var right in PermutationsOf(rest))
-                                {
-                                    var perm = new[] { item }.Concat(right).ToArray();
-                                    subRet.Add(perm);
-                                }
-
-                                return subRet;
-                            }
-                        )
-                        .ToHashSet(BoolArrayComparer.Singleton);
-
-                lock (MemoizedPermutations)
-                {
-                    MemoizedPermutations[e] = perms;
-                }
-
-                return perms;
             }
         }
     }

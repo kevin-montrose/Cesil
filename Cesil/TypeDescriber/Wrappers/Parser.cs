@@ -92,7 +92,7 @@ namespace Cesil
         {
             if (parser == null)
             {
-                Throw.ArgumentNullException(nameof(parser));
+                return Throw.ArgumentNullException<Parser>(nameof(parser));
             }
 
             // parser must
@@ -103,13 +103,13 @@ namespace Cesil
             //   and return a boolean
             if (!parser.IsStatic)
             {
-                Throw.ArgumentException($"{nameof(parser)} be a static method", nameof(parser));
+                return Throw.ArgumentException<Parser>($"{nameof(parser)} be a static method", nameof(parser));
             }
 
             var args = parser.GetParameters();
             if (args.Length != 3)
             {
-                Throw.ArgumentException($"{nameof(parser)} must have three parameters", nameof(parser));
+                return Throw.ArgumentException<Parser>($"{nameof(parser)} must have three parameters", nameof(parser));
             }
 
             var p1 = args[0].ParameterType.GetTypeInfo();
@@ -118,23 +118,23 @@ namespace Cesil
 
             if (p1 != Types.ReadOnlySpanOfCharType)
             {
-                Throw.ArgumentException($"The first parameter of {nameof(parser)} must be a {nameof(ReadOnlySpan<char>)}", nameof(parser));
+                return Throw.ArgumentException<Parser>($"The first parameter of {nameof(parser)} must be a {nameof(ReadOnlySpan<char>)}", nameof(parser));
             }
 
             if (!p2.IsByRef)
             {
-                Throw.ArgumentException($"The second parameter of {nameof(parser)} must be an in", nameof(parser));
+                return Throw.ArgumentException<Parser>($"The second parameter of {nameof(parser)} must be an in", nameof(parser));
             }
 
             var p2Elem = p2.GetElementType().GetTypeInfo();
             if (p2Elem != Types.ReadContextType)
             {
-                Throw.ArgumentException($"The second parameter of {nameof(parser)} must be a {nameof(ReadContext)}", nameof(parser));
+                return Throw.ArgumentException<Parser>($"The second parameter of {nameof(parser)} must be a {nameof(ReadContext)}", nameof(parser));
             }
 
             if (!p3.IsByRef)
             {
-                Throw.ArgumentException($"The third parameter of {nameof(parser)} must be an out", nameof(parser));
+                return Throw.ArgumentException<Parser>($"The third parameter of {nameof(parser)} must be an out", nameof(parser));
             }
 
             var underlying = p3.GetElementType().GetTypeInfo();
@@ -142,7 +142,7 @@ namespace Cesil
             var parserRetType = parser.ReturnType.GetTypeInfo();
             if (parserRetType != Types.BoolType)
             {
-                Throw.ArgumentException($"{nameof(parser)} must must return a bool", nameof(parser));
+                return Throw.ArgumentException<Parser>($"{nameof(parser)} must must return a bool", nameof(parser));
             }
 
             return new Parser(parser, underlying);
@@ -162,7 +162,7 @@ namespace Cesil
         {
             if (cons == null)
             {
-                Throw.ArgumentNullException(nameof(cons));
+                return Throw.ArgumentNullException<Parser>(nameof(cons));
             }
 
             var ps = cons.GetParameters();
@@ -172,7 +172,7 @@ namespace Cesil
 
                 if (firstP != Types.ReadOnlySpanOfCharType)
                 {
-                    Throw.ArgumentException($"{nameof(cons)} first parameter must be a ReadOnlySpan<char>", nameof(cons));
+                    return Throw.ArgumentException<Parser>($"{nameof(cons)} first parameter must be a ReadOnlySpan<char>", nameof(cons));
                 }
             }
             else if (ps.Length == 2)
@@ -181,24 +181,24 @@ namespace Cesil
 
                 if (firstP != Types.ReadOnlySpanOfCharType)
                 {
-                    Throw.ArgumentException($"{nameof(cons)} first parameter must be a ReadOnlySpan<char>", nameof(cons));
+                    return Throw.ArgumentException<Parser>($"{nameof(cons)} first parameter must be a ReadOnlySpan<char>", nameof(cons));
                 }
 
                 var secondP = ps[1].ParameterType.GetTypeInfo();
                 if (!secondP.IsByRef)
                 {
-                    Throw.ArgumentException($"{nameof(cons)} second parameter must be an in ReadContext, was not by ref", nameof(cons));
+                    return Throw.ArgumentException<Parser>($"{nameof(cons)} second parameter must be an in ReadContext, was not by ref", nameof(cons));
                 }
 
                 var secondPElem = secondP.GetElementType().GetTypeInfo();
                 if (secondPElem != Types.ReadContextType)
                 {
-                    Throw.ArgumentException($"{nameof(cons)} second parameter must be an in ReadContext, found {secondPElem}", nameof(cons));
+                    return Throw.ArgumentException<Parser>($"{nameof(cons)} second parameter must be an in ReadContext, found {secondPElem}", nameof(cons));
                 }
             }
             else
             {
-                Throw.ArgumentException($"{nameof(cons)} must have one or two parameters", nameof(cons));
+                return Throw.ArgumentException<Parser>($"{nameof(cons)} must have one or two parameters", nameof(cons));
             }
 
             return new Parser(cons);
@@ -211,7 +211,7 @@ namespace Cesil
         {
             if (del == null)
             {
-                Throw.ArgumentNullException(nameof(del));
+                return Throw.ArgumentNullException<Parser>(nameof(del));
             }
 
             return new Parser(del, typeof(T).GetTypeInfo());
@@ -222,6 +222,11 @@ namespace Cesil
         /// </summary>
         public static Parser GetDefault(TypeInfo forType)
         {
+            if(forType == null)
+            {
+                return Throw.ArgumentNullException<Parser>(nameof(forType));
+            }
+
             if (forType.IsEnum)
             {
                 if (forType.GetCustomAttribute<FlagsAttribute>() == null)
@@ -287,9 +292,7 @@ namespace Cesil
                 case BackingMode.Constructor:
                     return $"{nameof(Parser)} backed by constructor {Constructor} creating {Creates}";
                 default:
-                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
-                    // just for control flow
-                    return default;
+                    return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
             }
         }
 
@@ -298,7 +301,7 @@ namespace Cesil
         /// </summary>
         public bool Equals(Parser other)
         {
-            if (other == null) return false;
+            if (ReferenceEquals(other, null)) return false;
 
             var selfMode = other.Mode;
             var otherMode = other.Mode;
@@ -314,9 +317,7 @@ namespace Cesil
                 case BackingMode.Method:
                     return Method == other.Method;
                 default:
-                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {selfMode}");
-                    // just for control flow
-                    return default;
+                    return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {selfMode}");
             }
         }
 
@@ -389,36 +390,36 @@ namespace Cesil
             var ret = mtd.ReturnType.GetTypeInfo();
             if (ret != Types.BoolType)
             {
-                Throw.InvalidOperationException($"Delegate must return a bool");
+                return Throw.InvalidOperationException<Parser>($"Delegate must return a bool");
             }
 
             var args = mtd.GetParameters();
             if (args.Length != 3)
             {
-                Throw.InvalidOperationException($"Delegate must take 3 parameters");
+                return Throw.InvalidOperationException<Parser>($"Delegate must take 3 parameters");
             }
 
             var p1 = args[0].ParameterType.GetTypeInfo();
             if (p1 != Types.ReadOnlySpanOfCharType)
             {
-                Throw.InvalidOperationException($"The first paramater to the delegate must be a {nameof(ReadOnlySpan<char>)}");
+                return Throw.InvalidOperationException<Parser>($"The first paramater to the delegate must be a {nameof(ReadOnlySpan<char>)}");
             }
 
             var p2 = args[1].ParameterType.GetTypeInfo();
             if (!p2.IsByRef)
             {
-                Throw.InvalidOperationException($"The second paramater to the delegate must be an in {nameof(ReadContext)}, was not by ref");
+                return Throw.InvalidOperationException<Parser>($"The second paramater to the delegate must be an in {nameof(ReadContext)}, was not by ref");
             }
 
             if (p2.GetElementType() != Types.ReadContextType)
             {
-                Throw.InvalidOperationException($"The second paramater to the delegate must be an in {nameof(ReadContext)}");
+                return Throw.InvalidOperationException<Parser>($"The second paramater to the delegate must be an in {nameof(ReadContext)}");
             }
 
             var createsRef = args[2].ParameterType.GetTypeInfo();
             if (!createsRef.IsByRef)
             {
-                Throw.InvalidOperationException($"The third paramater to the delegate must be an out type, was not by ref");
+                return Throw.InvalidOperationException<Parser>($"The third paramater to the delegate must be an out type, was not by ref");
             }
 
             var creates = createsRef.GetElementType().GetTypeInfo();

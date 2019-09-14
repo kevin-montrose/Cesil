@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.IO;
+
+using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
@@ -10,22 +11,22 @@ namespace Cesil
         IWriter<T>,
         ITestableDisposable
     {
-        internal TextWriter Inner;
+        internal IWriterAdapter Inner;
 
         public bool IsDisposed => Inner == null;
 
-        internal SyncWriterBase(BoundConfigurationBase<T> config, TextWriter inner, object context) : base(config, context)
+        internal SyncWriterBase(BoundConfigurationBase<T> config, IWriterAdapter inner, object context) : base(config, context)
         {
             Inner = inner;
         }
 
         public void WriteAll(IEnumerable<T> rows)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             if (rows == null)
             {
-                Throw.ArgumentNullException(nameof(rows));
+                Throw.ArgumentNullException<object>(nameof(rows));
             }
 
             foreach (var row in rows)
@@ -219,14 +220,5 @@ namespace Cesil
         }
 
         public abstract void Dispose();
-
-        public void AssertNotDisposed()
-        {
-            if (IsDisposed)
-            {
-                var name = this.GetType().Name;
-                Throw.ObjectDisposedException(name);
-            }
-        }
     }
 }

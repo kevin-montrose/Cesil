@@ -1,5 +1,7 @@
 ﻿using System.Collections;
 
+using static Cesil.DisposableHelper;
+
 namespace Cesil
 {
     internal sealed class DynamicRowEnumerableNonGeneric : IEnumerable
@@ -13,7 +15,7 @@ namespace Cesil
 
         public IEnumerator GetEnumerator()
         {
-            Row.AssertNotDisposed();
+            AssertNotDisposed(Row);
 
             return new DynamicRowEnumeratorNonGeneric(Row);
         }

@@ -6,6 +6,8 @@ using System.Dynamic;
 using System.Linq.Expressions;
 using System.Runtime.InteropServices;
 
+using static Cesil.DisposableHelper;
+
 namespace Cesil
 {
     internal sealed class DynamicRow : IDynamicMetaObjectProvider, ITestableDisposable, IIntrusiveLinkedList<DynamicRow>
@@ -21,7 +23,7 @@ namespace Cesil
             {
                 get
                 {
-                    AssertNotDisposed();
+                    AssertNotDisposed(this);
                     Row?.AssertGenerationMatch(ExpectedGeneration);
                     return _Current;
                 }
@@ -41,7 +43,7 @@ namespace Cesil
 
             public bool MoveNext()
             {
-                AssertNotDisposed();
+                AssertNotDisposed(this);
                 Row?.AssertGenerationMatch(ExpectedGeneration);
 
                 var ix = NextIndex;
@@ -59,7 +61,7 @@ namespace Cesil
 
             public void Reset()
             {
-                AssertNotDisposed();
+                AssertNotDisposed(this);
                 Row?.AssertGenerationMatch(ExpectedGeneration);
 
                 NextIndex = 0;
@@ -70,14 +72,6 @@ namespace Cesil
                 // generation intentionally not checked
 
                 Row = null;
-            }
-
-            public void AssertNotDisposed()
-            {
-                if (IsDisposed)
-                {
-                    Throw.ObjectDisposedException(nameof(DynamicColumnEnumerator));
-                }
             }
 
             public override string ToString()
@@ -94,7 +88,7 @@ namespace Cesil
             {
                 get
                 {
-                    Row.AssertNotDisposed();
+                    AssertNotDisposed(Row);
                     var ix = index;
                     var name = Row.Names?[ix];
 
@@ -166,7 +160,7 @@ namespace Cesil
         {
             if (!IsDisposed)
             {
-                Throw.InvalidOperationException("DynamicRow not in an uninitializable state");
+                Throw.InvalidOperationException<object>("DynamicRow not in an uninitializable state");
             }
 
             // keep a single one of these around, but initialize it lazily for consistency
@@ -211,7 +205,7 @@ namespace Cesil
 
         internal ReadOnlySpan<char> GetDataSpan(int forCellNumber)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             var dataIx = GetDataIndex(forCellNumber);
 
@@ -227,11 +221,11 @@ namespace Cesil
 
         internal object GetAt(int index)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             if (!TryGetIndex(index, out var ret))
             {
-                Throw.ArgumentOutOfRangeException(nameof(index), index, Width);
+                return Throw.ArgumentOutOfRangeException<object>(nameof(index), index, Width);
             }
 
             return ret;
@@ -239,7 +233,7 @@ namespace Cesil
 
         internal object GetByIndex(Index index)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             int actualIndex;
             if (index.IsFromEnd)
@@ -253,7 +247,7 @@ namespace Cesil
 
             if (!TryGetIndex(actualIndex, out var ret))
             {
-                Throw.ArgumentOutOfRangeException(nameof(index), index, actualIndex, Width);
+                return Throw.ArgumentOutOfRangeException<object>(nameof(index), index, actualIndex, Width);
             }
 
             return ret;
@@ -264,7 +258,7 @@ namespace Cesil
 
         internal object GetByIdentifier(in ColumnIdentifier index)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             if (index.HasName)
             {
@@ -286,11 +280,11 @@ namespace Cesil
 
         internal object GetByName(string column)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             if (!TryGetValue(column, out var ret))
             {
-                Throw.KeyNotFoundException(column);
+                return Throw.KeyNotFoundException<object>(column);
             }
 
             return ret;
@@ -298,7 +292,7 @@ namespace Cesil
 
         internal DynamicCell GetCellAt(int ix)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             var dataIndex = GetDataIndex(ix);
             if (dataIndex == -1)
@@ -311,7 +305,7 @@ namespace Cesil
 
         internal DynamicRow GetRange(Range range)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             string[] names;
 
@@ -341,12 +335,12 @@ namespace Cesil
 
             if (rawStart < 0 || rawStart > Width || rawEnd < 0 || rawEnd > Width)
             {
-                Throw.ArgumentOutOfRangeException(nameof(range), range, rawStart, rawEnd, Width);
+                return Throw.ArgumentOutOfRangeException<DynamicRow>(nameof(range), range, rawStart, rawEnd, Width);
             }
 
             if (rawStart > rawEnd)
             {
-                Throw.ArgumentException($"Start of range ({rawStart}) greater than end of range ({rawEnd}) in {range}", nameof(range));
+                return Throw.ArgumentException<DynamicRow>($"Start of range ({rawStart}) greater than end of range ({rawEnd}) in {range}", nameof(range));
             }
 
             var width = rawEnd - rawStart;
@@ -404,7 +398,7 @@ namespace Cesil
 
         internal ReadContext GetReadContext()
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             return ReadContext.ConvertingRow(RowNumber, Owner.Context);
         }
@@ -557,7 +551,7 @@ checkSize:
         {
             if (gen != Generation)
             {
-                Throw.InvalidOperationException($"Underlying {nameof(DynamicRow)} modified during enumeration, generation mismatch");
+                Throw.InvalidOperationException<object>($"Underlying {nameof(DynamicRow)} modified during enumeration, generation mismatch");
             }
         }
 
@@ -571,14 +565,6 @@ checkSize:
                 MemoryPool = null;
                 Names = null;
                 Context = null;
-            }
-        }
-
-        public void AssertNotDisposed()
-        {
-            if (IsDisposed)
-            {
-                Throw.ObjectDisposedException(nameof(DynamicRow));
             }
         }
 

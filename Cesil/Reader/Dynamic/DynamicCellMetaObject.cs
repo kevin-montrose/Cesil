@@ -54,22 +54,18 @@ namespace Cesil
 
             if (converter == null)
             {
-                var throwMsg = Expression.Call(Methods.Throw.InvalidOperationException, Expression.Constant($"No cell converter discovered for {binder.ReturnType}"));
-                var def = Expression.Default(retType);
+                var invalidOpCall = Methods.Throw.InvalidOperationException.MakeGenericMethod(retType);
+                var throwMsg = Expression.Call(invalidOpCall, Expression.Constant($"No cell converter discovered for {binder.ReturnType}"));
 
-                var block = Expression.Block(throwMsg, def);
-
-                return new DynamicMetaObject(block, restrictions);
+                return new DynamicMetaObject(throwMsg, restrictions);
             }
 
             if (!binder.ReturnType.IsAssignableFrom(converter.Creates))
             {
-                var throwMsg = Expression.Call(Methods.Throw.InvalidOperationException, Expression.Constant($"Cell converter {converter} does not create a type assignable to {binder.ReturnType}, returns {converter.Creates}"));
-                var def = Expression.Default(retType);
+                var invalidOpCall = Methods.Throw.InvalidOperationException.MakeGenericMethod(retType);
+                var throwMsg = Expression.Call(invalidOpCall, Expression.Constant($"Cell converter {converter} does not create a type assignable to {binder.ReturnType}, returns {converter.Creates}"));
 
-                var block = Expression.Block(throwMsg, def);
-
-                return new DynamicMetaObject(block, restrictions);
+                return new DynamicMetaObject(throwMsg, restrictions);
             }
 
             var selfAsCell = Expression.Convert(Expression, Types.DynamicCellType);
@@ -111,7 +107,8 @@ namespace Cesil
 
                         statements.Add(assignRes);
 
-                        var callThrow = Expression.Call(Methods.Throw.InvalidOperationException, Expression.Constant($"{nameof(Parser)} backing method {mtd} returned false"));
+                        var invalidCallOp = Methods.Throw.InvalidOperationExceptionOfObject;
+                        var callThrow = Expression.Call(invalidCallOp, Expression.Constant($"{nameof(Parser)} backing method {mtd} returned false"));
 
                         var ifNot = Expression.IfThen(Expression.Not(resVar), callThrow);
                         statements.Add(ifNot);
@@ -139,7 +136,8 @@ namespace Cesil
 
                         statements.Add(assignRes);
 
-                        var callThrow = Expression.Call(Methods.Throw.InvalidOperationException, Expression.Constant($"{nameof(Parser)} backing delegate {del} returned false"));
+                        var invalidOpCall = Methods.Throw.InvalidOperationExceptionOfObject;
+                        var callThrow = Expression.Call(invalidOpCall, Expression.Constant($"{nameof(Parser)} backing delegate {del} returned false"));
                         var ifNot = Expression.IfThen(Expression.Not(resVar), callThrow);
                         statements.Add(ifNot);
 
@@ -151,9 +149,7 @@ namespace Cesil
                         return new DynamicMetaObject(block, restrictions);
                     }
                 default:
-                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {converter.Mode}");
-                    // just for control flow
-                    return default;
+                    return Throw.InvalidOperationException<DynamicMetaObject>($"Unexpected {nameof(BackingMode)}: {converter.Mode}");
 
             }
         }

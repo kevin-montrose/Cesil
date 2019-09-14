@@ -2,16 +2,18 @@
 using System.Threading;
 using System.Threading.Tasks;
 
+using static Cesil.DisposableHelper;
+
 namespace Cesil
 {
-    internal sealed class AsyncEnumerator<T> : IAsyncEnumerator<T>, ITestableAsyncDisposable
+    internal sealed partial class AsyncEnumerator<T> : IAsyncEnumerator<T>, ITestableAsyncDisposable
     {
         private T _Current;
         public T Current
         {
             get
             {
-                AssertNotDisposed();
+                AssertNotDisposed(this);
                 return _Current;
             }
             private set
@@ -34,23 +36,23 @@ namespace Cesil
 
         public ValueTask<bool> MoveNextAsync()
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             var task = Reader.TryReadAsync(Token);
-            if (task.IsCompletedSuccessfully)
+            if (!task.IsCompletedSuccessfully(this))
             {
-                var res = task.Result;
-                if (!res.HasValue)
-                {
-                    return new ValueTask<bool>(false);
-                }
-
-                Current = res.Value;
-                return new ValueTask<bool>(true);
+                return MoveNextAsync_ContinueAfterReadAsync(this, task, Token);
+            }
+            
+            var res = task.Result;
+            if (!res.HasValue)
+            {
+                return new ValueTask<bool>(false);
             }
 
-            return MoveNextAsync_ContinueAfterReadAsync(this, task, Token);
-
+            Current = res.Value;
+            return new ValueTask<bool>(true);
+            
             // wait for a read to finish, then continue async
             static async ValueTask<bool> MoveNextAsync_ContinueAfterReadAsync(AsyncEnumerator<T> self, ValueTask<ReadResult<T>> waitFor, CancellationToken cancel)
             {
@@ -78,15 +80,32 @@ namespace Cesil
             return default;
         }
 
-        public void AssertNotDisposed()
-        {
-            if (IsDisposed)
-            {
-                Throw.ObjectDisposedException(nameof(AsyncEnumerator<T>));
-            }
-        }
-
         public override string ToString()
         => $"{nameof(AsyncEnumerator<T>)} bound to {Reader}";
     }
+
+#if DEBUG
+    // this is only implemented in DEBUG builds, so tests (and only tests) can force
+    //    particular async paths
+    internal sealed partial class AsyncEnumerator<T> : ITestableAsyncProvider
+    {
+        private int _GoAsyncAfter;
+        int ITestableAsyncProvider.GoAsyncAfter { set { _GoAsyncAfter = value; } }
+
+        private int _AsyncCounter;
+        int ITestableAsyncProvider.AsyncCounter => _AsyncCounter;
+
+        bool ITestableAsyncProvider.ShouldGoAsync()
+        {
+            lock (this)
+            {
+                _AsyncCounter++;
+
+                var ret = _AsyncCounter >= _GoAsyncAfter;
+
+                return ret;
+            }
+        }
+    }
+#endif
 }

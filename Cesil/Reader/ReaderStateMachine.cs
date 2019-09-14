@@ -1,119 +1,32 @@
 ﻿using System;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 
 namespace Cesil
 {
-    internal sealed unsafe partial class ReaderStateMachine : ITestableDisposable
+    internal sealed partial class ReaderStateMachine : ITestableDisposable
     {
-        // todo: maybe move this out, and hang it off of Options (or configurationbase)?
-        //       then we can pin it only when it's in use rather than
-        //       keeping gnarly pointers around indefinitely
-        internal struct CharacterLookup : ITestableDisposable
-        {
-            public bool IsDisposed => Memory == null;
-
-            private readonly int MinimumCharacter;
-            private readonly int CharLookupOffset;
-            private IMemoryOwner<char> Memory;
-            private readonly MemoryHandle Handle;
-            private readonly CharacterType* CharLookup;
-
-            internal CharacterLookup(int mc, int clo, IMemoryOwner<char> m, MemoryHandle h, CharacterType* cl)
-            {
-                MinimumCharacter = mc;
-                CharLookupOffset = clo;
-                Memory = m;
-                Handle = h;
-                CharLookup = cl;
-            }
-
-            internal void Deconstruct(out int minimumCharacter, out int charLookupOffset, out IMemoryOwner<char> memory, out MemoryHandle handle, out CharacterType* charLookup)
-            {
-                minimumCharacter = MinimumCharacter;
-                charLookupOffset = CharLookupOffset;
-                memory = Memory;
-                handle = Handle;
-                charLookup = CharLookup;
-            }
-
-            public void AssertNotDisposed()
-            {
-                if (IsDisposed)
-                {
-                    Throw.ObjectDisposedException(nameof(CharacterLookup));
-                }
-            }
-
-            public void Dispose()
-            {
-                if (!IsDisposed)
-                {
-                    Handle.Dispose();
-                    Memory.Dispose();
-
-                    Memory = null;
-                }
-            }
-        }
-
         public bool IsDisposed => CurrentState == State.NONE;
 
         public State CurrentState;
 
-        internal readonly RowEndings RowEndings;
-        internal readonly ReadHeaders HasHeaders;
+        internal RowEndings RowEndings;
+        internal ReadHeaders HasHeaders;
 
-        internal readonly MemoryHandle TransitionMatrixHandle;
-        internal readonly TransitionRule* TransitionMatrix;
+        private ReadOnlyMemory<TransitionRule> TransitionMatrixMemory;
+        private CharacterLookup CharacterLookup;
 
-        private readonly bool SuppressCharLookupDispose;
+        private MemoryHandle CharLookupPin;
+        private unsafe CharacterType* CharLookup;
 
-        private readonly int MinimumCharacter;
-        private readonly int CharLookupOffset;
-        private readonly IMemoryOwner<char> CharLookupOwner;
-        private readonly MemoryHandle CharLookupPin;
-        private readonly CharacterType* CharLookup;
+        private MemoryHandle TransitionMatrixHandle;
+        private unsafe TransitionRule* TransitionMatrix;
 
-        internal ReaderStateMachine(
-            MemoryPool<char> memoryPool,
-            char escapeStartChar,
-            char valueSeparatorChar,
-            char escapeChar,
-            RowEndings rowEndings,
-            ReadHeaders hasHeaders,
-            char? commentChar
-        )
-        {
-            RowEndings = rowEndings;
-            HasHeaders = hasHeaders;
+        internal unsafe bool IsPinned => CharLookup != null || TransitionMatrix != null;
 
-            switch (HasHeaders)
-            {
-                case ReadHeaders.Always:
-                    CurrentState = State.Header_Start;
-                    break;
-                case ReadHeaders.Never:
-                    CurrentState = State.Record_Start;
-                    break;
-                default:
-                    Throw.InvalidOperationException($"Unexpected {nameof(ReadHeaders)}: {HasHeaders}");
-                    break;
-            }
+        internal ReaderStateMachine() { }
 
-            TransitionMatrixHandle =
-                GetTransitionMatrix(
-                    RowEndings,
-                    escapeStartChar == escapeChar,
-                    commentChar.HasValue
-                ).Pin();
-            TransitionMatrix = (TransitionRule*)TransitionMatrixHandle.Pointer;
-
-            SuppressCharLookupDispose = false;
-            (MinimumCharacter, CharLookupOffset, CharLookupOwner, CharLookupPin, CharLookup) =
-                MakeCharacterLookup(memoryPool, escapeStartChar, valueSeparatorChar, escapeChar, commentChar);
-        }
-
-        internal ReaderStateMachine(
+        internal void Initialize(
             CharacterLookup preAllocLookup,
             char escapeStartChar,
             char escapeChar,
@@ -122,6 +35,7 @@ namespace Cesil
             bool readingComments
         )
         {
+            CharacterLookup = preAllocLookup;
             RowEndings = rowEndings;
             HasHeaders = hasHeaders;
 
@@ -134,197 +48,82 @@ namespace Cesil
                     CurrentState = State.Record_Start;
                     break;
                 default:
-                    Throw.InvalidOperationException($"Unexpected {nameof(ReadHeaders)}: {HasHeaders}");
+                    Throw.InvalidOperationException<object>($"Unexpected {nameof(ReadHeaders)}: {HasHeaders}");
                     break;
             }
 
-            TransitionMatrixHandle =
+            TransitionMatrixMemory =
                 GetTransitionMatrix(
                     RowEndings,
                     escapeStartChar == escapeChar,
                     readingComments
-                ).Pin();
-            TransitionMatrix = (TransitionRule*)TransitionMatrixHandle.Pointer;
-
-            SuppressCharLookupDispose = true;
-            (MinimumCharacter, CharLookupOffset, _, _, CharLookup) = preAllocLookup;
+                );
         }
 
         internal AdvanceResult EndOfData()
         => AdvanceInner(CurrentState, CharacterType.DataEnd);
 
-        internal AdvanceResult Advance(char c)
+        internal unsafe AdvanceResult Advance(char c)
         {
             var fromState = CurrentState;
 
+            var cOffset = GetCharLookupOffset(in CharacterLookup, fromState, c);
             CharacterType cType;
-            var cOffset = (c - MinimumCharacter);
-            if (cOffset < 0 || cOffset >= CharLookupOffset)
+            if(cOffset == null)
             {
                 cType = CharacterType.Other;
             }
             else
             {
-                var inEscapedValue = (((byte)fromState) & IN_ESCAPED_VALUE_MASK) == IN_ESCAPED_VALUE_MASK;
-                if (inEscapedValue)
-                {
-                    cOffset += CharLookupOffset;
-                }
-
-                cType = CharLookup[cOffset];
+                cType = CharLookup[cOffset.Value];
             }
 
             return AdvanceInner(fromState, cType);
         }
 
-        // todo: need to figure out a test to make sure that there's no way for this to 
-        //       reach outside of TransitionMatrix (since it's unsafe)
-        private AdvanceResult AdvanceInner(State fromState, CharacterType cType)
+        // internal for testing purposes
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static int? GetCharLookupOffset(in CharacterLookup charLookup, State fromState, char c)
         {
-            var stateOffset = (byte)fromState * RuleCacheCharacterCount;
-            var forCharOffset = stateOffset + (byte)cType;
+            var cOffset = (c - charLookup.MinimumCharacter);
+            if (cOffset < 0 || cOffset >= charLookup.CharLookupOffset)
+            {
+                return null;
+            }
+            var inEscapedValue = (((byte)fromState) & IN_ESCAPED_VALUE_MASK) == IN_ESCAPED_VALUE_MASK;
+            if (inEscapedValue)
+            {
+                cOffset += charLookup.CharLookupOffset;
+            }
 
-            var forChar = TransitionMatrix[forCharOffset];
+            return cOffset;
+        }
+
+        private unsafe AdvanceResult AdvanceInner(State fromState, CharacterType cType)
+        {
+            var offset = GetTransitionMatrixOffset(fromState, cType);
+
+            var forChar = TransitionMatrix[offset];
 
             CurrentState = forChar.NextState;
             return forChar.Result;
         }
 
-        // todo: need a test to make sure there's no way to reach outside of charLookup
-        //       since it's unsafe
-        internal static unsafe CharacterLookup MakeCharacterLookup(
-            MemoryPool<char> memoryPool,
-            char escapeStartChar,
-            char valueSeparatorChar,
-            char escapeChar,
-            char? commentChar
-        )
+        // internal for testing purposes
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static int GetTransitionMatrixOffset(State fromState, CharacterType cType)
         {
-            var minimumCharacter =
-                Math.Min(
-                    Math.Min(
-                        Math.Min(
-                            Math.Min(
-                                Math.Min(escapeStartChar, valueSeparatorChar),
-                                escapeChar
-                            ),
-                            commentChar ?? char.MaxValue
-                        ),
-                        '\r'
-                    ),
-                    '\n'
-                );
-            var maxChar =
-                Math.Max(
-                    Math.Max(
-                        Math.Max(
-                            Math.Max(
-                                Math.Max(escapeStartChar, valueSeparatorChar),
-                                escapeChar
-                            ),
-                            commentChar ?? char.MinValue
-                        ),
-                        '\r'
-                    ),
-                    '\n'
-                );
-            var charLookupOffset = (maxChar - minimumCharacter) + 1;
-            var charLookupOwner = memoryPool.Rent(charLookupOffset * 2 / sizeof(char));
-            var charLookupPin = charLookupOwner.Memory.Pin();
-            var charLookup = (CharacterType*)charLookupPin.Pointer;
+            var stateOffset = (byte)fromState * RuleCacheCharacterCount;
+            var forCharOffset = stateOffset + (byte)cType;
 
-            for (var i = 0; i < charLookupOffset; i++)
-            {
-                var c = (char)(minimumCharacter + i);
-
-                CharacterType cType;
-                if (c == escapeStartChar)
-                {
-                    cType = CharacterType.EscapeStartAndEnd;
-                }
-                else if (c == valueSeparatorChar)
-                {
-                    cType = CharacterType.ValueSeparator;
-                }
-                else if (c == '\r')
-                {
-                    cType = CharacterType.CarriageReturn;
-                }
-                else if (c == '\n')
-                {
-                    cType = CharacterType.LineFeed;
-                }
-                else if (commentChar != null && c == commentChar)
-                {
-                    cType = CharacterType.CommentStart;
-                }
-                else
-                {
-                    cType = CharacterType.Other;
-                }
-
-                charLookup[i] = cType;
-            }
-
-            for (var i = 0; i < charLookupOffset; i++)
-            {
-                var c = (char)(minimumCharacter + i);
-
-                CharacterType cType;
-                if (c == escapeChar)
-                {
-                    cType = CharacterType.Escape;
-                }
-                else if (c == escapeStartChar)
-                {
-                    cType = CharacterType.EscapeStartAndEnd;
-                }
-                else if (c == valueSeparatorChar)
-                {
-                    cType = CharacterType.ValueSeparator;
-                }
-                else if (c == '\r')
-                {
-                    cType = CharacterType.CarriageReturn;
-                }
-                else if (c == '\n')
-                {
-                    cType = CharacterType.LineFeed;
-                }
-                else if (commentChar != null && c == commentChar)
-                {
-                    cType = CharacterType.CommentStart;
-                }
-                else
-                {
-                    cType = CharacterType.Other;
-                }
-
-                charLookup[i + charLookupOffset] = cType;
-            }
-
-            return new CharacterLookup(minimumCharacter, charLookupOffset, charLookupOwner, charLookupPin, charLookup);
+            return forCharOffset;
         }
 
         public void Dispose()
         {
             if (!IsDisposed)
             {
-                TransitionMatrixHandle.Dispose();
-                if (!SuppressCharLookupDispose)
-                {
-                    CharLookupPin.Dispose();
-                    CharLookupOwner.Dispose();
-                }
                 CurrentState = State.NONE;
-            }
-        }
-
-        public void AssertNotDisposed()
-        {
-            if (IsDisposed)
-            {
-                Throw.ObjectDisposedException(nameof(ReaderStateMachine));
             }
         }
     }

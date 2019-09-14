@@ -2,7 +2,9 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Pipelines;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Sdk;
@@ -68,7 +70,7 @@ namespace Cesil.Tests
                 {
                     IDisposable_HeaderEnumerator();
                 }
-                else if (t == typeof(ReaderStateMachine.CharacterLookup))
+                else if (t == typeof(CharacterLookup))
                 {
                     IDisposable_CharacterLookup();
                 }
@@ -104,9 +106,227 @@ namespace Cesil.Tests
                 {
                     IDisposable_DynamicColumnEnumerator();
                 }
+                else if (t == typeof(TextWriterAdapter))
+                {
+                    IDisposable_TextWriterAdapter();
+                }
+                else if(t == typeof(TextReaderAdapter))
+                {
+                    IDisposable_TextReaderAdapter();
+                }
+                else if(t == typeof(BufferWriterAdapter))
+                {
+                    IDisposable_BufferWriterAdapter();
+                }
+                else if (t == typeof(ReadOnlySequenceAdapter))
+                {
+                    IDisposable_ReadOnlySequenceAdapter();
+                }
+                else if(t == typeof(ReaderStateMachine.RePin))
+                {
+                    // intentionally NOT testing this one, it's a useful hack
+                    //   to use using for this one but it's not a traditional
+                    //   disposable
+                }
                 else
                 {
                     throw new XunitException($"No test configured for .Dispose() on {t.Name}");
+                }
+            }
+
+            // test for ReadOnlySequenceAdapter
+            void IDisposable_ReadOnlySequenceAdapter()
+            {
+                // double dispose does not error
+                {
+                    var r = MakeReader();
+                    r.Dispose();
+                    r.Dispose();
+                }
+
+                // assert throws after dispose
+                {
+                    var r = MakeReader();
+                    r.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => ((ITestableDisposable)r).AssertNotDisposed());
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    using (var r = MakeReader())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(r);
+                    }
+                }
+
+                // Read
+                {
+                    var r = MakeReader();
+                    r.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => r.Read(Span<char>.Empty));
+                    testCases++;
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make a writer that's "good to go"
+                ReadOnlySequenceAdapter MakeReader()
+                {
+                    return new ReadOnlySequenceAdapter(ReadOnlySequence<char>.Empty);
+                }
+            }
+
+            // test for BufferWriterAdapter
+            void IDisposable_BufferWriterAdapter()
+            {
+                // double dispose does not error
+                {
+                    var w = MakeWriter();
+                    w.Dispose();
+                    w.Dispose();
+                }
+
+                // assert throws after dispose
+                {
+                    var w = MakeWriter();
+                    w.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => ((ITestableDisposable)w).AssertNotDisposed());
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    using (var w = MakeWriter())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(w);
+                    }
+                }
+
+                // Write(char)
+                {
+                    var w = MakeWriter();
+                    w.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => w.Write('c'));
+                    testCases++;
+                }
+
+                // Write(Span<char>)
+                {
+                    var w = MakeWriter();
+                    w.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => w.Write(Span<char>.Empty));
+                    testCases++;
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make a writer that's "good to go"
+                BufferWriterAdapter MakeWriter()
+                {
+                    return new BufferWriterAdapter(new CharWriter(new Pipe().Writer));
+                }
+            }
+
+            // test for TextReaderAdapter
+            void IDisposable_TextReaderAdapter()
+            {
+                // double dispose does not error
+                {
+                    var r = MakeReader();
+                    r.Dispose();
+                    r.Dispose();
+                }
+
+                // assert throws after dispose
+                {
+                    var r = MakeReader();
+                    r.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => ((ITestableDisposable)r).AssertNotDisposed());
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    using (var r = MakeReader())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(r);
+                    }
+                }
+
+                // Read
+                {
+                    var r = MakeReader();
+                    r.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => r.Read(Span<char>.Empty));
+                    testCases++;
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make a writer that's "good to go"
+                TextReaderAdapter MakeReader()
+                {
+                    return new TextReaderAdapter(TextReader.Null);
+                }
+            }
+
+            // test for TextWriterAdapter
+            void IDisposable_TextWriterAdapter()
+            {
+                // double dispose does not error
+                {
+                    var w = MakeWriter();
+                    w.Dispose();
+                    w.Dispose();
+                }
+
+                // assert throws after dispose
+                {
+                    var w = MakeWriter();
+                    w.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => ((ITestableDisposable)w).AssertNotDisposed());
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    using (var r = MakeWriter())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(r);
+                    }
+                }
+
+                // Write(char)
+                {
+                    var w = MakeWriter();
+                    w.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => w.Write('c'));
+                    testCases++;
+                }
+
+                // Write(ReadOnlySpan<char>)
+                {
+                    var w = MakeWriter();
+                    w.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => w.Write(ReadOnlySpan<char>.Empty));
+                    testCases++;
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make a writer that's "good to go"
+                TextWriterAdapter MakeWriter()
+                {
+                    return new TextWriterAdapter(TextWriter.Null);
                 }
             }
 
@@ -242,8 +462,16 @@ namespace Cesil.Tests
                 // make a reader that's "good to go"
                 ReaderStateMachine MakeReader()
                 {
-                    return
-                        new ReaderStateMachine(MemoryPool<char>.Shared, 'a', 'b', 'c', RowEndings.CarriageReturnLineFeed, ReadHeaders.Always, 'd');
+                    var ret = new ReaderStateMachine();
+                    ret.Initialize(
+                        CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd', out _),
+                        'a',
+                        'b',
+                        RowEndings.CarriageReturnLineFeed,
+                        ReadHeaders.Always,
+                        false
+                    );
+                    return ret;
                 }
             }
 
@@ -350,9 +578,6 @@ namespace Cesil.Tests
                         new BufferWithPushback(
                             MemoryPool<char>.Shared,
                             64
-#if DEBUG
-                            , false
-#endif
                         );
                 }
             }
@@ -465,9 +690,10 @@ namespace Cesil.Tests
                 RowEndingDetector<_IDisposable> MakeDetector()
                 {
                     return new RowEndingDetector<_IDisposable>(
+                        new ReaderStateMachine(),
                         (ConcreteBoundConfiguration<_IDisposable>)Configuration.For<_IDisposable>(),
-                        ReaderStateMachine.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd'),
-                        TextReader.Null
+                        CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd', out _),
+                        new TextReaderAdapter(TextReader.Null)
                     );
                 }
             }
@@ -509,15 +735,13 @@ namespace Cesil.Tests
 
                     return
                         new HeadersReader<_IDisposable>(
+                            new ReaderStateMachine(),
                             config,
-                            ReaderStateMachine.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd'),
-                            TextReader.Null,
+                            CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd', out _),
+                            new TextReaderAdapter(TextReader.Null),
                             new BufferWithPushback(
                                 MemoryPool<char>.Shared,
                                 64
-#if DEBUG
-                                , false
-#endif
                             )
                         );
                 }
@@ -615,9 +839,9 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a partial that's "good to go"
-                ReaderStateMachine.CharacterLookup MakeLookup()
+                CharacterLookup MakeLookup()
                 {
-                    return ReaderStateMachine.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd');
+                    return CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd', out _);
                 }
             }
 
@@ -1170,9 +1394,177 @@ namespace Cesil.Tests
                 {
                     await IAsyncDisposable_AsyncDynamicWriterAsync();
                 }
+                else if(t == typeof(AsyncTextWriterAdapter))
+                {
+                    await IAsyncDisposable_TextWriterAsyncAdapater();
+                }
+                else if (t == typeof(AsyncTextReaderAdapter))
+                {
+                    await IAsyncDisposable_TextReaderAsyncAdapter();
+                }
+                else if (t == typeof(PipeReaderAdapter))
+                {
+                    await IAsyncDisposable_PipeReaderAdapter();
+                }
+                else if (t == typeof(PipeWriterAdapter))
+                {
+                    await IAsyncDisposable_PipeWriterAdapter();
+                }
                 else
                 {
                     throw new XunitException($"No test configured for .DisposeAsync() on {t.Name}");
+                }
+            }
+
+            // test pipe writer adapter
+            async Task IAsyncDisposable_PipeWriterAdapter()
+            {
+                // double dispose does not error
+                {
+                    var w = MakeWriter();
+                    await w.DisposeAsync();
+                    await w.DisposeAsync();
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    await using (var w = MakeWriter())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(w);
+                    }
+                }
+
+                // WriteAsync
+                {
+                    var w = MakeWriter();
+                    await w.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => w.WriteAsync(ReadOnlyMemory<char>.Empty, default));
+                    testCases++;
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make a writer that's "good to go"
+                PipeWriterAdapter MakeWriter()
+                {
+                    return new PipeWriterAdapter(new Pipe().Writer, Encoding.UTF8, MemoryPool<char>.Shared);
+                }
+            }
+
+            // test pipe reader adapter
+            async Task IAsyncDisposable_PipeReaderAdapter()
+            {
+                // double dispose does not error
+                {
+                    var r = MakeReader();
+                    await r.DisposeAsync();
+                    await r.DisposeAsync();
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    await using (var r = MakeReader())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(r);
+                    }
+                }
+
+                // ReaderAsync
+                {
+                    var r = MakeReader();
+                    await r.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => r.ReadAsync(Memory<char>.Empty, default));
+                    testCases++;
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make a reader that's "good to go"
+                PipeReaderAdapter MakeReader()
+                {
+                    return new PipeReaderAdapter(new Pipe().Reader, Encoding.UTF8);
+                }
+            }
+
+            // test async reader adapter
+            async Task IAsyncDisposable_TextReaderAsyncAdapter()
+            {
+                // double dispose does not error
+                {
+                    var r = MakeReader();
+                    await r.DisposeAsync();
+                    await r.DisposeAsync();
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    await using (var r = MakeReader())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(r);
+                    }
+                }
+
+                // ReaderAsync
+                {
+                    var r = MakeReader();
+                    await r.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => r.ReadAsync(Memory<char>.Empty, default));
+                    testCases++;
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make a reader that's "good to go"
+                AsyncTextReaderAdapter MakeReader()
+                {
+                    return new AsyncTextReaderAdapter(TextReader.Null);
+                }
+            }
+
+            // test async writer adapter
+            async Task IAsyncDisposable_TextWriterAsyncAdapater()
+            {
+                // double dispose does not error
+                {
+                    var r = MakeWriter();
+                    await r.DisposeAsync();
+                    await r.DisposeAsync();
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    await using (var r = MakeWriter())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(r);
+                    }
+                }
+
+                // WriteAsync
+                {
+                    var w = MakeWriter();
+                    await w.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => w.WriteAsync(ReadOnlyMemory<char>.Empty, default));
+                    testCases++;
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make a reader that's "good to go"
+                AsyncTextWriterAdapter MakeWriter()
+                {
+                    return new AsyncTextWriterAdapter(TextWriter.Null);
                 }
             }
 

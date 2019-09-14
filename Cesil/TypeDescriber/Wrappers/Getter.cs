@@ -19,7 +19,7 @@ namespace Cesil
     /// 
     /// Wraps either a MethodInfo, a FieldInfo, a GetterDelegate, or a StaticGetterDelegate.
     /// </summary>
-    public sealed class Getter : IEquatable<Getter>
+    public sealed class Getter : IEquatable<Getter>, ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>
     {
         internal delegate object DynamicGetterDelegate(object row);
 
@@ -56,10 +56,7 @@ namespace Cesil
                     case BackingMode.Method: return Method.IsStatic;
                     case BackingMode.Delegate: return RowType == null;
                     default:
-                        Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
-
-                        // just for flow control
-                        return default;
+                        return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}");
                 }
             }
         }
@@ -71,7 +68,7 @@ namespace Cesil
         internal TypeInfo RowType { get; }
         internal TypeInfo Returns { get; }
 
-        internal DynamicGetterDelegate DynamicDelegate;
+        DynamicGetterDelegate ICreatesCacheableDelegate<DynamicGetterDelegate>.CachedDelegate { get; set; }
 
         private Getter(TypeInfo rowType, TypeInfo returns, MethodInfo method)
         {
@@ -100,16 +97,8 @@ namespace Cesil
             Field = field;
         }
 
-        internal void PrimeDynamicDelegate(IDelegateCache cache)
+        DynamicGetterDelegate ICreatesCacheableDelegate<DynamicGetterDelegate>.CreateDelegate()
         {
-            if (DynamicDelegate != null) return;
-
-            if (cache.TryGet<Getter, DynamicGetterDelegate>(this, out var cached))
-            {
-                DynamicDelegate = cached;
-                return;
-            }
-
             var row = Expressions.Parameter_Object;
 
             switch (Mode)
@@ -129,13 +118,11 @@ namespace Cesil
 
                         var getField = Expression.Field(fieldOnExp, Field);
                         var convertToObject = Expression.Convert(getField, Types.ObjectType);
-                        var block = Expression.Block(convertToObject);
-                        var lambda = Expression.Lambda<DynamicGetterDelegate>(block, row);
+                        var lambda = Expression.Lambda<DynamicGetterDelegate>(convertToObject, row);
                         var del = lambda.Compile();
 
-                        DynamicDelegate = del;
+                        return del;
                     }
-                    break;
                 case BackingMode.Method:
                     {
                         MethodCallExpression callMtd;
@@ -159,13 +146,11 @@ namespace Cesil
                         }
 
                         var convertToObject = Expression.Convert(callMtd, Types.ObjectType);
-                        var block = Expression.Block(convertToObject);
-                        var lambda = Expression.Lambda<DynamicGetterDelegate>(block, row);
+                        var lambda = Expression.Lambda<DynamicGetterDelegate>(convertToObject, row);
                         var del = lambda.Compile();
 
-                        DynamicDelegate = del;
+                        return del;
                     }
-                    break;
                 case BackingMode.Delegate:
                     {
                         var delInst = Expression.Constant(Delegate);
@@ -183,21 +168,18 @@ namespace Cesil
                         }
 
                         var convertToObject = Expression.Convert(callDel, Types.ObjectType);
-                        var block = Expression.Block(convertToObject);
-                        var lambda = Expression.Lambda<DynamicGetterDelegate>(block, row);
+                        var lambda = Expression.Lambda<DynamicGetterDelegate>(convertToObject, row);
                         var del = lambda.Compile();
 
-                        DynamicDelegate = del;
+                        return del;
                     }
-                    break;
                 default:
-                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
-                    // just for control flow
-                    break;
+                    return Throw.InvalidOperationException<DynamicGetterDelegate>($"Unexpected {nameof(BackingMode)}: {Mode}");
             }
-
-            cache.Add(this, DynamicDelegate);
         }
+
+        void ICreatesCacheableDelegate<DynamicGetterDelegate>.Guarantee(IDelegateCache cache)
+        => IDelegateCacheHelpers.GuaranteeImpl<Getter, DynamicGetterDelegate>(this, cache);
 
         /// <summary>
         /// Create a getter from a method.
@@ -211,12 +193,12 @@ namespace Cesil
         {
             if (getter == null)
             {
-                Throw.ArgumentNullException(nameof(getter));
+                return Throw.ArgumentNullException<Getter>(nameof(getter));
             }
 
             if (getter.ReturnType == Types.VoidType)
             {
-                Throw.ArgumentException($"{nameof(getter)} must return a non-void value", nameof(getter));
+                return Throw.ArgumentException<Getter>($"{nameof(getter)} must return a non-void value", nameof(getter));
             }
 
             var getterParams = getter.GetParameters();
@@ -235,9 +217,7 @@ namespace Cesil
                 }
                 else
                 {
-                    Throw.ArgumentException($"Since {getter} is a static method, it cannot take more than 1 parameter", nameof(getter));
-                    // just for flow control, won't be taken
-                    return default;
+                    return Throw.ArgumentException<Getter>($"Since {getter} is a static method, it cannot take more than 1 parameter", nameof(getter));
                 }
             }
             else
@@ -246,7 +226,7 @@ namespace Cesil
 
                 if (getterParams.Length > 0)
                 {
-                    Throw.ArgumentException($"Since {getter} is an instance method, it cannot take any parameters", nameof(getter));
+                    return Throw.ArgumentException<Getter>($"Since {getter} is an instance method, it cannot take any parameters", nameof(getter));
                 }
             }
 
@@ -264,7 +244,7 @@ namespace Cesil
         {
             if (field == null)
             {
-                Throw.ArgumentNullException(nameof(field));
+                return Throw.ArgumentNullException<Getter>(nameof(field));
             }
 
             TypeInfo onType;
@@ -289,7 +269,7 @@ namespace Cesil
         {
             if (del == null)
             {
-                Throw.ArgumentNullException(nameof(del));
+                return Throw.ArgumentNullException<Getter>(nameof(del));
             }
 
             return new Getter(typeof(T).GetTypeInfo(), typeof(V).GetTypeInfo(), del);
@@ -302,7 +282,7 @@ namespace Cesil
         {
             if (del == null)
             {
-                Throw.ArgumentNullException(nameof(del));
+                return Throw.ArgumentNullException<Getter>(nameof(del));
             }
 
             return new Getter(null, typeof(V).GetTypeInfo(), del);
@@ -326,7 +306,7 @@ namespace Cesil
         /// </summary>
         public bool Equals(Getter g)
         {
-            if (g == null) return false;
+            if (ReferenceEquals(g, null)) return false;
 
             if (g.Returns != Returns) return false;
             if (g.RowType != RowType) return false;
@@ -343,9 +323,7 @@ namespace Cesil
                 case BackingMode.Delegate:
                     return g.Delegate == Delegate;
                 default:
-                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {otherMode}");
-                    // just for control flow
-                    return default;
+                    return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {otherMode}");
             }
         }
 
@@ -382,10 +360,17 @@ namespace Cesil
                     {
                         return $"{nameof(Getter)} backed by delegate {Delegate} returning {Returns}";
                     }
+                case BackingMode.Field:
+                    if(!IsStatic)
+                    {
+                        return $"{nameof(Getter)} backed by field {Field} on {RowType} returning {Returns}";
+                    }
+                    else
+                    {
+                        return $"{nameof(Getter)} backed by field {Field} returning {Returns}";
+                    }
                 default:
-                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
-                    // just for control flow
-                    return default;
+                    return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
             }
         }
 
@@ -417,10 +402,10 @@ namespace Cesil
             var delType = del.GetType().GetTypeInfo();
             if (delType.IsGenericType)
             {
+                var genArgs = delType.GetGenericArguments();
                 var delGenType = delType.GetGenericTypeDefinition().GetTypeInfo();
                 if (delGenType == Types.GetterDelegateType)
                 {
-                    var genArgs = delGenType.GetGenericArguments();
                     var takes = genArgs[0].GetTypeInfo();
                     var returns = genArgs[1].GetTypeInfo();
 
@@ -429,7 +414,6 @@ namespace Cesil
 
                 if (delGenType == Types.StaticGetterDelegateType)
                 {
-                    var genArgs = delGenType.GetGenericArguments();
                     var returns = genArgs[0].GetTypeInfo();
 
                     return new Getter(null, returns, del);
@@ -440,7 +424,7 @@ namespace Cesil
             var ret = mtd.ReturnType.GetTypeInfo();
             if (ret == Types.VoidType)
             {
-                Throw.InvalidOperationException($"Delegate cannot return void");
+                return Throw.InvalidOperationException<Getter>($"Delegate cannot return void");
             }
 
             var args = mtd.GetParameters();
@@ -466,9 +450,7 @@ namespace Cesil
             }
             else
             {
-                Throw.InvalidOperationException("Delegate must take 0 or 1 parameters");
-                // just for control flow
-                return default;
+                return Throw.InvalidOperationException<Getter>("Delegate must take 0 or 1 parameters");
             }
         }
 

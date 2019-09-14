@@ -36,9 +36,7 @@ namespace Cesil
                     case ReadContextMode.ConvertingRow:
                         return false;
                     default:
-                        Throw.InvalidOperationException($"Unexpected {nameof(ReadContextMode)}: {Mode}");
-                        // just for control flow
-                        return default;
+                        return Throw.InvalidOperationException<bool>($"Unexpected {nameof(ReadContextMode)}: {Mode}");
 
                 }
             }
@@ -55,7 +53,7 @@ namespace Cesil
             {
                 if (!HasColumn)
                 {
-                    Throw.InvalidOperationException($"No column is available when {nameof(Mode)} is {Mode}");
+                    return Throw.InvalidOperationException<ColumnIdentifier>($"No column is available when {nameof(Mode)} is {Mode}");
                 }
 
                 return _Column;
@@ -104,7 +102,8 @@ namespace Cesil
         /// Returns true if this object equals the given ReadContext.
         /// </summary>
         public bool Equals(ReadContext r)
-        => r._Column == _Column &&
+        => r.Mode == Mode &&
+           r._Column == _Column &&
            r.Context == Context &&
            r.RowNumber == RowNumber;
 
@@ -112,15 +111,15 @@ namespace Cesil
         /// Returns a stable hash for this ReadContext.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(ReadContext), _Column, Context, RowNumber);
+        => HashCode.Combine(nameof(ReadContext), Mode, _Column, Context, RowNumber);
 
         /// <summary>
         /// Returns a string representation of this ReadContext.
         /// </summary>
         public override string ToString()
         => HasColumn ?
-            $"{nameof(ReadContext)} with {nameof(RowNumber)}={RowNumber}, {nameof(Column)}={Column}, {nameof(Context)}={Context}" :
-            $"{nameof(ReadContext)} with {nameof(RowNumber)}={RowNumber}, {nameof(Context)}={Context}";
+            $"{nameof(ReadContext)} of {Mode} with {nameof(RowNumber)}={RowNumber}, {nameof(Column)}={Column}, {nameof(Context)}={Context}" :
+            $"{nameof(ReadContext)} of {Mode} with {nameof(RowNumber)}={RowNumber}, {nameof(Context)}={Context}";
 
         /// <summary>
         /// Compare two ReadContexts for equality

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Buffers;
 
+using static Cesil.DisposableHelper;
+
 namespace Cesil
 {
     // An implementation of IBufferWriter that will _never_ 
@@ -104,12 +106,11 @@ namespace Cesil
 
         public void Advance(int count)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             if (count < 0)
             {
-                Throw.ArgumentException($"Must be >= 0", nameof(count));
-                return;
+                Throw.ArgumentException<object>($"Must be >= 0", nameof(count));
             }
 
             Tail.BytesUsed += count;
@@ -117,12 +118,11 @@ namespace Cesil
 
         public Memory<char> GetMemory(int sizeHint = 0)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             if (sizeHint < 0)
             {
-                Throw.ArgumentException($"Must be >= 0", nameof(sizeHint));
-                return default;
+                return Throw.ArgumentException<Memory<char>>($"Must be >= 0", nameof(sizeHint));
             }
 
             int size;
@@ -167,7 +167,7 @@ namespace Cesil
             {
                 if (size > MemoryPool.MaxBufferSize)
                 {
-                    Throw.InvalidOperationException($"Needed a larger memory segment than could be requested, needed {size:N0}; {nameof(MemoryPool<char>.MaxBufferSize)} = {MemoryPool.MaxBufferSize:N0}");
+                    return Throw.InvalidOperationException<Memory<char>>($"Needed a larger memory segment than could be requested, needed {size:N0}; {nameof(MemoryPool<char>.MaxBufferSize)} = {MemoryPool.MaxBufferSize:N0}");
                 }
 
                 alloc = MemoryPool.Rent(size);
@@ -192,7 +192,7 @@ namespace Cesil
 
         public Span<char> GetSpan(int sizeHint = 0)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
             return GetMemory(sizeHint).Span;
         }
 
@@ -230,14 +230,6 @@ namespace Cesil
             var ret = new ReadOnlySequence<char>(headSeg, startIx, tailSeg, endIx);
 
             return ret;
-        }
-
-        public void AssertNotDisposed()
-        {
-            if (IsDisposed)
-            {
-                Throw.ObjectDisposedException(nameof(MaxSizedBufferWriter));
-            }
         }
 
 

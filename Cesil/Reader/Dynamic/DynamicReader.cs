@@ -14,9 +14,9 @@ namespace Cesil
 
         public new object Context => base.Context;
 
-        internal DynamicReader(TextReader reader, DynamicBoundConfiguration config, object context) : base(reader, config, context) { }
+        internal DynamicReader(IReaderAdapter reader, DynamicBoundConfiguration config, object context) : base(reader, config, context) { }
 
-        internal override ReadWithCommentResult<dynamic> TryReadInner(bool returnComments, ref dynamic row)
+        internal override ReadWithCommentResult<dynamic> TryReadInner(bool returnComments, bool pinAcquired, ref dynamic row)
         {
             if (RowEndings == null)
             {
@@ -28,6 +28,11 @@ namespace Cesil
                 HandleHeaders();
             }
 
+            if (!pinAcquired)
+            {
+                StateMachine.Pin();
+            }
+
             while (true)
             {
                 PreparingToWriteToBuffer();
@@ -35,6 +40,11 @@ namespace Cesil
                 if (available == 0)
                 {
                     var endRes = EndOfData();
+
+                    if (!pinAcquired)
+                    {
+                        StateMachine.Unpin();
+                    }
                     return HandleAdvanceResult(endRes, returnComments);
                 }
 
@@ -73,6 +83,10 @@ namespace Cesil
                 var possibleReturn = HandleAdvanceResult(res, returnComments);
                 if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                 {
+                    if (!pinAcquired)
+                    {
+                        StateMachine.Unpin();
+                    }
                     return possibleReturn;
                 }
             }
@@ -97,8 +111,7 @@ namespace Cesil
         private void HandleHeaders()
         {
             ReadHeaders = Configuration.ReadHeader;
-            TryMakeStateMachine();
-
+           
             var allowColumnsByName = Configuration.ReadHeader == Cesil.ReadHeaders.Always;
 
             var headerConfig =
@@ -118,7 +131,7 @@ namespace Cesil
                     Configuration.DynamicRowDisposal
                 );
 
-            using (var reader = new HeadersReader<object>(headerConfig, SharedCharacterLookup, Inner, Buffer))
+            using (var reader = new HeadersReader<object>(StateMachine, headerConfig, SharedCharacterLookup, Inner, Buffer))
             {
                 var res = reader.Read();
                 var foundHeaders = res.Headers.Count;
@@ -146,7 +159,7 @@ namespace Cesil
                             {
                                 ColumnNames[ix] = name;
                             }
-                            var col = new Column(name, Column.MakeDynamicSetter(name, ix), null, false);
+                            var col = new Column(name, ColumnSetter.CreateDynamic(name, ix), null, false);
                             Columns[ix] = col;
 
                             ix++;
@@ -156,6 +169,8 @@ namespace Cesil
 
                 Buffer.PushBackFromOutsideBuffer(res.PushBack);
             }
+
+            TryMakeStateMachine();
         }
 
         private void HandleLineEndings()
@@ -167,7 +182,7 @@ namespace Cesil
                 return;
             }
 
-            using (var detector = new RowEndingDetector<object>(Configuration, SharedCharacterLookup, Inner))
+            using (var detector = new RowEndingDetector<object>(StateMachine, Configuration, SharedCharacterLookup, Inner))
             {
                 var res = detector.Detect();
                 HandleLineEndingsDetectionResult(res);

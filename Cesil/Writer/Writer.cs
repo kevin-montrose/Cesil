@@ -1,15 +1,17 @@
 ﻿using System;
 using System.IO;
 
+using static Cesil.DisposableHelper;
+
 namespace Cesil
 {
     internal sealed class Writer<T> : SyncWriterBase<T>
     {
-        internal Writer(ConcreteBoundConfiguration<T> config, TextWriter inner, object context) : base(config, inner, context) { }
+        internal Writer(ConcreteBoundConfiguration<T> config, IWriterAdapter inner, object context) : base(config, inner, context) { }
 
         public override void Write(T row)
         {
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             WriteHeadersAndEndRowIfNeeded();
 
@@ -28,7 +30,7 @@ namespace Cesil
 
                 if (!col.Write(row, ctx, Buffer))
                 {
-                    Throw.SerializationException($"Could not write column {col.Name}, formatter returned false");
+                    Throw.SerializationException<object>($"Could not write column {col.Name}, formatter returned false");
                 }
 
                 var res = Buffer.Buffer;
@@ -49,10 +51,10 @@ namespace Cesil
         {
             if (comment == null)
             {
-                Throw.ArgumentNullException(nameof(comment));
+                Throw.ArgumentNullException<object>(nameof(comment));
             }
 
-            AssertNotDisposed();
+            AssertNotDisposed(this);
 
             WriteHeadersAndEndRowIfNeeded();
 

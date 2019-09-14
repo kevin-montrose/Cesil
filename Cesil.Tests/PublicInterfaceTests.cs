@@ -66,6 +66,20 @@ namespace Cesil.Tests
             }
         }
 
+        private static IEnumerable<ConstructorInfo> AllPublicConstructors()
+        {
+            foreach(var t in AllPubicTypes())
+            {
+                foreach(var cons in t.GetConstructors())
+                {
+                    if(cons.IsPublic)
+                    {
+                        yield return cons;
+                    }
+                }
+            }
+        }
+
         private static IEnumerable<TypeInfo> AllShouldBeEquatableTypes()
         {
             var types = AllPubicTypes();
@@ -88,6 +102,40 @@ namespace Cesil.Tests
             }
         }
 
+#if RELEASE
+        [Fact]
+        public void ReleaseHasNoITestableAsyncProvider()
+        {
+            foreach(var t in AllTypes())
+            {
+                Assert.False(t.ImplementedInterfaces.Any(i => i == typeof(ITestableAsyncProvider)), t.Name);
+            }
+        }
+#endif
+
+        [Fact]
+        public void ThrowOnlyNoInlining()
+        {
+            foreach(var mtd in typeof(Throw).GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
+            {
+                if (mtd.DeclaringType != typeof(Throw)) continue;
+
+                Assert.True(mtd.MethodImplementationFlags.HasFlag(MethodImplAttributes.NoInlining));
+            }
+        }
+
+
+        [Fact]
+        public void DisposableHelperAllAggressivelyInlined()
+        {
+            foreach (var mtd in typeof(DisposableHelper).GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
+            {
+                if (mtd.DeclaringType != typeof(DisposableHelper)) continue;
+
+                Assert.True(mtd.MethodImplementationFlags.HasFlag(MethodImplAttributes.AggressiveInlining));
+            }
+        }
+
         [Fact]
         public void DeliberatelyExtensible()
         {
@@ -107,6 +155,58 @@ namespace Cesil.Tests
         [Fact]
         public void NoArraysBoolsOrNumbers()
         {
+            foreach(var cons in AllPublicConstructors())
+            {
+                var ps = cons.GetParameters();
+                for(var i = 0; i < ps.Length; i++)
+                {
+                    var p = ps[i];
+
+                    var skip = p.GetCustomAttribute<IntentionallyExposedPrimitiveAttribute>() != null;
+                    if (skip) continue;
+
+                    var pType = p.ParameterType;
+                    pType = Nullable.GetUnderlyingType(pType) ?? pType;
+
+                    Assert.False(pType.IsArray, $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) is an array");
+                    Assert.False(pType == typeof(bool), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) is a bool");
+                    Assert.False(pType == typeof(byte), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) is a byte");
+                    Assert.False(pType == typeof(sbyte), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) is a sbyte");
+                    Assert.False(pType == typeof(short), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) is a short");
+                    Assert.False(pType == typeof(ushort), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) is a ushort");
+                    Assert.False(pType == typeof(int), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) is a int");
+                    Assert.False(pType == typeof(uint), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) is a uint");
+                    Assert.False(pType == typeof(long), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) is a long");
+                    Assert.False(pType == typeof(ulong), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) is a ulong");
+                    Assert.False(pType == typeof(float), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) is a float");
+                    Assert.False(pType == typeof(double), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) is a double");
+                    Assert.False(pType == typeof(decimal), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) is a decimal");
+
+                    if (pType.IsGenericType && !pType.IsGenericTypeDefinition)
+                    {
+                        var args = pType.GetGenericArguments();
+                        foreach (var pSubType in args)
+                        {
+                            var pSubTypeFinal = Nullable.GetUnderlyingType(pSubType) ?? pSubType;
+
+                            Assert.False(pSubTypeFinal.IsArray, $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) has an array type parameter");
+                            Assert.False(pSubTypeFinal == typeof(bool), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) has a bool type parameter");
+                            Assert.False(pSubTypeFinal == typeof(byte), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) has a byte type parameter");
+                            Assert.False(pSubTypeFinal == typeof(sbyte), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) has a sbyte type parameter");
+                            Assert.False(pSubTypeFinal == typeof(short), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) has a short type parameter");
+                            Assert.False(pSubTypeFinal == typeof(ushort), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) has an ushort type parameter");
+                            Assert.False(pSubTypeFinal == typeof(int), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) has an int type parameter");
+                            Assert.False(pSubTypeFinal == typeof(uint), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) has an uint type parameter");
+                            Assert.False(pSubTypeFinal == typeof(long), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) has a long type parameter");
+                            Assert.False(pSubTypeFinal == typeof(ulong), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) has an ulong type parameter");
+                            Assert.False(pSubTypeFinal == typeof(float), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) has a float type parameter");
+                            Assert.False(pSubTypeFinal == typeof(double), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) has an double type parameter");
+                            Assert.False(pSubTypeFinal == typeof(decimal), $"Parameter #{i} ({p.Name} on {cons.DeclaringType.Name}) has an decimal type parameter");
+                        }
+                    }
+                }
+            }
+
             foreach (var mtd in AllPublicMethods())
             {
                 var declaring = mtd.DeclaringType.GetTypeInfo();

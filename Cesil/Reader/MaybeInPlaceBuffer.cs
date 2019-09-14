@@ -5,7 +5,7 @@ namespace Cesil
 {
     internal sealed class MaybeInPlaceBuffer<T> : ITestableDisposable
     {
-        private enum Mode : byte
+        internal enum Mode : byte
         {
             None = 0,
 
@@ -19,12 +19,12 @@ namespace Cesil
         public bool IsDisposed => MemoryPool == null;
         private MemoryPool<T> MemoryPool;
 
-        private Mode CurrentMode;
+        internal Mode CurrentMode;
         private int StartIndex;
         internal int Length;
 
         private IMemoryOwner<T> CopyOwner;
-        private Span<T> Copy => CopyOwner.Memory.Span;
+        internal Span<T> Copy => CopyOwner.Memory.Span;         // internal for testing purposes, don't use directly
 
         internal MaybeInPlaceBuffer(MemoryPool<T> memoryPool)
         {
@@ -35,7 +35,7 @@ namespace Cesil
 
         internal void AppendSingle(ReadOnlySpan<T> previousBuffer, T val)
         {
-            if(CurrentMode == Mode.CopyOnNextAppend || CurrentMode == Mode.InPlace)
+            if (CurrentMode == Mode.CopyOnNextAppend || CurrentMode == Mode.InPlace)
             {
                 SwitchToCopy(previousBuffer);
             }
@@ -43,13 +43,14 @@ namespace Cesil
             switch (CurrentMode)
             {
                 case Mode.Uninitialized:
+                    CurrentMode = Mode.Copy;
                     ResizeCopy(1);
                     Copy[0] = val;
                     StartIndex = 0;
                     Length = 1;
                     break;
                 case Mode.Copy:
-                    if(Copy.Length == Length)
+                    if (Copy.Length == Length)
                     {
                         ResizeCopy(Copy.Length * 2);
                     }
@@ -57,7 +58,7 @@ namespace Cesil
                     Length++;
                     break;
                 default:
-                    Throw.Exception($"Unexpected {nameof(Mode)}: {CurrentMode}");
+                    Throw.Exception<object>($"Unexpected {nameof(Mode)}: {CurrentMode}");
                     break;
             }
         }
@@ -94,10 +95,10 @@ namespace Cesil
                     Length += length;
                     break;
                 case Mode.InPlace:
-                    Length++;
+                    Length += length;
                     break;
                 default:
-                    Throw.Exception($"Unexpected {nameof(Mode)}: {CurrentMode}");
+                    Throw.Exception<object>($"Unexpected {nameof(Mode)}: {CurrentMode}");
                     break;
             }
         }
@@ -149,7 +150,7 @@ namespace Cesil
                     CurrentMode = Mode.CopyOnNextAppend;
                     break;
                 default:
-                    Throw.Exception($"Unexpected {nameof(Mode)}: {CurrentMode}");
+                    Throw.Exception<object>($"Unexpected {nameof(Mode)}: {CurrentMode}");
                     break;
             }
         }
@@ -176,8 +177,7 @@ namespace Cesil
                     return ReadOnlyMemory<T>.Empty;
 
                 default:
-                    Throw.Exception($"Unexpected {nameof(Mode)}: {CurrentMode}");
-                    return default;
+                    return Throw.Exception<ReadOnlyMemory<T>>($"Unexpected {nameof(Mode)}: {CurrentMode}");
             }
         }
 
@@ -187,14 +187,6 @@ namespace Cesil
             {
                 CopyOwner?.Dispose();
                 MemoryPool = null;
-            }
-        }
-
-        public void AssertNotDisposed()
-        {
-            if (IsDisposed)
-            {
-                Throw.ObjectDisposedException(nameof(MaybeInPlaceBuffer<T>));
             }
         }
     }

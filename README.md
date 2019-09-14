@@ -108,7 +108,7 @@ A member's reset method is called before it's setter.
 
 # Dynamic Support
 
-`Configuration.ForDynamic(Options)` returns a `BoundConfiguration<dynamic>` that can be used to read (todo: implement write support) dynamic rows of data.
+`Configuration.ForDynamic(Options)` returns a `BoundConfiguration<dynamic>` that can be used to read and write dynamic rows of data.
 
 Cesil assumes that rows have a consistent number of cells, but otherwise imposes no constraints on the data in cells during dynamic operations.
 
