@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Dynamic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -15,9 +14,8 @@ namespace Cesil
             Row = outer;
         }
 
-        // todo: remove Linq here
         public override IEnumerable<string> GetDynamicMemberNames()
-        => Row.Columns.Where(c => c.HasName).Select(c => c.Name);
+        => new DynamicRowMemberNameEnumerable(Row);
 
         public override DynamicMetaObject BindGetIndex(GetIndexBinder binder, DynamicMetaObject[] indexes)
         {

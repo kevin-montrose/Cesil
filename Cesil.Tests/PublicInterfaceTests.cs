@@ -841,6 +841,14 @@ namespace Cesil.Tests
                 {
                     msg = InvokeToString_HeaderEnumerator();
                 }
+                else if (t == typeof(DynamicRowMemberNameEnumerable))
+                {
+                    msg = InvokeToString_DynamicRowMemberNameEnumerable();
+                }
+                else if (t == typeof(DynamicRowMemberNameEnumerator))
+                {
+                    msg = InvokeToString_DynamicRowMemberNameEnumerator();
+                }
                 else
                 {
                     Assert.True(false, $"No test for ToString() on {t}");
@@ -860,6 +868,38 @@ namespace Cesil.Tests
                 shouldStartWith += " ";
 
                 Assert.StartsWith(shouldStartWith, msg);
+            }
+
+            static string InvokeToString_DynamicRowMemberNameEnumerator()
+            {
+                var config = Configuration.ForDynamic(Options.DynamicDefault.NewBuilder().WithReadHeader(ReadHeaders.Never).Build());
+
+                using (var str = new StringReader("foo"))
+                using (var csv = config.CreateReader(str))
+                {
+                    var res = csv.ReadAll();
+                    var row = res[0] as DynamicRow;
+
+                    var e = new DynamicRowMemberNameEnumerable(row);
+
+                    return e.GetEnumerator().ToString();
+                }
+            }
+
+            static string InvokeToString_DynamicRowMemberNameEnumerable()
+            {
+                var config = Configuration.ForDynamic(Options.DynamicDefault.NewBuilder().WithReadHeader(ReadHeaders.Never).Build());
+
+                using (var str = new StringReader("foo"))
+                using (var csv = config.CreateReader(str))
+                {
+                    var res = csv.ReadAll();
+                    var row = res[0] as DynamicRow;
+
+                    var e = new DynamicRowMemberNameEnumerable(row);
+
+                    return e.ToString();
+                }
             }
 
             static string InvokeToString_HeaderEnumerator()

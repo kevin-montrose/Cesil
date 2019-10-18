@@ -128,9 +128,78 @@ namespace Cesil.Tests
                     //   to use using for this one but it's not a traditional
                     //   disposable
                 }
+                else if(t == typeof(DynamicRowMemberNameEnumerator))
+                {
+                    IDisposable_DynamicRowMemberNameEnumerator();
+                }
                 else
                 {
                     throw new XunitException($"No test configured for .Dispose() on {t.Name}");
+                }
+            }
+
+            // test for DynamicRowMemberNameEnumerator
+            void IDisposable_DynamicRowMemberNameEnumerator()
+            {
+                // double dispose does not error
+                {
+                    var e = MakeEnumerator();
+                    e.Dispose();
+                    e.Dispose();
+                }
+
+                // assert throws after dispose
+                {
+                    var e = MakeEnumerator();
+                    e.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => ((ITestableDisposable)e).AssertNotDisposed());
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    using (var e = MakeEnumerator())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(e);
+                    }
+                }
+
+                // Current
+                {
+                    var e = MakeEnumerator();
+                    e.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => e.Current);
+                    testCases++;
+                }
+
+                // Current, non-generic
+                {
+                    var x = MakeEnumerator();
+                    var e = (System.Collections.IEnumerator)x;
+                    x.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => e.Current);
+                    testCases++;
+                }
+
+                // MoveNext
+                {
+                    var e = MakeEnumerator();
+                    e.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => e.MoveNext());
+                    testCases++;
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make an enumerator that's "good to go"
+                DynamicRowMemberNameEnumerator MakeEnumerator()
+                {
+                    var row = new DynamicRow();
+                    row.Init(null, 1, 0, null, null, new[] { "foo" }, MemoryPool<char>.Shared);
+
+                    return new DynamicRowMemberNameEnumerator(row);
                 }
             }
 
