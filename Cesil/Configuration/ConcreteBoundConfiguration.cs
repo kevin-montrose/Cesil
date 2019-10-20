@@ -7,7 +7,7 @@ namespace Cesil
     internal sealed class ConcreteBoundConfiguration<T> : BoundConfigurationBase<T>
     {
         internal ConcreteBoundConfiguration(
-            InstanceBuilderDelegate<T> newCons,
+            InstanceProviderDelegate<T> newCons,
             Column[] deserializeColumns,
             Column[] serializeColumns,
             bool[] serializeColumnsNeedEscape,

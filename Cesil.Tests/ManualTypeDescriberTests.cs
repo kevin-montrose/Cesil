@@ -37,10 +37,10 @@ namespace Cesil.Tests
                 var m = new ManualTypeDescriber();
 
                 // 1 arg
-                m.SetBuilder(InstanceBuilder.ForDelegate((out _Serializing val) => { val = new _Serializing(); return true; }));
+                m.SetBuilder(InstanceProvider.ForDelegate((out _Serializing val) => { val = new _Serializing(); return true; }));
 
                 // 2 arg
-                m.SetBuilder(typeof(_Serializing).GetTypeInfo(), InstanceBuilder.ForDelegate((out _Serializing val) => { val = new _Serializing(); return true; }));
+                m.SetBuilder(typeof(_Serializing).GetTypeInfo(), InstanceProvider.ForDelegate((out _Serializing val) => { val = new _Serializing(); return true; }));
             }
 
             var t = typeof(_Serializing).GetTypeInfo();
@@ -214,9 +214,9 @@ namespace Cesil.Tests
             {
                 var m = new ManualTypeDescriber();
                 Assert.Throws<ArgumentNullException>(() => m.SetBuilder(null));
-                Assert.Throws<ArgumentNullException>(() => m.SetBuilder(null, InstanceBuilder.ForDelegate((out string val) => { val = ""; return true; })));
+                Assert.Throws<ArgumentNullException>(() => m.SetBuilder(null, InstanceProvider.ForDelegate((out string val) => { val = ""; return true; })));
                 Assert.Throws<ArgumentNullException>(() => m.SetBuilder(typeof(string).GetTypeInfo(), null));
-                Assert.Throws<InvalidOperationException>(() => m.SetBuilder(typeof(int).GetTypeInfo(), InstanceBuilder.ForDelegate((out string val) => { val = ""; return true; })));
+                Assert.Throws<InvalidOperationException>(() => m.SetBuilder(typeof(int).GetTypeInfo(), InstanceProvider.ForDelegate((out string val) => { val = ""; return true; })));
             }
 
             // EnumerateMembersToSerialize
@@ -426,15 +426,15 @@ namespace Cesil.Tests
         [Fact]
         public void DeserializeErrors()
         {
-            // GetInstanceBuilder
+            // GetInstanceProvider
             {
                 var m = new ManualTypeDescriber(ManualTypeDescriberFallbackBehavior.Throw);
 
                 // null
-                Assert.Throws<ArgumentNullException>(() => m.GetInstanceBuilder(null));
+                Assert.Throws<ArgumentNullException>(() => m.GetInstanceProvider(null));
 
                 // nothing registered
-                Assert.Throws<InvalidOperationException>(() => m.GetInstanceBuilder(typeof(object).GetTypeInfo()));
+                Assert.Throws<InvalidOperationException>(() => m.GetInstanceProvider(typeof(object).GetTypeInfo()));
             }
 
             // EnumerateMembersToDeserialize
@@ -610,8 +610,8 @@ namespace Cesil.Tests
             {
                 var m = new ManualTypeDescriber(ManualTypeDescriberFallbackBehavior.Throw);
 
-                m.SetBuilder(InstanceBuilder.ForDelegate((out string foo) => { foo = ""; return true; }));
-                m.SetBuilder(InstanceBuilder.ForDelegate((out int foo) => { foo = 10; return true; }));
+                m.SetBuilder(InstanceProvider.ForDelegate((out string foo) => { foo = ""; return true; }));
+                m.SetBuilder(InstanceProvider.ForDelegate((out int foo) => { foo = 10; return true; }));
 
                 m.AddDeserializableField(typeof(_Errors).GetField(nameof(_Errors.Field)));
                 m.AddDeserializableProperty(typeof(_Errors).GetProperty(nameof(_Errors.Property)));
@@ -627,8 +627,8 @@ namespace Cesil.Tests
             {
                 var m = new ManualTypeDescriber(ManualTypeDescriberFallbackBehavior.UseDefault);
 
-                m.SetBuilder(InstanceBuilder.ForDelegate((out string foo) => { foo = ""; return true; }));
-                m.SetBuilder(InstanceBuilder.ForDelegate((out int foo) => { foo = 10; return true; }));
+                m.SetBuilder(InstanceProvider.ForDelegate((out string foo) => { foo = ""; return true; }));
+                m.SetBuilder(InstanceProvider.ForDelegate((out int foo) => { foo = 10; return true; }));
 
                 m.AddDeserializableField(typeof(_Errors).GetField(nameof(_Errors.Field)));
                 m.AddDeserializableProperty(typeof(_Errors).GetProperty(nameof(_Errors.Property)));

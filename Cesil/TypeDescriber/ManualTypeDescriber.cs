@@ -30,7 +30,7 @@ namespace Cesil
     {
         internal bool ThrowsOnNoConfiguredType { get; }
 
-        private readonly Dictionary<TypeInfo, InstanceBuilder> Builders;
+        private readonly Dictionary<TypeInfo, InstanceProvider> Builders;
 
         private readonly Dictionary<TypeInfo, List<SerializableMember>> Serializers;
         private readonly Dictionary<TypeInfo, List<DeserializableMember>> Deserializers;
@@ -49,7 +49,7 @@ namespace Cesil
                     return;
             }
 
-            Builders = new Dictionary<TypeInfo, InstanceBuilder>();
+            Builders = new Dictionary<TypeInfo, InstanceProvider>();
             Serializers = new Dictionary<TypeInfo, List<SerializableMember>>();
             Deserializers = new Dictionary<TypeInfo, List<DeserializableMember>>();
         }
@@ -67,14 +67,14 @@ namespace Cesil
         /// Set the delegate to use when constructing new instances of 
         ///   type T.
         /// </summary>
-        public void SetBuilder(InstanceBuilder build)
+        public void SetBuilder(InstanceProvider build)
         => SetBuilder(build?.ConstructsType, build);
 
         /// <summary>
         /// Set the delegate to use when constructing new instances of 
         ///   the given type.
         /// </summary>
-        public void SetBuilder(TypeInfo forType, InstanceBuilder builder)
+        public void SetBuilder(TypeInfo forType, InstanceProvider builder)
         {
             if (forType == null)
             {
@@ -661,20 +661,20 @@ namespace Cesil
         }
 
         /// <summary>
-        /// Returns an InstanceBuilder that can construct the given type.
+        /// Returns an InstanceProvider that can construct the given type.
         /// 
         /// Will throw an expection if no builder is registered.
         /// </summary>
-        public InstanceBuilder GetInstanceBuilder(TypeInfo forType)
+        public InstanceProvider GetInstanceProvider(TypeInfo forType)
         {
             if (forType == null)
             {
-                return Throw.ArgumentNullException<InstanceBuilder>(nameof(forType));
+                return Throw.ArgumentNullException<InstanceProvider>(nameof(forType));
             }
 
             if (!Builders.TryGetValue(forType, out var builder))
             {
-                return Throw.InvalidOperationException<InstanceBuilder>($"No builder set for {forType}");
+                return Throw.InvalidOperationException<InstanceProvider>($"No builder set for {forType}");
             }
 
             return builder;

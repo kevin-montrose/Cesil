@@ -518,11 +518,11 @@ namespace Cesil.Tests
                     Assert.False(exNull1 == ex);
                     Assert.True(exNull1 == exNull2);
                 }
-                else if (t == typeof(InstanceBuilder))
+                else if (t == typeof(InstanceProvider))
                 {
-                    var ex = InstanceBuilder.ForParameterlessConstructor(typeof(_EqualityNullSafe).GetConstructor(Type.EmptyTypes));
-                    var exNull1 = default(InstanceBuilder);
-                    var exNull2 = default(InstanceBuilder);
+                    var ex = InstanceProvider.ForParameterlessConstructor(typeof(_EqualityNullSafe).GetConstructor(Type.EmptyTypes));
+                    var exNull1 = default(InstanceProvider);
+                    var exNull2 = default(InstanceProvider);
                     CommonNonOperatorChecks(ex, exNull1, exNull2);
                     Assert.False(ex == exNull1);
                     Assert.False(exNull1 == ex);
@@ -765,9 +765,9 @@ namespace Cesil.Tests
                 {
                     msg = InvokeToString_Getter();
                 }
-                else if (t == typeof(InstanceBuilder))
+                else if (t == typeof(InstanceProvider))
                 {
-                    msg = InvokeToString_InstanceBuilder();
+                    msg = InvokeToString_InstanceProvider();
                 }
                 else if (t == typeof(Parser))
                 {
@@ -1131,9 +1131,9 @@ namespace Cesil.Tests
                 return p.ToString();
             }
 
-            static string InvokeToString_InstanceBuilder()
+            static string InvokeToString_InstanceProvider()
             {
-                var i = InstanceBuilder.ForParameterlessConstructor(typeof(_HelpfulToString).GetConstructor(Type.EmptyTypes));
+                var i = InstanceProvider.ForParameterlessConstructor(typeof(_HelpfulToString).GetConstructor(Type.EmptyTypes));
 
                 return i.ToString();
             }

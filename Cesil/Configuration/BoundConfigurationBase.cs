@@ -12,7 +12,7 @@ namespace Cesil
         private static readonly ReadOnlyMemory<char> LineFeed = "\n".AsMemory();
         private static readonly ReadOnlyMemory<char> CarriageReturnLineFeed = "\r\n".AsMemory();
 
-        internal readonly InstanceBuilderDelegate<T> NewCons;
+        internal readonly InstanceProviderDelegate<T> NewCons;
         internal readonly Column[] DeserializeColumns;
 
         internal readonly Column[] SerializeColumns;
@@ -104,7 +104,7 @@ namespace Cesil
         /// For working with concrete types.
         /// </summary>
         protected BoundConfigurationBase(
-            InstanceBuilderDelegate<T> newCons,
+            InstanceProviderDelegate<T> newCons,
             Column[] deserializeColumns,
             Column[] serializeColumns,
             bool[] serializeColumnsNeedEscape,
@@ -223,11 +223,25 @@ namespace Cesil
             return CreateAsyncWriter(wrapper, context);
         }
 
+        public IReader<T> CreateReader(ReadOnlySequence<byte> sequence, Encoding encoding, object context = null)
+        {
+            if(encoding == null)
+            {
+                return Throw.ArgumentNullException<IReader<T>>(nameof(encoding));
+            }
+
+            // context is legally null
+
+            var wrapper = new ReadOnlyByteSequenceAdapter(sequence, encoding);
+
+            return CreateReader(wrapper, context);
+        }
+
         public IReader<T> CreateReader(ReadOnlySequence<char> sequence, object context = null)
         {
             // context is legally null
 
-            var wrapper = new ReadOnlySequenceAdapter(sequence);
+            var wrapper = new ReadOnlyCharSequenceAdapter(sequence);
 
             return CreateReader(wrapper, context);
         }
@@ -246,6 +260,25 @@ namespace Cesil
             return CreateReader(wrapper, context);
         }
 
+        public IWriter<T> CreateWriter(IBufferWriter<byte> writer, Encoding encoding, object context = null)
+        {
+            if (writer == null)
+            {
+                return Throw.ArgumentNullException<IWriter<T>>(nameof(writer));
+            }
+
+            if(encoding == null)
+            {
+                return Throw.ArgumentNullException<IWriter<T>>(nameof(encoding));
+            }
+
+            // context is legally null
+
+            var wrapper = new BufferWriterByteAdapter(writer, encoding);
+
+            return CreateWriter(wrapper, context);
+        }
+
         public IWriter<T> CreateWriter(IBufferWriter<char> writer, object context = null)
         {
             if(writer == null)
@@ -255,7 +288,7 @@ namespace Cesil
 
             // context is legally null
 
-            var wrapper = new BufferWriterAdapter(writer);
+            var wrapper = new BufferWriterCharAdapter(writer);
 
             return CreateWriter(wrapper, context);
         }

@@ -43,7 +43,7 @@ If `ReadBufferSizeHint` is set to `0`, Cesil will try to use a single-page of bu
 ## ITypeDescriber
 
 The two methods on `ITypeDescriber` (`EnumerateMembersToSerialize` and `EnumerateMembersToDeserialize`) are used to discover which members
-to de(serialize) on a type.  The method `GetInstanceBuilder(TypeInfo)` is used to control how instances of a type are acquired during
+to de(serialize) on a type.  The method `GetInstanceProvider(TypeInfo)` is used to control how instances of a type are acquired during
 deserialization.
 
 The default type describer (de)serializes public properties, honors `[DataMember]`, and looks for `ShouldSerializeXXX()` and `ResetXXX()` methods.

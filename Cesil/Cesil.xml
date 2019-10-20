@@ -88,7 +88,7 @@
             For working with dynamic.
             </summary>
         </member>
-        <member name="M:Cesil.BoundConfigurationBase`1.#ctor(Cesil.InstanceBuilderDelegate{`0},Cesil.Column[],Cesil.Column[],System.Boolean[],System.Char,System.Char,System.Char,Cesil.RowEndings,Cesil.ReadHeaders,Cesil.WriteHeaders,Cesil.WriteTrailingNewLines,System.Buffers.MemoryPool{System.Char},System.Nullable{System.Char},System.Nullable{System.Int32},System.Int32)">
+        <member name="M:Cesil.BoundConfigurationBase`1.#ctor(Cesil.InstanceProviderDelegate{`0},Cesil.Column[],Cesil.Column[],System.Boolean[],System.Char,System.Char,System.Char,Cesil.RowEndings,Cesil.ReadHeaders,Cesil.WriteHeaders,Cesil.WriteTrailingNewLines,System.Buffers.MemoryPool{System.Char},System.Nullable{System.Char},System.Nullable{System.Int32},System.Int32)">
             <summary>
             For working with concrete types.
             </summary>
@@ -148,6 +148,14 @@
             Used to create readers and writers.
             </summary>
         </member>
+        <member name="M:Cesil.IBoundConfiguration`1.CreateReader(System.Buffers.ReadOnlySequence{System.Byte},System.Text.Encoding,System.Object)">
+            <summary>
+            Create a synchronous reader for the given sequence, converting bytes to characters using the provided encoding.
+            
+            Takes an optional context object which is made available
+              during certain operations as a member on ReadContext.
+            </summary>
+        </member>
         <member name="M:Cesil.IBoundConfiguration`1.CreateReader(System.Buffers.ReadOnlySequence{System.Char},System.Object)">
             <summary>
             Create a synchronous reader for the given sequence.
@@ -181,6 +189,14 @@
             
             Takes an optional context object which is made available
               during certain operations as a member on ReadContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.IBoundConfiguration`1.CreateWriter(System.Buffers.IBufferWriter{System.Byte},System.Text.Encoding,System.Object)">
+            <summary>
+            Create a synchronous writer for the given writer, convering chars to bytes using the given encoding.
+            
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
             </summary>
         </member>
         <member name="M:Cesil.IBoundConfiguration`1.CreateWriter(System.Buffers.IBufferWriter{System.Char},System.Object)">
@@ -1110,9 +1126,9 @@
             A pre-allocated instance is available on TypeDescribers.Default.
             </summary>
         </member>
-        <member name="M:Cesil.DefaultTypeDescriber.GetInstanceBuilder(System.Reflection.TypeInfo)">
+        <member name="M:Cesil.DefaultTypeDescriber.GetInstanceProvider(System.Reflection.TypeInfo)">
             <summary>
-            Gets an InstanceBuilder that wraps the parameterless constructor
+            Gets an InstanceProvider that wraps the parameterless constructor
               for the given type.
               
             Throws if there is no parameterless constructor.
@@ -1551,9 +1567,9 @@
               this interface and handle the most common desired configurations.
             </summary>
         </member>
-        <member name="M:Cesil.ITypeDescriber.GetInstanceBuilder(System.Reflection.TypeInfo)">
+        <member name="M:Cesil.ITypeDescriber.GetInstanceProvider(System.Reflection.TypeInfo)">
             <summary>
-            Get the builder used to make instances of forType.
+            Get the provider for instances of forType.
             </summary>
         </member>
         <member name="M:Cesil.ITypeDescriber.EnumerateMembersToSerialize(System.Reflection.TypeInfo)">
@@ -1618,13 +1634,13 @@
             Uses DefaultTypeDescriber if no type is configured for a given enumeration.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.SetBuilder(Cesil.InstanceBuilder)">
+        <member name="M:Cesil.ManualTypeDescriber.SetBuilder(Cesil.InstanceProvider)">
             <summary>
             Set the delegate to use when constructing new instances of 
               type T.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.SetBuilder(System.Reflection.TypeInfo,Cesil.InstanceBuilder)">
+        <member name="M:Cesil.ManualTypeDescriber.SetBuilder(System.Reflection.TypeInfo,Cesil.InstanceProvider)">
             <summary>
             Set the delegate to use when constructing new instances of 
               the given type.
@@ -1870,9 +1886,9 @@
             Add a property to deserialize with the given name, parser, whether the column is required, and a reset method - for the type which declares the property.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.GetInstanceBuilder(System.Reflection.TypeInfo)">
+        <member name="M:Cesil.ManualTypeDescriber.GetInstanceProvider(System.Reflection.TypeInfo)">
             <summary>
-            Returns an InstanceBuilder that can construct the given type.
+            Returns an InstanceProvider that can construct the given type.
             
             Will throw an expection if no builder is registered.
             </summary>
@@ -2112,7 +2128,7 @@
               ThrowOnNoRegisteredSurrogate.
             </summary>
         </member>
-        <member name="M:Cesil.SurrogateTypeDescriber.GetInstanceBuilder(System.Reflection.TypeInfo)">
+        <member name="M:Cesil.SurrogateTypeDescriber.GetInstanceProvider(System.Reflection.TypeInfo)">
             <summary>
             Gets an instance builder usable to construct the given type.
             
@@ -2120,7 +2136,7 @@
               constructor will be mapped from the surrogate to forType.
               
             If a surrogate is not registered, either an exception will be thrown or forType will
-              be passed to TypeDescriber.GetInstanceBuilder depending on the value of
+              be passed to TypeDescriber.GetInstanceProvider depending on the value of
               ThrowOnNoRegisteredSurrogate.
             </summary>
         </member>
@@ -2447,12 +2463,12 @@
             Compare two Getters for inequality
             </summary>
         </member>
-        <member name="T:Cesil.InstanceBuilderDelegate`1">
+        <member name="T:Cesil.InstanceProviderDelegate`1">
             <summary>
-            Delegate used to create InstanceBuilders.
+            Delegate used to create InstanceProviders.
             </summary>
         </member>
-        <member name="T:Cesil.InstanceBuilder">
+        <member name="T:Cesil.InstanceProvider">
             <summary>
             Represents a way to create new instances of a type.
             
@@ -2460,9 +2476,9 @@
               method, or a delegate.
             </summary>
         </member>
-        <member name="M:Cesil.InstanceBuilder.ForMethod(System.Reflection.MethodInfo)">
+        <member name="M:Cesil.InstanceProvider.ForMethod(System.Reflection.MethodInfo)">
             <summary>
-            Creates a new InstanceBuilder from a method.
+            Creates a new InstanceProvider from a method.
             
             The method must:
               - be static
@@ -2470,9 +2486,9 @@
               - have a single out parameter of the constructed type
             </summary>
         </member>
-        <member name="M:Cesil.InstanceBuilder.ForParameterlessConstructor(System.Reflection.ConstructorInfo)">
+        <member name="M:Cesil.InstanceProvider.ForParameterlessConstructor(System.Reflection.ConstructorInfo)">
             <summary>
-            Create a new InstanceBuilder from a parameterless constructor.
+            Create a new InstanceProvider from a parameterless constructor.
             
             The constructed type must be concrete, that is:
               - not an interface
@@ -2481,65 +2497,65 @@
               - not an unbound generic type (ie. a generic type definition)
             </summary>
         </member>
-        <member name="M:Cesil.InstanceBuilder.ForDelegate``1(Cesil.InstanceBuilderDelegate{``0})">
+        <member name="M:Cesil.InstanceProvider.ForDelegate``1(Cesil.InstanceProviderDelegate{``0})">
             <summary>
-            Create a new InstanceBuilder from delegate.
+            Create a new InstanceProvider from delegate.
             
             There are no restrictions on what the give delegate may do,
               but be aware that it may be called from many different contexts.
             </summary>
         </member>
-        <member name="M:Cesil.InstanceBuilder.Equals(System.Object)">
+        <member name="M:Cesil.InstanceProvider.Equals(System.Object)">
             <summary>
-            Returns true if this object equals the given InstanceBuilder.
+            Returns true if this object equals the given InstanceProvider.
             </summary>
         </member>
-        <member name="M:Cesil.InstanceBuilder.Equals(Cesil.InstanceBuilder)">
+        <member name="M:Cesil.InstanceProvider.Equals(Cesil.InstanceProvider)">
             <summary>
-            Returns true if this object equals the given InstanceBuilder.
+            Returns true if this object equals the given InstanceProvider.
             </summary>
         </member>
-        <member name="M:Cesil.InstanceBuilder.GetHashCode">
+        <member name="M:Cesil.InstanceProvider.GetHashCode">
             <summary>
-            Returns a stable hash for this InstanceBuilder.
+            Returns a stable hash for this InstanceProvider.
             </summary>
         </member>
-        <member name="M:Cesil.InstanceBuilder.ToString">
+        <member name="M:Cesil.InstanceProvider.ToString">
             <summary>
-            Returns a representation of this InstanceBuilder object.
+            Returns a representation of this InstanceProvider object.
             
             Only for debugging, this value is not guaranteed to be stable.
             </summary>
         </member>
-        <member name="M:Cesil.InstanceBuilder.op_Explicit(System.Reflection.MethodInfo)~Cesil.InstanceBuilder">
+        <member name="M:Cesil.InstanceProvider.op_Explicit(System.Reflection.MethodInfo)~Cesil.InstanceProvider">
             <summary>
-            Convenience operator, equivalent to calling InstanceBuilder.ForMethod if non-null.
+            Convenience operator, equivalent to calling ForMethod if non-null.
             
             Returns null if mtd is null.
             </summary>
         </member>
-        <member name="M:Cesil.InstanceBuilder.op_Explicit(System.Reflection.ConstructorInfo)~Cesil.InstanceBuilder">
+        <member name="M:Cesil.InstanceProvider.op_Explicit(System.Reflection.ConstructorInfo)~Cesil.InstanceProvider">
             <summary>
-            Convenience operator, equivalent to calling InstanceBuilder.ForParameterlessConstructor if non-null.
+            Convenience operator, equivalent to calling ForParameterlessConstructor if non-null.
             
             Returns null if field is null.
             </summary>
         </member>
-        <member name="M:Cesil.InstanceBuilder.op_Explicit(System.Delegate)~Cesil.InstanceBuilder">
+        <member name="M:Cesil.InstanceProvider.op_Explicit(System.Delegate)~Cesil.InstanceProvider">
             <summary>
-            Convenience operator, equivalent to calling InstanceBuilder.ForDelegate if non-null.
+            Convenience operator, equivalent to calling ForDelegate if non-null.
             
             Returns null if del is null.
             </summary>
         </member>
-        <member name="M:Cesil.InstanceBuilder.op_Equality(Cesil.InstanceBuilder,Cesil.InstanceBuilder)">
+        <member name="M:Cesil.InstanceProvider.op_Equality(Cesil.InstanceProvider,Cesil.InstanceProvider)">
             <summary>
-            Compare two InstanceBuilders for equality
+            Compare two InstanceProviders for equality
             </summary>
         </member>
-        <member name="M:Cesil.InstanceBuilder.op_Inequality(Cesil.InstanceBuilder,Cesil.InstanceBuilder)">
+        <member name="M:Cesil.InstanceProvider.op_Inequality(Cesil.InstanceProvider,Cesil.InstanceProvider)">
             <summary>
-            Compare two InstanceBuilders for inequality
+            Compare two InstanceProvider for inequality
             </summary>
         </member>
         <member name="T:Cesil.ParserDelegate`1">

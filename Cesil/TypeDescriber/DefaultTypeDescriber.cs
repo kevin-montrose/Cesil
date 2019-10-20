@@ -38,20 +38,20 @@ namespace Cesil
         public DefaultTypeDescriber() { }
 
         /// <summary>
-        /// Gets an InstanceBuilder that wraps the parameterless constructor
+        /// Gets an InstanceProvider that wraps the parameterless constructor
         ///   for the given type.
         ///   
         /// Throws if there is no parameterless constructor.
         /// </summary>
-        public virtual InstanceBuilder GetInstanceBuilder(TypeInfo forType)
+        public virtual InstanceProvider GetInstanceProvider(TypeInfo forType)
         {
             var cons = forType.GetConstructor(TypeInfo.EmptyTypes);
             if (cons == null)
             {
-                return Throw.ArgumentException<InstanceBuilder>($"No parameterless constructor found for {forType}", nameof(forType));
+                return Throw.ArgumentException<InstanceProvider>($"No parameterless constructor found for {forType}", nameof(forType));
             }
 
-            return InstanceBuilder.ForParameterlessConstructor(cons);
+            return InstanceProvider.ForParameterlessConstructor(cons);
         }
 
         /// <summary>

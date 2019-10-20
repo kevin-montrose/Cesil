@@ -8,18 +8,15 @@ using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
-    internal sealed partial class PipeReaderAdapter : IAsyncReaderAdapter
+    internal sealed partial class PipeReaderAdapter : ByteSequenceAdapterBase, IAsyncReaderAdapter
     {
         public bool IsDisposed => Inner == null;
 
-        private bool IsComplete;
         private PipeReader Inner;
-        private readonly Decoder Decoder;
-
-        public PipeReaderAdapter(PipeReader reader, Encoding encoding)
+        
+        public PipeReaderAdapter(PipeReader reader, Encoding encoding): base(encoding)
         {
             Inner = reader;
-            Decoder = encoding.GetDecoder();
         }
 
         public ValueTask<int> ReadAsync(Memory<char> into, CancellationToken cancel)
@@ -73,58 +70,14 @@ namespace Cesil
 
         private int MapByteSequenceToChar(ReadResult res, Memory<char> into)
         {
-            var handledAny = false;
+            MapByteSequenceToChar(res.Buffer, res.IsCompleted || res.IsCanceled, into.Span, out var processed, out var examined, out var chars);
 
-            var copyTo = into.Span;
-            var handledAll = true;
+            var processedSeqPos = res.Buffer.GetPosition(processed);
+            var examinedSeqPos = res.Buffer.GetPosition(examined);
 
-            var handledBytes = 0;
-            var readChars = 0;
+            Inner.AdvanceTo(processedSeqPos, examinedSeqPos);
 
-            foreach (var seq in res.Buffer)
-            {
-                if (copyTo.IsEmpty)
-                {
-                    handledAll = false;
-                    break;
-                }
-
-                var seqBytes = seq.Span;
-                Decoder.Convert(seqBytes, copyTo, false, out var bytesUsed, out var charsUsed, out _);
-
-                if(bytesUsed > 0)
-                {
-                    handledAny = true;
-                }
-
-                handledBytes += bytesUsed;
-                readChars += charsUsed;
-
-                copyTo = copyTo.Slice(charsUsed);
-
-                if (bytesUsed != seqBytes.Length)
-                {
-                    handledAll = false;
-                    break;
-                }
-            }
-
-            var processed = res.Buffer.GetPosition(handledBytes);
-
-            // if we read the whole buffer, but couldn't extract a single char then we need to wait for more data to come in,
-            //    so mark the whole buffer as examined
-            // otherwise, we just ran out of space and want the next call to immediately return the old data
-            var examined = handledAny ? processed : res.Buffer.End;
-
-            Inner.AdvanceTo(processed, examined);
-
-            if (handledAll)
-            {
-                // record if we're done for the next caller
-                IsComplete = res.IsCompleted || res.IsCanceled;
-            }
-
-            return readChars;
+            return chars;
         }
 
         public ValueTask DisposeAsync()

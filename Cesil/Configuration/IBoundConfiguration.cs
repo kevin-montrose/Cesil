@@ -12,8 +12,18 @@ namespace Cesil
     /// </summary>
     public interface IBoundConfiguration<T>
     {
-        // todo: byte + encoding for ReadOnlySequence and IBufferWriter?
-
+        /// <summary>
+        /// Create a synchronous reader for the given sequence, converting bytes to characters using the provided encoding.
+        /// 
+        /// Takes an optional context object which is made available
+        ///   during certain operations as a member on ReadContext.
+        /// </summary>
+        IReader<T> CreateReader(
+            [IntentionallyExposedPrimitive("Bytes are the whole point here")] 
+            ReadOnlySequence<byte> sequence, 
+            Encoding encoding,
+            object context = null
+        );
         /// <summary>
         /// Create a synchronous reader for the given sequence.
         /// 
@@ -47,6 +57,18 @@ namespace Cesil
         /// </summary>
         IAsyncReader<T> CreateAsyncReader(TextReader reader, object context = null);
 
+        /// <summary>
+        /// Create a synchronous writer for the given writer, convering chars to bytes using the given encoding.
+        /// 
+        /// Takes an optional context object which is made available
+        ///   during certain operations as a member on WriteContext.
+        /// </summary>
+        IWriter<T> CreateWriter(
+            [IntentionallyExposedPrimitive("Bytes are the whole point here")] 
+            IBufferWriter<byte> writer,
+            Encoding encoding, 
+            object context = null
+        );
         /// <summary>
         /// Create a synchronous writer for the given writer.
         /// 

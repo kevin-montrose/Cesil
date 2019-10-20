@@ -61,7 +61,7 @@ namespace Cesil.Tests
                 return Converter;
             }
 
-            public InstanceBuilder GetInstanceBuilder(TypeInfo forType)
+            public InstanceProvider GetInstanceProvider(TypeInfo forType)
             {
                 throw new NotImplementedException();
             }
@@ -1052,8 +1052,8 @@ namespace Cesil.Tests
             public DynamicRowConverter GetDynamicRowConverter(in ReadContext ctx, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
             => D ?? TypeDescribers.Default.GetDynamicRowConverter(in ctx, columns, targetType);
 
-            public InstanceBuilder GetInstanceBuilder(TypeInfo forType)
-            => TypeDescribers.Default.GetInstanceBuilder(forType);
+            public InstanceProvider GetInstanceProvider(TypeInfo forType)
+            => TypeDescribers.Default.GetInstanceProvider(forType);
 
             public IEnumerable<SerializableMember> EnumerateMembersToSerialize(TypeInfo forType)
             => TypeDescribers.Default.EnumerateMembersToSerialize(forType);
@@ -1280,8 +1280,8 @@ namespace Cesil.Tests
             public DynamicRowConverter GetDynamicRowConverter(in ReadContext ctx, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
             => TypeDescribers.Default.GetDynamicRowConverter(in ctx, columns, targetType);
 
-            public InstanceBuilder GetInstanceBuilder(TypeInfo forType)
-            => TypeDescribers.Default.GetInstanceBuilder(forType);
+            public InstanceProvider GetInstanceProvider(TypeInfo forType)
+            => TypeDescribers.Default.GetInstanceProvider(forType);
 
             public IEnumerable<SerializableMember> EnumerateMembersToSerialize(TypeInfo forType)
             => TypeDescribers.Default.EnumerateMembersToSerialize(forType);
@@ -3083,8 +3083,8 @@ loop:
             public DynamicRowConverter GetDynamicRowConverter(in ReadContext ctx, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
             => Converter;
 
-            public InstanceBuilder GetInstanceBuilder(TypeInfo forType)
-            => TypeDescribers.Default.GetInstanceBuilder(forType);
+            public InstanceProvider GetInstanceProvider(TypeInfo forType)
+            => TypeDescribers.Default.GetInstanceProvider(forType);
         }
 
         private class _POCO_Fields_Obj
@@ -3349,7 +3349,7 @@ loop:
                             }
                         );
                     },
-                    expectedRuns: 9
+                    expectedRuns: 15
                 );
             }
 
@@ -3400,7 +3400,7 @@ loop:
                             }
                         );
                     },
-                    expectedRuns: 9
+                    expectedRuns: 15
                 );
             }
 
@@ -3453,7 +3453,7 @@ loop:
                             }
                         );
                     },
-                    expectedRuns: 9
+                    expectedRuns: 15
                 );
             }
 
@@ -3503,7 +3503,7 @@ loop:
                             }
                         );
                     },
-                    expectedRuns: 9
+                    expectedRuns: 15
                 );
             }
         }
@@ -3526,8 +3526,8 @@ loop:
             public DynamicRowConverter GetDynamicRowConverter(in ReadContext ctx, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
             => (DynamicRowConverter)D;
 
-            public InstanceBuilder GetInstanceBuilder(TypeInfo forType)
-            => TypeDescribers.Default.GetInstanceBuilder(forType);
+            public InstanceProvider GetInstanceProvider(TypeInfo forType)
+            => TypeDescribers.Default.GetInstanceProvider(forType);
 
             public IEnumerable<SerializableMember> EnumerateMembersToSerialize(TypeInfo forType)
             => TypeDescribers.Default.EnumerateMembersToSerialize(forType);

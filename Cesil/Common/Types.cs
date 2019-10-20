@@ -73,7 +73,7 @@ namespace Cesil
         internal static readonly TypeInfo ReadContextType = typeof(ReadContext).GetTypeInfo();
         internal static readonly TypeInfo WriteContextType = typeof(WriteContext).GetTypeInfo();
         internal static readonly TypeInfo DynamicRowDisposalType = typeof(DynamicRowDisposal).GetTypeInfo();
-        internal static readonly TypeInfo InstanceBuilderDelegateType = typeof(InstanceBuilderDelegate<>).GetTypeInfo();
+        internal static readonly TypeInfo InstanceProviderDelegateType = typeof(InstanceProviderDelegate<>).GetTypeInfo();
 
         internal static readonly TypeInfo DefaultTypeParsersType = typeof(DefaultTypeParsers).GetTypeInfo();
         internal static readonly TypeInfo DefaultEnumTypeParserType = typeof(DefaultTypeParsers.DefaultEnumTypeParser<>).GetTypeInfo();

@@ -12,9 +12,9 @@ namespace Cesil
     public interface ITypeDescriber
     {
         /// <summary>
-        /// Get the builder used to make instances of forType.
+        /// Get the provider for instances of forType.
         /// </summary>
-        InstanceBuilder GetInstanceBuilder(TypeInfo forType);
+        InstanceProvider GetInstanceProvider(TypeInfo forType);
         /// <summary>
         /// Enumerate all the members on forType to serialize.
         /// </summary>

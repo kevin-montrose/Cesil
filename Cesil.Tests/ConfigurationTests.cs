@@ -362,14 +362,17 @@ namespace Cesil.Tests
                 var opts = Configuration.For<_BadCreateCalls>();
 
                 Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncReader(null));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncReader(default(PipeReader), Encoding.UTF8));
+                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncReader(default, Encoding.UTF8));
                 Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncReader(new Pipe().Reader, null));
                 Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncWriter(null));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncWriter(default(PipeWriter), Encoding.UTF8));
+                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncWriter(default, Encoding.UTF8));
                 Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncWriter(new Pipe().Writer, null));
                 Assert.Throws<ArgumentNullException>(() => opts.CreateReader(null));
+                Assert.Throws<ArgumentNullException>(() => opts.CreateReader(default, null));
                 Assert.Throws<ArgumentNullException>(() => opts.CreateWriter(default(TextWriter)));
                 Assert.Throws<ArgumentNullException>(() => opts.CreateWriter(default(IBufferWriter<char>)));
+                Assert.Throws<ArgumentNullException>(() => opts.CreateWriter(null, Encoding.UTF8));
+                Assert.Throws<ArgumentNullException>(() => opts.CreateWriter(new Pipe().Writer, null));
             }
 
             // dynamic
@@ -377,14 +380,17 @@ namespace Cesil.Tests
                 var opts = Configuration.ForDynamic();
 
                 Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncReader(null));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncReader(default(PipeReader), Encoding.UTF8));
+                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncReader(default, Encoding.UTF8));
                 Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncReader(new Pipe().Reader, null));
                 Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncWriter(null));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncWriter(default(PipeWriter), Encoding.UTF8));
+                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncWriter(default, Encoding.UTF8));
                 Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncWriter(new Pipe().Writer, null));
                 Assert.Throws<ArgumentNullException>(() => opts.CreateReader(null));
+                Assert.Throws<ArgumentNullException>(() => opts.CreateReader(default, null));
                 Assert.Throws<ArgumentNullException>(() => opts.CreateWriter(default(TextWriter)));
                 Assert.Throws<ArgumentNullException>(() => opts.CreateWriter(default(IBufferWriter<char>)));
+                Assert.Throws<ArgumentNullException>(() => opts.CreateWriter(null, Encoding.UTF8));
+                Assert.Throws<ArgumentNullException>(() => opts.CreateWriter(new Pipe().Writer, null));
             }
         }
     }

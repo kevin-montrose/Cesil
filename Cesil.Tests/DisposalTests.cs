@@ -114,11 +114,11 @@ namespace Cesil.Tests
                 {
                     IDisposable_TextReaderAdapter();
                 }
-                else if(t == typeof(BufferWriterAdapter))
+                else if(t == typeof(BufferWriterCharAdapter))
                 {
                     IDisposable_BufferWriterAdapter();
                 }
-                else if (t == typeof(ReadOnlySequenceAdapter))
+                else if (t == typeof(ReadOnlyCharSequenceAdapter))
                 {
                     IDisposable_ReadOnlySequenceAdapter();
                 }
@@ -132,9 +132,115 @@ namespace Cesil.Tests
                 {
                     IDisposable_DynamicRowMemberNameEnumerator();
                 }
+                else if (t == typeof(ReadOnlyByteSequenceAdapter))
+                {
+                    IDisposable_ReadOnlyByteSequenceAdapter();
+                }
+                else if (t == typeof(BufferWriterByteAdapter))
+                {
+                    IDisposable_BufferWriterByteAdapter();
+                }
                 else
                 {
                     throw new XunitException($"No test configured for .Dispose() on {t.Name}");
+                }
+            }
+
+            // test for BufferWriterByteAdapter
+            void IDisposable_BufferWriterByteAdapter()
+            {
+                // double dispose does not error
+                {
+                    var a = MakeAdapter();
+                    a.Dispose();
+                    a.Dispose();
+                }
+
+                // assert throws after dispose
+                {
+                    var a = MakeAdapter();
+                    a.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => ((ITestableDisposable)a).AssertNotDisposed());
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    using (var a = MakeAdapter())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(a);
+                    }
+                }
+
+                // Write(ReadOnlySpan(char))
+                {
+                    var a = MakeAdapter();
+                    a.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => a.Write(ReadOnlySpan<char>.Empty));
+                    testCases++;
+                }
+
+                // Write(char)
+                {
+                    var a = MakeAdapter();
+                    a.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => a.Write('c'));
+                    testCases++;
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make an adapter that's "good to go"
+                BufferWriterByteAdapter MakeAdapter()
+                {
+                    return new BufferWriterByteAdapter(default, Encoding.UTF8);
+                }
+            }
+
+            // test for ReadOnlyByteSequenceAdapter
+            void IDisposable_ReadOnlyByteSequenceAdapter()
+            {
+                // double dispose does not error
+                {
+                    var a = MakeAdapter();
+                    a.Dispose();
+                    a.Dispose();
+                }
+
+                // assert throws after dispose
+                {
+                    var a = MakeAdapter();
+                    a.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => ((ITestableDisposable)a).AssertNotDisposed());
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    using (var a = MakeAdapter())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(a);
+                    }
+                }
+
+                // Read
+                {
+                    var a = MakeAdapter();
+                    a.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => a.Read(default));
+                    testCases++;
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make an adapter that's "good to go"
+                ReadOnlyByteSequenceAdapter MakeAdapter()
+                {
+                    return new ReadOnlyByteSequenceAdapter(default, Encoding.UTF8);
                 }
             }
 
@@ -242,9 +348,9 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a writer that's "good to go"
-                ReadOnlySequenceAdapter MakeReader()
+                ReadOnlyCharSequenceAdapter MakeReader()
                 {
-                    return new ReadOnlySequenceAdapter(ReadOnlySequence<char>.Empty);
+                    return new ReadOnlyCharSequenceAdapter(ReadOnlySequence<char>.Empty);
                 }
             }
 
@@ -295,9 +401,9 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a writer that's "good to go"
-                BufferWriterAdapter MakeWriter()
+                BufferWriterCharAdapter MakeWriter()
                 {
-                    return new BufferWriterAdapter(new CharWriter(new Pipe().Writer));
+                    return new BufferWriterCharAdapter(new CharWriter(new Pipe().Writer));
                 }
             }
 

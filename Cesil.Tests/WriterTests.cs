@@ -27,7 +27,7 @@ namespace Cesil.Tests
             var g = Getter.ForMethod(t.GetProperty(nameof(_FailingGetter.Foo)).GetMethod);
             var f = Formatter.ForDelegate((int value, in WriteContext context, IBufferWriter<char> buffer) => false);
 
-            m.SetBuilder(InstanceBuilder.ForDelegate((out _FailingGetter val) => { val = new _FailingGetter(); return true; }));
+            m.SetBuilder(InstanceProvider.ForDelegate((out _FailingGetter val) => { val = new _FailingGetter(); return true; }));
             m.AddExplicitGetter(t, "bar", g, f);
 
             var opts = Options.Default.NewBuilder().WithTypeDescriber(m).Build();
@@ -1133,8 +1133,8 @@ namespace Cesil.Tests
 
             var describer = new ManualTypeDescriber();
             describer.AddExplicitGetter(typeof(_DelegateShouldSerialize).GetTypeInfo(), name, getter, formatter, shouldSerialize);
-            InstanceBuilderDelegate<_DelegateShouldSerialize> del = (out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
-            describer.SetBuilder((InstanceBuilder)del);
+            InstanceProviderDelegate<_DelegateShouldSerialize> del = (out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
+            describer.SetBuilder((InstanceProvider)del);
 
             var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).WithWriteHeader(WriteHeaders.Always).Build();
 
@@ -1179,8 +1179,8 @@ namespace Cesil.Tests
 
             var describer = new ManualTypeDescriber();
             describer.AddExplicitGetter(typeof(_DelegateShouldSerialize).GetTypeInfo(), name, getter, formatter, shouldSerialize);
-            InstanceBuilderDelegate<_DelegateShouldSerialize> del = (out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
-            describer.SetBuilder((InstanceBuilder)del);
+            InstanceProviderDelegate<_DelegateShouldSerialize> del = (out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
+            describer.SetBuilder((InstanceProvider)del);
 
             var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).WithWriteHeader(WriteHeaders.Always).Build();
 
@@ -1234,8 +1234,8 @@ namespace Cesil.Tests
 
             var describer = new ManualTypeDescriber();
             describer.AddExplicitGetter(typeof(_DelegateFormatter).GetTypeInfo(), name, getter, formatter);
-            InstanceBuilderDelegate<_DelegateFormatter> del = (out _DelegateFormatter i) => { i = new _DelegateFormatter(); return true; };
-            describer.SetBuilder((InstanceBuilder)del);
+            InstanceProviderDelegate<_DelegateFormatter> del = (out _DelegateFormatter i) => { i = new _DelegateFormatter(); return true; };
+            describer.SetBuilder((InstanceProvider)del);
 
             var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).WithWriteHeader(WriteHeaders.Always).Build();
 
@@ -1283,8 +1283,8 @@ namespace Cesil.Tests
 
             var describer = new ManualTypeDescriber();
             describer.AddExplicitGetter(typeof(_DelegateGetter).GetTypeInfo(), name, getter);
-            InstanceBuilderDelegate<_DelegateGetter> del = (out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
-            describer.SetBuilder((InstanceBuilder)del);
+            InstanceProviderDelegate<_DelegateGetter> del = (out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
+            describer.SetBuilder((InstanceProvider)del);
 
             var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).WithWriteHeader(WriteHeaders.Always).Build();
 
@@ -1327,8 +1327,8 @@ namespace Cesil.Tests
 
             var describer = new ManualTypeDescriber();
             describer.AddExplicitGetter(typeof(_DelegateGetter).GetTypeInfo(), name, getter);
-            InstanceBuilderDelegate<_DelegateGetter> del = (out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
-            describer.SetBuilder((InstanceBuilder)del);
+            InstanceProviderDelegate<_DelegateGetter> del = (out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
+            describer.SetBuilder((InstanceProvider)del);
 
             var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).WithWriteHeader(WriteHeaders.Always).Build();
 
@@ -1601,7 +1601,7 @@ namespace Cesil.Tests
             var formatBar = (Formatter)typeof(WriterTests).GetMethod(nameof(_Context_FormatBar));
 
             var describer = new ManualTypeDescriber(ManualTypeDescriberFallbackBehavior.UseDefault);
-            describer.SetBuilder((InstanceBuilder)typeof(_Context).GetConstructor(Type.EmptyTypes));
+            describer.SetBuilder((InstanceProvider)typeof(_Context).GetConstructor(Type.EmptyTypes));
             describer.AddSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), formatFoo);
             describer.AddSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), formatBar);
 
@@ -2545,7 +2545,7 @@ namespace Cesil.Tests
         public void StaticGetters()
         {
             var m = new ManualTypeDescriber();
-            m.SetBuilder((InstanceBuilder)typeof(_StaticGetters).GetConstructor(Type.EmptyTypes));
+            m.SetBuilder((InstanceProvider)typeof(_StaticGetters).GetConstructor(Type.EmptyTypes));
             m.AddExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Bar", (Getter)typeof(_StaticGetters).GetMethod("GetBar", BindingFlags.Static | BindingFlags.Public));
             m.AddExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Fizz", (Getter)typeof(_StaticGetters).GetMethod("GetFizz", BindingFlags.Static | BindingFlags.Public));
 
@@ -2622,7 +2622,7 @@ namespace Cesil.Tests
             var g = Getter.ForMethod(t.GetProperty(nameof(_FailingGetter.Foo)).GetMethod);
             var f = Formatter.ForDelegate((int value, in WriteContext context, IBufferWriter<char> buffer) => false);
 
-            m.SetBuilder(InstanceBuilder.ForDelegate((out _FailingGetter val) => { val = new _FailingGetter(); return true; }));
+            m.SetBuilder(InstanceProvider.ForDelegate((out _FailingGetter val) => { val = new _FailingGetter(); return true; }));
             m.AddExplicitGetter(t, "bar", g, f);
 
             var opts = Options.Default.NewBuilder().WithTypeDescriber(m).Build();
@@ -3367,8 +3367,8 @@ namespace Cesil.Tests
 
             var describer = new ManualTypeDescriber();
             describer.AddExplicitGetter(typeof(_DelegateShouldSerialize).GetTypeInfo(), name, getter, formatter, shouldSerialize);
-            InstanceBuilderDelegate<_DelegateShouldSerialize> del = (out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
-            describer.SetBuilder((InstanceBuilder)del);
+            InstanceProviderDelegate<_DelegateShouldSerialize> del = (out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
+            describer.SetBuilder((InstanceProvider)del);
 
             var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).WithWriteHeader(WriteHeaders.Always).Build();
 
@@ -3413,8 +3413,8 @@ namespace Cesil.Tests
 
             var describer = new ManualTypeDescriber();
             describer.AddExplicitGetter(typeof(_DelegateShouldSerialize).GetTypeInfo(), name, getter, formatter, shouldSerialize);
-            InstanceBuilderDelegate<_DelegateShouldSerialize> del = (out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
-            describer.SetBuilder((InstanceBuilder)del);
+            InstanceProviderDelegate<_DelegateShouldSerialize> del = (out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
+            describer.SetBuilder((InstanceProvider)del);
 
             var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).WithWriteHeader(WriteHeaders.Always).Build();
 
@@ -3486,8 +3486,8 @@ namespace Cesil.Tests
 
             var describer = new ManualTypeDescriber();
             describer.AddExplicitGetter(typeof(_DelegateFormatter).GetTypeInfo(), name, getter, formatter);
-            InstanceBuilderDelegate<_DelegateFormatter> del = (out _DelegateFormatter i) => { i = new _DelegateFormatter(); return true; };
-            describer.SetBuilder((InstanceBuilder)del);
+            InstanceProviderDelegate<_DelegateFormatter> del = (out _DelegateFormatter i) => { i = new _DelegateFormatter(); return true; };
+            describer.SetBuilder((InstanceProvider)del);
 
             var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).WithWriteHeader(WriteHeaders.Always).Build();
 
@@ -3530,8 +3530,8 @@ namespace Cesil.Tests
 
             var describer = new ManualTypeDescriber();
             describer.AddExplicitGetter(typeof(_DelegateGetter).GetTypeInfo(), name, getter);
-            InstanceBuilderDelegate<_DelegateGetter> del = (out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
-            describer.SetBuilder((InstanceBuilder)del);
+            InstanceProviderDelegate<_DelegateGetter> del = (out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
+            describer.SetBuilder((InstanceProvider)del);
 
             var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).WithWriteHeader(WriteHeaders.Always).Build();
 
@@ -3574,8 +3574,8 @@ namespace Cesil.Tests
 
             var describer = new ManualTypeDescriber();
             describer.AddExplicitGetter(typeof(_DelegateGetter).GetTypeInfo(), name, getter);
-            InstanceBuilderDelegate<_DelegateGetter> del = (out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
-            describer.SetBuilder((InstanceBuilder)del);
+            InstanceProviderDelegate<_DelegateGetter> del = (out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
+            describer.SetBuilder((InstanceProvider)del);
 
             var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).WithWriteHeader(WriteHeaders.Always).Build();
 
@@ -3671,7 +3671,7 @@ namespace Cesil.Tests
             var formatBar = (Formatter)typeof(WriterTests).GetMethod(nameof(_Context_FormatBar));
 
             var describer = new ManualTypeDescriber(ManualTypeDescriberFallbackBehavior.UseDefault);
-            describer.SetBuilder((InstanceBuilder)typeof(_Context).GetConstructor(Type.EmptyTypes));
+            describer.SetBuilder((InstanceProvider)typeof(_Context).GetConstructor(Type.EmptyTypes));
             describer.AddSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), formatFoo);
             describer.AddSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), formatBar);
 
@@ -4240,7 +4240,7 @@ namespace Cesil.Tests
         public async Task StaticGettersAsync()
         {
             var m = new ManualTypeDescriber();
-            m.SetBuilder((InstanceBuilder)typeof(_StaticGetters).GetConstructor(Type.EmptyTypes));
+            m.SetBuilder((InstanceProvider)typeof(_StaticGetters).GetConstructor(Type.EmptyTypes));
             m.AddExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Bar", (Getter)typeof(_StaticGetters).GetMethod("GetBar", BindingFlags.Static | BindingFlags.Public));
             m.AddExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Fizz", (Getter)typeof(_StaticGetters).GetMethod("GetFizz", BindingFlags.Static | BindingFlags.Public));
 

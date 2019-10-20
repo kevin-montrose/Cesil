@@ -94,6 +94,25 @@ namespace Cesil.Tests
             }
         }
 
+        class SyncReaderAdapter_ByteNode : ReadOnlySequenceSegment<byte>
+        {
+            public SyncReaderAdapter_ByteNode(ReadOnlyMemory<byte> m)
+            {
+                this.Memory = m;
+                this.RunningIndex = 0;
+            }
+
+            public SyncReaderAdapter_ByteNode Append(ReadOnlyMemory<byte> m)
+            {
+                var ret = new SyncReaderAdapter_ByteNode(m);
+                ret.RunningIndex = this.Memory.Length;
+
+                this.Next = ret;
+
+                return ret;
+            }
+        }
+
         private static readonly Func<string, IReaderAdapter>[] SyncReaderAdapters =
             new Func<string, IReaderAdapter>[]
             {
@@ -106,7 +125,7 @@ namespace Cesil.Tests
 
                     var seq = new ReadOnlySequence<char>(bytes);
 
-                    return new ReadOnlySequenceAdapter(seq);
+                    return new ReadOnlyCharSequenceAdapter(seq);
                 },
                 str =>
                 {
@@ -122,7 +141,7 @@ namespace Cesil.Tests
                         // not big enough, just do single again
                         var seq = new ReadOnlySequence<char>(bytes);
 
-                        return new ReadOnlySequenceAdapter(seq);
+                        return new ReadOnlyCharSequenceAdapter(seq);
                     }
 
                     var m1 = bytes.Slice(0, firstThirdIx);
@@ -134,7 +153,7 @@ namespace Cesil.Tests
                         // not big enough, just do single again
                         var seq = new ReadOnlySequence<char>(bytes);
 
-                        return new ReadOnlySequenceAdapter(seq);
+                        return new ReadOnlyCharSequenceAdapter(seq);
                     }
 
                     var s1 = new SyncReaderAdapter_CharNode(m1);
@@ -143,7 +162,49 @@ namespace Cesil.Tests
 
                     var multiSeq = new ReadOnlySequence<char>(s1, 0, s3, s3.Memory.Length);
 
-                    return new ReadOnlySequenceAdapter(multiSeq);
+                    return new ReadOnlyCharSequenceAdapter(multiSeq);
+                },
+                str =>
+                {
+                    var bytes = Encoding.UTF8.GetBytes(str);
+                    var seq = new ReadOnlySequence<byte>(bytes);
+
+                    return new ReadOnlyByteSequenceAdapter(seq, Encoding.UTF8);
+                },
+                str =>
+                {
+                    var bytes = Encoding.UTF8.GetBytes(str).AsMemory();
+
+                    var firstThirdIx = bytes.Length / 3;
+                    var secondThirdIx = firstThirdIx * 2;
+
+                    if(firstThirdIx >= bytes.Length || secondThirdIx >= bytes.Length)
+                    {
+                        // not big enough, just do single again
+                        var seq = new ReadOnlySequence<byte>(bytes);
+
+                        return new ReadOnlyByteSequenceAdapter(seq, Encoding.UTF8);
+                    }
+
+                    var m1 = bytes.Slice(0, firstThirdIx);
+                    var m2 = bytes.Slice(firstThirdIx, secondThirdIx - firstThirdIx);
+                    var m3 = bytes.Slice(secondThirdIx);
+
+                    if(m1.Length == 0 || m2 .Length == 0 || m3.Length == 0)
+                    {
+                        // not big enough, just do single again
+                        var seq = new ReadOnlySequence<byte>(bytes);
+
+                        return new ReadOnlyByteSequenceAdapter(seq, Encoding.UTF8);
+                    }
+
+                    var s1 = new SyncReaderAdapter_ByteNode(m1);
+                    var s2 = s1.Append(m2);
+                    var s3 = s2.Append(m3);
+
+                    var multiSeq = new ReadOnlySequence<byte>(s1, 0, s3, s3.Memory.Length);
+
+                    return new ReadOnlyByteSequenceAdapter(multiSeq, Encoding.UTF8);
                 }
             };
 
@@ -539,7 +600,7 @@ namespace Cesil.Tests
                 () =>
                 {
                     var writer = new HelperBufferWriter<char>(4098);
-                    var adapter = new BufferWriterAdapter(writer);
+                    var adapter = new BufferWriterCharAdapter(writer);
 
                     Func<string> getter =
                         () =>
@@ -552,12 +613,43 @@ namespace Cesil.Tests
                 () =>
                 {
                     var writer = new HelperBufferWriter<char>(4);
-                    var adapter = new BufferWriterAdapter(writer);
+                    var adapter = new BufferWriterCharAdapter(writer);
 
                     Func<string> getter =
                         () =>
                         {
                             return new string(writer.Data.ToArray());
+                        };
+
+                    return (adapter, getter);
+                },
+                () =>
+                {
+                    var pipe = new Pipe();
+                    var adapter = new BufferWriterByteAdapter(pipe.Writer, Encoding.UTF32);
+
+                    Func<string> getter =
+                        () =>
+                        {
+                            pipe.Writer.Complete();
+
+                            var bytes = new List<byte>();
+
+                            while(pipe.Reader.TryRead(out var res))
+                            {
+                                foreach(var seq in res.Buffer)
+                                {
+                                    bytes.AddRange(seq.ToArray());
+                                }
+
+                                if(res.IsCompleted || res.IsCanceled)
+                                {
+                                    break;
+                                }
+                            }
+
+                            var byteArr = bytes.ToArray();
+                            return Encoding.UTF32.GetString(byteArr);
                         };
 
                     return (adapter, getter);

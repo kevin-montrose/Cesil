@@ -2021,7 +2021,7 @@ namespace Cesil.Tests
                     return true;
                 };
             var cCalled = 0;
-            InstanceBuilderDelegate<_InstanceBuilderCast> c =
+            InstanceProviderDelegate<_InstanceBuilderCast> c =
                 (out _InstanceBuilderCast res) =>
                 {
                     cCalled++;
@@ -2030,20 +2030,20 @@ namespace Cesil.Tests
                     return true;
                 };
 
-            var aWrapped = (InstanceBuilder)a;
-            var aRes = ((InstanceBuilderDelegate<_InstanceBuilderCast>)aWrapped.Delegate)(out var aOut);
+            var aWrapped = (InstanceProvider)a;
+            var aRes = ((InstanceProviderDelegate<_InstanceBuilderCast>)aWrapped.Delegate)(out var aOut);
             Assert.True(aRes);
             Assert.NotNull(aOut);
             Assert.Equal(1, aCalled);
 
-            var bWrapped = (InstanceBuilder)b;
-            var bRes = ((InstanceBuilderDelegate<_InstanceBuilderCast>)bWrapped.Delegate)(out var bOut);
+            var bWrapped = (InstanceProvider)b;
+            var bRes = ((InstanceProviderDelegate<_InstanceBuilderCast>)bWrapped.Delegate)(out var bOut);
             Assert.True(bRes);
             Assert.NotNull(bOut);
             Assert.Equal(1, bCalled);
 
-            var cWrapped = (InstanceBuilder)c;
-            var cRes = ((InstanceBuilderDelegate<_InstanceBuilderCast>)cWrapped.Delegate)(out var cOut);
+            var cWrapped = (InstanceProvider)c;
+            var cRes = ((InstanceProviderDelegate<_InstanceBuilderCast>)cWrapped.Delegate)(out var cOut);
             Assert.True(cRes);
             Assert.NotNull(cOut);
             Assert.Same(c, cWrapped.Delegate);
@@ -2077,9 +2077,9 @@ namespace Cesil.Tests
         [Fact]
         public void InstanceBuilders()
         {
-            var methodBuilder = InstanceBuilder.ForMethod(typeof(WrapperTests).GetMethod(nameof(_InstanceBuilderStaticMethod), BindingFlags.NonPublic | BindingFlags.Static));
-            var constructorBuilder = InstanceBuilder.ForParameterlessConstructor(typeof(_InstanceBuilders).GetConstructor(Type.EmptyTypes));
-            var delBuilder = InstanceBuilder.ForDelegate<_InstanceBuilders>((out _InstanceBuilders a) => { a = new _InstanceBuilders(); return true; });
+            var methodBuilder = InstanceProvider.ForMethod(typeof(WrapperTests).GetMethod(nameof(_InstanceBuilderStaticMethod), BindingFlags.NonPublic | BindingFlags.Static));
+            var constructorBuilder = InstanceProvider.ForParameterlessConstructor(typeof(_InstanceBuilders).GetConstructor(Type.EmptyTypes));
+            var delBuilder = InstanceProvider.ForDelegate<_InstanceBuilders>((out _InstanceBuilders a) => { a = new _InstanceBuilders(); return true; });
             var builders = new[] { methodBuilder, constructorBuilder, delBuilder };
 
             var notBuilder = "";
@@ -2130,34 +2130,34 @@ namespace Cesil.Tests
 
             // ForMethod errors
             {
-                Assert.Throws<ArgumentNullException>(() => InstanceBuilder.ForMethod(null));
-                Assert.Throws<ArgumentException>(() => InstanceBuilder.ForMethod(typeof(WrapperTests).GetMethod(nameof(_NonStaticBuilder), BindingFlags.NonPublic | BindingFlags.Instance)));
-                Assert.Throws<ArgumentException>(() => InstanceBuilder.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadReturnBuilder), BindingFlags.NonPublic | BindingFlags.Static)));
-                Assert.Throws<ArgumentException>(() => InstanceBuilder.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadArgs1Builder), BindingFlags.NonPublic | BindingFlags.Static)));
-                Assert.Throws<ArgumentException>(() => InstanceBuilder.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadArgs2Builder), BindingFlags.NonPublic | BindingFlags.Static)));
+                Assert.Throws<ArgumentNullException>(() => InstanceProvider.ForMethod(null));
+                Assert.Throws<ArgumentException>(() => InstanceProvider.ForMethod(typeof(WrapperTests).GetMethod(nameof(_NonStaticBuilder), BindingFlags.NonPublic | BindingFlags.Instance)));
+                Assert.Throws<ArgumentException>(() => InstanceProvider.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadReturnBuilder), BindingFlags.NonPublic | BindingFlags.Static)));
+                Assert.Throws<ArgumentException>(() => InstanceProvider.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadArgs1Builder), BindingFlags.NonPublic | BindingFlags.Static)));
+                Assert.Throws<ArgumentException>(() => InstanceProvider.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadArgs2Builder), BindingFlags.NonPublic | BindingFlags.Static)));
             }
 
             // ForParameterlessConstructor errors
             {
-                Assert.Throws<ArgumentNullException>(() => InstanceBuilder.ForParameterlessConstructor(null));
-                Assert.Throws<ArgumentException>(() => InstanceBuilder.ForParameterlessConstructor(typeof(_InstanceBuilders).GetConstructor(new[] { typeof(int) })));
-                Assert.Throws<ArgumentException>(() => InstanceBuilder.ForParameterlessConstructor(typeof(_InstanceBuilders_Abstract).GetConstructor(Type.EmptyTypes)));
-                Assert.Throws<ArgumentException>(() => InstanceBuilder.ForParameterlessConstructor(typeof(_InstanceBuilders_Generic<>).GetConstructor(Type.EmptyTypes)));
+                Assert.Throws<ArgumentNullException>(() => InstanceProvider.ForParameterlessConstructor(null));
+                Assert.Throws<ArgumentException>(() => InstanceProvider.ForParameterlessConstructor(typeof(_InstanceBuilders).GetConstructor(new[] { typeof(int) })));
+                Assert.Throws<ArgumentException>(() => InstanceProvider.ForParameterlessConstructor(typeof(_InstanceBuilders_Abstract).GetConstructor(Type.EmptyTypes)));
+                Assert.Throws<ArgumentException>(() => InstanceProvider.ForParameterlessConstructor(typeof(_InstanceBuilders_Generic<>).GetConstructor(Type.EmptyTypes)));
             }
 
             // ForDelegate errors
             {
-                Assert.Throws<ArgumentNullException>(() => InstanceBuilder.ForDelegate<_InstanceBuilders>(null));
+                Assert.Throws<ArgumentNullException>(() => InstanceProvider.ForDelegate<_InstanceBuilders>(null));
             }
 
             // delegate cast errors
             {
                 Action a = () => { };
-                Assert.Throws<InvalidOperationException>(() => (InstanceBuilder)a);
+                Assert.Throws<InvalidOperationException>(() => (InstanceProvider)a);
                 Func<bool> b = () => false;
-                Assert.Throws<InvalidOperationException>(() => (InstanceBuilder)b);
+                Assert.Throws<InvalidOperationException>(() => (InstanceProvider)b);
                 Func<_InstanceBuilders, bool> c = (_) => false;
-                Assert.Throws<InvalidOperationException>(() => (InstanceBuilder)c);
+                Assert.Throws<InvalidOperationException>(() => (InstanceProvider)c);
             }
         }
 
@@ -2292,11 +2292,11 @@ namespace Cesil.Tests
                         res = new _InstanceBuilderCast();
                         return true;
                     };
-                var a = (InstanceBuilder)aDel;
-                var b = (InstanceBuilder)_Equatable_InstanceBuilder_Mtd;
+                var a = (InstanceProvider)aDel;
+                var b = (InstanceProvider)_Equatable_InstanceBuilder_Mtd;
                 var c = a;
-                var d = (InstanceBuilder)aDel;
-                var e = (InstanceBuilder)_Equatable_InstanceBuilder_Mtd;
+                var d = (InstanceProvider)aDel;
+                var e = (InstanceProvider)_Equatable_InstanceBuilder_Mtd;
                 Assert.False(a == b);
 
                 Assert.True(CompareHashAndReference(a, c));

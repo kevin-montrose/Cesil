@@ -196,22 +196,22 @@ namespace Cesil
         ///   constructor will be mapped from the surrogate to forType.
         ///   
         /// If a surrogate is not registered, either an exception will be thrown or forType will
-        ///   be passed to TypeDescriber.GetInstanceBuilder depending on the value of
+        ///   be passed to TypeDescriber.GetInstanceProvider depending on the value of
         ///   ThrowOnNoRegisteredSurrogate.
         /// </summary>
-        public InstanceBuilder GetInstanceBuilder(TypeInfo forType)
+        public InstanceProvider GetInstanceProvider(TypeInfo forType)
         {
             if (!SurrogateTypes.TryGetValue(forType, out var proxy))
             {
                 if (ThrowOnNoRegisteredSurrogate)
                 {
-                    return Throw.InvalidOperationException<InstanceBuilder>($"No surrogate registered for {forType}");
+                    return Throw.InvalidOperationException<InstanceProvider>($"No surrogate registered for {forType}");
                 }
 
-                return TypeDescriber.GetInstanceBuilder(forType);
+                return TypeDescriber.GetInstanceProvider(forType);
             }
 
-            var fromProxy = TypeDescriber.GetInstanceBuilder(proxy);
+            var fromProxy = TypeDescriber.GetInstanceProvider(proxy);
             return Map(forType, fromProxy);
         }
 
@@ -394,12 +394,12 @@ handleMethod:
             return SerializableMember.Create(ontoType, member.Name, (Getter)getterOnType, member.Formatter, shouldSerializeOnType, emitDefault);
         }
 
-        private static InstanceBuilder Map(TypeInfo ontoType, InstanceBuilder builder)
+        private static InstanceProvider Map(TypeInfo ontoType, InstanceProvider builder)
         {
             switch (builder.Mode)
             {
                 case BackingMode.Delegate:
-                    return Throw.InvalidOperationException<InstanceBuilder>($"Cannot map a delegate InstanceBuilder between types");
+                    return Throw.InvalidOperationException<InstanceProvider>($"Cannot map a delegate {nameof(InstanceProvider)} between types");
                 case BackingMode.Constructor:
                     {
                         var surrogateCons = builder.Constructor;
@@ -408,15 +408,15 @@ handleMethod:
                         var consOnType = ontoType.GetConstructor(surrogateConsBinding, null, Type.EmptyTypes, null);
                         if (consOnType == null)
                         {
-                            return Throw.InvalidOperationException<InstanceBuilder>($"No equivalent to {surrogateCons} found on {ontoType}");
+                            return Throw.InvalidOperationException<InstanceProvider>($"No equivalent to {surrogateCons} found on {ontoType}");
                         }
 
-                        return new InstanceBuilder(consOnType);
+                        return new InstanceProvider(consOnType);
                     }
                 case BackingMode.Method:
-                    return Throw.InvalidOperationException<InstanceBuilder>($"Cannot map a method InstanceBuilder between types");
+                    return Throw.InvalidOperationException<InstanceProvider>($"Cannot map a method {nameof(InstanceProvider)} between types");
                 default:
-                    return Throw.InvalidOperationException<InstanceBuilder>($"Unexpected {nameof(BackingMode)}: {builder.Mode}");
+                    return Throw.InvalidOperationException<InstanceProvider>($"Unexpected {nameof(BackingMode)}: {builder.Mode}");
             }
         }
 

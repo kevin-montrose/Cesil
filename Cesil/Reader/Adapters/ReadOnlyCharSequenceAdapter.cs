@@ -5,7 +5,7 @@ using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
-    internal sealed class ReadOnlySequenceAdapter: IReaderAdapter
+    internal sealed class ReadOnlyCharSequenceAdapter: IReaderAdapter
     {
         public bool IsDisposed { get; private set; }
 
@@ -14,7 +14,7 @@ namespace Cesil
         private ReadOnlySequence<char> Sequence;
         private bool IsComplete;
 
-        public ReadOnlySequenceAdapter(ReadOnlySequence<char> sequence)
+        public ReadOnlyCharSequenceAdapter(ReadOnlySequence<char> sequence)
         {
             Sequence = sequence;
             Enumerator = Sequence.GetEnumerator();

@@ -5,7 +5,7 @@ using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
-    internal sealed class BufferWriterAdapter : IWriterAdapter
+    internal sealed class BufferWriterCharAdapter : IWriterAdapter
     {
         public bool IsDisposed => Writer == null;
 
@@ -13,7 +13,7 @@ namespace Cesil
         private Memory<char> Memory;
         private IBufferWriter<char> Writer;
 
-        public BufferWriterAdapter(IBufferWriter<char> writer)
+        public BufferWriterCharAdapter(IBufferWriter<char> writer)
         {
             Writer = writer;
             Memory = default;

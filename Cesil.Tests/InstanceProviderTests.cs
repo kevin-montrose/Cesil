@@ -6,7 +6,7 @@ using static Cesil.Tests.Helpers;
 
 namespace Cesil.Tests
 {
-    public class InstanceBuilderTests
+    public class InstanceProviderTests
     {
         private class _BridgeDelegate
         {
@@ -41,14 +41,14 @@ namespace Cesil.Tests
                 return new[] { ix, foo };
             }
 
-            public InstanceBuilder GetInstanceBuilder(TypeInfo forType)
+            public InstanceProvider GetInstanceProvider(TypeInfo forType)
             {
-                InstanceBuilderDelegate<_BridgeDelegate_Subclass> x = (out _BridgeDelegate_Subclass foo) =>
+                InstanceProviderDelegate<_BridgeDelegate_Subclass> x = (out _BridgeDelegate_Subclass foo) =>
                 {
                     foo = new _BridgeDelegate_Subclass(123); return true;
                 };
 
-                return InstanceBuilder.ForDelegate(x);
+                return InstanceProvider.ForDelegate(x);
             }
 
             public IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext ctx, object row)
@@ -116,7 +116,7 @@ namespace Cesil.Tests
         [Fact]
         public void MethodBacking()
         {
-            InstanceBuilder builder = (InstanceBuilder)typeof(InstanceBuilderTests).GetMethod(nameof(_MethodBacking_Method), BindingFlags.Static | BindingFlags.NonPublic);
+            InstanceProvider builder = (InstanceProvider)typeof(InstanceProviderTests).GetMethod(nameof(_MethodBacking_Method), BindingFlags.Static | BindingFlags.NonPublic);
 
             var describer = new ManualTypeDescriber();
             describer.SetBuilder(builder);

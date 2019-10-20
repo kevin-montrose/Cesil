@@ -80,7 +80,7 @@ namespace Cesil
 
             var deserializeColumns = DiscoverDeserializeColumns(forType, options);
             var serializeColumns = DiscoverSerializeColumns(forType, options);
-            var cons = DiscoverInstanceBuilder<T>(forType, options);
+            var cons = DiscoverInstanceProvider<T>(forType, options);
 
             if (deserializeColumns.Length == 0 && serializeColumns.Length == 0)
             {
@@ -143,16 +143,16 @@ namespace Cesil
             return ret.ToArray();
         }
 
-        private static InstanceBuilderDelegate<T> DiscoverInstanceBuilder<T>(TypeInfo forType, Options opts)
+        private static InstanceProviderDelegate<T> DiscoverInstanceProvider<T>(TypeInfo forType, Options opts)
         {
             var neededType = typeof(T).GetTypeInfo();
 
-            var builder = opts.TypeDescriber.GetInstanceBuilder(forType);
+            var builder = opts.TypeDescriber.GetInstanceProvider(forType);
 
             var constructedType = builder.ConstructsType;
             if (!neededType.IsAssignableFrom(constructedType))
             {
-                return Throw.InvalidOperationException<InstanceBuilderDelegate<T>>($"Returned {nameof(InstanceBuilder)} ({builder}) cannot create instances assignable to {typeof(T)}");
+                return Throw.InvalidOperationException<InstanceProviderDelegate<T>>($"Returned {nameof(InstanceProvider)} ({builder}) cannot create instances assignable to {typeof(T)}");
             }
 
             var resultType = typeof(T).GetTypeInfo();
@@ -165,7 +165,7 @@ namespace Cesil
                 case BackingMode.Delegate:
                     {
                         var del = builder.Delegate;
-                        if (del is InstanceBuilderDelegate<T> exactMatch)
+                        if (del is InstanceProviderDelegate<T> exactMatch)
                         {
                             return exactMatch;
                         }
@@ -175,7 +175,7 @@ namespace Cesil
                         //   the original build delegate, which we then capture and use to construct
                         //   the type to be bridged
 
-                        var innerDelType = Types.InstanceBuilderDelegateType.MakeGenericType(constructedType).GetTypeInfo();
+                        var innerDelType = Types.InstanceProviderDelegateType.MakeGenericType(constructedType).GetTypeInfo();
 
                         var p1 = Expressions.Parameter_Object;
                         var l1 = Expression.Variable(constructedType);
@@ -213,7 +213,7 @@ namespace Cesil
 
                         var block = Expression.Block(new Expression[] { assignTo, retTrue });
 
-                        var wrappingDel = Expression.Lambda<InstanceBuilderDelegate<T>>(block, outVar);
+                        var wrappingDel = Expression.Lambda<InstanceProviderDelegate<T>>(block, outVar);
                         var ret = wrappingDel.Compile();
 
                         return ret;
@@ -222,13 +222,13 @@ namespace Cesil
                     {
                         var mtd = builder.Method;
 
-                        var delType = typeof(InstanceBuilderDelegate<T>);
-                        var del = (InstanceBuilderDelegate<T>)Delegate.CreateDelegate(delType, mtd);
+                        var delType = typeof(InstanceProviderDelegate<T>);
+                        var del = (InstanceProviderDelegate<T>)Delegate.CreateDelegate(delType, mtd);
 
                         return del;
                     }
                 default:
-                    return Throw.InvalidOperationException<InstanceBuilderDelegate<T>>($"Unexpected {nameof(BackingMode)}: {builder.Mode}");
+                    return Throw.InvalidOperationException<InstanceProviderDelegate<T>>($"Unexpected {nameof(BackingMode)}: {builder.Mode}");
             }
         }
 
