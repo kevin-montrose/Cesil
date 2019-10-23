@@ -5,6 +5,22 @@ namespace Cesil
 {
     internal sealed partial class ReaderStateMachine
     {
+        internal struct PinHandle: IDisposable
+        {
+            private ReaderStateMachine Outer;
+
+            internal PinHandle(ReaderStateMachine outer)
+            {
+                Outer = outer;
+            }
+
+            public void Dispose()
+            {
+                Outer?.Unpin();
+                Outer = null;
+            }
+        }
+
         internal readonly struct RePin : IDisposable
         {
             private readonly ReaderStateMachine Outer;
@@ -20,11 +36,13 @@ namespace Cesil
             }
         }
 
-        internal unsafe void Pin()
+        internal unsafe PinHandle Pin()
         {
             CharLookupPin = CharacterLookup.Pin(out CharLookup);
             TransitionMatrixHandle = TransitionMatrixMemory.Pin();
             TransitionMatrix = (TransitionRule*)TransitionMatrixHandle.Pointer;
+
+            return new PinHandle(this);
         }
 
         // it's actually kind of expensive to pin, so we don't want to unpin and repin before
@@ -41,7 +59,7 @@ namespace Cesil
             return new RePin(this);
         }
 
-        internal unsafe void Unpin()
+        private unsafe void Unpin()
         {
             CharLookup = null;
             CharLookupPin.Dispose();

@@ -16,7 +16,7 @@ namespace Cesil
 
         internal DynamicReader(IReaderAdapter reader, DynamicBoundConfiguration config, object context) : base(reader, config, context) { }
 
-        internal override ReadWithCommentResult<dynamic> TryReadInner(bool returnComments, bool pinAcquired, ref dynamic row)
+        internal override void HandleRowEndingsAndHeaders()
         {
             if (RowEndings == null)
             {
@@ -27,67 +27,68 @@ namespace Cesil
             {
                 HandleHeaders();
             }
+        }
+
+        internal override ReadWithCommentResult<dynamic> TryReadInner(bool returnComments, bool pinAcquired, ref dynamic row)
+        {
+            ReaderStateMachine.PinHandle handle = default;
 
             if (!pinAcquired)
             {
-                StateMachine.Pin();
+                handle = StateMachine.Pin();
             }
 
-            while (true)
+            using (handle)
             {
-                PreparingToWriteToBuffer();
-                var available = Buffer.Read(Inner);
-                if (available == 0)
+
+                while (true)
                 {
-                    var endRes = EndOfData();
-
-                    if (!pinAcquired)
+                    PreparingToWriteToBuffer();
+                    var available = Buffer.Read(Inner);
+                    if (available == 0)
                     {
-                        StateMachine.Unpin();
+                        var endRes = EndOfData();
+
+                        return HandleAdvanceResult(endRes, returnComments);
                     }
-                    return HandleAdvanceResult(endRes, returnComments);
-                }
 
-                if (!Partial.HasPending)
-                {
-                    DynamicRow dynRow;
-
-                    var rowAsObj = row as object;
-
-                    if (rowAsObj == null || !(row is DynamicRow))
+                    if (!Partial.HasPending)
                     {
-                        row = dynRow = MakeRow();
-                    }
-                    else
-                    {
-                        // clear it, if we're reusing
-                        dynRow = (row as DynamicRow);
-                        dynRow.Dispose();
+                        DynamicRow dynRow;
 
-                        if (dynRow.Owner != null && dynRow.Owner != this)
+                        var rowAsObj = row as object;
+
+                        if (rowAsObj == null || !(row is DynamicRow))
                         {
-                            dynRow.Owner.Remove(dynRow);
-                            if (Configuration.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose)
+                            row = dynRow = MakeRow();
+                        }
+                        else
+                        {
+                            // clear it, if we're reusing
+                            dynRow = (row as DynamicRow);
+                            dynRow.Dispose();
+
+                            if (dynRow.Owner != null && dynRow.Owner != this)
                             {
-                                NotifyOnDisposeHead.AddHead(ref NotifyOnDisposeHead, dynRow);
+                                dynRow.Owner.Remove(dynRow);
+                                if (Configuration.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose)
+                                {
+                                    NotifyOnDisposeHead.AddHead(ref NotifyOnDisposeHead, dynRow);
+                                }
                             }
                         }
+
+                        dynRow.Init(this, RowNumber, Columns.Length, Context, Configuration.TypeDescriber, ColumnNames, Configuration.MemoryPool);
+
+                        SetValueToPopulate(row);
                     }
 
-                    dynRow.Init(this, RowNumber, Columns.Length, Context, Configuration.TypeDescriber, ColumnNames, Configuration.MemoryPool);
-
-                    SetValueToPopulate(row);
-                }
-
-                var res = AdvanceWork(available);
-                var possibleReturn = HandleAdvanceResult(res, returnComments);
-                if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
-                {
-                    if (!pinAcquired)
+                    var res = AdvanceWork(available);
+                    var possibleReturn = HandleAdvanceResult(res, returnComments);
+                    if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
-                        StateMachine.Unpin();
+                        return possibleReturn;
                     }
-                    return possibleReturn;
                 }
             }
         }

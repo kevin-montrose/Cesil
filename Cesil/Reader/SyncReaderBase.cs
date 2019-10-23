@@ -29,38 +29,21 @@ namespace Cesil
                 return Throw.ArgumentNullException<TCollection>(nameof(into));
             }
 
-            bool prePinned;
-            if (!StateMachineInitialized)
-            {
-                prePinned = false;
-            }
-            else
-            {
-                StateMachine.Pin();
-                prePinned = true;
-            }
+            HandleRowEndingsAndHeaders();
 
-            while (true)
+            using (StateMachine.Pin())
             {
-                T _ = default;
-                var res = TryReadInner(false, prePinned, ref _);
-                if (!res.HasValue)
+                while (true)
                 {
-                    break;
+                    T _ = default;
+                    var res = TryReadInner(false, true, ref _);
+                    if (!res.HasValue)
+                    {
+                        break;
+                    }
+
+                    into.Add(res.Value);
                 }
-
-                into.Add(res.Value);
-
-                if(!prePinned && StateMachineInitialized)
-                {
-                    StateMachine.Pin();
-                    prePinned = true;
-                }
-            }
-
-            if (prePinned)
-            {
-                StateMachine.Unpin();
             }
 
             return into;
@@ -88,6 +71,8 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
+            HandleRowEndingsAndHeaders();
+
             var res = TryReadInner(false, false, ref record);
             if (res.ResultType == ReadWithCommentResultType.HasValue)
             {
@@ -111,10 +96,14 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
+            HandleRowEndingsAndHeaders();
+
             return TryReadInner(true, false, ref record);
         }
 
         internal abstract ReadWithCommentResult<T> TryReadInner(bool returnComments, bool pinAcquired, ref T record);
+
+        internal abstract void HandleRowEndingsAndHeaders();
 
         public abstract void Dispose();
     }

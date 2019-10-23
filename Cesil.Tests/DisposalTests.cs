@@ -140,6 +140,11 @@ namespace Cesil.Tests
                 {
                     IDisposable_BufferWriterByteAdapter();
                 }
+                else if (t == typeof(ReaderStateMachine.PinHandle))
+                {
+                    // intentionally NOT testing, this is plain as hell wrapper
+                    //   that is for making things exception safe
+                }
                 else
                 {
                     throw new XunitException($"No test configured for .Dispose() on {t.Name}");
@@ -280,20 +285,19 @@ namespace Cesil.Tests
                     testCases++;
                 }
 
-                // Current, non-generic
-                {
-                    var x = MakeEnumerator();
-                    var e = (System.Collections.IEnumerator)x;
-                    x.Dispose();
-                    Assert.Throws<ObjectDisposedException>(() => e.Current);
-                    testCases++;
-                }
-
                 // MoveNext
                 {
                     var e = MakeEnumerator();
                     e.Dispose();
                     Assert.Throws<ObjectDisposedException>(() => e.MoveNext());
+                    testCases++;
+                }
+
+                // Reset
+                {
+                    var e = MakeEnumerator();
+                    e.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => e.Reset());
                     testCases++;
                 }
 

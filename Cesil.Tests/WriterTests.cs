@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.IO.Pipelines;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
+using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -14,6 +17,98 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class WriterTests
     {
+        private sealed class _BufferWriterByte
+        {
+            public string Foo { get; set; }
+            public string Bar { get; set; }
+        }
+
+        [Fact]
+        public void BufferWriterByte()
+        {
+            var pipe = new Pipe();
+
+            var config = Configuration.For<_BufferWriterByte>();
+            using (var writer = config.CreateWriter(pipe.Writer, Encoding.UTF7))
+            {
+                writer.Write(new _BufferWriterByte { Foo = "hello", Bar = "world" });
+            }
+
+            pipe.Writer.Complete();
+
+            var bytes = new List<byte>();
+
+            while (pipe.Reader.TryRead(out var res))
+            {
+                foreach (var b in res.Buffer)
+                {
+                    bytes.AddRange(b.ToArray());
+                }
+
+                if (res.IsCompleted)
+                {
+                    break;
+                }
+            }
+
+            var str = Encoding.UTF7.GetString(bytes.ToArray());
+
+            Assert.Equal("Foo,Bar\r\nhello,world", str);
+        }
+
+        private sealed class _BufferWriterChar
+        {
+            public string Foo { get; set; }
+            public string Bar { get; set; }
+        }
+
+        private sealed class _BufferWriterChar_Writer : IBufferWriter<char>
+        {
+            public List<char> Data;
+
+            private Memory<char> Current;
+
+            public _BufferWriterChar_Writer()
+            {
+                Data = new List<char>();
+            }
+
+            public void Advance(int count)
+            {
+                Data.AddRange(Current.Slice(0, count).ToArray());
+                Current = Memory<char>.Empty;
+            }
+
+            public Memory<char> GetMemory(int sizeHint = 0)
+            {
+                if (sizeHint <= 0) sizeHint = 8;
+                var arr = new char[sizeHint];
+
+                Current = arr.AsMemory();
+
+                return Current;
+            }
+
+            public Span<char> GetSpan(int sizeHint = 0)
+            => GetMemory(sizeHint).Span;
+        }
+
+        [Fact]
+        public void BufferWriterChar()
+        {
+            var charWriter = new _BufferWriterChar_Writer();
+
+            var config = Configuration.For<_BufferWriterByte>();
+            using (var writer = config.CreateWriter(charWriter))
+            {
+                writer.Write(new _BufferWriterByte { Foo = "hello", Bar = "world" });
+            }
+
+            var str = new string(charWriter.Data.ToArray());
+
+            Assert.Equal("Foo,Bar\r\nhello,world", str);
+        }
+
         private sealed class _FailingGetter
         {
             public int Foo { get; set; }
@@ -2612,6 +2707,45 @@ namespace Cesil.Tests
                     Assert.Equal("1,,None,1970-01-01 00:00:00Z\r\n,Fizz,,", txt);
                 }
             );
+        }
+
+        private sealed class _PipeWriterAsync
+        {
+            public string Fizz { get; set; }
+            public int Buzz { get; set; }
+        }
+
+        [Fact]
+        public async Task PipeWriterAsync()
+        {
+            var pipe = new Pipe();
+
+            var config = Configuration.For<_PipeWriterAsync>();
+            await using(var csv = config.CreateAsyncWriter(pipe.Writer, Encoding.UTF7))
+            {
+                await csv.WriteAsync(new _PipeWriterAsync { Fizz = "hello", Buzz = 12345 });
+            }
+
+            pipe.Writer.Complete();
+
+            var bytes = new List<byte>();
+            while (true)
+            {
+                var res = await pipe.Reader.ReadAsync();
+                foreach(var seg in res.Buffer)
+                {
+                    bytes.AddRange(seg.ToArray());
+                }
+
+                if(res.IsCompleted || res.IsCanceled)
+                {
+                    break;
+                }
+            }
+
+            var str = Encoding.UTF7.GetString(bytes.ToArray());
+
+            Assert.Equal("Fizz,Buzz\r\nhello,12345", str);
         }
 
         [Fact]

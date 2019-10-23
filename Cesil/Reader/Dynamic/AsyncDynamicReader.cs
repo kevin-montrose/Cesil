@@ -17,111 +17,96 @@ namespace Cesil
 
         internal AsyncDynamicReader(IAsyncReaderAdapter reader, DynamicBoundConfiguration config, object context) : base(reader, config, context) { }
 
-        internal override ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync(bool returnComments, bool pinAcquired, ref dynamic record, CancellationToken cancel)
+        internal override ValueTask HandleRowEndingsAndHeadersAsync(CancellationToken cancel)
         {
             if (RowEndings == null)
             {
                 var handleLineEndingsTask = HandleLineEndingsAsync(cancel);
                 if (!handleLineEndingsTask.IsCompletedSuccessfully(this))
                 {
-                    DynamicRow dynRow;
-                    record = dynRow = GuaranteeUninitializedDynamicRow(this, ref record);
-                    return TryReadInnerAsync_ContinueAfterHandleLineEndingsAsync(this, handleLineEndingsTask, pinAcquired, returnComments, dynRow, cancel);
+                    return HandleRowEndingsAndHeadersAsync_ContinueAFterHandleLineEndingsAsync(this, handleLineEndingsTask, cancel);
                 }
             }
 
             if (ReadHeaders == null)
             {
-                var handleHeadersTask = HandleHeadersAsync(cancel);
-                if (!handleHeadersTask.IsCompletedSuccessfully(this))
-                {
-                    DynamicRow dynRow;
-                    record = dynRow = GuaranteeUninitializedDynamicRow(this, ref record);
-                    return TryReadInnerAsync_ContinueAfterHandleHeadersAsync(this, handleHeadersTask, pinAcquired, returnComments, dynRow, cancel);
-                }
+                return HandleHeadersAsync(cancel);
             }
 
+            return default;
 
-            var row = GuaranteeUninitializedDynamicRow(this, ref record);
+            // continue after waiting for HandleLineEndings to finish
+            static async ValueTask HandleRowEndingsAndHeadersAsync_ContinueAFterHandleLineEndingsAsync(AsyncDynamicReader self, ValueTask waitFor, CancellationToken cancel)
+            {
+                await waitFor;
+
+                if (self.ReadHeaders == null)
+                {
+                    await self.HandleHeadersAsync(cancel);
+                }
+            }
+        }
+
+        internal override ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync(bool returnComments, bool pinAcquired, ref dynamic record, CancellationToken cancel)
+        {
+            var row = GuaranteeRow(ref record) as DynamicRow;  // this `as` is absurdly important, don't remove it
             var needsInit = true;
+
+            ReaderStateMachine.PinHandle handle = default;
+            var disposeHandle = true;
 
             if (!pinAcquired)
             {
-                StateMachine.Pin();
+                handle = StateMachine.Pin();
             }
 
-            while (true)
+            try
             {
-                PreparingToWriteToBuffer();
-                var availableTask = Buffer.ReadAsync(Inner, cancel);
-                if (!availableTask.IsCompletedSuccessfully(this))
+                while (true)
                 {
-                    return TryReadInnerAsync_ContinueAfterReadAsync(this, availableTask, pinAcquired, returnComments, row, needsInit, cancel);
-                }
-
-                var available = availableTask.Result;
-                if (available == 0)
-                {
-                    var endRes = EndOfData();
-
-                    if (!pinAcquired)
+                    PreparingToWriteToBuffer();
+                    var availableTask = Buffer.ReadAsync(Inner, cancel);
+                    if (!availableTask.IsCompletedSuccessfully(this))
                     {
-                        StateMachine.Unpin();
+                        disposeHandle = false;
+                        return TryReadInnerAsync_ContinueAfterReadAsync(this, availableTask, handle, returnComments, row, needsInit, cancel);
                     }
-                    return new ValueTask<ReadWithCommentResult<dynamic>>(HandleAdvanceResult(endRes, returnComments));
-                }
 
-                if (!Partial.HasPending)
-                {
-                    if (needsInit)
+                    var available = availableTask.Result;
+                    if (available == 0)
                     {
-                        GuaranteeInitializedRow(this, row);
-                        needsInit = false;
+                        var endRes = EndOfData();
+
+                        return new ValueTask<ReadWithCommentResult<dynamic>>(HandleAdvanceResult(endRes, returnComments));
                     }
-                    SetValueToPopulate(row);
-                }
 
-                var res = AdvanceWork(available);
-                var possibleReturn = HandleAdvanceResult(res, returnComments);
-                if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
-                {
-                    if (!pinAcquired)
+                    if (!Partial.HasPending)
                     {
-                        StateMachine.Unpin();
-                    }
-                    return new ValueTask<ReadWithCommentResult<dynamic>>(possibleReturn);
-                }
-            }
-
-            // make sure we've got a row to work with
-            static DynamicRow GuaranteeUninitializedDynamicRow(AsyncDynamicReader self, ref dynamic row)
-            {
-                DynamicRow dynRow;
-                var rowAsObj = row as object;
-
-                if (rowAsObj == null || !(row is DynamicRow))
-                {
-                    row = dynRow = new DynamicRow();
-                }
-                else
-                {
-                    // clear it, if we're reusing
-                    dynRow = (row as DynamicRow);
-
-                    if (!dynRow.IsDisposed)
-                    {
-                        dynRow.Dispose();
-
-                        if (dynRow.Owner != null)
+                        if (needsInit)
                         {
-                            dynRow.Owner.Remove(dynRow);
+                            GuaranteeInitializedRow(this, row);
+                            needsInit = false;
                         }
+                        SetValueToPopulate(row);
+                    }
+
+                    var res = AdvanceWork(available);
+                    var possibleReturn = HandleAdvanceResult(res, returnComments);
+                    if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
+                    {
+                        return new ValueTask<ReadWithCommentResult<dynamic>>(possibleReturn);
                     }
                 }
-
-                return dynRow;
+            }
+            finally
+            {
+                if (!disposeHandle)
+                {
+                    handle.Dispose();
+                }
             }
 
+            // make sure our row is ready to go
             static DynamicRow GuaranteeInitializedRow(AsyncDynamicReader self, DynamicRow dynRow)
             {
                 self.MonitorForDispose(dynRow);
@@ -130,208 +115,107 @@ namespace Cesil
                 return dynRow;
             }
 
-            // continue after we handle detecting line endings
-            static async ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync_ContinueAfterHandleLineEndingsAsync(AsyncDynamicReader self, ValueTask waitFor, bool pinAcquired, bool returnComments, DynamicRow record, CancellationToken cancel)
-            {
-                var needsInit = true;
-
-                await waitFor;
-
-                if (self.ReadHeaders == null)
-                {
-                    var handleHeadersTask = self.HandleHeadersAsync(cancel);
-                    await handleHeadersTask;
-                }
-
-                if (!pinAcquired)
-                {
-                    self.StateMachine.Pin();
-                }
-
-                while (true)
-                {
-                    self.PreparingToWriteToBuffer();
-                    var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
-                    int available;
-                    using(self.StateMachine.ReleaseAndRePinForAsync(availableTask))
-                    {
-                        available = await availableTask;
-                    }
-                    if (available == 0)
-                    {
-                        var endRes = self.EndOfData();
-
-                        if (!pinAcquired)
-                        {
-                            self.StateMachine.Unpin();
-                        }
-                        return self.HandleAdvanceResult(endRes, returnComments);
-                    }
-
-                    if (!self.Partial.HasPending)
-                    {
-                        if (needsInit)
-                        {
-                            GuaranteeInitializedRow(self, record);
-                            needsInit = false;
-                        }
-                        self.SetValueToPopulate(record);
-                    }
-
-                    var res = self.AdvanceWork(available);
-                    var possibleReturn = self.HandleAdvanceResult(res, returnComments);
-                    if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
-                    {
-                        if (!pinAcquired)
-                        {
-                            self.StateMachine.Unpin();
-                        }
-                        return possibleReturn;
-                    }
-                }
-            }
-
-            // continue after we handle detecting headers
-            static async ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync_ContinueAfterHandleHeadersAsync(AsyncDynamicReader self, ValueTask waitFor, bool pinAcquired, bool returnComments, DynamicRow record, CancellationToken cancel)
-            {
-                var needsInit = true;
-
-                await waitFor;
-
-                if (!pinAcquired)
-                {
-                    self.StateMachine.Pin();
-                }
-
-                while (true)
-                {
-                    self.PreparingToWriteToBuffer();
-                    var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
-                    int available;
-                    using (self.StateMachine.ReleaseAndRePinForAsync(availableTask))
-                    {
-                        available = await availableTask;
-                    }
-                    if (available == 0)
-                    {
-                        var endRes = self.EndOfData();
-
-                        if (!pinAcquired)
-                        {
-                            self.StateMachine.Unpin();
-                        }
-                        return self.HandleAdvanceResult(endRes, returnComments);
-                    }
-
-                    if (!self.Partial.HasPending)
-                    {
-                        if (needsInit)
-                        {
-                            GuaranteeInitializedRow(self, record);
-                            needsInit = false;
-                        }
-                        self.SetValueToPopulate(record);
-                    }
-
-                    var res = self.AdvanceWork(available);
-                    var possibleReturn = self.HandleAdvanceResult(res, returnComments);
-                    if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
-                    {
-                        if (!pinAcquired)
-                        {
-                            self.StateMachine.Unpin();
-                        }
-                        return possibleReturn;
-                    }
-                }
-            }
-
             // continue after we read a chunk into a buffer
-            static async ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync_ContinueAfterReadAsync(AsyncDynamicReader self, ValueTask<int> waitFor, bool pinAcquired, bool returnComments, DynamicRow record, bool needsInit, CancellationToken cancel)
+            static async ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync_ContinueAfterReadAsync(AsyncDynamicReader self, ValueTask<int> waitFor, ReaderStateMachine.PinHandle handle, bool returnComments, DynamicRow record, bool needsInit, CancellationToken cancel)
             {
-                // finish this loop up
+                using (handle)
                 {
-                    int available;
-                    using (self.StateMachine.ReleaseAndRePinForAsync(waitFor))
+                    // finish this loop up
                     {
-                        available = await waitFor;
-                    }
-                    if (available == 0)
-                    {
-                        var endRes = self.EndOfData();
-
-                        if (!pinAcquired)
+                        int available;
+                        using (self.StateMachine.ReleaseAndRePinForAsync(waitFor))
                         {
-                            self.StateMachine.Unpin();
+                            available = await waitFor;
                         }
-                        return self.HandleAdvanceResult(endRes, returnComments);
-                    }
-
-                    if (!self.Partial.HasPending)
-                    {
-                        if (needsInit)
+                        if (available == 0)
                         {
-                            GuaranteeInitializedRow(self, record);
-                            needsInit = false;
-                        }
-                        self.SetValueToPopulate(record);
-                    }
+                            var endRes = self.EndOfData();
 
-                    var res = self.AdvanceWork(available);
-                    var possibleReturn = self.HandleAdvanceResult(res, returnComments);
-                    if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
-                    {
-                        if (!pinAcquired)
+                            return self.HandleAdvanceResult(endRes, returnComments);
+                        }
+
+                        if (!self.Partial.HasPending)
                         {
-                            self.StateMachine.Unpin();
+                            if (needsInit)
+                            {
+                                GuaranteeInitializedRow(self, record);
+                                needsInit = false;
+                            }
+                            self.SetValueToPopulate(record);
                         }
-                        return possibleReturn;
-                    }
-                }
 
-                // back into the loop
-                while (true)
-                {
-                    self.PreparingToWriteToBuffer();
-                    var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
-                    int available;
-                    using (self.StateMachine.ReleaseAndRePinForAsync(availableTask))
-                    {
-                        available = await availableTask;
-                    }
-                    if (available == 0)
-                    {
-                        var endRes = self.EndOfData();
-
-                        if (!pinAcquired)
+                        var res = self.AdvanceWork(available);
+                        var possibleReturn = self.HandleAdvanceResult(res, returnComments);
+                        if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                         {
-                            self.StateMachine.Unpin();
+                            return possibleReturn;
                         }
-                        return self.HandleAdvanceResult(endRes, returnComments);
                     }
 
-                    if (!self.Partial.HasPending)
+                    // back into the loop
+                    while (true)
                     {
-                        if (needsInit)
+                        self.PreparingToWriteToBuffer();
+                        var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
+                        int available;
+                        using (self.StateMachine.ReleaseAndRePinForAsync(availableTask))
                         {
-                            GuaranteeInitializedRow(self, record);
-                            needsInit = false;
+                            available = await availableTask;
                         }
-                        self.SetValueToPopulate(record);
-                    }
+                        if (available == 0)
+                        {
+                            var endRes = self.EndOfData();
 
-                    var res = self.AdvanceWork(available);
-                    var possibleReturn = self.HandleAdvanceResult(res, returnComments);
-                    if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
-                    {
-                        if (!pinAcquired)
-                        {
-                            self.StateMachine.Unpin();
+                            return self.HandleAdvanceResult(endRes, returnComments);
                         }
-                        return possibleReturn;
+
+                        if (!self.Partial.HasPending)
+                        {
+                            if (needsInit)
+                            {
+                                GuaranteeInitializedRow(self, record);
+                                needsInit = false;
+                            }
+                            self.SetValueToPopulate(record);
+                        }
+
+                        var res = self.AdvanceWork(available);
+                        var possibleReturn = self.HandleAdvanceResult(res, returnComments);
+                        if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
+                        {
+                            return possibleReturn;
+                        }
                     }
                 }
             }
+        }
+
+        internal override dynamic GuaranteeRow(ref dynamic row)
+        {
+            DynamicRow dynRow;
+            var rowAsObj = row as object;
+
+            if (rowAsObj == null || !(row is DynamicRow))
+            {
+                row = dynRow = new DynamicRow();
+            }
+            else
+            {
+                // clear it, if we're reusing
+                dynRow = (row as DynamicRow);
+
+                if (!dynRow.IsDisposed)
+                {
+                    dynRow.Dispose();
+
+                    if (dynRow.Owner != null)
+                    {
+                        dynRow.Owner.Remove(dynRow);
+                    }
+                }
+            }
+
+            return dynRow;
         }
 
         private void MonitorForDispose(DynamicRow dynRow)
@@ -350,7 +234,7 @@ namespace Cesil
         private ValueTask HandleHeadersAsync(CancellationToken cancel)
         {
             ReadHeaders = Configuration.ReadHeader;
-            
+
             var headerConfig =
                 new DynamicBoundConfiguration(
                     Configuration.TypeDescriber,

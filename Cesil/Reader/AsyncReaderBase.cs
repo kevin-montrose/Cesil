@@ -22,7 +22,7 @@ namespace Cesil
         }
 
         public ValueTask<TCollection> ReadAllAsync<TCollection>(TCollection into, CancellationToken cancel = default)
-        where TCollection: class, ICollection<T>
+        where TCollection : class, ICollection<T>
         {
             AssertNotDisposed(this);
 
@@ -40,52 +40,71 @@ namespace Cesil
                 return Throw.ArgumentNullException<ValueTask<TCollection>>(nameof(into));
             }
 
-            bool pinAcquired;
-            if(!StateMachineInitialized)
+            var headersAndRowEndingsTask = HandleRowEndingsAndHeadersAsync(cancel);
+            if (!headersAndRowEndingsTask.IsCompletedSuccessfully(this))
             {
-                pinAcquired = false;
-            }
-            else
-            {
-                StateMachine.Pin();
-                pinAcquired = true;
+                return ReadAllAsync_ContinueAfterHandleRowEndingsAndHeadersAsync(this, headersAndRowEndingsTask, into, cancel);
             }
 
-            while (true)
+            using (StateMachine.Pin())
             {
-                T _ = default;
-                var resTask = TryReadInnerAsync(false, pinAcquired, ref _, cancel);
-                if (!resTask.IsCompletedSuccessfully(this))
+                while (true)
                 {
-                    return ReadAllAsync_ContinueAfterTryReadAsync(this, resTask, pinAcquired, into, cancel);
-                }
+                    T _ = default;
+                    var resTask = TryReadInnerAsync(false, true, ref _, cancel);
+                    if (!resTask.IsCompletedSuccessfully(this))
+                    {
+                        return ReadAllAsync_ContinueAfterTryReadAsync(this, resTask, into, cancel);
+                    }
 
-                var res = resTask.Result;
-                if (res.HasValue)
-                {
-                    into.Add(res.Value);
+                    var res = resTask.Result;
+                    if (res.HasValue)
+                    {
+                        into.Add(res.Value);
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
-                else
-                {
-                    break;
-                }
-
-                if (!pinAcquired && StateMachineInitialized)
-                {
-                    StateMachine.Pin();
-                    pinAcquired = true;
-                }
-            }
-
-            if (pinAcquired)
-            {
-                StateMachine.Unpin();
             }
 
             return new ValueTask<TCollection>(into);
 
+            // continue after HandleRowEndingsAndHeadersAsync completes
+            static async ValueTask<TCollection> ReadAllAsync_ContinueAfterHandleRowEndingsAndHeadersAsync(AsyncReaderBase<T> self, ValueTask waitFor, TCollection into, CancellationToken cancel)
+            {
+                await waitFor;
+
+                using (self.StateMachine.Pin())
+                {
+                    while (true)
+                    {
+                        T _ = default;
+
+                        var resTask = self.TryReadInnerAsync(false, true, ref _, cancel);
+                        ReadWithCommentResult<T> res;
+                        using (self.StateMachine.ReleaseAndRePinForAsync(resTask))
+                        {
+                            res = await resTask;
+                        }
+
+                        if (res.HasValue)
+                        {
+                            into.Add(res.Value);
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                return into;
+            }
+
             // wait for a tryreadasync to finish, then continue async
-            static async ValueTask<TCollection> ReadAllAsync_ContinueAfterTryReadAsync(AsyncReaderBase<T> self, ValueTask<ReadWithCommentResult<T>> waitFor, bool pinAcquired, TCollection ret, CancellationToken cancel)
+            static async ValueTask<TCollection> ReadAllAsync_ContinueAfterTryReadAsync(AsyncReaderBase<T> self, ValueTask<ReadWithCommentResult<T>> waitFor, TCollection ret, CancellationToken cancel)
             {
                 var other = await waitFor;
                 if (other.HasValue)
@@ -100,8 +119,12 @@ namespace Cesil
                 while (true)
                 {
                     T _ = default;
-                    var tryReadTask = self.TryReadInnerAsync(false, pinAcquired, ref _, cancel);
-                    var res = await tryReadTask;
+                    var resTask = self.TryReadInnerAsync(false, true, ref _, cancel);
+                    ReadWithCommentResult<T> res;
+                    using (self.StateMachine.ReleaseAndRePinForAsync(resTask))
+                    {
+                        res = await resTask;
+                    }
                     if (res.HasValue)
                     {
                         ret.Add(res.Value);
@@ -109,12 +132,6 @@ namespace Cesil
                     else
                     {
                         break;
-                    }
-
-                    if(!pinAcquired && self.StateMachineInitialized)
-                    {
-                        self.StateMachine.Pin();
-                        pinAcquired = true;
                     }
                 }
 
@@ -133,6 +150,13 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
+            var handleRowEndingsAndHeadersTask = HandleRowEndingsAndHeadersAsync(cancel);
+            if (!handleRowEndingsAndHeadersTask.IsCompletedSuccessfully(this))
+            {
+                row = GuaranteeRow(ref row);
+                return TryReadWithReuseAsync_ContinueAfterHandleRowEndingsAndHeadersAsync(this, handleRowEndingsAndHeadersTask, row, cancel);
+            }
+
             var tryReadTask = TryReadInnerAsync(false, false, ref row, cancel);
             if (!tryReadTask.IsCompletedSuccessfully(this))
             {
@@ -148,6 +172,23 @@ namespace Cesil
                     return new ValueTask<ReadResult<T>>(ReadResult<T>.Empty);
                 default:
                     return Throw.InvalidOperationException<ValueTask<ReadResult<T>>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}");
+            }
+
+            // wait for HandleRowEndingsAndHeadersAsync to finish, then continue
+            static async ValueTask<ReadResult<T>> TryReadWithReuseAsync_ContinueAfterHandleRowEndingsAndHeadersAsync(AsyncReaderBase<T> self, ValueTask waitFor, T row, CancellationToken cancel)
+            {
+                await waitFor;
+
+                var res = await self.TryReadInnerAsync(false, false, ref row, cancel);
+                switch (res.ResultType)
+                {
+                    case ReadWithCommentResultType.HasValue:
+                        return new ReadResult<T>(res.Value);
+                    case ReadWithCommentResultType.NoValue:
+                        return ReadResult<T>.Empty;
+                    default:
+                        return Throw.InvalidOperationException<ReadResult<T>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}");
+                }
             }
 
             // wait for the inner call to finish
@@ -187,10 +228,27 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
+            var handleRowEndingsAndHeadersTask = HandleRowEndingsAndHeadersAsync(cancel);
+            if (!handleRowEndingsAndHeadersTask.IsCompletedSuccessfully(this))
+            {
+                return TryReadWithCommentReuseAsync_ContinueAfterHandleRowEndingsAndHeadersAsync(this, handleRowEndingsAndHeadersTask, record, cancel);
+            }
+
             return TryReadInnerAsync(true, false, ref record, cancel);
+
+            // wait for HandleRowEndingsAndHeadersAsync and continue
+            static async ValueTask<ReadWithCommentResult<T>> TryReadWithCommentReuseAsync_ContinueAfterHandleRowEndingsAndHeadersAsync(AsyncReaderBase<T> self, ValueTask waitFor, T record, CancellationToken cancel)
+            {
+                await waitFor;
+
+                return await self.TryReadInnerAsync(true, false, ref record, cancel);
+            }
         }
 
         internal abstract ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync(bool returnComments, bool pinAcquired, ref T record, CancellationToken cancel);
+
+        internal abstract ValueTask HandleRowEndingsAndHeadersAsync(CancellationToken cancel);
+        internal abstract T GuaranteeRow(ref T prealloced);
 
         public abstract ValueTask DisposeAsync();
     }

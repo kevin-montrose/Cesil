@@ -179,31 +179,30 @@ namespace Cesil
 
         internal (HeaderEnumerator Headers, bool IsHeader, Memory<char> PushBack) Read()
         {
-            StateMachine.Pin();
-
-            while (true)
+            using (StateMachine.Pin())
             {
-                var available = Buffer.Read(Inner);
-                if (available == 0)
+                while (true)
                 {
-                    if (BuilderBacking.Length > 0)
+                    var available = Buffer.Read(Inner);
+                    if (available == 0)
                     {
-                        PushPendingCharactersToValue();
+                        if (BuilderBacking.Length > 0)
+                        {
+                            PushPendingCharactersToValue();
+                        }
+                        break;
                     }
-                    break;
-                }
-                else
-                {
-                    AddToPushback(Buffer.Buffer.Span.Slice(0, available));
-                }
+                    else
+                    {
+                        AddToPushback(Buffer.Buffer.Span.Slice(0, available));
+                    }
 
-                if (AdvanceWork(available))
-                {
-                    break;
+                    if (AdvanceWork(available))
+                    {
+                        break;
+                    }
                 }
             }
-
-            StateMachine.Unpin();
 
             return IsHeaderResult();
         }
@@ -238,90 +237,74 @@ namespace Cesil
 
         internal ValueTask<(HeaderEnumerator Headers, bool IsHeader, Memory<char> PushBack)> ReadAsync(CancellationToken cancel)
         {
-            StateMachine.Pin();
+            var handle = StateMachine.Pin();
+            var disposeHandle = true;
 
-            while (true)
+            try
             {
-                var availableTask = Buffer.ReadAsync(InnerAsync, cancel);
-                if (!availableTask.IsCompletedSuccessfully(this))
+                while (true)
                 {
-                    return ReadAsync_ContinueAfterReadAsync(this, availableTask, cancel);
-                }
-
-                var available = availableTask.Result;
-                if (available == 0)
-                {
-                    if (BuilderBacking.Length > 0)
+                    var availableTask = Buffer.ReadAsync(InnerAsync, cancel);
+                    if (!availableTask.IsCompletedSuccessfully(this))
                     {
-                        PushPendingCharactersToValue();
+                        disposeHandle = false;
+                        return ReadAsync_ContinueAfterReadAsync(this, availableTask, handle, cancel);
                     }
-                    break;
-                }
-                else
-                {
-                    AddToPushback(Buffer.Buffer.Span.Slice(0, available));
-                }
 
-                if (AdvanceWork(available))
-                {
-                    break;
+                    var available = availableTask.Result;
+                    if (available == 0)
+                    {
+                        if (BuilderBacking.Length > 0)
+                        {
+                            PushPendingCharactersToValue();
+                        }
+                        break;
+                    }
+                    else
+                    {
+                        AddToPushback(Buffer.Buffer.Span.Slice(0, available));
+                    }
+
+                    if (AdvanceWork(available))
+                    {
+                        break;
+                    }
                 }
             }
-
-            StateMachine.Unpin();
+            finally
+            {
+                if (disposeHandle)
+                {
+                    handle.Dispose();
+                }
+            }
 
             return new ValueTask<(HeaderEnumerator Headers, bool IsHeader, Memory<char> PushBack)>(IsHeaderResult());
 
             // wait for read to complete, then continue async
-            static async ValueTask<(HeaderEnumerator Headers, bool IsHeader, Memory<char> PushBack)> ReadAsync_ContinueAfterReadAsync(HeadersReader<T> self, ValueTask<int> waitFor, CancellationToken cancel)
+            static async ValueTask<(HeaderEnumerator Headers, bool IsHeader, Memory<char> PushBack)> ReadAsync_ContinueAfterReadAsync(
+                HeadersReader<T> self, 
+                ValueTask<int> waitFor, 
+                ReaderStateMachine.PinHandle handle,
+                CancellationToken cancel)
             {
-                int available;
-                using (self.StateMachine.ReleaseAndRePinForAsync(waitFor))
+                using (handle)
                 {
-                    available = await waitFor;
-                }
-
-                // handle the in flight task
-                if (available == 0)
-                {
-                    if (self.BuilderBacking.Length > 0)
+                    int available;
+                    using (self.StateMachine.ReleaseAndRePinForAsync(waitFor))
                     {
-                        self.PushPendingCharactersToValue();
+                        available = await waitFor;
                     }
 
-                    self.StateMachine.Unpin();
-
-                    return self.IsHeaderResult();
-                }
-                else
-                {
-                    self.AddToPushback(self.Buffer.Buffer.Span.Slice(0, available));
-                }
-
-                if (self.AdvanceWork(available))
-                {
-                    self.StateMachine.Unpin();
-
-                    return self.IsHeaderResult();
-                }
-
-
-                // go back into the loop
-                while (true)
-                {
-                    var readTask = self.Buffer.ReadAsync(self.InnerAsync, cancel);
-                    using (self.StateMachine.ReleaseAndRePinForAsync(readTask))
-                    {
-                        available = await readTask;
-                    }
-
+                    // handle the in flight task
                     if (available == 0)
                     {
                         if (self.BuilderBacking.Length > 0)
                         {
                             self.PushPendingCharactersToValue();
                         }
-                        break;
+
+                        return self.IsHeaderResult();
                     }
                     else
                     {
@@ -330,13 +313,39 @@ namespace Cesil
 
                     if (self.AdvanceWork(available))
                     {
-                        break;
+                        return self.IsHeaderResult();
                     }
+
+                    // go back into the loop
+                    while (true)
+                    {
+                        var readTask = self.Buffer.ReadAsync(self.InnerAsync, cancel);
+                        using (self.StateMachine.ReleaseAndRePinForAsync(readTask))
+                        {
+                            available = await readTask;
+                        }
+
+                        if (available == 0)
+                        {
+                            if (self.BuilderBacking.Length > 0)
+                            {
+                                self.PushPendingCharactersToValue();
+                            }
+                            break;
+                        }
+                        else
+                        {
+                            self.AddToPushback(self.Buffer.Buffer.Span.Slice(0, available));
+                        }
+
+                        if (self.AdvanceWork(available))
+                        {
+                            break;
+                        }
+                    }
+
+                    return self.IsHeaderResult();
                 }
-
-                self.StateMachine.Unpin();
-
-                return self.IsHeaderResult();
             }
         }
 

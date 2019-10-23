@@ -9,269 +9,151 @@ namespace Cesil
     {
         internal AsyncReader(IAsyncReaderAdapter inner, ConcreteBoundConfiguration<T> config, object context) : base(inner, config, context) { }
 
-        internal override ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync(bool returnComments, bool pinAcquired, ref T record, CancellationToken cancel)
+        internal override ValueTask HandleRowEndingsAndHeadersAsync(CancellationToken cancel)
         {
             if (RowEndings == null)
             {
                 var handleLineEndingsTask = HandleLineEndingsAsync(cancel);
                 if (!handleLineEndingsTask.IsCompletedSuccessfully(this))
                 {
-                    var row = GuaranteeRecord(this, pinAcquired, ref record);
-                    return TryReadInnerAsync_ContinueAfterHandleLineEndingsAsync(this, handleLineEndingsTask, pinAcquired, returnComments, row, cancel);
+                    return HandleRowEndingsAndHeadersAsync_ContinueAfterRowEndingsAsync(this, handleLineEndingsTask, cancel);
                 }
             }
 
             if (ReadHeaders == null)
             {
                 var handleHeadersTask = HandleHeadersAsync(cancel);
-                if (!handleHeadersTask.IsCompletedSuccessfully(this))
+                return handleHeadersTask;
+            }
+
+            return default;
+
+            // continue after HandleLineEndingsAsync
+            static async ValueTask HandleRowEndingsAndHeadersAsync_ContinueAfterRowEndingsAsync(AsyncReader<T> self, ValueTask waitFor, CancellationToken cancel)
+            {
+                await waitFor;
+
+                if(self.ReadHeaders == null)
                 {
-                    var row = GuaranteeRecord(this, pinAcquired, ref record);
-                    return TryReadInnerAsync_ContinueAfterHandleHeadersAsync(this, handleHeadersTask, pinAcquired, returnComments, row, cancel);
+                    await self.HandleHeadersAsync(cancel);
                 }
             }
+        }
+
+        internal override ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync(bool returnComments, bool pinAcquired, ref T record, CancellationToken cancel)
+        {
+            ReaderStateMachine.PinHandle handle = default;
+            var disposeHandle = true;
 
             if (!pinAcquired)
             {
-                StateMachine.Pin();
+                handle = StateMachine.Pin();
             }
 
-            while (true)
+            try
             {
-                PreparingToWriteToBuffer();
-                var availableTask = Buffer.ReadAsync(Inner, cancel);
-                if (!availableTask.IsCompletedSuccessfully(this))
-                {
-                    var row = GuaranteeRecord(this, pinAcquired, ref record);
-                    return TryReadInnerAsync_ContinueAfterReadAsync(this, availableTask, pinAcquired, returnComments, row, cancel);
-                }
-
-                var available = availableTask.Result;
-                if (available == 0)
-                {
-                    var endRes = EndOfData();
-
-                    if (!pinAcquired)
-                    {
-                        StateMachine.Unpin();
-                    }
-                    return new ValueTask<ReadWithCommentResult<T>>(HandleAdvanceResult(endRes, returnComments));
-                }
-
-                if (!Partial.HasPending)
-                {
-                    record = GuaranteeRecord(this, pinAcquired, ref record);
-                    SetValueToPopulate(record);
-                }
-
-                var res = AdvanceWork(available);
-                var possibleReturn = HandleAdvanceResult(res, returnComments);
-                if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
-                {
-                    if (!pinAcquired)
-                    {
-                        StateMachine.Unpin();
-                    }
-                    return new ValueTask<ReadWithCommentResult<T>>(possibleReturn);
-                }
-            }
-
-            // make sure we've got a row to work with
-            static T GuaranteeRecord(AsyncReader<T> self, bool pinAcquired, ref T preallocd)
-            {
-                if (preallocd != null)
-                {
-                    return preallocd;
-                }
-
-                if (!self.Configuration.NewCons(out preallocd))
-                {
-                    if (!pinAcquired)
-                    {
-                        self.StateMachine.Unpin();
-                    }
-                    return Throw.InvalidOperationException<T>($"Failed to construct new instance of {typeof(T)}");
-                }
-
-                return preallocd;
-            }
-
-            // continue after we handle detecting line endings
-            static async ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync_ContinueAfterHandleLineEndingsAsync(AsyncReader<T> self, ValueTask waitFor, bool pinAcquired, bool returnComments, T record, CancellationToken cancel)
-            {
-                await waitFor;
-
-                if (self.ReadHeaders == null)
-                {
-                    var handleTask = self.HandleHeadersAsync(cancel);
-                    await handleTask;
-                }
-
-                if (!pinAcquired)
-                {
-                    self.StateMachine.Pin();
-                }
-
                 while (true)
                 {
-                    self.PreparingToWriteToBuffer();
-                    var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
-                    int available;
-                    using (self.StateMachine.ReleaseAndRePinForAsync(availableTask))
+                    PreparingToWriteToBuffer();
+                    var availableTask = Buffer.ReadAsync(Inner, cancel);
+                    if (!availableTask.IsCompletedSuccessfully(this))
                     {
-                        available = await availableTask;
+                        var row = GuaranteeRow(ref record);
+                        disposeHandle = false;
+                        return TryReadInnerAsync_ContinueAfterReadAsync(this, availableTask, handle, returnComments, row, cancel);
                     }
+
+                    var available = availableTask.Result;
                     if (available == 0)
                     {
-                        var endRes = self.EndOfData();
+                        var endRes = EndOfData();
 
-                        if (!pinAcquired)
-                        {
-                            self.StateMachine.Unpin();
-                        }
-                        return self.HandleAdvanceResult(endRes, returnComments);
+                        return new ValueTask<ReadWithCommentResult<T>>(HandleAdvanceResult(endRes, returnComments));
                     }
 
-                    if (!self.Partial.HasPending)
+                    if (!Partial.HasPending)
                     {
-                        self.SetValueToPopulate(record);
+                        record = GuaranteeRow(ref record);
+                        SetValueToPopulate(record);
                     }
 
-                    var res = self.AdvanceWork(available);
-                    var possibleReturn = self.HandleAdvanceResult(res, returnComments);
+                    var res = AdvanceWork(available);
+                    var possibleReturn = HandleAdvanceResult(res, returnComments);
                     if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
-                        if (!pinAcquired)
-                        {
-                            self.StateMachine.Unpin();
-                        }
-                        return possibleReturn;
+                        return new ValueTask<ReadWithCommentResult<T>>(possibleReturn);
                     }
                 }
             }
-
-            // continue after we handle detecting headers
-            static async ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync_ContinueAfterHandleHeadersAsync(AsyncReader<T> self, ValueTask waitFor, bool pinAcquired, bool returnComments, T record, CancellationToken cancel)
+            finally
             {
-                await waitFor;
-
-                if (!pinAcquired)
+                if (disposeHandle)
                 {
-                    self.StateMachine.Pin();
-                }
-
-                while (true)
-                {
-                    self.PreparingToWriteToBuffer();
-                    var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
-                    int available;
-                    using (self.StateMachine.ReleaseAndRePinForAsync(availableTask))
-                    {
-                        available = await availableTask;
-                    }
-                    if (available == 0)
-                    {
-                        var endRes = self.EndOfData();
-
-                        if (!pinAcquired)
-                        {
-                            self.StateMachine.Unpin();
-                        }
-                        return self.HandleAdvanceResult(endRes, returnComments);
-                    }
-
-                    if (!self.Partial.HasPending)
-                    {
-                        self.SetValueToPopulate(record);
-                    }
-
-                    var res = self.AdvanceWork(available);
-                    var possibleReturn = self.HandleAdvanceResult(res, returnComments);
-                    if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
-                    {
-                        if (!pinAcquired)
-                        {
-                            self.StateMachine.Unpin();
-                        }
-                        return possibleReturn;
-                    }
+                    handle.Dispose();
                 }
             }
 
             // continue after we read a chunk into a buffer
-            static async ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync_ContinueAfterReadAsync(AsyncReader<T> self, ValueTask<int> waitFor, bool pinAcquired, bool returnComments, T record, CancellationToken cancel)
+            static async ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync_ContinueAfterReadAsync(AsyncReader<T> self, ValueTask<int> waitFor, ReaderStateMachine.PinHandle handle, bool returnComments, T record, CancellationToken cancel)
             {
-                // finish this loop up
+                using (handle)
                 {
-                    int available;
-                    using (self.StateMachine.ReleaseAndRePinForAsync(waitFor))
+                    // finish this loop up
                     {
-                        available = await waitFor;
-                    }
-                    if (available == 0)
-                    {
-                        var endRes = self.EndOfData();
-
-                        if (!pinAcquired)
+                        int available;
+                        using (self.StateMachine.ReleaseAndRePinForAsync(waitFor))
                         {
-                            self.StateMachine.Unpin();
+                            available = await waitFor;
                         }
-                        return self.HandleAdvanceResult(endRes, returnComments);
-                    }
-
-                    if (!self.Partial.HasPending)
-                    {
-                        record = GuaranteeRecord(self, pinAcquired, ref record);
-                        self.SetValueToPopulate(record);
-                    }
-
-                    var res = self.AdvanceWork(available);
-                    var possibleReturn = self.HandleAdvanceResult(res, returnComments);
-                    if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
-                    {
-                        if (!pinAcquired)
+                        if (available == 0)
                         {
-                            self.StateMachine.Unpin();
+                            var endRes = self.EndOfData();
+
+                            return self.HandleAdvanceResult(endRes, returnComments);
                         }
-                        return possibleReturn;
-                    }
-                }
 
-                // back into the loop
-                while (true)
-                {
-                    self.PreparingToWriteToBuffer();
-                    var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
-                    int available;
-                    using (self.StateMachine.ReleaseAndRePinForAsync(availableTask))
-                    {
-                        available = await availableTask;
-                    }
-                    if (available == 0)
-                    {
-                        var endRes = self.EndOfData();
-
-                        if (!pinAcquired)
+                        if (!self.Partial.HasPending)
                         {
-                            self.StateMachine.Unpin();
+                            record = self.GuaranteeRow(ref record);
+                            self.SetValueToPopulate(record);
                         }
-                        return self.HandleAdvanceResult(endRes, returnComments);
-                    }
 
-                    if (!self.Partial.HasPending)
-                    {
-                        self.SetValueToPopulate(record);
-                    }
-
-                    var res = self.AdvanceWork(available);
-                    var possibleReturn = self.HandleAdvanceResult(res, returnComments);
-                    if(possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
-                    {
-                        if (!pinAcquired)
+                        var res = self.AdvanceWork(available);
+                        var possibleReturn = self.HandleAdvanceResult(res, returnComments);
+                        if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                         {
-                            self.StateMachine.Unpin();
+                            return possibleReturn;
                         }
-                        return possibleReturn;
+                    }
+
+                    // back into the loop
+                    while (true)
+                    {
+                        self.PreparingToWriteToBuffer();
+                        var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
+                        int available;
+                        using (self.StateMachine.ReleaseAndRePinForAsync(availableTask))
+                        {
+                            available = await availableTask;
+                        }
+                        if (available == 0)
+                        {
+                            var endRes = self.EndOfData();
+
+                            return self.HandleAdvanceResult(endRes, returnComments);
+                        }
+
+                        if (!self.Partial.HasPending)
+                        {
+                            self.SetValueToPopulate(record);
+                        }
+
+                        var res = self.AdvanceWork(available);
+                        var possibleReturn = self.HandleAdvanceResult(res, returnComments);
+                        if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
+                        {
+                            return possibleReturn;
+                        }
                     }
                 }
             }
@@ -324,6 +206,22 @@ namespace Cesil
                     needsDispose.Dispose();
                 }
             }
+        }
+
+        // make sure we've got a row to work with
+        internal override T GuaranteeRow(ref T preallocd)
+        {
+            if (preallocd != null)
+            {
+                return preallocd;
+            }
+
+            if (!Configuration.NewCons(out preallocd))
+            {
+                return Throw.InvalidOperationException<T>($"Failed to construct new instance of {typeof(T)}");
+            }
+
+            return preallocd;
         }
 
         private ValueTask HandleHeadersAsync(CancellationToken cancel)

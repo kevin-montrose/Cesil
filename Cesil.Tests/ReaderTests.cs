@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
+using System.IO.Pipelines;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
+using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -13,6 +16,259 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ReaderTests
     {
+        private sealed class _ReadAllEmpty
+        {
+            public string Fizz { get; set; }
+        }
+
+        [Fact]
+        public void ReadAllEmpty()
+        {
+            RunSyncReaderVariants<_ReadAllEmpty>(
+                Options.Default,
+                (config, getReader) =>
+                {
+                    using(var reader = getReader(""))
+                    using(var csv = config.CreateReader(reader))
+                    {
+                        var res = csv.ReadAll();
+
+                        Assert.Empty(res);
+                    }
+                }
+            );
+        }
+
+        private sealed class _ReadOneThenAll
+        {
+            public string Foo { get; set; }
+        }
+
+        [Fact]
+        public void ReadOneThenAll()
+        {
+            RunSyncReaderVariants<_ReadOneThenAll>(
+                Options.Default,
+                (config, getReader) =>
+                {
+                    using(var reader = getReader("Foo\r\nbar\r\nfizz\r\nbuzz"))
+                    using(var csv = config.CreateReader(reader))
+                    {
+                        var rows = new List<_ReadOneThenAll>();
+
+                        Assert.True(csv.TryRead(out var row));
+                        rows.Add(row);
+
+                        csv.ReadAll(rows);
+
+                        Assert.Collection(
+                            rows,
+                            a => Assert.Equal("bar", a.Foo),
+                            b => Assert.Equal("fizz", b.Foo),
+                            c => Assert.Equal("buzz", c.Foo)
+                        );
+                    }
+                }
+            );
+        }
+
+        private sealed class _NullInto
+        {
+            public string A { get; set; }
+        }
+
+        [Fact]
+        public void NullInto()
+        {
+            RunSyncReaderVariants<_NullInto>(
+                Options.Default,
+                (config, getReader) =>
+                {
+                    using(var reader = getReader(""))
+                    using(var csv = config.CreateReader(reader))
+                    {
+                        Assert.Throws<ArgumentNullException>(() => csv.ReadAll(default(List<_NullInto>)));
+                    }
+                }
+            );
+        }
+
+        private sealed class _UncommonAdvanceResults
+        {
+            public string A { get; set; }
+        }
+
+        [Fact]
+        public void UncommonAdvanceResults()
+        {
+            {
+                var opts = Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).WithEscapedValueStartAndEnd('\\').Build();
+
+                // escape char after \r
+                RunSyncReaderVariants<_UncommonAdvanceResults>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("hello\r\\"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var exc = Assert.Throws<InvalidOperationException>(() => csv.TryRead(out _));
+
+                            Assert.Equal("Encountered '\\' when expecting end of record", exc.Message);
+                        }
+                    }
+                );
+            }
+
+            {
+                var opts = Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).WithEscapedValueStartAndEnd('\\').WithReadHeader(ReadHeaders.Never).Build();
+
+                // kept reading after things were busted
+                RunSyncReaderVariants<_UncommonAdvanceResults>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("hello\r\\ " + string.Join(" ", Enumerable.Repeat('c', 1000))))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            Assert.ThrowsAny<Exception>(() => csv.TryRead(out _));
+
+                            var exc = Assert.Throws<InvalidOperationException>(() => csv.TryRead(out _));
+                            Assert.Equal("Internal state machine is in an invalid state due to a previous error", exc.Message);
+                        }
+                    }
+                );
+            }
+
+            {
+                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+
+                // kept reading after things were busted
+                RunSyncReaderVariants<_UncommonAdvanceResults>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("hel\"lo"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var exc = Assert.Throws<InvalidOperationException>(() => csv.TryRead(out _));
+                            Assert.Equal("Encountered '\"', starting an escaped value, when already in a value", exc.Message);
+                        }
+                    }
+                );
+            }
+
+            {
+                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+
+                // kept reading after things were busted
+                RunSyncReaderVariants<_UncommonAdvanceResults>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("\"hel\"lo\""))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var exc = Assert.Throws<InvalidOperationException>(() => csv.TryRead(out _));
+                            Assert.Equal("Encountered 'l' in an escape sequence, which is invalid", exc.Message);
+                        }
+                    }
+                );
+            }
+
+            {
+                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+
+                // kept reading after things were busted
+                RunSyncReaderVariants<_UncommonAdvanceResults>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("\"A"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var exc = Assert.Throws<InvalidOperationException>(() => csv.TryRead(out _));
+                            Assert.Equal("Data ended unexpectedly", exc.Message);
+                        }
+                    }
+                );
+            }
+        }
+
+        private sealed class _CommentEndingInCarriageReturn
+        {
+            public string Foo { get; set; }
+        }
+
+        [Fact]
+        public void CommentEndingInCarriageReturn()
+        {
+            var opt = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturnLineFeed).Build();
+
+            RunSyncReaderVariants<_CommentEndingInCarriageReturn>(
+                opt,
+                (config, getReader) =>
+                {
+                    using(var reader = getReader("#\r"))
+                    using(var csv = config.CreateReader(reader))
+                    {
+                        var res = csv.TryReadWithComment();
+                        Assert.True(res.HasComment);
+                        Assert.Equal("\r", res.Comment);
+
+                        res = csv.TryReadWithComment();
+                        Assert.Equal(ReadWithCommentResultType.NoValue, res.ResultType);
+                    }
+                }
+            );
+        }
+
+        private sealed class _ReadOnlyByteSequence
+        {
+            public string Hello { get; set; }
+            public string World { get; set; }
+        }
+
+        [Fact]
+        public void ReadOnlyByteSequence()
+        {
+            var txt = Encoding.UTF32.GetBytes("Hello,World\r\nfoo,bar");
+
+            var config = Configuration.For<_ReadOnlyByteSequence>();
+            using (var csv = config.CreateReader(new ReadOnlySequence<byte>(txt.AsMemory()), Encoding.UTF32))
+            {
+                var rows = csv.ReadAll();
+
+                Assert.Collection(
+                    rows,
+                    a => { Assert.Equal("foo", a.Hello); Assert.Equal("bar", a.World); }
+                );
+            }
+        }
+
+        private sealed class _ReadOnlyCharSequence
+        {
+            public string Hello { get; set; }
+            public string World { get; set; }
+        }
+
+        [Fact]
+        public void ReadOnlyCharSequence()
+        {
+            var txt = "Hello,World\r\nfoo,bar".ToArray();
+
+            var config = Configuration.For<_ReadOnlyCharSequence>();
+            using (var csv = config.CreateReader(new ReadOnlySequence<char>(txt.AsMemory())))
+            {
+                var rows = csv.ReadAll();
+
+                Assert.Collection(
+                    rows,
+                    a => { Assert.Equal("foo", a.Hello); Assert.Equal("bar", a.World); }
+                );
+            }
+        }
+
         private sealed class _FailingParser
         {
             public string Foo { get; set; }
@@ -454,78 +710,6 @@ namespace Cesil.Tests
         class _ResultsErrors
         {
             public string Foo { get; set; }
-        }
-
-        [Fact]
-        public async Task ResultErrorsAsync()
-        {
-            // without comments
-            {
-                await RunAsyncReaderVariants<_ResultsErrors>(
-                    Options.Default,
-                    async (config, makeReader) =>
-                    {
-                        await using (var reader = await makeReader("hello"))
-                        await using (var csv = config.CreateAsyncReader(reader))
-                        {
-                            var resValue = await csv.TryReadAsync();
-                            Assert.True(resValue.HasValue);
-                            Assert.Equal("hello", resValue.Value.Foo);
-                            var resValueStr = resValue.ToString();
-                            Assert.NotNull(resValueStr);
-                            Assert.NotEqual(-1, resValueStr.IndexOf(resValue.Value.ToString()));
-
-                            var resNone = await csv.TryReadAsync();
-                            Assert.False(resNone.HasValue);
-                            Assert.NotNull(resNone.ToString());
-                            Assert.Throws<InvalidOperationException>(() => resNone.Value);
-                        }
-                    }
-                );
-            }
-
-            // with comments
-            {
-                var withComments = Options.Default.NewBuilder().WithCommentCharacter('#').Build();
-
-                await RunAsyncReaderVariants<_ResultsErrors>(
-                    withComments,
-                    async (config, makeReader) =>
-                    {
-                        await using (var reader = await makeReader("hello\r\n#foo"))
-                        await using (var csv = config.CreateAsyncReader(reader))
-                        {
-                            var resValue = await csv.TryReadWithCommentAsync();
-                            Assert.True(resValue.HasValue);
-                            Assert.False(resValue.HasComment);
-                            Assert.Equal(ReadWithCommentResultType.HasValue, resValue.ResultType);
-                            Assert.Equal("hello", resValue.Value.Foo);
-                            var resValueStr = resValue.ToString();
-                            Assert.NotNull(resValueStr);
-                            Assert.NotEqual(-1, resValueStr.IndexOf(resValue.Value.ToString()));
-                            Assert.Throws<InvalidOperationException>(() => resValue.Comment);
-
-                            var resComment = await csv.TryReadWithCommentAsync();
-                            Assert.False(resComment.HasValue);
-                            Assert.True(resComment.HasComment);
-                            Assert.Equal(ReadWithCommentResultType.HasComment, resComment.ResultType);
-                            Assert.Equal("foo", resComment.Comment);
-                            var resCommentStr = resComment.ToString();
-                            Assert.NotNull(resCommentStr);
-                            Assert.NotEqual(-1, resCommentStr.IndexOf("foo"));
-                            Assert.Throws<InvalidOperationException>(() => resComment.Value);
-
-                            var resNone = await csv.TryReadWithCommentAsync();
-                            Assert.False(resNone.HasValue);
-                            Assert.False(resNone.HasComment);
-                            Assert.Equal(ReadWithCommentResultType.NoValue, resNone.ResultType);
-                            Assert.NotNull(resNone.ToString());
-                            Assert.Throws<InvalidOperationException>(() => resNone.Comment);
-                            Assert.Throws<InvalidOperationException>(() => resNone.Value);
-                        }
-                    }
-                );
-            }
         }
 
         class _RowCreationFailure
@@ -3134,6 +3318,311 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             c => Assert.Equal("3,Bar,0,7,999", c)
                         );
                     }
+                );
+            }
+        }
+
+        [Fact]
+        public async Task ReadAllEmptyAsync()
+        {
+            await RunAsyncReaderVariants<_ReadAllEmpty>(
+                Options.Default,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader(""))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var res = await csv.ReadAllAsync();
+
+                        Assert.Empty(res);
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public async Task ReadOneThenAllAsync()
+        {
+            await RunAsyncReaderVariants<_ReadOneThenAll>(
+                Options.Default,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("Foo\r\nbar\r\nfizz\r\nbuzz"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = new List<_ReadOneThenAll>();
+
+                        var res = await csv.TryReadAsync();
+                        Assert.True(res.HasValue);
+                        rows.Add(res.Value);
+
+                        await csv.ReadAllAsync(rows);
+
+                        Assert.Collection(
+                            rows,
+                            a => Assert.Equal("bar", a.Foo),
+                            b => Assert.Equal("fizz", b.Foo),
+                            c => Assert.Equal("buzz", c.Foo)
+                        );
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public async Task NullIntoAsync()
+        {
+            await RunAsyncReaderVariants<_NullInto>(
+                Options.Default,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader(""))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        await Assert.ThrowsAsync<ArgumentNullException>(async () => await csv.ReadAllAsync(default(List<_NullInto>)));
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public async Task UncommonAdvanceResultsAsync()
+        {
+            {
+                var opts = Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).WithEscapedValueStartAndEnd('\\').Build();
+
+                // escape char after \r
+                await RunAsyncReaderVariants<_UncommonAdvanceResults>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("hello\r\\"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var exc = await UnwrapThrowsAsync<InvalidOperationException>(async () => await csv.TryReadAsync());
+
+                            Assert.Equal("Encountered '\\' when expecting end of record", exc.Message);
+                        }
+                    }
+                );
+            }
+
+            {
+                var opts = Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).WithEscapedValueStartAndEnd('\\').WithReadHeader(ReadHeaders.Never).Build();
+
+                // kept reading after things were busted
+                await RunAsyncReaderVariants<_UncommonAdvanceResults>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("hello\r\\ " + string.Join(" ", Enumerable.Repeat('c', 1000))))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            await Assert.ThrowsAnyAsync<Exception>(async () => await csv.TryReadAsync());
+
+                            var exc = await UnwrapThrowsAsync<InvalidOperationException>(async () => await csv.TryReadAsync());
+                            Assert.Equal("Internal state machine is in an invalid state due to a previous error", exc.Message);
+                        }
+                    }
+                );
+            }
+
+            {
+                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+
+                // kept reading after things were busted
+                await RunAsyncReaderVariants<_UncommonAdvanceResults>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("hel\"lo"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var exc = await UnwrapThrowsAsync<InvalidOperationException>(async () => await csv.TryReadAsync());
+                            Assert.Equal("Encountered '\"', starting an escaped value, when already in a value", exc.Message);
+                        }
+                    }
+                );
+            }
+
+            {
+                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+
+                // kept reading after things were busted
+                await RunAsyncReaderVariants<_UncommonAdvanceResults>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("\"hel\"lo\""))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var exc = await UnwrapThrowsAsync<InvalidOperationException>(async () => await csv.TryReadAsync());
+                            Assert.Equal("Encountered 'l' in an escape sequence, which is invalid", exc.Message);
+                        }
+                    }
+                );
+            }
+
+            {
+                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+
+                // kept reading after things were busted
+                await RunAsyncReaderVariants<_UncommonAdvanceResults>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("\"A"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var exc = await UnwrapThrowsAsync<InvalidOperationException>(async () => await csv.TryReadAsync());
+                            Assert.Equal("Data ended unexpectedly", exc.Message);
+                        }
+                    }
+                );
+            }
+
+
+            async static ValueTask<T> UnwrapThrowsAsync<T>(Func<Task> get)
+                where T: Exception
+            {
+                var res = await Assert.ThrowsAnyAsync<Exception>(get);
+
+                if(res is AggregateException agg)
+                {
+                    var exc = res.InnerException as T;
+                    Assert.NotNull(exc);
+
+                    return exc;
+                }
+
+                var sync = res as T;
+                Assert.NotNull(sync);
+
+                return sync;
+            }
+        }
+
+        [Fact]
+        public async Task ResultErrorsAsync()
+        {
+            // without comments
+            {
+                await RunAsyncReaderVariants<_ResultsErrors>(
+                    Options.Default,
+                    async (config, makeReader) =>
+                    {
+                        await using (var reader = await makeReader("hello"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var resValue = await csv.TryReadAsync();
+                            Assert.True(resValue.HasValue);
+                            Assert.Equal("hello", resValue.Value.Foo);
+                            var resValueStr = resValue.ToString();
+                            Assert.NotNull(resValueStr);
+                            Assert.NotEqual(-1, resValueStr.IndexOf(resValue.Value.ToString()));
+
+                            var resNone = await csv.TryReadAsync();
+                            Assert.False(resNone.HasValue);
+                            Assert.NotNull(resNone.ToString());
+                            Assert.Throws<InvalidOperationException>(() => resNone.Value);
+                        }
+                    }
+                );
+            }
+
+            // with comments
+            {
+                var withComments = Options.Default.NewBuilder().WithCommentCharacter('#').Build();
+
+                await RunAsyncReaderVariants<_ResultsErrors>(
+                    withComments,
+                    async (config, makeReader) =>
+                    {
+                        await using (var reader = await makeReader("hello\r\n#foo"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var resValue = await csv.TryReadWithCommentAsync();
+                            Assert.True(resValue.HasValue);
+                            Assert.False(resValue.HasComment);
+                            Assert.Equal(ReadWithCommentResultType.HasValue, resValue.ResultType);
+                            Assert.Equal("hello", resValue.Value.Foo);
+                            var resValueStr = resValue.ToString();
+                            Assert.NotNull(resValueStr);
+                            Assert.NotEqual(-1, resValueStr.IndexOf(resValue.Value.ToString()));
+                            Assert.Throws<InvalidOperationException>(() => resValue.Comment);
+
+                            var resComment = await csv.TryReadWithCommentAsync();
+                            Assert.False(resComment.HasValue);
+                            Assert.True(resComment.HasComment);
+                            Assert.Equal(ReadWithCommentResultType.HasComment, resComment.ResultType);
+                            Assert.Equal("foo", resComment.Comment);
+                            var resCommentStr = resComment.ToString();
+                            Assert.NotNull(resCommentStr);
+                            Assert.NotEqual(-1, resCommentStr.IndexOf("foo"));
+                            Assert.Throws<InvalidOperationException>(() => resComment.Value);
+
+                            var resNone = await csv.TryReadWithCommentAsync();
+                            Assert.False(resNone.HasValue);
+                            Assert.False(resNone.HasComment);
+                            Assert.Equal(ReadWithCommentResultType.NoValue, resNone.ResultType);
+                            Assert.NotNull(resNone.ToString());
+                            Assert.Throws<InvalidOperationException>(() => resNone.Comment);
+                            Assert.Throws<InvalidOperationException>(() => resNone.Value);
+                        }
+                    }
+                );
+            }
+        }
+
+        [Fact]
+        public async Task CommentEndingInCarriageReturnAsync()
+        {
+            var opt = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturnLineFeed).Build();
+
+            await RunAsyncReaderVariants<_CommentEndingInCarriageReturn>(
+                opt,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("#\r"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var res = await csv.TryReadWithCommentAsync();
+                        Assert.True(res.HasComment);
+                        Assert.Equal("\r", res.Comment);
+
+                        res = await csv.TryReadWithCommentAsync();
+                        Assert.Equal(ReadWithCommentResultType.NoValue, res.ResultType);
+                    }
+                }
+            );
+        }
+
+        private sealed class _PipeReaderAsync
+        {
+            public string Hello { get; set; }
+            public string World { get; set; }
+        }
+
+        [Fact]
+        public async Task PipeReaderAsync()
+        {
+            var pipe = new Pipe();
+
+            var txt = Encoding.UTF32.GetBytes("Hello,World\r\nfoo,bar");
+
+            await pipe.Writer.WriteAsync(txt.AsMemory());
+            await pipe.Writer.FlushAsync();
+
+            pipe.Writer.Complete();
+
+            var config = Configuration.For<_PipeReaderAsync>();
+            await using (var csv = config.CreateAsyncReader(pipe.Reader, Encoding.UTF32))
+            {
+                var rows = await csv.ReadAllAsync();
+
+                Assert.Collection(
+                    rows,
+                    a => { Assert.Equal("foo", a.Hello); Assert.Equal("bar", a.World); }
                 );
             }
         }

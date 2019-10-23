@@ -146,45 +146,36 @@ namespace Cesil
                     }
                 }
 
+                // inBatchableResult is always null here
+                //   because if it's NOT null we either continue (if res == inBatchableResult),
+                //   thereby not hitting this point, or set it to null (if res != inBatchableResult)
+                // this means we don't need to handle the inBatchableResult != null cases in
+                //   the following switch
+
                 switch (res)
                 {
                     case ReaderStateMachine.AdvanceResult.Skip_Character:
-                        if (inBatchableResult == null)
-                        {
-                            inBatchableResult = ReaderStateMachine.AdvanceResult.Skip_Character;
-                            consistentResultSince = i;
-                            continue;
-                        }
-
-                        Partial.SkipCharacter();
-                        break;
+                        inBatchableResult = ReaderStateMachine.AdvanceResult.Skip_Character;
+                        consistentResultSince = i;
+                        continue;
 
                     case ReaderStateMachine.AdvanceResult.Append_Character:
-                        if (inBatchableResult == null)
-                        {
-                            inBatchableResult = ReaderStateMachine.AdvanceResult.Append_Character;
-                            consistentResultSince = i;
-                            continue;
-                        }
-
-                        Partial.AppendCharacters(buffSpan, i, 1);
-                        break;
-
+                        inBatchableResult = ReaderStateMachine.AdvanceResult.Append_Character;
+                        consistentResultSince = i;
+                        continue;
+                        
                     case ReaderStateMachine.AdvanceResult.Append_CarriageReturnAndCurrentCharacter:
                         Partial.AppendCarriageReturn(buffSpan);
-
                         Partial.AppendCharacters(buffSpan, i, 1);
                         break;
 
-                    case ReaderStateMachine.AdvanceResult.Append_CarriageReturnAndEndComment:
-                        Partial.AppendCarriageReturn(buffSpan);
-
-                        unprocessedCharacters = bufferLen - i - 1;
-                        return ReadWithCommentResultType.HasComment;
+                    // cannot reach ReaderStateMachine.AdvanceResult.Append_CarriageReturnAndEndComment, because that only happens
+                    //   when the data ENDs
 
                     case ReaderStateMachine.AdvanceResult.Finished_Value:
                         PushPendingCharactersToValue();
                         break;
+
                     case ReaderStateMachine.AdvanceResult.Finished_Record:
                         if (Partial.PendingCharsCount > 0)
                         {
@@ -193,6 +184,7 @@ namespace Cesil
 
                         unprocessedCharacters = bufferLen - i - 1;
                         return ReadWithCommentResultType.HasValue;
+
                     case ReaderStateMachine.AdvanceResult.Finished_Comment:
                         unprocessedCharacters = bufferLen - i - 1;
                         return ReadWithCommentResultType.HasComment;
@@ -209,17 +201,18 @@ namespace Cesil
                 switch (inBatchableResult.Value)
                 {
                     case ReaderStateMachine.AdvanceResult.Skip_Character:
-
                         // there's no distinction between skipping several characters and skipping one
                         //    so this doesn't need the length
                         Partial.SkipCharacter();
                         break;
+
                     case ReaderStateMachine.AdvanceResult.Append_Character:
                         // we read all the up to the end, so length needs to include the last character
                         var length = bufferLen - consistentResultSince;
 
                         Partial.AppendCharacters(buffSpan, consistentResultSince, length);
                         break;
+
                     default:
                         unprocessedCharacters = default;
                         return Throw.Exception<ReadWithCommentResultType>($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {inBatchableResult.Value}");
@@ -251,15 +244,16 @@ namespace Cesil
                 case ReaderStateMachine.AdvanceResult.Finished_Value:
                     PushPendingCharactersToValue();
                     return ReadWithCommentResultType.HasValue;
+
                 case ReaderStateMachine.AdvanceResult.Finished_Record:
                     if (Partial.PendingCharsCount > 0)
                     {
                         PushPendingCharactersToValue();
                     }
                     return ReadWithCommentResultType.HasValue;
+                
                 case ReaderStateMachine.AdvanceResult.Finished_Comment:
                     return ReadWithCommentResultType.HasComment;
-
 
                 default:
                     return HandleUncommonAdvanceResults(res, null);
@@ -271,7 +265,7 @@ namespace Cesil
             string c;
             if (lastRead.HasValue)
             {
-                c = $"'{lastRead.Value}'";
+                c = lastRead.Value.ToString();
             }
             else
             {
@@ -288,15 +282,20 @@ namespace Cesil
                     return Throw.InvalidOperationException<ReadWithCommentResultType>($"Encountered '{c}', starting an escaped value, when already in a value");
                 case ReaderStateMachine.AdvanceResult.Exception_UnexpectedCharacterInEscapeSequence:
                     return Throw.InvalidOperationException<ReadWithCommentResultType>($"Encountered '{c}' in an escape sequence, which is invalid");
-                case ReaderStateMachine.AdvanceResult.Exception_UnexpectedLineEnding:
-                    return Throw.Exception<ReadWithCommentResultType>($"Unexpected {nameof(Cesil.RowEndings)} value encountered");
-                case ReaderStateMachine.AdvanceResult.Exception_UnexpectedState:
-                    return Throw.Exception<ReadWithCommentResultType>($"Unexpected state value entered");
+                
                 case ReaderStateMachine.AdvanceResult.Exception_ExpectedEndOfRecordOrValue:
                     return Throw.InvalidOperationException<ReadWithCommentResultType>($"Encountered '{c}' when expecting the end of a record or value");
 
                 case ReaderStateMachine.AdvanceResult.Exception_UnexpectedEnd:
                     return Throw.InvalidOperationException<ReadWithCommentResultType>($"Data ended unexpectedly");
+
+                // this is CRAZY unlikely, but indicates that the TransitionMatrix used was incorrect
+                case ReaderStateMachine.AdvanceResult.Exception_UnexpectedLineEnding:
+                    return Throw.Exception<ReadWithCommentResultType>($"Unexpected {nameof(Cesil.RowEndings)} value encountered");
+
+                // likewise, CRAZY unlikely
+                case ReaderStateMachine.AdvanceResult.Exception_UnexpectedState:
+                    return Throw.Exception<ReadWithCommentResultType>($"Unexpected state value entered");
 
                 default:
                     return Throw.Exception<ReadWithCommentResultType>($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {res}");

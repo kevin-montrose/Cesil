@@ -1083,23 +1083,23 @@ namespace Cesil
             // - "foo"\r
 
             // foo\r\
-            innerRet[(int)CharacterType.Escape] = Invalid_Exception_ExpectedEndOfRecord;
+            innerRet[(int)CharacterType.Escape] = Invalid_ExceptionStartEscapeInValue;
             // foo\r"
             innerRet[(int)CharacterType.EscapeStartAndEnd] = Invalid_Exception_ExpectedEndOfRecord;
             // foo\r,
-            innerRet[(int)CharacterType.ValueSeparator] = Invalid_Exception_ExpectedEndOfRecord;
+            innerRet[(int)CharacterType.ValueSeparator] = Header_Unescaped_NoValue_Skip_Character;
 
             // foo\r\r
-            innerRet[(int)CharacterType.CarriageReturn] = Invalid_Exception_ExpectedEndOfRecord;
+            innerRet[(int)CharacterType.CarriageReturn] = Header_ExpectingEndOfRecord_SkipCharacter;
 
             // foo\r\n
             innerRet[(int)CharacterType.LineFeed] = Record_Start_SkipCharacter;
 
             // foo\r#
-            innerRet[(int)CharacterType.CommentStart] = Invalid_Exception_ExpectedEndOfRecord;
+            innerRet[(int)CharacterType.CommentStart] = Header_Unescaped_WithValue_Skip_Character;
 
             // foo\rc
-            innerRet[(int)CharacterType.Other] = Invalid_Exception_ExpectedEndOfRecord;
+            innerRet[(int)CharacterType.Other] = Header_Unescaped_WithValue_Skip_Character;
 
             // foo\r
             innerRet[(int)CharacterType.DataEnd] = Data_Ended_Skip_Character;

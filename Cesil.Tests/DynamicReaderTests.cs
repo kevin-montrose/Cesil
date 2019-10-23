@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Dynamic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -12,6 +13,107 @@ namespace Cesil.Tests
 {
     public class DynamicReaderTests
     {
+        [Fact]
+        public void DynamicRowMemberNameEnumerators()
+        {
+            // with headers
+            {
+                var config = Configuration.ForDynamic();
+                using (var txt = new StringReader("foo,bar\r\n1,2"))
+                using (var csv = config.CreateReader(txt))
+                {
+                    Assert.True(csv.TryRead(out var row));
+
+                    Assert.Equal(1, (int)row[0]);
+                    Assert.Equal(2, (int)row[1]);
+
+                    var dynRow = row as DynamicRow;
+                    var e = new DynamicRowMemberNameEnumerable(dynRow);
+                    using (var i = e.GetEnumerator())
+                    {
+                        // iter 1
+                        {
+                            var ix = 0;
+                            while (i.MoveNext())
+                            {
+                                ix++;
+                            }
+
+                            Assert.Equal(2, ix);
+
+                            // too far
+                            Assert.False(i.MoveNext());
+                        }
+
+                        i.Reset();
+
+                        // iter 2
+                        {
+                            var ix = 0;
+                            while (i.MoveNext())
+                            {
+                                ix++;
+                            }
+
+                            Assert.Equal(2, ix);
+
+                            // too far
+                            Assert.False(i.MoveNext());
+                        }
+                    }
+                }
+            }
+
+            // without headers
+            {
+                var opts = Options.DynamicDefault.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+                var config = Configuration.ForDynamic(opts);
+                using (var txt = new StringReader("1,2"))
+                using (var csv = config.CreateReader(txt))
+                {
+                    Assert.True(csv.TryRead(out var row));
+
+                    Assert.Equal(1, (int)row[0]);
+                    Assert.Equal(2, (int)row[1]);
+
+                    var dynRow = row as DynamicRow;
+                    var e = new DynamicRowMemberNameEnumerable(dynRow);
+                    using (var i = e.GetEnumerator())
+                    {
+                        // iter 1
+                        {
+                            var ix = 0;
+                            while (i.MoveNext())
+                            {
+                                ix++;
+                            }
+
+                            Assert.Equal(0, ix);
+
+                            // too far
+                            Assert.False(i.MoveNext());
+                        }
+
+                        i.Reset();
+
+                        // iter 2
+                        {
+                            var ix = 0;
+                            while (i.MoveNext())
+                            {
+                                ix++;
+                            }
+
+                            Assert.Equal(0, ix);
+
+                            // too far
+                            Assert.False(i.MoveNext());
+                        }
+                    }
+                }
+            }
+        }
+
         private sealed class _CustomRowConverters
         {
 #pragma warning disable CS0649

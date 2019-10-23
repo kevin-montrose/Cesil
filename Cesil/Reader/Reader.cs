@@ -7,7 +7,7 @@ namespace Cesil
     {
         internal Reader(IReaderAdapter inner, ConcreteBoundConfiguration<T> config, object context) : base(inner, config, context) { }
 
-        internal override ReadWithCommentResult<T> TryReadInner(bool returnComments, bool pinAcquired, ref T record)
+        internal override void HandleRowEndingsAndHeaders()
         {
             if (RowEndings == null)
             {
@@ -18,52 +18,49 @@ namespace Cesil
             {
                 HandleHeaders();
             }
+        }
+
+        internal override ReadWithCommentResult<T> TryReadInner(bool returnComments, bool pinAcquired, ref T record)
+        {
+            ReaderStateMachine.PinHandle handle = default;
 
             if (!pinAcquired)
             {
-                StateMachine.Pin();
+                handle = StateMachine.Pin();
             }
 
-            while (true)
+            using (handle)
             {
-                PreparingToWriteToBuffer();
-                var available = Buffer.Read(Inner);
-                if (available == 0)
-                {
-                    var endRes = EndOfData();
 
-                    if (!pinAcquired)
+                while (true)
+                {
+                    PreparingToWriteToBuffer();
+                    var available = Buffer.Read(Inner);
+                    if (available == 0)
                     {
-                        StateMachine.Unpin();
+                        var endRes = EndOfData();
+
+                        return HandleAdvanceResult(endRes, returnComments);
                     }
-                    return HandleAdvanceResult(endRes, returnComments);
-                }
 
-                if (!Partial.HasPending)
-                {
-                    if (record == null)
+                    if (!Partial.HasPending)
                     {
-                        if (!Configuration.NewCons(out record))
+                        if (record == null)
                         {
-                            if (!pinAcquired)
+                            if (!Configuration.NewCons(out record))
                             {
-                                StateMachine.Unpin();
+                                return Throw.InvalidOperationException<ReadWithCommentResult<T>>($"Failed to construct new instance of {typeof(T)}");
                             }
-                            return Throw.InvalidOperationException<ReadWithCommentResult<T>>($"Failed to construct new instance of {typeof(T)}");
                         }
+                        SetValueToPopulate(record);
                     }
-                    SetValueToPopulate(record);
-                }
 
-                var res = AdvanceWork(available);
-                var possibleReturn = HandleAdvanceResult(res, returnComments);
-                if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
-                {
-                    if (!pinAcquired)
+                    var res = AdvanceWork(available);
+                    var possibleReturn = HandleAdvanceResult(res, returnComments);
+                    if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
-                        StateMachine.Unpin();
+                        return possibleReturn;
                     }
-                    return possibleReturn;
                 }
             }
         }
