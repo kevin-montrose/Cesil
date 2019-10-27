@@ -1504,9 +1504,14 @@
               by an I(Async)Writer.
             </summary>
         </member>
+        <member name="P:Cesil.DynamicCellValue.HasName">
+            <summary>
+            Returns true if Name is set.
+            </summary>
+        </member>
         <member name="P:Cesil.DynamicCellValue.Name">
             <summary>
-            Name of the column (if any) the cell belongs to
+            Name of the column the cell belongs to, throws if Name is not set.
             </summary>
         </member>
         <member name="P:Cesil.DynamicCellValue.Value">
@@ -1570,6 +1575,8 @@
         <member name="M:Cesil.ITypeDescriber.GetInstanceProvider(System.Reflection.TypeInfo)">
             <summary>
             Get the provider for instances of forType.
+            
+            Returns null if no InstanceProvider could be found.
             </summary>
         </member>
         <member name="M:Cesil.ITypeDescriber.EnumerateMembersToSerialize(System.Reflection.TypeInfo)">
@@ -1585,6 +1592,8 @@
         <member name="M:Cesil.ITypeDescriber.GetDynamicCellParserFor(Cesil.ReadContext@,System.Reflection.TypeInfo)">
             <summary>
             Called to determine how to convert a dynamic cell.
+            
+            Returns null if no Parser could be found.
             </summary>
         </member>
         <member name="M:Cesil.ITypeDescriber.GetDynamicRowConverter(Cesil.ReadContext@,System.Collections.Generic.IEnumerable{Cesil.ColumnIdentifier},System.Reflection.TypeInfo)">
@@ -1593,6 +1602,8 @@
               it's number (base-0), into the given type.
               
             Column names will be exposed on individual column identifiers only if they are set.
+            
+            Returns null if no DynamicRowConverter could be found.
             </summary>
         </member>
         <member name="M:Cesil.ITypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)">

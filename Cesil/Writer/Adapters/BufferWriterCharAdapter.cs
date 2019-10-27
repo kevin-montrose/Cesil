@@ -7,11 +7,11 @@ namespace Cesil
 {
     internal sealed class BufferWriterCharAdapter : IWriterAdapter
     {
-        public bool IsDisposed => Writer == null;
+        public bool IsDisposed { get; private set; }
 
         private int NextIndex;
         private Memory<char> Memory;
-        private IBufferWriter<char> Writer;
+        private readonly IBufferWriter<char> Writer;
 
         public BufferWriterCharAdapter(IBufferWriter<char> writer)
         {
@@ -75,7 +75,7 @@ namespace Cesil
                 }
 
                 Memory = default;
-                Writer = null;
+                IsDisposed = true;
             }
         }
     }

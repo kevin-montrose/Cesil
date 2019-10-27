@@ -14,8 +14,19 @@ namespace Cesil
 
         private class Node
         {
-            internal IMemoryOwner<char> Owner;
-            internal Node Next;
+            private IMemoryOwner<char>? _Owner;
+            internal IMemoryOwner<char> Owner => Utils.NonNull(_Owner);
+
+            private Node? _Next;
+            internal bool HasNext => _Next != null;
+            internal Node Next
+            {
+                get => Utils.NonNull(_Next);
+                set
+                {
+                    _Next = value;
+                }
+            }
             internal int BytesUsed;
 
             internal Memory<char> Allocation => Owner.Memory;
@@ -24,29 +35,29 @@ namespace Cesil
 
             public void Init(IMemoryOwner<char> owner)
             {
-                Owner = owner;
-                Next = null;
+                _Owner = owner;
+                _Next = null;
                 BytesUsed = 0;
             }
         }
 
-        public bool IsDisposed => MemoryPool == null;
+        public bool IsDisposed { get; private set; }
 
         internal ReadOnlySequence<char> Buffer => MakeSequence();
 
         // we can allocate a whooooole bunch of these in a row when
         //    serializing...
         // so keep one around to optimize the IsSingleSegment case
-        private Node FreeNode;
+        private Node? FreeNode;
 
         // likewise, we spend a _lot_ of time creating memory chunks...
-        private IMemoryOwner<char> FreeMemory;
+        private IMemoryOwner<char>? FreeMemory;
 
-        private Node Head;
-        private Node Tail;
+        private Node? Head;
+        private Node? Tail;
         private bool IsSingleSegment;
 
-        private MemoryPool<char> MemoryPool;
+        private readonly MemoryPool<char> MemoryPool;
 
         private readonly int SizeHint;
 
@@ -63,7 +74,7 @@ namespace Cesil
 
         internal void Reset()
         {
-            IMemoryOwner<char> largest = null;
+            IMemoryOwner<char>? largest = null;
             var n = Head;
             while (n != null)
             {
@@ -76,7 +87,14 @@ namespace Cesil
                 {
                     alloc.Dispose();
                 }
-                n = n.Next;
+                if (n.HasNext)
+                {
+                    n = n.Next;
+                }
+                else
+                {
+                    n = null;
+                }
             }
 
             FreeNode = Head;
@@ -113,7 +131,8 @@ namespace Cesil
                 Throw.ArgumentException<object>($"Must be >= 0", nameof(count));
             }
 
-            Tail.BytesUsed += count;
+            var tail = Utils.NonNull(Tail);
+            tail.BytesUsed += count;
         }
 
         public Memory<char> GetMemory(int sizeHint = 0)
@@ -182,7 +201,8 @@ namespace Cesil
             }
             else
             {
-                Tail.Next = newTail;
+                var tail = Utils.NonNull(Tail);
+                tail.Next = newTail;
                 Tail = newTail;
                 IsSingleSegment = false;
             }
@@ -216,16 +236,25 @@ namespace Cesil
             //   and still has extra space floating around
             //   between each node
             var headSeg = new ReadOnlyCharSegment(Head.Allocation, Head.BytesUsed);
-            var n = Head.Next;
+            Node? n = Head.Next;
             var tailSeg = headSeg;
             while (n != null)
             {
                 tailSeg = tailSeg.Append(n.Allocation, n.BytesUsed);
-                n = n.Next;
+                if (n.HasNext)
+                {
+                    n = n.Next;
+                }
+                else
+                {
+                    n = null;
+                }
             }
 
             var startIx = 0;
-            var endIx = Tail.BytesUsed;
+
+            var tail = Utils.NonNull(Tail);
+            var endIx = tail.BytesUsed;
 
             var ret = new ReadOnlySequence<char>(headSeg, startIx, tailSeg, endIx);
 
@@ -238,7 +267,7 @@ namespace Cesil
             if (!IsDisposed)
             {
                 FreeMemory?.Dispose();
-                MemoryPool = null;
+                IsDisposed = true;
             }
         }
 

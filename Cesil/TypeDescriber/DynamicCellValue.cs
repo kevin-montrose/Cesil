@@ -10,22 +10,29 @@ namespace Cesil
     public readonly struct DynamicCellValue : IEquatable<DynamicCellValue>
     {
         /// <summary>
-        /// Name of the column (if any) the cell belongs to
+        /// Returns true if Name is set.
         /// </summary>
-        public string Name { get; }
+        [IntentionallyExposedPrimitive("Indicating presense, it's fine")]
+        public bool HasName => _Name != null;
+
+        private readonly string? _Name;
+        /// <summary>
+        /// Name of the column the cell belongs to, throws if Name is not set.
+        /// </summary>
+        public string Name => Utils.NonNull(_Name);
         /// <summary>
         /// Cell value
         /// </summary>
-        public dynamic Value { get; }
+        public dynamic? Value { get; }
         /// <summary>
         /// Instance of Formatter to use when formatting the associated value
         ///   for writing.
         /// </summary>
         public Formatter Formatter { get; }
 
-        private DynamicCellValue(string n, dynamic v, Formatter f)
+        private DynamicCellValue(string? n, dynamic? v, Formatter f)
         {
-            Name = n;
+            _Name = n;
             Value = v;
             Formatter = f;
         }
@@ -35,7 +42,7 @@ namespace Cesil
         /// 
         /// It's permissable for both name and val to be null.
         /// </summary>
-        public static DynamicCellValue Create(string name, dynamic val, Formatter formatter)
+        public static DynamicCellValue Create(string? name, dynamic? val, Formatter formatter)
         {
             // name can be null, that's fine
 
@@ -59,7 +66,7 @@ namespace Cesil
         /// <summary>
         /// Returns true if this object equals the given DynamicCellValue.
         /// </summary>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is DynamicCellValue d)
             {
@@ -75,7 +82,17 @@ namespace Cesil
         public bool Equals(DynamicCellValue d)
         {
             if (d.Formatter != Formatter) return false;
-            if (d.Name != Name) return false;
+
+            if (HasName)
+            {
+                if (!d.HasName) return false;
+
+                if (Name != d.Name) return false;
+            }
+            else
+            {
+                if (!d.HasName) return false;
+            }
 
             var selfAsObj = Value as object;
             var dAsObj = d.Value as object;

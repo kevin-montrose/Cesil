@@ -24,8 +24,8 @@ namespace Cesil
         {
             get
             {
-                if (Method != null) return BackingMode.Method;
-                if (Delegate != null) return BackingMode.Delegate;
+                if (_Method != null) return BackingMode.Method;
+                if (_Delegate != null) return BackingMode.Delegate;
 
                 return BackingMode.None;
             }
@@ -38,30 +38,35 @@ namespace Cesil
                 switch (Mode)
                 {
                     case BackingMode.Method: return Method.IsStatic;
-                    case BackingMode.Delegate: return Takes == null;
+                    case BackingMode.Delegate: return !HasTakes;
                     default:
                         return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}");
                 }
             }
         }
 
-        internal MethodInfo Method { get; }
-        internal Delegate Delegate { get; }
+        private readonly MethodInfo? _Method;
+        internal MethodInfo Method => Utils.NonNull(_Method);
 
-        internal TypeInfo Takes { get; }
+        private readonly Delegate? _Delegate;
+        internal Delegate Delegate => Utils.NonNull(_Delegate);
 
-        private ShouldSerialize(TypeInfo takes, MethodInfo method)
+        private readonly TypeInfo? _Takes;
+        internal bool HasTakes => _Takes != null;
+        internal TypeInfo Takes => Utils.NonNull(_Takes);
+
+        private ShouldSerialize(TypeInfo? takes, MethodInfo method)
         {
-            Takes = takes;
-            Method = method;
-            Delegate = null;
+            _Takes = takes;
+            _Method = method;
+            _Delegate = null;
         }
 
-        private ShouldSerialize(TypeInfo takes, Delegate del)
+        private ShouldSerialize(TypeInfo? takes, Delegate del)
         {
-            Takes = takes;
-            Method = null;
-            Delegate = del;
+            _Takes = takes;
+            _Method = null;
+            _Delegate = del;
         }
 
         /// <summary>
@@ -89,11 +94,11 @@ namespace Cesil
                 return Throw.ArgumentException<ShouldSerialize>($"{nameof(method)} must return a boolean", nameof(method));
             }
 
-            TypeInfo takes;
+            TypeInfo? takes;
 
             if (!method.IsStatic)
             {
-                var shouldSerializeInstType = method.DeclaringType.GetTypeInfo();
+                var shouldSerializeInstType = method.DeclaringTypeNonNull();
 
                 takes = shouldSerializeInstType;
             }
@@ -134,7 +139,7 @@ namespace Cesil
         /// <summary>
         /// Returns true if this object equals the given ShouldSerialize.
         /// </summary>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is ShouldSerialize s)
             {
@@ -151,19 +156,40 @@ namespace Cesil
         {
             if (ReferenceEquals(s, null)) return false;
 
-            return
-                s.Delegate == Delegate &&
-                s.IsStatic == IsStatic &&
-                s.Method == Method &&
-                s.Mode == Mode &&
-                s.Takes == Takes;
+            var mode = Mode;
+            var otherMode = s.Mode;
+            if (mode != otherMode) return false;
+
+            if (IsStatic != s.IsStatic) return false;
+
+            if (HasTakes)
+            {
+                if (!s.HasTakes) return false;
+
+                if (Takes != s.Takes) return false;
+            }
+            else
+            {
+                if (s.HasTakes) return false;
+            }
+
+            switch (mode)
+            {
+                case BackingMode.Delegate:
+                    return Delegate == s.Delegate;
+                case BackingMode.Method:
+                    return Method == s.Method;
+
+                default:
+                    return Throw.Exception<bool>($"Unexpected {nameof(BackingMode)}: {mode}");
+            }
         }
 
         /// <summary>
         /// Returns a stable hash for this ShouldSerialize.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(ShouldSerialize), Delegate, IsStatic, Method, Mode, Takes);
+        => HashCode.Combine(nameof(ShouldSerialize), _Delegate, IsStatic, _Method, Mode, _Takes);
 
         /// <summary>
         /// Describes this ShouldSerialize.
@@ -202,7 +228,7 @@ namespace Cesil
         /// 
         /// Returns null if mtd is null.
         /// </summary>
-        public static explicit operator ShouldSerialize(MethodInfo mtd)
+        public static explicit operator ShouldSerialize?(MethodInfo? mtd)
         => mtd == null ? null : ForMethod(mtd);
 
         /// <summary>
@@ -210,7 +236,7 @@ namespace Cesil
         /// 
         /// Returns null if del is null.
         /// </summary>
-        public static explicit operator ShouldSerialize(Delegate del)
+        public static explicit operator ShouldSerialize?(Delegate? del)
         {
             if (del == null) return null;
 
@@ -235,7 +261,7 @@ namespace Cesil
                 return Throw.InvalidOperationException<ShouldSerialize>($"Delegate must return boolean, found {retType}");
             }
 
-            var invoke = delType.GetMethod("Invoke");
+            var invoke = delType.GetMethodNonNull("Invoke");
 
             var ps = mtd.GetParameters();
             if (ps.Length == 0)
@@ -261,13 +287,13 @@ namespace Cesil
         /// <summary>
         /// Compare two ShouldSerializes for equality
         /// </summary>
-        public static bool operator ==(ShouldSerialize a, ShouldSerialize b)
+        public static bool operator ==(ShouldSerialize? a, ShouldSerialize? b)
         => Utils.NullReferenceEquality(a, b);
 
         /// <summary>
         /// Compare two ShouldSerializes for inequality
         /// </summary>
-        public static bool operator !=(ShouldSerialize a, ShouldSerialize b)
+        public static bool operator !=(ShouldSerialize? a, ShouldSerialize? b)
         => !(a == b);
     }
 }

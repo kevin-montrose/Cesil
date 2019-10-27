@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,20 +12,39 @@ namespace Cesil
         AsyncWriterBase<dynamic>,
         IDelegateCache
     {
-        public override bool IsDisposed => Inner == null;
+        internal new bool IsFirstRow => _ColumnNames == null;
 
-        internal new bool IsFirstRow => ColumnNames == null;
+        private Comparison<DynamicCellValue>? _ColumnNameSorter;
+        private Comparison<DynamicCellValue> ColumnNameSorter
+        {
+            get => Utils.NonNull(_ColumnNameSorter);
+            set
+            {
+                _ColumnNameSorter = value;
+            }
+        }
 
-        private Comparison<DynamicCellValue> ColumnNameSorter;
-        private (string Name, string EncodedName)[] ColumnNames;
+        private (string Name, string EncodedName)[]? _ColumnNames;
+        private (string Name, string EncodedName)[] ColumnNames
+        {
+            get => Utils.NonNull(_ColumnNames);
+            set
+            {
+                _ColumnNames = value;
+            }
+        }
 
         private readonly object[] DynamicArgumentsBuffer = new object[3];
 
-        private Dictionary<object, Delegate> DelegateCache;
+        private Dictionary<object, Delegate>? DelegateCache;
 
-        internal AsyncDynamicWriter(DynamicBoundConfiguration config, IAsyncWriterAdapter inner, object context) : base(config, inner, context) { }
+        internal AsyncDynamicWriter(DynamicBoundConfiguration config, IAsyncWriterAdapter inner, object? context) : base(config, inner, context) 
+        { 
+            
+        }
 
-        bool IDelegateCache.TryGet<T, V>(T key, out V del)
+        bool IDelegateCache.TryGet<T, V>(T key, out V? del)
+            where V: class
         {
             if (DelegateCache == null)
             {
@@ -36,7 +54,7 @@ namespace Cesil
 
             if (DelegateCache.TryGetValue(key, out var cached))
             {
-                del = (V)cached;
+                del = (V?)cached;
                 return true;
             }
 
@@ -397,10 +415,8 @@ end:
                 }
             }
 
-            var segments = SplitCommentIntoLines(comment);
-
-            var commentChar = Config.CommentChar.Value;
-
+            var (commentChar, segments) = SplitCommentIntoLines(comment);
+            
             // we know we can write directly now
             var isFirstRow = true;
             var e = segments.GetEnumerator();
@@ -413,14 +429,14 @@ end:
                     var endRowTask = EndRecordAsync(cancel);
                     if (!endRowTask.IsCompletedSuccessfully(this))
                     {
-                        return WriteCommentAsync_ContinueAfterEndRowAsync(this, endRowTask, seg, e, cancel);
+                        return WriteCommentAsync_ContinueAfterEndRowAsync(this, endRowTask, commentChar, seg, e, cancel);
                     }
                 }
 
                 var placeCharTask = PlaceCharInStagingAsync(commentChar, cancel);
                 if (!placeCharTask.IsCompletedSuccessfully(this))
                 {
-                    return WriteCommentAsync_ContinueAfterPlaceCharAsync(this, placeCharTask, seg, e, cancel);
+                    return WriteCommentAsync_ContinueAfterPlaceCharAsync(this, placeCharTask, commentChar, seg, e, cancel);
                 }
 
                 if (seg.Length > 0)
@@ -428,7 +444,7 @@ end:
                     var placeTask = PlaceInStagingAsync(seg, cancel);
                     if (!placeTask.IsCompletedSuccessfully(this))
                     {
-                        return WriteCommentAsync_ContinueAfterPlaceSegementAsync(this, placeTask, e, cancel);
+                        return WriteCommentAsync_ContinueAfterPlaceSegementAsync(this, placeTask, commentChar, e, cancel);
                     }
                 }
 
@@ -457,9 +473,7 @@ end:
                     cancel.ThrowIfCancellationRequested();
                 }
 
-                var segments = self.SplitCommentIntoLines(comment);
-
-                var commentChar = self.Config.CommentChar.Value;
+                var (commentChar, segments) = self.SplitCommentIntoLines(comment);
 
                 // we know we can write directly now
                 var isFirstRow = true;
@@ -493,9 +507,7 @@ end:
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
 
-                var segments = self.SplitCommentIntoLines(comment);
-
-                var commentChar = self.Config.CommentChar.Value;
+                var (commentChar, segments) = self.SplitCommentIntoLines(comment);
 
                 // we know we can write directly now
                 var isFirstRow = true;
@@ -523,12 +535,17 @@ end:
                 }
             }
 
-            static async ValueTask WriteCommentAsync_ContinueAfterEndRowAsync(AsyncDynamicWriter self, ValueTask waitFor, ReadOnlyMemory<char> seg, ReadOnlySequence<char>.Enumerator e, CancellationToken cancel)
+            static async ValueTask WriteCommentAsync_ContinueAfterEndRowAsync(
+                AsyncDynamicWriter self, 
+                ValueTask waitFor, 
+                char commentChar,
+                ReadOnlyMemory<char> seg, 
+                ReadOnlySequence<char>.Enumerator e, 
+                CancellationToken cancel
+            )
             {
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
-
-                var commentChar = self.Config.CommentChar.Value;
 
                 // finish loop
                 {
@@ -568,7 +585,14 @@ end:
             }
 
             // continue after writing the comment start char completes
-            static async ValueTask WriteCommentAsync_ContinueAfterPlaceCharAsync(AsyncDynamicWriter self, ValueTask waitFor, ReadOnlyMemory<char> seg, ReadOnlySequence<char>.Enumerator e, CancellationToken cancel)
+            static async ValueTask WriteCommentAsync_ContinueAfterPlaceCharAsync(
+                AsyncDynamicWriter self, 
+                ValueTask waitFor, 
+                char commentChar,
+                ReadOnlyMemory<char> seg, 
+                ReadOnlySequence<char>.Enumerator e, 
+                CancellationToken cancel
+            )
             {
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
@@ -582,8 +606,6 @@ end:
                         cancel.ThrowIfCancellationRequested();
                     }
                 }
-
-                var commentChar = self.Config.CommentChar.Value;
 
                 // resume
                 while (e.MoveNext())
@@ -609,12 +631,16 @@ end:
             }
 
             // continue after writing a chunk of the comment completes
-            static async ValueTask WriteCommentAsync_ContinueAfterPlaceSegementAsync(AsyncDynamicWriter self, ValueTask waitFor, ReadOnlySequence<char>.Enumerator e, CancellationToken cancel)
+            static async ValueTask WriteCommentAsync_ContinueAfterPlaceSegementAsync(
+                AsyncDynamicWriter self, 
+                ValueTask waitFor, 
+                char commentChar,
+                ReadOnlySequence<char>.Enumerator e, 
+                CancellationToken cancel
+            )
             {
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
-
-                var commentChar = self.Config.CommentChar.Value;
 
                 while (e.MoveNext())
                 {
@@ -728,7 +754,7 @@ end:
         // returns true if it did write out headers,
         //   so we need to end a record before
         //   writing the next one
-        private ValueTask<bool> CheckHeadersAsync(dynamic firstRow, CancellationToken cancel)
+        private ValueTask<bool> CheckHeadersAsync(dynamic? firstRow, CancellationToken cancel)
         {
             if (Config.WriteHeader == WriteHeaders.Never)
             {
@@ -772,6 +798,7 @@ end:
                 if (colName == null)
                 {
                     Throw.InvalidOperationException<object>($"No column name found at index {colIx} when {nameof(Cesil.WriteHeaders)} = {Config.WriteHeader}");
+                    return;
                 }
 
                 var encodedColName = colName;
@@ -941,9 +968,12 @@ end:
                     return DisposeAsync_ContinueAfterDisposeAsync(this, innerDisposeTask);
                 }
 
-                OneCharOwner?.Dispose();
+                if (HasOneCharOwner)
+                {
+                    OneCharOwner.Dispose();
+                }
                 Buffer.Dispose();
-                Inner = null;
+                IsDisposed = true;
             }
 
             return default;
@@ -973,9 +1003,12 @@ end:
                 var disposeTask = self.Inner.DisposeAsync();
                 await disposeTask;
 
-                self.OneCharOwner?.Dispose();
+                if (self.HasOneCharOwner)
+                {
+                    self.OneCharOwner.Dispose();
+                }
                 self.Buffer.Dispose();
-                self.Inner = null;
+                self.IsDisposed = true;
             }
 
             // continue after EndRecordAsync completes
@@ -997,9 +1030,12 @@ end:
                 var disposeTask = self.Inner.DisposeAsync();
                 await disposeTask;
 
-                self.OneCharOwner?.Dispose();
+                if (self.HasOneCharOwner)
+                {
+                    self.OneCharOwner.Dispose();
+                }
                 self.Buffer.Dispose();
-                self.Inner = null;
+                self.IsDisposed = true;
             }
 
             // continue after FlushStagingAsync completes
@@ -1012,9 +1048,12 @@ end:
                 var disposeTask = self.Inner.DisposeAsync();
                 await disposeTask;
 
-                self.OneCharOwner?.Dispose();
+                if (self.HasOneCharOwner)
+                {
+                    self.OneCharOwner.Dispose();
+                }
                 self.Buffer.Dispose();
-                self.Inner = null;
+                self.IsDisposed = true;
             }
 
             // continue after Inner.DisposeAsync() completes
@@ -1022,9 +1061,12 @@ end:
             {
                 await waitFor;
 
-                self.OneCharOwner?.Dispose();
+                if (self.HasOneCharOwner)
+                {
+                    self.OneCharOwner.Dispose();
+                }
                 self.Buffer.Dispose();
-                self.Inner = null;
+                self.IsDisposed = true;
             }
         }
 

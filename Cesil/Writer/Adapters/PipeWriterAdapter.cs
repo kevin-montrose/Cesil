@@ -12,13 +12,13 @@ namespace Cesil
 {
     internal sealed partial class PipeWriterAdapter : IAsyncWriterAdapter
     {
-        public bool IsDisposed => Writer == null;
+        public bool IsDisposed { get; private set; }
 
-        private Encoding Encoding;
-        private PipeWriter Writer;
-        private MemoryPool<char> MemoryPool;
+        private readonly Encoding Encoding;
+        private readonly PipeWriter Writer;
+        private readonly MemoryPool<char> MemoryPool;
 
-        private IMemoryOwner<char> BufferOwner;
+        private IMemoryOwner<char>? BufferOwner;
 
         public PipeWriterAdapter(PipeWriter writer, Encoding encoding, MemoryPool<char> memoryPool)
         {
@@ -75,10 +75,7 @@ namespace Cesil
             {
                 BufferOwner?.Dispose();
 
-                Writer = null;
-                Encoding = null;
-                MemoryPool = null;
-                BufferOwner = null;
+                IsDisposed = true;
             }
 
             return default;

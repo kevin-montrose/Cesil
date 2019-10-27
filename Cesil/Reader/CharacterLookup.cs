@@ -7,16 +7,17 @@ namespace Cesil
 {
     internal struct CharacterLookup : ITestableDisposable
     {
-        public bool IsDisposed => Memory == null;
+        public bool IsDisposed { get; private set; }
 
         internal readonly int MinimumCharacter;
         internal readonly int CharLookupOffset;
 
         // internal for testing purposes
-        internal IMemoryOwner<char> Memory;
+        internal readonly IMemoryOwner<char> Memory;
 
         internal CharacterLookup(int mc, int clo, IMemoryOwner<char> m)
         {
+            IsDisposed = false;
             MinimumCharacter = mc;
             CharLookupOffset = clo;
             Memory = m;
@@ -158,7 +159,7 @@ namespace Cesil
             {
                 Memory.Dispose();
 
-                Memory = null;
+                IsDisposed = true;
             }
         }
     }

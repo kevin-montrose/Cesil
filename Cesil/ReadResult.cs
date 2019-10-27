@@ -45,7 +45,7 @@
         private ReadResult(bool v)
         {
             HasValue = v;
-            _Value = default;
+            _Value = default!;
         }
 
         /// <summary>

@@ -8,9 +8,9 @@ namespace Cesil
 {
     internal sealed class BufferWriterByteAdapter : IWriterAdapter
     {
-        public bool IsDisposed => Writer == null;
+        public bool IsDisposed { get; private set; }
 
-        private IBufferWriter<byte> Writer;
+        private readonly IBufferWriter<byte> Writer;
         private readonly Encoding Encoding;
 
         internal BufferWriterByteAdapter(IBufferWriter<byte> writer, Encoding encoding)
@@ -48,7 +48,7 @@ namespace Cesil
         {
             if (!IsDisposed)
             {
-                Writer = null;
+                IsDisposed = true;
             }
         }
     }

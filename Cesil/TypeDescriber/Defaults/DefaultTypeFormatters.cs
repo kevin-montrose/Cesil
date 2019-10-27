@@ -26,10 +26,10 @@ namespace Cesil
 
                 var parsingClass = Types.DefaultFlagsEnumTypeFormatterType.MakeGenericType(enumType).GetTypeInfo();
 
-                var enumParsingMtd = parsingClass.GetMethod(nameof(TryFormatFlagsEnum), BindingFlags.Static | BindingFlags.NonPublic);
+                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryFormatFlagsEnum), BindingFlags.Static | BindingFlags.NonPublic);
                 TryParseFlagsEnumFormatter = Formatter.ForMethod(enumParsingMtd);
 
-                var nullableEnumParsingMtd = parsingClass.GetMethod(nameof(TryFormatNullableFlagsEnum), BindingFlags.Static | BindingFlags.NonPublic);
+                var nullableEnumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryFormatNullableFlagsEnum), BindingFlags.Static | BindingFlags.NonPublic);
                 TryParseNullableFlagsEnumFormatter = Formatter.ForMethod(nullableEnumParsingMtd);
             }
 
@@ -86,10 +86,10 @@ namespace Cesil
 
                 var parsingClass = Types.DefaultEnumTypeFormatterType.MakeGenericType(enumType).GetTypeInfo();
 
-                var enumParsingMtd = parsingClass.GetMethod(nameof(TryFormatEnum), BindingFlags.Static | BindingFlags.NonPublic);
+                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryFormatEnum), BindingFlags.Static | BindingFlags.NonPublic);
                 TryParseEnumFormatter = Formatter.ForMethod(enumParsingMtd);
 
-                var nullableEnumParsingMtd = parsingClass.GetMethod(nameof(TryFormatNullableEnum), BindingFlags.Static | BindingFlags.NonPublic);
+                var nullableEnumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryFormatNullableEnum), BindingFlags.Static | BindingFlags.NonPublic);
                 TryParseNullableEnumFormatter = Formatter.ForMethod(nullableEnumParsingMtd);
             }
 

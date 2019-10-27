@@ -10,9 +10,7 @@ namespace Cesil
     internal sealed class AsyncWriter<T> :
         AsyncWriterBase<T>
     {
-        public override bool IsDisposed => Inner == null;
-
-        internal AsyncWriter(ConcreteBoundConfiguration<T> config, IAsyncWriterAdapter inner, object context) : base(config, inner, context) { }
+        internal AsyncWriter(ConcreteBoundConfiguration<T> config, IAsyncWriterAdapter inner, object? context) : base(config, inner, context) { }
 
         public override ValueTask WriteAsync(T row, CancellationToken cancel = default)
         {
@@ -97,9 +95,7 @@ namespace Cesil
                 return WriteCommentAsync_ContinueAfterWriteHeadersAndEndRowIfNeededAsync(this, writeHeadersTask, comment, cancel);
             }
 
-            var segments = SplitCommentIntoLines(comment);
-
-            var commentChar = Config.CommentChar.Value;
+            var (commentChar, segments) = SplitCommentIntoLines(comment);
 
             if (segments.IsSingleSegment)
             {
@@ -165,9 +161,7 @@ namespace Cesil
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
 
-                var segments = self.SplitCommentIntoLines(comment);
-
-                var commentChar = self.Config.CommentChar.Value;
+                var (commentChar, segments) = self.SplitCommentIntoLines(comment);
 
                 if (segments.IsSingleSegment)
                 {
@@ -803,9 +797,12 @@ namespace Cesil
                     return DisposeAsync_ContinueAfterInnerDisposedAsync(this, ret);
                 }
 
-                OneCharOwner?.Dispose();
+                if (HasOneCharOwner)
+                {
+                    OneCharOwner.Dispose();
+                }
                 Buffer.Dispose();
-                Inner = null;
+                IsDisposed = true;
             }
 
             return default;
@@ -834,10 +831,14 @@ namespace Cesil
 
                 var disposeTask = self.Inner.DisposeAsync();
                 await disposeTask;
-                self.OneCharOwner?.Dispose();
+
+                if (self.HasOneCharOwner)
+                {
+                    self.OneCharOwner.Dispose();
+                }
                 self.Buffer.Dispose();
 
-                self.Inner = null;
+                self.IsDisposed = true;
             }
 
             // wait on end record, then continue asynchronously
@@ -858,10 +859,14 @@ namespace Cesil
 
                 var disposeTask = self.Inner.DisposeAsync();
                 await disposeTask;
-                self.OneCharOwner?.Dispose();
+
+                if (self.HasOneCharOwner)
+                {
+                    self.OneCharOwner.Dispose();
+                }
                 self.Buffer.Dispose();
 
-                self.Inner = null;
+                self.IsDisposed = true;
             }
 
             // wait on flush, then continue asynchronously
@@ -869,14 +874,22 @@ namespace Cesil
             {
                 await waitFor;
 
-                self.Staging?.Dispose();
+                if (self.HasBuffer)
+                {
+                    self.Staging.Dispose();
+                }
 
                 var disposeTask = self.Inner.DisposeAsync();
                 await disposeTask;
-                self.OneCharOwner?.Dispose();
+
+                if (self.HasOneCharOwner)
+                {
+                    self.OneCharOwner.Dispose();
+                }
+
                 self.Buffer.Dispose();
 
-                self.Inner = null;
+                self.IsDisposed = true;
             }
 
             // wait on Inner.DisposeAsync
@@ -884,10 +897,13 @@ namespace Cesil
             {
                 await waitFor;
 
-                self.OneCharOwner?.Dispose();
+                if (self.HasOneCharOwner)
+                {
+                    self.OneCharOwner.Dispose();
+                }
                 self.Buffer.Dispose();
 
-                self.Inner = null;
+                self.IsDisposed = true;
             }
         }
 

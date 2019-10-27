@@ -7,7 +7,7 @@ namespace Cesil
 {
     internal sealed class DynamicRowEnumerable<T> : IEnumerable<T>, ITestableDisposable
     {
-        private DynamicRow Row;
+        private DynamicRow? Row;
 
         public bool IsDisposed
         {
@@ -34,7 +34,8 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
-            return new DynamicRowEnumerator<T>(Row);
+            var r = Utils.NonNull(Row);
+            return new DynamicRowEnumerator<T>(r);
         }
 
         IEnumerator IEnumerable.GetEnumerator()

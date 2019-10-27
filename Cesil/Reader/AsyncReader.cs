@@ -7,7 +7,7 @@ namespace Cesil
     internal sealed class AsyncReader<T> :
         AsyncReaderBase<T>
     {
-        internal AsyncReader(IAsyncReaderAdapter inner, ConcreteBoundConfiguration<T> config, object context) : base(inner, config, context) { }
+        internal AsyncReader(IAsyncReaderAdapter inner, ConcreteBoundConfiguration<T> config, object? context) : base(inner, config, context) { }
 
         internal override ValueTask HandleRowEndingsAndHeadersAsync(CancellationToken cancel)
         {
@@ -251,7 +251,7 @@ namespace Cesil
                     Configuration.ValueSeparator,
                     Configuration.EscapedValueStartAndStop,
                     Configuration.EscapeValueEscapeChar,
-                    RowEndings.Value,
+                    RowEndings!.Value,
                     Configuration.ReadHeader,
                     Configuration.WriteHeader,
                     Configuration.WriteTrailingNewLine,
@@ -324,7 +324,7 @@ namespace Cesil
                 StateMachine?.Dispose();
                 SharedCharacterLookup.Dispose();
 
-                Inner = null;
+                IsDisposed = true;
             }
 
             return default;
@@ -339,7 +339,7 @@ namespace Cesil
                 self.StateMachine?.Dispose();
                 self.SharedCharacterLookup.Dispose();
 
-                self.Inner = null;
+                self.IsDisposed = true;
             }
         }
 

@@ -6,6 +6,17 @@ namespace Cesil
 {
     internal static class Utils
     {
+        internal static T NonNull<T>(T? toCheck)
+            where T : class
+        {
+            if (toCheck == null)
+            {
+                return Throw.Exception<T>("Expected non-null value, but found null");
+            }
+
+            return toCheck;
+        }
+
         // won't return empty entries
         internal static ReadOnlySequence<char> Split(ReadOnlyMemory<char> str, ReadOnlyMemory<char> with)
         {
@@ -19,8 +30,8 @@ namespace Cesil
                 return new ReadOnlySequence<char>(str);
             }
 
-            ReadOnlyCharSegment head = null;
-            ReadOnlyCharSegment tail = null;
+            ReadOnlyCharSegment? head = null;
+            ReadOnlyCharSegment? tail = null;
 
             var lastIx = 0;
             while (ix != -1)
@@ -120,7 +131,7 @@ tryAgain:
             }
         }
 
-        internal static bool NullReferenceEquality<T>(T a, T b)
+        internal static bool NullReferenceEquality<T>(T? a, T? b)
             where T : class, IEquatable<T>
         {
             var aNull = ReferenceEquals(a, null);
@@ -129,7 +140,7 @@ tryAgain:
             if (aNull && bNull) return true;
             if (aNull || bNull) return false;
 
-            return a.Equals(b);
+            return a!.Equals(b);
         }
 
         internal static IMemoryOwner<T> RentMustIncrease<T>(MemoryPool<T> pool, int newSize, int oldSize)
@@ -470,7 +481,7 @@ tryAgain:
             var sepChar = config.ValueSeparator;
             var escapeValueChar = config.EscapedValueStartAndStop;
             var escapeChar = config.EscapeValueEscapeChar;
-            var commentChar = config.CommentChar.Value;
+            var commentChar = config.CommentChar!.Value;
 
             // allocate and initalize with \r and \n
             short* probMap = stackalloc short[PROBABILITY_MAP_SIZE];

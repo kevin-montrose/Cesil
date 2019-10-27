@@ -9,9 +9,9 @@ namespace Cesil
 {
     internal sealed class AsyncTextWriterAdapter : IAsyncWriterAdapter
     {
-        public bool IsDisposed => Inner == null;
+        public bool IsDisposed { get; private set; }
 
-        private TextWriter Inner;
+        private readonly TextWriter Inner;
 
         public AsyncTextWriterAdapter(TextWriter inner)
         {
@@ -36,7 +36,7 @@ namespace Cesil
             if (!IsDisposed)
             {
                 var ret = Inner.DisposeAsync();
-                Inner = null;
+                IsDisposed = true;
 
                 return ret;
             }

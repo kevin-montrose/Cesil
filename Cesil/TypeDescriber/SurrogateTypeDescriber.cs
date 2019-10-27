@@ -35,11 +35,11 @@ namespace Cesil
     [NotEquatable("Mutable")]
     public sealed class SurrogateTypeDescriber : ITypeDescriber
     {
-        internal ITypeDescriber TypeDescriber { get; }
+        private readonly ITypeDescriber TypeDescriber;
 
-        internal ITypeDescriber FallbackDescriber { get; }
+        private readonly ITypeDescriber? FallbackDescriber;
 
-        internal bool ThrowOnNoRegisteredSurrogate { get; }
+        private readonly bool ThrowOnNoRegisteredSurrogate;
 
         private readonly Dictionary<TypeInfo, TypeInfo> SurrogateTypes;
 
@@ -48,9 +48,13 @@ namespace Cesil
         /// </summary>
         public SurrogateTypeDescriber(ITypeDescriber surrogateTypeDescriber, SurrogateTypeDescriberFallbackBehavior fallbackBehavior)
         {
+            SurrogateTypes = new Dictionary<TypeInfo, TypeInfo>();
+            TypeDescriber = surrogateTypeDescriber;
+
             if (surrogateTypeDescriber == null)
             {
                 Throw.ArgumentNullException<object>(nameof(surrogateTypeDescriber));
+                return;
             }
 
             switch (fallbackBehavior)
@@ -71,9 +75,6 @@ namespace Cesil
                     Throw.ArgumentException<object>($"Unexpected {nameof(SurrogateTypeDescriberFallbackBehavior)}: {fallbackBehavior}", nameof(fallbackBehavior));
                     return;
             }
-
-            SurrogateTypes = new Dictionary<TypeInfo, TypeInfo>();
-            TypeDescriber = surrogateTypeDescriber;
         }
 
         /// <summary>
@@ -101,16 +102,19 @@ namespace Cesil
             if (forType == null)
             {
                 Throw.ArgumentNullException<object>(nameof(forType));
+                return;
             }
 
             if (surrogateType == null)
             {
                 Throw.ArgumentNullException<object>(nameof(surrogateType));
+                return;
             }
 
             if (forType == surrogateType)
             {
                 Throw.InvalidOperationException<object>($"Type {forType} cannot be a surrogate for itself");
+                return;
             }
 
             if (!SurrogateTypes.TryAdd(forType, surrogateType))
@@ -137,7 +141,6 @@ namespace Cesil
                 {
                     return Throw.InvalidOperationException<IEnumerable<DeserializableMember>>($"No surrogate registered for {forType}");
                 }
-
 
                 return TypeDescriber.EnumerateMembersToDeserialize(forType);
             }
@@ -199,7 +202,7 @@ namespace Cesil
         ///   be passed to TypeDescriber.GetInstanceProvider depending on the value of
         ///   ThrowOnNoRegisteredSurrogate.
         /// </summary>
-        public InstanceProvider GetInstanceProvider(TypeInfo forType)
+        public InstanceProvider? GetInstanceProvider(TypeInfo forType)
         {
             if (!SurrogateTypes.TryGetValue(forType, out var proxy))
             {
@@ -212,13 +215,18 @@ namespace Cesil
             }
 
             var fromProxy = TypeDescriber.GetInstanceProvider(proxy);
+            if(fromProxy == null)
+            {
+                return Throw.InvalidOperationException<InstanceProvider>($"No {nameof(InstanceProvider)} returned by {TypeDescriber} for {proxy}");
+            }
+
             return Map(forType, fromProxy);
         }
 
         private static DeserializableMember Map(TypeInfo ontoType, DeserializableMember member)
         {
-            MethodInfo resetOnType = null;
-            if (member.Reset != null)
+            MethodInfo? resetOnType = null;
+            if (member.HasReset)
             {
                 var surrogateResetWrapper = member.Reset;
                 if (surrogateResetWrapper.Mode != BackingMode.Method)
@@ -230,6 +238,7 @@ namespace Cesil
 
                 var surrogateResetBinding = GetEquivalentFlagsFor(surrogateReset.IsPublic, surrogateReset.IsStatic);
 
+                // intentionally letting this be null
                 resetOnType = ontoType.GetMethod(surrogateReset.Name, surrogateResetBinding);
                 if (resetOnType == null)
                 {
@@ -245,6 +254,7 @@ namespace Cesil
                         var surrogateField = surrogateSetterWrapper.Field;
                         var surrogateFieldBinding = GetEquivalentFlagsFor(surrogateField.IsPublic, surrogateField.IsStatic);
 
+                        // intentionally allowing null here
                         var fieldOnType = ontoType.GetField(surrogateField.Name, surrogateFieldBinding);
                         if (fieldOnType == null)
                         {
@@ -258,7 +268,7 @@ namespace Cesil
 
                         var required = GetEquivalentRequiredFor(member.IsRequired);
 
-                        return DeserializableMember.Create(ontoType, member.Name, (Setter)fieldOnType, member.Parser, required, (Reset)resetOnType);
+                        return DeserializableMember.CreateInner(ontoType, member.Name, (Setter?)fieldOnType, member.Parser, required, (Reset?)resetOnType);
                     }
                 case BackingMode.Method:
                     {
@@ -266,6 +276,7 @@ namespace Cesil
 
                         var surrogateSetterBinding = GetEquivalentFlagsFor(surrogateSetter.IsPublic, surrogateSetter.IsStatic);
 
+                        // intentionally letting this be null
                         var setterOnType = ontoType.GetMethod(surrogateSetter.Name, surrogateSetterBinding);
                         if (setterOnType == null)
                         {
@@ -293,7 +304,7 @@ namespace Cesil
 
                         var required = GetEquivalentRequiredFor(member.IsRequired);
 
-                        return DeserializableMember.Create(ontoType, member.Name, (Setter)setterOnType, member.Parser, required, (Reset)resetOnType);
+                        return DeserializableMember.CreateInner(ontoType, member.Name, (Setter?)setterOnType, member.Parser, required, (Reset?)resetOnType);
                     }
                 case BackingMode.Delegate:
                     return Throw.InvalidOperationException<DeserializableMember>($"Cannot map setter {surrogateSetterWrapper} onto {ontoType}, setter is backed by a delegate");
@@ -304,15 +315,17 @@ namespace Cesil
 
         private static SerializableMember Map(TypeInfo ontoType, SerializableMember member)
         {
-            ShouldSerialize shouldSerializeOnType;
-            var surrogateShouldSerializeWrapper = member.ShouldSerialize;
-            if (surrogateShouldSerializeWrapper != null)
+            ShouldSerialize? shouldSerializeOnType;
+            
+            if (member.HasShouldSerialize)
             {
+                var surrogateShouldSerializeWrapper = member.ShouldSerialize;
                 if (surrogateShouldSerializeWrapper.Mode == BackingMode.Method)
                 {
                     var surrogateShouldSerialize = surrogateShouldSerializeWrapper.Method;
                     var surrogateShouldSerializeBinding = GetEquivalentFlagsFor(surrogateShouldSerialize.IsPublic, surrogateShouldSerialize.IsStatic);
 
+                    // intentionally letting this be null
                     var shouldSerializeOnTypeMtd = ontoType.GetMethod(surrogateShouldSerialize.Name, surrogateShouldSerializeBinding);
                     if (shouldSerializeOnTypeMtd == null)
                     {
@@ -351,7 +364,7 @@ namespace Cesil
                         }
 
                         var emitDefaultField = GetEquivalentEmitFor(member.EmitDefaultValue);
-                        return SerializableMember.Create(ontoType, member.Name, (Getter)fieldOnType, member.Formatter, shouldSerializeOnType, emitDefaultField);
+                        return SerializableMember.CreateInner(ontoType, member.Name, (Getter?)fieldOnType, member.Formatter, shouldSerializeOnType, emitDefaultField);
                     }
                 case BackingMode.Delegate:
                     return Throw.InvalidOperationException<SerializableMember>($"Cannot map getter {surrogateGetterWrapper} onto {ontoType}, getter isn't backed by a method");
@@ -365,6 +378,7 @@ handleMethod:
             var surrogateGetter = surrogateGetterWrapper.Method;
             var surrogateGetterBinding = GetEquivalentFlagsFor(surrogateGetter.IsPublic, surrogateGetter.IsStatic);
 
+            // intentionally letting this be null
             var getterOnType = ontoType.GetMethod(surrogateGetter.Name, surrogateGetterBinding);
             if (getterOnType == null)
             {
@@ -391,7 +405,7 @@ handleMethod:
             }
 
             var emitDefault = GetEquivalentEmitFor(member.EmitDefaultValue);
-            return SerializableMember.Create(ontoType, member.Name, (Getter)getterOnType, member.Formatter, shouldSerializeOnType, emitDefault);
+            return SerializableMember.CreateInner(ontoType, member.Name, (Getter?)getterOnType, member.Formatter, shouldSerializeOnType, emitDefault);
         }
 
         private static InstanceProvider Map(TypeInfo ontoType, InstanceProvider builder)
@@ -477,13 +491,13 @@ handleMethod:
         /// <summary>
         /// Delegates to TypeDescriber.
         /// </summary>
-        public Parser GetDynamicCellParserFor(in ReadContext ctx, TypeInfo targetType)
+        public Parser? GetDynamicCellParserFor(in ReadContext ctx, TypeInfo targetType)
         => TypeDescriber.GetDynamicCellParserFor(in ctx, targetType);
 
         /// <summary>
         /// Delegates to TypeDescriber.
         /// </summary>
-        public DynamicRowConverter GetDynamicRowConverter(in ReadContext ctx, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
+        public DynamicRowConverter? GetDynamicRowConverter(in ReadContext ctx, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
         => TypeDescriber.GetDynamicRowConverter(in ctx, columns, targetType);
 
         /// <summary>

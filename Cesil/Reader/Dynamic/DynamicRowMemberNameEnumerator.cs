@@ -7,10 +7,10 @@ namespace Cesil
 {
     internal sealed class DynamicRowMemberNameEnumerator : IEnumerator<string>, ITestableDisposable
     {
-        private DynamicRow Inner;
+        private readonly DynamicRow Inner;
         private readonly uint Generation;
 
-        public bool IsDisposed => Inner == null;
+        public bool IsDisposed { get; private set; }
 
         private int Index;
 
@@ -70,7 +70,7 @@ namespace Cesil
         {
             if (!IsDisposed)
             {
-                Inner = null;
+                IsDisposed = true;
             }
         }
 

@@ -13,8 +13,10 @@ namespace Cesil
     {
         /// <summary>
         /// Get the provider for instances of forType.
+        /// 
+        /// Returns null if no InstanceProvider could be found.
         /// </summary>
-        InstanceProvider GetInstanceProvider(TypeInfo forType);
+        InstanceProvider? GetInstanceProvider(TypeInfo forType);
         /// <summary>
         /// Enumerate all the members on forType to serialize.
         /// </summary>
@@ -26,16 +28,20 @@ namespace Cesil
 
         /// <summary>
         /// Called to determine how to convert a dynamic cell.
+        /// 
+        /// Returns null if no Parser could be found.
         /// </summary>
-        Parser GetDynamicCellParserFor(in ReadContext ctx, TypeInfo targetType);
+        Parser? GetDynamicCellParserFor(in ReadContext ctx, TypeInfo targetType);
 
         /// <summary>
         /// Called to determine how to convert an entire dynamic row into the given type, as identified by
         ///   it's number (base-0), into the given type.
         ///   
         /// Column names will be exposed on individual column identifiers only if they are set.
+        /// 
+        /// Returns null if no DynamicRowConverter could be found.
         /// </summary>
-        DynamicRowConverter GetDynamicRowConverter(in ReadContext ctx, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType);
+        DynamicRowConverter? GetDynamicRowConverter(in ReadContext ctx, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType);
 
         /// <summary>
         /// Called to determine the cells that make up the given dynamic row.

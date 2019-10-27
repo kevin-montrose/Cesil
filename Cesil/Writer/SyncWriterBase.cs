@@ -11,11 +11,11 @@ namespace Cesil
         IWriter<T>,
         ITestableDisposable
     {
-        internal IWriterAdapter Inner;
+        internal readonly IWriterAdapter Inner;
 
-        public bool IsDisposed => Inner == null;
+        public bool IsDisposed { get; protected set; }
 
-        internal SyncWriterBase(BoundConfigurationBase<T> config, IWriterAdapter inner, object context) : base(config, context)
+        internal SyncWriterBase(BoundConfigurationBase<T> config, IWriterAdapter inner, object? context) : base(config, context)
         {
             Inner = inner;
         }
@@ -27,6 +27,7 @@ namespace Cesil
             if (rows == null)
             {
                 Throw.ArgumentNullException<object>(nameof(rows));
+                return;
             }
 
             foreach (var row in rows)

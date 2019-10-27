@@ -49,7 +49,7 @@ namespace Cesil
         ///   discover which columns to read or write, as well
         ///   as the manner of their reading and writing.
         /// </summary>
-        public ITypeDescriber TypeDescriber { get; private set; }
+        public ITypeDescriber? TypeDescriber { get; private set; }
         /// <summary>
         /// Whether or not to write a new line after the last row
         /// in a CSV.
@@ -58,7 +58,7 @@ namespace Cesil
         /// <summary>
         /// Which MemoryPool to use when reading or writing a CSV.
         /// </summary>
-        public MemoryPool<char> MemoryPool { get; private set; }
+        public MemoryPool<char>? MemoryPool { get; private set; }
         /// <summary>
         /// Which character, if any, is used to indicate the start
         /// of a comment.

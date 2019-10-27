@@ -22,14 +22,14 @@ namespace Cesil
             }
         }
 
-        public bool IsDisposed => Reader == null;
+        public bool IsDisposed { get; private set; }
 
-        private IAsyncReader<T> Reader;
+        private readonly IAsyncReader<T> Reader;
         private readonly CancellationToken Token;
 
         internal AsyncEnumerator(IAsyncReader<T> reader, CancellationToken token)
         {
-            Current = default;
+            _Current = default!;
             Reader = reader;
             Token = token;
         }
@@ -75,7 +75,7 @@ namespace Cesil
             if (!IsDisposed)
             {
                 var ret = Reader.DisposeAsync();
-                Reader = null;
+                IsDisposed = true;
                 return ret;
             }
 

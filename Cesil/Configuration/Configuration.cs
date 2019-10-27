@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -25,7 +24,8 @@ namespace Cesil
         /// </summary>
         public static IBoundConfiguration<dynamic> ForDynamic(Options options)
         {
-            if (options == null)
+            // todo: make this a helper, null! everywhere kind of sucks
+            if (options == null!)
             {
                 return Throw.ArgumentNullException<IBoundConfiguration<dynamic>>(nameof(options));
             }
@@ -66,7 +66,8 @@ namespace Cesil
         /// </summary>
         public static IBoundConfiguration<T> For<T>(Options options)
         {
-            if (options == null)
+            // todo: make this a helper, null! everywhere kind of sucks
+            if (options == null!)
             {
                 return Throw.ArgumentNullException<IBoundConfiguration<T>>(nameof(options));
             }
@@ -135,7 +136,7 @@ namespace Cesil
 
             foreach (var col in cols)
             {
-                var setter = ColumnSetter.Create(t, col.Parser, col.Setter, col.Reset);
+                var setter = ColumnSetter.Create(t, col.Parser, col.Setter, col.HasReset ? col.Reset : null);
 
                 ret.Add(new Column(col.Name, setter, null, col.IsRequired));
             }
@@ -148,6 +149,10 @@ namespace Cesil
             var neededType = typeof(T).GetTypeInfo();
 
             var builder = opts.TypeDescriber.GetInstanceProvider(forType);
+            if(builder == null)
+            {
+                return Throw.InvalidOperationException<InstanceProviderDelegate<T>>($"No {nameof(InstanceProvider)} returned for {typeof(T)}");
+            }
 
             var constructedType = builder.ConstructsType;
             if (!neededType.IsAssignableFrom(constructedType))
@@ -240,7 +245,7 @@ namespace Cesil
 
             foreach (var col in cols)
             {
-                var writer = ColumnWriter.Create(t, col.Formatter, col.ShouldSerialize, col.Getter, col.EmitDefaultValue);
+                var writer = ColumnWriter.Create(t, col.Formatter, col.HasShouldSerialize ? col.ShouldSerialize : null, col.Getter, col.EmitDefaultValue);
 
                 ret.Add(new Column(col.Name, null, writer, false));
             }

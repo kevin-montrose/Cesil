@@ -10,9 +10,9 @@ namespace Cesil
 {
     internal sealed partial class PipeReaderAdapter : ByteSequenceAdapterBase, IAsyncReaderAdapter
     {
-        public bool IsDisposed => Inner == null;
+        public bool IsDisposed { get; private set; }
 
-        private PipeReader Inner;
+        private readonly PipeReader Inner;
         
         public PipeReaderAdapter(PipeReader reader, Encoding encoding): base(encoding)
         {
@@ -82,7 +82,7 @@ namespace Cesil
 
         public ValueTask DisposeAsync()
         {
-            Inner = null;
+            IsDisposed = true;
             return default;
         }
     }

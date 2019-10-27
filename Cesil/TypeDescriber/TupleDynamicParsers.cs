@@ -41,9 +41,9 @@ namespace Cesil
             return ConvertToTuple(colTypes, data, 0, Types.ValueTupleTypes);
         }
 
-        private static object[] MakeArrayOfObjects(DynamicRow row, TypeInfo[] colTypes)
+        private static object?[] MakeArrayOfObjects(DynamicRow row, TypeInfo[] colTypes)
         {
-            var ret = new object[colTypes.Length];
+            var ret = new object?[colTypes.Length];
 
             var i = 0;
             foreach (var col in row.Columns)
@@ -54,6 +54,11 @@ namespace Cesil
                 }
 
                 var cell = row.GetCellAt(i);
+                if(cell == null)
+                {
+                    return Throw.InvalidOperationException<object[]>("Unexpected null value in dynamic row cell");
+                }
+
                 var val = cell.CoerceTo(colTypes[i]);
                 ret[i] = val;
 
@@ -69,7 +74,7 @@ end:
             const int REST_INDEX = 7;
 
             var cur = tupleType;
-            var initalArgs = cur.GetGenericArguments();
+            Type[]? initalArgs = cur.GetGenericArguments();
 
             var ret = new TypeInfo[initalArgs.Length];
             var nextIx = 0;
@@ -104,7 +109,7 @@ mapTypes:
             return ret;
         }
 
-        private static object ConvertToTuple(TypeInfo[] types, object[] data, int from, TypeInfo[] tupleTypes)
+        private static object ConvertToTuple(TypeInfo[] types, object?[] data, int from, TypeInfo[] tupleTypes)
         {
             var toTake = data.Length - from;
             var allocSize = toTake;
@@ -131,7 +136,7 @@ mapTypes:
             }
 
             var tupleType = tupleTypes[allocSize - 1].MakeGenericType(ts).GetTypeInfo();
-            var cons = tupleType.GetConstructor(ts);
+            var cons = tupleType.GetConstructorNonNull(ts);
             var ret = cons.Invoke(ps);
 
             return ret;

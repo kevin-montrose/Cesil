@@ -7,9 +7,9 @@ namespace Cesil
 {
     internal sealed class Enumerator<T> : IEnumerator<T>, ITestableDisposable
     {
-        private IReader<T> Reader;
+        private readonly IReader<T> Reader;
 
-        public bool IsDisposed => Reader == null;
+        public bool IsDisposed { get; private set; }
 
         private T _Current;
         public T Current
@@ -22,10 +22,11 @@ namespace Cesil
             }
         }
 
-        object IEnumerator.Current => Current;
+        object? IEnumerator.Current => Current;
 
         public Enumerator(IReader<T> reader)
         {
+            _Current = default!;
             Reader = reader;
         }
 
@@ -47,7 +48,7 @@ namespace Cesil
         {
             if (IsDisposed) return;
 
-            Reader = null;
+            IsDisposed = true;
         }
 
         public override string ToString()

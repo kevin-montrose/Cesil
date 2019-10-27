@@ -31,7 +31,7 @@ namespace Cesil
 
             object IEnumerator.Current => Current;
 
-            public bool IsDisposed => Row == null;
+            public bool IsDisposed { get; private set; }
 
             internal DynamicColumnEnumerator(DynamicRow row)
             {
@@ -44,12 +44,21 @@ namespace Cesil
             public bool MoveNext()
             {
                 AssertNotDisposed(this);
-                Row?.AssertGenerationMatch(ExpectedGeneration);
+                Row.AssertGenerationMatch(ExpectedGeneration);
 
                 var ix = NextIndex;
                 if (ix < Row.Width)
                 {
-                    var name = Row.Names?[ix];
+                    string? name;
+                    if (Row.HasNames)
+                    {
+                        name = Row.Names[ix];
+                    }
+                    else
+                    {
+                        name = null;
+                    }
+
                     _Current = ColumnIdentifier.Create(ix, name);
 
                     NextIndex++;
@@ -71,7 +80,7 @@ namespace Cesil
             {
                 // generation intentionally not checked
 
-                Row = null;
+                IsDisposed = true;
             }
 
             public override string ToString()
@@ -90,7 +99,15 @@ namespace Cesil
                 {
                     AssertNotDisposed(Row);
                     var ix = index;
-                    var name = Row.Names?[ix];
+                    string? name;
+                    if (Row.HasNames)
+                    {
+                        name = Row.Names[ix];
+                    }
+                    else
+                    {
+                        name = null;
+                    }
 
                     return ColumnIdentifier.Create(ix, name);
                 }
@@ -117,21 +134,30 @@ namespace Cesil
 
         private int Width;
 
-        public bool IsDisposed => MemoryPool == null;
+        public bool IsDisposed { get; private set; }
 
-        private MemoryPool<char> MemoryPool;
+        private MemoryPool<char>? _MemoryPool;
+        private MemoryPool<char> MemoryPool => Utils.NonNull(_MemoryPool);
 
-        internal ITypeDescriber Converter;
+        private ITypeDescriber? _Converter;
+        internal ITypeDescriber Converter => Utils.NonNull(_Converter);
+
         internal int RowNumber;
-        private string[] Names;
+        
+        private string[]? _Names;
+        private bool HasNames => _Names != null;
+        private string[] Names => Utils.NonNull(_Names);
 
         private int CurrentDataOffset;
 
-        internal IReadOnlyList<ColumnIdentifier> Columns;
+        internal IReadOnlyList<ColumnIdentifier>? _Columns;
+        private bool HasColumns => _Columns != null;
+        internal IReadOnlyList<ColumnIdentifier> Columns => Utils.NonNull(_Columns);
 
-        internal IDynamicRowOwner Owner;
+        private IDynamicRowOwner? _Owner;
+        internal IDynamicRowOwner Owner => Utils.NonNull(_Owner);
 
-        internal object Context;
+        internal object? Context;
 
         // we store data in here like so:
         //  <front (low address)>
@@ -143,18 +169,53 @@ namespace Cesil
         //    * <data for col #1> = (length) data
         //    * <data for col #0> = (length) data
         //  <back (high address)>
-        private IMemoryOwner<char> Data;
+        private IMemoryOwner<char>? _Data;
+        private bool HasData => _Data != null;
+        private IMemoryOwner<char> Data => Utils.NonNull(_Data);
 
-        DynamicRow IIntrusiveLinkedList<DynamicRow>.Next { get; set; }
-        DynamicRow IIntrusiveLinkedList<DynamicRow>.Previous { get; set; }
+        private DynamicRow? _Next;
+        bool IIntrusiveLinkedList<DynamicRow>.HasNext => _Next != null;
+
+        DynamicRow IIntrusiveLinkedList<DynamicRow>.Next
+        {
+            get
+            {
+                return Utils.NonNull(_Next);
+            }
+            set
+            {
+                _Next = value;
+            }
+        }
+        void IIntrusiveLinkedList<DynamicRow>.ClearNext() => _Next = null;
+
+        private DynamicRow? _Previous;
+        bool IIntrusiveLinkedList<DynamicRow>.HasPrevious => _Previous != null;
+        DynamicRow IIntrusiveLinkedList<DynamicRow>.Previous
+        {
+            get
+            {
+                return Utils.NonNull(_Previous);
+            }
+            set
+            {
+                _Previous = value;
+            }
+        }
+        void IIntrusiveLinkedList<DynamicRow>.ClearPrevious() => _Previous = null;
+
+        internal DynamicRow()
+        {
+            IsDisposed = true;
+        }
 
         internal void Init(
             IDynamicRowOwner owner,
             int rowNumber,
             int width,
-            object ctx,
+            object? ctx,
             ITypeDescriber converter,
-            string[] names,
+            string[]? names,
             MemoryPool<char> pool
         )
         {
@@ -164,19 +225,21 @@ namespace Cesil
             }
 
             // keep a single one of these around, but initialize it lazily for consistency
-            if (Columns == null)
+            if (!HasColumns)
             {
-                Columns = new DynamicColumnEnumerable(this);
+                _Columns = new DynamicColumnEnumerable(this);
             }
 
-            Owner = owner;
+            _Owner = owner;
             RowNumber = rowNumber;
-            Converter = converter;
-            MemoryPool = pool;
+            _Converter = converter;
+            _MemoryPool = pool;
             Width = width;
             Context = ctx;
-            Names = names;
+            _Names = names;
             Generation++;
+
+            IsDisposed = false;
         }
 
         public DynamicMetaObject GetMetaObject(Expression exp)
@@ -191,11 +254,11 @@ namespace Cesil
 
         internal void SetValue(int index, ReadOnlySpan<char> text)
         {
-            if (Data == null)
+            if (!HasData)
             {
                 var initialSize = Width * CHARS_PER_INT + CharsToStore(text);
 
-                Data = MemoryPool.Rent(initialSize);
+                _Data = MemoryPool.Rent(initialSize);
                 CurrentDataOffset = Data.Memory.Length;
             }
 
@@ -219,7 +282,7 @@ namespace Cesil
             return ret;
         }
 
-        internal object GetAt(int index)
+        internal object? GetAt(int index)
         {
             AssertNotDisposed(this);
 
@@ -231,7 +294,7 @@ namespace Cesil
             return ret;
         }
 
-        internal object GetByIndex(Index index)
+        internal object? GetByIndex(Index index)
         {
             AssertNotDisposed(this);
 
@@ -254,22 +317,26 @@ namespace Cesil
         }
 
         internal T GetAtTyped<T>(in ColumnIdentifier index)
-        => (T)(dynamic)GetByIdentifier(in index);
+        {
+            dynamic? toCast = GetByIdentifier(in index);
 
-        internal object GetByIdentifier(in ColumnIdentifier index)
+            return (T)toCast!;
+        }
+
+        internal object? GetByIdentifier(in ColumnIdentifier index)
         {
             AssertNotDisposed(this);
 
             if (index.HasName)
             {
-                if (TryGetValue(index.Name, out dynamic res))
+                if (TryGetValue(index.Name, out var res))
                 {
                     return res;
                 }
             }
             else
             {
-                if (TryGetIndex(index.Index, out dynamic res))
+                if (TryGetIndex(index.Index, out var res))
                 {
                     return res;
                 }
@@ -278,7 +345,7 @@ namespace Cesil
             return default;
         }
 
-        internal object GetByName(string column)
+        internal object? GetByName(string column)
         {
             AssertNotDisposed(this);
 
@@ -290,7 +357,7 @@ namespace Cesil
             return ret;
         }
 
-        internal DynamicCell GetCellAt(int ix)
+        internal DynamicCell? GetCellAt(int ix)
         {
             AssertNotDisposed(this);
 
@@ -307,7 +374,7 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
-            string[] names;
+            string[]? names;
 
             var startIndex = range.Start;
             var endIndex = range.End;
@@ -403,7 +470,7 @@ namespace Cesil
             return ReadContext.ConvertingRow(RowNumber, Owner.Context);
         }
 
-        private bool TryGetIndex(int index, out object result)
+        private bool TryGetIndex(int index, out object? result)
         {
             if (index < 0 || index >= Width)
             {
@@ -421,11 +488,11 @@ namespace Cesil
             return true;
         }
 
-        private bool TryGetValue(string lookingFor, out object result)
+        private bool TryGetValue(string lookingFor, out object? result)
         {
             for (var i = 0; i < Width; i++)
             {
-                if (Names?[i]?.Equals(lookingFor) ?? false)
+                if (HasNames && (Names[i]?.Equals(lookingFor) ?? false))
                 {
                     if (!IsSet(i))
                     {
@@ -518,7 +585,7 @@ namespace Cesil
 
             // update references
             CurrentDataOffset = newCurrentOffset;
-            Data = newData;
+            _Data = newData;
         }
 
         private void StoreDataSpan(ReadOnlySpan<char> data)
@@ -560,11 +627,16 @@ checkSize:
             if (!IsDisposed)
             {
                 CurrentDataOffset = -1;
-                Data?.Dispose();
-                Data = null;
-                MemoryPool = null;
-                Names = null;
+                if (HasData)
+                {
+                    Data.Dispose();
+                }
+                _Data = null;
+                _MemoryPool = null;
+                _Names = null;
                 Context = null;
+
+                IsDisposed = true;
             }
         }
 

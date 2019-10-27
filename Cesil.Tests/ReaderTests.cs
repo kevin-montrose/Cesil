@@ -407,7 +407,7 @@ namespace Cesil.Tests
                     Assert.False(d1.IsRequired);
                     Assert.Equal("Field", d1.Name);
                     Assert.Equal(Parser.GetDefault(typeof(int).GetTypeInfo()), d1.Parser);
-                    Assert.Null(d1.Reset);
+                    Assert.False(d1.HasReset);
                     Assert.Equal(Setter.ForField(f), d1.Setter);
                 }
 
@@ -420,7 +420,7 @@ namespace Cesil.Tests
                     Assert.False(d1.IsRequired);
                     Assert.Equal("Foo", d1.Name);
                     Assert.Equal(Parser.GetDefault(typeof(int).GetTypeInfo()), d1.Parser);
-                    Assert.Null(d1.Reset);
+                    Assert.False(d1.HasReset);
                     Assert.Equal(Setter.ForField(f), d1.Setter);
                 }
 
@@ -436,7 +436,7 @@ namespace Cesil.Tests
                     Assert.False(d1.IsRequired);
                     Assert.Equal("Bar", d1.Name);
                     Assert.Equal(parser, d1.Parser);
-                    Assert.Null(d1.Reset);
+                    Assert.False(d1.HasReset);
                     Assert.Equal(Setter.ForField(f), d1.Setter);
                 }
 
@@ -451,7 +451,7 @@ namespace Cesil.Tests
                     Assert.True(d1.IsRequired);
                     Assert.Equal("Baf", d1.Name);
                     Assert.Equal(parser, d1.Parser);
-                    Assert.Null(d1.Reset);
+                    Assert.False(d1.HasReset);
                     Assert.Equal(Setter.ForField(f), d1.Setter);
                 }
 
@@ -486,7 +486,7 @@ namespace Cesil.Tests
                     Assert.False(d1.IsRequired);
                     Assert.Equal("Prop", d1.Name);
                     Assert.Equal(Parser.GetDefault(typeof(string).GetTypeInfo()), d1.Parser);
-                    Assert.Null(d1.Reset);
+                    Assert.False(d1.HasReset);
                     Assert.Equal(Setter.ForMethod(p.SetMethod), d1.Setter);
                 }
 
@@ -499,7 +499,7 @@ namespace Cesil.Tests
                     Assert.False(d1.IsRequired);
                     Assert.Equal("Foo", d1.Name);
                     Assert.Equal(Parser.GetDefault(typeof(string).GetTypeInfo()), d1.Parser);
-                    Assert.Null(d1.Reset);
+                    Assert.False(d1.HasReset);
                     Assert.Equal(Setter.ForMethod(p.SetMethod), d1.Setter);
                 }
 
@@ -515,7 +515,7 @@ namespace Cesil.Tests
                     Assert.False(d1.IsRequired);
                     Assert.Equal("Bar", d1.Name);
                     Assert.Equal(parser, d1.Parser);
-                    Assert.Null(d1.Reset);
+                    Assert.False(d1.HasReset);
                     Assert.Equal(Setter.ForMethod(p.SetMethod), d1.Setter);
                 }
 
@@ -530,7 +530,7 @@ namespace Cesil.Tests
                     Assert.True(d1.IsRequired);
                     Assert.Equal("Baf", d1.Name);
                     Assert.Equal(parser, d1.Parser);
-                    Assert.Null(d1.Reset);
+                    Assert.False(d1.HasReset);
                     Assert.Equal(Setter.ForMethod(p.SetMethod), d1.Setter);
                 }
 
@@ -609,7 +609,6 @@ namespace Cesil.Tests
 
                 for (var j = i; j < members.Count; j++)
                 {
-
                     var m2 = members[j];
 
                     var eq = m1 == m2;

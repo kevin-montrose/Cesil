@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 
 namespace Cesil
 {
@@ -7,14 +6,23 @@ namespace Cesil
         SyncReaderBase<dynamic>,
         IDynamicRowOwner
     {
-        private string[] ColumnNames;
+        private string[]? _ColumnNames;
+        private bool HasColumnNames => _ColumnNames != null;
+        private string[] ColumnNames
+        {
+            get => Utils.NonNull(_ColumnNames);
+            set
+            {
+                _ColumnNames = value;
+            }
+        }
 
-        private DynamicRow NotifyOnDisposeHead;
-        public IIntrusiveLinkedList<DynamicRow> NotifyOnDispose => NotifyOnDisposeHead;
+        private DynamicRow? NotifyOnDisposeHead;
+        public IIntrusiveLinkedList<DynamicRow>? NotifyOnDispose => NotifyOnDisposeHead;
 
-        public new object Context => base.Context;
+        public new object? Context => base.Context;
 
-        internal DynamicReader(IReaderAdapter reader, DynamicBoundConfiguration config, object context) : base(reader, config, context) { }
+        internal DynamicReader(IReaderAdapter reader, DynamicBoundConfiguration config, object? context) : base(reader, config, context) { }
 
         internal override void HandleRowEndingsAndHeaders()
         {
@@ -65,7 +73,7 @@ namespace Cesil
                         else
                         {
                             // clear it, if we're reusing
-                            dynRow = (row as DynamicRow);
+                            dynRow = Utils.NonNull(row as DynamicRow);
                             dynRow.Dispose();
 
                             if (dynRow.Owner != null && dynRow.Owner != this)
@@ -78,7 +86,7 @@ namespace Cesil
                             }
                         }
 
-                        dynRow.Init(this, RowNumber, Columns.Length, Context, Configuration.TypeDescriber, ColumnNames, Configuration.MemoryPool);
+                        dynRow.Init(this, RowNumber, Columns.Length, Context, Configuration.TypeDescriber, HasColumnNames ? ColumnNames : null, Configuration.MemoryPool);
 
                         SetValueToPopulate(row);
                     }
@@ -121,7 +129,7 @@ namespace Cesil
                     Configuration.ValueSeparator,
                     Configuration.EscapedValueStartAndStop,
                     Configuration.EscapeValueEscapeChar,
-                    RowEndings.Value,
+                    RowEndings!.Value,
                     Configuration.ReadHeader,
                     Configuration.WriteHeader,
                     Configuration.WriteTrailingNewLine,
@@ -195,7 +203,7 @@ namespace Cesil
             if (IsDisposed) return;
 
             // only need to do work if the reader is responsbile for implicitly disposing
-            while (NotifyOnDispose != null)
+            while (NotifyOnDisposeHead != null)
             {
                 NotifyOnDisposeHead.Dispose();
                 NotifyOnDisposeHead.Remove(ref NotifyOnDisposeHead, NotifyOnDisposeHead);
@@ -207,7 +215,7 @@ namespace Cesil
             StateMachine?.Dispose();
             SharedCharacterLookup.Dispose();
 
-            Inner = null;
+            IsDisposed = true;
         }
 
         public override string ToString()

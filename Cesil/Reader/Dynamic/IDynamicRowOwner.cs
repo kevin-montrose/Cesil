@@ -2,9 +2,9 @@
 {
     internal interface IDynamicRowOwner
     {
-        object Context { get; }
+        object? Context { get; }
 
-        IIntrusiveLinkedList<DynamicRow> NotifyOnDispose { get; }
+        IIntrusiveLinkedList<DynamicRow>? NotifyOnDispose { get; }
         void Remove(DynamicRow row);
     }
 }

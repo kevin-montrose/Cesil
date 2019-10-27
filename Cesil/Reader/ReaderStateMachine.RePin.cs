@@ -7,17 +7,22 @@ namespace Cesil
     {
         internal struct PinHandle: IDisposable
         {
-            private ReaderStateMachine Outer;
+            private bool Pinned;
+            private readonly ReaderStateMachine Outer;
 
             internal PinHandle(ReaderStateMachine outer)
             {
                 Outer = outer;
+                Pinned = true;
             }
 
             public void Dispose()
             {
-                Outer?.Unpin();
-                Outer = null;
+                if (Pinned)
+                {
+                    Outer.Unpin();
+                    Pinned = false;
+                }
             }
         }
 

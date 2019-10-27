@@ -8,14 +8,23 @@ namespace Cesil
         AsyncReaderBase<dynamic>,
         IDynamicRowOwner
     {
-        private string[] ColumnNames;
+        private string[]? _ColumnNames;
+        private bool HasColumnNames => _ColumnNames != null;
+        private string[] ColumnNames
+        {
+            get => Utils.NonNull(_ColumnNames);
+            set
+            {
+                _ColumnNames = value;
+            }
+        }
 
-        private DynamicRow NotifyOnDisposeHead;
-        public IIntrusiveLinkedList<DynamicRow> NotifyOnDispose => NotifyOnDisposeHead;
+        private DynamicRow? NotifyOnDisposeHead;
+        public IIntrusiveLinkedList<DynamicRow>? NotifyOnDispose => NotifyOnDisposeHead;
 
-        public new object Context => base.Context;
+        object? IDynamicRowOwner.Context => base.Context;
 
-        internal AsyncDynamicReader(IAsyncReaderAdapter reader, DynamicBoundConfiguration config, object context) : base(reader, config, context) { }
+        internal AsyncDynamicReader(IAsyncReaderAdapter reader, DynamicBoundConfiguration config, object? context) : base(reader, config, context) { }
 
         internal override ValueTask HandleRowEndingsAndHeadersAsync(CancellationToken cancel)
         {
@@ -51,7 +60,7 @@ namespace Cesil
 
         internal override ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync(bool returnComments, bool pinAcquired, ref dynamic record, CancellationToken cancel)
         {
-            var row = GuaranteeRow(ref record) as DynamicRow;  // this `as` is absurdly important, don't remove it
+            var row = Utils.NonNull(GuaranteeRow(ref record) as DynamicRow);  // this `as` is absurdly important, don't remove it
             var needsInit = true;
 
             ReaderStateMachine.PinHandle handle = default;
@@ -112,7 +121,7 @@ namespace Cesil
             static DynamicRow GuaranteeInitializedRow(AsyncDynamicReader self, DynamicRow dynRow)
             {
                 self.MonitorForDispose(dynRow);
-                dynRow.Init(self, self.RowNumber, self.Columns.Length, self.Context, self.Configuration.TypeDescriber, self.ColumnNames, self.Configuration.MemoryPool);
+                dynRow.Init(self, self.RowNumber, self.Columns.Length, self.Context, self.Configuration.TypeDescriber, self.HasColumnNames ? self.ColumnNames : null, self.Configuration.MemoryPool);
 
                 return dynRow;
             }
@@ -206,7 +215,7 @@ namespace Cesil
             else
             {
                 // clear it, if we're reusing
-                dynRow = (row as DynamicRow);
+                dynRow = Utils.NonNull(row as DynamicRow);
 
                 if (!dynRow.IsDisposed)
                 {
@@ -226,13 +235,13 @@ namespace Cesil
         {
             if (Configuration.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose)
             {
-                NotifyOnDisposeHead.AddHead(ref NotifyOnDisposeHead, dynRow);
+                NotifyOnDisposeHead!.AddHead(ref NotifyOnDisposeHead, dynRow);
             }
         }
 
         public void Remove(DynamicRow row)
         {
-            NotifyOnDisposeHead.Remove(ref NotifyOnDisposeHead, row);
+            NotifyOnDisposeHead!.Remove(ref NotifyOnDisposeHead, row);
         }
 
         private ValueTask HandleHeadersAsync(CancellationToken cancel)
@@ -245,7 +254,7 @@ namespace Cesil
                     Configuration.ValueSeparator,
                     Configuration.EscapedValueStartAndStop,
                     Configuration.EscapeValueEscapeChar,
-                    RowEndings.Value,
+                    RowEndings!.Value,
                     Configuration.ReadHeader,
                     Configuration.WriteHeader,
                     Configuration.WriteTrailingNewLine,
@@ -425,7 +434,7 @@ namespace Cesil
             }
 
             // only need to do work if the reader is responsbile for implicitly disposing
-            while (NotifyOnDispose != null)
+            while (NotifyOnDisposeHead != null)
             {
                 NotifyOnDisposeHead.Dispose();
                 NotifyOnDisposeHead.Remove(ref NotifyOnDisposeHead, NotifyOnDisposeHead);
@@ -442,7 +451,7 @@ namespace Cesil
             StateMachine?.Dispose();
             SharedCharacterLookup.Dispose();
 
-            Inner = null;
+            IsDisposed = true;
             return default;
 
             // wait for Inner's DisposeAsync call to finish, then finish disposing self
@@ -455,7 +464,7 @@ namespace Cesil
                 self.StateMachine?.Dispose();
                 self.SharedCharacterLookup.Dispose();
 
-                self.Inner = null;
+                self.IsDisposed = true;
                 return;
             }
         }

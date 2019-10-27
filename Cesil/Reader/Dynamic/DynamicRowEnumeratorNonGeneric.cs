@@ -6,7 +6,7 @@ namespace Cesil
     {
         private readonly DynamicRow.DynamicColumnEnumerator Enumerator;
 
-        public object Current { get; private set; }
+        public object? Current { get; private set; }
 
         internal DynamicRowEnumeratorNonGeneric(DynamicRow row)
         {

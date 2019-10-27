@@ -1,11 +1,10 @@
 ﻿using System;
-using System.IO;
 
 namespace Cesil
 {
     internal sealed class Reader<T> : SyncReaderBase<T>
     {
-        internal Reader(IReaderAdapter inner, ConcreteBoundConfiguration<T> config, object context) : base(inner, config, context) { }
+        internal Reader(IReaderAdapter inner, ConcreteBoundConfiguration<T> config, object? context) : base(inner, config, context) { }
 
         internal override void HandleRowEndingsAndHeaders()
         {
@@ -86,7 +85,7 @@ namespace Cesil
                     Configuration.ValueSeparator,
                     Configuration.EscapedValueStartAndStop,
                     Configuration.EscapeValueEscapeChar,
-                    RowEndings.Value,
+                    RowEndings!.Value,
                     Configuration.ReadHeader,
                     Configuration.WriteHeader,
                     Configuration.WriteTrailingNewLine,
@@ -138,7 +137,7 @@ namespace Cesil
                 StateMachine?.Dispose();
                 SharedCharacterLookup.Dispose();
 
-                Inner = null;
+                IsDisposed = true;
             }
         }
 

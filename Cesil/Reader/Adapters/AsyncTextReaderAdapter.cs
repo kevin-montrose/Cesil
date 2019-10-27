@@ -9,9 +9,9 @@ namespace Cesil
 {
     internal sealed class AsyncTextReaderAdapter : IAsyncReaderAdapter
     {
-        public bool IsDisposed => Inner == null;
+        public bool IsDisposed { get; private set; }
 
-        private TextReader Inner;
+        private readonly TextReader Inner;
 
         public AsyncTextReaderAdapter(TextReader inner)
         {
@@ -35,13 +35,13 @@ namespace Cesil
             if (Inner is IAsyncDisposable iad)
             {
                 var disposeTask = iad.DisposeAsync();
-                Inner = null;
+                IsDisposed = true;
 
                 return disposeTask;
             }
 
             Inner.Dispose();
-            Inner = null;
+            IsDisposed = true;
 
             return default;
         }

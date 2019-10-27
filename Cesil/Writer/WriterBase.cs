@@ -9,20 +9,26 @@ namespace Cesil
 
         internal readonly MaxSizedBufferWriter Buffer;
 
-        internal Column[] Columns;
+        private Column[]? _Columns;
+        internal Column[] Columns
+        {
+            get => Utils.NonNull(_Columns);
+            set => _Columns = value;
+        }
 
-        internal bool IsFirstRow => Columns == null;
+        internal bool IsFirstRow => _Columns == null;
 
-        internal bool HasBuffer => Staging != null;
+        internal bool HasBuffer => _Staging != null;
 
-        internal readonly IMemoryOwner<char> Staging;
+        private IMemoryOwner<char>? _Staging;
+        internal IMemoryOwner<char> Staging => Utils.NonNull(_Staging);
         internal int InStaging;
 
         internal int RowNumber;
 
-        internal readonly object Context;
+        internal readonly object? Context;
 
-        protected WriterBase(BoundConfigurationBase<T> config, object context)
+        protected WriterBase(BoundConfigurationBase<T> config, object? context)
         {
             RowNumber = 0;
             Config = config;
@@ -32,13 +38,13 @@ namespace Cesil
             // buffering is configurable
             if (Config.WriteBufferSizeHint == 0)
             {
-                Staging = null;
+                _Staging = null;
                 InStaging = -1;
             }
             else
             {
                 InStaging = 0;
-                Staging = Config.MemoryPool.Rent(Config.WriteBufferSizeHint ?? MaxSizedBufferWriter.DEFAULT_STAGING_SIZE);
+                _Staging = Config.MemoryPool.Rent(Config.WriteBufferSizeHint ?? MaxSizedBufferWriter.DEFAULT_STAGING_SIZE);
             }
         }
 
@@ -60,16 +66,19 @@ namespace Cesil
             return InStaging == Staging.Memory.Length;
         }
 
-        internal ReadOnlySequence<char> SplitCommentIntoLines(string comment)
+        internal (char CommentChar, ReadOnlySequence<char> CommentLines) SplitCommentIntoLines(string comment)
         {
             if (Config.CommentChar == null)
             {
-                return Throw.InvalidOperationException<ReadOnlySequence<char>>($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
+                return Throw.InvalidOperationException<(char CommentChar, ReadOnlySequence<char> CommentLines)>($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
             }
 
             var commentMem = comment.AsMemory();
 
-            return Utils.Split(commentMem, Config.RowEndingMemory);
+            var seq = Utils.Split(commentMem, Config.RowEndingMemory);
+            var c = Config.CommentChar.Value;
+
+            return (c, seq);
         }
     }
 }

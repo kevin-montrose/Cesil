@@ -24,17 +24,17 @@ namespace Cesil
         {
             get
             {
-                if (Method != null)
+                if (_Method != null)
                 {
                     return BackingMode.Method;
                 }
 
-                if (Field != null)
+                if (_Field != null)
                 {
                     return BackingMode.Field;
                 }
 
-                if (Delegate != null)
+                if (_Delegate != null)
                 {
                     return BackingMode.Delegate;
                 }
@@ -51,39 +51,48 @@ namespace Cesil
                 {
                     case BackingMode.Field: return Field.IsStatic;
                     case BackingMode.Method: return Method.IsStatic;
-                    case BackingMode.Delegate: return RowType == null;
+                    case BackingMode.Delegate: return !HasRowType;
                     default:
                         return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}");
                 }
             }
         }
 
-        internal MethodInfo Method { get; }
-        internal FieldInfo Field { get; }
-        internal Delegate Delegate { get; }
+        private readonly MethodInfo? _Method;
+        internal MethodInfo Method => Utils.NonNull(_Method);
+        
+        private readonly FieldInfo? _Field;
+        internal bool HasField => _Field != null;
+        internal FieldInfo Field => Utils.NonNull(_Field);
 
-        internal TypeInfo RowType { get; }
-        internal TypeInfo Takes { get; }
+        private readonly Delegate? _Delegate;
+        internal Delegate Delegate => Utils.NonNull(_Delegate);
 
-        private Setter(TypeInfo rowType, TypeInfo takes, MethodInfo method)
+        private readonly TypeInfo? _RowType;
+        internal bool HasRowType => _RowType != null;
+        internal TypeInfo RowType => Utils.NonNull(_RowType);
+
+        internal readonly TypeInfo Takes;
+
+        private Setter(TypeInfo? rowType, TypeInfo takes, MethodInfo method)
         {
-            RowType = rowType;
+            _RowType = rowType;
             Takes = takes;
-            Method = method;
+            _Method = method;
         }
 
-        private Setter(TypeInfo rowType, TypeInfo takes, Delegate del)
+        private Setter(TypeInfo? rowType, TypeInfo takes, Delegate del)
         {
-            RowType = rowType;
+            _RowType = rowType;
             Takes = takes;
-            Delegate = del;
+            _Delegate = del;
         }
 
-        private Setter(TypeInfo rowType, TypeInfo takes, FieldInfo field)
+        private Setter(TypeInfo? rowType, TypeInfo takes, FieldInfo field)
         {
-            RowType = rowType;
+            _RowType = rowType;
             Takes = takes;
-            Field = field;
+            _Field = field;
         }
 
         /// <summary>
@@ -113,7 +122,7 @@ namespace Cesil
                 return Throw.ArgumentException<Setter>($"{nameof(setter)} must not return a value", nameof(setter));
             }
 
-            TypeInfo setOnType;
+            TypeInfo? setOnType;
             TypeInfo takesType;
 
             var args = setter.GetParameters();
@@ -127,7 +136,7 @@ namespace Cesil
                 }
                 else
                 {
-                    setOnType = setter.DeclaringType.GetTypeInfo();
+                    setOnType = setter.DeclaringTypeNonNull();
                 }
             }
             else if (args.Length == 2)
@@ -160,14 +169,14 @@ namespace Cesil
                 return Throw.ArgumentNullException<Setter>(nameof(field));
             }
 
-            TypeInfo rowType;
+            TypeInfo? rowType;
             if (field.IsStatic)
             {
                 rowType = null;
             }
             else
             {
-                rowType = field.DeclaringType.GetTypeInfo();
+                rowType = field.DeclaringTypeNonNull();
             }
 
             var takesType = field.FieldType.GetTypeInfo();
@@ -209,7 +218,7 @@ namespace Cesil
         /// <summary>
         /// Returns true if this object equals the given Setter.
         /// </summary>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is Setter s)
             {
@@ -226,21 +235,40 @@ namespace Cesil
         {
             if (ReferenceEquals(s, null)) return false;
 
-            return
-                s.Delegate == Delegate &&
-                s.Field == Field &&
-                s.IsStatic == IsStatic &&
-                s.Method == Method &&
-                s.Mode == Mode &&
-                s.RowType == RowType &&
-                s.Takes == Takes;
+            var mode = Mode;
+            var otherMode = s.Mode;
+
+            if (mode != otherMode) return false;
+            if (Takes != s.Takes) return false;
+            if (IsStatic != IsStatic) return false;
+
+            if (HasRowType)
+            {
+                if (!s.HasRowType) return false;
+
+                if (RowType != s.RowType) return false;
+            }
+            else
+            {
+                if (s.HasRowType) return false;
+            }
+
+            switch (mode)
+            {
+                case BackingMode.Delegate: return Delegate == s.Delegate;
+                case BackingMode.Field: return Field == s.Field;
+                case BackingMode.Method: return Method == s.Method;
+
+                default:
+                    return Throw.Exception<bool>($"Unexpected {nameof(BackingMode)}: {mode}");
+            }
         }
 
         /// <summary>
         /// Returns a stable hash for this Setter.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(Setter), Delegate, Field, IsStatic, Method, Mode, RowType, Takes);
+        => HashCode.Combine(nameof(Setter), _Delegate, _Field, IsStatic, _Method, Mode, _RowType, Takes);
 
         /// <summary>
         /// Describes this Setter.
@@ -288,7 +316,7 @@ namespace Cesil
         /// 
         /// Returns null if mtd is null.
         /// </summary>
-        public static explicit operator Setter(MethodInfo mtd)
+        public static explicit operator Setter?(MethodInfo? mtd)
         => mtd == null ? null : ForMethod(mtd);
 
         /// <summary>
@@ -296,7 +324,7 @@ namespace Cesil
         /// 
         /// Returns null if field is null.
         /// </summary>
-        public static explicit operator Setter(FieldInfo field)
+        public static explicit operator Setter?(FieldInfo? field)
         => field == null ? null : ForField(field);
 
         /// <summary>
@@ -304,7 +332,7 @@ namespace Cesil
         /// 
         /// Returns null if field is null.
         /// </summary>
-        public static explicit operator Setter(Delegate del)
+        public static explicit operator Setter?(Delegate? del)
         {
             if (del == null) return null;
 
@@ -337,7 +365,7 @@ namespace Cesil
             }
 
             var ps = mtd.GetParameters();
-            var invoke = delType.GetMethod("Invoke");
+            var invoke = delType.GetMethodNonNull("Invoke");
             if (ps.Length == 2)
             {
                 var rowType = ps[0].ParameterType.GetTypeInfo();
@@ -367,13 +395,13 @@ namespace Cesil
         /// <summary>
         /// Compare two Setters for equality
         /// </summary>
-        public static bool operator ==(Setter a, Setter b)
+        public static bool operator ==(Setter? a, Setter? b)
         => Utils.NullReferenceEquality(a, b);
 
         /// <summary>
         /// Compare two Setters for inequality
         /// </summary>
-        public static bool operator !=(Setter a, Setter b)
+        public static bool operator !=(Setter? a, Setter? b)
         => !(a == b);
     }
 }

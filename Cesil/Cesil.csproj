@@ -15,6 +15,7 @@
     <PackageTags>csv</PackageTags>
     <PackageReleaseNotes>Pre-Release
 Probably horribly broken.</PackageReleaseNotes>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

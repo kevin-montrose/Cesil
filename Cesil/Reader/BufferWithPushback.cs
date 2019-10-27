@@ -9,7 +9,8 @@ namespace Cesil
     {
         private readonly MemoryPool<char> MemoryPool;
 
-        public bool IsDisposed => BackingOwner == null;
+        public bool IsDisposed { get; private set; }
+
         private IMemoryOwner<char> BackingOwner;
 
         internal Memory<char> Buffer;
@@ -98,7 +99,7 @@ namespace Cesil
             {
                 BackingOwner.Dispose();
 
-                BackingOwner = null;
+                IsDisposed = true;
             }
         }
     }

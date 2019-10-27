@@ -20,22 +20,35 @@ namespace Cesil
             Exception_UnexpectedState
         }
 
-        private IAsyncReaderAdapter InnerAsync;
-        private IReaderAdapter Inner;
+        private readonly IAsyncReaderAdapter? _InnerAsync;
+        private IAsyncReaderAdapter InnerAsync => Utils.NonNull(_InnerAsync);
+        
+        private readonly IReaderAdapter? _Inner;
+        private IReaderAdapter Inner => Utils.NonNull(_Inner);
 
         private RowEndings Ending;
 
         private readonly ReaderStateMachine State;
 
-        public bool IsDisposed => MemoryPool == null;
-        private MemoryPool<char> MemoryPool;
+        public bool IsDisposed { get; private set; }
+        private readonly MemoryPool<char> MemoryPool;
         private readonly int BufferSizeHint;
 
         private int BufferStart;
         private readonly IMemoryOwner<char> BufferOwner;
 
         private int PushbackLength;
-        private IMemoryOwner<char> PushbackOwner;
+        private bool HasPushbackOwner => _PushbackOwner != null;
+        private IMemoryOwner<char>? _PushbackOwner;
+        private IMemoryOwner<char> PushbackOwner
+        {
+            get => Utils.NonNull(_PushbackOwner);
+            set
+            {
+                _PushbackOwner = value;
+            }
+        }
+
         private Memory<char> Pushback => PushbackOwner.Memory;
 
         internal RowEndingDetector(ReaderStateMachine stateMachine, BoundConfigurationBase<T> config, CharacterLookup charLookup, IReaderAdapter inner)
@@ -44,10 +57,10 @@ namespace Cesil
         internal RowEndingDetector(ReaderStateMachine stateMachine, BoundConfigurationBase<T> config, CharacterLookup charLookup, IAsyncReaderAdapter innerAsync)
             : this(stateMachine, config, charLookup, null, innerAsync) { }
 
-        private RowEndingDetector(ReaderStateMachine stateMachine, BoundConfigurationBase<T> config, CharacterLookup charLookup, IReaderAdapter inner, IAsyncReaderAdapter innerAsync)
+        private RowEndingDetector(ReaderStateMachine stateMachine, BoundConfigurationBase<T> config, CharacterLookup charLookup, IReaderAdapter? inner, IAsyncReaderAdapter? innerAsync)
         {
-            Inner = inner;
-            InnerAsync = innerAsync;
+            _Inner = inner;
+            _InnerAsync = innerAsync;
 
             State = stateMachine;
             stateMachine.Initialize(
@@ -325,7 +338,7 @@ end:
 
         private void AddToPushback(ReadOnlySpan<char> span)
         {
-            if (PushbackOwner == null)
+            if (!HasPushbackOwner)
             {
                 PushbackOwner = MemoryPool.Rent(BufferSizeHint);
             }
@@ -409,9 +422,12 @@ end:
             {
                 // Intentionally NOT disposing State, it's reused
                 BufferOwner.Dispose();
-                PushbackOwner?.Dispose();
+                if (HasPushbackOwner)
+                {
+                    PushbackOwner.Dispose();
+                }
 
-                MemoryPool = null;
+                IsDisposed = true;
             }
         }
     }

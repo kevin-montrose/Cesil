@@ -193,7 +193,7 @@ namespace Cesil.Tests
                     Assert.Equal(Formatter.GetDefault(typeof(string).GetTypeInfo()), s1.Formatter);
                     Assert.Equal(Getter.ForField(f), s1.Getter);
                     Assert.Equal("Field", s1.Name);
-                    Assert.Null(s1.ShouldSerialize);
+                    Assert.False(s1.HasShouldSerialize);
                 }
 
                 // 2
@@ -206,7 +206,7 @@ namespace Cesil.Tests
                     Assert.Equal(Formatter.GetDefault(typeof(string).GetTypeInfo()), s2.Formatter);
                     Assert.Equal(Getter.ForField(f), s2.Getter);
                     Assert.Equal("Nope", s2.Name);
-                    Assert.Null(s2.ShouldSerialize);
+                    Assert.False(s2.HasShouldSerialize);
                 }
 
                 var formatter =
@@ -228,7 +228,7 @@ namespace Cesil.Tests
                     Assert.Equal(formatter, s3.Formatter);
                     Assert.Equal(Getter.ForField(f), s3.Getter);
                     Assert.Equal("Yep", s3.Name);
-                    Assert.Null(s3.ShouldSerialize);
+                    Assert.False(s3.HasShouldSerialize);
                 }
 
                 var shouldSerialize =
@@ -281,7 +281,7 @@ namespace Cesil.Tests
                     Assert.Equal(Formatter.GetDefault(typeof(int).GetTypeInfo()), s1.Formatter);
                     Assert.Equal((Getter)p.GetMethod, s1.Getter);
                     Assert.Equal("Prop", s1.Name);
-                    Assert.Null(s1.ShouldSerialize);
+                    Assert.False(s1.HasShouldSerialize);
                 }
 
                 // 2
@@ -294,7 +294,7 @@ namespace Cesil.Tests
                     Assert.Equal(Formatter.GetDefault(typeof(int).GetTypeInfo()), s2.Formatter);
                     Assert.Equal((Getter)p.GetMethod, s2.Getter);
                     Assert.Equal("Hello", s2.Name);
-                    Assert.Null(s2.ShouldSerialize);
+                    Assert.False(s2.HasShouldSerialize);
                 }
 
                 var formatter =
@@ -316,7 +316,7 @@ namespace Cesil.Tests
                     Assert.Equal(formatter, s3.Formatter);
                     Assert.Equal((Getter)p.GetMethod, s3.Getter);
                     Assert.Equal("World", s3.Name);
-                    Assert.Null(s3.ShouldSerialize);
+                    Assert.False(s3.HasShouldSerialize);
                 }
 
                 var shouldSerialize =

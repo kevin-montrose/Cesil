@@ -66,9 +66,9 @@ namespace Cesil
         ///   performing the read operation which is described
         ///   by this context.
         /// </summary>
-        public object Context { get; }
+        public object? Context { get; }
 
-        private ReadContext(ReadContextMode m, int r, ColumnIdentifier? ci, object ctx)
+        private ReadContext(ReadContextMode m, int r, ColumnIdentifier? ci, object? ctx)
         {
             Mode = m;
             RowNumber = r;
@@ -76,19 +76,19 @@ namespace Cesil
             Context = ctx;
         }
 
-        internal static ReadContext ReadingColumn(int r, ColumnIdentifier col, object ctx)
+        internal static ReadContext ReadingColumn(int r, ColumnIdentifier col, object? ctx)
         => new ReadContext(ReadContextMode.ReadingColumn, r, col, ctx);
 
-        internal static ReadContext ConvertingColumn(int r, ColumnIdentifier col, object ctx)
+        internal static ReadContext ConvertingColumn(int r, ColumnIdentifier col, object? ctx)
         => new ReadContext(ReadContextMode.ConvertingColumn, r, col, ctx);
 
-        internal static ReadContext ConvertingRow(int r, object ctx)
+        internal static ReadContext ConvertingRow(int r, object? ctx)
         => new ReadContext(ReadContextMode.ConvertingRow, r, null, ctx);
 
         /// <summary>
         /// Returns true if this object equals the given ReadContext.
         /// </summary>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is ReadContext r)
             {

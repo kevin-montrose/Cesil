@@ -93,9 +93,9 @@ namespace Cesil
         ///   performing the writer operation which is described
         ///   by this context.
         /// </summary>
-        public object Context { get; }
+        public object? Context { get; }
 
-        private WriteContext(WriteContextMode m, int? r, ColumnIdentifier? ci, object ctx)
+        private WriteContext(WriteContextMode m, int? r, ColumnIdentifier? ci, object? ctx)
         {
             Mode = m;
             _RowNumber = r ?? default;
@@ -103,19 +103,19 @@ namespace Cesil
             Context = ctx;
         }
 
-        internal static WriteContext WritingColumn(int row, ColumnIdentifier col, object ctx)
+        internal static WriteContext WritingColumn(int row, ColumnIdentifier col, object? ctx)
         => new WriteContext(WriteContextMode.WritingColumn, row, col, ctx);
 
-        internal static WriteContext DiscoveringCells(int row, object ctx)
+        internal static WriteContext DiscoveringCells(int row, object? ctx)
         => new WriteContext(WriteContextMode.DiscoveringCells, row, null, ctx);
 
-        internal static WriteContext DiscoveringColumns(object ctx)
+        internal static WriteContext DiscoveringColumns(object? ctx)
         => new WriteContext(WriteContextMode.DiscoveringColumns, null, null, ctx);
 
         /// <summary>
         /// Returns true if this object equals the given WriteContext.
         /// </summary>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is WriteContext w)
             {

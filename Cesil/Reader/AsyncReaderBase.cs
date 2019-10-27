@@ -11,11 +11,11 @@ namespace Cesil
         IAsyncReader<T>,
         ITestableAsyncDisposable
     {
-        public bool IsDisposed => Inner == null;
+        public bool IsDisposed { get; internal set; }
 
-        internal IAsyncReaderAdapter Inner;
+        internal readonly IAsyncReaderAdapter Inner;
 
-        internal AsyncReaderBase(IAsyncReaderAdapter reader, BoundConfigurationBase<T> config, object context) : base(config, context)
+        internal AsyncReaderBase(IAsyncReaderAdapter reader, BoundConfigurationBase<T> config, object? context) : base(config, context)
         {
             Inner = reader;
         }
@@ -49,7 +49,7 @@ namespace Cesil
             {
                 while (true)
                 {
-                    T _ = default;
+                    T _ = default!;
                     var resTask = TryReadInnerAsync(false, true, ref _, cancel);
                     if (!resTask.IsCompletedSuccessfully(this))
                     {
@@ -80,7 +80,7 @@ namespace Cesil
                 {
                     while (true)
                     {
-                        T _ = default;
+                        T _ = default!;
 
                         var resTask = self.TryReadInnerAsync(false, true, ref _, cancel);
                         ReadWithCommentResult<T> res;
@@ -121,7 +121,7 @@ namespace Cesil
 
                 while (true)
                 {
-                    T _ = default;
+                    T _ = default!;
                     var resTask = self.TryReadInnerAsync(false, true, ref _, cancel);
                     ReadWithCommentResult<T> res;
                     using (self.StateMachine.ReleaseAndRePinForAsync(resTask))
@@ -220,7 +220,7 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
-            var record = default(T);
+            var record = default(T)!;
             return TryReadWithReuseAsync(ref record, cancel);
         }
 
@@ -228,7 +228,7 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
-            var record = default(T);
+            var record = default(T)!;
             return TryReadWithCommentReuseAsync(ref record, cancel);
         }
 

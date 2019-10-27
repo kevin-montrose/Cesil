@@ -3,8 +3,13 @@
     internal interface IIntrusiveLinkedList<T>
        where T : class, IIntrusiveLinkedList<T>
     {
+        bool HasNext { get; }
         T Next { get; set; }
+        void ClearNext();
+        
+        bool HasPrevious { get; }
         T Previous { get; set; }
+        void ClearPrevious();
     }
 
     internal static class IIntrusiveLinkedListExtensionMethods
@@ -13,46 +18,79 @@
             where T : class, IIntrusiveLinkedList<T>
         {
             item.Previous = linkedList;
-            item.Next = linkedList.Next;
+
+            if (linkedList.HasNext)
+            {
+                item.Next = linkedList.Next;
+            }
+            else
+            {
+                item.ClearNext();
+            }
 
             linkedList.Next = item;
         }
 
-        public static void AddHead<T>(this T linkedList, ref T head, T item)
+        public static void AddHead<T>(this T? linkedList, ref T? head, T item)
             where T : class, IIntrusiveLinkedList<T>
         {
-            item.Next = linkedList;
             if (linkedList != null)
             {
+                item.Next = linkedList;
                 linkedList.Previous = item;
+            }
+            else
+            {
+                item.ClearNext();
             }
 
             head = item;
         }
 
-        public static void Remove<T>(this T linkedList, ref T head, T item)
+        public static void Remove<T>(this T? linkedList, ref T? head, T item)
             where T : class, IIntrusiveLinkedList<T>
         {
-            var before = item.Previous;
-            var after = item.Next;
-
-            if (before != null)
+            if (item.HasPrevious)
             {
-                // item is not the head of the list
-                before.Next = after;
+                var before = item.Previous;
+
+                if (item.HasNext)
+                {
+                    before.Next = item.Next;
+                }
+                else
+                {
+                    before.ClearNext();
+                }
             }
             else
             {
-                // item is the head of the list
-                head = after;
+                if (item.HasNext)
+                {
+                    head = item.Next;
+                }
+                else
+                {
+                    head = null;
+                }
             }
 
-            if (after != null)
+            if (item.HasNext)
             {
-                after.Previous = before;
+                var after = item.Next;
+
+                if (item.HasPrevious)
+                {
+                    after.Previous = item.Previous;
+                }
+                else
+                {
+                    after.ClearPrevious();
+                }
             }
 
-            item.Next = item.Previous = null;
+            item.ClearNext();
+            item.ClearPrevious();
         }
     }
 }

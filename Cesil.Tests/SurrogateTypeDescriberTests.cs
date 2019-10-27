@@ -444,7 +444,7 @@ namespace Cesil.Tests
                     res,
                     a =>
                     {
-                        Assert.Null(a.Setter.Field);
+                        Assert.False(a.Setter.HasField);
                         Assert.Equal(Parser.GetDefault(typeof(string).GetTypeInfo()), a.Parser);
                         Assert.Equal("bar", a.Name);
                         Assert.Equal(typeof(_Simple_Real).GetProperty(nameof(_Simple_Real.Foo)).SetMethod, a.Setter.Method);
@@ -466,7 +466,7 @@ namespace Cesil.Tests
                     res,
                     a =>
                     {
-                        Assert.Null(a.Setter.Field);
+                        Assert.False(a.Setter.HasField);
                         Assert.Equal(Parser.GetDefault(typeof(string).GetTypeInfo()), a.Parser);
                         Assert.Equal("bar", a.Name);
                         Assert.Equal(typeof(_Simple_Surrogate).GetProperty(nameof(_Simple_Surrogate.Foo)).SetMethod, a.Setter.Method);
@@ -496,12 +496,12 @@ namespace Cesil.Tests
                     a =>
                     {
                         Assert.True(a.EmitDefaultValue);
-                        Assert.Null(a.Getter.Field);
-                        Assert.Null(a.Getter.Delegate);
+                        Assert.False(a.Getter.HasField);
+                        Assert.False(a.Getter.HasDelegate);
                         Assert.Equal(Formatter.GetDefault(typeof(string).GetTypeInfo()), a.Formatter);
                         Assert.Equal("bar", a.Name);
                         Assert.Equal(typeof(_Simple_Real).GetProperty(nameof(_Simple_Real.Foo)).GetMethod, a.Getter.Method);
-                        Assert.Null(a.ShouldSerialize);
+                        Assert.False(a.HasShouldSerialize);
                     }
                 );
             }
@@ -515,12 +515,12 @@ namespace Cesil.Tests
                     a =>
                     {
                         Assert.True(a.EmitDefaultValue);
-                        Assert.Null(a.Getter.Field);
-                        Assert.Null(a.Getter.Delegate);
+                        Assert.False(a.Getter.HasField);
+                        Assert.False(a.Getter.HasDelegate);
                         Assert.Equal(Formatter.GetDefault(typeof(string).GetTypeInfo()), a.Formatter);
                         Assert.Equal("bar", a.Name);
                         Assert.Equal(typeof(_Simple_Surrogate).GetProperty(nameof(_Simple_Surrogate.Foo)).GetMethod, a.Getter.Method);
-                        Assert.Null(a.ShouldSerialize);
+                        Assert.False(a.HasShouldSerialize);
                     }
                 );
             }

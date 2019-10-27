@@ -7,14 +7,14 @@ using System.Reflection;
 
 namespace Cesil
 {
-    internal delegate bool ColumnWriterDelegate(object row, in WriteContext context, IBufferWriter<char> writeTo);
+    internal delegate bool ColumnWriterDelegate(object? row, in WriteContext context, IBufferWriter<char> writeTo);
 
     internal static class ColumnWriter
     {
         // create a delegate that will format the given value (pulled from a getter or a field) into
         //   a buffer, subject to shouldSerialize being null or returning true
         //   and return true if it was able to do so
-        public static ColumnWriterDelegate Create(TypeInfo type, Formatter formatter, ShouldSerialize shouldSerialize, Getter getter, bool emitDefaultValue)
+        public static ColumnWriterDelegate Create(TypeInfo type, Formatter formatter, ShouldSerialize? shouldSerialize, Getter getter, bool emitDefaultValue)
         {
             var p1 = Expressions.Parameter_Object;
             var p2 = Expressions.Parameter_WriteContext_ByRef;
@@ -142,19 +142,20 @@ namespace Cesil
                 var defValue = Expression.Constant(Activator.CreateInstance(columnType));
 
                 Expression isDefault;
+                // intentionally letting GetMethod return null here
                 if (!columnType.IsValueType || columnType.IsEnum || columnType.IsPrimitive || columnType.GetMethod("op_Equality") != null)
                 {
                     isDefault = Expression.Equal(l2, defValue);
                 }
                 else
                 {
-                    var equatableI = Types.IEquatableType.MakeGenericType(columnType);
+                    var equatableI = Types.IEquatableType.MakeGenericType(columnType).GetTypeInfo();
                     if (columnType.GetInterfaces().Any(i => i == equatableI))
                     {
-                        var equals = equatableI.GetMethod(nameof(IEquatable<object>.Equals));
+                        var equals = equatableI.GetMethodNonNull(nameof(IEquatable<object>.Equals));
                         var map = columnType.GetInterfaceMap(equatableI);
 
-                        MethodInfo equalsTyped = null;
+                        MethodInfo? equalsTyped = null;
                         for (var j = 0; j < map.InterfaceMethods.Length; j++)
                         {
                             if (map.InterfaceMethods[j] == equals)
@@ -164,11 +165,13 @@ namespace Cesil
                             }
                         }
 
+                        equalsTyped = Utils.NonNull(equalsTyped);
+
                         isDefault = Expression.Call(l2, equalsTyped, defValue);
                     }
                     else
                     {
-                        var eqsUntyped = columnType.GetMethod(nameof(object.Equals));
+                        var eqsUntyped = columnType.GetMethodNonNull(nameof(object.Equals));
                         var defAsObject = Expression.Convert(defValue, Types.ObjectType);
                         isDefault = Expression.Call(l2, eqsUntyped, defAsObject);
                     }

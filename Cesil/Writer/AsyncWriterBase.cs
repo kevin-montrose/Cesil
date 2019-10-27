@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,13 +13,24 @@ namespace Cesil
         IAsyncWriter<T>,
         ITestableAsyncDisposable
     {
-        public abstract bool IsDisposed { get; }
+        public bool IsDisposed { get; internal set; }
 
-        internal IAsyncWriterAdapter Inner;
-        internal IMemoryOwner<char> OneCharOwner;
+        internal readonly IAsyncWriterAdapter Inner;
+
+        private IMemoryOwner<char>? _OneCharOwner;
+        internal bool HasOneCharOwner => _OneCharOwner != null;
+        internal IMemoryOwner<char> OneCharOwner
+        {
+            get => Utils.NonNull(_OneCharOwner);
+            set
+            {
+                _OneCharOwner = value;
+            }
+        }
+        
         private Memory<char> OneCharMemory;
 
-        internal AsyncWriterBase(BoundConfigurationBase<T> config, IAsyncWriterAdapter inner, object context) : base(config, context)
+        internal AsyncWriterBase(BoundConfigurationBase<T> config, IAsyncWriterAdapter inner, object? context) : base(config, context)
         {
             Inner = inner;
         }
@@ -606,7 +615,7 @@ namespace Cesil
 
         internal ValueTask WriteCharDirectlyAsync(char c, CancellationToken cancel)
         {
-            if (OneCharOwner == null)
+            if (!HasOneCharOwner)
             {
                 OneCharOwner = Config.MemoryPool.Rent(1);
                 OneCharMemory = OneCharOwner.Memory.Slice(0, 1);

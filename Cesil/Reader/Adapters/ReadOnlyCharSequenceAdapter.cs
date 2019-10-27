@@ -11,13 +11,11 @@ namespace Cesil
 
         private ReadOnlyMemory<char> CurrentSegment;
         private ReadOnlySequence<char>.Enumerator Enumerator;
-        private ReadOnlySequence<char> Sequence;
         private bool IsComplete;
 
         public ReadOnlyCharSequenceAdapter(ReadOnlySequence<char> sequence)
         {
-            Sequence = sequence;
-            Enumerator = Sequence.GetEnumerator();
+            Enumerator = sequence.GetEnumerator();
             CurrentSegment = ReadOnlyMemory<char>.Empty;
             IsComplete = false;
         }
@@ -77,7 +75,6 @@ namespace Cesil
 
                 CurrentSegment = default;
                 Enumerator = default;
-                Sequence = default;
             }
         }
     }

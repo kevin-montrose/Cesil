@@ -18,7 +18,7 @@ namespace Cesil
     /// </summary>
     public sealed class Formatter : IEquatable<Formatter>, ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>
     {
-        internal delegate bool DynamicFormatterDelegate(object value, in WriteContext context, IBufferWriter<char> buffer);
+        internal delegate bool DynamicFormatterDelegate(object? value, in WriteContext context, IBufferWriter<char> buffer);
 
         private static readonly IReadOnlyDictionary<TypeInfo, Formatter> TypeFormatters;
 
@@ -41,32 +41,43 @@ namespace Cesil
         {
             get
             {
-                if (Method != null) return BackingMode.Method;
-                if (Delegate != null) return BackingMode.Delegate;
+                if (HasMethod) return BackingMode.Method;
+                if (HasDelegate) return BackingMode.Delegate;
 
                 return BackingMode.None;
             }
         }
 
-        internal MethodInfo Method { get; }
-        internal Delegate Delegate { get; }
+        private readonly MethodInfo? _Method;
+        internal bool HasMethod => _Method != null;
+        internal MethodInfo Method => Utils.NonNull(_Method);
 
-        internal TypeInfo Takes { get; }
+        private readonly Delegate? _Delegate;
+        internal bool HasDelegate => _Delegate != null;
+        internal Delegate Delegate => Utils.NonNull(_Delegate);
 
-        DynamicFormatterDelegate ICreatesCacheableDelegate<DynamicFormatterDelegate>.CachedDelegate { get; set; }
+        internal readonly TypeInfo Takes;
+
+        private DynamicFormatterDelegate? _CachedDelegate;
+        bool ICreatesCacheableDelegate<DynamicFormatterDelegate>.HasCachedDelegate => _CachedDelegate != null;
+        DynamicFormatterDelegate ICreatesCacheableDelegate<DynamicFormatterDelegate>.CachedDelegate 
+        {
+            get => Utils.NonNull(_CachedDelegate);
+            set { _CachedDelegate = value; }
+        }
 
         private Formatter(TypeInfo takes, MethodInfo method)
         {
             Takes = takes;
-            Method = method;
-            Delegate = null;
+            _Method = method;
+            _Delegate = null;
         }
 
         private Formatter(TypeInfo takes, Delegate del)
         {
             Takes = takes;
-            Method = null;
-            Delegate = del;
+            _Method = null;
+            _Delegate = del;
         }
 
         DynamicFormatterDelegate ICreatesCacheableDelegate<DynamicFormatterDelegate>.CreateDelegate()
@@ -159,7 +170,7 @@ namespace Cesil
                 return Throw.ArgumentException<Formatter>($"The second paramater to {nameof(formatter)} must be an in {nameof(WriteContext)}, was not by ref", nameof(formatter));
             }
 
-            if (p2.GetElementType() != Types.WriteContextType)
+            if (p2.GetElementTypeNonNull() != Types.WriteContextType)
             {
                 return Throw.ArgumentException<Formatter>($"The second paramater to {nameof(formatter)} must be an in {nameof(WriteContext)}", nameof(formatter));
             }
@@ -188,7 +199,7 @@ namespace Cesil
         /// <summary>
         /// Returns the default formatter for the given type, if one exists.
         /// </summary>
-        public static Formatter GetDefault(TypeInfo forType)
+        public static Formatter? GetDefault(TypeInfo forType)
         {
             if(forType == null)
             {
@@ -200,16 +211,16 @@ namespace Cesil
                 if (forType.GetCustomAttribute<FlagsAttribute>() == null)
                 {
                     var formattingClass = Types.DefaultEnumTypeFormatterType.MakeGenericType(forType).GetTypeInfo();
-                    var formatterField = formattingClass.GetField(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryParseEnumFormatter), BindingFlags.Static | BindingFlags.NonPublic);
-                    var formatter = (Formatter)formatterField.GetValue(null);
+                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryParseEnumFormatter), BindingFlags.Static | BindingFlags.NonPublic);
+                    var formatter = (Formatter?)formatterField.GetValue(null);
 
                     return formatter;
                 }
                 else
                 {
                     var formattingClass = Types.DefaultFlagsEnumTypeFormatterType.MakeGenericType(forType).GetTypeInfo();
-                    var formatterField = formattingClass.GetField(nameof(DefaultTypeFormatters.DefaultFlagsEnumTypeFormatter<StringComparison>.TryParseFlagsEnumFormatter), BindingFlags.Static | BindingFlags.NonPublic);
-                    var formatter = (Formatter)formatterField.GetValue(null);
+                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultFlagsEnumTypeFormatter<StringComparison>.TryParseFlagsEnumFormatter), BindingFlags.Static | BindingFlags.NonPublic);
+                    var formatter = (Formatter?)formatterField.GetValue(null);
 
                     return formatter;
                 }
@@ -221,16 +232,16 @@ namespace Cesil
                 if (nullableElem.GetCustomAttribute<FlagsAttribute>() == null)
                 {
                     var formattingClass = Types.DefaultEnumTypeFormatterType.MakeGenericType(nullableElem).GetTypeInfo();
-                    var formatterField = formattingClass.GetField(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryParseNullableEnumFormatter), BindingFlags.Static | BindingFlags.NonPublic);
-                    var formatter = (Formatter)formatterField.GetValue(null);
+                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryParseNullableEnumFormatter), BindingFlags.Static | BindingFlags.NonPublic);
+                    var formatter = (Formatter?)formatterField.GetValue(null);
 
                     return formatter;
                 }
                 else
                 {
                     var formattingClass = Types.DefaultFlagsEnumTypeFormatterType.MakeGenericType(nullableElem).GetTypeInfo();
-                    var formatterField = formattingClass.GetField(nameof(DefaultTypeFormatters.DefaultFlagsEnumTypeFormatter<StringComparison>.TryParseNullableFlagsEnumFormatter), BindingFlags.Static | BindingFlags.NonPublic);
-                    var formatter = (Formatter)formatterField.GetValue(null);
+                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultFlagsEnumTypeFormatter<StringComparison>.TryParseNullableFlagsEnumFormatter), BindingFlags.Static | BindingFlags.NonPublic);
+                    var formatter = (Formatter?)formatterField.GetValue(null);
 
                     return formatter;
                 }
@@ -247,7 +258,7 @@ namespace Cesil
         /// <summary>
         /// Compares for equality to another Formatter.
         /// </summary>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is Formatter f)
             {
@@ -284,7 +295,7 @@ namespace Cesil
         /// Returns a hashcode for this Getter.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(Formatter), Takes, Mode, Delegate, Method);
+        => HashCode.Combine(nameof(Formatter), Takes, Mode, _Delegate, _Method);
 
         /// <summary>
         /// Describes this Formatter.
@@ -309,7 +320,7 @@ namespace Cesil
         /// 
         /// Returns null if mtd is null.
         /// </summary>
-        public static explicit operator Formatter(MethodInfo mtd)
+        public static explicit operator Formatter?(MethodInfo? mtd)
         => mtd == null ? null : ForMethod(mtd);
 
         /// <summary>
@@ -317,7 +328,7 @@ namespace Cesil
         /// 
         /// Returns null if del is null.
         /// </summary>
-        public static explicit operator Formatter(Delegate del)
+        public static explicit operator Formatter?(Delegate? del)
         {
             if (del == null) return null;
 
@@ -351,7 +362,7 @@ namespace Cesil
                 return Throw.InvalidOperationException<Formatter>($"The second paramater to the delegate must be an in {nameof(WriteContext)}, was not by ref");
             }
 
-            if (p2.GetElementType() != Types.WriteContextType)
+            if (p2.GetElementTypeNonNull() != Types.WriteContextType)
             {
                 return Throw.InvalidOperationException<Formatter>($"The second paramater to the delegate must be an in {nameof(WriteContext)}");
             }
@@ -362,7 +373,7 @@ namespace Cesil
             }
 
             var formatterDel = Types.FormatterDelegateType.MakeGenericType(takes);
-            var invoke = del.GetType().GetMethod("Invoke");
+            var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
             var reboundDel = Delegate.CreateDelegate(formatterDel, del, invoke);
 
@@ -372,13 +383,13 @@ namespace Cesil
         /// <summary>
         /// Compare two Formatters for equality
         /// </summary>
-        public static bool operator ==(Formatter a, Formatter b)
+        public static bool operator ==(Formatter? a, Formatter? b)
         => Utils.NullReferenceEquality(a, b);
 
         /// <summary>
         /// Compare two Formatters for inequality
         /// </summary>
-        public static bool operator !=(Formatter a, Formatter b)
+        public static bool operator !=(Formatter? a, Formatter? b)
         => !(a == b);
     }
 }

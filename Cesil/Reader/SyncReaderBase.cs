@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.IO;
 
 using static Cesil.DisposableHelper;
 
@@ -10,11 +9,11 @@ namespace Cesil
         IReader<T>,
         ITestableDisposable
     {
-        internal IReaderAdapter Inner;
+        public bool IsDisposed { get; internal set; }
 
-        public bool IsDisposed => Inner == null;
+        internal readonly IReaderAdapter Inner;
 
-        internal SyncReaderBase(IReaderAdapter inner, BoundConfigurationBase<T> config, object context) : base(config, context)
+        internal SyncReaderBase(IReaderAdapter inner, BoundConfigurationBase<T> config, object? context) : base(config, context)
         {
             Inner = inner;
         }
@@ -35,7 +34,7 @@ namespace Cesil
             {
                 while (true)
                 {
-                    T _ = default;
+                    T _ = default!;
                     var res = TryReadInner(false, true, ref _);
                     if (!res.HasValue)
                     {
@@ -63,7 +62,7 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
-            record = default;
+            record = default!;
             return TryReadWithReuse(ref record);
         }
 
@@ -88,7 +87,7 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
-            var record = default(T);
+            var record = default(T)!;
             return TryReadWithCommentReuse(ref record);
         }
 

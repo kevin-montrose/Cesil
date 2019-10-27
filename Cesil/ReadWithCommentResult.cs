@@ -47,7 +47,7 @@
             }
         }
 
-        private readonly string _Comment;
+        private readonly string? _Comment;
 
         /// <summary>
         /// The comment read, if ResultType == HasComment.
@@ -63,7 +63,7 @@
                     return Throw.InvalidOperationException<string>($"{nameof(ReadWithCommentResult<T>)} has no comment");
                 }
 
-                return _Comment;
+                return _Comment!;
             }
         }
 
@@ -77,14 +77,14 @@
         internal ReadWithCommentResult(string comment)
         {
             ResultType = ReadWithCommentResultType.HasComment;
-            _Value = default;
+            _Value = default!;
             _Comment = comment;
         }
 
         private ReadWithCommentResult(ReadWithCommentResultType t)
         {
             ResultType = t;
-            _Value = default;
+            _Value = default!;
             _Comment = null;
         }
 

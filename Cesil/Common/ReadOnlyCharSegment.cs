@@ -3,7 +3,7 @@ using System.Buffers;
 
 namespace Cesil
 {
-    internal class ReadOnlyCharSegment : ReadOnlySequenceSegment<char>
+    internal sealed class ReadOnlyCharSegment : ReadOnlySequenceSegment<char>
     {
         internal ReadOnlyCharSegment(ReadOnlyMemory<char> allocation, int bytesUsed)
         {

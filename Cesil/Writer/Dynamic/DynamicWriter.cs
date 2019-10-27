@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 
 using static Cesil.DisposableHelper;
 
@@ -10,18 +9,36 @@ namespace Cesil
         SyncWriterBase<dynamic>,
         IDelegateCache
     {
-        internal new bool IsFirstRow => ColumnNames == null;
+        internal new bool IsFirstRow => _ColumnNames == null;
 
-        private Comparison<DynamicCellValue> ColumnNameSorter;
-        private (string Name, string EncodedName)[] ColumnNames;
+        private Comparison<DynamicCellValue>? _ColumnNameSorter;
+        private Comparison<DynamicCellValue> ColumnNameSorter
+        {
+            get => Utils.NonNull(_ColumnNameSorter);
+            set
+            {
+                _ColumnNameSorter = value;
+            }
+        }
+
+        private (string Name, string EncodedName)[]? _ColumnNames;
+        private (string Name, string EncodedName)[] ColumnNames
+        {
+            get => Utils.NonNull(_ColumnNames);
+            set
+            {
+                _ColumnNames = value;
+            }
+        }
 
         private readonly object[] DynamicArgumentsBuffer = new object[3];
 
-        private Dictionary<object, Delegate> DelegateCache;
+        private Dictionary<object, Delegate>? DelegateCache;
 
-        internal DynamicWriter(DynamicBoundConfiguration config, IWriterAdapter inner, object context) : base(config, inner, context) { }
+        internal DynamicWriter(DynamicBoundConfiguration config, IWriterAdapter inner, object? context) : base(config, inner, context) { }
 
-        bool IDelegateCache.TryGet<T, V>(T key, out V del)
+        bool IDelegateCache.TryGet<T, V>(T key, out V? del)
+            where V: class
         {
             if (DelegateCache == null)
             {
@@ -107,6 +124,7 @@ end:
             if (comment == null)
             {
                 Throw.ArgumentNullException<object>(nameof(comment));
+                return;
             }
 
             AssertNotDisposed(this);
@@ -130,9 +148,7 @@ end:
                 EndRecord();
             }
 
-            var segments = SplitCommentIntoLines(comment);
-
-            var commentChar = Config.CommentChar.Value;
+            var (commentChar, segments) = SplitCommentIntoLines(comment);
 
             // we know we can write directly now
             var isFirstRow = true;
@@ -208,7 +224,7 @@ end:
         // returns true if it did write out headers,
         //   so we need to end a record before
         //   writing the next one
-        private bool CheckHeaders(dynamic firstRow)
+        private bool CheckHeaders(dynamic? firstRow)
         {
             if (Config.WriteHeader == Cesil.WriteHeaders.Never)
             {
@@ -239,6 +255,7 @@ end:
                 if (colName == null)
                 {
                     Throw.InvalidOperationException<object>($"No column name found at index {colIx} when {nameof(Cesil.WriteHeaders)} = {Config.WriteHeader}");
+                    return;
                 }
 
                 var encodedColName = colName;
@@ -322,7 +339,7 @@ end:
 
                 Inner.Dispose();
                 Buffer.Dispose();
-                Inner = null;
+                IsDisposed = true;
             }
         }
 

@@ -25,8 +25,8 @@ namespace Cesil
         {
             get
             {
-                if (Method != null) return BackingMode.Method;
-                if (Delegate != null) return BackingMode.Delegate;
+                if (_Method != null) return BackingMode.Method;
+                if (_Delegate != null) return BackingMode.Delegate;
 
                 return BackingMode.None;
             }
@@ -39,28 +39,33 @@ namespace Cesil
                 switch (Mode)
                 {
                     case BackingMode.Method: return Method.IsStatic;
-                    case BackingMode.Delegate: return RowType == null;
+                    case BackingMode.Delegate: return !HasRowType;
 
                     default:
                         return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}");                }
             }
         }
 
-        internal MethodInfo Method { get; }
-        internal Delegate Delegate { get; }
+        private readonly MethodInfo? _Method;
+        internal MethodInfo Method => Utils.NonNull(_Method);
 
-        internal TypeInfo RowType { get; }
+        private readonly Delegate? _Delegate;
+        internal Delegate Delegate => Utils.NonNull(_Delegate);
 
-        private Reset(TypeInfo rowType, MethodInfo mtd)
+        private readonly TypeInfo? _RowType;
+        internal bool HasRowType => _RowType != null;
+        internal TypeInfo RowType => Utils.NonNull(_RowType);
+
+        private Reset(TypeInfo? rowType, MethodInfo mtd)
         {
-            RowType = rowType;
-            Method = mtd;
+            _RowType = rowType;
+            _Method = mtd;
         }
 
-        private Reset(TypeInfo rowType, Delegate del)
+        private Reset(TypeInfo? rowType, Delegate del)
         {
-            RowType = rowType;
-            Delegate = del;
+            _RowType = rowType;
+            _Delegate = del;
         }
 
         /// <summary>
@@ -80,7 +85,7 @@ namespace Cesil
                 return Throw.ArgumentNullException<Reset>(nameof(resetMethod));
             }
 
-            TypeInfo rowType;
+            TypeInfo? rowType;
 
             var args = resetMethod.GetParameters();
             if (resetMethod.IsStatic)
@@ -106,7 +111,7 @@ namespace Cesil
                     return Throw.ArgumentException<Reset>($"{resetMethod} is an instance method, it must take 0 parameters", nameof(resetMethod));
                 }
 
-                rowType = resetMethod.DeclaringType.GetTypeInfo();
+                rowType = resetMethod.DeclaringTypeNonNull();
             }
 
             return new Reset(rowType, resetMethod);
@@ -142,7 +147,7 @@ namespace Cesil
         /// <summary>
         /// Returns true if this object equals the given Reset.
         /// </summary>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is Reset r)
             {
@@ -159,19 +164,40 @@ namespace Cesil
         {
             if (ReferenceEquals(r, null)) return false;
 
-            return
-                r.Delegate == Delegate &&
-                r.IsStatic == IsStatic &&
-                r.Method == Method &&
-                r.Mode == Mode &&
-                r.RowType == RowType;
+            var mode = Mode;
+            var otherMode = r.Mode;
+
+            if (mode != otherMode) return false;
+
+            if (HasRowType)
+            {
+                if (!r.HasRowType) return false;
+
+                if (RowType != r.RowType) return false;
+            }
+            else
+            {
+                if (r.HasRowType) return false;
+            }
+
+            switch (mode)
+            {
+                case BackingMode.Delegate:
+                    return r.Delegate == Delegate && r.IsStatic == IsStatic;
+                case BackingMode.Method:
+                    return r.Method == Method && r.IsStatic == IsStatic;
+
+                default:
+                    return Throw.Exception<bool>($"Unexpected {nameof(BackingMode)}: {mode}");
+
+            }
         }
 
         /// <summary>
         /// Returns a stable hash for this Reset.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(Reset), Delegate, IsStatic, Method, Mode, RowType);
+        => HashCode.Combine(nameof(Reset), _Delegate, IsStatic, _Method, Mode, _RowType);
 
         /// <summary>
         /// Describes this Reset.
@@ -211,7 +237,7 @@ namespace Cesil
         /// 
         /// Returns null if mtd is null.
         /// </summary>
-        public static explicit operator Reset(MethodInfo mtd)
+        public static explicit operator Reset?(MethodInfo? mtd)
         => mtd == null ? null : ForMethod(mtd);
 
         /// <summary>
@@ -219,7 +245,7 @@ namespace Cesil
         /// 
         /// Returns null if del is null.
         /// </summary>
-        public static explicit operator Reset(Delegate del)
+        public static explicit operator Reset?(Delegate? del)
         {
             if (del == null) return null;
 
@@ -243,7 +269,7 @@ namespace Cesil
                 return Throw.InvalidOperationException<Reset>($"Delegate must return void, found {retType}");
             }
 
-            var invoke = delType.GetMethod("Invoke");
+            var invoke = delType.GetMethodNonNull("Invoke");
 
             var args = mtd.GetParameters();
             if (args.Length == 0)
@@ -270,13 +296,13 @@ namespace Cesil
         /// <summary>
         /// Compare two Resets for equality
         /// </summary>
-        public static bool operator ==(Reset a, Reset b)
+        public static bool operator ==(Reset? a, Reset? b)
         => Utils.NullReferenceEquality(a, b);
 
         /// <summary>
         /// Compare two Resets for inequality
         /// </summary>
-        public static bool operator !=(Reset a, Reset b)
+        public static bool operator !=(Reset? a, Reset? b)
         => !(a == b);
     }
 }

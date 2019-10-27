@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using System.IO;
 using System.Text;
 
 namespace Cesil
@@ -38,22 +37,22 @@ namespace Cesil
             )
         { }
 
-        internal override IAsyncWriter<dynamic> CreateAsyncWriter(IAsyncWriterAdapter writer, object context = null)
+        internal override IAsyncWriter<dynamic> CreateAsyncWriter(IAsyncWriterAdapter writer, object? context = null)
         {
             return new AsyncDynamicWriter(this, writer, context);
         }
 
-        internal override IReader<dynamic> CreateReader(IReaderAdapter reader, object context = null)
+        internal override IReader<dynamic> CreateReader(IReaderAdapter reader, object? context = null)
         {
             return new DynamicReader(reader, this, context);
         }
 
-        internal override IAsyncReader<dynamic> CreateAsyncReader(IAsyncReaderAdapter reader, object context = null)
+        internal override IAsyncReader<dynamic> CreateAsyncReader(IAsyncReaderAdapter reader, object? context = null)
         {
             return new AsyncDynamicReader(reader, this, context);
         }
 
-        internal override IWriter<dynamic> CreateWriter(IWriterAdapter writer, object context = null)
+        internal override IWriter<dynamic> CreateWriter(IWriterAdapter writer, object? context = null)
         {
             return new DynamicWriter(this, writer, context);
         }
@@ -68,7 +67,7 @@ namespace Cesil
             ret.Append($", {nameof(EscapedValueStartAndStop)}={EscapedValueStartAndStop}");
             ret.Append($", {nameof(EscapeValueEscapeChar)}={EscapeValueEscapeChar}");
             ret.Append($", {nameof(MemoryPool)}={MemoryPool}");
-            ret.Append($", {nameof(NewCons)}={NewCons}");
+            // skipping NewCons
             ret.Append($", {nameof(ReadBufferSizeHint)}={ReadBufferSizeHint}");
             ret.Append($", {nameof(ReadHeader)}={ReadHeader}");
             ret.Append($", {nameof(RowEnding)}={RowEnding}");

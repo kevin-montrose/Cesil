@@ -52,12 +52,12 @@ namespace Cesil
             }
         }
 
-        public bool IsDisposed => PendingCharacters == null;
-        private MaybeInPlaceBuffer<char> PendingCharacters;
+        public bool IsDisposed { get; private set; }
+        private readonly MaybeInPlaceBuffer<char> PendingCharacters;
 
         internal Partial(MemoryPool<char> memoryPool)
         {
-            Value = default;
+            _Value = default!;
             HasPending = false;
             CurrentColumnIndex = 0;
             PendingCharacters = new MaybeInPlaceBuffer<char>(memoryPool);
@@ -72,7 +72,7 @@ namespace Cesil
 
         internal void ClearValue()
         {
-            Value = default;
+            Value = default!;
             HasPending = false;
         }
 
@@ -124,7 +124,7 @@ namespace Cesil
             if (!IsDisposed)
             {
                 PendingCharacters.Dispose();
-                PendingCharacters = null;
+                IsDisposed = true;
             }
         }
     }

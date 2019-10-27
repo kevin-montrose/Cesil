@@ -25,10 +25,10 @@ namespace Cesil
 
                 var parsingClass = Types.DefaultFlagsEnumTypeParserType.MakeGenericType(enumType).GetTypeInfo();
 
-                var enumParsingMtd = parsingClass.GetMethod(nameof(TryParseFlagsEnum), BindingFlags.Static | BindingFlags.NonPublic);
+                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseFlagsEnum), BindingFlags.Static | BindingFlags.NonPublic);
                 TryParseFlagsEnumParser = Parser.ForMethod(enumParsingMtd);
 
-                var nullableEnumParsingMtd = parsingClass.GetMethod(nameof(TryParseNullableFlagsEnum), BindingFlags.Static | BindingFlags.NonPublic);
+                var nullableEnumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseNullableFlagsEnum), BindingFlags.Static | BindingFlags.NonPublic);
                 TryParseNullableFlagsEnumParser = Parser.ForMethod(nullableEnumParsingMtd);
             }
 
@@ -106,10 +106,10 @@ namespace Cesil
 
                 var parsingClass = Types.DefaultEnumTypeParserType.MakeGenericType(enumType).GetTypeInfo();
 
-                var enumParsingMtd = parsingClass.GetMethod(nameof(TryParseEnum), BindingFlags.Static | BindingFlags.NonPublic);
+                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseEnum), BindingFlags.Static | BindingFlags.NonPublic);
                 TryParseEnumParser = Parser.ForMethod(enumParsingMtd);
 
-                var nullableEnumParsingMtd = parsingClass.GetMethod(nameof(TryParseNullableEnum), BindingFlags.Static | BindingFlags.NonPublic);
+                var nullableEnumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseNullableEnum), BindingFlags.Static | BindingFlags.NonPublic);
                 TryParseNullableEnumParser = Parser.ForMethod(nullableEnumParsingMtd);
             }
 
@@ -162,10 +162,10 @@ namespace Cesil
             return true;
         }
 
-        private static bool TryParseVersion(ReadOnlySpan<char> span, in ReadContext _, out Version val)
+        private static bool TryParseVersion(ReadOnlySpan<char> span, in ReadContext _, out Version? val)
         => Version.TryParse(span, out val);
 
-        private static bool TryParseUri(ReadOnlySpan<char> span, in ReadContext _, out Uri val)
+        private static bool TryParseUri(ReadOnlySpan<char> span, in ReadContext _, out Uri? val)
         {
             if (!TryParseString(span, in _, out var asStr))
             {

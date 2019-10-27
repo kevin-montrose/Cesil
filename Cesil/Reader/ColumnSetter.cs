@@ -5,16 +5,16 @@ using System.Reflection;
 
 namespace Cesil
 {
-    internal delegate bool ColumnSetterDelegate(ReadOnlySpan<char> text, in ReadContext context, object row);
+    internal delegate bool ColumnSetterDelegate(ReadOnlySpan<char> text, in ReadContext context, object? row);
 
     internal static class ColumnSetter
     {
-        public static ColumnSetterDelegate CreateDynamic(string name, int ix)
+        public static ColumnSetterDelegate CreateDynamic(string? name, int ix)
         {
             return
-                (ReadOnlySpan<char> text, in ReadContext _, object row) =>
+                (ReadOnlySpan<char> text, in ReadContext _, object? row) =>
                 {
-                    ((DynamicRow)row).SetValue(ix, text);
+                    ((DynamicRow)row!).SetValue(ix, text);
                     return true;
                 };
         }
@@ -22,7 +22,7 @@ namespace Cesil
         // create a delegate that will parse the given characters,
         //   and store them using either the given setter or
         //   the given field
-        public static ColumnSetterDelegate Create(TypeInfo type, Parser parser, Setter setter, Reset reset)
+        public static ColumnSetterDelegate Create(TypeInfo type, Parser parser, Setter setter, Reset? reset)
         {
             var p1 = Expressions.Parameter_ReadOnlySpanOfChar;
             var p2 = Expressions.Parameter_ReadContext_ByRef;

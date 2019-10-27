@@ -7,7 +7,7 @@ namespace Cesil
 {
     internal sealed class DynamicRowEnumerator<T> : IEnumerator<T>, ITestableDisposable
     {
-        private DynamicRow.DynamicColumnEnumerator Enumerator;
+        private DynamicRow.DynamicColumnEnumerator? Enumerator;
 
         public bool IsDisposed
         {
@@ -30,10 +30,11 @@ namespace Cesil
             }
         }
 
-        object IEnumerator.Current => Current;
+        object? IEnumerator.Current => Current;
 
         internal DynamicRowEnumerator(DynamicRow row)
         {
+            _Current = default!;
             Enumerator = new DynamicRow.DynamicColumnEnumerator(row);
         }
 
@@ -41,16 +42,29 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
-            if (!Enumerator.MoveNext())
+            var e = Utils.NonNull(Enumerator);
+
+            if (!e.MoveNext())
             {
-                _Current = default;
+                _Current = default!;
                 return false;
             }
 
-            var col = Enumerator.Current;
+            var col = e.Current;
 
-            dynamic val = Enumerator.Row.GetCellAt(col.Index);
-            _Current = val;
+            var val = e.Row.GetCellAt(col.Index);
+            if(val == null)
+            {
+                if(typeof(T).IsValueType)
+                {
+                    return Throw.InvalidOperationException<bool>($"Attempted to coerce missing value to {typeof(T)}, a value type");
+                }
+                _Current = default!;
+            }
+            else
+            {
+                _Current = (dynamic)val;
+            }
 
             return true;
         }
@@ -59,8 +73,8 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
-            _Current = default;
-            Enumerator.Reset();
+            _Current = default!;
+            Utils.NonNull(Enumerator).Reset();
         }
 
 

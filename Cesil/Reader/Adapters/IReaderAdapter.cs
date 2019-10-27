@@ -6,5 +6,4 @@ namespace Cesil
     {
         int Read(Span<char> into);
     }
-
 }

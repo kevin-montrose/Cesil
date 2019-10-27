@@ -12,13 +12,16 @@ namespace Cesil
         private static readonly ReadOnlyMemory<char> LineFeed = "\n".AsMemory();
         private static readonly ReadOnlyMemory<char> CarriageReturnLineFeed = "\r\n".AsMemory();
 
-        internal readonly InstanceProviderDelegate<T> NewCons;
+        internal readonly InstanceProviderDelegate<T>? _NewCons;
+        internal InstanceProviderDelegate<T> NewCons => Utils.NonNull(_NewCons);
         internal readonly Column[] DeserializeColumns;
 
         internal readonly Column[] SerializeColumns;
         internal readonly bool[] SerializeColumnsNeedEscape;
 
-        internal readonly ITypeDescriber TypeDescriber;
+        // internal for testing purposes
+        internal readonly ITypeDescriber? _TypeDescriber;
+        internal ITypeDescriber TypeDescriber => Utils.NonNull(_TypeDescriber);
         internal readonly char ValueSeparator;
         internal readonly char EscapedValueStartAndStop;
         internal readonly char EscapeValueEscapeChar;
@@ -33,6 +36,7 @@ namespace Cesil
         internal readonly int ReadBufferSizeHint;
         internal readonly DynamicRowDisposal DynamicRowDisposal;
 
+#pragma warning disable CS8618
         /// <summary>
         /// For some testing scenarios.
         /// 
@@ -42,12 +46,13 @@ namespace Cesil
         {
 
         }
+#pragma warning restore CS8618
 
         /// <summary>
         /// For working with dynamic.
         /// </summary>
         protected BoundConfigurationBase(
-            ITypeDescriber describer,
+            ITypeDescriber? describer,
             char valueSeparator,
             char escapedValueStartAndStop,
             char escapeValueEscapeChar,
@@ -62,8 +67,8 @@ namespace Cesil
             DynamicRowDisposal dynamicRowDisposal
         )
         {
-            TypeDescriber = describer;
-            NewCons = null;
+            _TypeDescriber = describer;
+            _NewCons = null;
             DeserializeColumns = Array.Empty<Column>();
             SerializeColumns = Array.Empty<Column>();
             SerializeColumnsNeedEscape = Array.Empty<bool>();
@@ -121,7 +126,7 @@ namespace Cesil
             int readBufferSizeHint
         )
         {
-            NewCons = newCons;
+            _NewCons = newCons;
             DeserializeColumns = deserializeColumns;
             SerializeColumns = serializeColumns;
             SerializeColumnsNeedEscape = serializeColumnsNeedEscape;
@@ -157,7 +162,7 @@ namespace Cesil
             CommentChar = commentChar;
         }
 
-        public IAsyncReader<T> CreateAsyncReader(PipeReader reader, Encoding encoding, object context = null)
+        public IAsyncReader<T> CreateAsyncReader(PipeReader reader, Encoding encoding, object? context = null)
         {
             if(reader == null)
             {
@@ -176,7 +181,7 @@ namespace Cesil
             return CreateAsyncReader(wrapper, context);
         }
 
-        public IAsyncReader<T> CreateAsyncReader(TextReader reader, object context = null)
+        public IAsyncReader<T> CreateAsyncReader(TextReader reader, object? context = null)
         {
             if (reader == null)
             {
@@ -190,7 +195,7 @@ namespace Cesil
             return CreateAsyncReader(wrapper, context);
         }
 
-        public IAsyncWriter<T> CreateAsyncWriter(PipeWriter writer, Encoding encoding, object context = null)
+        public IAsyncWriter<T> CreateAsyncWriter(PipeWriter writer, Encoding encoding, object? context = null)
         {
             if(writer == null)
             {
@@ -209,7 +214,7 @@ namespace Cesil
             return CreateAsyncWriter(wrapper, context);
         }
 
-        public IAsyncWriter<T> CreateAsyncWriter(TextWriter writer, object context = null)
+        public IAsyncWriter<T> CreateAsyncWriter(TextWriter writer, object? context = null)
         {
             if(writer == null)
             {
@@ -223,7 +228,7 @@ namespace Cesil
             return CreateAsyncWriter(wrapper, context);
         }
 
-        public IReader<T> CreateReader(ReadOnlySequence<byte> sequence, Encoding encoding, object context = null)
+        public IReader<T> CreateReader(ReadOnlySequence<byte> sequence, Encoding encoding, object? context = null)
         {
             if(encoding == null)
             {
@@ -237,7 +242,7 @@ namespace Cesil
             return CreateReader(wrapper, context);
         }
 
-        public IReader<T> CreateReader(ReadOnlySequence<char> sequence, object context = null)
+        public IReader<T> CreateReader(ReadOnlySequence<char> sequence, object? context = null)
         {
             // context is legally null
 
@@ -246,7 +251,7 @@ namespace Cesil
             return CreateReader(wrapper, context);
         }
 
-        public IReader<T> CreateReader(TextReader reader, object context = null)
+        public IReader<T> CreateReader(TextReader reader, object? context = null)
         {
             if(reader == null)
             {
@@ -260,7 +265,7 @@ namespace Cesil
             return CreateReader(wrapper, context);
         }
 
-        public IWriter<T> CreateWriter(IBufferWriter<byte> writer, Encoding encoding, object context = null)
+        public IWriter<T> CreateWriter(IBufferWriter<byte> writer, Encoding encoding, object? context = null)
         {
             if (writer == null)
             {
@@ -279,7 +284,7 @@ namespace Cesil
             return CreateWriter(wrapper, context);
         }
 
-        public IWriter<T> CreateWriter(IBufferWriter<char> writer, object context = null)
+        public IWriter<T> CreateWriter(IBufferWriter<char> writer, object? context = null)
         {
             if(writer == null)
             {
@@ -293,7 +298,7 @@ namespace Cesil
             return CreateWriter(wrapper, context);
         }
 
-        public IWriter<T> CreateWriter(TextWriter writer, object context = null)
+        public IWriter<T> CreateWriter(TextWriter writer, object? context = null)
         {
             if(writer == null)
             {
@@ -307,10 +312,10 @@ namespace Cesil
             return CreateWriter(wrapper, context);
         }
 
-        internal abstract IReader<T> CreateReader(IReaderAdapter reader, object context = null);
-        internal abstract IWriter<T> CreateWriter(IWriterAdapter writer, object context = null);
+        internal abstract IReader<T> CreateReader(IReaderAdapter reader, object? context = null);
+        internal abstract IWriter<T> CreateWriter(IWriterAdapter writer, object? context = null);
 
-        internal abstract IAsyncWriter<T> CreateAsyncWriter(IAsyncWriterAdapter writer, object context = null);
-        internal abstract IAsyncReader<T> CreateAsyncReader(IAsyncReaderAdapter reader, object context = null);
+        internal abstract IAsyncWriter<T> CreateAsyncWriter(IAsyncWriterAdapter writer, object? context = null);
+        internal abstract IAsyncReader<T> CreateAsyncReader(IAsyncReaderAdapter reader, object? context = null);
     }
 }

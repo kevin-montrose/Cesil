@@ -20,7 +20,7 @@ namespace Cesil
             ColumnNumber = num;
         }
 
-        internal object CoerceTo(TypeInfo toType)
+        internal object? CoerceTo(TypeInfo toType)
         {
             var mtd = Methods.DynamicCell.CastTo.MakeGenericMethod(toType);
 

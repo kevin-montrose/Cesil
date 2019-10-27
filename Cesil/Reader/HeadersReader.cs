@@ -2,7 +2,6 @@
 using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -97,8 +96,11 @@ namespace Cesil
             => $"{nameof(HeaderEnumerator)} with {nameof(Count)}={Count}";
         }
 
-        private readonly IReaderAdapter Inner;
-        private readonly IAsyncReaderAdapter InnerAsync;
+
+        private readonly IReaderAdapter? _Inner;
+        private IReaderAdapter Inner => Utils.NonNull(_Inner);
+        private readonly IAsyncReaderAdapter? _InnerAsync;
+        private IAsyncReaderAdapter InnerAsync => Utils.NonNull(_InnerAsync);
 
         private readonly Column[] Columns;
         private readonly ReaderStateMachine StateMachine;
@@ -107,16 +109,24 @@ namespace Cesil
 
         private int CurrentBuilderStart;
         private int CurrentBuilderLength;
-        private IMemoryOwner<char> BuilderOwner;
-        private Memory<char> BuilderBacking => BuilderOwner?.Memory ?? Memory<char>.Empty;
+        private IMemoryOwner<char>? BuilderOwner;
+        private Memory<char> BuilderBacking
+        {
+            get
+            {
+                if (BuilderOwner == null) return Memory<char>.Empty;
 
-        public bool IsDisposed => MemoryPool == null;
-        private MemoryPool<char> MemoryPool;
+                return BuilderOwner.Memory;
+            }
+        }
+
+        public bool IsDisposed { get; private set; }
+        private readonly MemoryPool<char> MemoryPool;
 
         private int HeaderCount;
 
         private int PushBackLength;
-        private IMemoryOwner<char> PushBackOwner;
+        private IMemoryOwner<char>? PushBackOwner;
         private Memory<char> PushBack
         {
             get
@@ -149,13 +159,13 @@ namespace Cesil
             ReaderStateMachine stateMachine,
             BoundConfigurationBase<T> config,
             CharacterLookup charLookup,
-            IReaderAdapter inner,
-            IAsyncReaderAdapter innerAsync,
+            IReaderAdapter? inner,
+            IAsyncReaderAdapter? innerAsync,
             BufferWithPushback buffer
         )
         {
-            Inner = inner;
-            InnerAsync = innerAsync;
+            _Inner = inner;
+            _InnerAsync = innerAsync;
 
             MemoryPool = config.MemoryPool;
             BufferSizeHint = config.ReadBufferSizeHint;
@@ -551,7 +561,8 @@ finish:
                 PushBackOwner?.Dispose();
                 BuilderOwner?.Dispose();
                 PushBackOwner = null;
-                MemoryPool = null;
+
+                IsDisposed = true;
             }
         }
     }

@@ -9,8 +9,24 @@ namespace Cesil.Tests
         {
             public int Value { get; set; }
 
-            public _Item Next { get; set; }
-            public _Item Previous { get; set; }
+            public bool HasNext => _Next != null;
+
+            private _Item _Next;
+            public _Item Next
+            {
+                get => Utils.NonNull(_Next);
+                set => _Next = value;
+            }
+            public void ClearNext() => Next = null;
+
+            public bool HasPrevious => _Previous != null;
+            private _Item _Previous;
+            public _Item Previous
+            {
+                get => Utils.NonNull(_Previous);
+                set => _Previous = value;
+            }
+            public void ClearPrevious() => Previous = null;
         }
 
         [Fact]
@@ -42,7 +58,14 @@ namespace Cesil.Tests
                 for (var i = 0; i <= 10_000; i++)
                 {
                     Assert.Equal(i, cur.Value);
-                    cur = cur.Next;
+                    if (cur.HasNext)
+                    {
+                        cur = cur.Next;
+                    }
+                    else
+                    {
+                        cur = null;
+                    }
                 }
 
                 Assert.Null(cur);
@@ -54,7 +77,14 @@ namespace Cesil.Tests
                 for (var i = 10_000; i >= 0; i--)
                 {
                     Assert.Equal(i, cur.Value);
-                    cur = cur.Previous;
+                    if (cur.HasPrevious)
+                    {
+                        cur = cur.Previous;
+                    }
+                    else
+                    {
+                        cur = null;
+                    }
                 }
 
                 Assert.Null(cur);
@@ -82,7 +112,14 @@ namespace Cesil.Tests
                 for (var i = 10_000; i >= 0; i--)
                 {
                     Assert.Equal(i, cur.Value);
-                    cur = cur.Next;
+                    if (cur.HasNext)
+                    {
+                        cur = cur.Next;
+                    }
+                    else
+                    {
+                        cur = null;
+                    }
                 }
 
                 Assert.Null(cur);
@@ -94,7 +131,14 @@ namespace Cesil.Tests
                 for (var i = 0; i <= 10_000; i++)
                 {
                     Assert.Equal(i, cur.Value);
-                    cur = cur.Previous;
+                    if (cur.HasPrevious)
+                    {
+                        cur = cur.Previous;
+                    }
+                    else
+                    {
+                        cur = null;
+                    }
                 }
 
                 Assert.Null(cur);
@@ -139,8 +183,8 @@ namespace Cesil.Tests
             // remove 100
             {
                 head.Remove(ref head, oneZeroZero);
-                Assert.Null(oneZeroZero.Previous);
-                Assert.Null(oneZeroZero.Next);
+                Assert.False(oneZeroZero.HasPrevious);
+                Assert.False(oneZeroZero.HasNext);
 
                 // read forward
                 {
@@ -150,7 +194,14 @@ namespace Cesil.Tests
                         if (i == 100) continue;
 
                         Assert.Equal(i, cur.Value);
-                        cur = cur.Next;
+                        if (cur.HasNext)
+                        {
+                            cur = cur.Next;
+                        }
+                        else
+                        {
+                            cur = null;
+                        }
                     }
 
                     Assert.Null(cur);
@@ -164,7 +215,15 @@ namespace Cesil.Tests
                         if (i == 100) continue;
 
                         Assert.Equal(i, cur.Value);
-                        cur = cur.Previous;
+
+                        if (cur.HasPrevious)
+                        {
+                            cur = cur.Previous;
+                        }
+                        else
+                        {
+                            cur = null;
+                        }
                     }
 
                     Assert.Null(cur);
@@ -174,8 +233,8 @@ namespace Cesil.Tests
             // remove 200
             {
                 head.Remove(ref head, twoZeroZero);
-                Assert.Null(twoZeroZero.Previous);
-                Assert.Null(twoZeroZero.Next);
+                Assert.False(twoZeroZero.HasPrevious);
+                Assert.False(twoZeroZero.HasNext);
 
                 // read forward
                 {
@@ -186,7 +245,15 @@ namespace Cesil.Tests
                         if (i == 200) continue;
 
                         Assert.Equal(i, cur.Value);
-                        cur = cur.Next;
+
+                        if (cur.HasNext)
+                        {
+                            cur = cur.Next;
+                        }
+                        else
+                        {
+                            cur = null;
+                        }
                     }
 
                     Assert.Null(cur);
@@ -201,7 +268,15 @@ namespace Cesil.Tests
                         if (i == 200) continue;
 
                         Assert.Equal(i, cur.Value);
-                        cur = cur.Previous;
+
+                        if (cur.HasPrevious)
+                        {
+                            cur = cur.Previous;
+                        }
+                        else
+                        {
+                            cur = null;
+                        }
                     }
 
                     Assert.Null(cur);
@@ -211,8 +286,8 @@ namespace Cesil.Tests
             // remove 333
             {
                 head.Remove(ref head, threeThreeThree);
-                Assert.Null(threeThreeThree.Previous);
-                Assert.Null(threeThreeThree.Next);
+                Assert.False(threeThreeThree.HasPrevious);
+                Assert.False(threeThreeThree.HasNext);
 
                 // read forward
                 {
@@ -224,7 +299,15 @@ namespace Cesil.Tests
                         if (i == 333) continue;
 
                         Assert.Equal(i, cur.Value);
-                        cur = cur.Next;
+
+                        if (cur.HasNext)
+                        {
+                            cur = cur.Next;
+                        }
+                        else
+                        {
+                            cur = null;
+                        }
                     }
 
                     Assert.Null(cur);
@@ -240,7 +323,15 @@ namespace Cesil.Tests
                         if (i == 333) continue;
 
                         Assert.Equal(i, cur.Value);
-                        cur = cur.Previous;
+
+                        if (cur.HasPrevious)
+                        {
+                            cur = cur.Previous;
+                        }
+                        else
+                        {
+                            cur = null;
+                        }
                     }
 
                     Assert.Null(cur);
@@ -252,8 +343,8 @@ namespace Cesil.Tests
                 var oldHead = head;
 
                 head.Remove(ref head, head);
-                Assert.Null(oldHead.Previous);
-                Assert.Null(oldHead.Next);
+                Assert.False(oldHead.HasPrevious);
+                Assert.False(oldHead.HasNext);
 
                 Assert.NotNull(head);
                 Assert.Equal(9_999, head.Value);
@@ -269,7 +360,15 @@ namespace Cesil.Tests
                         if (i == 333) continue;
 
                         Assert.Equal(i, cur.Value);
-                        cur = cur.Next;
+
+                        if (cur.HasNext)
+                        {
+                            cur = cur.Next;
+                        }
+                        else
+                        {
+                            cur = null;
+                        }
                     }
 
                     Assert.Null(cur);
@@ -286,7 +385,15 @@ namespace Cesil.Tests
                         if (i == 333) continue;
 
                         Assert.Equal(i, cur.Value);
-                        cur = cur.Previous;
+
+                        if (cur.HasPrevious)
+                        {
+                            cur = cur.Previous;
+                        }
+                        else
+                        {
+                            cur = null;
+                        }
                     }
 
                     Assert.Null(cur);
@@ -299,8 +406,8 @@ namespace Cesil.Tests
                 var newTail = tail.Previous;
 
                 head.Remove(ref head, tail);
-                Assert.Null(oldTail.Previous);
-                Assert.Null(oldTail.Next);
+                Assert.False(oldTail.HasPrevious);
+                Assert.False(oldTail.HasNext);
 
                 tail = newTail;
                 Assert.Equal(1, tail.Value);
@@ -317,7 +424,15 @@ namespace Cesil.Tests
                         if (i == 333) continue;
 
                         Assert.Equal(i, cur.Value);
-                        cur = cur.Next;
+
+                        if (cur.HasNext)
+                        {
+                            cur = cur.Next;
+                        }
+                        else
+                        {
+                            cur = null;
+                        }
                     }
 
                     Assert.Null(cur);
@@ -335,7 +450,15 @@ namespace Cesil.Tests
                         if (i == 333) continue;
 
                         Assert.Equal(i, cur.Value);
-                        cur = cur.Previous;
+
+                        if (cur.HasPrevious)
+                        {
+                            cur = cur.Previous;
+                        }
+                        else
+                        {
+                            cur = null;
+                        }
                     }
 
                     Assert.Null(cur);
@@ -348,8 +471,8 @@ namespace Cesil.Tests
                 {
                     var oldHead = head;
                     head.Remove(ref head, head);
-                    Assert.Null(oldHead.Previous);
-                    Assert.Null(oldHead.Next);
+                    Assert.False(oldHead.HasPrevious);
+                    Assert.False(oldHead.HasNext);
                 }
 
                 Assert.Null(head);

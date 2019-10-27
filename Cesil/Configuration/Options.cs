@@ -163,9 +163,9 @@ namespace Cesil
             RowEnding = copy.RowEnding;
             ReadHeader = copy.ReadHeader;
             WriteHeader = copy.WriteHeader;
-            TypeDescriber = copy.TypeDescriber;
+            TypeDescriber = copy.TypeDescriber!;
             WriteTrailingNewLine = copy.WriteTrailingNewLine;
-            MemoryPool = copy.MemoryPool;
+            MemoryPool = copy.MemoryPool!;
             CommentCharacter = copy.CommentCharacter;
             WriteBufferSizeHint = copy.WriteBufferSizeHint;
             ReadBufferSizeHint = copy.ReadBufferSizeHint;
@@ -188,7 +188,7 @@ namespace Cesil
         /// <summary>
         /// Returns true if this object equals the given Options.
         /// </summary>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is Options o)
             {

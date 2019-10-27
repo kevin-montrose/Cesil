@@ -7,7 +7,7 @@ namespace Cesil
 {
     internal sealed class Writer<T> : SyncWriterBase<T>
     {
-        internal Writer(ConcreteBoundConfiguration<T> config, IWriterAdapter inner, object context) : base(config, inner, context) { }
+        internal Writer(ConcreteBoundConfiguration<T> config, IWriterAdapter inner, object? context) : base(config, inner, context) { }
 
         public override void Write(T row)
         {
@@ -52,15 +52,15 @@ namespace Cesil
             if (comment == null)
             {
                 Throw.ArgumentNullException<object>(nameof(comment));
+                return;
             }
 
             AssertNotDisposed(this);
 
             WriteHeadersAndEndRowIfNeeded();
 
-            var segments = SplitCommentIntoLines(comment);
+            var (commentChar, segments) = SplitCommentIntoLines(comment);
 
-            var commentChar = Config.CommentChar.Value;
             if (segments.IsSingleSegment)
             {
                 PlaceCharInStaging(commentChar);
@@ -214,7 +214,7 @@ namespace Cesil
 
                 Inner.Dispose();
                 Buffer.Dispose();
-                Inner = null;
+                IsDisposed = true;
             }
         }
 

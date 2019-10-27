@@ -21,7 +21,7 @@ namespace Cesil
         public bool HasName => _Name != null;
 
 
-        private string _Name;
+        private string? _Name;
         /// <summary>
         /// The name of the column.
         /// </summary>
@@ -38,7 +38,7 @@ namespace Cesil
             }
         }
 
-        private ColumnIdentifier(int ix, string name)
+        private ColumnIdentifier(int ix, string? name)
         {
             Index = ix;
             _Name = name;
@@ -49,7 +49,7 @@ namespace Cesil
         /// </summary>
         public static ColumnIdentifier Create(
             [IntentionallyExposedPrimitive("Best way to identifier an index")]int index,
-            string name = null
+            string? name = null
         )
         {
             if (index < 0)
@@ -61,13 +61,13 @@ namespace Cesil
         }
 
         // just for testing
-        internal static ColumnIdentifier CreateInner(int index, string name)
+        internal static ColumnIdentifier CreateInner(int index, string? name)
         => new ColumnIdentifier(index, name);
 
         /// <summary>
         /// Returns true if the given object is equivalent to this one
         /// </summary>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is ColumnIdentifier ci)
             {

@@ -7,9 +7,9 @@ namespace Cesil
 {
     internal sealed class TextWriterAdapter : IWriterAdapter
     {
-        public bool IsDisposed => Inner == null;
+        public bool IsDisposed { get; private set; }
 
-        private TextWriter Inner;
+        private readonly TextWriter Inner;
 
         public TextWriterAdapter(TextWriter inner)
         {
@@ -35,7 +35,7 @@ namespace Cesil
             if (!IsDisposed)
             {
                 Inner.Dispose();
-                Inner = null;
+                IsDisposed = true;
             }
         }
     }

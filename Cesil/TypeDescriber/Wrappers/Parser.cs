@@ -25,7 +25,7 @@ namespace Cesil
             foreach (var mtd in Types.DefaultTypeParsersType.GetMethods(BindingFlags.Static | BindingFlags.NonPublic))
             {
                 var thirdArg = mtd.GetParameters()[2];
-                var forType = thirdArg.ParameterType.GetElementType().GetTypeInfo();
+                var forType = thirdArg.ParameterType.GetTypeInfo().GetElementTypeNonNull();
 
                 var parser = ForMethod(mtd);
 
@@ -39,42 +39,47 @@ namespace Cesil
         {
             get
             {
-                if (Method != null) return BackingMode.Method;
-                if (Delegate != null) return BackingMode.Delegate;
-                if (Constructor != null) return BackingMode.Constructor;
+                if (_Method != null) return BackingMode.Method;
+                if (_Delegate != null) return BackingMode.Delegate;
+                if (_Constructor != null) return BackingMode.Constructor;
 
                 return BackingMode.None;
             }
         }
 
-        internal MethodInfo Method { get; }
-        internal Delegate Delegate { get; }
-        internal ConstructorInfo Constructor { get; }
+        private readonly MethodInfo? _Method;
+        internal MethodInfo Method => Utils.NonNull(_Method);
+        
+        private readonly Delegate? _Delegate;
+        internal Delegate Delegate => Utils.NonNull(_Delegate);
 
-        internal TypeInfo Creates { get; }
+        private readonly ConstructorInfo? _Constructor;
+        internal ConstructorInfo Constructor => Utils.NonNull(_Constructor);
+
+        internal readonly TypeInfo Creates;
 
         private Parser(MethodInfo method, TypeInfo creates)
         {
-            Method = method;
-            Delegate = null;
-            Constructor = null;
+            _Method = method;
+            _Delegate = null;
+            _Constructor = null;
             Creates = creates;
         }
 
         private Parser(Delegate del, TypeInfo creates)
         {
-            Delegate = del;
-            Method = null;
-            Constructor = null;
+            _Delegate = del;
+            _Method = null;
+            _Constructor = null;
             Creates = creates;
         }
 
         private Parser(ConstructorInfo cons)
         {
-            Delegate = null;
-            Method = null;
-            Constructor = cons;
-            Creates = cons.DeclaringType.GetTypeInfo();
+            _Delegate = null;
+            _Method = null;
+            _Constructor = cons;
+            Creates = cons.DeclaringTypeNonNull();
         }
 
         /// <summary>
@@ -126,7 +131,7 @@ namespace Cesil
                 return Throw.ArgumentException<Parser>($"The second parameter of {nameof(parser)} must be an in", nameof(parser));
             }
 
-            var p2Elem = p2.GetElementType().GetTypeInfo();
+            var p2Elem = p2.GetElementTypeNonNull();
             if (p2Elem != Types.ReadContextType)
             {
                 return Throw.ArgumentException<Parser>($"The second parameter of {nameof(parser)} must be a {nameof(ReadContext)}", nameof(parser));
@@ -137,7 +142,7 @@ namespace Cesil
                 return Throw.ArgumentException<Parser>($"The third parameter of {nameof(parser)} must be an out", nameof(parser));
             }
 
-            var underlying = p3.GetElementType().GetTypeInfo();
+            var underlying = p3.GetElementTypeNonNull();
 
             var parserRetType = parser.ReturnType.GetTypeInfo();
             if (parserRetType != Types.BoolType)
@@ -190,7 +195,7 @@ namespace Cesil
                     return Throw.ArgumentException<Parser>($"{nameof(cons)} second parameter must be an in ReadContext, was not by ref", nameof(cons));
                 }
 
-                var secondPElem = secondP.GetElementType().GetTypeInfo();
+                var secondPElem = secondP.GetElementTypeNonNull();
                 if (secondPElem != Types.ReadContextType)
                 {
                     return Throw.ArgumentException<Parser>($"{nameof(cons)} second parameter must be an in ReadContext, found {secondPElem}", nameof(cons));
@@ -220,7 +225,7 @@ namespace Cesil
         /// <summary>
         /// Returns the default parser for the given type, if any exists.
         /// </summary>
-        public static Parser GetDefault(TypeInfo forType)
+        public static Parser? GetDefault(TypeInfo forType)
         {
             if(forType == null)
             {
@@ -232,16 +237,16 @@ namespace Cesil
                 if (forType.GetCustomAttribute<FlagsAttribute>() == null)
                 {
                     var parsingClass = Types.DefaultEnumTypeParserType.MakeGenericType(forType).GetTypeInfo();
-                    var parserField = parsingClass.GetField(nameof(DefaultTypeParsers.DefaultEnumTypeParser<StringComparison>.TryParseEnumParser), BindingFlags.Static | BindingFlags.NonPublic);
-                    var parser = (Parser)parserField.GetValue(null);
+                    var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultEnumTypeParser<StringComparison>.TryParseEnumParser), BindingFlags.Static | BindingFlags.NonPublic);
+                    var parser = (Parser?)parserField.GetValue(null);
 
                     return parser;
                 }
                 else
                 {
                     var parsingClass = Types.DefaultFlagsEnumTypeParserType.MakeGenericType(forType).GetTypeInfo();
-                    var parserField = parsingClass.GetField(nameof(DefaultTypeParsers.DefaultFlagsEnumTypeParser<StringComparison>.TryParseFlagsEnumParser), BindingFlags.Static | BindingFlags.NonPublic);
-                    var parser = (Parser)parserField.GetValue(null);
+                    var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultFlagsEnumTypeParser<StringComparison>.TryParseFlagsEnumParser), BindingFlags.Static | BindingFlags.NonPublic);
+                    var parser = (Parser?)parserField.GetValue(null);
 
                     return parser;
                 }
@@ -253,16 +258,16 @@ namespace Cesil
                 if (nullableElem.GetCustomAttribute<FlagsAttribute>() == null)
                 {
                     var parsingClass = Types.DefaultEnumTypeParserType.MakeGenericType(nullableElem).GetTypeInfo();
-                    var parserField = parsingClass.GetField(nameof(DefaultTypeParsers.DefaultEnumTypeParser<StringComparison>.TryParseNullableEnumParser), BindingFlags.Static | BindingFlags.NonPublic);
-                    var parser = (Parser)parserField.GetValue(null);
+                    var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultEnumTypeParser<StringComparison>.TryParseNullableEnumParser), BindingFlags.Static | BindingFlags.NonPublic);
+                    var parser = (Parser?)parserField.GetValue(null);
 
                     return parser;
                 }
                 else
                 {
                     var parsingClass = Types.DefaultFlagsEnumTypeParserType.MakeGenericType(nullableElem).GetTypeInfo();
-                    var parserField = parsingClass.GetField(nameof(DefaultTypeParsers.DefaultFlagsEnumTypeParser<StringComparison>.TryParseNullableFlagsEnumParser), BindingFlags.Static | BindingFlags.NonPublic);
-                    var parser = (Parser)parserField.GetValue(null);
+                    var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultFlagsEnumTypeParser<StringComparison>.TryParseNullableFlagsEnumParser), BindingFlags.Static | BindingFlags.NonPublic);
+                    var parser = (Parser?)parserField.GetValue(null);
 
                     return parser;
                 }
@@ -303,7 +308,7 @@ namespace Cesil
         {
             if (ReferenceEquals(other, null)) return false;
 
-            var selfMode = other.Mode;
+            var selfMode = Mode;
             var otherMode = other.Mode;
 
             if (selfMode != otherMode) return false;
@@ -324,7 +329,7 @@ namespace Cesil
         /// <summary>
         /// Returns true if the given object is equivalent to this one
         /// </summary>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is Parser p)
             {
@@ -338,18 +343,18 @@ namespace Cesil
         /// Returns a stable hash for this Parser.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(Parser), Mode, Method, Constructor, Delegate);
+        => HashCode.Combine(nameof(Parser), Mode, _Method, _Constructor, _Delegate);
 
         /// <summary>
         /// Compare two Parsers for equality
         /// </summary>
-        public static bool operator ==(Parser a, Parser b)
+        public static bool operator ==(Parser? a, Parser? b)
         => Utils.NullReferenceEquality(a, b);
 
         /// <summary>
         /// Compare two Parsers for inequality
         /// </summary>
-        public static bool operator !=(Parser a, Parser b)
+        public static bool operator !=(Parser? a, Parser? b)
         => !(a == b);
 
         /// <summary>
@@ -357,7 +362,7 @@ namespace Cesil
         /// 
         /// Returns null if mtd is null.
         /// </summary>
-        public static explicit operator Parser(MethodInfo mtd)
+        public static explicit operator Parser?(MethodInfo? mtd)
         => mtd == null ? null : ForMethod(mtd);
 
         /// <summary>
@@ -365,7 +370,7 @@ namespace Cesil
         /// 
         /// Returns null if cons is null.
         /// </summary>
-        public static explicit operator Parser(ConstructorInfo cons)
+        public static explicit operator Parser?(ConstructorInfo? cons)
         => cons == null ? null : ForConstructor(cons);
 
         /// <summary>
@@ -373,7 +378,7 @@ namespace Cesil
         /// 
         /// Returns null if del is null.
         /// </summary>
-        public static explicit operator Parser(Delegate del)
+        public static explicit operator Parser?(Delegate? del)
         {
             if (del == null) return null;
 
@@ -411,7 +416,7 @@ namespace Cesil
                 return Throw.InvalidOperationException<Parser>($"The second paramater to the delegate must be an in {nameof(ReadContext)}, was not by ref");
             }
 
-            if (p2.GetElementType() != Types.ReadContextType)
+            if (p2.GetElementTypeNonNull() != Types.ReadContextType)
             {
                 return Throw.InvalidOperationException<Parser>($"The second paramater to the delegate must be an in {nameof(ReadContext)}");
             }
@@ -422,10 +427,10 @@ namespace Cesil
                 return Throw.InvalidOperationException<Parser>($"The third paramater to the delegate must be an out type, was not by ref");
             }
 
-            var creates = createsRef.GetElementType().GetTypeInfo();
+            var creates = createsRef.GetElementTypeNonNull();
 
             var parserDel = Types.ParserDelegateType.MakeGenericType(creates);
-            var invoke = del.GetType().GetMethod("Invoke");
+            var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
             var reboundDel = Delegate.CreateDelegate(parserDel, del, invoke);
 

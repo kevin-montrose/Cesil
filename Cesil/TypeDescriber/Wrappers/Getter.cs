@@ -27,17 +27,17 @@ namespace Cesil
         {
             get
             {
-                if (Method != null)
+                if (_Method != null)
                 {
                     return BackingMode.Method;
                 }
 
-                if (Field != null)
+                if (_Field != null)
                 {
                     return BackingMode.Field;
                 }
 
-                if (Delegate != null)
+                if (_Delegate != null)
                 {
                     return BackingMode.Delegate;
                 }
@@ -54,47 +54,66 @@ namespace Cesil
                 {
                     case BackingMode.Field: return Field.IsStatic;
                     case BackingMode.Method: return Method.IsStatic;
-                    case BackingMode.Delegate: return RowType == null;
+                    case BackingMode.Delegate: return !HasRowType;
                     default:
                         return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}");
                 }
             }
         }
 
-        internal MethodInfo Method { get; }
-        internal FieldInfo Field { get; }
-        internal Delegate Delegate { get; }
+        private readonly MethodInfo? _Method;
+        internal MethodInfo Method => Utils.NonNull(_Method);
 
-        internal TypeInfo RowType { get; }
-        internal TypeInfo Returns { get; }
+        private readonly FieldInfo? _Field;
+        internal bool HasField => _Field != null;
+        internal FieldInfo Field => Utils.NonNull(_Field);
 
-        DynamicGetterDelegate ICreatesCacheableDelegate<DynamicGetterDelegate>.CachedDelegate { get; set; }
+        private readonly Delegate? _Delegate;
+        internal bool HasDelegate => _Delegate != null;
+        internal Delegate Delegate => Utils.NonNull(_Delegate);
 
-        private Getter(TypeInfo rowType, TypeInfo returns, MethodInfo method)
+        private readonly TypeInfo? _RowType;
+        internal bool HasRowType => _RowType != null;
+        internal TypeInfo RowType => Utils.NonNull(_RowType);
+
+        internal readonly TypeInfo Returns;
+
+        private DynamicGetterDelegate? _CachedDelegate;
+        bool ICreatesCacheableDelegate<DynamicGetterDelegate>.HasCachedDelegate => _CachedDelegate != null;
+        DynamicGetterDelegate ICreatesCacheableDelegate<DynamicGetterDelegate>.CachedDelegate
         {
-            RowType = rowType;
-            Returns = returns;
-            Method = method;
-            Delegate = null;
-            Field = null;
+            get => Utils.NonNull(_CachedDelegate);
+            set
+            {
+                _CachedDelegate = value;
+            }
         }
 
-        private Getter(TypeInfo rowType, TypeInfo returns, Delegate del)
+        private Getter(TypeInfo? rowType, TypeInfo returns, MethodInfo method)
         {
-            RowType = rowType;
+            _RowType = rowType;
             Returns = returns;
-            Method = null;
-            Delegate = del;
-            Field = null;
+            _Method = method;
+            _Delegate = null;
+            _Field = null;
         }
 
-        private Getter(TypeInfo rowType, TypeInfo returns, FieldInfo field)
+        private Getter(TypeInfo? rowType, TypeInfo returns, Delegate del)
         {
-            RowType = rowType;
+            _RowType = rowType;
             Returns = returns;
-            Method = null;
-            Delegate = null;
-            Field = field;
+            _Method = null;
+            _Delegate = del;
+            _Field = null;
+        }
+
+        private Getter(TypeInfo? rowType, TypeInfo returns, FieldInfo field)
+        {
+            _RowType = rowType;
+            Returns = returns;
+            _Method = null;
+            _Delegate = null;
+            _Field = field;
         }
 
         DynamicGetterDelegate ICreatesCacheableDelegate<DynamicGetterDelegate>.CreateDelegate()
@@ -105,7 +124,7 @@ namespace Cesil
             {
                 case BackingMode.Field:
                     {
-                        Expression fieldOnExp;
+                        Expression? fieldOnExp;
 
                         if (IsStatic)
                         {
@@ -129,7 +148,7 @@ namespace Cesil
 
                         if (IsStatic)
                         {
-                            if (RowType == null)
+                            if (!HasRowType)
                             {
                                 callMtd = Expression.Call(null, Method);
                             }
@@ -203,7 +222,7 @@ namespace Cesil
 
             var getterParams = getter.GetParameters();
 
-            TypeInfo rowType;
+            TypeInfo? rowType;
             if (getter.IsStatic)
             {
                 if (getterParams.Length == 0)
@@ -222,7 +241,7 @@ namespace Cesil
             }
             else
             {
-                rowType = getter.DeclaringType.GetTypeInfo();
+                rowType = getter.DeclaringTypeNonNull();
 
                 if (getterParams.Length > 0)
                 {
@@ -247,14 +266,14 @@ namespace Cesil
                 return Throw.ArgumentNullException<Getter>(nameof(field));
             }
 
-            TypeInfo onType;
+            TypeInfo? onType;
             if (field.IsStatic)
             {
                 onType = null;
             }
             else
             {
-                onType = field.DeclaringType.GetTypeInfo();
+                onType = field.DeclaringTypeNonNull();
             }
 
             var returns = field.FieldType.GetTypeInfo();
@@ -291,7 +310,7 @@ namespace Cesil
         /// <summary>
         /// Compares for equality to another Getter.
         /// </summary>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is Getter g)
             {
@@ -309,7 +328,19 @@ namespace Cesil
             if (ReferenceEquals(g, null)) return false;
 
             if (g.Returns != Returns) return false;
-            if (g.RowType != RowType) return false;
+            if (g.HasRowType)
+            {
+                if (!HasRowType)
+                {
+                    return false;
+                }
+
+                if (g.RowType != RowType) return false;
+            }
+            else
+            {
+                if (HasRowType) return false;
+            }
 
             var otherMode = g.Mode;
             if (otherMode != Mode) return false;
@@ -331,7 +362,7 @@ namespace Cesil
         /// Returns a hashcode for this Getter.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(Getter), Mode, Returns, Delegate, Method, Field);
+        => HashCode.Combine(nameof(Getter), Mode, Returns, _Delegate, _Method, _Field);
 
         /// <summary>
         /// Describes this Getter.
@@ -379,7 +410,7 @@ namespace Cesil
         /// 
         /// Returns null if mtd is null.
         /// </summary>
-        public static explicit operator Getter(MethodInfo mtd)
+        public static explicit operator Getter?(MethodInfo? mtd)
         => mtd == null ? null : ForMethod(mtd);
 
         /// <summary>
@@ -387,7 +418,7 @@ namespace Cesil
         /// 
         /// Returns null if field is null.
         /// </summary>
-        public static explicit operator Getter(FieldInfo field)
+        public static explicit operator Getter?(FieldInfo? field)
         => field == null ? null : ForField(field);
 
         /// <summary>
@@ -395,7 +426,7 @@ namespace Cesil
         /// 
         /// Returns null if del is null.
         /// </summary>
-        public static explicit operator Getter(Delegate del)
+        public static explicit operator Getter?(Delegate? del)
         {
             if (del == null) return null;
 
@@ -433,7 +464,7 @@ namespace Cesil
                 var takes = args[0].ParameterType.GetTypeInfo();
 
                 var formatterDel = Types.GetterDelegateType.MakeGenericType(takes, ret);
-                var invoke = del.GetType().GetMethod("Invoke");
+                var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
                 var reboundDel = Delegate.CreateDelegate(formatterDel, del, invoke);
 
@@ -442,7 +473,7 @@ namespace Cesil
             else if (args.Length == 0)
             {
                 var formatterDel = Types.StaticGetterDelegateType.MakeGenericType(ret);
-                var invoke = del.GetType().GetMethod("Invoke");
+                var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
                 var reboundDel = Delegate.CreateDelegate(formatterDel, del, invoke);
 
@@ -457,13 +488,13 @@ namespace Cesil
         /// <summary>
         /// Compare two Getters for equality
         /// </summary>
-        public static bool operator ==(Getter a, Getter b)
+        public static bool operator ==(Getter? a, Getter? b)
         => Utils.NullReferenceEquality(a, b);
 
         /// <summary>
         /// Compare two Getters for inequality
         /// </summary>
-        public static bool operator !=(Getter a, Getter b)
+        public static bool operator !=(Getter? a, Getter? b)
         => !(a == b);
     }
 }

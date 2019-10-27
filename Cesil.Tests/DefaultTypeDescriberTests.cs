@@ -1054,7 +1054,7 @@ namespace Cesil.Tests
             // reset 
             Assert.Collection(
                 cols,
-                a => Assert.Null(a.Reset),
+                a => Assert.False(a.HasReset),
                 a => Assert.Same(mtd, a.Reset.Method)
             );
         }
@@ -2968,8 +2968,8 @@ namespace Cesil.Tests
             // should serialize
             Assert.Collection(
                 cols,
-                a => Assert.Null(a.ShouldSerialize),
-                b => Assert.Null(b.ShouldSerialize),
+                a => Assert.False(a.HasShouldSerialize),
+                b => Assert.False(b.HasShouldSerialize),
                 c => Assert.Same(typeof(_Serialize).GetMethod(nameof(_Serialize.ShouldSerializeShouldSerializeProp)), c.ShouldSerialize.Method),
                 d => Assert.Same(typeof(_Serialize).GetMethod(nameof(_Serialize.ShouldSerializeShouldSerializeStaticProp)), d.ShouldSerialize.Method)
             );
@@ -3034,10 +3034,10 @@ namespace Cesil.Tests
             // should serialize
             Assert.Collection(
                 cols,
-                a => Assert.Null(a.ShouldSerialize),
+                a => Assert.False(a.HasShouldSerialize),
                 a => Assert.Same(typeof(_SerializeDataMember).GetMethod(nameof(_SerializeDataMember.ShouldSerializeWORLD)), a.ShouldSerialize.Method),
-                a => Assert.Null(a.ShouldSerialize),
-                a => Assert.Null(a.ShouldSerialize)
+                a => Assert.False(a.HasShouldSerialize),
+                a => Assert.False(a.HasShouldSerialize)
             );
 
             // formatter

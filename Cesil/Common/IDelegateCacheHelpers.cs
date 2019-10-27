@@ -8,10 +8,11 @@ namespace Cesil
             where TSelf : ICreatesCacheableDelegate<TDelegate>, IEquatable<TSelf>
             where TDelegate : Delegate
         {
-            if (inst.CachedDelegate != null) return;
+            if (inst.HasCachedDelegate) return;
 
             if (cache.TryGet<TSelf, TDelegate>(inst, out var val))
             {
+                val = Utils.NonNull(val);
                 inst.CachedDelegate = val;
                 return;
             }

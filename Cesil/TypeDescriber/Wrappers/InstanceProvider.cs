@@ -20,34 +20,43 @@ namespace Cesil
         {
             get
             {
-                if (Constructor != null) return BackingMode.Constructor;
-                if (Delegate != null) return BackingMode.Delegate;
-                if (Method != null) return BackingMode.Method;
+                if (_Constructor != null) return BackingMode.Constructor;
+                if (_Delegate != null) return BackingMode.Delegate;
+                if (_Method != null) return BackingMode.Method;
 
                 return BackingMode.None;
             }
         }
 
-        internal TypeInfo ConstructsType { get; }
-        internal ConstructorInfo Constructor { get; }
-        internal Delegate Delegate { get; }
-        internal MethodInfo Method { get; }
+        internal readonly TypeInfo ConstructsType;
+
+        private readonly ConstructorInfo? _Constructor;
+        internal bool HasConstructor => _Constructor != null;
+        internal ConstructorInfo Constructor => Utils.NonNull(_Constructor);
+
+        private readonly Delegate? _Delegate;
+        internal bool HasDelegate => _Delegate != null;
+        internal Delegate Delegate => Utils.NonNull(_Delegate);
+
+        private readonly MethodInfo? _Method;
+        internal bool HasMethod => _Method != null;
+        internal MethodInfo Method => Utils.NonNull(_Method);
 
         internal InstanceProvider(ConstructorInfo cons)
         {
-            Constructor = cons;
-            ConstructsType = cons.DeclaringType.GetTypeInfo();
+            _Constructor = cons;
+            ConstructsType = cons.DeclaringTypeNonNull();
         }
 
         internal InstanceProvider(Delegate del, TypeInfo forType)
         {
-            Delegate = del;
+            _Delegate = del;
             ConstructsType = forType;
         }
 
         internal InstanceProvider(MethodInfo mtd, TypeInfo forType)
         {
-            Method = mtd;
+            _Method = mtd;
             ConstructsType = forType;
         }
 
@@ -88,7 +97,7 @@ namespace Cesil
                 return Throw.ArgumentException<InstanceProvider>("Method must have a single out parameter, parameter was not by ref", nameof(mtd));
             }
 
-            var constructs = outP.GetElementType().GetTypeInfo();
+            var constructs = outP.GetElementTypeNonNull();
 
             return new InstanceProvider(mtd, constructs);
         }
@@ -115,7 +124,7 @@ namespace Cesil
                 return Throw.ArgumentException<InstanceProvider>("Constructor must take 0 parameters", nameof(cons));
             }
 
-            var t = cons.DeclaringType.GetTypeInfo();
+            var t = cons.DeclaringTypeNonNull();
             if (t.IsInterface)
             {
                 return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found an interface", nameof(cons));
@@ -158,7 +167,7 @@ namespace Cesil
         /// <summary>
         /// Returns true if this object equals the given InstanceProvider.
         /// </summary>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is InstanceProvider i)
             {
@@ -176,18 +185,18 @@ namespace Cesil
             if (ReferenceEquals(i, null)) return false;
 
             return
-                i.Constructor == Constructor &&
+                i.Mode == Mode &&
+                i._Constructor == _Constructor &&
                 i.ConstructsType == ConstructsType &&
-                i.Delegate == Delegate &&
-                i.Method == Method &&
-                i.Mode == Mode;
+                i._Delegate == _Delegate &&
+                i._Method == _Method;
         }
 
         /// <summary>
         /// Returns a stable hash for this InstanceProvider.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(InstanceProvider), Constructor, ConstructsType, Delegate, Method, Mode);
+        => HashCode.Combine(nameof(InstanceProvider), _Constructor, ConstructsType, _Delegate, _Method, Mode);
 
         /// <summary>
         /// Returns a representation of this InstanceProvider object.
@@ -214,7 +223,7 @@ namespace Cesil
         /// 
         /// Returns null if mtd is null.
         /// </summary>
-        public static explicit operator InstanceProvider(MethodInfo mtd)
+        public static explicit operator InstanceProvider?(MethodInfo? mtd)
         => mtd == null ? null : ForMethod(mtd);
 
         /// <summary>
@@ -222,7 +231,7 @@ namespace Cesil
         /// 
         /// Returns null if field is null.
         /// </summary>
-        public static explicit operator InstanceProvider(ConstructorInfo cons)
+        public static explicit operator InstanceProvider?(ConstructorInfo? cons)
         => cons == null ? null : ForParameterlessConstructor(cons);
 
         /// <summary>
@@ -230,7 +239,7 @@ namespace Cesil
         /// 
         /// Returns null if del is null.
         /// </summary>
-        public static explicit operator InstanceProvider(Delegate del)
+        public static explicit operator InstanceProvider?(Delegate? del)
         {
             if (del == null) return null;
 
@@ -266,10 +275,10 @@ namespace Cesil
                 return Throw.InvalidOperationException<InstanceProvider>("Delegate must have a single out parameter, parameter was not by ref");
             }
 
-            var constructs = outP.GetElementType().GetTypeInfo();
+            var constructs = outP.GetElementTypeNonNull();
 
             var instanceBuilderDel = Types.InstanceProviderDelegateType.MakeGenericType(constructs);
-            var invoke = del.GetType().GetMethod("Invoke");
+            var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
             var reboundDel = Delegate.CreateDelegate(instanceBuilderDel, del, invoke);
 
@@ -279,13 +288,13 @@ namespace Cesil
         /// <summary>
         /// Compare two InstanceProviders for equality
         /// </summary>
-        public static bool operator ==(InstanceProvider a, InstanceProvider b)
+        public static bool operator ==(InstanceProvider? a, InstanceProvider? b)
         => Utils.NullReferenceEquality(a, b);
 
         /// <summary>
         /// Compare two InstanceProvider for inequality
         /// </summary>
-        public static bool operator !=(InstanceProvider a, InstanceProvider b)
+        public static bool operator !=(InstanceProvider? a, InstanceProvider? b)
         => !(a == b);
     }
 }

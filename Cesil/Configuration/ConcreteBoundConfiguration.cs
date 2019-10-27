@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using System.IO;
 using System.Text;
 
 namespace Cesil
@@ -40,7 +39,7 @@ namespace Cesil
             )
         { }
 
-        internal override IReader<T> CreateReader(IReaderAdapter inner, object context = null)
+        internal override IReader<T> CreateReader(IReaderAdapter inner, object? context = null)
         {
             if (DeserializeColumns.Length == 0)
             {
@@ -50,7 +49,7 @@ namespace Cesil
             return new Reader<T>(inner, this, context);
         }
 
-        internal override IAsyncReader<T> CreateAsyncReader(IAsyncReaderAdapter inner, object context = null)
+        internal override IAsyncReader<T> CreateAsyncReader(IAsyncReaderAdapter inner, object? context = null)
         {
             if (DeserializeColumns.Length == 0)
             {
@@ -60,7 +59,7 @@ namespace Cesil
             return new AsyncReader<T>(inner, this, context);
         }
 
-        internal override IWriter<T> CreateWriter(IWriterAdapter inner, object context = null)
+        internal override IWriter<T> CreateWriter(IWriterAdapter inner, object? context = null)
         {
             if (SerializeColumns.Length == 0)
             {
@@ -70,7 +69,7 @@ namespace Cesil
             return new Writer<T>(this, inner, context);
         }
 
-        internal override IAsyncWriter<T> CreateAsyncWriter(IAsyncWriterAdapter inner, object context = null)
+        internal override IAsyncWriter<T> CreateAsyncWriter(IAsyncWriterAdapter inner, object? context = null)
         {
             if (SerializeColumns.Length == 0)
             {

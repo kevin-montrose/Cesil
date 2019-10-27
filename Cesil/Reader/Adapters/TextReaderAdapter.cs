@@ -7,9 +7,9 @@ namespace Cesil
 {
     internal sealed class TextReaderAdapter : IReaderAdapter
     {
-        public bool IsDisposed => Inner == null;
+        public bool IsDisposed { get; private set; }
 
-        private TextReader Inner;
+        private readonly TextReader Inner;
 
         public TextReaderAdapter(TextReader inner)
         {
@@ -28,7 +28,7 @@ namespace Cesil
             if (!IsDisposed)
             {
                 Inner.Dispose();
-                Inner = null;
+                IsDisposed = true;
             }
         }
     }

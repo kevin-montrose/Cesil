@@ -14,7 +14,7 @@ namespace Cesil
             Cell = outer;
         }
 
-        private BindingRestrictions MakeRestrictions(Parser expected, TypeInfo returnType)
+        private BindingRestrictions MakeRestrictions(Parser? expected, TypeInfo returnType)
         {
             var expectedConst = Expression.Constant(expected);
             var get = GetParser(returnType);
@@ -31,9 +31,9 @@ namespace Cesil
         {
             var typeConst = Expression.Constant(forType);
             var selfAsCell = Expression.Convert(Expression, Types.DynamicCellType);
-            var converter = Expression.Call(selfAsCell, Methods.DynamicCell.GetConverter);
+            var converter = Expression.Call(selfAsCell, Methods.DynamicCell.Converter);
             var ctx = Expression.Call(selfAsCell, Methods.DynamicCell.GetReadContext);
-            var parser = Expression.Call(converter, Methods.ITypeDescriber.GetCellParserFor, ctx, typeConst);
+            var parser = Expression.Call(converter, Methods.ITypeDescriber.GetDynamicCellParserFor, ctx, typeConst);
 
             return parser;
         }

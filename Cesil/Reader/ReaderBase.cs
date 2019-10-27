@@ -14,20 +14,29 @@ namespace Cesil
 
         internal readonly CharacterLookup SharedCharacterLookup;
 
-        internal readonly object Context;
+        internal readonly object? Context;
 
         internal bool StateMachineInitialized;
         internal ReaderStateMachine StateMachine;
 
         internal BoundConfigurationBase<T> Configuration { get; }
-        internal Column[] Columns;
+
+        private Column[]? _Columns;
+        internal Column[] Columns
+        {
+            get => Utils.NonNull(_Columns);
+            set
+            {
+                _Columns = value;
+            }
+        }
 
         internal RowEndings? RowEndings { get; set; }
         internal ReadHeaders? ReadHeaders { get; set; }
 
         internal int RowNumber;
 
-        protected ReaderBase(BoundConfigurationBase<T> config, object context)
+        protected ReaderBase(BoundConfigurationBase<T> config, object? context)
         {
             RowNumber = 0;
             Configuration = config;
@@ -348,7 +357,7 @@ namespace Cesil
                 Throw.SerializationException<object>($"Column [{column.Name}] is required, but was not found in row");
             }
 
-            var ctx = ReadContext.ReadingColumn(RowNumber, ColumnIdentifier.Create(colIx, Columns[colIx].Name), Context);
+            var ctx = ReadContext.ReadingColumn(RowNumber, ColumnIdentifier.Create(colIx, column.HasName ? column.Name : null), Context);
 
             if (!column.Set(dataSpan.Span, in ctx, Partial.Value))
             {
@@ -427,6 +436,7 @@ namespace Cesil
             if (res == null)
             {
                 Throw.InvalidOperationException<object>($"Unable to automatically detect row endings");
+                return;
             }
 
             RowEndings = res.Value.Ending;
