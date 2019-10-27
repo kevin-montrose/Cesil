@@ -39,10 +39,12 @@ namespace Cesil
             static async ValueTask HandleRowEndingsAndHeadersAsync_ContinueAFterHandleLineEndingsAsync(AsyncDynamicReader self, ValueTask waitFor, CancellationToken cancel)
             {
                 await waitFor;
+                cancel.ThrowIfCancellationRequested();
 
                 if (self.ReadHeaders == null)
                 {
                     await self.HandleHeadersAsync(cancel);
+                    cancel.ThrowIfCancellationRequested();
                 }
             }
         }
@@ -126,6 +128,7 @@ namespace Cesil
                         using (self.StateMachine.ReleaseAndRePinForAsync(waitFor))
                         {
                             available = await waitFor;
+                            cancel.ThrowIfCancellationRequested();
                         }
                         if (available == 0)
                         {
@@ -161,6 +164,7 @@ namespace Cesil
                         using (self.StateMachine.ReleaseAndRePinForAsync(availableTask))
                         {
                             available = await availableTask;
+                            cancel.ThrowIfCancellationRequested();
                         }
                         if (available == 0)
                         {
@@ -262,7 +266,7 @@ namespace Cesil
                 if (!resTask.IsCompletedSuccessfully(this))
                 {
                     disposeReader = false;
-                    return HandleHeadersAsync_WaitForRead(this, resTask, allowColumnsByName, reader);
+                    return HandleHeadersAsync_WaitForRead(this, resTask, allowColumnsByName, reader, cancel);
                 }
 
                 var res = resTask.Result;
@@ -315,11 +319,12 @@ namespace Cesil
             }
 
             // wait for a call to ReadAsync to finish, then continue
-            static async ValueTask HandleHeadersAsync_WaitForRead(AsyncDynamicReader self, ValueTask<(HeadersReader<object>.HeaderEnumerator Headers, bool IsHeader, Memory<char> PushBack)> toAwait, bool allowColumnsByName, HeadersReader<object> reader)
+            static async ValueTask HandleHeadersAsync_WaitForRead(AsyncDynamicReader self, ValueTask<(HeadersReader<object>.HeaderEnumerator Headers, bool IsHeader, Memory<char> PushBack)> toAwait, bool allowColumnsByName, HeadersReader<object> reader, CancellationToken cancel)
             {
                 try
                 {
                     var res = await toAwait;
+                    cancel.ThrowIfCancellationRequested();
 
                     var foundHeaders = res.Headers.Count;
                     if (foundHeaders == 0)
@@ -381,7 +386,7 @@ namespace Cesil
                 if (!resTask.IsCompletedSuccessfully(this))
                 {
                     disposeDetector = false;
-                    return HandleLineEndingsAsync_WaitForDetector(this, resTask, detector);
+                    return HandleLineEndingsAsync_WaitForDetector(this, resTask, detector, cancel);
                 }
 
                 HandleLineEndingsDetectionResult(resTask.Result);
@@ -396,11 +401,13 @@ namespace Cesil
             }
 
             // wait for the call to DetectAsync to complete
-            static async ValueTask HandleLineEndingsAsync_WaitForDetector(AsyncDynamicReader self, ValueTask<(RowEndings Ending, Memory<char> PushBack)?> toAwait, RowEndingDetector<object> detector)
+            static async ValueTask HandleLineEndingsAsync_WaitForDetector(AsyncDynamicReader self, ValueTask<(RowEndings Ending, Memory<char> PushBack)?> toAwait, RowEndingDetector<object> detector, CancellationToken cancel)
             {
                 try
                 {
                     var res = await toAwait;
+                    cancel.ThrowIfCancellationRequested();
+
                     self.HandleLineEndingsDetectionResult(res);
                 }
                 finally

@@ -37,6 +37,7 @@ namespace Cesil
         public ValueTask<bool> MoveNextAsync()
         {
             AssertNotDisposed(this);
+            Token.ThrowIfCancellationRequested();
 
             var task = Reader.TryReadAsync(Token);
             if (!task.IsCompletedSuccessfully(this))
@@ -57,6 +58,7 @@ namespace Cesil
             static async ValueTask<bool> MoveNextAsync_ContinueAfterReadAsync(AsyncEnumerator<T> self, ValueTask<ReadResult<T>> waitFor, CancellationToken cancel)
             {
                 var res = await waitFor;
+                self.Token.ThrowIfCancellationRequested();
 
                 if (!res.HasValue)
                 {

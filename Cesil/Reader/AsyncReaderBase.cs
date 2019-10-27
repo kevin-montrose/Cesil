@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -75,6 +74,7 @@ namespace Cesil
             static async ValueTask<TCollection> ReadAllAsync_ContinueAfterHandleRowEndingsAndHeadersAsync(AsyncReaderBase<T> self, ValueTask waitFor, TCollection into, CancellationToken cancel)
             {
                 await waitFor;
+                cancel.ThrowIfCancellationRequested();
 
                 using (self.StateMachine.Pin())
                 {
@@ -87,6 +87,7 @@ namespace Cesil
                         using (self.StateMachine.ReleaseAndRePinForAsync(resTask))
                         {
                             res = await resTask;
+                            cancel.ThrowIfCancellationRequested();
                         }
 
                         if (res.HasValue)
@@ -107,6 +108,8 @@ namespace Cesil
             static async ValueTask<TCollection> ReadAllAsync_ContinueAfterTryReadAsync(AsyncReaderBase<T> self, ValueTask<ReadWithCommentResult<T>> waitFor, TCollection ret, CancellationToken cancel)
             {
                 var other = await waitFor;
+                cancel.ThrowIfCancellationRequested();
+
                 if (other.HasValue)
                 {
                     ret.Add(other.Value);
@@ -124,6 +127,7 @@ namespace Cesil
                     using (self.StateMachine.ReleaseAndRePinForAsync(resTask))
                     {
                         res = await resTask;
+                        cancel.ThrowIfCancellationRequested();
                     }
                     if (res.HasValue)
                     {
@@ -178,8 +182,11 @@ namespace Cesil
             static async ValueTask<ReadResult<T>> TryReadWithReuseAsync_ContinueAfterHandleRowEndingsAndHeadersAsync(AsyncReaderBase<T> self, ValueTask waitFor, T row, CancellationToken cancel)
             {
                 await waitFor;
+                cancel.ThrowIfCancellationRequested();
 
                 var res = await self.TryReadInnerAsync(false, false, ref row, cancel);
+                cancel.ThrowIfCancellationRequested();
+
                 switch (res.ResultType)
                 {
                     case ReadWithCommentResultType.HasValue:
@@ -195,6 +202,7 @@ namespace Cesil
             static async ValueTask<ReadResult<T>> TryReadWithReuseAsync_ContinueAfterTryReadInnerAsync(ValueTask<ReadWithCommentResult<T>> waitFor, CancellationToken cancel)
             {
                 var res = await waitFor;
+                cancel.ThrowIfCancellationRequested();
 
                 switch (res.ResultType)
                 {
@@ -240,8 +248,12 @@ namespace Cesil
             static async ValueTask<ReadWithCommentResult<T>> TryReadWithCommentReuseAsync_ContinueAfterHandleRowEndingsAndHeadersAsync(AsyncReaderBase<T> self, ValueTask waitFor, T record, CancellationToken cancel)
             {
                 await waitFor;
+                cancel.ThrowIfCancellationRequested();
 
-                return await self.TryReadInnerAsync(true, false, ref record, cancel);
+                var ret = await self.TryReadInnerAsync(true, false, ref record, cancel);
+                cancel.ThrowIfCancellationRequested();
+
+                return ret;
             }
         }
 

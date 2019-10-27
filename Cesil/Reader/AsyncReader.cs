@@ -32,10 +32,12 @@ namespace Cesil
             static async ValueTask HandleRowEndingsAndHeadersAsync_ContinueAfterRowEndingsAsync(AsyncReader<T> self, ValueTask waitFor, CancellationToken cancel)
             {
                 await waitFor;
+                cancel.ThrowIfCancellationRequested();
 
                 if(self.ReadHeaders == null)
                 {
                     await self.HandleHeadersAsync(cancel);
+                    cancel.ThrowIfCancellationRequested();
                 }
             }
         }
@@ -104,6 +106,7 @@ namespace Cesil
                         using (self.StateMachine.ReleaseAndRePinForAsync(waitFor))
                         {
                             available = await waitFor;
+                            cancel.ThrowIfCancellationRequested();
                         }
                         if (available == 0)
                         {
@@ -135,6 +138,7 @@ namespace Cesil
                         using (self.StateMachine.ReleaseAndRePinForAsync(availableTask))
                         {
                             available = await availableTask;
+                            cancel.ThrowIfCancellationRequested();
                         }
                         if (available == 0)
                         {
@@ -199,6 +203,8 @@ namespace Cesil
                 try
                 {
                     var res = await waitFor;
+                    cancel.ThrowIfCancellationRequested();
+
                     self.HandleLineEndingsDetectionResult(res);
                 }
                 finally
@@ -292,6 +298,8 @@ namespace Cesil
                 try
                 {
                     var res = await waitFor;
+                    cancel.ThrowIfCancellationRequested();
+
                     self.HandleHeadersReaderResult(res);
                 }
                 finally

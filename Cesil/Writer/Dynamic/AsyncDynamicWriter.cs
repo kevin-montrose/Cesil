@@ -141,6 +141,7 @@ end:
             static async ValueTask WriteAsync_ContinueAfterWriteHeadersAsync(AsyncDynamicWriter self, ValueTask waitFor, dynamic row, CancellationToken cancel)
             {
                 await waitFor;
+                cancel.ThrowIfCancellationRequested();
 
                 var wholeRowContext = WriteContext.DiscoveringCells(self.RowNumber, self.Context);
 
@@ -156,6 +157,7 @@ end:
                     {
                         var placeTask = self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
                         await placeTask;
+                        cancel.ThrowIfCancellationRequested();
                     }
 
                     var col = i < self.ColumnNames.Length ? self.ColumnNames[i].Name : null;
@@ -182,6 +184,8 @@ end:
                     
                     var writeValueTask = self.WriteValueAsync(res, cancel);
                     await writeValueTask;
+                    cancel.ThrowIfCancellationRequested();
+
                     self.Buffer.Reset();
 
 end:
@@ -197,6 +201,7 @@ end:
                 try
                 {
                     await waitFor;
+                    cancel.ThrowIfCancellationRequested();
 
                     // finish the loop
                     {
@@ -224,6 +229,8 @@ end:
 
                         var writeValueTask = self.WriteValueAsync(res, cancel);
                         await writeValueTask;
+                        cancel.ThrowIfCancellationRequested();
+
                         self.Buffer.Reset();
 
 end:
@@ -240,6 +247,7 @@ end:
                         {
                             var placeTask = self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
                             await placeTask;
+                            cancel.ThrowIfCancellationRequested();
                         }
 
                         var col = i < self.ColumnNames.Length ? self.ColumnNames[i].Name : null;
@@ -266,6 +274,8 @@ end:
 
                         var writeValueTask = self.WriteValueAsync(res, cancel);
                         await writeValueTask;
+                        cancel.ThrowIfCancellationRequested();
+
                         self.Buffer.Reset();
 
 end:
@@ -286,6 +296,7 @@ end:
                 try
                 {
                     await waitFor;
+                    cancel.ThrowIfCancellationRequested();
 
                     // finish loop
                     {
@@ -304,6 +315,7 @@ end:
                         {
                             var placeTask = self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
                             await placeTask;
+                            cancel.ThrowIfCancellationRequested();
                         }
 
                         var col = i < self.ColumnNames.Length ? self.ColumnNames[i].Name : null;
@@ -330,6 +342,8 @@ end:
 
                         var writeValueTask = self.WriteValueAsync(res, cancel);
                         await writeValueTask;
+                        cancel.ThrowIfCancellationRequested();
+
                         self.Buffer.Reset();
 
 end:
@@ -429,6 +443,7 @@ end:
                 var shouldEndRecord = true;
 
                 var res = await waitFor;
+                cancel.ThrowIfCancellationRequested();
 
                 if (!res)
                 {
@@ -439,6 +454,7 @@ end:
                 {
                     var endTask = self.EndRecordAsync(cancel);
                     await endTask;
+                    cancel.ThrowIfCancellationRequested();
                 }
 
                 var segments = self.SplitCommentIntoLines(comment);
@@ -453,14 +469,18 @@ end:
                     {
                         var endTask = self.EndRecordAsync(cancel);
                         await endTask;
+                        cancel.ThrowIfCancellationRequested();
                     }
 
                     var placeTask = self.PlaceCharInStagingAsync(commentChar, cancel);
                     await placeTask;
+                    cancel.ThrowIfCancellationRequested();
+
                     if (seg.Length > 0)
                     {
                         var secondPlaceTask = self.PlaceInStagingAsync(seg, cancel);
                         await secondPlaceTask;
+                        cancel.ThrowIfCancellationRequested();
                     }
 
                     isFirstRow = false;
@@ -471,6 +491,7 @@ end:
             static async ValueTask WriteCommentAsync_ContinueAfterEndRecordAsync(AsyncDynamicWriter self, ValueTask waitFor, string comment, CancellationToken cancel)
             {
                 await waitFor;
+                cancel.ThrowIfCancellationRequested();
 
                 var segments = self.SplitCommentIntoLines(comment);
 
@@ -484,14 +505,18 @@ end:
                     {
                         var endTask = self.EndRecordAsync(cancel);
                         await endTask;
+                        cancel.ThrowIfCancellationRequested();
                     }
 
                     var placeTask = self.PlaceCharInStagingAsync(commentChar, cancel);
                     await placeTask;
+                    cancel.ThrowIfCancellationRequested();
+
                     if (seg.Length > 0)
                     {
                         var secondPlaceTask = self.PlaceInStagingAsync(seg, cancel);
                         await secondPlaceTask;
+                        cancel.ThrowIfCancellationRequested();
                     }
 
                     isFirstRow = false;
@@ -501,6 +526,7 @@ end:
             static async ValueTask WriteCommentAsync_ContinueAfterEndRowAsync(AsyncDynamicWriter self, ValueTask waitFor, ReadOnlyMemory<char> seg, ReadOnlySequence<char>.Enumerator e, CancellationToken cancel)
             {
                 await waitFor;
+                cancel.ThrowIfCancellationRequested();
 
                 var commentChar = self.Config.CommentChar.Value;
 
@@ -508,10 +534,13 @@ end:
                 {
                     var placeTask = self.PlaceCharInStagingAsync(commentChar, cancel);
                     await placeTask;
+                    cancel.ThrowIfCancellationRequested();
+
                     if (seg.Length > 0)
                     {
                         var secondPlaceTask = self.PlaceInStagingAsync(seg, cancel);
                         await secondPlaceTask;
+                        cancel.ThrowIfCancellationRequested();
                     }
                 }
 
@@ -523,13 +552,17 @@ end:
                     // by definition, not in the first row so we can skip the if
                     var endTask = self.EndRecordAsync(cancel);
                     await endTask;
+                    cancel.ThrowIfCancellationRequested();
 
                     var thirdPlaceTask = self.PlaceCharInStagingAsync(commentChar, cancel);
                     await thirdPlaceTask;
+                    cancel.ThrowIfCancellationRequested();
+
                     if (seg.Length > 0)
                     {
                         var fourthPlaceTask = self.PlaceInStagingAsync(seg, cancel);
                         await fourthPlaceTask;
+                        cancel.ThrowIfCancellationRequested();
                     }
                 }
             }
@@ -538,6 +571,7 @@ end:
             static async ValueTask WriteCommentAsync_ContinueAfterPlaceCharAsync(AsyncDynamicWriter self, ValueTask waitFor, ReadOnlyMemory<char> seg, ReadOnlySequence<char>.Enumerator e, CancellationToken cancel)
             {
                 await waitFor;
+                cancel.ThrowIfCancellationRequested();
 
                 // finish the loop
                 {
@@ -545,6 +579,7 @@ end:
                     {
                         var placeTask = self.PlaceInStagingAsync(seg, cancel);
                         await placeTask;
+                        cancel.ThrowIfCancellationRequested();
                     }
                 }
 
@@ -558,13 +593,17 @@ end:
                     // by definition, not in the first row so we can skip the if
                     var endTask = self.EndRecordAsync(cancel);
                     await endTask;
+                    cancel.ThrowIfCancellationRequested();
 
                     var secondPlaceTask = self.PlaceCharInStagingAsync(commentChar, cancel);
                     await secondPlaceTask;
+                    cancel.ThrowIfCancellationRequested();
+
                     if (seg.Length > 0)
                     {
                         var thirdPlaceTask = self.PlaceInStagingAsync(seg, cancel);
                         await thirdPlaceTask;
+                        cancel.ThrowIfCancellationRequested();
                     }
                 }
             }
@@ -573,6 +612,7 @@ end:
             static async ValueTask WriteCommentAsync_ContinueAfterPlaceSegementAsync(AsyncDynamicWriter self, ValueTask waitFor, ReadOnlySequence<char>.Enumerator e, CancellationToken cancel)
             {
                 await waitFor;
+                cancel.ThrowIfCancellationRequested();
 
                 var commentChar = self.Config.CommentChar.Value;
 
@@ -583,13 +623,17 @@ end:
                     // by definition, not in the first row so we can skip the if
                     var endTask = self.EndRecordAsync(cancel);
                     await endTask;
+                    cancel.ThrowIfCancellationRequested();
 
                     var placeTask = self.PlaceCharInStagingAsync(commentChar, cancel);
                     await placeTask;
+                    cancel.ThrowIfCancellationRequested();
+
                     if (seg.Length > 0)
                     {
                         var secondPlaceTask = self.PlaceInStagingAsync(seg, cancel);
                         await secondPlaceTask;
+                        cancel.ThrowIfCancellationRequested();
                     }
                 }
             }
@@ -631,6 +675,8 @@ end:
                 var shouldEndRecord = true;
 
                 var res = await waitFor;
+                cancel.ThrowIfCancellationRequested();
+
                 if (!res)
                 {
                     shouldEndRecord = false;
@@ -640,6 +686,7 @@ end:
                 {
                     var endTask = self.EndRecordAsync(cancel);
                     await endTask;
+                    cancel.ThrowIfCancellationRequested();
                 }
             }
         }
@@ -705,6 +752,7 @@ end:
             static async ValueTask<bool> CheckHeadersAsync_ContinueAfterWriteHeadersAsync(ValueTask waitFor, CancellationToken cancel)
             {
                 await waitFor;
+                cancel.ThrowIfCancellationRequested();
 
                 return true;
             }
@@ -794,6 +842,7 @@ end:
             static async ValueTask WriteHeadersAsync_ContinueAfterPlaceCharAsync(AsyncDynamicWriter self, ValueTask waitFor, int i, CancellationToken cancel)
             {
                 await waitFor;
+                cancel.ThrowIfCancellationRequested();
 
                 // finish the loop
                 {
@@ -803,6 +852,7 @@ end:
                     //   (ie. they're always correct for this config)
                     var placeTask = self.PlaceInStagingAsync(colName.AsMemory(), cancel);
                     await placeTask;
+                    cancel.ThrowIfCancellationRequested();
 
                     i++;
                 }
@@ -812,6 +862,7 @@ end:
                     // by defintion i != 0, so no need for the if
                     var secondPlaceTask = self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
                     await secondPlaceTask;
+                    cancel.ThrowIfCancellationRequested();
 
                     var colName = self.ColumnNames[i].EncodedName;
 
@@ -819,12 +870,14 @@ end:
                     //   (ie. they're always correct for this config)
                     var thirdPlaceTask = self.PlaceInStagingAsync(colName.AsMemory(), cancel);
                     await thirdPlaceTask;
+                    cancel.ThrowIfCancellationRequested();
                 }
             }
 
             static async ValueTask WriteHeadersAsync_ContinueAfterPlaceInStagingAsync(AsyncDynamicWriter self, ValueTask waitFor, int i, CancellationToken cancel)
             {
                 await waitFor;
+                cancel.ThrowIfCancellationRequested();
 
                 i++;
 
@@ -833,6 +886,7 @@ end:
                     // by defintion i != 0, so no need for the if
                     var placeTask = self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
                     await placeTask;
+                    cancel.ThrowIfCancellationRequested();
 
                     var colName = self.ColumnNames[i].EncodedName;
 
@@ -840,6 +894,7 @@ end:
                     //   (ie. they're always correct for this config)
                     var secondPlaceTask = self.PlaceInStagingAsync(colName.AsMemory(), cancel);
                     await secondPlaceTask;
+                    cancel.ThrowIfCancellationRequested();
                 }
             }
         }
