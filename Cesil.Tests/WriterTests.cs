@@ -17,6 +17,32 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class WriterTests
     {
+        private sealed class _Errors
+        {
+            public string Foo { get; set; }
+        }
+
+        [Fact]
+        public void Errors()
+        {
+            RunSyncWriterVariants<_Errors>(
+                Options.Default,
+                (config, makeWriter, getStr) =>
+                {
+                    using(var w = makeWriter())
+                    using(var csv = config.CreateWriter(w))
+                    {
+                        Assert.Throws<ArgumentNullException>(() => csv.WriteAll(null));
+
+                        var exc = Assert.Throws<InvalidOperationException>(() => csv.WriteComment("foo"));
+                        Assert.Equal($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line", exc.Message);
+                    }
+
+                    getStr();
+                }
+            );
+        }
+
         private sealed class _BufferWriterByte
         {
             public string Foo { get; set; }
@@ -2705,6 +2731,28 @@ namespace Cesil.Tests
 
                     var txt = getString();
                     Assert.Equal("1,,None,1970-01-01 00:00:00Z\r\n,Fizz,,", txt);
+                }
+            );
+        }
+
+        [Fact]
+        public async Task ErrorsAsync()
+        {
+            await RunAsyncWriterVariants<_Errors>(
+                Options.Default,
+                async (config, makeWriter, getStr) =>
+                {
+                    await using (var w = makeWriter())
+                    await using (var csv = config.CreateAsyncWriter(w))
+                    {
+                        await Assert.ThrowsAsync<ArgumentNullException>(async () => await csv.WriteAllAsync(default(IEnumerable<_Errors>)));
+                        await Assert.ThrowsAsync<ArgumentNullException>(async () => await csv.WriteAllAsync(default(IAsyncEnumerable<_Errors>)));
+
+                        var exc = await Assert.ThrowsAsync<InvalidOperationException>(async () => await csv.WriteCommentAsync("foo"));
+                        Assert.Equal($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line", exc.Message);
+                    }
+
+                    await getStr();
                 }
             );
         }
