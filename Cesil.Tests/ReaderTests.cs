@@ -16,6 +16,31 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ReaderTests
     {
+        private sealed class _MissingHeaders
+        {
+            public string Foo { get; set; }
+        }
+
+        [Fact]
+        public void MissingHeaders()
+        {
+            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+
+            RunSyncReaderVariants<_MissingHeaders>(
+                opts,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader("fizz"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var exc = Assert.Throws<InvalidOperationException>(() => csv.TryRead(out _));
+
+                        Assert.Equal("First row of input was not a row of headers", exc.Message);
+                    }
+                }
+            );
+        }
+
         private sealed class _ReadAllEmpty
         {
             public string Fizz { get; set; }
@@ -28,8 +53,8 @@ namespace Cesil.Tests
                 Options.Default,
                 (config, getReader) =>
                 {
-                    using(var reader = getReader(""))
-                    using(var csv = config.CreateReader(reader))
+                    using (var reader = getReader(""))
+                    using (var csv = config.CreateReader(reader))
                     {
                         var res = csv.ReadAll();
 
@@ -51,8 +76,8 @@ namespace Cesil.Tests
                 Options.Default,
                 (config, getReader) =>
                 {
-                    using(var reader = getReader("Foo\r\nbar\r\nfizz\r\nbuzz"))
-                    using(var csv = config.CreateReader(reader))
+                    using (var reader = getReader("Foo\r\nbar\r\nfizz\r\nbuzz"))
+                    using (var csv = config.CreateReader(reader))
                     {
                         var rows = new List<_ReadOneThenAll>();
 
@@ -84,8 +109,8 @@ namespace Cesil.Tests
                 Options.Default,
                 (config, getReader) =>
                 {
-                    using(var reader = getReader(""))
-                    using(var csv = config.CreateReader(reader))
+                    using (var reader = getReader(""))
+                    using (var csv = config.CreateReader(reader))
                     {
                         Assert.Throws<ArgumentNullException>(() => csv.ReadAll(default(List<_NullInto>)));
                     }
@@ -209,8 +234,8 @@ namespace Cesil.Tests
                 opt,
                 (config, getReader) =>
                 {
-                    using(var reader = getReader("#\r"))
-                    using(var csv = config.CreateReader(reader))
+                    using (var reader = getReader("#\r"))
+                    using (var csv = config.CreateReader(reader))
                     {
                         var res = csv.TryReadWithComment();
                         Assert.True(res.HasComment);
@@ -315,8 +340,8 @@ namespace Cesil.Tests
                 Options.Default,
                 (config, getReader) =>
                 {
-                    using(var reader = getReader("hello,world\r\nfizz,buzz"))
-                    using(var csv = config.CreateReader(reader))
+                    using (var reader = getReader("hello,world\r\nfizz,buzz"))
+                    using (var csv = config.CreateReader(reader))
                     {
                         System.Collections.IEnumerable e = csv.EnumerateAll();
 
@@ -559,13 +584,13 @@ namespace Cesil.Tests
 
             foreach (var n in names)
             {
-                foreach(var s in setters)
+                foreach (var s in setters)
                 {
-                    foreach(var p in parsers)
+                    foreach (var p in parsers)
                     {
-                        foreach(var i in isMemberRequireds)
+                        foreach (var i in isMemberRequireds)
                         {
-                            foreach(var r in resets)
+                            foreach (var r in resets)
                             {
                                 members.Add(DeserializableMember.Create(t, n, s, p, i, r));
                             }
@@ -3323,6 +3348,26 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         }
 
         [Fact]
+        public async Task MissingHeadersAsync()
+        {
+            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+
+            await RunAsyncReaderVariants<_MissingHeaders>(
+                opts,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("fizz"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var exc = await Assert.ThrowsAsync<InvalidOperationException>(async () => await csv.TryReadAsync());
+
+                        Assert.Equal("First row of input was not a row of headers", exc.Message);
+                    }
+                }
+            );
+        }
+
+        [Fact]
         public async Task ReadAllEmptyAsync()
         {
             await RunAsyncReaderVariants<_ReadAllEmpty>(
@@ -3483,11 +3528,11 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
 
 
             async static ValueTask<T> UnwrapThrowsAsync<T>(Func<Task> get)
-                where T: Exception
+                where T : Exception
             {
                 var res = await Assert.ThrowsAnyAsync<Exception>(get);
 
-                if(res is AggregateException agg)
+                if (res is AggregateException agg)
                 {
                     var exc = res.InnerException as T;
                     Assert.NotNull(exc);
@@ -3677,7 +3722,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                         testConfig?.Set(e);
 
                         var ix = 0;
-                        await foreach(var row in e)
+                        await foreach (var row in e)
                         {
                             switch (ix)
                             {
@@ -3717,7 +3762,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                         testConfig?.Set(i);
 
                         var ix = 0;
-                        while(await i.MoveNextAsync())
+                        while (await i.MoveNextAsync())
                         {
                             var row = i.Current;
                             switch (ix)
