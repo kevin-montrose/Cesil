@@ -22,10 +22,11 @@ namespace Cesil
                 return WriteAsync_ContinueAfterHeadersAndEndRecordAsync(this, checkHeadersAndEndRowTask, row, cancel);
             }
 
-            for (var i = 0; i < Columns.Length; i++)
+            var columnsValue = Columns.Value;
+            for (var i = 0; i < columnsValue.Length; i++)
             {
                 var needsSeparator = i != 0;
-                var col = Columns[i];
+                var col = columnsValue[i];
 
                 var writeColumnTask = WriteColumnAsync(row, i, col, needsSeparator, cancel);
                 if (!writeColumnTask.IsCompletedSuccessfully(this))
@@ -44,10 +45,11 @@ namespace Cesil
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
 
-                for (var i = 0; i < self.Columns.Length; i++)
+                var selfColumnsValue = self.Columns.Value;
+                for (var i = 0; i < selfColumnsValue.Length; i++)
                 {
                     var needsSeparator = i != 0;
-                    var col = self.Columns[i];
+                    var col = selfColumnsValue[i];
 
                     var writeTask = self.WriteColumnAsync(row, i, col, needsSeparator, cancel);
                     await writeTask;
@@ -66,10 +68,11 @@ namespace Cesil
                 // the implict increment at the end of the loop
                 i++;
 
-                for (; i < self.Columns.Length; i++)
+                var selfColumnsValue = self.Columns.Value;
+                for (; i < selfColumnsValue.Length; i++)
                 {
                     const bool needsSeparator = true;                  // by definition, this isn't the first loop
-                    var col = self.Columns[i];
+                    var col = selfColumnsValue[i];
 
                     var writeTask = self.WriteColumnAsync(row, i, col, needsSeparator, cancel);
                     await writeTask;
@@ -377,7 +380,7 @@ namespace Cesil
 
             var ctx = WriteContext.WritingColumn(RowNumber, ColumnIdentifier.Create(colIx, col.Name), Context);
 
-            if (!col.Write(row, ctx, Buffer))
+            if (!col.Write.Value(row, ctx, Buffer))
             {
                 return Throw.SerializationException<ValueTask>($"Could not write column {col.Name}, formatter returned false");
             }
@@ -407,7 +410,7 @@ namespace Cesil
 
                 var ctx = WriteContext.WritingColumn(self.RowNumber, ColumnIdentifier.Create(colIx, col.Name), self.Context);
 
-                if (!col.Write(row, ctx, self.Buffer))
+                if (!col.Write.Value(row, ctx, self.Buffer))
                 {
                     Throw.SerializationException<object>($"Could not write column {col.Name}, formatter returned false");
                 }
@@ -442,7 +445,7 @@ namespace Cesil
         private ValueTask<bool> CheckHeadersAsync(CancellationToken cancel)
         {
             // make a note of what the columns to write actually are
-            Columns = Config.SerializeColumns;
+            Columns.Value = Config.SerializeColumns;
 
             if (Config.WriteHeader == WriteHeaders.Never)
             {
@@ -472,7 +475,8 @@ namespace Cesil
         {
             var needsEscape = Config.SerializeColumnsNeedEscape;
 
-            for (var i = 0; i < Columns.Length; i++)
+            var columnsValue = Columns.Value;
+            for (var i = 0; i < columnsValue.Length; i++)
             {
                 // for the separator
                 if (i != 0)
@@ -484,7 +488,7 @@ namespace Cesil
                     }
                 }
 
-                var writeTask = WriteSingleHeaderAsync(Columns[i], needsEscape[i], cancel);
+                var writeTask = WriteSingleHeaderAsync(columnsValue[i], needsEscape[i], cancel);
                 if (!writeTask.IsCompletedSuccessfully(this))
                 {
                     return WriteHeadersAsync_CompleteAfterHeaderWriteAsync(this, writeTask, needsEscape, i, cancel);
@@ -499,21 +503,22 @@ namespace Cesil
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
 
-                var headerTask = self.WriteSingleHeaderAsync(self.Columns[i], needsEscape[i], cancel);
+                var selfColumnsValue = self.Columns.Value;
+                var headerTask = self.WriteSingleHeaderAsync(selfColumnsValue[i], needsEscape[i], cancel);
                 await headerTask;
                 cancel.ThrowIfCancellationRequested();
 
                 // implicit increment at the end of the calling loop
                 i++;
 
-                for (; i < self.Columns.Length; i++)
+                for (; i < selfColumnsValue.Length; i++)
                 {
                     // by definition we've always wrote at least one column here
                     var placeTask = self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
                     await placeTask;
                     cancel.ThrowIfCancellationRequested();
 
-                    var writeTask = self.WriteSingleHeaderAsync(self.Columns[i], needsEscape[i], cancel);
+                    var writeTask = self.WriteSingleHeaderAsync(selfColumnsValue[i], needsEscape[i], cancel);
                     await writeTask;
                     cancel.ThrowIfCancellationRequested();
                 }
@@ -528,14 +533,15 @@ namespace Cesil
                 // implicit increment at the end of the calling loop
                 i++;
 
-                for (; i < self.Columns.Length; i++)
+                var selfColumnsValue = self.Columns.Value;
+                for (; i < selfColumnsValue.Length; i++)
                 {
                     // by definition we've always wrote at least one column here
                     var placeTask = self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
                     await placeTask;
                     cancel.ThrowIfCancellationRequested();
 
-                    var writeTask = self.WriteSingleHeaderAsync(self.Columns[i], needsEscape[i], cancel);
+                    var writeTask = self.WriteSingleHeaderAsync(selfColumnsValue[i], needsEscape[i], cancel);
                     await writeTask;
                     cancel.ThrowIfCancellationRequested();
                 }
@@ -544,7 +550,7 @@ namespace Cesil
 
         private ValueTask WriteSingleHeaderAsync(Column column, bool escape, CancellationToken cancel)
         {
-            var colName = column.Name;
+            var colName = column.Name.Value;
 
             if (!escape)
             {
@@ -777,7 +783,7 @@ namespace Cesil
                     }
                 }
 
-                if (HasBuffer)
+                if (Staging.HasValue)
                 {
                     if (InStaging > 0)
                     {
@@ -788,7 +794,7 @@ namespace Cesil
                         }
                     }
 
-                    Staging.Dispose();
+                    Staging.Value.Dispose();
                 }
 
                 var ret = Inner.DisposeAsync();
@@ -797,9 +803,9 @@ namespace Cesil
                     return DisposeAsync_ContinueAfterInnerDisposedAsync(this, ret);
                 }
 
-                if (HasOneCharOwner)
+                if (OneCharOwner.HasValue)
                 {
-                    OneCharOwner.Dispose();
+                    OneCharOwner.Value.Dispose();
                 }
                 Buffer.Dispose();
                 IsDisposed = true;
@@ -818,7 +824,7 @@ namespace Cesil
                     await endTask;
                 }
 
-                if (self.HasBuffer)
+                if (self.Staging.HasValue)
                 {
                     if (self.InStaging > 0)
                     {
@@ -826,15 +832,15 @@ namespace Cesil
                         await flushTask;
                     }
 
-                    self.Staging.Dispose();
+                    self.Staging.Value.Dispose();
                 }
 
                 var disposeTask = self.Inner.DisposeAsync();
                 await disposeTask;
 
-                if (self.HasOneCharOwner)
+                if (self.OneCharOwner.HasValue)
                 {
-                    self.OneCharOwner.Dispose();
+                    self.OneCharOwner.Value.Dispose();
                 }
                 self.Buffer.Dispose();
 
@@ -846,7 +852,7 @@ namespace Cesil
             {
                 await waitFor;
 
-                if (self.HasBuffer)
+                if (self.Staging.HasValue)
                 {
                     if (self.InStaging > 0)
                     {
@@ -854,15 +860,15 @@ namespace Cesil
                         await flushTask;
                     }
 
-                    self.Staging.Dispose();
+                    self.Staging.Value.Dispose();
                 }
 
                 var disposeTask = self.Inner.DisposeAsync();
                 await disposeTask;
 
-                if (self.HasOneCharOwner)
+                if (self.OneCharOwner.HasValue)
                 {
-                    self.OneCharOwner.Dispose();
+                    self.OneCharOwner.Value.Dispose();
                 }
                 self.Buffer.Dispose();
 
@@ -874,17 +880,17 @@ namespace Cesil
             {
                 await waitFor;
 
-                if (self.HasBuffer)
+                if (self.Staging.HasValue)
                 {
-                    self.Staging.Dispose();
+                    self.Staging.Value.Dispose();
                 }
 
                 var disposeTask = self.Inner.DisposeAsync();
                 await disposeTask;
 
-                if (self.HasOneCharOwner)
+                if (self.OneCharOwner.HasValue)
                 {
-                    self.OneCharOwner.Dispose();
+                    self.OneCharOwner.Value.Dispose();
                 }
 
                 self.Buffer.Dispose();
@@ -897,9 +903,9 @@ namespace Cesil
             {
                 await waitFor;
 
-                if (self.HasOneCharOwner)
+                if (self.OneCharOwner.HasValue)
                 {
-                    self.OneCharOwner.Dispose();
+                    self.OneCharOwner.Value.Dispose();
                 }
                 self.Buffer.Dispose();
 

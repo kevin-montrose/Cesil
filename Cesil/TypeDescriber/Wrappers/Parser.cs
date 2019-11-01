@@ -39,46 +39,43 @@ namespace Cesil
         {
             get
             {
-                if (_Method != null) return BackingMode.Method;
-                if (_Delegate != null) return BackingMode.Delegate;
-                if (_Constructor != null) return BackingMode.Constructor;
+                if (Method.HasValue) return BackingMode.Method;
+                if (Delegate.HasValue) return BackingMode.Delegate;
+                if (Constructor.HasValue) return BackingMode.Constructor;
 
                 return BackingMode.None;
             }
         }
 
-        private readonly MethodInfo? _Method;
-        internal MethodInfo Method => Utils.NonNull(_Method);
-        
-        private readonly Delegate? _Delegate;
-        internal Delegate Delegate => Utils.NonNull(_Delegate);
+        internal readonly NonNull<MethodInfo> Method;
 
-        private readonly ConstructorInfo? _Constructor;
-        internal ConstructorInfo Constructor => Utils.NonNull(_Constructor);
+        internal readonly NonNull<Delegate> Delegate;
+
+        internal readonly NonNull<ConstructorInfo> Constructor;
 
         internal readonly TypeInfo Creates;
 
         private Parser(MethodInfo method, TypeInfo creates)
         {
-            _Method = method;
-            _Delegate = null;
-            _Constructor = null;
+            Method.Value = method;
+            Delegate.Clear();
+            Constructor.Clear();
             Creates = creates;
         }
 
         private Parser(Delegate del, TypeInfo creates)
         {
-            _Delegate = del;
-            _Method = null;
-            _Constructor = null;
+            Delegate.Value = del;
+            Method.Clear();
+            Constructor.Clear();
             Creates = creates;
         }
 
         private Parser(ConstructorInfo cons)
         {
-            _Delegate = null;
-            _Method = null;
-            _Constructor = cons;
+            Delegate.Clear();
+            Method.Clear();
+            Constructor.Value = cons;
             Creates = cons.DeclaringTypeNonNull();
         }
 
@@ -316,11 +313,11 @@ namespace Cesil
             switch (selfMode)
             {
                 case BackingMode.Constructor:
-                    return Constructor == other.Constructor;
+                    return Constructor.Value == other.Constructor.Value;
                 case BackingMode.Delegate:
-                    return Delegate == other.Delegate;
+                    return Delegate.Value == other.Delegate.Value;
                 case BackingMode.Method:
-                    return Method == other.Method;
+                    return Method.Value == other.Method.Value;
                 default:
                     return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {selfMode}");
             }
@@ -343,7 +340,7 @@ namespace Cesil
         /// Returns a stable hash for this Parser.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(Parser), Mode, _Method, _Constructor, _Delegate);
+        => HashCode.Combine(nameof(Parser), Mode, Method, Constructor, Delegate);
 
         /// <summary>
         /// Compare two Parsers for equality
@@ -432,7 +429,7 @@ namespace Cesil
             var parserDel = Types.ParserDelegateType.MakeGenericType(creates);
             var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
-            var reboundDel = Delegate.CreateDelegate(parserDel, del, invoke);
+            var reboundDel = System.Delegate.CreateDelegate(parserDel, del, invoke);
 
             return new Parser(reboundDel, creates);
         }

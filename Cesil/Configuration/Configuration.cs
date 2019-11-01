@@ -93,7 +93,7 @@ namespace Cesil
             var needsEscape = new bool[serializeColumns.Length];
             for (var i = 0; i < serializeColumns.Length; i++)
             {
-                var name = serializeColumns[i].Name;
+                var name = serializeColumns[i].Name.Value;
                 var escape = false;
                 for (var j = 0; j < name.Length; j++)
                 {
@@ -136,7 +136,7 @@ namespace Cesil
 
             foreach (var col in cols)
             {
-                var setter = ColumnSetter.Create(t, col.Parser, col.Setter, col.HasReset ? col.Reset : null);
+                var setter = ColumnSetter.Create(t, col.Parser, col.Setter, col.Reset);
 
                 ret.Add(new Column(col.Name, setter, null, col.IsRequired));
             }
@@ -169,7 +169,7 @@ namespace Cesil
             {
                 case BackingMode.Delegate:
                     {
-                        var del = builder.Delegate;
+                        var del = builder.Delegate.Value;
                         if (del is InstanceProviderDelegate<T> exactMatch)
                         {
                             return exactMatch;
@@ -212,7 +212,7 @@ namespace Cesil
                     }
                 case BackingMode.Constructor:
                     {
-                        var cons = builder.Constructor;
+                        var cons = builder.Constructor.Value;
 
                         var assignTo = Expression.Assign(outVar, Expression.New(cons));
 
@@ -225,7 +225,7 @@ namespace Cesil
                     }
                 case BackingMode.Method:
                     {
-                        var mtd = builder.Method;
+                        var mtd = builder.Method.Value;
 
                         var delType = typeof(InstanceProviderDelegate<T>);
                         var del = (InstanceProviderDelegate<T>)Delegate.CreateDelegate(delType, mtd);
@@ -245,7 +245,7 @@ namespace Cesil
 
             foreach (var col in cols)
             {
-                var writer = ColumnWriter.Create(t, col.Formatter, col.HasShouldSerialize ? col.ShouldSerialize : null, col.Getter, col.EmitDefaultValue);
+                var writer = ColumnWriter.Create(t, col.Formatter, col.ShouldSerialize, col.Getter, col.EmitDefaultValue);
 
                 ret.Add(new Column(col.Name, null, writer, false));
             }

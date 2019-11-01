@@ -9,27 +9,11 @@ namespace Cesil
         SyncWriterBase<dynamic>,
         IDelegateCache
     {
-        internal new bool IsFirstRow => _ColumnNames == null;
+        internal new bool IsFirstRow => !ColumnNames.HasValue;
 
-        private Comparison<DynamicCellValue>? _ColumnNameSorter;
-        private Comparison<DynamicCellValue> ColumnNameSorter
-        {
-            get => Utils.NonNull(_ColumnNameSorter);
-            set
-            {
-                _ColumnNameSorter = value;
-            }
-        }
+        private NonNull<Comparison<DynamicCellValue>> ColumnNameSorter;
 
-        private (string Name, string EncodedName)[]? _ColumnNames;
-        private (string Name, string EncodedName)[] ColumnNames
-        {
-            get => Utils.NonNull(_ColumnNames);
-            set
-            {
-                _ColumnNames = value;
-            }
-        }
+        private NonNull<(string Name, string EncodedName)[]> ColumnNames;
 
         private readonly object[] DynamicArgumentsBuffer = new object[3];
 
@@ -37,23 +21,20 @@ namespace Cesil
 
         internal DynamicWriter(DynamicBoundConfiguration config, IWriterAdapter inner, object? context) : base(config, inner, context) { }
 
-        bool IDelegateCache.TryGet<T, V>(T key, out V? del)
+        CachedDelegate<V> IDelegateCache.TryGet<T, V>(T key)
             where V: class
         {
             if (DelegateCache == null)
             {
-                del = default;
-                return false;
+                return CachedDelegate<V>.Empty;
             }
 
             if (DelegateCache.TryGetValue(key, out var cached))
             {
-                del = (V)cached;
-                return true;
+                return new CachedDelegate<V>(cached as V);
             }
 
-            del = default;
-            return false;
+            return CachedDelegate<V>.Empty;
         }
 
         void IDelegateCache.Add<T, V>(T key, V cached)
@@ -74,8 +55,10 @@ namespace Cesil
 
             var wholeRowContext = WriteContext.DiscoveringCells(RowNumber, Context);
 
-            var cellValues = Config.TypeDescriber.GetCellsForDynamicRow(in wholeRowContext, row as object);
+            var cellValues = Config.TypeDescriber.Value.GetCellsForDynamicRow(in wholeRowContext, row as object);
             cellValues = ForceInOrder(cellValues);
+
+            var columnNamesValue = ColumnNames.Value;
 
             var i = 0;
             foreach (var cell in cellValues)
@@ -87,14 +70,14 @@ namespace Cesil
                     PlaceCharInStaging(Config.ValueSeparator);
                 }
 
-                var col = i < ColumnNames.Length ? ColumnNames[i].Name : null;
+                var col = i < columnNamesValue.Length ? columnNamesValue[i].Name : null;
 
                 var ctx = WriteContext.WritingColumn(RowNumber, ColumnIdentifier.Create(i, col), Context);
 
                 var formatter = cell.Formatter;
                 var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
                 delProvider.Guarantee(this);
-                var del = delProvider.CachedDelegate;
+                var del = delProvider.CachedDelegate.Value;
 
                 var val = cell.Value as object;
                 if (!del(val, in ctx, Buffer))
@@ -189,20 +172,22 @@ end:
 
         private IEnumerable<DynamicCellValue> ForceInOrder(IEnumerable<DynamicCellValue> raw)
         {
+            var columnNamesValue = ColumnNames.Value;
+
             // no headers mean we write whatever we're given!
-            if (ColumnNames.Length == 0) return raw;
+            if (columnNamesValue.Length == 0) return raw;
 
             var inOrder = true;
 
             var i = 0;
             foreach (var x in raw)
             {
-                if (i == ColumnNames.Length)
+                if (i == columnNamesValue.Length)
                 {
                     return Throw.InvalidOperationException<IEnumerable<DynamicCellValue>>("Too many cells returned, could not place in desired order");
                 }
 
-                var expectedName = ColumnNames[i];
+                var expectedName = columnNamesValue[i];
                 if (!expectedName.Name.Equals(x.Name))
                 {
                     inOrder = false;
@@ -216,7 +201,7 @@ end:
             if (inOrder) return raw;
 
             var ret = new List<DynamicCellValue>(raw);
-            ret.Sort(ColumnNameSorter);
+            ret.Sort(ColumnNameSorter.Value);
 
             return ret;
         }
@@ -229,7 +214,7 @@ end:
             if (Config.WriteHeader == Cesil.WriteHeaders.Never)
             {
                 // nothing to write, so bail
-                ColumnNames = Array.Empty<(string, string)>();
+                ColumnNames.Value = Array.Empty<(string, string)>();
                 return false;
             }
 
@@ -248,7 +233,7 @@ end:
             var ctx = WriteContext.DiscoveringColumns(Context);
 
             var colIx = 0;
-            foreach (var c in Config.TypeDescriber.GetCellsForDynamicRow(in ctx, o as object))
+            foreach (var c in Config.TypeDescriber.Value.GetCellsForDynamicRow(in ctx, o as object))
             {
                 var colName = c.Name;
 
@@ -269,15 +254,17 @@ end:
                 cols.Add((colName, encodedColName));
             }
 
-            ColumnNames = cols.ToArray();
+            ColumnNames.Value = cols.ToArray();
 
-            ColumnNameSorter =
+            ColumnNameSorter.Value =
                 (a, b) =>
                 {
+                    var columnNamesValue = ColumnNames.Value;
+
                     int aIx = -1, bIx = -1;
-                    for (var i = 0; i < ColumnNames.Length; i++)
+                    for (var i = 0; i < columnNamesValue.Length; i++)
                     {
-                        var colName = ColumnNames[i].Name;
+                        var colName = columnNamesValue[i].Name;
                         if (colName.Equals(a.Name))
                         {
                             aIx = i;
@@ -297,7 +284,8 @@ end:
 
         private void WriteHeaders()
         {
-            for (var i = 0; i < ColumnNames.Length; i++)
+            var columnNamesValue = ColumnNames.Value;
+            for (var i = 0; i < columnNamesValue.Length; i++)
             {
                 // for the separator
                 if (i != 0)
@@ -305,7 +293,7 @@ end:
                     PlaceCharInStaging(Config.ValueSeparator);
                 }
 
-                var colName = ColumnNames[i].EncodedName;
+                var colName = columnNamesValue[i].EncodedName;
 
                 // can colName is always gonna be encoded correctly, because we just discovered them
                 //   (ie. they're always correct for this config)
@@ -327,14 +315,14 @@ end:
                     EndRecord();
                 }
 
-                if (HasBuffer)
+                if (Staging.HasValue)
                 {
                     if (InStaging > 0)
                     {
                         FlushStaging();
                     }
 
-                    Staging.Dispose();
+                    Staging.Value.Dispose();
                 }
 
                 Inner.Dispose();

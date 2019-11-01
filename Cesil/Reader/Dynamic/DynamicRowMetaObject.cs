@@ -140,9 +140,11 @@ namespace Cesil
         {
             var typeConst = Expression.Constant(forType);
             var selfAsRow = Expression.Convert(Expression, Types.DynamicRowType);
-            var converter = Expression.Call(selfAsRow, Methods.DynamicRow.Converter);
+            var converterNonNull = Expression.Field(selfAsRow, Fields.DynamicRow.Converter);
+            var converter = Expression.Call(converterNonNull, Methods.NonNull.OfITypeDescriber.Value);
             var rowNumber = Expression.Field(selfAsRow, Fields.DynamicRow.RowNumber);
-            var columns = Expression.Call(selfAsRow, Methods.DynamicRow.Columns);
+            var columnsNonNull = Expression.Field(selfAsRow, Fields.DynamicRow.Columns);
+            var columns = Expression.Call(columnsNonNull, Methods.NonNull.OfIReadOnlyListOfColumnIdentifier.Value);
             var context = Expression.Field(selfAsRow, Fields.DynamicRow.Context);
 
             var getCtx = Expression.Call(Methods.ReadContext.ConvertingRow, rowNumber, context);
@@ -154,14 +156,14 @@ namespace Cesil
 
         public override DynamicMetaObject BindConvert(ConvertBinder binder)
         {
-            var converterInterface = Row.Converter;
+            var converterInterface = Row.Converter.Value;
             var index = Row.RowNumber;
 
             var retType = binder.ReturnType.GetTypeInfo();
 
             var ctx = ReadContext.ConvertingRow(index, Row.Context);
 
-            var converter = converterInterface.GetDynamicRowConverter(in ctx, Row.Columns, retType);
+            var converter = converterInterface.GetDynamicRowConverter(in ctx, Row.Columns.Value, retType);
 
             var restrictions = MakeRestrictions(converter, retType);
 
@@ -187,21 +189,21 @@ namespace Cesil
             {
                 case BackingMode.Constructor:
                     {
-                        if (converter.HasConstructorForObject)
+                        if (converter.ConstructorForObject.HasValue)
                         {
-                            var cons = converter.ConstructorForObject;
+                            var cons = converter.ConstructorForObject.Value;
                             var createType = Expression.New(cons, selfAsRow);
                             var cast = Expression.Convert(createType, binder.ReturnType);
 
                             return new DynamicMetaObject(cast, restrictions);
                         }
 
-                        if (converter.HasConstructorTakingParams)
+                        if (converter.ConstructorTakingParams.HasValue)
                         {
-                            var typedCons = converter.ConstructorTakingParams;
+                            var typedCons = converter.ConstructorTakingParams.Value;
 
-                            var colsForPs = converter.ColumnsForParameters;
-                            var paramTypes = converter.ParameterTypes;
+                            var colsForPs = converter.ColumnsForParameters.Value;
+                            var paramTypes = converter.ParameterTypes.Value;
 
                             var ps = new List<Expression>();
                             for (var pIx = 0; pIx < colsForPs.Length; pIx++)
@@ -221,11 +223,11 @@ namespace Cesil
                             return new DynamicMetaObject(cast, restrictions);
                         }
 
-                        if (converter.HasEmptyConstructor)
+                        if (converter.EmptyConstructor.HasValue)
                         {
-                            var zeroCons = converter.EmptyConstructor;
-                            var setters = converter.Setters;
-                            var setterCols = converter.ColumnsForSetters;
+                            var zeroCons = converter.EmptyConstructor.Value;
+                            var setters = converter.Setters.Value;
+                            var setterCols = converter.ColumnsForSetters.Value;
 
                             var retVar = Expression.Variable(converter.TargetType);
 
@@ -249,7 +251,7 @@ namespace Cesil
                                         {
                                             Expression? setterTarget = setter.IsStatic ? null : retVar;
 
-                                            callSetter = Expression.Call(setterTarget, setter.Method, getValueCall);
+                                            callSetter = Expression.Call(setterTarget, setter.Method.Value, getValueCall);
                                         }
                                         break;
                                     case BackingMode.Field:
@@ -257,14 +259,14 @@ namespace Cesil
                                             Expression? setterTarget = setter.IsStatic ? null : retVar;
 
                                             callSetter = Expression.Assign(
-                                                Expression.Field(setterTarget, setter.Field),
+                                                Expression.Field(setterTarget, setter.Field.Value),
                                                 getValueCall
                                             );
                                         }
                                         break;
                                     case BackingMode.Delegate:
                                         {
-                                            var setterDel = setter.Delegate;
+                                            var setterDel = setter.Delegate.Value;
                                             var delRef = Expression.Constant(setterDel);
 
                                             if (setter.IsStatic)
@@ -295,7 +297,7 @@ namespace Cesil
                     }
                 case BackingMode.Method:
                     {
-                        var mtd = converter.Method;
+                        var mtd = converter.Method.Value;
                         var statements = new List<Expression>();
 
                         var callGetContext = Expression.Call(selfAsRow, Methods.DynamicRow.GetReadContext);
@@ -323,7 +325,7 @@ namespace Cesil
                     }
                 case BackingMode.Delegate:
                     {
-                        var del = converter.Delegate;
+                        var del = converter.Delegate.Value;
                         var delRef = Expression.Constant(del);
 
                         var statements = new List<Expression>();

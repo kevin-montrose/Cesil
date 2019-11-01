@@ -20,11 +20,9 @@ namespace Cesil
             Exception_UnexpectedState
         }
 
-        private readonly IAsyncReaderAdapter? _InnerAsync;
-        private IAsyncReaderAdapter InnerAsync => Utils.NonNull(_InnerAsync);
-        
-        private readonly IReaderAdapter? _Inner;
-        private IReaderAdapter Inner => Utils.NonNull(_Inner);
+        private NonNull<IAsyncReaderAdapter> InnerAsync;
+
+        private NonNull<IReaderAdapter> Inner;
 
         private RowEndings Ending;
 
@@ -38,18 +36,9 @@ namespace Cesil
         private readonly IMemoryOwner<char> BufferOwner;
 
         private int PushbackLength;
-        private bool HasPushbackOwner => _PushbackOwner != null;
-        private IMemoryOwner<char>? _PushbackOwner;
-        private IMemoryOwner<char> PushbackOwner
-        {
-            get => Utils.NonNull(_PushbackOwner);
-            set
-            {
-                _PushbackOwner = value;
-            }
-        }
+        private NonNull<IMemoryOwner<char>> PushbackOwner;
 
-        private Memory<char> Pushback => PushbackOwner.Memory;
+        private Memory<char> Pushback => PushbackOwner.Value.Memory;
 
         internal RowEndingDetector(ReaderStateMachine stateMachine, BoundConfigurationBase<T> config, CharacterLookup charLookup, IReaderAdapter inner)
             : this(stateMachine, config, charLookup, inner, null) { }
@@ -59,8 +48,8 @@ namespace Cesil
 
         private RowEndingDetector(ReaderStateMachine stateMachine, BoundConfigurationBase<T> config, CharacterLookup charLookup, IReaderAdapter? inner, IAsyncReaderAdapter? innerAsync)
         {
-            _Inner = inner;
-            _InnerAsync = innerAsync;
+            Inner.SetAllowNull(inner);
+            InnerAsync.SetAllowNull(innerAsync);
 
             State = stateMachine;
             stateMachine.Initialize(
@@ -95,7 +84,7 @@ namespace Cesil
                 while (continueScan)
                 {
                     var mem = BufferOwner.Memory.Slice(BufferStart, BufferOwner.Memory.Length - BufferStart);
-                    var endTask = InnerAsync.ReadAsync(mem, cancel);
+                    var endTask = InnerAsync.Value.ReadAsync(mem, cancel);
 
                     if (!endTask.IsCompletedSuccessfully(this))
                     {
@@ -221,7 +210,7 @@ loopStart:
                     {
                         var mem = self.BufferOwner.Memory.Slice(self.BufferStart, self.BufferOwner.Memory.Length - self.BufferStart);
 
-                        var readTask = self.InnerAsync.ReadAsync(mem, cancel);
+                        var readTask = self.InnerAsync.Value.ReadAsync(mem, cancel);
                         using (self.State.ReleaseAndRePinForAsync(readTask))
                         {
                             end = await readTask;
@@ -286,7 +275,7 @@ end:
                 var continueScan = true;
                 while (continueScan)
                 {
-                    var end = Inner.Read(buffSpan.Slice(BufferStart, buffSpan.Length - BufferStart));
+                    var end = Inner.Value.Read(buffSpan.Slice(BufferStart, buffSpan.Length - BufferStart));
                     if (end == 0)
                     {
                         if (BufferStart > 0)
@@ -338,20 +327,21 @@ end:
 
         private void AddToPushback(ReadOnlySpan<char> span)
         {
-            if (!HasPushbackOwner)
+            if (!PushbackOwner.HasValue)
             {
-                PushbackOwner = MemoryPool.Rent(BufferSizeHint);
+                PushbackOwner.Value = MemoryPool.Rent(BufferSizeHint);
             }
 
-            if (PushbackLength + span.Length > PushbackOwner.Memory.Length)
+            var pushbackOwnerValue = PushbackOwner.Value;
+            if (PushbackLength + span.Length > pushbackOwnerValue.Memory.Length)
             {
-                var oldSize = PushbackOwner.Memory.Length;
+                var oldSize = PushbackOwner.Value.Memory.Length;
                 var newSize = PushbackLength + span.Length;
                 var newOwner = Utils.RentMustIncrease(MemoryPool, newSize, oldSize);
 
                 Pushback.CopyTo(newOwner.Memory);
-                PushbackOwner.Dispose();
-                PushbackOwner = newOwner;
+                pushbackOwnerValue.Dispose();
+                PushbackOwner.Value = pushbackOwnerValue = newOwner;
             }
 
             span.CopyTo(Pushback.Span.Slice(PushbackLength));
@@ -422,10 +412,13 @@ end:
             {
                 // Intentionally NOT disposing State, it's reused
                 BufferOwner.Dispose();
-                if (HasPushbackOwner)
+                if (PushbackOwner.HasValue)
                 {
-                    PushbackOwner.Dispose();
+                    PushbackOwner.Value.Dispose();
                 }
+                PushbackOwner.Clear();
+                Inner.Clear();
+                InnerAsync.Clear();
 
                 IsDisposed = true;
             }

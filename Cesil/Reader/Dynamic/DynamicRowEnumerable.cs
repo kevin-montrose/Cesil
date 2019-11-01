@@ -5,18 +5,19 @@ using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
+    // todo: why is this disposable?  and why isn't it checking row generation?
     internal sealed class DynamicRowEnumerable<T> : IEnumerable<T>, ITestableDisposable
     {
-        private DynamicRow? Row;
+        private bool EnumerableDisposed;
+        private DynamicRow Row;
 
         public bool IsDisposed
         {
             get
             {
-                var r = Row;
-                if (r == null) return true;
+                if (EnumerableDisposed) return true;
 
-                return r.IsDisposed;
+                return Row.IsDisposed;
             }
         }
 
@@ -27,15 +28,14 @@ namespace Cesil
 
         public void Dispose()
         {
-            Row = null;
+            EnumerableDisposed = true;
         }
 
         public IEnumerator<T> GetEnumerator()
         {
             AssertNotDisposed(this);
 
-            var r = Utils.NonNull(Row);
-            return new DynamicRowEnumerator<T>(r);
+            return new DynamicRowEnumerator<T>(Row);
         }
 
         IEnumerator IEnumerable.GetEnumerator()

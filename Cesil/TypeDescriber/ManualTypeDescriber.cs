@@ -387,9 +387,9 @@ namespace Cesil
 
             // shouldSerialize can be null
 
-            if (getter.HasRowType)
+            if (getter.RowType.HasValue)
             {
-                var getterOnType = getter.RowType;
+                var getterOnType = getter.RowType.Value;
                 var isLegal = false;
                 TypeInfo? cur = forType;
 

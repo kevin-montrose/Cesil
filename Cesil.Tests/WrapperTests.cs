@@ -25,16 +25,14 @@ namespace Cesil.Tests
             void IDelegateCache.Add<T, V>(T key, V cached)
             => Cache.Add(key, cached);
 
-            bool IDelegateCache.TryGet<T, V>(T key, out V cached)
+            CachedDelegate<V> IDelegateCache.TryGet<T, V>(T key)
             {
                 if (!Cache.TryGetValue(key, out var obj))
                 {
-                    cached = default;
-                    return false;
+                    return CachedDelegate<V>.Empty;
                 }
 
-                cached = (V)obj;
-                return true;
+                return new CachedDelegate<V>(obj as V);
             }
         }
 
@@ -48,26 +46,26 @@ namespace Cesil.Tests
 
             {
                 var getterI = (ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)getter;
-                getterI.CachedDelegate = null;
+                getterI.CachedDelegate.Clear();
                 getterI.Guarantee(cache);
-                var a = getterI.CachedDelegate;
+                var a = getterI.CachedDelegate.Value;
                 Assert.NotNull(a);
-                getterI.CachedDelegate = null;
+                getterI.CachedDelegate.Clear();
                 getterI.Guarantee(cache);
-                var b = getterI.CachedDelegate;
+                var b = getterI.CachedDelegate.Value;
                 Assert.NotNull(b);
                 Assert.True(ReferenceEquals(a, b));
             }
 
             {
                 var formatterI = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
-                formatterI.CachedDelegate = null;
+                formatterI.CachedDelegate.Clear();
                 formatterI.Guarantee(cache);
-                var a = formatterI.CachedDelegate;
+                var a = formatterI.CachedDelegate.Value;
                 Assert.NotNull(a);
-                formatterI.CachedDelegate = null;
+                formatterI.CachedDelegate.Clear();
                 formatterI.Guarantee(cache);
-                var b = formatterI.CachedDelegate;
+                var b = formatterI.CachedDelegate.Value;
                 Assert.NotNull(b);
                 Assert.True(ReferenceEquals(a, b));
             }
@@ -162,7 +160,11 @@ namespace Cesil.Tests
                         _ColumnSetters._Set = null;
 
                         var inst = new _ColumnSetters();
-                        var setter = ColumnSetter.Create(typeof(_ColumnSetters).GetTypeInfo(), p, s, r);
+
+                        var rNonNull = new NonNull<Reset>();
+                        rNonNull.SetAllowNull(r);
+
+                        var setter = ColumnSetter.Create(typeof(_ColumnSetters).GetTypeInfo(), p, s, rNonNull);
                         var res = setter("hello", default, inst);
 
                         Assert.True(res);
@@ -320,7 +322,9 @@ namespace Cesil.Tests
 
                             var inst = new _ColumnWriters { A = new _ColumnWriters_Val { Value = "bar" } };
 
-                            var colWriter = ColumnWriter.Create(typeof(_ColumnWriters).GetTypeInfo(), f, s, g, e);
+                            var sNonNull = new NonNull<ShouldSerialize>();
+                            sNonNull.SetAllowNull(s);
+                            var colWriter = ColumnWriter.Create(typeof(_ColumnWriters).GetTypeInfo(), f, sNonNull, g, e);
 
                             var pipe = new Pipe();
                             var writer = new CharWriter(pipe.Writer);
@@ -444,22 +448,22 @@ namespace Cesil.Tests
                 };
 
             var aWrapped = (Formatter)a;
-            aWrapped.Delegate.DynamicInvoke(1, default(WriteContext), null);
+            aWrapped.Delegate.Value.DynamicInvoke(1, default(WriteContext), null);
             Assert.Equal(1, aCalled);
-            ((FormatterDelegate<int>)aWrapped.Delegate)(2, default, null);
+            ((FormatterDelegate<int>)aWrapped.Delegate.Value)(2, default, null);
             Assert.Equal(2, aCalled);
 
             var bWrapped = (Formatter)b;
-            bWrapped.Delegate.DynamicInvoke(null, default(WriteContext), null);
+            bWrapped.Delegate.Value.DynamicInvoke(null, default(WriteContext), null);
             Assert.Equal(1, bCalled);
-            ((FormatterDelegate<string>)bWrapped.Delegate)(null, default, null);
+            ((FormatterDelegate<string>)bWrapped.Delegate.Value)(null, default, null);
             Assert.Equal(2, bCalled);
 
             var cWrapped = (Formatter)c;
-            cWrapped.Delegate.DynamicInvoke(2.0, default(WriteContext), null);
+            cWrapped.Delegate.Value.DynamicInvoke(2.0, default(WriteContext), null);
             Assert.Equal(1, cCalled);
-            Assert.Same(c, cWrapped.Delegate);
-            ((FormatterDelegate<double>)cWrapped.Delegate)(3.0, default, null);
+            Assert.Same(c, cWrapped.Delegate.Value);
+            ((FormatterDelegate<double>)cWrapped.Delegate.Value)(3.0, default, null);
             Assert.Equal(2, cCalled);
         }
 
@@ -470,16 +474,14 @@ namespace Cesil.Tests
             void IDelegateCache.Add<T, V>(T key, V cached)
             => Cache.Add(key, cached);
 
-            bool IDelegateCache.TryGet<T, V>(T key, out V cached)
+            CachedDelegate<V> IDelegateCache.TryGet<T, V>(T key)
             {
                 if (!Cache.TryGetValue(key, out var obj))
                 {
-                    cached = default;
-                    return false;
+                    return CachedDelegate<V>.Empty;
                 }
 
-                cached = (V)obj;
-                return true;
+                return new CachedDelegate<V>(obj as V);
             }
         }
 
@@ -543,10 +545,10 @@ namespace Cesil.Tests
             {
                 var cache = new _IDelegateCache();
                 ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)methodFormatter).Guarantee(cache);
-                var a = ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)methodFormatter).CachedDelegate;
+                var a = ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)methodFormatter).CachedDelegate.Value;
                 Assert.NotNull(a);
                 ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)methodFormatter).Guarantee(cache);
-                var b = ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)methodFormatter).CachedDelegate;
+                var b = ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)methodFormatter).CachedDelegate.Value;
                 Assert.Equal(a, b);
 
                 {
@@ -564,11 +566,11 @@ namespace Cesil.Tests
                 }
 
                 ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)delFormatter).Guarantee(cache);
-                var c = ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)delFormatter).CachedDelegate;
+                var c = ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)delFormatter).CachedDelegate.Value;
                 Assert.NotNull(c);
                 Assert.NotEqual(a, c);
                 ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)delFormatter).Guarantee(cache);
-                var d = ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)delFormatter).CachedDelegate;
+                var d = ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)delFormatter).CachedDelegate.Value;
                 Assert.Equal(c, d);
                 Assert.NotEqual(a, d);
 
@@ -707,69 +709,69 @@ namespace Cesil.Tests
                 };
 
             var aWrapped = (Getter)a;
-            var aRes1 = (int)aWrapped.Delegate.DynamicInvoke(new _GetterCast { Foo = "yo" });
+            var aRes1 = (int)aWrapped.Delegate.Value.DynamicInvoke(new _GetterCast { Foo = "yo" });
             Assert.Equal(2, aRes1);
             Assert.Equal(1, aCalled);
-            var aRes2 = ((GetterDelegate<_GetterCast, int>)aWrapped.Delegate)(new _GetterCast { Foo = "yolo" });
+            var aRes2 = ((GetterDelegate<_GetterCast, int>)aWrapped.Delegate.Value)(new _GetterCast { Foo = "yolo" });
             Assert.Equal(4, aRes2);
             Assert.Equal(2, aCalled);
 
             var bWrapped = (Getter)b;
-            var bRes1 = (int)bWrapped.Delegate.DynamicInvoke();
+            var bRes1 = (int)bWrapped.Delegate.Value.DynamicInvoke();
             Assert.Equal(3, bRes1);
             Assert.Equal(1, bCalled);
-            var bRes2 = ((StaticGetterDelegate<int>)bWrapped.Delegate)();
+            var bRes2 = ((StaticGetterDelegate<int>)bWrapped.Delegate.Value)();
             Assert.Equal(3, bRes2);
             Assert.Equal(2, bCalled);
 
             var cWrapped = (Getter)c;
-            var cRes1 = (double)cWrapped.Delegate.DynamicInvoke(new _GetterCast { Foo = "yo" });
+            var cRes1 = (double)cWrapped.Delegate.Value.DynamicInvoke(new _GetterCast { Foo = "yo" });
             Assert.Equal(4.0, cRes1);
             Assert.Equal(1, cCalled);
-            var cRes2 = ((GetterDelegate<_GetterCast, double>)cWrapped.Delegate)(new _GetterCast { Foo = "yolo" });
+            var cRes2 = ((GetterDelegate<_GetterCast, double>)cWrapped.Delegate.Value)(new _GetterCast { Foo = "yolo" });
             Assert.Equal(8.0, cRes2);
             Assert.Equal(2, cCalled);
 
             var dWrapped = (Getter)d;
-            var dRes1 = (Guid)dWrapped.Delegate.DynamicInvoke();
+            var dRes1 = (Guid)dWrapped.Delegate.Value.DynamicInvoke();
             Assert.Equal(dRet, dRes1);
             Assert.Equal(1, dCalled);
-            var dRes2 = ((StaticGetterDelegate<Guid>)dWrapped.Delegate)();
+            var dRes2 = ((StaticGetterDelegate<Guid>)dWrapped.Delegate.Value)();
             Assert.Equal(dRet, dRes2);
             Assert.Equal(2, dCalled);
 
             var eWrapped = (Getter)e;
-            var eRes1 = (char)eWrapped.Delegate.DynamicInvoke(new _GetterCast { Foo = "yo" });
+            var eRes1 = (char)eWrapped.Delegate.Value.DynamicInvoke(new _GetterCast { Foo = "yo" });
             Assert.Equal('y', eRes1);
             Assert.Equal(1, eCalled);
-            var eRes2 = ((GetterDelegate<_GetterCast, char>)eWrapped.Delegate)(new _GetterCast { Foo = "hello" });
+            var eRes2 = ((GetterDelegate<_GetterCast, char>)eWrapped.Delegate.Value)(new _GetterCast { Foo = "hello" });
             Assert.Equal('h', eRes2);
             Assert.Equal(2, eCalled);
 
             var fWrapped = (Getter)f;
-            var fRes1 = (sbyte)fWrapped.Delegate.DynamicInvoke();
+            var fRes1 = (sbyte)fWrapped.Delegate.Value.DynamicInvoke();
             Assert.Equal(-127, fRes1);
             Assert.Equal(1, fCalled);
-            var fRes2 = ((StaticGetterDelegate<sbyte>)fWrapped.Delegate)();
+            var fRes2 = ((StaticGetterDelegate<sbyte>)fWrapped.Delegate.Value)();
             Assert.Equal(-127, fRes2);
             Assert.Equal(2, fCalled);
 
             var gWrapped = (Getter)g;
-            var gRes1 = (int)gWrapped.Delegate.DynamicInvoke(new _GetterCast { Foo = "yo" });
+            var gRes1 = (int)gWrapped.Delegate.Value.DynamicInvoke(new _GetterCast { Foo = "yo" });
             Assert.Equal(3, gRes1);
             Assert.Equal(1, gCalled);
-            var gRes2 = ((GetterDelegate<_GetterCast, int>)gWrapped.Delegate)(new _GetterCast { Foo = "yolo" });
+            var gRes2 = ((GetterDelegate<_GetterCast, int>)gWrapped.Delegate.Value)(new _GetterCast { Foo = "yolo" });
             Assert.Equal(5, gRes2);
-            Assert.Same(g, gWrapped.Delegate);
+            Assert.Same(g, gWrapped.Delegate.Value);
             Assert.Equal(2, gCalled);
 
             var hWrapped = (Getter)h;
-            var hRes1 = (int)hWrapped.Delegate.DynamicInvoke();
+            var hRes1 = (int)hWrapped.Delegate.Value.DynamicInvoke();
             Assert.Equal(456, hRes1);
             Assert.Equal(1, hCalled);
-            var hRes2 = ((StaticGetterDelegate<int>)hWrapped.Delegate)();
+            var hRes2 = ((StaticGetterDelegate<int>)hWrapped.Delegate.Value)();
             Assert.Equal(456, hRes2);
-            Assert.Same(h, hWrapped.Delegate);
+            Assert.Same(h, hWrapped.Delegate.Value);
             Assert.Equal(2, hCalled);
         }
 
@@ -857,46 +859,46 @@ namespace Cesil.Tests
             {
                 var cache = new _IDelegateCache();
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)methodGetter).Guarantee(cache);
-                var a = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)methodGetter).CachedDelegate;
+                var a = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)methodGetter).CachedDelegate.Value;
                 Assert.NotNull(a);
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)methodGetter).Guarantee(cache);
-                var b = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)methodGetter).CachedDelegate;
+                var b = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)methodGetter).CachedDelegate.Value;
                 Assert.Equal(a, b);
 
                 var aRes = (_ColumnWriters_Val)a(new _ColumnWriters());
                 Assert.Equal("A", aRes.Value);
 
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticMethodGetter).Guarantee(cache);
-                var c = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticMethodGetter).CachedDelegate;
+                var c = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticMethodGetter).CachedDelegate.Value;
                 Assert.NotNull(c);
                 Assert.NotEqual(a, c);
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticMethodGetter).Guarantee(cache);
-                var d = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticMethodGetter).CachedDelegate;
+                var d = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticMethodGetter).CachedDelegate.Value;
                 Assert.Equal(c, d);
 
                 var cRes = (_ColumnWriters_Val)c(new _ColumnWriters());
                 Assert.Equal("static", cRes.Value);
 
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)fieldGetter).Guarantee(cache);
-                var e = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)fieldGetter).CachedDelegate;
+                var e = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)fieldGetter).CachedDelegate.Value;
                 Assert.NotNull(e);
                 Assert.NotEqual(a, e);
                 Assert.NotEqual(c, e);
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)fieldGetter).Guarantee(cache);
-                var f = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)fieldGetter).CachedDelegate;
+                var f = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)fieldGetter).CachedDelegate.Value;
                 Assert.Equal(e, f);
 
                 var eRes = (_ColumnWriters_Val)e(new _ColumnWriters { A = new _ColumnWriters_Val { Value = "asdf" } });
                 Assert.Equal("asdf", eRes.Value);
 
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticFieldGetter).Guarantee(cache);
-                var g = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticFieldGetter).CachedDelegate;
+                var g = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticFieldGetter).CachedDelegate.Value;
                 Assert.NotNull(g);
                 Assert.NotEqual(a, g);
                 Assert.NotEqual(c, g);
                 Assert.NotEqual(e, g);
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticFieldGetter).Guarantee(cache);
-                var h = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticFieldGetter).CachedDelegate;
+                var h = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticFieldGetter).CachedDelegate.Value;
                 Assert.Equal(g, h);
 
                 _ColumnWriters.StaticA = new _ColumnWriters_Val { Value = "qwerty" };
@@ -904,21 +906,21 @@ namespace Cesil.Tests
                 Assert.Equal("qwerty", gRes.Value);
 
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter).Guarantee(cache);
-                var i = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter).CachedDelegate;
+                var i = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter).CachedDelegate.Value;
                 Assert.NotNull(i);
                 Assert.NotEqual(a, i);
                 Assert.NotEqual(c, i);
                 Assert.NotEqual(e, i);
                 Assert.NotEqual(g, i);
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter).Guarantee(cache);
-                var j = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter).CachedDelegate;
+                var j = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter).CachedDelegate.Value;
                 Assert.Equal(i, j);
 
                 var iRes = (_ColumnWriters_Val)i(new _ColumnWriters { A = new _ColumnWriters_Val { Value = "xxxxx" } });
                 Assert.Equal("xxxxx", iRes.Value);
 
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticDelGetter).Guarantee(cache);
-                var k = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticDelGetter).CachedDelegate;
+                var k = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticDelGetter).CachedDelegate.Value;
                 Assert.NotNull(k);
                 Assert.NotEqual(a, k);
                 Assert.NotEqual(c, k);
@@ -926,7 +928,7 @@ namespace Cesil.Tests
                 Assert.NotEqual(g, k);
                 Assert.NotEqual(i, k);
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticDelGetter).Guarantee(cache);
-                var l = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticDelGetter).CachedDelegate;
+                var l = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticDelGetter).CachedDelegate.Value;
                 Assert.Equal(k, l);
 
                 var lRes = (_ColumnWriters_Val)l(new _ColumnWriters());
@@ -1211,22 +1213,22 @@ namespace Cesil.Tests
                 };
 
             var aWrapped = (Parser)a;
-            var aRes = ((ParserDelegate<int>)aWrapped.Delegate)("hello".AsSpan(), default, out int aOut);
+            var aRes = ((ParserDelegate<int>)aWrapped.Delegate.Value)("hello".AsSpan(), default, out int aOut);
             Assert.True(aRes);
             Assert.Equal(1, aOut);
             Assert.Equal(1, aCalled);
 
             var bWrapped = (Parser)b;
-            var bRes = ((ParserDelegate<string>)bWrapped.Delegate)("hello".AsSpan(), default, out string bOut);
+            var bRes = ((ParserDelegate<string>)bWrapped.Delegate.Value)("hello".AsSpan(), default, out string bOut);
             Assert.True(bRes);
             Assert.Equal("hello", bOut);
             Assert.Equal(1, bCalled);
 
             var cWrapped = (Parser)c;
-            var cRes = ((ParserDelegate<int>)cWrapped.Delegate)("hello".AsSpan(), default, out int cOut);
+            var cRes = ((ParserDelegate<int>)cWrapped.Delegate.Value)("hello".AsSpan(), default, out int cOut);
             Assert.True(cRes);
             Assert.Equal(2, cOut);
-            Assert.Same(c, cWrapped.Delegate);
+            Assert.Same(c, cWrapped.Delegate.Value);
             Assert.Equal(1, cCalled);
         }
 
@@ -1288,47 +1290,47 @@ namespace Cesil.Tests
                 };
 
             var aWrapped = (Reset)a;
-            aWrapped.Delegate.DynamicInvoke(new _ResetCast());
+            aWrapped.Delegate.Value.DynamicInvoke(new _ResetCast());
             Assert.Equal(1, aCalled);
-            ((ResetDelegate<_ResetCast>)aWrapped.Delegate)(new _ResetCast());
+            ((ResetDelegate<_ResetCast>)aWrapped.Delegate.Value)(new _ResetCast());
             Assert.Equal(2, aCalled);
 
             var bWrapped = (Reset)b;
-            bWrapped.Delegate.DynamicInvoke(new _ResetCast());
+            bWrapped.Delegate.Value.DynamicInvoke(new _ResetCast());
             Assert.Equal(1, bCalled);
-            ((ResetDelegate<_ResetCast>)bWrapped.Delegate)(new _ResetCast());
+            ((ResetDelegate<_ResetCast>)bWrapped.Delegate.Value)(new _ResetCast());
             Assert.Equal(2, bCalled);
 
             var cWrapped = (Reset)c;
-            cWrapped.Delegate.DynamicInvoke();
+            cWrapped.Delegate.Value.DynamicInvoke();
             Assert.Equal(1, cCalled);
-            ((StaticResetDelegate)cWrapped.Delegate)();
+            ((StaticResetDelegate)cWrapped.Delegate.Value)();
             Assert.Equal(2, cCalled);
 
             var dWrapped = (Reset)d;
-            dWrapped.Delegate.DynamicInvoke(new _ResetCast());
+            dWrapped.Delegate.Value.DynamicInvoke(new _ResetCast());
             Assert.Equal(1, dCalled);
-            ((ResetDelegate<_ResetCast>)dWrapped.Delegate)(new _ResetCast());
+            ((ResetDelegate<_ResetCast>)dWrapped.Delegate.Value)(new _ResetCast());
             Assert.Equal(2, dCalled);
 
             var eWrapped = (Reset)e;
-            eWrapped.Delegate.DynamicInvoke();
+            eWrapped.Delegate.Value.DynamicInvoke();
             Assert.Equal(1, eCalled);
-            ((StaticResetDelegate)eWrapped.Delegate)();
+            ((StaticResetDelegate)eWrapped.Delegate.Value)();
             Assert.Equal(2, eCalled);
 
             var fWrapped = (Reset)f;
-            fWrapped.Delegate.DynamicInvoke(new _ResetCast());
+            fWrapped.Delegate.Value.DynamicInvoke(new _ResetCast());
             Assert.Equal(1, fCalled);
-            Assert.Same(f, fWrapped.Delegate);
-            ((ResetDelegate<_ResetCast>)fWrapped.Delegate)(new _ResetCast());
+            Assert.Same(f, fWrapped.Delegate.Value);
+            ((ResetDelegate<_ResetCast>)fWrapped.Delegate.Value)(new _ResetCast());
             Assert.Equal(2, fCalled);
 
             var gWrapped = (Reset)g;
-            gWrapped.Delegate.DynamicInvoke();
+            gWrapped.Delegate.Value.DynamicInvoke();
             Assert.Equal(1, gCalled);
-            Assert.Same(g, gWrapped.Delegate);
-            ((StaticResetDelegate)gWrapped.Delegate)();
+            Assert.Same(g, gWrapped.Delegate.Value);
+            ((StaticResetDelegate)gWrapped.Delegate.Value)();
             Assert.Equal(2, gCalled);
         }
 
@@ -1402,53 +1404,53 @@ namespace Cesil.Tests
                 };
 
             var aWrapped = (Setter)a;
-            aWrapped.Delegate.DynamicInvoke(new _SetterCast(), 123);
+            aWrapped.Delegate.Value.DynamicInvoke(new _SetterCast(), 123);
             Assert.Equal(1, aCalled);
-            ((SetterDelegate<_SetterCast, int>)aWrapped.Delegate)(new _SetterCast(), 123);
+            ((SetterDelegate<_SetterCast, int>)aWrapped.Delegate.Value)(new _SetterCast(), 123);
             Assert.Equal(2, aCalled);
 
             var bWrapped = (Setter)b;
-            bWrapped.Delegate.DynamicInvoke(123);
+            bWrapped.Delegate.Value.DynamicInvoke(123);
             Assert.Equal(1, bCalled);
-            ((StaticSetterDelegate<int>)bWrapped.Delegate)(123);
+            ((StaticSetterDelegate<int>)bWrapped.Delegate.Value)(123);
             Assert.Equal(2, bCalled);
 
             var cWrapped = (Setter)c;
-            cWrapped.Delegate.DynamicInvoke(new _SetterCast(), "123");
+            cWrapped.Delegate.Value.DynamicInvoke(new _SetterCast(), "123");
             Assert.Equal(1, cCalled);
-            ((SetterDelegate<_SetterCast, string>)cWrapped.Delegate)(new _SetterCast(), "123");
+            ((SetterDelegate<_SetterCast, string>)cWrapped.Delegate.Value)(new _SetterCast(), "123");
             Assert.Equal(2, cCalled);
 
             var dWrapped = (Setter)d;
-            dWrapped.Delegate.DynamicInvoke("123");
+            dWrapped.Delegate.Value.DynamicInvoke("123");
             Assert.Equal(1, dCalled);
-            ((StaticSetterDelegate<string>)dWrapped.Delegate)("123");
+            ((StaticSetterDelegate<string>)dWrapped.Delegate.Value)("123");
             Assert.Equal(2, dCalled);
 
             var eWrapped = (Setter)e;
-            eWrapped.Delegate.DynamicInvoke(new _SetterCast(), Guid.NewGuid());
+            eWrapped.Delegate.Value.DynamicInvoke(new _SetterCast(), Guid.NewGuid());
             Assert.Equal(1, eCalled);
-            ((SetterDelegate<_SetterCast, Guid>)eWrapped.Delegate)(new _SetterCast(), Guid.NewGuid());
+            ((SetterDelegate<_SetterCast, Guid>)eWrapped.Delegate.Value)(new _SetterCast(), Guid.NewGuid());
             Assert.Equal(2, eCalled);
 
             var fWrapped = (Setter)f;
-            fWrapped.Delegate.DynamicInvoke(Guid.NewGuid());
+            fWrapped.Delegate.Value.DynamicInvoke(Guid.NewGuid());
             Assert.Equal(1, fCalled);
-            ((StaticSetterDelegate<Guid>)fWrapped.Delegate)(Guid.NewGuid());
+            ((StaticSetterDelegate<Guid>)fWrapped.Delegate.Value)(Guid.NewGuid());
             Assert.Equal(2, fCalled);
 
             var gWrapped = (Setter)g;
-            gWrapped.Delegate.DynamicInvoke(new _SetterCast(), TimeSpan.FromMinutes(1));
+            gWrapped.Delegate.Value.DynamicInvoke(new _SetterCast(), TimeSpan.FromMinutes(1));
             Assert.Equal(1, gCalled);
-            ((SetterDelegate<_SetterCast, TimeSpan>)gWrapped.Delegate)(new _SetterCast(), TimeSpan.FromMinutes(1));
-            Assert.Same(g, gWrapped.Delegate);
+            ((SetterDelegate<_SetterCast, TimeSpan>)gWrapped.Delegate.Value)(new _SetterCast(), TimeSpan.FromMinutes(1));
+            Assert.Same(g, gWrapped.Delegate.Value);
             Assert.Equal(2, gCalled);
 
             var hWrapped = (Setter)h;
-            hWrapped.Delegate.DynamicInvoke(TimeSpan.FromMinutes(1));
+            hWrapped.Delegate.Value.DynamicInvoke(TimeSpan.FromMinutes(1));
             Assert.Equal(1, hCalled);
-            ((StaticSetterDelegate<TimeSpan>)hWrapped.Delegate)(TimeSpan.FromMinutes(1));
-            Assert.Same(h, hWrapped.Delegate);
+            ((StaticSetterDelegate<TimeSpan>)hWrapped.Delegate.Value)(TimeSpan.FromMinutes(1));
+            Assert.Same(h, hWrapped.Delegate.Value);
             Assert.Equal(2, hCalled);
         }
 
@@ -1626,60 +1628,60 @@ namespace Cesil.Tests
                 };
 
             var aWrapped = (ShouldSerialize)a;
-            var aRes1 = (bool)aWrapped.Delegate.DynamicInvoke(new _ShouldSerializeCast());
+            var aRes1 = (bool)aWrapped.Delegate.Value.DynamicInvoke(new _ShouldSerializeCast());
             Assert.True(aRes1);
             Assert.Equal(1, aCalled);
-            var aRes2 = ((ShouldSerializeDelegate<_ShouldSerializeCast>)aWrapped.Delegate)(new _ShouldSerializeCast());
+            var aRes2 = ((ShouldSerializeDelegate<_ShouldSerializeCast>)aWrapped.Delegate.Value)(new _ShouldSerializeCast());
             Assert.Equal(2, aCalled);
             Assert.True(aRes2);
 
             var bWrapped = (ShouldSerialize)b;
-            var bRes1 = (bool)bWrapped.Delegate.DynamicInvoke(new _ShouldSerializeCast());
+            var bRes1 = (bool)bWrapped.Delegate.Value.DynamicInvoke(new _ShouldSerializeCast());
             Assert.True(bRes1);
             Assert.Equal(1, bCalled);
-            var bRes2 = ((ShouldSerializeDelegate<_ShouldSerializeCast>)bWrapped.Delegate)(new _ShouldSerializeCast());
+            var bRes2 = ((ShouldSerializeDelegate<_ShouldSerializeCast>)bWrapped.Delegate.Value)(new _ShouldSerializeCast());
             Assert.Equal(2, bCalled);
             Assert.True(bRes2);
 
             var cWrapped = (ShouldSerialize)c;
-            var cRes1 = (bool)cWrapped.Delegate.DynamicInvoke();
+            var cRes1 = (bool)cWrapped.Delegate.Value.DynamicInvoke();
             Assert.True(cRes1);
             Assert.Equal(1, cCalled);
-            var cRes2 = ((StaticShouldSerializeDelegate)cWrapped.Delegate)();
+            var cRes2 = ((StaticShouldSerializeDelegate)cWrapped.Delegate.Value)();
             Assert.Equal(2, cCalled);
             Assert.True(cRes2);
 
             var dWrapped = (ShouldSerialize)d;
-            var dRes1 = (bool)dWrapped.Delegate.DynamicInvoke(new _ShouldSerializeCast());
+            var dRes1 = (bool)dWrapped.Delegate.Value.DynamicInvoke(new _ShouldSerializeCast());
             Assert.True(dRes1);
             Assert.Equal(1, dCalled);
-            var dRes2 = ((ShouldSerializeDelegate<_ShouldSerializeCast>)dWrapped.Delegate)(new _ShouldSerializeCast());
+            var dRes2 = ((ShouldSerializeDelegate<_ShouldSerializeCast>)dWrapped.Delegate.Value)(new _ShouldSerializeCast());
             Assert.Equal(2, dCalled);
             Assert.True(dRes2);
 
             var eWrapped = (ShouldSerialize)e;
-            var eRes1 = (bool)eWrapped.Delegate.DynamicInvoke();
+            var eRes1 = (bool)eWrapped.Delegate.Value.DynamicInvoke();
             Assert.True(eRes1);
             Assert.Equal(1, eCalled);
-            var eRes2 = ((StaticShouldSerializeDelegate)eWrapped.Delegate)();
+            var eRes2 = ((StaticShouldSerializeDelegate)eWrapped.Delegate.Value)();
             Assert.Equal(2, eCalled);
             Assert.True(eRes2);
 
             var fWrapped = (ShouldSerialize)f;
-            Assert.Same(f, fWrapped.Delegate);
-            var fRes1 = (bool)fWrapped.Delegate.DynamicInvoke(new _ShouldSerializeCast());
+            Assert.Same(f, fWrapped.Delegate.Value);
+            var fRes1 = (bool)fWrapped.Delegate.Value.DynamicInvoke(new _ShouldSerializeCast());
             Assert.True(fRes1);
             Assert.Equal(1, fCalled);
-            var fRes2 = ((ShouldSerializeDelegate<_ShouldSerializeCast>)fWrapped.Delegate)(new _ShouldSerializeCast());
+            var fRes2 = ((ShouldSerializeDelegate<_ShouldSerializeCast>)fWrapped.Delegate.Value)(new _ShouldSerializeCast());
             Assert.Equal(2, fCalled);
             Assert.True(fRes2);
 
             var gWrapped = (ShouldSerialize)g;
-            Assert.Same(g, gWrapped.Delegate);
-            var gRes1 = (bool)gWrapped.Delegate.DynamicInvoke();
+            Assert.Same(g, gWrapped.Delegate.Value);
+            var gRes1 = (bool)gWrapped.Delegate.Value.DynamicInvoke();
             Assert.True(gRes1);
             Assert.Equal(1, gCalled);
-            var gRes2 = ((StaticShouldSerializeDelegate)gWrapped.Delegate)();
+            var gRes2 = ((StaticShouldSerializeDelegate)gWrapped.Delegate.Value)();
             Assert.Equal(2, gCalled);
             Assert.True(gRes2);
         }
@@ -1971,23 +1973,23 @@ namespace Cesil.Tests
                 };
 
             var aWrapped = (DynamicRowConverter)a;
-            var aRes = ((DynamicRowConverterDelegate<_DynamicRowConverterCast>)aWrapped.Delegate)(null, default, out var aOut);
+            var aRes = ((DynamicRowConverterDelegate<_DynamicRowConverterCast>)aWrapped.Delegate.Value)(null, default, out var aOut);
             Assert.True(aRes);
             Assert.NotNull(aOut);
             Assert.Equal(1, aCalled);
 
             var bWrapped = (DynamicRowConverter)b;
-            var bRes = ((DynamicRowConverterDelegate<_DynamicRowConverterCast>)bWrapped.Delegate)(null, default, out var bOut);
+            var bRes = ((DynamicRowConverterDelegate<_DynamicRowConverterCast>)bWrapped.Delegate.Value)(null, default, out var bOut);
             Assert.True(bRes);
             Assert.NotNull(bOut);
             Assert.Equal(1, bCalled);
 
             var cWrapped = (DynamicRowConverter)c;
-            var cRes = ((DynamicRowConverterDelegate<_DynamicRowConverterCast>)cWrapped.Delegate)(null, default, out var cOut);
+            var cRes = ((DynamicRowConverterDelegate<_DynamicRowConverterCast>)cWrapped.Delegate.Value)(null, default, out var cOut);
             Assert.True(cRes);
             Assert.NotNull(cOut);
             Assert.Equal(1, cCalled);
-            Assert.Same(c, cWrapped.Delegate);
+            Assert.Same(c, cWrapped.Delegate.Value);
         }
 
         private class _InstanceBuilderCast
@@ -2031,22 +2033,22 @@ namespace Cesil.Tests
                 };
 
             var aWrapped = (InstanceProvider)a;
-            var aRes = ((InstanceProviderDelegate<_InstanceBuilderCast>)aWrapped.Delegate)(out var aOut);
+            var aRes = ((InstanceProviderDelegate<_InstanceBuilderCast>)aWrapped.Delegate.Value)(out var aOut);
             Assert.True(aRes);
             Assert.NotNull(aOut);
             Assert.Equal(1, aCalled);
 
             var bWrapped = (InstanceProvider)b;
-            var bRes = ((InstanceProviderDelegate<_InstanceBuilderCast>)bWrapped.Delegate)(out var bOut);
+            var bRes = ((InstanceProviderDelegate<_InstanceBuilderCast>)bWrapped.Delegate.Value)(out var bOut);
             Assert.True(bRes);
             Assert.NotNull(bOut);
             Assert.Equal(1, bCalled);
 
             var cWrapped = (InstanceProvider)c;
-            var cRes = ((InstanceProviderDelegate<_InstanceBuilderCast>)cWrapped.Delegate)(out var cOut);
+            var cRes = ((InstanceProviderDelegate<_InstanceBuilderCast>)cWrapped.Delegate.Value)(out var cOut);
             Assert.True(cRes);
             Assert.NotNull(cOut);
-            Assert.Same(c, cWrapped.Delegate);
+            Assert.Same(c, cWrapped.Delegate.Value);
             Assert.Equal(1, cCalled);
         }
 

@@ -96,11 +96,8 @@ namespace Cesil
             => $"{nameof(HeaderEnumerator)} with {nameof(Count)}={Count}";
         }
 
-
-        private readonly IReaderAdapter? _Inner;
-        private IReaderAdapter Inner => Utils.NonNull(_Inner);
-        private readonly IAsyncReaderAdapter? _InnerAsync;
-        private IAsyncReaderAdapter InnerAsync => Utils.NonNull(_InnerAsync);
+        private NonNull<IReaderAdapter> Inner;
+        private NonNull<IAsyncReaderAdapter> InnerAsync;
 
         private readonly Column[] Columns;
         private readonly ReaderStateMachine StateMachine;
@@ -109,14 +106,14 @@ namespace Cesil
 
         private int CurrentBuilderStart;
         private int CurrentBuilderLength;
-        private IMemoryOwner<char>? BuilderOwner;
+        private NonNull<IMemoryOwner<char>> BuilderOwner;
         private Memory<char> BuilderBacking
         {
             get
             {
-                if (BuilderOwner == null) return Memory<char>.Empty;
+                if (!BuilderOwner.HasValue) return Memory<char>.Empty;
 
-                return BuilderOwner.Memory;
+                return BuilderOwner.Value.Memory;
             }
         }
 
@@ -126,14 +123,14 @@ namespace Cesil
         private int HeaderCount;
 
         private int PushBackLength;
-        private IMemoryOwner<char>? PushBackOwner;
+        private NonNull<IMemoryOwner<char>> PushBackOwner;
         private Memory<char> PushBack
         {
             get
             {
-                if (PushBackOwner == null) return Memory<char>.Empty;
+                if (!PushBackOwner.HasValue) return Memory<char>.Empty;
 
-                return PushBackOwner.Memory;
+                return PushBackOwner.Value.Memory;
             }
         }
 
@@ -164,8 +161,8 @@ namespace Cesil
             BufferWithPushback buffer
         )
         {
-            _Inner = inner;
-            _InnerAsync = innerAsync;
+            Inner.SetAllowNull(inner);
+            InnerAsync.SetAllowNull(innerAsync);
 
             MemoryPool = config.MemoryPool;
             BufferSizeHint = config.ReadBufferSizeHint;
@@ -193,7 +190,7 @@ namespace Cesil
             {
                 while (true)
                 {
-                    var available = Buffer.Read(Inner);
+                    var available = Buffer.Read(Inner.Value);
                     if (available == 0)
                     {
                         if (BuilderBacking.Length > 0)
@@ -219,24 +216,25 @@ namespace Cesil
 
         private void AddToPushback(ReadOnlySpan<char> c)
         {
-            if (PushBackOwner == null)
+            if (!PushBackOwner.HasValue)
             {
-                PushBackOwner = MemoryPool.Rent(BufferSizeHint);
+                PushBackOwner.Value = MemoryPool.Rent(BufferSizeHint);
             }
 
-            if (PushBackLength + c.Length > PushBackOwner.Memory.Length)
+            var pushBackOwnerValue = PushBackOwner.Value;
+            if (PushBackLength + c.Length > pushBackOwnerValue.Memory.Length)
             {
-                var oldSize = PushBackOwner.Memory.Length;
+                var oldSize = pushBackOwnerValue.Memory.Length;
 
                 var newSize = (PushBackLength + c.Length) * 2;    // double size, because we're sharing the buffer
                 var newOwner = Utils.RentMustIncrease(MemoryPool, newSize, oldSize);
-                PushBackOwner.Memory.CopyTo(newOwner.Memory);
+                pushBackOwnerValue.Memory.CopyTo(newOwner.Memory);
 
-                PushBackOwner.Dispose();
-                PushBackOwner = newOwner;
+                pushBackOwnerValue.Dispose();
+                PushBackOwner.Value = pushBackOwnerValue = newOwner;
             }
 
-            if (PushBackLength + c.Length > PushBackOwner.Memory.Length)
+            if (PushBackLength + c.Length > pushBackOwnerValue.Memory.Length)
             {
                 Throw.InvalidOperationException<object>($"Could not allocate large enough buffer to read headers");
             }
@@ -254,7 +252,7 @@ namespace Cesil
             {
                 while (true)
                 {
-                    var availableTask = Buffer.ReadAsync(InnerAsync, cancel);
+                    var availableTask = Buffer.ReadAsync(InnerAsync.Value, cancel);
                     if (!availableTask.IsCompletedSuccessfully(this))
                     {
                         disposeHandle = false;
@@ -329,7 +327,7 @@ namespace Cesil
                     // go back into the loop
                     while (true)
                     {
-                        var readTask = self.Buffer.ReadAsync(self.InnerAsync, cancel);
+                        var readTask = self.Buffer.ReadAsync(self.InnerAsync.Value, cancel);
                         using (self.StateMachine.ReleaseAndRePinForAsync(readTask))
                         {
                             available = await readTask;
@@ -371,7 +369,7 @@ namespace Cesil
 
                     foreach (var col in Columns)
                     {
-                        var colNameMem = col.Name.AsMemory();
+                        var colNameMem = col.Name.Value.AsMemory();
                         if (Utils.AreEqual(colNameMem, val))
                         {
                             isHeader = true;
@@ -500,11 +498,11 @@ finish:
 
         private void AddToBuilder(ReadOnlySpan<char> chars)
         {
-            if (BuilderOwner == null)
+            if (!BuilderOwner.HasValue)
             {
                 CurrentBuilderStart = LENGTH_SIZE;
                 CurrentBuilderLength = 0;
-                BuilderOwner = MemoryPool.Rent(BufferSizeHint);
+                BuilderOwner.Value = MemoryPool.Rent(BufferSizeHint);
             }
 
             var ix = CurrentBuilderStart + CurrentBuilderLength;
@@ -517,8 +515,8 @@ finish:
                 var newOwner = Utils.RentMustIncrease(MemoryPool, newLength, oldLength);
                 BuilderBacking.CopyTo(newOwner.Memory);
 
-                BuilderOwner.Dispose();
-                BuilderOwner = newOwner;
+                BuilderOwner.Value.Dispose();
+                BuilderOwner.Value = newOwner;
             }
 
             chars.CopyTo(BuilderBacking.Span.Slice(ix));
@@ -558,9 +556,17 @@ finish:
             if (!IsDisposed)
             {
                 // Intentionally NOT disposing StateMachine, it's reused
-                PushBackOwner?.Dispose();
-                BuilderOwner?.Dispose();
-                PushBackOwner = null;
+                if (PushBackOwner.HasValue)
+                {
+                    PushBackOwner.Value.Dispose();
+                }
+                PushBackOwner.Clear();
+
+                if (BuilderOwner.HasValue)
+                {
+                    BuilderOwner.Value.Dispose();
+                }
+                BuilderOwner.Clear();
 
                 IsDisposed = true;
             }

@@ -77,7 +77,7 @@ namespace Cesil
             var fieldNull = type.GetField(fieldName, flags);
             if (fieldNull == null)
             {
-                return Throw.InvalidOperationException<FieldInfo>($"Could not find {fieldName} with {flags} on {type}");
+                return Throw.InvalidOperationException<FieldInfo>($"Could not find field {fieldName} with {flags} on {type}");
             }
 
             return fieldNull;
@@ -88,7 +88,7 @@ namespace Cesil
             var mtdNull = type.GetMethod(methodName);
             if (mtdNull == null)
             {
-                return Throw.InvalidOperationException<MethodInfo>($"Could not find {methodName} on {type}");
+                return Throw.InvalidOperationException<MethodInfo>($"Could not find method {methodName} on {type}");
             }
 
             return mtdNull;
@@ -99,7 +99,7 @@ namespace Cesil
             var mtdNull = type.GetMethod(methodName, flags);
             if (mtdNull == null)
             {
-                return Throw.InvalidOperationException<MethodInfo>($"Could not find {methodName} with {flags} on {type}");
+                return Throw.InvalidOperationException<MethodInfo>($"Could not find method {methodName} with {flags} on {type}");
             }
 
             return mtdNull;
@@ -110,7 +110,7 @@ namespace Cesil
             var propNull = type.GetProperty(propName, flags);
             if (propNull == null)
             {
-                return Throw.InvalidOperationException<PropertyInfo>($"Could not find {propName} with {flags} on {type}");
+                return Throw.InvalidOperationException<PropertyInfo>($"Could not find property {propName} with {flags} on {type}");
             }
 
             return propNull;

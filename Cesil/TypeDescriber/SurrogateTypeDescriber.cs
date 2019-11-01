@@ -226,15 +226,15 @@ namespace Cesil
         private static DeserializableMember Map(TypeInfo ontoType, DeserializableMember member)
         {
             MethodInfo? resetOnType = null;
-            if (member.HasReset)
+            if (member.Reset.HasValue)
             {
-                var surrogateResetWrapper = member.Reset;
+                var surrogateResetWrapper = member.Reset.Value;
                 if (surrogateResetWrapper.Mode != BackingMode.Method)
                 {
                     return Throw.InvalidOperationException<DeserializableMember>($"Cannot map reset {surrogateResetWrapper} onto {ontoType}, reset isn't backed by a method");
                 }
 
-                var surrogateReset = surrogateResetWrapper.Method;
+                var surrogateReset = surrogateResetWrapper.Method.Value;
 
                 var surrogateResetBinding = GetEquivalentFlagsFor(surrogateReset.IsPublic, surrogateReset.IsStatic);
 
@@ -251,7 +251,7 @@ namespace Cesil
             {
                 case BackingMode.Field:
                     {
-                        var surrogateField = surrogateSetterWrapper.Field;
+                        var surrogateField = surrogateSetterWrapper.Field.Value;
                         var surrogateFieldBinding = GetEquivalentFlagsFor(surrogateField.IsPublic, surrogateField.IsStatic);
 
                         // intentionally allowing null here
@@ -272,7 +272,7 @@ namespace Cesil
                     }
                 case BackingMode.Method:
                     {
-                        var surrogateSetter = surrogateSetterWrapper.Method;
+                        var surrogateSetter = surrogateSetterWrapper.Method.Value;
 
                         var surrogateSetterBinding = GetEquivalentFlagsFor(surrogateSetter.IsPublic, surrogateSetter.IsStatic);
 
@@ -317,12 +317,12 @@ namespace Cesil
         {
             ShouldSerialize? shouldSerializeOnType;
             
-            if (member.HasShouldSerialize)
+            if (member.ShouldSerialize.HasValue)
             {
-                var surrogateShouldSerializeWrapper = member.ShouldSerialize;
+                var surrogateShouldSerializeWrapper = member.ShouldSerialize.Value;
                 if (surrogateShouldSerializeWrapper.Mode == BackingMode.Method)
                 {
-                    var surrogateShouldSerialize = surrogateShouldSerializeWrapper.Method;
+                    var surrogateShouldSerialize = surrogateShouldSerializeWrapper.Method.Value;
                     var surrogateShouldSerializeBinding = GetEquivalentFlagsFor(surrogateShouldSerialize.IsPublic, surrogateShouldSerialize.IsStatic);
 
                     // intentionally letting this be null
@@ -349,7 +349,7 @@ namespace Cesil
             {
                 case BackingMode.Field:
                     {
-                        var surrogateField = surrogateGetterWrapper.Field;
+                        var surrogateField = surrogateGetterWrapper.Field.Value;
                         var surrogateFieldBinding = GetEquivalentFlagsFor(surrogateField.IsPublic, surrogateField.IsStatic);
 
                         var fieldOnType = ontoType.GetField(surrogateField.Name, surrogateFieldBinding);
@@ -375,7 +375,7 @@ namespace Cesil
             }
 
 handleMethod:
-            var surrogateGetter = surrogateGetterWrapper.Method;
+            var surrogateGetter = surrogateGetterWrapper.Method.Value;
             var surrogateGetterBinding = GetEquivalentFlagsFor(surrogateGetter.IsPublic, surrogateGetter.IsStatic);
 
             // intentionally letting this be null
@@ -416,7 +416,7 @@ handleMethod:
                     return Throw.InvalidOperationException<InstanceProvider>($"Cannot map a delegate {nameof(InstanceProvider)} between types");
                 case BackingMode.Constructor:
                     {
-                        var surrogateCons = builder.Constructor;
+                        var surrogateCons = builder.Constructor.Value;
                         var surrogateConsBinding = GetEquivalentFlagsFor(surrogateCons.IsPublic, false);
 
                         var consOnType = ontoType.GetConstructor(surrogateConsBinding, null, Type.EmptyTypes, null);

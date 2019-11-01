@@ -22,7 +22,7 @@ namespace Cesil
         // create a delegate that will parse the given characters,
         //   and store them using either the given setter or
         //   the given field
-        public static ColumnSetterDelegate Create(TypeInfo type, Parser parser, Setter setter, Reset? reset)
+        public static ColumnSetterDelegate Create(TypeInfo type, Parser parser, Setter setter, NonNull<Reset> reset)
         {
             var p1 = Expressions.Parameter_ReadOnlySpanOfChar;
             var p2 = Expressions.Parameter_ReadContext_ByRef;
@@ -48,21 +48,21 @@ namespace Cesil
             {
                 case BackingMode.Method:
                     {
-                        var parserMtd = parser.Method;
+                        var parserMtd = parser.Method.Value;
 
                         callParser = Expression.Call(parserMtd, p1, p2, l2);
                     }
                     break;
                 case BackingMode.Delegate:
                     {
-                        var parserDel = parser.Delegate;
+                        var parserDel = parser.Delegate.Value;
                         var delRef = Expression.Constant(parserDel);
                         callParser = Expression.Invoke(delRef, p1, p2, l2);
                     }
                     break;
                 case BackingMode.Constructor:
                     {
-                        var cons = parser.Constructor;
+                        var cons = parser.Constructor.Value;
                         var psCount = cons.GetParameters().Length;
                         NewExpression callCons;
 
@@ -91,15 +91,17 @@ namespace Cesil
             statements.Add(ifNotParsedReturnFalse);
 
             // call the reset method, if there is one
-            if (reset != null)
+            if (reset.HasValue)
             {
+                var r = reset.Value;
+
                 Expression callReset;
-                switch (reset.Mode)
+                switch (r.Mode)
                 {
                     case BackingMode.Method:
                         {
-                            var resetMtd = reset.Method;
-                            if (reset.IsStatic)
+                            var resetMtd = r.Method.Value;
+                            if (r.IsStatic)
                             {
                                 var resetPs = resetMtd.GetParameters();
                                 if (resetPs.Length == 1)
@@ -119,10 +121,10 @@ namespace Cesil
                         break;
                     case BackingMode.Delegate:
                         {
-                            var resetDel = reset.Delegate;
+                            var resetDel = r.Delegate.Value;
                             var delRef = Expression.Constant(resetDel);
 
-                            if (reset.IsStatic)
+                            if (r.IsStatic)
                             {
                                 callReset = Expression.Invoke(delRef);
                             }
@@ -133,7 +135,7 @@ namespace Cesil
                         }
                         break;
                     default:
-                        return Throw.InvalidOperationException<ColumnSetterDelegate>($"Unexpected {nameof(BackingMode)}: {reset.Mode}");
+                        return Throw.InvalidOperationException<ColumnSetterDelegate>($"Unexpected {nameof(BackingMode)}: {r.Mode}");
                 }
 
                 statements.Add(callReset);
@@ -146,7 +148,7 @@ namespace Cesil
             {
                 case BackingMode.Method:
                     {
-                        var setterMtd = setter.Method;
+                        var setterMtd = setter.Method.Value;
 
                         if (setter.IsStatic)
                         {
@@ -160,13 +162,13 @@ namespace Cesil
                     break;
                 case BackingMode.Field:
                     {
-                        var fieldExp = Expression.Field(l1, setter.Field);
+                        var fieldExp = Expression.Field(l1, setter.Field.Value);
                         assignResult = Expression.Assign(fieldExp, l2);
                     }
                     break;
                 case BackingMode.Delegate:
                     {
-                        var setterDel = setter.Delegate;
+                        var setterDel = setter.Delegate.Value;
                         var delRef = Expression.Constant(setterDel);
 
                         if (setter.IsStatic)

@@ -21,15 +21,7 @@ namespace Cesil
 
         internal BoundConfigurationBase<T> Configuration { get; }
 
-        private Column[]? _Columns;
-        internal Column[] Columns
-        {
-            get => Utils.NonNull(_Columns);
-            set
-            {
-                _Columns = value;
-            }
-        }
+        internal NonNull<Column[]> Columns;
 
         internal RowEndings? RowEndings { get; set; }
         internal ReadHeaders? ReadHeaders { get; set; }
@@ -313,9 +305,11 @@ namespace Cesil
 
         protected internal T GetValueForReturn()
         {
-            for (var i = Partial.CurrentColumnIndex; i < Columns.Length; i++)
+            var columnsValue = Columns.Value;
+
+            for (var i = Partial.CurrentColumnIndex; i < columnsValue.Length; i++)
             {
-                var col = Columns[i];
+                var col = columnsValue[i];
                 if (col.IsRequired)
                 {
                     return Throw.SerializationException<T>($"Column [{col.Name}] is required, but was not found in row");
@@ -342,7 +336,8 @@ namespace Cesil
 
         private void PushPendingCharactersToValue()
         {
-            if (Partial.CurrentColumnIndex >= Columns.Length)
+            var columnsValue = Columns.Value;
+            if (Partial.CurrentColumnIndex >= columnsValue.Length)
             {
                 Throw.InvalidOperationException<object>($"Unexpected column (Index={Partial.CurrentColumnIndex})");
             }
@@ -350,16 +345,16 @@ namespace Cesil
             var dataSpan = Partial.PendingAsMemory(Buffer.Buffer);
 
             var colIx = Partial.CurrentColumnIndex;
-            var column = Columns[colIx];
+            var column = columnsValue[colIx];
 
             if (column.IsRequired && dataSpan.Length == 0)
             {
                 Throw.SerializationException<object>($"Column [{column.Name}] is required, but was not found in row");
             }
 
-            var ctx = ReadContext.ReadingColumn(RowNumber, ColumnIdentifier.Create(colIx, column.HasName ? column.Name : null), Context);
+            var ctx = ReadContext.ReadingColumn(RowNumber, ColumnIdentifier.Create(colIx, column.Name), Context);
 
-            if (!column.Set(dataSpan.Span, in ctx, Partial.Value))
+            if (!column.Set.Value(dataSpan.Span, in ctx, Partial.Value))
             {
                 Throw.SerializationException<object>($"Could not assign value \"{Partial.PendingAsString(Buffer.Buffer)}\" to column \"{column.Name}\" (Index={Partial.CurrentColumnIndex})");
             }
@@ -395,7 +390,7 @@ namespace Cesil
                         while (e.MoveNext())
                         {
                             var header = e.Current;
-                            var colNameMem = col.Name.AsMemory();
+                            var colNameMem = col.Name.Value.AsMemory();
                             if (Utils.AreEqual(colNameMem, header))
                             {
                                 columnsInDiscoveredOrder[i] = col;
@@ -421,11 +416,11 @@ namespace Cesil
                     }
                 }
 
-                Columns = columnsInDiscoveredOrder;
+                Columns.Value = columnsInDiscoveredOrder;
             }
             else
             {
-                Columns = Configuration.DeserializeColumns;
+                Columns.Value = Configuration.DeserializeColumns;
             }
 
             Buffer.PushBackFromOutsideBuffer(headers.PushBack);

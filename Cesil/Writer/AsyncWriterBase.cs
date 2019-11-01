@@ -17,16 +17,7 @@ namespace Cesil
 
         internal readonly IAsyncWriterAdapter Inner;
 
-        private IMemoryOwner<char>? _OneCharOwner;
-        internal bool HasOneCharOwner => _OneCharOwner != null;
-        internal IMemoryOwner<char> OneCharOwner
-        {
-            get => Utils.NonNull(_OneCharOwner);
-            set
-            {
-                _OneCharOwner = value;
-            }
-        }
+        internal NonNull<IMemoryOwner<char>> OneCharOwner;
         
         private Memory<char> OneCharMemory;
 
@@ -218,7 +209,7 @@ namespace Cesil
 
         internal ValueTask PlaceInStagingAsync(ReadOnlyMemory<char> chars, CancellationToken cancel)
         {
-            if (!HasBuffer)
+            if (!Staging.HasValue)
             {
                 return WriteDirectlyAsync(chars, cancel);
             }
@@ -265,7 +256,7 @@ namespace Cesil
 
         internal ValueTask FlushStagingAsync(CancellationToken cancel)
         {
-            var toWrite = Staging.Memory.Slice(0, InStaging);
+            var toWrite = Staging.Value.Memory.Slice(0, InStaging);
             InStaging = 0;
 
             return Inner.WriteAsync(toWrite, cancel);
@@ -570,7 +561,7 @@ namespace Cesil
         // returns true if we need to flush stating, sets remaing to what wasn't placed in staging
         internal bool PlaceInStaging(ReadOnlyMemory<char> c, out ReadOnlyMemory<char> remaining)
         {
-            var stagingMem = Staging.Memory;
+            var stagingMem = Staging.Value.Memory;
 
             var ix = 0;
             while (ix < c.Length)
@@ -600,7 +591,7 @@ namespace Cesil
 
         internal ValueTask PlaceCharInStagingAsync(char c, CancellationToken cancel)
         {
-            if (!HasBuffer)
+            if (!Staging.HasValue)
             {
                 return WriteCharDirectlyAsync(c, cancel);
             }
@@ -615,10 +606,10 @@ namespace Cesil
 
         internal ValueTask WriteCharDirectlyAsync(char c, CancellationToken cancel)
         {
-            if (!HasOneCharOwner)
+            if (!OneCharOwner.HasValue)
             {
-                OneCharOwner = Config.MemoryPool.Rent(1);
-                OneCharMemory = OneCharOwner.Memory.Slice(0, 1);
+                OneCharOwner.Value = Config.MemoryPool.Rent(1);
+                OneCharMemory = OneCharOwner.Value.Memory.Slice(0, 1);
             }
 
             OneCharMemory.Span[0] = c;

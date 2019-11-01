@@ -37,9 +37,7 @@ namespace Cesil
 
         internal bool IsRequired { get; }
 
-        private readonly Reset? _Reset;
-        internal bool HasReset => _Reset != null;
-        internal Reset Reset => Utils.NonNull(_Reset);
+        internal readonly NonNull<Reset> Reset;
 
         private DeserializableMember(
             string name,
@@ -53,7 +51,7 @@ namespace Cesil
             Setter = setter;
             Parser = parser;
             IsRequired = isRequired;
-            _Reset = reset;
+            Reset.SetAllowNull(reset);
         }
 
         /// <summary>
@@ -186,9 +184,9 @@ namespace Cesil
                 return Throw.ArgumentException<DeserializableMember>($"Provided {nameof(Parser)} creates a {parser.Creates}, which cannot be passed to {setter} which expectes a {valueType}", nameof(setter));
             }
 
-            if (reset != null && reset.HasRowType)
+            if (reset != null && reset.RowType.HasValue)
             {
-                if (!reset.RowType.IsAssignableFrom(beingDeserializedType))
+                if (!reset.RowType.Value.IsAssignableFrom(beingDeserializedType))
                 {
                     return Throw.ArgumentException<DeserializableMember>($"{nameof(reset)} must be callable on {beingDeserializedType}", nameof(reset));
                 }
@@ -217,15 +215,15 @@ namespace Cesil
         {
             if (ReferenceEquals(d, null)) return false;
 
-            if (HasReset)
+            if (Reset.HasValue)
             {
-                if (!d.HasReset) return false;
+                if (!d.Reset.HasValue) return false;
 
-                if (Reset != d.Reset) return false;
+                if (Reset.Value != d.Reset.Value) return false;
             }
             else
             {
-                if (d.HasReset) return false;
+                if (d.Reset.HasValue) return false;
             }
 
             return
@@ -239,7 +237,7 @@ namespace Cesil
         /// Returns a stable hash for this DeserializableMember.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(DeserializableMember), IsRequired, Name, Parser, _Reset, Setter);
+        => HashCode.Combine(nameof(DeserializableMember), IsRequired, Name, Parser, Reset, Setter);
 
         /// <summary>
         /// Describes this DeserializableMember.
@@ -247,7 +245,7 @@ namespace Cesil
         /// This is provided for debugging purposes, and the format is not guaranteed to be stable between releases.
         /// </summary>
         public override string ToString()
-        => $"{nameof(DeserializableMember)} with {nameof(Name)}: {Name}\r\n{nameof(Setter)}: {Setter}\r\n{Parser}\r\n{nameof(IsRequired)}: {IsRequired}\r\n{nameof(Reset)}: {_Reset}";
+        => $"{nameof(DeserializableMember)} with {nameof(Name)}: {Name}\r\n{nameof(Setter)}: {Setter}\r\n{Parser}\r\n{nameof(IsRequired)}: {IsRequired}\r\n{nameof(Reset)}: {Reset}";
 
         /// <summary>
         /// Compare two DeserializableMembers for equality

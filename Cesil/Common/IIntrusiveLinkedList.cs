@@ -3,13 +3,9 @@
     internal interface IIntrusiveLinkedList<T>
        where T : class, IIntrusiveLinkedList<T>
     {
-        bool HasNext { get; }
-        T Next { get; set; }
-        void ClearNext();
+        ref NonNull<T> Next { get; }
         
-        bool HasPrevious { get; }
-        T Previous { get; set; }
-        void ClearPrevious();
+        ref NonNull<T> Previous { get; }
     }
 
     internal static class IIntrusiveLinkedListExtensionMethods
@@ -17,31 +13,36 @@
         public static void AddAfter<T>(this T linkedList, T item)
             where T : class, IIntrusiveLinkedList<T>
         {
-            item.Previous = linkedList;
+            item.Previous.Value = linkedList;
 
-            if (linkedList.HasNext)
+            ref var linkedListNext = ref linkedList.Next;
+            ref var itemNext = ref item.Next;
+
+            if (linkedListNext.HasValue)
             {
-                item.Next = linkedList.Next;
+                itemNext.Value = linkedListNext.Value;
             }
             else
             {
-                item.ClearNext();
+                itemNext.Clear();
             }
 
-            linkedList.Next = item;
+            linkedListNext.Value = item;
         }
 
         public static void AddHead<T>(this T? linkedList, ref T? head, T item)
             where T : class, IIntrusiveLinkedList<T>
         {
+            ref var itemNext = ref item.Next;
+
             if (linkedList != null)
             {
-                item.Next = linkedList;
-                linkedList.Previous = item;
+                itemNext.Value = linkedList;
+                linkedList.Previous.Value = item;
             }
             else
             {
-                item.ClearNext();
+                itemNext.Clear();
             }
 
             head = item;
@@ -50,24 +51,29 @@
         public static void Remove<T>(this T? linkedList, ref T? head, T item)
             where T : class, IIntrusiveLinkedList<T>
         {
-            if (item.HasPrevious)
-            {
-                var before = item.Previous;
+            ref var itemPrevious = ref item.Previous;
+            ref var itemNext = ref item.Next;
 
-                if (item.HasNext)
+            if (itemPrevious.HasValue)
+            {
+                var before = itemPrevious.Value;
+
+                ref var beforeNext = ref before.Next;
+
+                if (itemNext.HasValue)
                 {
-                    before.Next = item.Next;
+                    beforeNext.Value = itemNext.Value;
                 }
                 else
                 {
-                    before.ClearNext();
+                    beforeNext.Clear();
                 }
             }
             else
             {
-                if (item.HasNext)
+                if (itemNext.HasValue)
                 {
-                    head = item.Next;
+                    head = itemNext.Value;
                 }
                 else
                 {
@@ -75,22 +81,23 @@
                 }
             }
 
-            if (item.HasNext)
+            if (itemNext.HasValue)
             {
-                var after = item.Next;
+                var after = itemNext.Value;
+                ref var afterPrevious = ref after.Previous;
 
-                if (item.HasPrevious)
+                if (item.Previous.HasValue)
                 {
-                    after.Previous = item.Previous;
+                    afterPrevious.Value = itemPrevious.Value;
                 }
                 else
                 {
-                    after.ClearPrevious();
+                    afterPrevious.Clear();
                 }
             }
 
-            item.ClearNext();
-            item.ClearPrevious();
+            itemNext.Clear();
+            itemPrevious.Clear();
         }
     }
 }

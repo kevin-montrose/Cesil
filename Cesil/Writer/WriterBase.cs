@@ -9,19 +9,11 @@ namespace Cesil
 
         internal readonly MaxSizedBufferWriter Buffer;
 
-        private Column[]? _Columns;
-        internal Column[] Columns
-        {
-            get => Utils.NonNull(_Columns);
-            set => _Columns = value;
-        }
+        internal NonNull<Column[]> Columns;
 
-        internal bool IsFirstRow => _Columns == null;
+        internal bool IsFirstRow => !Columns.HasValue;
 
-        internal bool HasBuffer => _Staging != null;
-
-        private IMemoryOwner<char>? _Staging;
-        internal IMemoryOwner<char> Staging => Utils.NonNull(_Staging);
+        internal NonNull<IMemoryOwner<char>> Staging;
         internal int InStaging;
 
         internal int RowNumber;
@@ -38,13 +30,13 @@ namespace Cesil
             // buffering is configurable
             if (Config.WriteBufferSizeHint == 0)
             {
-                _Staging = null;
+                Staging.Clear();
                 InStaging = -1;
             }
             else
             {
                 InStaging = 0;
-                _Staging = Config.MemoryPool.Rent(Config.WriteBufferSizeHint ?? MaxSizedBufferWriter.DEFAULT_STAGING_SIZE);
+                Staging.Value = Config.MemoryPool.Rent(Config.WriteBufferSizeHint ?? MaxSizedBufferWriter.DEFAULT_STAGING_SIZE);
             }
         }
 
@@ -60,10 +52,12 @@ namespace Cesil
         // returns true if we need to flush staging
         internal bool PlaceInStaging(char c)
         {
-            Staging.Memory.Span[InStaging] = c;
+            var stagingValue = Staging.Value;
+
+            stagingValue.Memory.Span[InStaging] = c;
             InStaging++;
 
-            return InStaging == Staging.Memory.Length;
+            return InStaging == stagingValue.Memory.Length;
         }
 
         internal (char CommentChar, ReadOnlySequence<char> CommentLines) SplitCommentIntoLines(string comment)

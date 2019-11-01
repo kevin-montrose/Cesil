@@ -26,79 +26,67 @@ namespace Cesil
         {
             get
             {
-                if (HasConstructorForObject) return BackingMode.Constructor;
-                if (HasConstructorTakingParams) return BackingMode.Constructor;
-                if (HasEmptyConstructor) return BackingMode.Constructor;
-                if (_Method != null) return BackingMode.Method;
-                if (_Delegate != null) return BackingMode.Delegate;
+                if (ConstructorForObject.HasValue) return BackingMode.Constructor;
+                if (ConstructorTakingParams.HasValue) return BackingMode.Constructor;
+                if (EmptyConstructor.HasValue) return BackingMode.Constructor;
+                if (Method.HasValue) return BackingMode.Method;
+                if (Delegate.HasValue) return BackingMode.Delegate;
 
                 return BackingMode.None;
             }
         }
 
-        private readonly ConstructorInfo? _ConstructorForObject;
-        internal bool HasConstructorForObject => _ConstructorForObject != null;
-        internal ConstructorInfo ConstructorForObject => Utils.NonNull(_ConstructorForObject);
+        internal readonly NonNull<ConstructorInfo> ConstructorForObject;
 
-        private readonly MethodInfo? _Method;
-        internal MethodInfo Method => Utils.NonNull(_Method);
+        internal readonly NonNull<MethodInfo> Method;
 
-        private readonly ConstructorInfo? _ConstructorTakingParams;
-        internal bool HasConstructorTakingParams => _ConstructorTakingParams != null;
-        internal ConstructorInfo ConstructorTakingParams => Utils.NonNull(_ConstructorTakingParams);
+        internal readonly NonNull<ConstructorInfo> ConstructorTakingParams;
 
-        private readonly TypeInfo[]? _ParameterTypes;
-        internal TypeInfo[] ParameterTypes => Utils.NonNull(_ParameterTypes);
+        internal readonly NonNull<TypeInfo[]> ParameterTypes;
 
-        private readonly ColumnIdentifier[]? _ColumnsForParameters;
-        internal ColumnIdentifier[] ColumnsForParameters => Utils.NonNull(_ColumnsForParameters);
+        internal readonly NonNull<ColumnIdentifier[]> ColumnsForParameters;
 
-        private readonly ConstructorInfo? _EmptyConstructor;
-        internal bool HasEmptyConstructor => _EmptyConstructor != null;
-        internal ConstructorInfo EmptyConstructor => Utils.NonNull(_EmptyConstructor);
+        internal readonly NonNull<ConstructorInfo> EmptyConstructor;
 
-        private readonly Setter[]? _Setters;
-        internal Setter[] Setters => Utils.NonNull(_Setters);
+        internal readonly NonNull<Setter[]> Setters;
 
-        private readonly ColumnIdentifier[]? _ColumnsForSetters;
-        internal ColumnIdentifier[] ColumnsForSetters => Utils.NonNull(_ColumnsForSetters);
+        internal readonly NonNull<ColumnIdentifier[]> ColumnsForSetters;
 
-        private readonly Delegate? _Delegate;
-        internal Delegate Delegate => Utils.NonNull(_Delegate);
+        internal readonly NonNull<Delegate> Delegate;
 
         internal readonly TypeInfo TargetType;
 
         private DynamicRowConverter(ConstructorInfo cons)
         {
-            _ConstructorForObject = cons;
+            ConstructorForObject.Value = cons;
             TargetType = cons.DeclaringTypeNonNull();
         }
 
         private DynamicRowConverter(TypeInfo target, MethodInfo del)
         {
-            _Method = del;
+            Method.Value = del;
             TargetType = target;
         }
 
         private DynamicRowConverter(ConstructorInfo cons, TypeInfo[] paramTypes, ColumnIdentifier[] colsForPs)
         {
-            _ConstructorTakingParams = cons;
-            _ColumnsForParameters = colsForPs;
-            _ParameterTypes = paramTypes;
+            ConstructorTakingParams.Value = cons;
+            ColumnsForParameters.Value = colsForPs;
+            ParameterTypes.Value = paramTypes;
             TargetType = cons.DeclaringTypeNonNull();
         }
 
         private DynamicRowConverter(ConstructorInfo cons, Setter[] setters, ColumnIdentifier[] colsForSetters)
         {
-            _EmptyConstructor = cons;
-            _Setters = setters;
-            _ColumnsForSetters = colsForSetters;
+            EmptyConstructor.Value = cons;
+            Setters.Value = setters;
+            ColumnsForSetters.Value = colsForSetters;
             TargetType = cons.DeclaringTypeNonNull();
         }
 
         private DynamicRowConverter(TypeInfo target, Delegate del)
         {
-            _Delegate = del;
+            Delegate.Value = del;
             TargetType = target;
         }
 
@@ -244,7 +232,7 @@ namespace Cesil
                 // can always call it, doesn't matter
                 if (setter.IsStatic) continue;
 
-                var setterOnType = setter.RowType;
+                var setterOnType = setter.RowType.Value;
 
                 if (!setterOnType.IsAssignableFrom(constructedType))
                 {
@@ -334,20 +322,23 @@ namespace Cesil
             {
                 case BackingMode.Constructor:
                     {
-                        if (HasConstructorForObject)
+                        if (ConstructorForObject.HasValue)
                         {
                             return $"{nameof(DynamicRowConverter)} using 1 parameter constructor {ConstructorForObject} creating {TargetType}";
                         }
 
-                        if (HasConstructorTakingParams)
+                        if (ConstructorTakingParams.HasValue)
                         {
                             string columnTypeMap;
+                            var columnsForParametersValue = ColumnsForParameters.Value;
+                            var parameterTypesValue = ParameterTypes.Value;
+
                             {
                                 var map = new StringBuilder();
-                                for (var i = 0; i < ColumnsForParameters.Length; i++)
+                                for (var i = 0; i < columnsForParametersValue.Length; i++)
                                 {
-                                    var col = ColumnsForParameters[i];
-                                    var type = ParameterTypes![i];
+                                    var col = columnsForParametersValue[i];
+                                    var type = parameterTypesValue[i];
 
                                     if (i != 0)
                                     {
@@ -359,18 +350,20 @@ namespace Cesil
                                 columnTypeMap = map.ToString();
                             }
 
-                            return $"{nameof(DynamicRowConverter)} using {ColumnsForParameters.Length} parameter constructor {ConstructorTakingParams} with ({columnTypeMap}) creating {TargetType}";
+                            return $"{nameof(DynamicRowConverter)} using {columnsForParametersValue.Length} parameter constructor {ConstructorTakingParams} with ({columnTypeMap}) creating {TargetType}";
                         }
 
-                        if (HasEmptyConstructor)
+                        if (EmptyConstructor.HasValue)
                         {
                             string setterMap;
                             {
+                                var settersValue = Setters.Value;
+                                var columnsForSettersValue = ColumnsForSetters.Value;
                                 var map = new StringBuilder();
-                                for (var i = 0; i < Setters.Length; i++)
+                                for (var i = 0; i < settersValue.Length; i++)
                                 {
-                                    var setter = Setters[i];
-                                    var col = ColumnsForSetters![i];
+                                    var setter = settersValue[i];
+                                    var col = columnsForSettersValue[i];
 
                                     if (i != 0)
                                     {
@@ -429,26 +422,33 @@ namespace Cesil
 
             switch (thisMode)
             {
-                case BackingMode.Method: return Method.Equals(other.Method);
+                case BackingMode.Method: return Method.Value.Equals(other.Method.Value);
                 case BackingMode.Constructor:
-                    if (HasConstructorForObject)
+                    if (ConstructorForObject.HasValue)
                     {
-                        return ConstructorForObject.Equals(other._ConstructorForObject);
+                        if (!other.ConstructorForObject.HasValue) return false;
+
+                        return ConstructorForObject.Value.Equals(other.ConstructorForObject.Value);
                     }
 
-                    if (HasConstructorTakingParams)
+                    if (ConstructorTakingParams.HasValue)
                     {
-                        if (!ConstructorTakingParams.Equals(other._ConstructorTakingParams))
+                        if (!other.ConstructorTakingParams.HasValue) return false;
+
+                        if (!ConstructorTakingParams.Value.Equals(other.ConstructorTakingParams.Value))
                         {
                             return false;
                         }
 
-                        // type compatibility is implicitly checked by comparing constructors
+                        // type compatibility and parameter counts are implicitly checked by comparing constructors
 
-                        for (var i = 0; i < ParameterTypes.Length; i++)
+                        var parameterTypesValue = ParameterTypes.Value;
+                        var columnsForParametersValue = ColumnsForParameters.Value;
+                        var otherColumnsForParametersValue = other.ColumnsForParameters.Value;
+                        for (var i = 0; i < parameterTypesValue.Length; i++)
                         {
-                            var thisCol = ColumnsForParameters![i];
-                            var otherCol = other.ColumnsForParameters![i];
+                            var thisCol = columnsForParametersValue[i];
+                            var otherCol = otherColumnsForParametersValue[i];
 
                             if (thisCol != otherCol)
                             {
@@ -459,25 +459,34 @@ namespace Cesil
                         return true;
                     }
 
-                    if (HasEmptyConstructor)
+                    if (EmptyConstructor.HasValue)
                     {
-                        if (!EmptyConstructor.Equals(other._EmptyConstructor))
+                        if (!other.EmptyConstructor.HasValue)
                         {
                             return false;
                         }
 
-                        if (Setters.Length != other.Setters.Length)
+                        if (!EmptyConstructor.Value.Equals(other.EmptyConstructor.Value))
                         {
                             return false;
                         }
 
-                        for (var i = 0; i < Setters.Length; i++)
+                        var settersValue = Setters.Value;
+                        var otherSettersValue = other.Setters.Value;
+                        if (settersValue.Length != otherSettersValue.Length)
                         {
-                            var thisSetter = Setters[i];
-                            var otherSetter = other.Setters[i];
+                            return false;
+                        }
 
-                            var thisCol = ColumnsForSetters[i];
-                            var otherCol = other.ColumnsForSetters[i];
+                        var columnsForSettersValue = ColumnsForSetters.Value;
+                        var otherColumnsForSettersValue = other.ColumnsForSetters.Value;
+                        for (var i = 0; i < settersValue.Length; i++)
+                        {
+                            var thisSetter = settersValue[i];
+                            var otherSetter = otherSettersValue[i];
+
+                            var thisCol = columnsForSettersValue[i];
+                            var otherCol = otherColumnsForSettersValue[i];
 
                             if (thisSetter != otherSetter || thisCol != otherCol)
                             {
@@ -489,7 +498,7 @@ namespace Cesil
                     }
 
                     return Throw.Exception<bool>($"Shouldn't be possible, unexpected Constructor configuration");
-                case BackingMode.Delegate: return Delegate.Equals(other.Delegate);
+                case BackingMode.Delegate: return Delegate.Value.Equals(other.Delegate.Value);
                 default:
                     return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {thisMode}");
             }
@@ -502,11 +511,11 @@ namespace Cesil
         => HashCode.Combine(
             nameof(DynamicRowConverter), 
             Mode, 
-            _Method, 
-            _ConstructorForObject, 
-            _ConstructorTakingParams, 
-            _EmptyConstructor, 
-            _Delegate
+            Method, 
+            ConstructorForObject, 
+            ConstructorTakingParams, 
+            EmptyConstructor, 
+            Delegate
         );
 
         /// <summary>
@@ -596,7 +605,7 @@ namespace Cesil
             var converterDel = Types.DynamicRowConverterDelegateType.MakeGenericType(creates);
             var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
-            var reboundDel = Delegate.CreateDelegate(converterDel, del, invoke);
+            var reboundDel = System.Delegate.CreateDelegate(converterDel, del, invoke);
 
             return new DynamicRowConverter(creates, reboundDel);
         }

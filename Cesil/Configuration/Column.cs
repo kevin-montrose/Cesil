@@ -4,14 +4,9 @@
     {
         internal static readonly Column Ignored = new Column("", delegate { return true; }, delegate { return true; }, false);
 
-        private readonly string? _Name;
-        internal bool HasName => _Name != null;
-        internal string Name => Utils.NonNull(_Name);
-
-        private readonly ColumnSetterDelegate? _Set;
-        internal ColumnSetterDelegate Set => Utils.NonNull(_Set);
-        private readonly ColumnWriterDelegate? _Write;
-        internal ColumnWriterDelegate Write => Utils.NonNull(_Write);
+        internal readonly NonNull<string> Name;
+        internal readonly NonNull<ColumnSetterDelegate> Set;
+        internal readonly NonNull<ColumnWriterDelegate> Write;
         internal bool IsRequired { get; }
 
         internal Column(
@@ -21,9 +16,9 @@
             bool isRequired
         )
         {
-            _Name = name;
-            _Set = set;
-            _Write = write;
+            Name.SetAllowNull(name);
+            Set.SetAllowNull(set);
+            Write.SetAllowNull(write);
             IsRequired = isRequired;
         }
     }

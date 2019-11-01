@@ -12,16 +12,14 @@ namespace Cesil
         private static readonly ReadOnlyMemory<char> LineFeed = "\n".AsMemory();
         private static readonly ReadOnlyMemory<char> CarriageReturnLineFeed = "\r\n".AsMemory();
 
-        internal readonly InstanceProviderDelegate<T>? _NewCons;
-        internal InstanceProviderDelegate<T> NewCons => Utils.NonNull(_NewCons);
+        internal readonly NonNull<InstanceProviderDelegate<T>> NewCons;
         internal readonly Column[] DeserializeColumns;
 
         internal readonly Column[] SerializeColumns;
         internal readonly bool[] SerializeColumnsNeedEscape;
 
         // internal for testing purposes
-        internal readonly ITypeDescriber? _TypeDescriber;
-        internal ITypeDescriber TypeDescriber => Utils.NonNull(_TypeDescriber);
+        internal NonNull<ITypeDescriber> TypeDescriber;
         internal readonly char ValueSeparator;
         internal readonly char EscapedValueStartAndStop;
         internal readonly char EscapeValueEscapeChar;
@@ -67,8 +65,10 @@ namespace Cesil
             DynamicRowDisposal dynamicRowDisposal
         )
         {
-            _TypeDescriber = describer;
-            _NewCons = null;
+            if (describer != null)
+            {
+                TypeDescriber.Value = describer;
+            }
             DeserializeColumns = Array.Empty<Column>();
             SerializeColumns = Array.Empty<Column>();
             SerializeColumnsNeedEscape = Array.Empty<bool>();
@@ -126,7 +126,7 @@ namespace Cesil
             int readBufferSizeHint
         )
         {
-            _NewCons = newCons;
+            NewCons.Value = newCons;
             DeserializeColumns = deserializeColumns;
             SerializeColumns = serializeColumns;
             SerializeColumnsNeedEscape = serializeColumnsNeedEscape;

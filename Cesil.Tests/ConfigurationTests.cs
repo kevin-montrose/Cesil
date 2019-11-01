@@ -259,13 +259,13 @@ namespace Cesil.Tests
         private static void _SingleColumn<T>(string n)
         {
             var config = (ConcreteBoundConfiguration<T>)Configuration.For<T>();
-            Assert.NotNull(config.NewCons);
+            Assert.True(config.NewCons.HasValue);
 
             Assert.Collection(
                 config.DeserializeColumns,
                 c =>
                 {
-                    Assert.Equal(n, c.Name);
+                    Assert.Equal(n, c.Name.Value);
                 }
             );
         }

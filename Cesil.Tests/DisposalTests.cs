@@ -16,6 +16,15 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class DisposalTests
     {
+        private sealed class _FakeOwner : IDynamicRowOwner
+        {
+            public object Context { get; set; }
+
+            public IIntrusiveLinkedList<DynamicRow> NotifyOnDispose { get; set; }
+
+            public void Remove(DynamicRow row) { }
+        }
+
         private class _IDisposable
         {
             public string Foo { get; set; }
@@ -307,7 +316,10 @@ namespace Cesil.Tests
                 DynamicRowMemberNameEnumerator MakeEnumerator()
                 {
                     var row = new DynamicRow();
-                    row.Init(null, 1, 0, null, null, new[] { "foo" }, MemoryPool<char>.Shared);
+                    var owner = new _FakeOwner();
+                    var cols = new NonNull<string[]>();
+                    cols.Value = new[] { "foo" };
+                    row.Init(owner, 1, 0, null, TypeDescribers.Default, cols, MemoryPool<char>.Shared);
 
                     return new DynamicRowMemberNameEnumerator(row);
                 }
@@ -1533,7 +1545,7 @@ namespace Cesil.Tests
 
                     var dynRow = row as DynamicRow;
 
-                    var e = dynRow.Columns.GetEnumerator();
+                    var e = dynRow.Columns.Value.GetEnumerator();
 
                     return e;
                 }

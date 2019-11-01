@@ -407,7 +407,7 @@ namespace Cesil.Tests
                     Assert.False(d1.IsRequired);
                     Assert.Equal("Field", d1.Name);
                     Assert.Equal(Parser.GetDefault(typeof(int).GetTypeInfo()), d1.Parser);
-                    Assert.False(d1.HasReset);
+                    Assert.False(d1.Reset.HasValue);
                     Assert.Equal(Setter.ForField(f), d1.Setter);
                 }
 
@@ -420,7 +420,7 @@ namespace Cesil.Tests
                     Assert.False(d1.IsRequired);
                     Assert.Equal("Foo", d1.Name);
                     Assert.Equal(Parser.GetDefault(typeof(int).GetTypeInfo()), d1.Parser);
-                    Assert.False(d1.HasReset);
+                    Assert.False(d1.Reset.HasValue);
                     Assert.Equal(Setter.ForField(f), d1.Setter);
                 }
 
@@ -436,7 +436,7 @@ namespace Cesil.Tests
                     Assert.False(d1.IsRequired);
                     Assert.Equal("Bar", d1.Name);
                     Assert.Equal(parser, d1.Parser);
-                    Assert.False(d1.HasReset);
+                    Assert.False(d1.Reset.HasValue);
                     Assert.Equal(Setter.ForField(f), d1.Setter);
                 }
 
@@ -451,7 +451,7 @@ namespace Cesil.Tests
                     Assert.True(d1.IsRequired);
                     Assert.Equal("Baf", d1.Name);
                     Assert.Equal(parser, d1.Parser);
-                    Assert.False(d1.HasReset);
+                    Assert.False(d1.Reset.HasValue);
                     Assert.Equal(Setter.ForField(f), d1.Setter);
                 }
 
@@ -469,7 +469,7 @@ namespace Cesil.Tests
                     Assert.True(d1.IsRequired);
                     Assert.Equal("Baz", d1.Name);
                     Assert.Equal(parser, d1.Parser);
-                    Assert.Equal(reset, d1.Reset);
+                    Assert.Equal(reset, d1.Reset.Value);
                     Assert.Equal(Setter.ForField(f), d1.Setter);
                 }
             }
@@ -486,7 +486,7 @@ namespace Cesil.Tests
                     Assert.False(d1.IsRequired);
                     Assert.Equal("Prop", d1.Name);
                     Assert.Equal(Parser.GetDefault(typeof(string).GetTypeInfo()), d1.Parser);
-                    Assert.False(d1.HasReset);
+                    Assert.False(d1.Reset.HasValue);
                     Assert.Equal(Setter.ForMethod(p.SetMethod), d1.Setter);
                 }
 
@@ -499,7 +499,7 @@ namespace Cesil.Tests
                     Assert.False(d1.IsRequired);
                     Assert.Equal("Foo", d1.Name);
                     Assert.Equal(Parser.GetDefault(typeof(string).GetTypeInfo()), d1.Parser);
-                    Assert.False(d1.HasReset);
+                    Assert.False(d1.Reset.HasValue);
                     Assert.Equal(Setter.ForMethod(p.SetMethod), d1.Setter);
                 }
 
@@ -515,7 +515,7 @@ namespace Cesil.Tests
                     Assert.False(d1.IsRequired);
                     Assert.Equal("Bar", d1.Name);
                     Assert.Equal(parser, d1.Parser);
-                    Assert.False(d1.HasReset);
+                    Assert.False(d1.Reset.HasValue);
                     Assert.Equal(Setter.ForMethod(p.SetMethod), d1.Setter);
                 }
 
@@ -530,7 +530,7 @@ namespace Cesil.Tests
                     Assert.True(d1.IsRequired);
                     Assert.Equal("Baf", d1.Name);
                     Assert.Equal(parser, d1.Parser);
-                    Assert.False(d1.HasReset);
+                    Assert.False(d1.Reset.HasValue);
                     Assert.Equal(Setter.ForMethod(p.SetMethod), d1.Setter);
                 }
 
@@ -548,7 +548,7 @@ namespace Cesil.Tests
                     Assert.True(d1.IsRequired);
                     Assert.Equal("Baz", d1.Name);
                     Assert.Equal(parser, d1.Parser);
-                    Assert.Equal(reset, d1.Reset);
+                    Assert.Equal(reset, d1.Reset.Value);
                     Assert.Equal(Setter.ForMethod(p.SetMethod), d1.Setter);
                 }
             }
@@ -2672,9 +2672,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                         Assert.Equal(ReadHeaders.Never, reader.ReadHeaders.Value);
 
                         Assert.Collection(
-                            reader.Columns,
-                            c => Assert.Equal("Hello", c.Name),
-                            c => Assert.Equal("World", c.Name)
+                            reader.Columns.Value,
+                            c => Assert.Equal("Hello", c.Name.Value),
+                            c => Assert.Equal("World", c.Name.Value)
                         );
 
                         Assert.False(reader.TryRead(out _));
@@ -2699,9 +2699,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
-                                reader.Columns,
-                                c => Assert.Equal("Hello", c.Name),
-                                c => Assert.Equal("World", c.Name)
+                                reader.Columns.Value,
+                                c => Assert.Equal("Hello", c.Name.Value),
+                                c => Assert.Equal("World", c.Name.Value)
                             );
 
                             Assert.True(reader.TryRead(out t));
@@ -2728,9 +2728,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
-                                reader.Columns,
-                                c => Assert.Equal("Hello", c.Name),
-                                c => Assert.Equal("World", c.Name)
+                                reader.Columns.Value,
+                                c => Assert.Equal("Hello", c.Name.Value),
+                                c => Assert.Equal("World", c.Name.Value)
                             );
 
                             Assert.True(reader.TryRead(out t));
@@ -2757,9 +2757,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
-                                reader.Columns,
-                                c => Assert.Equal("Hello", c.Name),
-                                c => Assert.Equal("World", c.Name)
+                                reader.Columns.Value,
+                                c => Assert.Equal("Hello", c.Name.Value),
+                                c => Assert.Equal("World", c.Name.Value)
                             );
 
                             Assert.True(reader.TryRead(out t));
@@ -2789,9 +2789,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
-                                reader.Columns,
-                                c => Assert.Equal("World", c.Name),
-                                c => Assert.Equal("Hello", c.Name)
+                                reader.Columns.Value,
+                                c => Assert.Equal("World", c.Name.Value),
+                                c => Assert.Equal("Hello", c.Name.Value)
                             );
 
                             Assert.True(reader.TryRead(out t));
@@ -2818,9 +2818,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
-                                reader.Columns,
-                                c => Assert.Equal("World", c.Name),
-                                c => Assert.Equal("Hello", c.Name)
+                                reader.Columns.Value,
+                                c => Assert.Equal("World", c.Name.Value),
+                                c => Assert.Equal("Hello", c.Name.Value)
                             );
 
                             Assert.True(reader.TryRead(out t));
@@ -2847,9 +2847,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
-                                reader.Columns,
-                                c => Assert.Equal("World", c.Name),
-                                c => Assert.Equal("Hello", c.Name)
+                                reader.Columns.Value,
+                                c => Assert.Equal("World", c.Name.Value),
+                                c => Assert.Equal("Hello", c.Name.Value)
                             );
 
                             Assert.True(reader.TryRead(out t));
@@ -2879,8 +2879,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
-                                reader.Columns,
-                                c => Assert.Equal("World", c.Name),
+                                reader.Columns.Value,
+                                c => Assert.Equal("World", c.Name.Value),
                                 c => Assert.Same(Column.Ignored, c)
                             );
 
@@ -2908,8 +2908,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
-                                reader.Columns,
-                                c => Assert.Equal("World", c.Name),
+                                reader.Columns.Value,
+                                c => Assert.Equal("World", c.Name.Value),
                                 c => Assert.Same(Column.Ignored, c)
                             );
 
@@ -2937,8 +2937,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
-                                reader.Columns,
-                                c => Assert.Equal("World", c.Name),
+                                reader.Columns.Value,
+                                c => Assert.Equal("World", c.Name.Value),
                                 c => Assert.Same(Column.Ignored, c)
                             );
 
@@ -5544,9 +5544,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                         Assert.Equal(ReadHeaders.Never, reader.ReadHeaders.Value);
 
                         Assert.Collection(
-                            reader.Columns,
-                            c => Assert.Equal("Hello", c.Name),
-                            c => Assert.Equal("World", c.Name)
+                            reader.Columns.Value,
+                            c => Assert.Equal("Hello", c.Name.Value),
+                            c => Assert.Equal("World", c.Name.Value)
                         );
 
                         t = await reader.TryReadAsync();
@@ -5573,9 +5573,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
-                                reader.Columns,
-                                c => Assert.Equal("Hello", c.Name),
-                                c => Assert.Equal("World", c.Name)
+                                reader.Columns.Value,
+                                c => Assert.Equal("Hello", c.Name.Value),
+                                c => Assert.Equal("World", c.Name.Value)
                             );
 
                             t = await reader.TryReadAsync();
@@ -5605,9 +5605,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
-                                reader.Columns,
-                                c => Assert.Equal("Hello", c.Name),
-                                c => Assert.Equal("World", c.Name)
+                                reader.Columns.Value,
+                                c => Assert.Equal("Hello", c.Name.Value),
+                                c => Assert.Equal("World", c.Name.Value)
                             );
 
                             t = await reader.TryReadAsync();
@@ -5637,9 +5637,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
-                                reader.Columns,
-                                c => Assert.Equal("Hello", c.Name),
-                                c => Assert.Equal("World", c.Name)
+                                reader.Columns.Value,
+                                c => Assert.Equal("Hello", c.Name.Value),
+                                c => Assert.Equal("World", c.Name.Value)
                             );
 
                             t = await reader.TryReadAsync();
@@ -5672,9 +5672,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
-                                reader.Columns,
-                                c => Assert.Equal("World", c.Name),
-                                c => Assert.Equal("Hello", c.Name)
+                                reader.Columns.Value,
+                                c => Assert.Equal("World", c.Name.Value),
+                                c => Assert.Equal("Hello", c.Name.Value)
                             );
 
                             t = await reader.TryReadAsync();
@@ -5704,9 +5704,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
-                                reader.Columns,
-                                c => Assert.Equal("World", c.Name),
-                                c => Assert.Equal("Hello", c.Name)
+                                reader.Columns.Value,
+                                c => Assert.Equal("World", c.Name.Value),
+                                c => Assert.Equal("Hello", c.Name.Value)
                             );
 
                             t = await reader.TryReadAsync();
@@ -5736,9 +5736,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
-                                reader.Columns,
-                                c => Assert.Equal("World", c.Name),
-                                c => Assert.Equal("Hello", c.Name)
+                                reader.Columns.Value,
+                                c => Assert.Equal("World", c.Name.Value),
+                                c => Assert.Equal("Hello", c.Name.Value)
                             );
 
                             t = await reader.TryReadAsync();
@@ -5771,8 +5771,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
-                                reader.Columns,
-                                c => Assert.Equal("World", c.Name),
+                                reader.Columns.Value,
+                                c => Assert.Equal("World", c.Name.Value),
                                 c => Assert.Same(Column.Ignored, c)
                             );
 
@@ -5803,8 +5803,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
-                                reader.Columns,
-                                c => Assert.Equal("World", c.Name),
+                                reader.Columns.Value,
+                                c => Assert.Equal("World", c.Name.Value),
                                 c => Assert.Same(Column.Ignored, c)
                             );
 
@@ -5835,8 +5835,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
-                                reader.Columns,
-                                c => Assert.Equal("World", c.Name),
+                                reader.Columns.Value,
+                                c => Assert.Equal("World", c.Name.Value),
                                 c => Assert.Same(Column.Ignored, c)
                             );
 

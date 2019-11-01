@@ -45,9 +45,9 @@ namespace Cesil
             var converterInterface = Cell.Converter;
             var index = Cell.ColumnNumber;
 
-            var col = Cell.Row.Columns[index];
+            var col = Cell.Row.Columns.Value[index];
 
-            var ctx = ReadContext.ConvertingColumn(Cell.Row.RowNumber, col, Cell.Row.Owner.Context);
+            var ctx = ReadContext.ConvertingColumn(Cell.Row.RowNumber, col, Cell.Row.Owner.Value.Context);
 
             var converter = converterInterface.GetDynamicCellParserFor(in ctx, retType);
             var restrictions = MakeRestrictions(converter, retType);
@@ -76,18 +76,18 @@ namespace Cesil
             {
                 case BackingMode.Constructor:
                     {
-                        var cons = converter.Constructor;
+                        var cons = converter.Constructor.Value;
                         var consPCount = cons.GetParameters().Length;
 
                         NewExpression createType;
                         if (consPCount == 1)
                         {
-                            createType = Expression.New(converter.Constructor, callGetSpan);
+                            createType = Expression.New(cons, callGetSpan);
                         }
                         else
                         {
                             var makeCtx = Expression.Call(selfAsCell, Methods.DynamicCell.GetReadContext);
-                            createType = Expression.New(converter.Constructor, callGetSpan, makeCtx);
+                            createType = Expression.New(cons, callGetSpan, makeCtx);
                         }
                         var cast = Expression.Convert(createType, binder.ReturnType);
 
@@ -101,7 +101,7 @@ namespace Cesil
                         var outVar = Expression.Parameter(converter.Creates);
                         var resVar = Expressions.Variable_Bool;
 
-                        var mtd = converter.Method;
+                        var mtd = converter.Method.Value;
                         var callConvert = Expression.Call(mtd, callGetSpan, makeCtx, outVar);
                         var assignRes = Expression.Assign(resVar, callConvert);
 
@@ -124,7 +124,7 @@ namespace Cesil
                     {
                         var statements = new List<Expression>();
 
-                        var del = converter.Delegate;
+                        var del = converter.Delegate.Value;
                         var delRef = Expression.Constant(del);
 
                         var makeCtx = Expression.Call(selfAsCell, Methods.DynamicCell.GetReadContext);

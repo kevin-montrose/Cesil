@@ -15,7 +15,9 @@ namespace Cesil
 
             WriteHeadersAndEndRowIfNeeded();
 
-            for (var i = 0; i < Columns.Length; i++)
+            var columnsValue = Columns.Value;
+
+            for (var i = 0; i < columnsValue.Length; i++)
             {
                 var needsSeparator = i != 0;
 
@@ -24,11 +26,11 @@ namespace Cesil
                     PlaceCharInStaging(Config.ValueSeparator);
                 }
 
-                var col = Columns[i];
+                var col = columnsValue[i];
 
                 var ctx = WriteContext.WritingColumn(RowNumber, ColumnIdentifier.Create(i, col.Name), Context);
 
-                if (!col.Write(row, ctx, Buffer))
+                if (!col.Write.Value(row, ctx, Buffer))
                 {
                     Throw.SerializationException<object>($"Could not write column {col.Name}, formatter returned false");
                 }
@@ -116,7 +118,7 @@ namespace Cesil
         private bool CheckHeaders()
         {
             // make a note of what the columns to write actually are
-            Columns = Config.SerializeColumns;
+            Columns.Value = Config.SerializeColumns;
 
             if (Config.WriteHeader == Cesil.WriteHeaders.Never)
             {
@@ -133,7 +135,9 @@ namespace Cesil
         {
             var needsEscape = Config.SerializeColumnsNeedEscape;
 
-            for (var i = 0; i < Columns.Length; i++)
+            var columnsValue = Columns.Value;
+
+            for (var i = 0; i < columnsValue.Length; i++)
             {
                 // for the separator
                 if (i != 0)
@@ -141,7 +145,7 @@ namespace Cesil
                     PlaceCharInStaging(Config.ValueSeparator);
                 }
 
-                var colName = Columns[i].Name;
+                var colName = columnsValue[i].Name.Value;
                 var escape = needsEscape[i];
 
                 if (!escape)
@@ -202,14 +206,14 @@ namespace Cesil
                     EndRecord();
                 }
 
-                if (HasBuffer)
+                if (Staging.HasValue)
                 {
                     if (InStaging > 0)
                     {
                         FlushStaging();
                     }
 
-                    Staging.Dispose();
+                    Staging.Value.Dispose();
                 }
 
                 Inner.Dispose();

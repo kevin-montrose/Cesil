@@ -41,43 +41,34 @@ namespace Cesil
         {
             get
             {
-                if (HasMethod) return BackingMode.Method;
-                if (HasDelegate) return BackingMode.Delegate;
+                if (Method.HasValue) return BackingMode.Method;
+                if (Delegate.HasValue) return BackingMode.Delegate;
 
                 return BackingMode.None;
             }
         }
 
-        private readonly MethodInfo? _Method;
-        internal bool HasMethod => _Method != null;
-        internal MethodInfo Method => Utils.NonNull(_Method);
+        internal readonly NonNull<MethodInfo> Method;
 
-        private readonly Delegate? _Delegate;
-        internal bool HasDelegate => _Delegate != null;
-        internal Delegate Delegate => Utils.NonNull(_Delegate);
+        internal readonly NonNull<Delegate> Delegate;
 
         internal readonly TypeInfo Takes;
 
-        private DynamicFormatterDelegate? _CachedDelegate;
-        bool ICreatesCacheableDelegate<DynamicFormatterDelegate>.HasCachedDelegate => _CachedDelegate != null;
-        DynamicFormatterDelegate ICreatesCacheableDelegate<DynamicFormatterDelegate>.CachedDelegate 
-        {
-            get => Utils.NonNull(_CachedDelegate);
-            set { _CachedDelegate = value; }
-        }
+        private NonNull<DynamicFormatterDelegate> _CachedDelegate;
+        ref NonNull<DynamicFormatterDelegate> ICreatesCacheableDelegate<DynamicFormatterDelegate>.CachedDelegate => ref _CachedDelegate;
 
         private Formatter(TypeInfo takes, MethodInfo method)
         {
             Takes = takes;
-            _Method = method;
-            _Delegate = null;
+            Method.Value = method;
+            Delegate.Clear();
         }
 
         private Formatter(TypeInfo takes, Delegate del)
         {
             Takes = takes;
-            _Method = null;
-            _Delegate = del;
+            Method.Clear();
+            Delegate.Value = del;
         }
 
         DynamicFormatterDelegate ICreatesCacheableDelegate<DynamicFormatterDelegate>.CreateDelegate()
@@ -91,7 +82,7 @@ namespace Cesil
                         var p2 = Expressions.Parameter_IBufferWriterOfChar;
 
                         var asT = Expression.Convert(p0, Takes);
-                        var call = Expression.Call(Method, asT, p1, p2);
+                        var call = Expression.Call(Method.Value, asT, p1, p2);
 
                         var block = Expression.Block(call);
 
@@ -108,7 +99,7 @@ namespace Cesil
 
                         var asT = Expression.Convert(p0, Takes);
 
-                        var delRef = Expression.Constant(Delegate);
+                        var delRef = Expression.Constant(Delegate.Value);
 
                         var call = Expression.Invoke(delRef, asT, p1, p2);
 
@@ -283,9 +274,9 @@ namespace Cesil
             switch (otherMode)
             {
                 case BackingMode.Method:
-                    return Method == f.Method;
+                    return Method.Value == f.Method.Value;
                 case BackingMode.Delegate:
-                    return Delegate == f.Delegate;
+                    return Delegate.Value == f.Delegate.Value;
                 default:
                     return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {otherMode}");
             }
@@ -295,7 +286,7 @@ namespace Cesil
         /// Returns a hashcode for this Getter.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(Formatter), Takes, Mode, _Delegate, _Method);
+        => HashCode.Combine(nameof(Formatter), Takes, Mode, Delegate, Method);
 
         /// <summary>
         /// Describes this Formatter.
@@ -375,7 +366,7 @@ namespace Cesil
             var formatterDel = Types.FormatterDelegateType.MakeGenericType(takes);
             var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
-            var reboundDel = Delegate.CreateDelegate(formatterDel, del, invoke);
+            var reboundDel = System.Delegate.CreateDelegate(formatterDel, del, invoke);
 
             return new Formatter(takes, reboundDel);
         }

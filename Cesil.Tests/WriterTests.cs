@@ -193,7 +193,7 @@ namespace Cesil.Tests
                     Assert.Equal(Formatter.GetDefault(typeof(string).GetTypeInfo()), s1.Formatter);
                     Assert.Equal(Getter.ForField(f), s1.Getter);
                     Assert.Equal("Field", s1.Name);
-                    Assert.False(s1.HasShouldSerialize);
+                    Assert.False(s1.ShouldSerialize.HasValue);
                 }
 
                 // 2
@@ -206,7 +206,7 @@ namespace Cesil.Tests
                     Assert.Equal(Formatter.GetDefault(typeof(string).GetTypeInfo()), s2.Formatter);
                     Assert.Equal(Getter.ForField(f), s2.Getter);
                     Assert.Equal("Nope", s2.Name);
-                    Assert.False(s2.HasShouldSerialize);
+                    Assert.False(s2.ShouldSerialize.HasValue);
                 }
 
                 var formatter =
@@ -228,7 +228,7 @@ namespace Cesil.Tests
                     Assert.Equal(formatter, s3.Formatter);
                     Assert.Equal(Getter.ForField(f), s3.Getter);
                     Assert.Equal("Yep", s3.Name);
-                    Assert.False(s3.HasShouldSerialize);
+                    Assert.False(s3.ShouldSerialize.HasValue);
                 }
 
                 var shouldSerialize =
@@ -248,7 +248,7 @@ namespace Cesil.Tests
                     Assert.Equal(formatter, s4.Formatter);
                     Assert.Equal(Getter.ForField(f), s4.Getter);
                     Assert.Equal("Fizz", s4.Name);
-                    Assert.Equal(shouldSerialize, s4.ShouldSerialize);
+                    Assert.Equal(shouldSerialize, s4.ShouldSerialize.Value);
                 }
 
                 // 5
@@ -264,7 +264,7 @@ namespace Cesil.Tests
                     Assert.Equal(formatter, s5.Formatter);
                     Assert.Equal(Getter.ForField(f), s5.Getter);
                     Assert.Equal("Buzz", s5.Name);
-                    Assert.Equal(shouldSerialize, s5.ShouldSerialize);
+                    Assert.Equal(shouldSerialize, s5.ShouldSerialize.Value);
                 }
             }
 
@@ -281,7 +281,7 @@ namespace Cesil.Tests
                     Assert.Equal(Formatter.GetDefault(typeof(int).GetTypeInfo()), s1.Formatter);
                     Assert.Equal((Getter)p.GetMethod, s1.Getter);
                     Assert.Equal("Prop", s1.Name);
-                    Assert.False(s1.HasShouldSerialize);
+                    Assert.False(s1.ShouldSerialize.HasValue);
                 }
 
                 // 2
@@ -294,7 +294,7 @@ namespace Cesil.Tests
                     Assert.Equal(Formatter.GetDefault(typeof(int).GetTypeInfo()), s2.Formatter);
                     Assert.Equal((Getter)p.GetMethod, s2.Getter);
                     Assert.Equal("Hello", s2.Name);
-                    Assert.False(s2.HasShouldSerialize);
+                    Assert.False(s2.ShouldSerialize.HasValue);
                 }
 
                 var formatter =
@@ -316,7 +316,7 @@ namespace Cesil.Tests
                     Assert.Equal(formatter, s3.Formatter);
                     Assert.Equal((Getter)p.GetMethod, s3.Getter);
                     Assert.Equal("World", s3.Name);
-                    Assert.False(s3.HasShouldSerialize);
+                    Assert.False(s3.ShouldSerialize.HasValue);
                 }
 
                 var shouldSerialize =
@@ -336,7 +336,7 @@ namespace Cesil.Tests
                     Assert.Equal(formatter, s4.Formatter);
                     Assert.Equal((Getter)p.GetMethod, s4.Getter);
                     Assert.Equal("Blogo", s4.Name);
-                    Assert.Equal(shouldSerialize, s4.ShouldSerialize);
+                    Assert.Equal(shouldSerialize, s4.ShouldSerialize.Value);
                 }
 
                 // 5
@@ -352,7 +352,7 @@ namespace Cesil.Tests
                     Assert.Equal(formatter, s5.Formatter);
                     Assert.Equal((Getter)p.GetMethod, s5.Getter);
                     Assert.Equal("Sphere", s5.Name);
-                    Assert.Equal(shouldSerialize, s5.ShouldSerialize);
+                    Assert.Equal(shouldSerialize, s5.ShouldSerialize.Value);
                 }
             }
         }

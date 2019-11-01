@@ -25,8 +25,8 @@ namespace Cesil
         {
             get
             {
-                if (_Method != null) return BackingMode.Method;
-                if (_Delegate != null) return BackingMode.Delegate;
+                if (Method.HasValue) return BackingMode.Method;
+                if (Delegate.HasValue) return BackingMode.Delegate;
 
                 return BackingMode.None;
             }
@@ -38,34 +38,30 @@ namespace Cesil
             {
                 switch (Mode)
                 {
-                    case BackingMode.Method: return Method.IsStatic;
-                    case BackingMode.Delegate: return !HasRowType;
+                    case BackingMode.Method: return Method.Value.IsStatic;
+                    case BackingMode.Delegate: return !RowType.HasValue;
 
                     default:
                         return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}");                }
             }
         }
 
-        private readonly MethodInfo? _Method;
-        internal MethodInfo Method => Utils.NonNull(_Method);
+        internal readonly NonNull<MethodInfo> Method;
 
-        private readonly Delegate? _Delegate;
-        internal Delegate Delegate => Utils.NonNull(_Delegate);
+        internal readonly NonNull<Delegate> Delegate;
 
-        private readonly TypeInfo? _RowType;
-        internal bool HasRowType => _RowType != null;
-        internal TypeInfo RowType => Utils.NonNull(_RowType);
+        internal readonly NonNull<TypeInfo> RowType;
 
         private Reset(TypeInfo? rowType, MethodInfo mtd)
         {
-            _RowType = rowType;
-            _Method = mtd;
+            RowType.SetAllowNull(rowType);
+            Method.Value = mtd;
         }
 
         private Reset(TypeInfo? rowType, Delegate del)
         {
-            _RowType = rowType;
-            _Delegate = del;
+            RowType.SetAllowNull(rowType);
+            Delegate.Value = del;
         }
 
         /// <summary>
@@ -169,23 +165,23 @@ namespace Cesil
 
             if (mode != otherMode) return false;
 
-            if (HasRowType)
+            if (RowType.HasValue)
             {
-                if (!r.HasRowType) return false;
+                if (!r.RowType.HasValue) return false;
 
-                if (RowType != r.RowType) return false;
+                if (RowType.Value != r.RowType.Value) return false;
             }
             else
             {
-                if (r.HasRowType) return false;
+                if (r.RowType.HasValue) return false;
             }
 
             switch (mode)
             {
                 case BackingMode.Delegate:
-                    return r.Delegate == Delegate && r.IsStatic == IsStatic;
+                    return r.Delegate.Value == Delegate.Value && r.IsStatic == IsStatic;
                 case BackingMode.Method:
-                    return r.Method == Method && r.IsStatic == IsStatic;
+                    return r.Method.Value == Method.Value && r.IsStatic == IsStatic;
 
                 default:
                     return Throw.Exception<bool>($"Unexpected {nameof(BackingMode)}: {mode}");
@@ -197,7 +193,7 @@ namespace Cesil
         /// Returns a stable hash for this Reset.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(Reset), _Delegate, IsStatic, _Method, Mode, _RowType);
+        => HashCode.Combine(nameof(Reset), Delegate, IsStatic, Method, Mode, RowType);
 
         /// <summary>
         /// Describes this Reset.
@@ -274,7 +270,7 @@ namespace Cesil
             var args = mtd.GetParameters();
             if (args.Length == 0)
             {
-                var reboundDel = Delegate.CreateDelegate(Types.StaticResetDelegateType, del, invoke);
+                var reboundDel = System.Delegate.CreateDelegate(Types.StaticResetDelegateType, del, invoke);
 
                 return new Reset(null, reboundDel);
             }
@@ -283,7 +279,7 @@ namespace Cesil
                 var rowType = args[0].ParameterType.GetTypeInfo();
                 var getterDelType = Types.ResetDelegateType.MakeGenericType(rowType);
 
-                var reboundDel = Delegate.CreateDelegate(getterDelType, del, invoke);
+                var reboundDel = System.Delegate.CreateDelegate(getterDelType, del, invoke);
 
                 return new Reset(rowType, reboundDel);
             }

@@ -24,8 +24,8 @@ namespace Cesil
         {
             get
             {
-                if (_Method != null) return BackingMode.Method;
-                if (_Delegate != null) return BackingMode.Delegate;
+                if (Method.HasValue) return BackingMode.Method;
+                if (Delegate.HasValue) return BackingMode.Delegate;
 
                 return BackingMode.None;
             }
@@ -37,36 +37,30 @@ namespace Cesil
             {
                 switch (Mode)
                 {
-                    case BackingMode.Method: return Method.IsStatic;
-                    case BackingMode.Delegate: return !HasTakes;
+                    case BackingMode.Method: return Method.Value.IsStatic;
+                    case BackingMode.Delegate: return !Takes.HasValue;
                     default:
                         return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}");
                 }
             }
         }
 
-        private readonly MethodInfo? _Method;
-        internal MethodInfo Method => Utils.NonNull(_Method);
-
-        private readonly Delegate? _Delegate;
-        internal Delegate Delegate => Utils.NonNull(_Delegate);
-
-        private readonly TypeInfo? _Takes;
-        internal bool HasTakes => _Takes != null;
-        internal TypeInfo Takes => Utils.NonNull(_Takes);
+        internal readonly NonNull<MethodInfo> Method;
+        internal readonly NonNull<Delegate> Delegate;
+        internal readonly NonNull<TypeInfo> Takes;
 
         private ShouldSerialize(TypeInfo? takes, MethodInfo method)
         {
-            _Takes = takes;
-            _Method = method;
-            _Delegate = null;
+            Takes.SetAllowNull(takes);
+            Method.Value = method;
+            Delegate.Clear();
         }
 
         private ShouldSerialize(TypeInfo? takes, Delegate del)
         {
-            _Takes = takes;
-            _Method = null;
-            _Delegate = del;
+            Takes.SetAllowNull(takes);
+            Method.Clear();
+            Delegate.Value = del;
         }
 
         /// <summary>
@@ -162,23 +156,23 @@ namespace Cesil
 
             if (IsStatic != s.IsStatic) return false;
 
-            if (HasTakes)
+            if (Takes.HasValue)
             {
-                if (!s.HasTakes) return false;
+                if (!s.Takes.HasValue) return false;
 
-                if (Takes != s.Takes) return false;
+                if (Takes.Value != s.Takes.Value) return false;
             }
             else
             {
-                if (s.HasTakes) return false;
+                if (s.Takes.HasValue) return false;
             }
 
             switch (mode)
             {
                 case BackingMode.Delegate:
-                    return Delegate == s.Delegate;
+                    return Delegate.Value == s.Delegate.Value;
                 case BackingMode.Method:
-                    return Method == s.Method;
+                    return Method.Value == s.Method.Value;
 
                 default:
                     return Throw.Exception<bool>($"Unexpected {nameof(BackingMode)}: {mode}");
@@ -189,7 +183,7 @@ namespace Cesil
         /// Returns a stable hash for this ShouldSerialize.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(ShouldSerialize), _Delegate, IsStatic, _Method, Mode, _Takes);
+        => HashCode.Combine(nameof(ShouldSerialize), Delegate, IsStatic, Method, Mode, Takes);
 
         /// <summary>
         /// Describes this ShouldSerialize.
@@ -266,7 +260,7 @@ namespace Cesil
             var ps = mtd.GetParameters();
             if (ps.Length == 0)
             {
-                var reboundDel = Delegate.CreateDelegate(Types.StaticShouldSerializeDelegateType, del, invoke);
+                var reboundDel = System.Delegate.CreateDelegate(Types.StaticShouldSerializeDelegateType, del, invoke);
 
                 return new ShouldSerialize(null, reboundDel);
             }
@@ -274,7 +268,7 @@ namespace Cesil
             {
                 var takesType = ps[0].ParameterType.GetTypeInfo();
                 var shouldSerializeDelType = Types.ShouldSerializeDelegateType.MakeGenericType(takesType);
-                var reboundDel = Delegate.CreateDelegate(shouldSerializeDelType, del, invoke);
+                var reboundDel = System.Delegate.CreateDelegate(shouldSerializeDelType, del, invoke);
 
                 return new ShouldSerialize(takesType, reboundDel);
             }

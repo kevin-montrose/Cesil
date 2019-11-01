@@ -17,19 +17,15 @@ namespace Cesil
         void IDelegateCache.Add<T, V>(T key, V cached)
         => Cache.TryAdd(key, cached);
 
-        bool IDelegateCache.TryGet<T, V>(T key, out V? val)
+        CachedDelegate<V> IDelegateCache.TryGet<T, V>(T key)
             where V: class
         {
             if (!Cache.TryGetValue(key, out var cachedNull))
             {
-                val = default;
-                return false;
+                return CachedDelegate<V>.Empty;
             }
 
-            var cached = Utils.NonNull(cachedNull);
-
-            val = (V)cached;
-            return true;
+            return new CachedDelegate<V>(cachedNull as V);
         }
     }
 }

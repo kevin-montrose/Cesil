@@ -31,8 +31,6 @@ namespace Cesil
 
         internal static class DynamicRow
         {
-            public static readonly MethodInfo Columns = Types.DynamicRowType.GetPropertyNonNull(nameof(Cesil.DynamicRow.Columns), BindingFlags.Instance | BindingFlags.NonPublic).GetGetMethodNonNull();
-            public static readonly MethodInfo Converter = Types.DynamicRowType.GetPropertyNonNull(nameof(Cesil.DynamicRow.Converter), BindingFlags.Instance | BindingFlags.NonPublic).GetGetMethodNonNull();
             public static readonly MethodInfo GetAt = Types.DynamicRowType.GetMethodNonNull(nameof(Cesil.DynamicRow.GetAt), BindingFlags.Instance | BindingFlags.NonPublic);
             public static readonly MethodInfo GetAtTyped = Types.DynamicRowType.GetMethodNonNull(nameof(Cesil.DynamicRow.GetAtTyped), BindingFlags.Instance | BindingFlags.NonPublic);
             public static readonly MethodInfo GetByName = Types.DynamicRowType.GetMethodNonNull(nameof(Cesil.DynamicRow.GetByName), BindingFlags.Instance | BindingFlags.NonPublic);
@@ -40,6 +38,19 @@ namespace Cesil
             public static readonly MethodInfo GetRange = Types.DynamicRowType.GetMethodNonNull(nameof(Cesil.DynamicRow.GetRange), BindingFlags.Instance | BindingFlags.NonPublic);
             public static readonly MethodInfo GetReadContext = Types.DynamicRowType.GetMethodNonNull(nameof(Cesil.DynamicRow.GetReadContext), BindingFlags.Instance | BindingFlags.NonPublic);
             public static readonly MethodInfo GetByIdentifier = Types.DynamicRowType.GetMethodNonNull(nameof(Cesil.DynamicRow.GetByIdentifier), BindingFlags.Instance | BindingFlags.NonPublic);
+        }
+
+        internal static class NonNull
+        {
+            internal static class OfITypeDescriber
+            {
+                public static readonly MethodInfo Value = Types.NonNullType.MakeGenericType(Types.ITypeDescriberType).GetTypeInfo().GetPropertyNonNull(nameof(NonNull<object>.Value), BindingFlags.Instance | BindingFlags.Public).GetGetMethodNonNull();
+            }
+
+            internal static class OfIReadOnlyListOfColumnIdentifier
+            {
+                public static readonly MethodInfo Value = Types.NonNullType.MakeGenericType(Types.IReadOnlyListType.MakeGenericType(Types.ColumnIdentifierType)).GetTypeInfo().GetPropertyNonNull(nameof(NonNull<object>.Value), BindingFlags.Instance | BindingFlags.Public).GetGetMethodNonNull();
+            }
         }
     }
 }

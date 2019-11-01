@@ -46,7 +46,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(string).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<string>)Delegate.CreateDelegate(typeof(Parse<string>), mtd.Method);
+                var del = (Parse<string>)Delegate.CreateDelegate(typeof(Parse<string>), mtd.Method.Value);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal("123", v1);
@@ -63,7 +63,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(Version).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<Version>)Delegate.CreateDelegate(typeof(Parse<Version>), mtd.Method);
+                var del = (Parse<Version>)Delegate.CreateDelegate(typeof(Parse<Version>), mtd.Method.Value);
 
                 var a = new Version();
                 var b = new Version("1.0");
@@ -96,7 +96,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(Uri).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<Uri>)Delegate.CreateDelegate(typeof(Parse<Uri>), mtd.Method);
+                var del = (Parse<Uri>)Delegate.CreateDelegate(typeof(Parse<Uri>), mtd.Method.Value);
 
                 var a = new Uri("/", UriKind.RelativeOrAbsolute);
                 var b = new Uri("/foo", UriKind.RelativeOrAbsolute);
@@ -129,7 +129,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(_TestEnum).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<_TestEnum>)Delegate.CreateDelegate(typeof(Parse<_TestEnum>), mtd.Method);
+                var del = (Parse<_TestEnum>)Delegate.CreateDelegate(typeof(Parse<_TestEnum>), mtd.Method.Value);
 
                 Assert.True(del(_TestEnum.None.ToString(), default, out var v1));
                 Assert.Equal(_TestEnum.None, v1);
@@ -150,7 +150,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(_TestFlagsEnum).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<_TestFlagsEnum>)Delegate.CreateDelegate(typeof(Parse<_TestFlagsEnum>), mtd.Method);
+                var del = (Parse<_TestFlagsEnum>)Delegate.CreateDelegate(typeof(Parse<_TestFlagsEnum>), mtd.Method.Value);
 
                 Assert.True(del(_TestFlagsEnum.None.ToString(), default, out var v1));
                 Assert.Equal(_TestFlagsEnum.None, v1);
@@ -171,7 +171,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(char).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<char>)Delegate.CreateDelegate(typeof(Parse<char>), mtd.Method);
+                var del = (Parse<char>)Delegate.CreateDelegate(typeof(Parse<char>), mtd.Method.Value);
 
                 Assert.True(del("t", default, out var v1));
                 Assert.Equal('t', v1);
@@ -184,7 +184,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(bool).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<bool>)Delegate.CreateDelegate(typeof(Parse<bool>), mtd.Method);
+                var del = (Parse<bool>)Delegate.CreateDelegate(typeof(Parse<bool>), mtd.Method.Value);
 
                 Assert.True(del("true", default, out var v1));
                 Assert.True(v1);
@@ -206,7 +206,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(byte).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<byte>)Delegate.CreateDelegate(typeof(Parse<byte>), mtd.Method);
+                var del = (Parse<byte>)Delegate.CreateDelegate(typeof(Parse<byte>), mtd.Method.Value);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((byte)123, v1);
@@ -221,7 +221,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(sbyte).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<sbyte>)Delegate.CreateDelegate(typeof(Parse<sbyte>), mtd.Method);
+                var del = (Parse<sbyte>)Delegate.CreateDelegate(typeof(Parse<sbyte>), mtd.Method.Value);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((sbyte)123, v1);
@@ -237,7 +237,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(short).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<short>)Delegate.CreateDelegate(typeof(Parse<short>), mtd.Method);
+                var del = (Parse<short>)Delegate.CreateDelegate(typeof(Parse<short>), mtd.Method.Value);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((short)123, v1);
@@ -253,7 +253,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(ushort).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<ushort>)Delegate.CreateDelegate(typeof(Parse<ushort>), mtd.Method);
+                var del = (Parse<ushort>)Delegate.CreateDelegate(typeof(Parse<ushort>), mtd.Method.Value);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((ushort)123, v1);
@@ -268,7 +268,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(int).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<int>)Delegate.CreateDelegate(typeof(Parse<int>), mtd.Method);
+                var del = (Parse<int>)Delegate.CreateDelegate(typeof(Parse<int>), mtd.Method.Value);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal(123, v1);
@@ -284,7 +284,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(uint).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<uint>)Delegate.CreateDelegate(typeof(Parse<uint>), mtd.Method);
+                var del = (Parse<uint>)Delegate.CreateDelegate(typeof(Parse<uint>), mtd.Method.Value);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((uint)123, v1);
@@ -299,7 +299,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(long).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<long>)Delegate.CreateDelegate(typeof(Parse<long>), mtd.Method);
+                var del = (Parse<long>)Delegate.CreateDelegate(typeof(Parse<long>), mtd.Method.Value);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal(123L, v1);
@@ -315,7 +315,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(ulong).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<ulong>)Delegate.CreateDelegate(typeof(Parse<ulong>), mtd.Method);
+                var del = (Parse<ulong>)Delegate.CreateDelegate(typeof(Parse<ulong>), mtd.Method.Value);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((ulong)123, v1);
@@ -330,7 +330,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(float).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<float>)Delegate.CreateDelegate(typeof(Parse<float>), mtd.Method);
+                var del = (Parse<float>)Delegate.CreateDelegate(typeof(Parse<float>), mtd.Method.Value);
 
                 Assert.True(del("123.45", default, out var v1));
                 Assert.Equal(123.45f, v1);
@@ -346,7 +346,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(double).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<double>)Delegate.CreateDelegate(typeof(Parse<double>), mtd.Method);
+                var del = (Parse<double>)Delegate.CreateDelegate(typeof(Parse<double>), mtd.Method.Value);
 
                 Assert.True(del("123.45", default, out var v1));
                 Assert.Equal(123.45, v1);
@@ -362,7 +362,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(decimal).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<decimal>)Delegate.CreateDelegate(typeof(Parse<decimal>), mtd.Method);
+                var del = (Parse<decimal>)Delegate.CreateDelegate(typeof(Parse<decimal>), mtd.Method.Value);
 
                 Assert.True(del("123.45", default, out var v1));
                 Assert.Equal(123.45m, v1);
@@ -380,7 +380,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(Guid).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<Guid>)Delegate.CreateDelegate(typeof(Parse<Guid>), mtd.Method);
+                var del = (Parse<Guid>)Delegate.CreateDelegate(typeof(Parse<Guid>), mtd.Method.Value);
 
                 Assert.True(del("fe754e30-49c2-4875-b905-cbd6f237ddfd", default, out var v1));
                 Assert.Equal(shouldMatch, v1);
@@ -405,7 +405,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(DateTime).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<DateTime>)Delegate.CreateDelegate(typeof(Parse<DateTime>), mtd.Method);
+                var del = (Parse<DateTime>)Delegate.CreateDelegate(typeof(Parse<DateTime>), mtd.Method.Value);
 
                 // max
                 {
@@ -428,7 +428,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(DateTimeOffset).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<DateTimeOffset>)Delegate.CreateDelegate(typeof(Parse<DateTimeOffset>), mtd.Method);
+                var del = (Parse<DateTimeOffset>)Delegate.CreateDelegate(typeof(Parse<DateTimeOffset>), mtd.Method.Value);
 
                 // max
                 {
@@ -450,7 +450,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(TimeSpan).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<TimeSpan>)Delegate.CreateDelegate(typeof(Parse<TimeSpan>), mtd.Method);
+                var del = (Parse<TimeSpan>)Delegate.CreateDelegate(typeof(Parse<TimeSpan>), mtd.Method.Value);
 
                 // max
                 Assert.True(del(TimeSpan.MaxValue.ToString("c"), default, out var v1));
@@ -466,7 +466,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(Index).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<Index>)Delegate.CreateDelegate(typeof(Parse<Index>), mtd.Method);
+                var del = (Parse<Index>)Delegate.CreateDelegate(typeof(Parse<Index>), mtd.Method.Value);
 
                 // start
                 Assert.True(del(((Index)1).ToString(), default, out var v1));
@@ -491,7 +491,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(Range).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<Range>)Delegate.CreateDelegate(typeof(Parse<Range>), mtd.Method);
+                var del = (Parse<Range>)Delegate.CreateDelegate(typeof(Parse<Range>), mtd.Method.Value);
 
                 // start-start
                 var startStart = 1..4;
@@ -550,7 +550,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(_TestEnum?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<_TestEnum?>)Delegate.CreateDelegate(typeof(Parse<_TestEnum?>), mtd.Method);
+                var del = (Parse<_TestEnum?>)Delegate.CreateDelegate(typeof(Parse<_TestEnum?>), mtd.Method.Value);
 
                 Assert.True(del(_TestEnum.None.ToString(), default, out var v1));
                 Assert.Equal((_TestEnum?)_TestEnum.None, v1);
@@ -574,7 +574,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(_TestFlagsEnum?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<_TestFlagsEnum?>)Delegate.CreateDelegate(typeof(Parse<_TestFlagsEnum?>), mtd.Method);
+                var del = (Parse<_TestFlagsEnum?>)Delegate.CreateDelegate(typeof(Parse<_TestFlagsEnum?>), mtd.Method.Value);
 
                 Assert.True(del(((_TestFlagsEnum?)_TestFlagsEnum.None).ToString(), default, out var v1));
                 Assert.Equal((_TestFlagsEnum?)_TestFlagsEnum.None, v1);
@@ -598,7 +598,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(char?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<char?>)Delegate.CreateDelegate(typeof(Parse<char?>), mtd.Method);
+                var del = (Parse<char?>)Delegate.CreateDelegate(typeof(Parse<char?>), mtd.Method.Value);
 
                 Assert.True(del("t", default, out var v1));
                 Assert.Equal('t', v1.Value);
@@ -614,7 +614,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(bool?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<bool?>)Delegate.CreateDelegate(typeof(Parse<bool?>), mtd.Method);
+                var del = (Parse<bool?>)Delegate.CreateDelegate(typeof(Parse<bool?>), mtd.Method.Value);
 
                 Assert.True(del("true", default, out var v1));
                 Assert.True(v1.Value);
@@ -639,7 +639,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(byte?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<byte?>)Delegate.CreateDelegate(typeof(Parse<byte?>), mtd.Method);
+                var del = (Parse<byte?>)Delegate.CreateDelegate(typeof(Parse<byte?>), mtd.Method.Value);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((byte?)123, v1);
@@ -657,7 +657,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(sbyte?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<sbyte?>)Delegate.CreateDelegate(typeof(Parse<sbyte?>), mtd.Method);
+                var del = (Parse<sbyte?>)Delegate.CreateDelegate(typeof(Parse<sbyte?>), mtd.Method.Value);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((sbyte?)123, v1);
@@ -676,7 +676,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(short?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<short?>)Delegate.CreateDelegate(typeof(Parse<short?>), mtd.Method);
+                var del = (Parse<short?>)Delegate.CreateDelegate(typeof(Parse<short?>), mtd.Method.Value);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((short?)123, v1);
@@ -695,7 +695,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(ushort?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<ushort?>)Delegate.CreateDelegate(typeof(Parse<ushort?>), mtd.Method);
+                var del = (Parse<ushort?>)Delegate.CreateDelegate(typeof(Parse<ushort?>), mtd.Method.Value);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((ushort?)123, v1);
@@ -713,7 +713,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(int?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<int?>)Delegate.CreateDelegate(typeof(Parse<int?>), mtd.Method);
+                var del = (Parse<int?>)Delegate.CreateDelegate(typeof(Parse<int?>), mtd.Method.Value);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((int?)123, v1);
@@ -732,7 +732,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(uint?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<uint?>)Delegate.CreateDelegate(typeof(Parse<uint?>), mtd.Method);
+                var del = (Parse<uint?>)Delegate.CreateDelegate(typeof(Parse<uint?>), mtd.Method.Value);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((uint?)123, v1);
@@ -750,7 +750,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(long?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<long?>)Delegate.CreateDelegate(typeof(Parse<long?>), mtd.Method);
+                var del = (Parse<long?>)Delegate.CreateDelegate(typeof(Parse<long?>), mtd.Method.Value);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((long?)123, v1);
@@ -769,7 +769,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(ulong?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<ulong?>)Delegate.CreateDelegate(typeof(Parse<ulong?>), mtd.Method);
+                var del = (Parse<ulong?>)Delegate.CreateDelegate(typeof(Parse<ulong?>), mtd.Method.Value);
 
                 Assert.True(del("123", default, out var v1));
                 Assert.Equal((ulong?)123, v1);
@@ -787,7 +787,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(float?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<float?>)Delegate.CreateDelegate(typeof(Parse<float?>), mtd.Method);
+                var del = (Parse<float?>)Delegate.CreateDelegate(typeof(Parse<float?>), mtd.Method.Value);
 
                 Assert.True(del("123.45", default, out var v1));
                 Assert.Equal((float?)123.45f, v1);
@@ -806,7 +806,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(double?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<double?>)Delegate.CreateDelegate(typeof(Parse<double?>), mtd.Method);
+                var del = (Parse<double?>)Delegate.CreateDelegate(typeof(Parse<double?>), mtd.Method.Value);
 
                 Assert.True(del("123.45", default, out var v1));
                 Assert.Equal((double?)123.45, v1);
@@ -825,7 +825,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(decimal?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<decimal?>)Delegate.CreateDelegate(typeof(Parse<decimal?>), mtd.Method);
+                var del = (Parse<decimal?>)Delegate.CreateDelegate(typeof(Parse<decimal?>), mtd.Method.Value);
 
                 Assert.True(del("123.45", default, out var v1));
                 Assert.Equal((decimal?)123.45m, v1);
@@ -846,7 +846,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(Guid?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<Guid?>)Delegate.CreateDelegate(typeof(Parse<Guid?>), mtd.Method);
+                var del = (Parse<Guid?>)Delegate.CreateDelegate(typeof(Parse<Guid?>), mtd.Method.Value);
 
                 Assert.True(del("fe754e30-49c2-4875-b905-cbd6f237ddfd", default, out var v1));
                 Assert.Equal((Guid?)shouldMatch, v1);
@@ -874,7 +874,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(TimeSpan?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<TimeSpan?>)Delegate.CreateDelegate(typeof(Parse<TimeSpan?>), mtd.Method);
+                var del = (Parse<TimeSpan?>)Delegate.CreateDelegate(typeof(Parse<TimeSpan?>), mtd.Method.Value);
 
                 // max
                 Assert.True(del(TimeSpan.MaxValue.ToString("c"), default, out var v1));
@@ -894,7 +894,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(DateTime?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<DateTime?>)Delegate.CreateDelegate(typeof(Parse<DateTime?>), mtd.Method);
+                var del = (Parse<DateTime?>)Delegate.CreateDelegate(typeof(Parse<DateTime?>), mtd.Method.Value);
 
                 // max
                 {
@@ -923,7 +923,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(DateTimeOffset?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<DateTimeOffset?>)Delegate.CreateDelegate(typeof(Parse<DateTimeOffset?>), mtd.Method);
+                var del = (Parse<DateTimeOffset?>)Delegate.CreateDelegate(typeof(Parse<DateTimeOffset?>), mtd.Method.Value);
 
                 // max
                 {
@@ -951,7 +951,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(Index?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<Index?>)Delegate.CreateDelegate(typeof(Parse<Index?>), mtd.Method);
+                var del = (Parse<Index?>)Delegate.CreateDelegate(typeof(Parse<Index?>), mtd.Method.Value);
 
                 // start
                 Assert.True(del(((Index?)1).ToString(), default, out var v1));
@@ -974,7 +974,7 @@ namespace Cesil.Tests
                 var mtd = Parser.GetDefault(typeof(Range?).GetTypeInfo());
                 Assert.NotNull(mtd);
 
-                var del = (Parse<Range?>)Delegate.CreateDelegate(typeof(Parse<Range?>), mtd.Method);
+                var del = (Parse<Range?>)Delegate.CreateDelegate(typeof(Parse<Range?>), mtd.Method.Value);
 
                 // start-start
                 Range? startStart = 1..4;
@@ -1038,8 +1038,8 @@ namespace Cesil.Tests
             // setters
             Assert.Collection(
                 cols,
-                a => Assert.Same(typeof(_Deserialize).GetProperty(nameof(_Deserialize.ShouldBePresent1)).SetMethod, a.Setter.Method),
-                a => Assert.Same(typeof(_Deserialize).GetProperty(nameof(_Deserialize.ShouldBePresent2)).SetMethod, a.Setter.Method)
+                a => Assert.Same(typeof(_Deserialize).GetProperty(nameof(_Deserialize.ShouldBePresent1)).SetMethod, a.Setter.Method.Value),
+                a => Assert.Same(typeof(_Deserialize).GetProperty(nameof(_Deserialize.ShouldBePresent2)).SetMethod, a.Setter.Method.Value)
             );
 
             // parser
@@ -1054,8 +1054,8 @@ namespace Cesil.Tests
             // reset 
             Assert.Collection(
                 cols,
-                a => Assert.False(a.HasReset),
-                a => Assert.Same(mtd, a.Reset.Method)
+                a => Assert.False(a.Reset.HasValue),
+                a => Assert.Same(mtd, a.Reset.Value.Method.Value)
             );
         }
 
@@ -1097,10 +1097,10 @@ namespace Cesil.Tests
             // setters
             Assert.Collection(
                 cols,
-                a => Assert.Same(typeof(_DeserializeDataMember).GetField("Field"), a.Setter.Field),
-                a => Assert.Same(typeof(_DeserializeDataMember).GetProperty(nameof(_DeserializeDataMember.Hello)).SetMethod, a.Setter.Method),
-                a => Assert.Same(typeof(_DeserializeDataMember).GetProperty(nameof(_DeserializeDataMember.Foo)).SetMethod, a.Setter.Method),
-                a => Assert.Same(typeof(_DeserializeDataMember).GetProperty(nameof(_DeserializeDataMember.Yeaaaah)).SetMethod, a.Setter.Method)
+                a => Assert.Same(typeof(_DeserializeDataMember).GetField("Field"), a.Setter.Field.Value),
+                a => Assert.Same(typeof(_DeserializeDataMember).GetProperty(nameof(_DeserializeDataMember.Hello)).SetMethod, a.Setter.Method.Value),
+                a => Assert.Same(typeof(_DeserializeDataMember).GetProperty(nameof(_DeserializeDataMember.Foo)).SetMethod, a.Setter.Method.Value),
+                a => Assert.Same(typeof(_DeserializeDataMember).GetProperty(nameof(_DeserializeDataMember.Yeaaaah)).SetMethod, a.Setter.Method.Value)
             );
 
             // setters actually work
@@ -1108,7 +1108,7 @@ namespace Cesil.Tests
                 // Field
                 {
                     var x = new _DeserializeDataMember();
-                    var field = cols[0].Setter.Field;
+                    var field = cols[0].Setter.Field.Value;
                     field.SetValue(x, (int?)-123);
                     Assert.Equal((int?)-123, x.Field);
                 }
@@ -1116,7 +1116,7 @@ namespace Cesil.Tests
                 // HELLO
                 {
                     var x = new _DeserializeDataMember();
-                    var hello = cols[1].Setter.Method;
+                    var hello = cols[1].Setter.Method.Value;
                     hello.Invoke(x, new object[] { (double)1.23 });
                     Assert.Equal(1.23, x.Hello);
                 }
@@ -1124,7 +1124,7 @@ namespace Cesil.Tests
                 // Foo
                 {
                     var x = new _DeserializeDataMember();
-                    var foo = cols[2].Setter.Method;
+                    var foo = cols[2].Setter.Method.Value;
                     foo.Invoke(x, new object[] { "bar" });
                     Assert.Equal("bar", x.Foo);
                 }
@@ -1132,7 +1132,7 @@ namespace Cesil.Tests
                 // Yeaaaah
                 {
                     var x = new _DeserializeDataMember();
-                    var yeaaaah = cols[3].Setter.Method;
+                    var yeaaaah = cols[3].Setter.Method.Value;
                     yeaaaah.Invoke(x, new object[] { (decimal?)12.34m });
                     Assert.Equal((decimal?)12.34m, x.GetYeah());
                 }
@@ -1181,7 +1181,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(string).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(string).GetTypeInfo()).Method.Value;
                 var res = mtd.Invoke(null, new object[] { "foo", default(WriteContext), writer });
                 var resBool = (bool)res;
                 Assert.True(resBool);
@@ -1199,7 +1199,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(Version).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(Version).GetTypeInfo()).Method.Value;
 
                 var a = new Version();
                 var b = new Version("1.0");
@@ -1287,7 +1287,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(Uri).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(Uri).GetTypeInfo()).Method.Value;
 
                 var a = new Uri("/", UriKind.RelativeOrAbsolute);
                 var b = new Uri("/foo", UriKind.RelativeOrAbsolute);
@@ -1375,7 +1375,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(_TestEnum).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(_TestEnum).GetTypeInfo()).Method.Value;
 
                 // Bar
                 {
@@ -1430,7 +1430,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(_TestFlagsEnum).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(_TestFlagsEnum).GetTypeInfo()).Method.Value;
 
                 // First
                 {
@@ -1485,7 +1485,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(char).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(char).GetTypeInfo()).Method.Value;
 
                 // value
                 {
@@ -1507,7 +1507,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(bool).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(bool).GetTypeInfo()).Method.Value;
 
                 // true
                 {
@@ -1542,7 +1542,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(byte).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(byte).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -1564,7 +1564,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(sbyte).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(sbyte).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -1599,7 +1599,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(short).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(short).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -1634,7 +1634,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(ushort).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(ushort).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -1656,7 +1656,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(int).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(int).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -1691,7 +1691,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(uint).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(uint).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -1713,7 +1713,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(long).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(long).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -1748,7 +1748,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(ulong).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(ulong).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -1770,7 +1770,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(float).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(float).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -1805,7 +1805,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(double).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(double).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -1853,7 +1853,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(decimal).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(decimal).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -1901,7 +1901,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(DateTime).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(DateTime).GetTypeInfo()).Method.Value;
 
                 // max
                 {
@@ -1936,7 +1936,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(DateTimeOffset).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(DateTimeOffset).GetTypeInfo()).Method.Value;
 
                 // max
                 {
@@ -1971,7 +1971,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(TimeSpan).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(TimeSpan).GetTypeInfo()).Method.Value;
 
                 // max
                 {
@@ -2025,7 +2025,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(_TestEnum?).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(_TestEnum?).GetTypeInfo()).Method.Value;
 
                 // Bar
                 {
@@ -2091,7 +2091,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(_TestFlagsEnum?).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(_TestFlagsEnum?).GetTypeInfo()).Method.Value;
 
                 // First
                 {
@@ -2157,7 +2157,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(char?).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(char?).GetTypeInfo()).Method.Value;
 
                 // value
                 {
@@ -2190,7 +2190,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(bool?).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(bool?).GetTypeInfo()).Method.Value;
 
                 // true
                 {
@@ -2236,7 +2236,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(byte?).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(byte?).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -2269,7 +2269,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(sbyte?).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(sbyte?).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -2315,7 +2315,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(short?).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(short?).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -2361,7 +2361,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(ushort?).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(ushort?).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -2394,7 +2394,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(int?).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(int?).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -2440,7 +2440,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(uint?).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(uint?).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -2473,7 +2473,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(long?).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(long?).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -2519,7 +2519,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(ulong?).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(ulong?).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -2552,7 +2552,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(float?).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(float?).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -2598,7 +2598,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(double?).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(double?).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -2658,7 +2658,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(decimal?).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(decimal?).GetTypeInfo()).Method.Value;
 
                 // positive
                 {
@@ -2717,7 +2717,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(DateTime?).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(DateTime?).GetTypeInfo()).Method.Value;
 
                 // max
                 {
@@ -2763,7 +2763,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(DateTimeOffset?).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(DateTimeOffset?).GetTypeInfo()).Method.Value;
 
                 // max
                 {
@@ -2809,7 +2809,7 @@ namespace Cesil.Tests
                 var writer = new CharWriter(pipe.Writer);
                 var reader = pipe.Reader;
 
-                var mtd = Formatter.GetDefault(typeof(TimeSpan?).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(TimeSpan?).GetTypeInfo()).Method.Value;
 
                 // max
                 {
@@ -2878,7 +2878,7 @@ namespace Cesil.Tests
             {
                 var a = new Uri("https://example.com/");
                 var needed = a.ToString().Length;
-                var mtd = Formatter.GetDefault(typeof(Uri).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(Uri).GetTypeInfo()).Method.Value;
 
                 for (var i = 0; i < needed; i++)
                 {
@@ -2894,7 +2894,7 @@ namespace Cesil.Tests
             {
                 var a = true;
                 var needed = a.ToString().Length;
-                var mtd = Formatter.GetDefault(typeof(bool).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(bool).GetTypeInfo()).Method.Value;
 
                 for (var i = 0; i < needed; i++)
                 {
@@ -2915,7 +2915,7 @@ namespace Cesil.Tests
             {
                 var a = 'c';
                 var needed = 1;
-                var mtd = Formatter.GetDefault(typeof(char).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(char).GetTypeInfo()).Method.Value;
 
                 for (var i = 0; i < needed; i++)
                 {
@@ -2959,19 +2959,19 @@ namespace Cesil.Tests
             // getters
             Assert.Collection(
                 cols,
-                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.GetButNoSet)).GetMethod, a.Getter.Method),
-                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.GetAndSet)).GetMethod, a.Getter.Method),
-                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.ShouldSerializeProp)).GetMethod, a.Getter.Method),
-                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.ShouldSerializeStaticProp)).GetMethod, a.Getter.Method)
+                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.GetButNoSet)).GetMethod, a.Getter.Method.Value),
+                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.GetAndSet)).GetMethod, a.Getter.Method.Value),
+                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.ShouldSerializeProp)).GetMethod, a.Getter.Method.Value),
+                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.ShouldSerializeStaticProp)).GetMethod, a.Getter.Method.Value)
             );
 
             // should serialize
             Assert.Collection(
                 cols,
-                a => Assert.False(a.HasShouldSerialize),
-                b => Assert.False(b.HasShouldSerialize),
-                c => Assert.Same(typeof(_Serialize).GetMethod(nameof(_Serialize.ShouldSerializeShouldSerializeProp)), c.ShouldSerialize.Method),
-                d => Assert.Same(typeof(_Serialize).GetMethod(nameof(_Serialize.ShouldSerializeShouldSerializeStaticProp)), d.ShouldSerialize.Method)
+                a => Assert.False(a.ShouldSerialize.HasValue),
+                b => Assert.False(b.ShouldSerialize.HasValue),
+                c => Assert.Same(typeof(_Serialize).GetMethod(nameof(_Serialize.ShouldSerializeShouldSerializeProp)), c.ShouldSerialize.Value.Method.Value),
+                d => Assert.Same(typeof(_Serialize).GetMethod(nameof(_Serialize.ShouldSerializeShouldSerializeStaticProp)), d.ShouldSerialize.Value.Method.Value)
             );
 
             // formatter
@@ -3025,28 +3025,28 @@ namespace Cesil.Tests
             // getters
             Assert.Collection(
                 cols,
-                a => Assert.Same(typeof(_SerializeDataMember).GetField("Field"), a.Getter.Field),
-                a => Assert.Same(typeof(_SerializeDataMember).GetProperty("WORLD").GetMethod, a.Getter.Method),
-                a => Assert.Same(typeof(_SerializeDataMember).GetProperty("Bar").GetMethod, a.Getter.Method),
-                a => Assert.Same(typeof(_SerializeDataMember).GetProperty("Yeaaaah", BindingFlags.Instance | BindingFlags.NonPublic).GetMethod, a.Getter.Method)
+                a => Assert.Same(typeof(_SerializeDataMember).GetField("Field"), a.Getter.Field.Value),
+                a => Assert.Same(typeof(_SerializeDataMember).GetProperty("WORLD").GetMethod, a.Getter.Method.Value),
+                a => Assert.Same(typeof(_SerializeDataMember).GetProperty("Bar").GetMethod, a.Getter.Method.Value),
+                a => Assert.Same(typeof(_SerializeDataMember).GetProperty("Yeaaaah", BindingFlags.Instance | BindingFlags.NonPublic).GetMethod, a.Getter.Method.Value)
             );
 
             // should serialize
             Assert.Collection(
                 cols,
-                a => Assert.False(a.HasShouldSerialize),
-                a => Assert.Same(typeof(_SerializeDataMember).GetMethod(nameof(_SerializeDataMember.ShouldSerializeWORLD)), a.ShouldSerialize.Method),
-                a => Assert.False(a.HasShouldSerialize),
-                a => Assert.False(a.HasShouldSerialize)
+                a => Assert.False(a.ShouldSerialize.HasValue),
+                a => Assert.Same(typeof(_SerializeDataMember).GetMethod(nameof(_SerializeDataMember.ShouldSerializeWORLD)), a.ShouldSerialize.Value.Method.Value),
+                a => Assert.False(a.ShouldSerialize.HasValue),
+                a => Assert.False(a.ShouldSerialize.HasValue)
             );
 
             // formatter
             Assert.Collection(
                 cols,
-                a => Assert.Same(Formatter.GetDefault(typeof(int?).GetTypeInfo()).Method, a.Formatter.Method),
-                a => Assert.Same(Formatter.GetDefault(typeof(double).GetTypeInfo()).Method, a.Formatter.Method),
-                a => Assert.Same(Formatter.GetDefault(typeof(string).GetTypeInfo()).Method, a.Formatter.Method),
-                a => Assert.Same(Formatter.GetDefault(typeof(StringComparison).GetTypeInfo()).Method, a.Formatter.Method)
+                a => Assert.Same(Formatter.GetDefault(typeof(int?).GetTypeInfo()).Method.Value, a.Formatter.Method.Value),
+                a => Assert.Same(Formatter.GetDefault(typeof(double).GetTypeInfo()).Method.Value, a.Formatter.Method.Value),
+                a => Assert.Same(Formatter.GetDefault(typeof(string).GetTypeInfo()).Method.Value, a.Formatter.Method.Value),
+                a => Assert.Same(Formatter.GetDefault(typeof(StringComparison).GetTypeInfo()).Method.Value, a.Formatter.Method.Value)
             );
 
             // emitDefaultValue
@@ -3142,7 +3142,7 @@ namespace Cesil.Tests
 
             static void Try<T>(T def = default)
             {
-                var mtd = Formatter.GetDefault(typeof(T).GetTypeInfo()).Method;
+                var mtd = Formatter.GetDefault(typeof(T).GetTypeInfo()).Method.Value;
 
                 var res = (bool)mtd.Invoke(null, new object[] { def, default(WriteContext), _Formatter_InsufficientMemoryDoesntThrow.Singleton });
 

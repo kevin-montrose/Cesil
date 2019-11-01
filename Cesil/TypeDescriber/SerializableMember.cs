@@ -34,9 +34,7 @@ namespace Cesil
         internal Getter Getter { get; }
         internal Formatter Formatter { get; }
 
-        private ShouldSerialize? _ShouldSerialize;
-        internal bool HasShouldSerialize => _ShouldSerialize != null;
-        internal ShouldSerialize ShouldSerialize => Utils.NonNull(_ShouldSerialize);
+        internal NonNull<ShouldSerialize> ShouldSerialize;
 
         internal bool EmitDefaultValue { get; }
 
@@ -45,7 +43,7 @@ namespace Cesil
             Name = name;
             Getter = getter;
             Formatter = formatter;
-            _ShouldSerialize = shouldSerialize;
+            ShouldSerialize.SetAllowNull(shouldSerialize);
             EmitDefaultValue = emitDefaultValue;
         }
 
@@ -173,22 +171,20 @@ namespace Cesil
                 return Throw.ArgumentException<SerializableMember>($"The first paramater to {nameof(formatter)} must be accept a {toSerializeType}", nameof(formatter));
             }
 
-            var shouldSerializeOnType = getter.HasRowType ? getter.RowType : null;
-
-            CheckShouldSerializeMethod(shouldSerialize, shouldSerializeOnType);
+            CheckShouldSerializeMethod(shouldSerialize, getter.RowType);
 
             return new SerializableMember(name, getter, formatter, shouldSerialize, emitDefaultValueBool);
         }
 
-        private static void CheckShouldSerializeMethod(ShouldSerialize? shouldSerialize, TypeInfo? onTypeNull)
+        private static void CheckShouldSerializeMethod(ShouldSerialize? shouldSerialize, NonNull<TypeInfo> onTypeNull)
         {
             if (shouldSerialize == null) return;
 
-            if (shouldSerialize.HasTakes)
+            if (shouldSerialize.Takes.HasValue)
             {
-                var shouldSerializeInstType = shouldSerialize.Takes;
+                var shouldSerializeInstType = shouldSerialize.Takes.Value;
 
-                var onType = Utils.NonNull(onTypeNull);
+                var onType = onTypeNull.Value;
 
                 var isInstOrSubclass = onType.IsAssignableFrom(shouldSerializeInstType);
 
@@ -219,15 +215,15 @@ namespace Cesil
         {
             if (ReferenceEquals(s, null)) return false;
 
-            if (HasShouldSerialize)
+            if (ShouldSerialize.HasValue)
             {
-                if (!s.HasShouldSerialize) return false;
+                if (!s.ShouldSerialize.HasValue) return false;
 
-                if (ShouldSerialize != s.ShouldSerialize) return false;
+                if (ShouldSerialize.Value != s.ShouldSerialize.Value) return false;
             }
             else
             {
-                if (s.HasShouldSerialize) return false;
+                if (s.ShouldSerialize.HasValue) return false;
             }
 
             return
@@ -241,7 +237,7 @@ namespace Cesil
         /// Returns a stable hash for this SerializableMember.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(SerializableMember), EmitDefaultValue, Formatter, Getter, Name, _ShouldSerialize);
+        => HashCode.Combine(nameof(SerializableMember), EmitDefaultValue, Formatter, Getter, Name, ShouldSerialize);
 
         /// <summary>
         /// Describes this SerializableMember.
@@ -249,7 +245,7 @@ namespace Cesil
         /// This is provided for debugging purposes, and the format is not guaranteed to be stable between releases.
         /// </summary>
         public override string ToString()
-        => $"{nameof(SerializableMember)} with {nameof(Name)}: {Name}\r\n{nameof(Getter)}: {Getter}\r\n{nameof(Formatter)}: {Formatter}\r\n{nameof(ShouldSerialize)}: {_ShouldSerialize}";
+        => $"{nameof(SerializableMember)} with {nameof(Name)}: {Name}\r\n{nameof(Getter)}: {Getter}\r\n{nameof(Formatter)}: {Formatter}\r\n{nameof(ShouldSerialize)}: {ShouldSerialize}";
 
         /// <summary>
         /// Compare two SerializableMembers for equality

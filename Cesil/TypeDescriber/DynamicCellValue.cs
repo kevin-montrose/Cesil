@@ -13,13 +13,13 @@ namespace Cesil
         /// Returns true if Name is set.
         /// </summary>
         [IntentionallyExposedPrimitive("Indicating presense, it's fine")]
-        public bool HasName => _Name != null;
+        public bool HasName => _Name.HasValue;
 
-        private readonly string? _Name;
+        private readonly NonNull<string> _Name;
         /// <summary>
         /// Name of the column the cell belongs to, throws if Name is not set.
         /// </summary>
-        public string Name => Utils.NonNull(_Name);
+        public string Name => _Name.Value;
         /// <summary>
         /// Cell value
         /// </summary>
@@ -32,7 +32,8 @@ namespace Cesil
 
         private DynamicCellValue(string? n, dynamic? v, Formatter f)
         {
-            _Name = n;
+            _Name = default;
+            _Name.SetAllowNull(n);
             Value = v;
             Formatter = f;
         }

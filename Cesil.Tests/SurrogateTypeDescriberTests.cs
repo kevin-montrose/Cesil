@@ -44,9 +44,9 @@ namespace Cesil.Tests
             surrogate.AddSurrogateType(typeof(_Resets_Real).GetTypeInfo(), typeof(_Resets_Surrogate).GetTypeInfo());
 
             var res = surrogate.EnumerateMembersToDeserialize(typeof(_Resets_Real).GetTypeInfo()).Single();
-            Assert.NotNull(res.Reset);
-            Assert.Equal(BackingMode.Method, res.Reset.Mode);
-            Assert.Equal(typeof(_Resets_Real).GetMethod(nameof(_Resets_Real.ResetFoo)), res.Reset.Method);
+            Assert.True(res.Reset.HasValue);
+            Assert.Equal(BackingMode.Method, res.Reset.Value.Mode);
+            Assert.Equal(typeof(_Resets_Real).GetMethod(nameof(_Resets_Real.ResetFoo)), res.Reset.Value.Method.Value);
 
             // resets can't be mapped if they're not backed by a method
             {
@@ -113,10 +113,10 @@ namespace Cesil.Tests
             var res = surrogate.EnumerateMembersToDeserialize(typeof(_Setters_Real).GetTypeInfo()).ToList();
             var a = res.Single(r => r.Name == nameof(_Setters_Real.Foo)).Setter;
             Assert.Equal(BackingMode.Method, a.Mode);
-            Assert.Equal(typeof(_Setters_Real).GetProperty(nameof(_Setters_Real.Foo)).SetMethod, a.Method);
+            Assert.Equal(typeof(_Setters_Real).GetProperty(nameof(_Setters_Real.Foo)).SetMethod, a.Method.Value);
             var b = res.Single(r => r.Name == nameof(_Setters_Real.Bar)).Setter;
             Assert.Equal(BackingMode.Field, b.Mode);
-            Assert.Equal(typeof(_Setters_Real).GetField(nameof(_Setters_Real.Bar)), b.Field);
+            Assert.Equal(typeof(_Setters_Real).GetField(nameof(_Setters_Real.Bar)), b.Field.Value);
 
             // setters can't be mapped if they're not backed by a method
             {
@@ -169,9 +169,9 @@ namespace Cesil.Tests
             surrogate.AddSurrogateType(typeof(_ShouldSerializes_Real).GetTypeInfo(), typeof(_ShouldSerializes_Surrogate).GetTypeInfo());
 
             var res = surrogate.EnumerateMembersToSerialize(typeof(_ShouldSerializes_Real).GetTypeInfo()).ToList();
-            var a = res.Single(r => r.Name == nameof(_ShouldSerializes_Real.Foo)).ShouldSerialize;
+            var a = res.Single(r => r.Name == nameof(_ShouldSerializes_Real.Foo)).ShouldSerialize.Value;
             Assert.Equal(BackingMode.Method, a.Mode);
-            Assert.Equal(typeof(_ShouldSerializes_Real).GetMethod(nameof(_ShouldSerializes_Real.ShouldSerializeFoo)), a.Method);
+            Assert.Equal(typeof(_ShouldSerializes_Real).GetMethod(nameof(_ShouldSerializes_Real.ShouldSerializeFoo)), a.Method.Value);
 
             // no matching method
             {
@@ -260,10 +260,10 @@ namespace Cesil.Tests
             var res = surrogate.EnumerateMembersToSerialize(typeof(_Getters_Real).GetTypeInfo()).ToList();
             var a = res.Single(r => r.Name == nameof(_Getters_Real.Foo)).Getter;
             Assert.Equal(BackingMode.Method, a.Mode);
-            Assert.Equal(typeof(_Getters_Real).GetProperty(nameof(_Getters_Real.Foo)).GetMethod, a.Method);
+            Assert.Equal(typeof(_Getters_Real).GetProperty(nameof(_Getters_Real.Foo)).GetMethod, a.Method.Value);
             var b = res.Single(r => r.Name == nameof(_Getters_Real.Bar)).Getter;
             Assert.Equal(BackingMode.Field, b.Mode);
-            Assert.Equal(typeof(_Getters_Real).GetField(nameof(_Getters_Real.Bar)), b.Field);
+            Assert.Equal(typeof(_Getters_Real).GetField(nameof(_Getters_Real.Bar)), b.Field.Value);
 
             // no equivalent method
             {
@@ -381,7 +381,7 @@ namespace Cesil.Tests
 
             var res = surrogate.GetInstanceProvider(typeof(_InstanceBuilders_Real).GetTypeInfo());
             Assert.Equal(BackingMode.Constructor, res.Mode);
-            Assert.Equal(typeof(_InstanceBuilders_Real).GetConstructor(Type.EmptyTypes), res.Constructor);
+            Assert.Equal(typeof(_InstanceBuilders_Real).GetConstructor(Type.EmptyTypes), res.Constructor.Value);
 
             // missing constructor
             {
@@ -444,17 +444,17 @@ namespace Cesil.Tests
                     res,
                     a =>
                     {
-                        Assert.False(a.Setter.HasField);
+                        Assert.False(a.Setter.Field.HasValue);
                         Assert.Equal(Parser.GetDefault(typeof(string).GetTypeInfo()), a.Parser);
                         Assert.Equal("bar", a.Name);
-                        Assert.Equal(typeof(_Simple_Real).GetProperty(nameof(_Simple_Real.Foo)).SetMethod, a.Setter.Method);
+                        Assert.Equal(typeof(_Simple_Real).GetProperty(nameof(_Simple_Real.Foo)).SetMethod, a.Setter.Method.Value);
                         Assert.False(a.IsRequired);
                     }
                 );
 
                 var builder = surrogate.GetInstanceProvider(typeof(_Simple_Real).GetTypeInfo());
                 Assert.Equal(BackingMode.Constructor, builder.Mode);
-                Assert.Equal(typeof(_Simple_Real).GetConstructor(Type.EmptyTypes), builder.Constructor);
+                Assert.Equal(typeof(_Simple_Real).GetConstructor(Type.EmptyTypes), builder.Constructor.Value);
                 Assert.Equal(typeof(_Simple_Real), builder.ConstructsType);
             }
 
@@ -466,17 +466,17 @@ namespace Cesil.Tests
                     res,
                     a =>
                     {
-                        Assert.False(a.Setter.HasField);
+                        Assert.False(a.Setter.Field.HasValue);
                         Assert.Equal(Parser.GetDefault(typeof(string).GetTypeInfo()), a.Parser);
                         Assert.Equal("bar", a.Name);
-                        Assert.Equal(typeof(_Simple_Surrogate).GetProperty(nameof(_Simple_Surrogate.Foo)).SetMethod, a.Setter.Method);
+                        Assert.Equal(typeof(_Simple_Surrogate).GetProperty(nameof(_Simple_Surrogate.Foo)).SetMethod, a.Setter.Method.Value);
                         Assert.False(a.IsRequired);
                     }
                 );
 
                 var builder = surrogate.GetInstanceProvider(typeof(_Simple_Surrogate).GetTypeInfo());
                 Assert.Equal(BackingMode.Constructor, builder.Mode);
-                Assert.Equal(typeof(_Simple_Surrogate).GetConstructor(Type.EmptyTypes), builder.Constructor);
+                Assert.Equal(typeof(_Simple_Surrogate).GetConstructor(Type.EmptyTypes), builder.Constructor.Value);
                 Assert.Equal(typeof(_Simple_Surrogate), builder.ConstructsType);
             }
         }
@@ -496,12 +496,12 @@ namespace Cesil.Tests
                     a =>
                     {
                         Assert.True(a.EmitDefaultValue);
-                        Assert.False(a.Getter.HasField);
-                        Assert.False(a.Getter.HasDelegate);
+                        Assert.False(a.Getter.Field.HasValue);
+                        Assert.False(a.Getter.Delegate.HasValue);
                         Assert.Equal(Formatter.GetDefault(typeof(string).GetTypeInfo()), a.Formatter);
                         Assert.Equal("bar", a.Name);
-                        Assert.Equal(typeof(_Simple_Real).GetProperty(nameof(_Simple_Real.Foo)).GetMethod, a.Getter.Method);
-                        Assert.False(a.HasShouldSerialize);
+                        Assert.Equal(typeof(_Simple_Real).GetProperty(nameof(_Simple_Real.Foo)).GetMethod, a.Getter.Method.Value);
+                        Assert.False(a.ShouldSerialize.HasValue);
                     }
                 );
             }
@@ -515,12 +515,12 @@ namespace Cesil.Tests
                     a =>
                     {
                         Assert.True(a.EmitDefaultValue);
-                        Assert.False(a.Getter.HasField);
-                        Assert.False(a.Getter.HasDelegate);
+                        Assert.False(a.Getter.Field.HasValue);
+                        Assert.False(a.Getter.Delegate.HasValue);
                         Assert.Equal(Formatter.GetDefault(typeof(string).GetTypeInfo()), a.Formatter);
                         Assert.Equal("bar", a.Name);
-                        Assert.Equal(typeof(_Simple_Surrogate).GetProperty(nameof(_Simple_Surrogate.Foo)).GetMethod, a.Getter.Method);
-                        Assert.False(a.HasShouldSerialize);
+                        Assert.Equal(typeof(_Simple_Surrogate).GetProperty(nameof(_Simple_Surrogate.Foo)).GetMethod, a.Getter.Method.Value);
+                        Assert.False(a.ShouldSerialize.HasValue);
                     }
                 );
             }

@@ -20,9 +20,9 @@ namespace Cesil
         {
             get
             {
-                if (_Constructor != null) return BackingMode.Constructor;
-                if (_Delegate != null) return BackingMode.Delegate;
-                if (_Method != null) return BackingMode.Method;
+                if (Constructor.HasValue) return BackingMode.Constructor;
+                if (Delegate.HasValue) return BackingMode.Delegate;
+                if (Method.HasValue) return BackingMode.Method;
 
                 return BackingMode.None;
             }
@@ -30,33 +30,27 @@ namespace Cesil
 
         internal readonly TypeInfo ConstructsType;
 
-        private readonly ConstructorInfo? _Constructor;
-        internal bool HasConstructor => _Constructor != null;
-        internal ConstructorInfo Constructor => Utils.NonNull(_Constructor);
+        internal readonly NonNull<ConstructorInfo> Constructor;
 
-        private readonly Delegate? _Delegate;
-        internal bool HasDelegate => _Delegate != null;
-        internal Delegate Delegate => Utils.NonNull(_Delegate);
+        internal readonly NonNull<Delegate> Delegate;
 
-        private readonly MethodInfo? _Method;
-        internal bool HasMethod => _Method != null;
-        internal MethodInfo Method => Utils.NonNull(_Method);
+        internal readonly NonNull<MethodInfo> Method;
 
         internal InstanceProvider(ConstructorInfo cons)
         {
-            _Constructor = cons;
+            Constructor.Value = cons;
             ConstructsType = cons.DeclaringTypeNonNull();
         }
 
         internal InstanceProvider(Delegate del, TypeInfo forType)
         {
-            _Delegate = del;
+            Delegate.Value = del;
             ConstructsType = forType;
         }
 
         internal InstanceProvider(MethodInfo mtd, TypeInfo forType)
         {
-            _Method = mtd;
+            Method.Value = mtd;
             ConstructsType = forType;
         }
 
@@ -184,19 +178,24 @@ namespace Cesil
         {
             if (ReferenceEquals(i, null)) return false;
 
-            return
-                i.Mode == Mode &&
-                i._Constructor == _Constructor &&
-                i.ConstructsType == ConstructsType &&
-                i._Delegate == _Delegate &&
-                i._Method == _Method;
+            if (Mode != i.Mode) return false;
+
+            if (ConstructsType != i.ConstructsType) return false;
+
+            switch (Mode)
+            {
+                case BackingMode.Constructor: return i.Constructor.Value == Constructor.Value;
+                case BackingMode.Delegate: return i.Delegate.Value == Delegate.Value;
+                case BackingMode.Method: return i.Method.Value == Method.Value;
+                default: return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}");
+            }
         }
 
         /// <summary>
         /// Returns a stable hash for this InstanceProvider.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(InstanceProvider), _Constructor, ConstructsType, _Delegate, _Method, Mode);
+        => HashCode.Combine(nameof(InstanceProvider), Constructor, ConstructsType, Delegate, Method, Mode);
 
         /// <summary>
         /// Returns a representation of this InstanceProvider object.
@@ -280,7 +279,7 @@ namespace Cesil
             var instanceBuilderDel = Types.InstanceProviderDelegateType.MakeGenericType(constructs);
             var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
-            var reboundDel = Delegate.CreateDelegate(instanceBuilderDel, del, invoke);
+            var reboundDel = System.Delegate.CreateDelegate(instanceBuilderDel, del, invoke);
 
             return new InstanceProvider(reboundDel, constructs);
         }

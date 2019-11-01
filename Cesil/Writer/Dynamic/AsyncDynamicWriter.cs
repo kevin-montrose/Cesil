@@ -12,27 +12,11 @@ namespace Cesil
         AsyncWriterBase<dynamic>,
         IDelegateCache
     {
-        internal new bool IsFirstRow => _ColumnNames == null;
+        internal new bool IsFirstRow => !ColumnNames.HasValue;
 
-        private Comparison<DynamicCellValue>? _ColumnNameSorter;
-        private Comparison<DynamicCellValue> ColumnNameSorter
-        {
-            get => Utils.NonNull(_ColumnNameSorter);
-            set
-            {
-                _ColumnNameSorter = value;
-            }
-        }
+        private NonNull<Comparison<DynamicCellValue>> ColumnNameSorter;
 
-        private (string Name, string EncodedName)[]? _ColumnNames;
-        private (string Name, string EncodedName)[] ColumnNames
-        {
-            get => Utils.NonNull(_ColumnNames);
-            set
-            {
-                _ColumnNames = value;
-            }
-        }
+        private NonNull<(string Name, string EncodedName)[]> ColumnNames;
 
         private readonly object[] DynamicArgumentsBuffer = new object[3];
 
@@ -43,23 +27,20 @@ namespace Cesil
             
         }
 
-        bool IDelegateCache.TryGet<T, V>(T key, out V? del)
+        CachedDelegate<V> IDelegateCache.TryGet<T, V>(T key)
             where V: class
         {
             if (DelegateCache == null)
             {
-                del = default;
-                return false;
+                return CachedDelegate<V>.Empty;
             }
 
             if (DelegateCache.TryGetValue(key, out var cached))
             {
-                del = (V?)cached;
-                return true;
+                return new CachedDelegate<V>(cached as V);
             }
 
-            del = default;
-            return false;
+            return CachedDelegate<V>.Empty;
         }
 
         void IDelegateCache.Add<T, V>(T key, V cached)
@@ -86,8 +67,10 @@ namespace Cesil
 
             var wholeRowContext = WriteContext.DiscoveringCells(RowNumber, Context);
 
-            var cellValues = Config.TypeDescriber.GetCellsForDynamicRow(in wholeRowContext, row as object);
+            var cellValues = Config.TypeDescriber.Value.GetCellsForDynamicRow(in wholeRowContext, row as object);
             cellValues = ForceInOrder(cellValues);
+
+            var columnNamesValue = ColumnNames.Value;
 
             var i = 0;
             var e = cellValues.GetEnumerator();
@@ -109,14 +92,14 @@ namespace Cesil
                         }
                     }
 
-                    var col = i < ColumnNames.Length ? ColumnNames[i].Name : null;
+                    var col = i < columnNamesValue.Length ? columnNamesValue[i].Name : null;
 
                     var ctx = WriteContext.WritingColumn(RowNumber, ColumnIdentifier.Create(i, col), Context);
 
                     var formatter = cell.Formatter;
                     var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
                     delProvider.Guarantee(this);
-                    var del = delProvider.CachedDelegate;
+                    var del = delProvider.CachedDelegate.Value;
 
                     var val = cell.Value as object;
                     if (!del(val, in ctx, Buffer))
@@ -163,8 +146,10 @@ end:
 
                 var wholeRowContext = WriteContext.DiscoveringCells(self.RowNumber, self.Context);
 
-                var cellValues = self.Config.TypeDescriber.GetCellsForDynamicRow(in wholeRowContext, row as object);
+                var cellValues = self.Config.TypeDescriber.Value.GetCellsForDynamicRow(in wholeRowContext, row as object);
                 cellValues = self.ForceInOrder(cellValues);
+
+                var selfColumnNamesValue = self.ColumnNames.Value;
 
                 var i = 0;
                 foreach (var cell in cellValues)
@@ -178,14 +163,14 @@ end:
                         cancel.ThrowIfCancellationRequested();
                     }
 
-                    var col = i < self.ColumnNames.Length ? self.ColumnNames[i].Name : null;
+                    var col = i < selfColumnNamesValue.Length ? selfColumnNamesValue[i].Name : null;
 
                     var ctx = WriteContext.WritingColumn(self.RowNumber, ColumnIdentifier.Create(i, col), self.Context);
 
                     var formatter = cell.Formatter;
                     var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
                     delProvider.Guarantee(self);
-                    var del = delProvider.CachedDelegate;
+                    var del = delProvider.CachedDelegate.Value;
 
                     var val = cell.Value as object;
                     if (!del(val, in ctx, self.Buffer))
@@ -221,16 +206,18 @@ end:
                     await waitFor;
                     cancel.ThrowIfCancellationRequested();
 
+                    var selfColumnNamesValue = self.ColumnNames.Value;
+
                     // finish the loop
                     {
-                        var col = i < self.ColumnNames.Length ? self.ColumnNames[i].Name : null;
+                        var col = i < selfColumnNamesValue.Length ? selfColumnNamesValue[i].Name : null;
 
                         var ctx = WriteContext.WritingColumn(self.RowNumber, ColumnIdentifier.Create(i, col), self.Context);
 
                         var formatter = cell.Formatter;
                         var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
                         delProvider.Guarantee(self);
-                        var del = delProvider.CachedDelegate;
+                        var del = delProvider.CachedDelegate.Value;
 
                         var val = cell.Value as object;
                         if (!del(val, in ctx, self.Buffer))
@@ -268,14 +255,14 @@ end:
                             cancel.ThrowIfCancellationRequested();
                         }
 
-                        var col = i < self.ColumnNames.Length ? self.ColumnNames[i].Name : null;
+                        var col = i < selfColumnNamesValue.Length ? selfColumnNamesValue[i].Name : null;
 
                         var ctx = WriteContext.WritingColumn(self.RowNumber, ColumnIdentifier.Create(i, col), self.Context);
 
                         var formatter = cell.Formatter;
                         var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
                         delProvider.Guarantee(self);
-                        var del = delProvider.CachedDelegate;
+                        var del = delProvider.CachedDelegate.Value;
 
                         var val = cell.Value as object;
                         if (!del(val, in ctx, self.Buffer))
@@ -323,6 +310,8 @@ end:
                         i++;
                     }
 
+                    var selfColumnNamesValue = self.ColumnNames.Value;
+
                     // resume
                     while (e.MoveNext())
                     {
@@ -336,14 +325,14 @@ end:
                             cancel.ThrowIfCancellationRequested();
                         }
 
-                        var col = i < self.ColumnNames.Length ? self.ColumnNames[i].Name : null;
+                        var col = i < selfColumnNamesValue.Length ? selfColumnNamesValue[i].Name : null;
 
                         var ctx = WriteContext.WritingColumn(self.RowNumber, ColumnIdentifier.Create(i, col), self.Context);
 
                         var formatter = cell.Formatter;
                         var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
                         delProvider.Guarantee(self);
-                        var del = delProvider.CachedDelegate;
+                        var del = delProvider.CachedDelegate.Value;
 
                         var val = cell.Value as object;
                         if (!del(val, in ctx, self.Buffer))
@@ -719,20 +708,22 @@ end:
 
         private IEnumerable<DynamicCellValue> ForceInOrder(IEnumerable<DynamicCellValue> raw)
         {
+            var columnNamesValue = ColumnNames.Value;
+
             // no headers mean we write whatever we're given!
-            if (ColumnNames.Length == 0) return raw;
+            if (columnNamesValue.Length == 0) return raw;
 
             var inOrder = true;
 
             var i = 0;
             foreach (var x in raw)
             {
-                if (i == ColumnNames.Length)
+                if (i == columnNamesValue.Length)
                 {
                     return Throw.InvalidOperationException<IEnumerable<DynamicCellValue>>("Too many cells returned, could not place in desired order");
                 }
 
-                var expectedName = ColumnNames[i];
+                var expectedName = columnNamesValue[i];
                 if (!expectedName.Name.Equals(x.Name))
                 {
                     inOrder = false;
@@ -746,7 +737,7 @@ end:
             if (inOrder) return raw;
 
             var ret = new List<DynamicCellValue>(raw);
-            ret.Sort(ColumnNameSorter);
+            ret.Sort(ColumnNameSorter.Value);
 
             return ret;
         }
@@ -759,7 +750,7 @@ end:
             if (Config.WriteHeader == WriteHeaders.Never)
             {
                 // nothing to write, so bail
-                ColumnNames = Array.Empty<(string, string)>();
+                ColumnNames.Value = Array.Empty<(string, string)>();
                 return new ValueTask<bool>(false);
             }
 
@@ -791,7 +782,7 @@ end:
             var ctx = WriteContext.DiscoveringColumns(Context);
 
             var colIx = 0;
-            foreach (var c in Config.TypeDescriber.GetCellsForDynamicRow(in ctx, o as object))
+            foreach (var c in Config.TypeDescriber.Value.GetCellsForDynamicRow(in ctx, o as object))
             {
                 var colName = c.Name;
 
@@ -812,15 +803,16 @@ end:
                 cols.Add((colName, encodedColName));
             }
 
-            ColumnNames = cols.ToArray();
+            ColumnNames.Value = cols.ToArray();
 
-            ColumnNameSorter =
+            ColumnNameSorter.Value =
                 (a, b) =>
                 {
+                    var columnNamesValue = ColumnNames.Value;
                     int aIx = -1, bIx = -1;
-                    for (var i = 0; i < ColumnNames.Length; i++)
+                    for (var i = 0; i < columnNamesValue.Length; i++)
                     {
-                        var colName = ColumnNames[i].Name;
+                        var colName = columnNamesValue[i].Name;
                         if (colName.Equals(a.Name))
                         {
                             aIx = i;
@@ -840,7 +832,8 @@ end:
 
         private ValueTask WriteHeadersAsync(CancellationToken cancel)
         {
-            for (var i = 0; i < ColumnNames.Length; i++)
+            var columnNamesValue = ColumnNames.Value;
+            for (var i = 0; i < columnNamesValue.Length; i++)
             {
                 // for the separator
                 if (i != 0)
@@ -852,7 +845,7 @@ end:
                     }
                 }
 
-                var colName = ColumnNames[i].EncodedName;
+                var colName = columnNamesValue[i].EncodedName;
 
                 // can colName is always gonna be encoded correctly, because we just discovered them
                 //   (ie. they're always correct for this config)
@@ -871,9 +864,11 @@ end:
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
 
+                var selfColumnNamesValue = self.ColumnNames.Value;
+
                 // finish the loop
                 {
-                    var colName = self.ColumnNames[i].EncodedName;
+                    var colName = selfColumnNamesValue[i].EncodedName;
 
                     // can colName is always gonna be encoded correctly, because we just discovered them
                     //   (ie. they're always correct for this config)
@@ -884,14 +879,14 @@ end:
                     i++;
                 }
 
-                for (; i < self.ColumnNames.Length; i++)
+                for (; i < selfColumnNamesValue.Length; i++)
                 {
                     // by defintion i != 0, so no need for the if
                     var secondPlaceTask = self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
                     await secondPlaceTask;
                     cancel.ThrowIfCancellationRequested();
 
-                    var colName = self.ColumnNames[i].EncodedName;
+                    var colName = selfColumnNamesValue[i].EncodedName;
 
                     // can colName is always gonna be encoded correctly, because we just discovered them
                     //   (ie. they're always correct for this config)
@@ -906,16 +901,18 @@ end:
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
 
+                var selfColumnNamesValue = self.ColumnNames.Value;
+
                 i++;
 
-                for (; i < self.ColumnNames.Length; i++)
+                for (; i < selfColumnNamesValue.Length; i++)
                 {
                     // by defintion i != 0, so no need for the if
                     var placeTask = self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
                     await placeTask;
                     cancel.ThrowIfCancellationRequested();
 
-                    var colName = self.ColumnNames[i].EncodedName;
+                    var colName = selfColumnNamesValue[i].EncodedName;
 
                     // can colName is always gonna be encoded correctly, because we just discovered them
                     //   (ie. they're always correct for this config)
@@ -948,7 +945,7 @@ end:
                     }
                 }
 
-                if (HasBuffer)
+                if (Staging.HasValue)
                 {
                     if (InStaging > 0)
                     {
@@ -959,7 +956,7 @@ end:
                         }
                     }
 
-                    Staging.Dispose();
+                    Staging.Value.Dispose();
                 }
 
                 var innerDisposeTask = Inner.DisposeAsync();
@@ -968,9 +965,9 @@ end:
                     return DisposeAsync_ContinueAfterDisposeAsync(this, innerDisposeTask);
                 }
 
-                if (HasOneCharOwner)
+                if (OneCharOwner.HasValue)
                 {
-                    OneCharOwner.Dispose();
+                    OneCharOwner.Value.Dispose();
                 }
                 Buffer.Dispose();
                 IsDisposed = true;
@@ -989,7 +986,7 @@ end:
                     await endTask;
                 }
 
-                if (self.HasBuffer)
+                if (self.Staging.HasValue)
                 {
                     if (self.InStaging > 0)
                     {
@@ -997,15 +994,15 @@ end:
                         await flushTask;
                     }
 
-                    self.Staging.Dispose();
+                    self.Staging.Value.Dispose();
                 }
 
                 var disposeTask = self.Inner.DisposeAsync();
                 await disposeTask;
 
-                if (self.HasOneCharOwner)
+                if (self.OneCharOwner.HasValue)
                 {
-                    self.OneCharOwner.Dispose();
+                    self.OneCharOwner.Value.Dispose();
                 }
                 self.Buffer.Dispose();
                 self.IsDisposed = true;
@@ -1016,7 +1013,7 @@ end:
             {
                 await waitFor;
 
-                if (self.HasBuffer)
+                if (self.Staging.HasValue)
                 {
                     if (self.InStaging > 0)
                     {
@@ -1024,15 +1021,15 @@ end:
                         await flushTask;
                     }
 
-                    self.Staging.Dispose();
+                    self.Staging.Value.Dispose();
                 }
 
                 var disposeTask = self.Inner.DisposeAsync();
                 await disposeTask;
 
-                if (self.HasOneCharOwner)
+                if (self.OneCharOwner.HasValue)
                 {
-                    self.OneCharOwner.Dispose();
+                    self.OneCharOwner.Value.Dispose();
                 }
                 self.Buffer.Dispose();
                 self.IsDisposed = true;
@@ -1043,14 +1040,14 @@ end:
             {
                 await waitFor;
 
-                self.Staging.Dispose();
+                self.Staging.Value.Dispose();
 
                 var disposeTask = self.Inner.DisposeAsync();
                 await disposeTask;
 
-                if (self.HasOneCharOwner)
+                if (self.OneCharOwner.HasValue)
                 {
-                    self.OneCharOwner.Dispose();
+                    self.OneCharOwner.Value.Dispose();
                 }
                 self.Buffer.Dispose();
                 self.IsDisposed = true;
@@ -1061,9 +1058,9 @@ end:
             {
                 await waitFor;
 
-                if (self.HasOneCharOwner)
+                if (self.OneCharOwner.HasValue)
                 {
-                    self.OneCharOwner.Dispose();
+                    self.OneCharOwner.Value.Dispose();
                 }
                 self.Buffer.Dispose();
                 self.IsDisposed = true;

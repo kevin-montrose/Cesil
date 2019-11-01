@@ -8,18 +8,21 @@ namespace Cesil
             where TSelf : ICreatesCacheableDelegate<TDelegate>, IEquatable<TSelf>
             where TDelegate : Delegate
         {
-            if (inst.HasCachedDelegate) return;
+            if (inst.CachedDelegate.HasValue) return;
 
-            if (cache.TryGet<TSelf, TDelegate>(inst, out var val))
+            ref var del = ref inst.CachedDelegate;
+
+            var cachedRes = cache.TryGet<TSelf, TDelegate>(inst);
+
+            if (cachedRes.Value.HasValue)
             {
-                val = Utils.NonNull(val);
-                inst.CachedDelegate = val;
+                del.Value = cachedRes.Value.Value;
                 return;
             }
 
             var newDel = inst.CreateDelegate();
             cache.Add(inst, newDel);
-            inst.CachedDelegate = newDel;
+            del.Value = newDel;
         }
     }
 }

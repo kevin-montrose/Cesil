@@ -142,7 +142,7 @@ namespace Cesil
         internal void PlaceCharInStaging(char c)
         {
             // if we can't buffer, just go straight to the underlying stream
-            if (!HasBuffer)
+            if (!Staging.HasValue)
             {
                 WriteCharDirectly(c);
                 return;
@@ -157,7 +157,7 @@ namespace Cesil
         internal void PlaceAllInStaging(ReadOnlySpan<char> charSpan)
         {
             // if we can't buffer, just go straight to the underlying stream
-            if (!HasBuffer)
+            if (!Staging.HasValue)
             {
                 WriteAllDirectly(charSpan);
                 return;
@@ -173,7 +173,7 @@ namespace Cesil
         // returns true if we need to flush stating, sets remaing to what wasn't placed in staging
         internal bool PlaceInStaging(ReadOnlySpan<char> c, out ReadOnlySpan<char> remaining)
         {
-            var stagingSpan = Staging.Memory.Span;
+            var stagingSpan = Staging.Value.Memory.Span;
 
             var ix = 0;
             while (ix < c.Length)
@@ -213,7 +213,7 @@ namespace Cesil
 
         internal void FlushStaging()
         {
-            var span = Staging.Memory.Span;
+            var span = Staging.Value.Memory.Span;
 
             Inner.Write(span.Slice(0, InStaging));
 

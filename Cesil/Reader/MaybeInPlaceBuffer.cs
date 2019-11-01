@@ -23,17 +23,8 @@ namespace Cesil
         private int StartIndex;
         internal int Length;
 
-        private IMemoryOwner<T>? _CopyOwner;
-        private bool HasCopyOwner => _CopyOwner != null;
-        private IMemoryOwner<T> CopyOwner
-        {
-            get => Utils.NonNull(_CopyOwner);
-            set
-            {
-                _CopyOwner = value;
-            }
-        }
-        internal Span<T> Copy => CopyOwner.Memory.Span;         // internal for testing purposes, don't use directly
+        private NonNull<IMemoryOwner<T>> CopyOwner;
+        internal Span<T> Copy => CopyOwner.Value.Memory.Span;         // internal for testing purposes, don't use directly
 
         internal MaybeInPlaceBuffer(MemoryPool<T> memoryPool)
         {
@@ -114,17 +105,17 @@ namespace Cesil
 
         private void ResizeCopy(int newDesiredSize)
         {
-            var oldSize = HasCopyOwner ? CopyOwner.Memory.Length : 0;
+            var oldSize = CopyOwner.HasValue ? CopyOwner.Value.Memory.Length : 0;
             var newCopy = Utils.RentMustIncrease(MemoryPool, newDesiredSize, oldSize);
 
-            if (HasCopyOwner)
+            if (CopyOwner.HasValue)
             {
                 Copy.CopyTo(newCopy.Memory.Span);
 
-                CopyOwner.Dispose();
+                CopyOwner.Value.Dispose();
             }
 
-            CopyOwner = newCopy;
+            CopyOwner.Value = newCopy;
         }
 
         internal void SwitchToCopy(ReadOnlySpan<T> fromBuffer)
@@ -134,7 +125,7 @@ namespace Cesil
             // if nothing has been appended, there's nothing to copy
             if (CurrentMode == Mode.Uninitialized) return;
 
-            if (!HasCopyOwner || Copy.Length < Length)
+            if (!CopyOwner.HasValue || Copy.Length < Length)
             {
                 ResizeCopy(Length * 2);
             }
@@ -180,7 +171,7 @@ namespace Cesil
                     return fromBufferMem.Slice(StartIndex, Length);
                 case Mode.Copy:
                     // whelp, we had to make a copy... better return it
-                    return CopyOwner.Memory.Slice(StartIndex, Length);
+                    return CopyOwner.Value.Memory.Slice(StartIndex, Length);
 
                 case Mode.Uninitialized:
                     return ReadOnlyMemory<T>.Empty;
@@ -194,9 +185,10 @@ namespace Cesil
         {
             if (!IsDisposed)
             {
-                if (HasCopyOwner)
+                if (CopyOwner.HasValue)
                 {
-                    CopyOwner.Dispose();
+                    CopyOwner.Value.Dispose();
+                    CopyOwner.Clear();
                 }
                 IsDisposed = true;
             }

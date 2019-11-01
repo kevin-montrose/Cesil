@@ -27,17 +27,17 @@ namespace Cesil
         {
             get
             {
-                if (_Method != null)
+                if (Method.HasValue)
                 {
                     return BackingMode.Method;
                 }
 
-                if (_Field != null)
+                if (Field.HasValue)
                 {
                     return BackingMode.Field;
                 }
 
-                if (_Delegate != null)
+                if (Delegate.HasValue)
                 {
                     return BackingMode.Delegate;
                 }
@@ -52,68 +52,53 @@ namespace Cesil
             {
                 switch (Mode)
                 {
-                    case BackingMode.Field: return Field.IsStatic;
-                    case BackingMode.Method: return Method.IsStatic;
-                    case BackingMode.Delegate: return !HasRowType;
+                    case BackingMode.Field: return Field.Value.IsStatic;
+                    case BackingMode.Method: return Method.Value.IsStatic;
+                    case BackingMode.Delegate: return !RowType.HasValue;
                     default:
                         return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}");
                 }
             }
         }
 
-        private readonly MethodInfo? _Method;
-        internal MethodInfo Method => Utils.NonNull(_Method);
+        internal readonly NonNull<MethodInfo> Method;
 
-        private readonly FieldInfo? _Field;
-        internal bool HasField => _Field != null;
-        internal FieldInfo Field => Utils.NonNull(_Field);
+        internal readonly NonNull<FieldInfo> Field;
 
-        private readonly Delegate? _Delegate;
-        internal bool HasDelegate => _Delegate != null;
-        internal Delegate Delegate => Utils.NonNull(_Delegate);
+        internal readonly NonNull<Delegate> Delegate;
 
-        private readonly TypeInfo? _RowType;
-        internal bool HasRowType => _RowType != null;
-        internal TypeInfo RowType => Utils.NonNull(_RowType);
+        internal readonly NonNull<TypeInfo> RowType;
 
         internal readonly TypeInfo Returns;
 
-        private DynamicGetterDelegate? _CachedDelegate;
-        bool ICreatesCacheableDelegate<DynamicGetterDelegate>.HasCachedDelegate => _CachedDelegate != null;
-        DynamicGetterDelegate ICreatesCacheableDelegate<DynamicGetterDelegate>.CachedDelegate
-        {
-            get => Utils.NonNull(_CachedDelegate);
-            set
-            {
-                _CachedDelegate = value;
-            }
-        }
+        private NonNull<DynamicGetterDelegate> _CachedDelegate;
+        ref NonNull<DynamicGetterDelegate> ICreatesCacheableDelegate<DynamicGetterDelegate>.CachedDelegate => ref _CachedDelegate;
 
         private Getter(TypeInfo? rowType, TypeInfo returns, MethodInfo method)
         {
-            _RowType = rowType;
+            RowType.SetAllowNull(rowType);
             Returns = returns;
-            _Method = method;
-            _Delegate = null;
-            _Field = null;
+            Method.Value = method;
+            Delegate.Clear();
+            Field.Clear();
         }
 
         private Getter(TypeInfo? rowType, TypeInfo returns, Delegate del)
         {
-            _RowType = rowType;
+            RowType.SetAllowNull(rowType);
             Returns = returns;
-            _Method = null;
-            _Delegate = del;
-            _Field = null;
+            Method.Clear();
+            Delegate.Value = del;
+            Field.Clear();
         }
 
         private Getter(TypeInfo? rowType, TypeInfo returns, FieldInfo field)
         {
-            _RowType = rowType;
+            RowType.SetAllowNull(rowType);
             Returns = returns;
-            _Method = null;
-            _Delegate = null;
-            _Field = field;
+            Method.Clear();
+            Delegate.Clear();
+            Field.Value = field;
         }
 
         DynamicGetterDelegate ICreatesCacheableDelegate<DynamicGetterDelegate>.CreateDelegate()
@@ -132,10 +117,10 @@ namespace Cesil
                         }
                         else
                         {
-                            fieldOnExp = Expression.Convert(row, RowType);
+                            fieldOnExp = Expression.Convert(row, RowType.Value);
                         }
 
-                        var getField = Expression.Field(fieldOnExp, Field);
+                        var getField = Expression.Field(fieldOnExp, Field.Value);
                         var convertToObject = Expression.Convert(getField, Types.ObjectType);
                         var lambda = Expression.Lambda<DynamicGetterDelegate>(convertToObject, row);
                         var del = lambda.Compile();
@@ -146,22 +131,24 @@ namespace Cesil
                     {
                         MethodCallExpression callMtd;
 
+                        var mtd = Method.Value;
+
                         if (IsStatic)
                         {
-                            if (!HasRowType)
+                            if (!RowType.HasValue)
                             {
-                                callMtd = Expression.Call(null, Method);
+                                callMtd = Expression.Call(null, mtd);
                             }
                             else
                             {
-                                var rowAsType = Expression.Convert(row, RowType);
-                                callMtd = Expression.Call(null, Method, rowAsType);
+                                var rowAsType = Expression.Convert(row, RowType.Value);
+                                callMtd = Expression.Call(null, mtd, rowAsType);
                             }
                         }
                         else
                         {
-                            var rowAsType = Expression.Convert(row, RowType);
-                            callMtd = Expression.Call(rowAsType, Method);
+                            var rowAsType = Expression.Convert(row, RowType.Value);
+                            callMtd = Expression.Call(rowAsType, mtd);
                         }
 
                         var convertToObject = Expression.Convert(callMtd, Types.ObjectType);
@@ -172,7 +159,7 @@ namespace Cesil
                     }
                 case BackingMode.Delegate:
                     {
-                        var delInst = Expression.Constant(Delegate);
+                        var delInst = Expression.Constant(Delegate.Value);
 
                         InvocationExpression callDel;
 
@@ -182,7 +169,7 @@ namespace Cesil
                         }
                         else
                         {
-                            var rowAsType = Expression.Convert(row, RowType);
+                            var rowAsType = Expression.Convert(row, RowType.Value);
                             callDel = Expression.Invoke(delInst, rowAsType);
                         }
 
@@ -328,18 +315,18 @@ namespace Cesil
             if (ReferenceEquals(g, null)) return false;
 
             if (g.Returns != Returns) return false;
-            if (g.HasRowType)
+            if (g.RowType.HasValue)
             {
-                if (!HasRowType)
+                if (!RowType.HasValue)
                 {
                     return false;
                 }
 
-                if (g.RowType != RowType) return false;
+                if (g.RowType.Value != RowType.Value) return false;
             }
             else
             {
-                if (HasRowType) return false;
+                if (RowType.HasValue) return false;
             }
 
             var otherMode = g.Mode;
@@ -348,11 +335,11 @@ namespace Cesil
             switch (otherMode)
             {
                 case BackingMode.Field:
-                    return g.Field == Field;
+                    return g.Field.Value == Field.Value;
                 case BackingMode.Method:
-                    return g.Method == Method;
+                    return g.Method.Value == Method.Value;
                 case BackingMode.Delegate:
-                    return g.Delegate == Delegate;
+                    return g.Delegate.Value == Delegate.Value;
                 default:
                     return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {otherMode}");
             }
@@ -362,7 +349,7 @@ namespace Cesil
         /// Returns a hashcode for this Getter.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(Getter), Mode, Returns, _Delegate, _Method, _Field);
+        => HashCode.Combine(nameof(Getter), Mode, Returns, Delegate, Method, Field);
 
         /// <summary>
         /// Describes this Getter.
@@ -466,7 +453,7 @@ namespace Cesil
                 var formatterDel = Types.GetterDelegateType.MakeGenericType(takes, ret);
                 var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
-                var reboundDel = Delegate.CreateDelegate(formatterDel, del, invoke);
+                var reboundDel = System.Delegate.CreateDelegate(formatterDel, del, invoke);
 
                 return new Getter(takes, ret, reboundDel);
             }
@@ -475,7 +462,7 @@ namespace Cesil
                 var formatterDel = Types.StaticGetterDelegateType.MakeGenericType(ret);
                 var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
-                var reboundDel = Delegate.CreateDelegate(formatterDel, del, invoke);
+                var reboundDel = System.Delegate.CreateDelegate(formatterDel, del, invoke);
 
                 return new Getter(null, ret, reboundDel);
             }

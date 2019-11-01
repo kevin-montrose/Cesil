@@ -6,6 +6,7 @@ namespace Cesil
 {
     internal static class Utils
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static T NonNull<T>(T? toCheck)
             where T : class
         {

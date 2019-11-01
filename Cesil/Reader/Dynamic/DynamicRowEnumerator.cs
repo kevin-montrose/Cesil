@@ -5,6 +5,7 @@ using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
+    // todo: why isn't this checking row generation?
     internal sealed class DynamicRowEnumerator<T> : IEnumerator<T>, ITestableDisposable
     {
         private DynamicRow.DynamicColumnEnumerator? Enumerator;

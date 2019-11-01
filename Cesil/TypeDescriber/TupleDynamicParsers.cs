@@ -46,7 +46,7 @@ namespace Cesil
             var ret = new object?[colTypes.Length];
 
             var i = 0;
-            foreach (var col in row.Columns)
+            foreach (var col in row.Columns.Value)
             {
                 if (!row.IsSet(i))
                 {

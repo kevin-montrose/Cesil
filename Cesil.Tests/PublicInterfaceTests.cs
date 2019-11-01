@@ -12,6 +12,9 @@ namespace Cesil.Tests
 {
     public class PublicInterfaceTests
     {
+        // todo: add a test that fails if there are nullable references exposed in
+        //       public interfaces without a justification
+
         private static IEnumerable<TypeInfo> AllTypes()
         {
             var ts = typeof(Configuration).Assembly.GetTypes();

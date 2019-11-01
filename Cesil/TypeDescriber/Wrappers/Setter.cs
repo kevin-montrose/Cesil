@@ -24,17 +24,17 @@ namespace Cesil
         {
             get
             {
-                if (_Method != null)
+                if (Method.HasValue)
                 {
                     return BackingMode.Method;
                 }
 
-                if (_Field != null)
+                if (Field.HasValue)
                 {
                     return BackingMode.Field;
                 }
 
-                if (_Delegate != null)
+                if (Delegate.HasValue)
                 {
                     return BackingMode.Delegate;
                 }
@@ -49,50 +49,44 @@ namespace Cesil
             {
                 switch (Mode)
                 {
-                    case BackingMode.Field: return Field.IsStatic;
-                    case BackingMode.Method: return Method.IsStatic;
-                    case BackingMode.Delegate: return !HasRowType;
+                    case BackingMode.Field: return Field.Value.IsStatic;
+                    case BackingMode.Method: return Method.Value.IsStatic;
+                    case BackingMode.Delegate: return !RowType.HasValue;
                     default:
                         return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}");
                 }
             }
         }
 
-        private readonly MethodInfo? _Method;
-        internal MethodInfo Method => Utils.NonNull(_Method);
-        
-        private readonly FieldInfo? _Field;
-        internal bool HasField => _Field != null;
-        internal FieldInfo Field => Utils.NonNull(_Field);
+        internal readonly NonNull<MethodInfo> Method;
 
-        private readonly Delegate? _Delegate;
-        internal Delegate Delegate => Utils.NonNull(_Delegate);
+        internal readonly NonNull<FieldInfo> Field;
 
-        private readonly TypeInfo? _RowType;
-        internal bool HasRowType => _RowType != null;
-        internal TypeInfo RowType => Utils.NonNull(_RowType);
+        internal readonly NonNull<Delegate> Delegate;
+
+        internal readonly NonNull<TypeInfo> RowType;
 
         internal readonly TypeInfo Takes;
 
         private Setter(TypeInfo? rowType, TypeInfo takes, MethodInfo method)
         {
-            _RowType = rowType;
+            RowType.SetAllowNull(rowType);
             Takes = takes;
-            _Method = method;
+            Method.Value = method;
         }
 
         private Setter(TypeInfo? rowType, TypeInfo takes, Delegate del)
         {
-            _RowType = rowType;
+            RowType.SetAllowNull(rowType);
             Takes = takes;
-            _Delegate = del;
+            Delegate.Value = del;
         }
 
         private Setter(TypeInfo? rowType, TypeInfo takes, FieldInfo field)
         {
-            _RowType = rowType;
+            RowType.SetAllowNull(rowType);
             Takes = takes;
-            _Field = field;
+            Field.Value = field;
         }
 
         /// <summary>
@@ -242,22 +236,22 @@ namespace Cesil
             if (Takes != s.Takes) return false;
             if (IsStatic != IsStatic) return false;
 
-            if (HasRowType)
+            if (RowType.HasValue)
             {
-                if (!s.HasRowType) return false;
+                if (!s.RowType.HasValue) return false;
 
-                if (RowType != s.RowType) return false;
+                if (RowType.Value != s.RowType.Value) return false;
             }
             else
             {
-                if (s.HasRowType) return false;
+                if (s.RowType.HasValue) return false;
             }
 
             switch (mode)
             {
-                case BackingMode.Delegate: return Delegate == s.Delegate;
-                case BackingMode.Field: return Field == s.Field;
-                case BackingMode.Method: return Method == s.Method;
+                case BackingMode.Delegate: return Delegate.Value == s.Delegate.Value;
+                case BackingMode.Field: return Field.Value == s.Field.Value;
+                case BackingMode.Method: return Method.Value == s.Method.Value;
 
                 default:
                     return Throw.Exception<bool>($"Unexpected {nameof(BackingMode)}: {mode}");
@@ -268,7 +262,7 @@ namespace Cesil
         /// Returns a stable hash for this Setter.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(Setter), _Delegate, _Field, IsStatic, _Method, Mode, _RowType, Takes);
+        => HashCode.Combine(nameof(Setter), Delegate, Field, IsStatic, Method, Mode, RowType, Takes);
 
         /// <summary>
         /// Describes this Setter.
@@ -373,7 +367,7 @@ namespace Cesil
 
                 var setterDelType = Types.SetterDelegateType.MakeGenericType(rowType, takesType);
 
-                var reboundDel = Delegate.CreateDelegate(setterDelType, del, invoke);
+                var reboundDel = System.Delegate.CreateDelegate(setterDelType, del, invoke);
 
                 return new Setter(rowType, takesType, reboundDel);
             }
@@ -382,7 +376,7 @@ namespace Cesil
                 var takesType = ps[0].ParameterType.GetTypeInfo();
                 var setterDelType = Types.StaticSetterDelegateType.MakeGenericType(takesType);
 
-                var reboundDel = Delegate.CreateDelegate(setterDelType, del, invoke);
+                var reboundDel = System.Delegate.CreateDelegate(setterDelType, del, invoke);
 
                 return new Setter(null, takesType, reboundDel);
             }

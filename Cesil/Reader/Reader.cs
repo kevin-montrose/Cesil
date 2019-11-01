@@ -46,7 +46,7 @@ namespace Cesil
                     {
                         if (record == null)
                         {
-                            if (!Configuration.NewCons(out record))
+                            if (!Configuration.NewCons.Value(out record))
                             {
                                 return Throw.InvalidOperationException<ReadWithCommentResult<T>>($"Failed to construct new instance of {typeof(T)}");
                             }
@@ -71,14 +71,14 @@ namespace Cesil
                 // can just use the discovered copy from source
                 ReadHeaders = Cesil.ReadHeaders.Never;
                 TryMakeStateMachine();
-                Columns = Configuration.DeserializeColumns;
+                Columns.Value = Configuration.DeserializeColumns;
 
                 return;
             }
 
             var headerConfig =
                 new ConcreteBoundConfiguration<T>(
-                    Configuration.NewCons,
+                    Configuration.NewCons.Value,
                     Configuration.DeserializeColumns,
                     Array.Empty<Column>(),
                     Array.Empty<bool>(),

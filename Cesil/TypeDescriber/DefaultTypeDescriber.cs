@@ -10,6 +10,46 @@ using System.Runtime.Serialization;
 
 namespace Cesil
 {
+    // todo: reorg
+    internal readonly struct ConstructorPOCOResult
+    {
+        public static readonly ConstructorPOCOResult Empty = new ConstructorPOCOResult();
+
+        public bool HasValue => Constructor.HasValue;
+        public readonly NonNull<ConstructorInfo> Constructor;
+        public readonly NonNull<ColumnIdentifier[]> Columns;
+
+        public ConstructorPOCOResult(ConstructorInfo cons, ColumnIdentifier[] cols)
+        {
+            Constructor = default;
+            Constructor.Value = cons;
+
+            Columns = default;
+            Columns.Value = cols;
+        }
+    }
+
+    // todo: reorg
+    internal readonly struct PropertyPOCOResult
+    {
+        public static readonly PropertyPOCOResult Empty = new PropertyPOCOResult();
+
+        public bool HasValue => Constructor.HasValue;
+        public readonly NonNull<ConstructorInfo> Constructor;
+        public readonly NonNull<Setter[]> Setters;
+        public readonly NonNull<ColumnIdentifier[]> Columns;
+
+        public PropertyPOCOResult(ConstructorInfo cons, Setter[] sets, ColumnIdentifier[] cols)
+        {
+            Constructor = default;
+            Constructor.Value = cons;
+            Setters = default;
+            Setters.Value = sets;
+            Columns = default;
+            Columns.Value = cols;
+        }
+    }
+
     /// <summary>
     /// The default implementation of ITypeDescriber used to
     ///   determine how to (de)serialize types and how to convert
@@ -842,7 +882,7 @@ namespace Cesil
             // handle serializing our own dynamic types
             if (rowObj is DynamicRow asOwnRow)
             {
-                var cols = asOwnRow.Columns;
+                var cols = asOwnRow.Columns.Value;
 
                 var ret = new DynamicCellValue[cols.Count];
 
@@ -1005,7 +1045,7 @@ namespace Cesil
 
                     var delProvider = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)getter);
                     delProvider.Guarantee(DefaultTypeDescriberDelegateCache.Instance);
-                    var value = delProvider.CachedDelegate(rowObj);
+                    var value = delProvider.CachedDelegate.Value(rowObj);
 
                     ret.Add(DynamicCellValue.Create(name, value, formatter));
                 }
@@ -1092,19 +1132,16 @@ namespace Cesil
 
             var width = columns.Count();
 
-            if (IsConstructorPOCO(width, targetType, out var paramsCons, out var columnIndexes))
+            var isConsPOCO = IsConstructorPOCO(width, targetType);
+            if (isConsPOCO.HasValue)
             {
-                paramsCons = Utils.NonNull(paramsCons);
-                columnIndexes = Utils.NonNull(columnIndexes);
-                return DynamicRowConverter.ForConstructorTakingTypedParameters(paramsCons, columnIndexes);
+                return DynamicRowConverter.ForConstructorTakingTypedParameters(isConsPOCO.Constructor.Value, isConsPOCO.Columns.Value);
             }
 
-            if (IsPropertyPOCO(targetType, columns, out var zeroCons, out var setters, out columnIndexes))
+            var isPropPOCO = IsPropertyPOCO(targetType, columns);
+            if (isPropPOCO.HasValue)
             {
-                zeroCons = Utils.NonNull(zeroCons);
-                setters = Utils.NonNull(setters);
-                columnIndexes = Utils.NonNull(columnIndexes);
-                return DynamicRowConverter.ForEmptyConstructorAndSetters(zeroCons, setters, columnIndexes);
+                return DynamicRowConverter.ForEmptyConstructorAndSetters(isPropPOCO.Constructor.Value, isPropPOCO.Setters.Value, isPropPOCO.Columns.Value);
             }
 
             return null;
@@ -1126,42 +1163,38 @@ namespace Cesil
             return Array.IndexOf(Types.ValueTupleTypes, genType) != -1;
         }
 
-        private static bool IsConstructorPOCO(int width, TypeInfo type, out ConstructorInfo? selectedCons, out ColumnIdentifier[]? columnIndexes)
+        private static ConstructorPOCOResult IsConstructorPOCO(int width, TypeInfo type)
         {
             foreach (var cons in type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
             {
                 var consPs = cons.GetParameters();
                 if (consPs.Length != width) continue;
 
-                selectedCons = cons;
-                columnIndexes = new ColumnIdentifier[consPs.Length];
+                var selectedCons = cons;
+                var columnIndexes = new ColumnIdentifier[consPs.Length];
                 for (var i = 0; i < columnIndexes.Length; i++)
                 {
                     columnIndexes[i] = ColumnIdentifier.Create(i);
                 }
 
-                return true;
+                return new ConstructorPOCOResult(cons, columnIndexes);
             }
 
-            selectedCons = null;
-            columnIndexes = null;
-            return false;
+            return ConstructorPOCOResult.Empty;
         }
 
-        private static bool IsPropertyPOCO(TypeInfo type, IEnumerable<ColumnIdentifier> columns, out ConstructorInfo? emptyCons, out Setter[]? setters, out ColumnIdentifier[]? columnIndexes)
+        private static PropertyPOCOResult IsPropertyPOCO(TypeInfo type, IEnumerable<ColumnIdentifier> columns)
         {
-            emptyCons = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, Type.EmptyTypes, null);
+            var emptyCons = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, Type.EmptyTypes, null);
             if (emptyCons == null)
             {
-                setters = null;
-                columnIndexes = null;
-                return false;
+                return PropertyPOCOResult.Empty;
             }
 
             var allProperties = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
 
-            setters = new Setter[allProperties.Length];
-            columnIndexes = new ColumnIdentifier[allProperties.Length];
+            var setters = new Setter[allProperties.Length];
+            var columnIndexes = new ColumnIdentifier[allProperties.Length];
 
             var ix = 0;
             var i = 0;
@@ -1169,9 +1202,7 @@ namespace Cesil
             {
                 if (!col.HasName)
                 {
-                    setters = null;
-                    columnIndexes = null;
-                    return false;
+                    return PropertyPOCOResult.Empty;
                 }
 
                 var colName = col.Name;
@@ -1219,7 +1250,7 @@ loopEnd:
                 Array.Resize(ref columnIndexes, ix);
             }
 
-            return true;
+            return new PropertyPOCOResult(emptyCons, setters, columnIndexes);
         }
 
         /// <summary>

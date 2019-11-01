@@ -6,16 +6,7 @@ namespace Cesil
         SyncReaderBase<dynamic>,
         IDynamicRowOwner
     {
-        private string[]? _ColumnNames;
-        private bool HasColumnNames => _ColumnNames != null;
-        private string[] ColumnNames
-        {
-            get => Utils.NonNull(_ColumnNames);
-            set
-            {
-                _ColumnNames = value;
-            }
-        }
+        private NonNull<string[]> ColumnNames;
 
         private DynamicRow? NotifyOnDisposeHead;
         public IIntrusiveLinkedList<DynamicRow>? NotifyOnDispose => NotifyOnDisposeHead;
@@ -76,9 +67,9 @@ namespace Cesil
                             dynRow = Utils.NonNull(row as DynamicRow);
                             dynRow.Dispose();
 
-                            if (dynRow.Owner != null && dynRow.Owner != this)
+                            if (dynRow.Owner.HasValue && dynRow.Owner.Value != this)
                             {
-                                dynRow.Owner.Remove(dynRow);
+                                dynRow.Owner.Value.Remove(dynRow);
                                 if (Configuration.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose)
                                 {
                                     NotifyOnDisposeHead.AddHead(ref NotifyOnDisposeHead, dynRow);
@@ -86,7 +77,7 @@ namespace Cesil
                             }
                         }
 
-                        dynRow.Init(this, RowNumber, Columns.Length, Context, Configuration.TypeDescriber, HasColumnNames ? ColumnNames : null, Configuration.MemoryPool);
+                        dynRow.Init(this, RowNumber, Columns.Value.Length, Context, Configuration.TypeDescriber.Value, ColumnNames, Configuration.MemoryPool);
 
                         SetValueToPopulate(row);
                     }
@@ -125,7 +116,7 @@ namespace Cesil
 
             var headerConfig =
                 new DynamicBoundConfiguration(
-                    Configuration.TypeDescriber,
+                    Configuration.TypeDescriber.Value,
                     Configuration.ValueSeparator,
                     Configuration.EscapedValueStartAndStop,
                     Configuration.EscapeValueEscapeChar,
@@ -147,15 +138,19 @@ namespace Cesil
                 if (foundHeaders == 0)
                 {
                     // rare, but possible if the file is empty or all comments or something like that
-                    Columns = Array.Empty<Column>();
-                    ColumnNames = Array.Empty<string>();
+                    Columns.Value = Array.Empty<Column>();
+                    ColumnNames.Value = Array.Empty<string>();
                 }
                 else
                 {
-                    Columns = new Column[foundHeaders];
+                    var columnsValue = new Column[foundHeaders];
+                    Columns.Value = columnsValue;
+
+                    string[] columnNamesValue = Array.Empty<string>();
                     if (allowColumnsByName)
                     {
-                        ColumnNames = new string[foundHeaders];
+                        columnNamesValue = new string[foundHeaders];
+                        ColumnNames.Value = columnNamesValue;
                     }
 
                     using (var e = res.Headers)
@@ -166,10 +161,10 @@ namespace Cesil
                             var name = allowColumnsByName ? new string(e.Current.Span) : null;
                             if (name != null)
                             {
-                                ColumnNames[ix] = name;
+                                columnNamesValue[ix] = name;
                             }
                             var col = new Column(name, ColumnSetter.CreateDynamic(name, ix), null, false);
-                            Columns[ix] = col;
+                            columnsValue[ix] = col;
 
                             ix++;
                         }
@@ -212,7 +207,7 @@ namespace Cesil
             Inner.Dispose();
             Buffer.Dispose();
             Partial.Dispose();
-            StateMachine?.Dispose();
+            StateMachine.Dispose();
             SharedCharacterLookup.Dispose();
 
             IsDisposed = true;

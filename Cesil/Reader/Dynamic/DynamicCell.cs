@@ -11,7 +11,7 @@ namespace Cesil
         internal readonly DynamicRow Row;
         internal readonly int ColumnNumber;
 
-        internal ITypeDescriber Converter => Row.Converter;
+        internal ITypeDescriber Converter => Row.Converter.Value;
 
         public DynamicCell(DynamicRow row, int num)
         {
@@ -37,9 +37,9 @@ namespace Cesil
         {
             var r = SafeRowGet();
 
-            var name = r.Columns[ColumnNumber];
+            var name = r.Columns.Value[ColumnNumber];
 
-            return ReadContext.ReadingColumn(r.RowNumber, name, r.Owner.Context);
+            return ReadContext.ReadingColumn(r.RowNumber, name, r.Owner.Value.Context);
         }
 
         public DynamicMetaObject GetMetaObject(Expression exp)
