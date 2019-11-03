@@ -30,21 +30,21 @@ namespace Cesil
         ///   - dynamic rows are disposed when the reader that returns them is disposed
         /// </summary>
         public static readonly Options Default =
-            NewEmptyBuilder()
+            CreateBuilder()
                 .WithValueSeparator(',')
-                .WithRowEnding(RowEndings.CarriageReturnLineFeed)
+                .WithRowEnding(RowEnding.CarriageReturnLineFeed)
                 .WithEscapedValueStartAndEnd('"')
                 .WithEscapedValueEscapeCharacter('"')
-                .WithReadHeader(ReadHeaders.Detect)
-                .WithWriteHeader(WriteHeaders.Always)
+                .WithReadHeader(ReadHeader.Detect)
+                .WithWriteHeader(WriteHeader.Always)
                 .WithTypeDescriber(TypeDescribers.Default)
-                .WithWriteTrailingNewLine(WriteTrailingNewLines.Never)
+                .WithWriteTrailingNewLine(WriteTrailingNewLine.Never)
                 .WithMemoryPool(MemoryPool<char>.Shared)
                 .WithWriteBufferSizeHint(null)
                 .WithCommentCharacter(null)
                 .WithReadBufferSizeHint(0)
                 .WithDynamicRowDisposal(DynamicRowDisposal.OnReaderDispose)
-                .Build();
+                .ToOptions();
 
         /// <summary>
         /// Default options for dynamic operations:
@@ -63,21 +63,21 @@ namespace Cesil
         ///   - dynamic rows are disposed when the reader that returns them is disposed
         /// </summary>
         public static readonly Options DynamicDefault =
-            NewEmptyBuilder()
+            CreateBuilder()
                 .WithValueSeparator(',')
-                .WithRowEnding(RowEndings.CarriageReturnLineFeed)
+                .WithRowEnding(RowEnding.CarriageReturnLineFeed)
                 .WithEscapedValueStartAndEnd('"')
                 .WithEscapedValueEscapeCharacter('"')
-                .WithReadHeader(ReadHeaders.Always)
-                .WithWriteHeader(WriteHeaders.Always)
+                .WithReadHeader(ReadHeader.Always)
+                .WithWriteHeader(WriteHeader.Always)
                 .WithTypeDescriber(TypeDescribers.Default)
-                .WithWriteTrailingNewLine(WriteTrailingNewLines.Never)
+                .WithWriteTrailingNewLine(WriteTrailingNewLine.Never)
                 .WithMemoryPool(MemoryPool<char>.Shared)
                 .WithWriteBufferSizeHint(null)
                 .WithCommentCharacter(null)
                 .WithReadBufferSizeHint(0)
                 .WithDynamicRowDisposal(DynamicRowDisposal.OnReaderDispose)
-                .Build();
+                .ToOptions();
 
         /// <summary>
         /// Character used to separate two values in a row
@@ -88,28 +88,29 @@ namespace Cesil
         /// <summary>
         /// Character used to start an escaped value.
         /// 
-        /// Typically a double quote.
+        /// Typically a double quote, but can be null for some formats.
         /// </summary>
-        public char EscapedValueStartAndEnd { get; }
+        public char? EscapedValueStartAndEnd { get; }
         /// <summary>
         /// Character used to escape another character in an
         ///   escaped value.
         ///   
-        /// Typically a double quote.
+        /// Typically a double quote, but can be null for some formats and
+        ///   will be null for formats without an EscapedValueStartAndEnd.
         /// </summary>
-        public char EscapedValueEscapeCharacter { get; }
+        public char? EscapedValueEscapeCharacter { get; }
         /// <summary>
         /// The sequence of characters used to end a row.
         /// </summary>
-        public RowEndings RowEnding { get; }
+        public RowEnding RowEnding { get; }
         /// <summary>
         /// Whether or not to read headers when reading a CSV.
         /// </summary>
-        public ReadHeaders ReadHeader { get; }
+        public ReadHeader ReadHeader { get; }
         /// <summary>
         /// Whether or not to write headers when writing a CSV.
         /// </summary>
-        public WriteHeaders WriteHeader { get; }
+        public WriteHeader WriteHeader { get; }
         /// <summary>
         /// The instance of ITypeDescriber that will be used to
         ///   discover which columns to read or write, as well
@@ -120,7 +121,7 @@ namespace Cesil
         /// Whether or not to write a new line after the last row
         /// in a CSV.
         /// </summary>
-        public WriteTrailingNewLines WriteTrailingNewLine { get; }
+        public WriteTrailingNewLine WriteTrailingNewLine { get; }
         /// <summary>
         /// Which MemoryPool to use when reading or writing a CSV.
         /// </summary>
@@ -175,15 +176,15 @@ namespace Cesil
         /// <summary>
         /// Create a new, empty, OptionsBuilder.
         /// </summary>
-        public static OptionsBuilder NewEmptyBuilder()
-        => OptionsBuilder.NewEmptyBuilder();
+        public static OptionsBuilder CreateBuilder()
+        => OptionsBuilder.CreateBuilder();
 
         /// <summary>
         /// Create a new OptionsBuilder that copies its initial values
-        /// from this Options.
+        /// from the given Options.
         /// </summary>
-        public OptionsBuilder NewBuilder()
-        => new OptionsBuilder(this);
+        public static OptionsBuilder CreateBuilder(Options options)
+        => OptionsBuilder.CreateBuilder(options);
 
         /// <summary>
         /// Returns true if this object equals the given Options.
@@ -199,26 +200,26 @@ namespace Cesil
         }
 
         /// <summary>
-        /// Returns true if this object equals the given Options.
+        /// Returns true if this Options equals the given Options.
         /// </summary>
-        public bool Equals(Options opts)
+        public bool Equals(Options options)
         {
-            if (ReferenceEquals(opts, null)) return false;
+            if (ReferenceEquals(options, null)) return false;
 
             return
-                opts.CommentCharacter == CommentCharacter &&
-                opts.DynamicRowDisposal == DynamicRowDisposal &&
-                opts.EscapedValueEscapeCharacter == EscapedValueEscapeCharacter &&
-                opts.EscapedValueStartAndEnd == EscapedValueStartAndEnd &&
-                opts.MemoryPool == MemoryPool &&
-                opts.ReadBufferSizeHint == ReadBufferSizeHint &&
-                opts.ReadHeader == ReadHeader &&
-                opts.RowEnding == RowEnding &&
-                opts.TypeDescriber == TypeDescriber &&
-                opts.ValueSeparator == ValueSeparator &&
-                opts.WriteBufferSizeHint == WriteBufferSizeHint &&
-                opts.WriteHeader == WriteHeader &&
-                opts.WriteTrailingNewLine == WriteTrailingNewLine;
+                options.CommentCharacter == CommentCharacter &&
+                options.DynamicRowDisposal == DynamicRowDisposal &&
+                options.EscapedValueEscapeCharacter == EscapedValueEscapeCharacter &&
+                options.EscapedValueStartAndEnd == EscapedValueStartAndEnd &&
+                options.MemoryPool == MemoryPool &&
+                options.ReadBufferSizeHint == ReadBufferSizeHint &&
+                options.ReadHeader == ReadHeader &&
+                options.RowEnding == RowEnding &&
+                options.TypeDescriber == TypeDescriber &&
+                options.ValueSeparator == ValueSeparator &&
+                options.WriteBufferSizeHint == WriteBufferSizeHint &&
+                options.WriteHeader == WriteHeader &&
+                options.WriteTrailingNewLine == WriteTrailingNewLine;
         }
 
         /// <summary>

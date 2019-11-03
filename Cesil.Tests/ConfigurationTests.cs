@@ -64,7 +64,7 @@ namespace Cesil.Tests
         public void ConfigurationErrors()
         {
             Assert.Throws<ArgumentNullException>(() => Configuration.ForDynamic(null));
-            Assert.Throws<ArgumentException>(() => Configuration.ForDynamic(Options.DynamicDefault.NewBuilder().WithReadHeader(ReadHeaders.Detect).Build()));
+            Assert.Throws<ArgumentException>(() => Configuration.ForDynamic(Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Detect).ToOptions()));
 
             Assert.Throws<ArgumentNullException>(() => Configuration.For<_BadCreateCalls>(null));
             Assert.Throws<InvalidOperationException>(() => Configuration.For<object>());
@@ -91,15 +91,15 @@ namespace Cesil.Tests
             foreach(var escapeStartChar in new char[] {  '"', '!'})
             foreach(var memPool in new [] {  MemoryPool<char>.Shared, new _OptionsEquality_MemoryPool() })
             foreach(var readHint in new [] { 1, 10 })
-            foreach(ReadHeaders rh in Enum.GetValues(typeof(ReadHeaders)))
-            foreach(RowEndings re in Enum.GetValues(typeof(RowEndings)))
-            foreach(var typeDesc in new [] { TypeDescribers.Default, new ManualTypeDescriber()})
+            foreach(ReadHeader rh in Enum.GetValues(typeof(ReadHeader)))
+            foreach(RowEnding re in Enum.GetValues(typeof(RowEnding)))
+            foreach(var typeDesc in new [] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() })
             foreach(var valSepChar in new char[] {  ',', ';'})
             foreach(var writeHint in new int? [] {  null, 10})
-            foreach(WriteHeaders wh in Enum.GetValues(typeof(WriteHeaders)))
-            foreach(WriteTrailingNewLines wt in Enum.GetValues(typeof(WriteTrailingNewLines)))
+            foreach(WriteHeader wh in Enum.GetValues(typeof(WriteHeader)))
+            foreach(WriteTrailingNewLine wt in Enum.GetValues(typeof(WriteTrailingNewLine)))
             {
-                var builder = OptionsBuilder.NewEmptyBuilder();
+                var builder = OptionsBuilder.CreateBuilder();
                 var opt =
                     builder
                         .WithCommentCharacter(commentChar)
@@ -115,7 +115,7 @@ namespace Cesil.Tests
                         .WithWriteBufferSizeHint(writeHint)
                         .WithWriteHeader(wh)
                         .WithWriteTrailingNewLine(wt)
-                        .Build();
+                        .ToOptions();
 
                 opts.Add(opt);
             }
@@ -273,80 +273,80 @@ namespace Cesil.Tests
         [Fact]
         public void OptionsValidation()
         {
-            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithValueSeparator(',').WithEscapedValueStartAndEnd(',').Build());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithValueSeparator(',').WithEscapedValueStartAndEnd(',').ToOptions());
 
-            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithValueSeparator(',').WithCommentCharacter(',').Build());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithValueSeparator(',').WithCommentCharacter(',').ToOptions());
 
-            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithEscapedValueStartAndEnd(',').WithCommentCharacter(',').Build());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithEscapedValueStartAndEnd(',').WithCommentCharacter(',').ToOptions());
 
-            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithRowEndingInternal(default).Build());
-            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithRowEndingInternal((RowEndings)99).Build());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithRowEndingInternal(default).ToOptions());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithRowEndingInternal((RowEnding)99).ToOptions());
 
-            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithReadHeaderInternal(default).Build());
-            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithReadHeaderInternal((ReadHeaders)99).Build());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithReadHeaderInternal(default).ToOptions());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithReadHeaderInternal((ReadHeader)99).ToOptions());
 
-            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithWriteHeaderInternal(default).Build());
-            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithWriteHeaderInternal((WriteHeaders)99).Build());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithWriteHeaderInternal(default).ToOptions());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithWriteHeaderInternal((WriteHeader)99).ToOptions());
 
             Assert.Throws<InvalidOperationException>(
                 () =>
-                    Options.NewEmptyBuilder().WithValueSeparator(',')
-                    .WithRowEnding(RowEndings.CarriageReturnLineFeed)
+                    Options.CreateBuilder().WithValueSeparator(',')
+                    .WithRowEnding(RowEnding.CarriageReturnLineFeed)
                     .WithEscapedValueStartAndEnd('"')
                     .WithEscapedValueEscapeCharacter('"')
-                    .WithReadHeader(ReadHeaders.Detect)
-                    .WithWriteHeader(WriteHeaders.Always)
+                    .WithReadHeader(ReadHeader.Detect)
+                    .WithWriteHeader(WriteHeader.Always)
                     //.WithTypeDescriber(TypeDescribers.Default)
-                    .WithWriteTrailingNewLine(WriteTrailingNewLines.Never)
+                    .WithWriteTrailingNewLine(WriteTrailingNewLine.Never)
                     .WithMemoryPool(MemoryPool<char>.Shared)
                     .WithWriteBufferSizeHint(null)
                     .WithCommentCharacter(null)
                     .WithReadBufferSizeHint(0)
-                    .Build()
+                    .ToOptions()
             );
 
-            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithWriteTrailingNewLineInternal(default).Build());
-            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithWriteTrailingNewLineInternal((WriteTrailingNewLines)99).Build());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithWriteTrailingNewLineInternal(default).ToOptions());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithWriteTrailingNewLineInternal((WriteTrailingNewLine)99).ToOptions());
 
             Assert.Throws<InvalidOperationException>(
                 () =>
-                    Options.NewEmptyBuilder().WithValueSeparator(',')
-                    .WithRowEnding(RowEndings.CarriageReturnLineFeed)
+                    Options.CreateBuilder().WithValueSeparator(',')
+                    .WithRowEnding(RowEnding.CarriageReturnLineFeed)
                     .WithEscapedValueStartAndEnd('"')
                     .WithEscapedValueEscapeCharacter('"')
-                    .WithReadHeader(ReadHeaders.Detect)
-                    .WithWriteHeader(WriteHeaders.Always)
+                    .WithReadHeader(ReadHeader.Detect)
+                    .WithWriteHeader(WriteHeader.Always)
                     .WithTypeDescriber(TypeDescribers.Default)
-                    .WithWriteTrailingNewLine(WriteTrailingNewLines.Never)
+                    .WithWriteTrailingNewLine(WriteTrailingNewLine.Never)
                     //.WithMemoryPool(MemoryPool<char>.Shared)
                     .WithWriteBufferSizeHint(null)
                     .WithCommentCharacter(null)
                     .WithReadBufferSizeHint(0)
-                    .Build()
+                    .ToOptions()
             );
 
-            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithWriteBufferSizeHintInternal(-1).Build());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithWriteBufferSizeHintInternal(-1).ToOptions());
 
-            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithReadBufferSizeHintInternal(-1).Build());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithReadBufferSizeHintInternal(-1).ToOptions());
 
-            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithDynamicRowDisposalInternal(default).Build());
-            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithDynamicRowDisposalInternal((DynamicRowDisposal)99).Build());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithDynamicRowDisposalInternal(default).ToOptions());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithDynamicRowDisposalInternal((DynamicRowDisposal)99).ToOptions());
 
-            Assert.Throws<InvalidOperationException>(() => Options.Default.NewBuilder().WithCommentCharacter('"').Build());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithCommentCharacter('"').ToOptions());
 
-            Assert.Throws<ArgumentException>(() => Options.Default.NewBuilder().WithRowEnding(default));
+            Assert.Throws<ArgumentException>(() => Options.CreateBuilder(Options.Default).WithRowEnding(default));
 
-            Assert.Throws<ArgumentException>(() => Options.Default.NewBuilder().WithReadHeader(default));
+            Assert.Throws<ArgumentException>(() => Options.CreateBuilder(Options.Default).WithReadHeader(default));
 
-            Assert.Throws<ArgumentException>(() => Options.Default.NewBuilder().WithWriteHeader(default));
+            Assert.Throws<ArgumentException>(() => Options.CreateBuilder(Options.Default).WithWriteHeader(default));
 
-            Assert.Throws<ArgumentException>(() => Options.Default.NewBuilder().WithWriteTrailingNewLine(default));
+            Assert.Throws<ArgumentException>(() => Options.CreateBuilder(Options.Default).WithWriteTrailingNewLine(default));
 
-            Assert.Throws<ArgumentException>(() => Options.Default.NewBuilder().WithWriteBufferSizeHint(-12));
+            Assert.Throws<ArgumentException>(() => Options.CreateBuilder(Options.Default).WithWriteBufferSizeHint(-12));
 
-            Assert.Throws<ArgumentException>(() => Options.Default.NewBuilder().WithReadBufferSizeHint(-12));
+            Assert.Throws<ArgumentException>(() => Options.CreateBuilder(Options.Default).WithReadBufferSizeHint(-12));
 
-            Assert.Throws<ArgumentException>(() => Options.Default.NewBuilder().WithDynamicRowDisposal(default));
+            Assert.Throws<ArgumentException>(() => Options.CreateBuilder(Options.Default).WithDynamicRowDisposal(default));
         }
 
         private class _BadCreateCalls

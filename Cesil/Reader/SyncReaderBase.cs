@@ -23,10 +23,7 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
-            if (into == null)
-            {
-                return Throw.ArgumentNullException<TCollection>(nameof(into));
-            }
+            Utils.CheckArgumentNull(into, nameof(into));
 
             HandleRowEndingsAndHeaders();
 

@@ -4,7 +4,7 @@
     /// Whether or not to write a header row when
     ///   serializing.
     /// </summary>
-    public enum WriteHeaders : byte
+    public enum WriteHeader : byte
     {
         /// <summary>
         /// The first row written by the writer will be a header row.

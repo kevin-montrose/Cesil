@@ -19,45 +19,50 @@ namespace Cesil
         /// Typically a comma.
         /// </summary>
         public char ValueSeparator { get; private set; }
+
         /// <summary>
         /// Character used to start an escaped value.
         /// 
-        /// Typically a double quote.
+        /// Typically a double quote, but can be null for some formats.
         /// </summary>
-        public char EscapedValueStartAndEnd { get; private set; }
+        public char? EscapedValueStartAndEnd { get; private set; }
+
         /// <summary>
         /// Character used to escape another character in an
         ///   escaped value.
         ///   
-        /// Typically a double quote.
+        /// Typically a double quote, but can be null for some formats and
+        ///   MUST be null for formats without an EscapedValueStartAndEnd.
         /// </summary>
-        public char EscapedValueEscapeCharacter { get; private set; }
+        public char? EscapedValueEscapeCharacter { get; private set; }
         /// <summary>
         /// The sequence of characters used to end a row.
         /// </summary>
-        public RowEndings RowEnding { get; private set; }
+        public RowEnding RowEnding { get; private set; }
         /// <summary>
         /// Whether or not to read headers when reading a CSV.
         /// </summary>
-        public ReadHeaders ReadHeader { get; private set; }
+        public ReadHeader ReadHeader { get; private set; }
         /// <summary>
         /// Whether or not to write headers when writing a CSV.
         /// </summary>
-        public WriteHeaders WriteHeader { get; private set; }
+        public WriteHeader WriteHeader { get; private set; }
         /// <summary>
         /// The instance of ITypeDescriber that will be used to
         ///   discover which columns to read or write, as well
         ///   as the manner of their reading and writing.
         /// </summary>
+        [NullableExposed("All properties on OptionsBuilder are mutable and nullable, Options handles making sure they're not null")]
         public ITypeDescriber? TypeDescriber { get; private set; }
         /// <summary>
         /// Whether or not to write a new line after the last row
         /// in a CSV.
         /// </summary>
-        public WriteTrailingNewLines WriteTrailingNewLine { get; private set; }
+        public WriteTrailingNewLine WriteTrailingNewLine { get; private set; }
         /// <summary>
         /// Which MemoryPool to use when reading or writing a CSV.
         /// </summary>
+        [NullableExposed("All properties on OptionsBuilder are mutable and nullable, Options handles making sure they're not null")]
         public MemoryPool<char>? MemoryPool { get; private set; }
         /// <summary>
         /// Which character, if any, is used to indicate the start
@@ -111,14 +116,25 @@ namespace Cesil
         /// <summary>
         /// Create a new, empty, OptionsBuilder.
         /// </summary>
-        public static OptionsBuilder NewEmptyBuilder()
+        public static OptionsBuilder CreateBuilder()
         => new OptionsBuilder();
+
+        /// <summary>
+        /// Create a new OptionsBuilder, copying defaults
+        /// from the given Options.
+        /// </summary>
+        public static OptionsBuilder CreateBuilder(Options options)
+        {
+            Utils.CheckArgumentNull(options, nameof(options));
+
+            return new OptionsBuilder(options);
+        }
 
         /// <summary>
         /// Create the Options object that has been configured
         /// by this builder.
         /// </summary>
-        public Options Build()
+        public Options ToOptions()
         {
             // can't distinguish between the start of a value and an empty value
             if (ValueSeparator == EscapedValueStartAndEnd)
@@ -131,9 +147,14 @@ namespace Cesil
                 return Throw.InvalidOperationException<Options>($"{nameof(ValueSeparator)} cannot equal {nameof(CommentCharacter)}, both are '{ValueSeparator}'");
             }
             // can't distinguish between the start of an escaped value and a comment
-            if (EscapedValueStartAndEnd == CommentCharacter)
+            if (EscapedValueStartAndEnd != null && EscapedValueStartAndEnd == CommentCharacter)
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(EscapedValueStartAndEnd)} cannot equal {nameof(CommentCharacter)}, both are '{EscapedValueStartAndEnd}'");
+            }
+            // can't have an escape char if you can't start an escape sequence
+            if(EscapedValueStartAndEnd == null && EscapedValueEscapeCharacter != null)
+            {
+                return Throw.InvalidOperationException<Options>($"{nameof(EscapedValueEscapeCharacter)} cannot be set if, {nameof(EscapedValueStartAndEnd)} isn't set");
             }
             // RowEnding not recognized
             if (!Enum.IsDefined(Types.RowEndingsType, RowEnding))
@@ -191,46 +212,50 @@ namespace Cesil
         /// <summary>
         /// Set the character used to separate two values in a row.
         /// </summary>
-        public OptionsBuilder WithValueSeparator(char c)
+        public OptionsBuilder WithValueSeparator(char valueSeparator)
         {
-            ValueSeparator = c;
+            ValueSeparator = valueSeparator;
             return this;
         }
 
         /// <summary>
         /// Set the character used to start an escaped value.
+        /// 
+        /// If this is null, EscapedValueEscapeCharacter must also be null.
         /// </summary>
-        public OptionsBuilder WithEscapedValueStartAndEnd(char c)
+        public OptionsBuilder WithEscapedValueStartAndEnd(char? escapeStart)
         {
-            EscapedValueStartAndEnd = c;
+            EscapedValueStartAndEnd = escapeStart;
             return this;
         }
 
         /// <summary>
         /// Set the character used to escape another character in
         /// an escaped value.
+        /// 
+        /// If this is non-null, EscapedValueStartAndEnd must also be non-null.
         /// </summary>
-        public OptionsBuilder WithEscapedValueEscapeCharacter(char c)
+        public OptionsBuilder WithEscapedValueEscapeCharacter(char? escape)
         {
-            EscapedValueEscapeCharacter = c;
+            EscapedValueEscapeCharacter = escape;
             return this;
         }
 
         /// <summary>
         /// Set the sequence of characters that will end a row.
         /// </summary>
-        public OptionsBuilder WithRowEnding(RowEndings l)
+        public OptionsBuilder WithRowEnding(RowEnding rowEnding)
         {
-            if (!Enum.IsDefined(Types.RowEndingsType, l))
+            if (!Enum.IsDefined(Types.RowEndingsType, rowEnding))
             {
-                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(RowEndings)} value: {l}", nameof(l));
+                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(Cesil.RowEnding)} value: {rowEnding}", nameof(rowEnding));
             }
 
-            return WithRowEndingInternal(l);
+            return WithRowEndingInternal(rowEnding);
         }
 
         // sometimes we want to skip validation in tests
-        internal OptionsBuilder WithRowEndingInternal(RowEndings l)
+        internal OptionsBuilder WithRowEndingInternal(RowEnding l)
         {
             RowEnding = l;
             return this;
@@ -239,18 +264,18 @@ namespace Cesil
         /// <summary>
         /// Set whether or not to read headers.
         /// </summary>
-        public OptionsBuilder WithReadHeader(ReadHeaders r)
+        public OptionsBuilder WithReadHeader(ReadHeader readHeader)
         {
-            if (!Enum.IsDefined(Types.ReadHeadersType, r))
+            if (!Enum.IsDefined(Types.ReadHeadersType, readHeader))
             {
-                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(ReadHeaders)} value: {r}", nameof(r));
+                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(Cesil.ReadHeader)} value: {readHeader}", nameof(readHeader));
             }
 
-            return WithReadHeaderInternal(r);
+            return WithReadHeaderInternal(readHeader);
         }
 
         // sometimes we want to skip validation in tests
-        internal OptionsBuilder WithReadHeaderInternal(ReadHeaders r)
+        internal OptionsBuilder WithReadHeaderInternal(ReadHeader r)
         {
             ReadHeader = r;
             return this;
@@ -259,18 +284,18 @@ namespace Cesil
         /// <summary>
         /// Set whether or not to write headers.
         /// </summary>
-        public OptionsBuilder WithWriteHeader(WriteHeaders w)
+        public OptionsBuilder WithWriteHeader(WriteHeader writeHeader)
         {
-            if (!Enum.IsDefined(Types.WriteHeadersType, w))
+            if (!Enum.IsDefined(Types.WriteHeadersType, writeHeader))
             {
-                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(WriteHeaders)} value: {w}", nameof(w));
+                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(Cesil.WriteHeader)} value: {writeHeader}", nameof(writeHeader));
             }
 
-            return WithWriteHeaderInternal(w);
+            return WithWriteHeaderInternal(writeHeader);
         }
 
         // sometimes we want to skip validation in tests
-        internal OptionsBuilder WithWriteHeaderInternal(WriteHeaders w)
+        internal OptionsBuilder WithWriteHeaderInternal(WriteHeader w)
         {
             WriteHeader = w;
             return this;
@@ -280,29 +305,29 @@ namespace Cesil
         /// Set the ITypeDescriber used to discover and configure the
         /// columns that are read and written.
         /// </summary>
-        public OptionsBuilder WithTypeDescriber(ITypeDescriber describer)
+        public OptionsBuilder WithTypeDescriber(ITypeDescriber typeDescriber)
         {
-            describer = describer ?? TypeDescribers.Default;
+            typeDescriber = typeDescriber ?? TypeDescribers.Default;
 
-            TypeDescriber = describer;
+            TypeDescriber = typeDescriber;
             return this;
         }
 
         /// <summary>
         /// Set whether or not to end the last row with a new line.
         /// </summary>
-        public OptionsBuilder WithWriteTrailingNewLine(WriteTrailingNewLines w)
+        public OptionsBuilder WithWriteTrailingNewLine(WriteTrailingNewLine writeTrailingNewLine)
         {
-            if (!Enum.IsDefined(Types.WriteTrailingNewLinesType, w))
+            if (!Enum.IsDefined(Types.WriteTrailingNewLinesType, writeTrailingNewLine))
             {
-                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(WriteTrailingNewLines)} value: {w}", nameof(w));
+                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(Cesil.WriteTrailingNewLine)} value: {writeTrailingNewLine}", nameof(writeTrailingNewLine));
             }
 
-            return WithWriteTrailingNewLineInternal(w);
+            return WithWriteTrailingNewLineInternal(writeTrailingNewLine);
         }
 
         // sometimes we want to skip validation in tests
-        internal OptionsBuilder WithWriteTrailingNewLineInternal(WriteTrailingNewLines w)
+        internal OptionsBuilder WithWriteTrailingNewLineInternal(WriteTrailingNewLine w)
         {
             WriteTrailingNewLine = w;
             return this;
@@ -311,11 +336,11 @@ namespace Cesil
         /// <summary>
         /// Set the MemoryPool used during reading and writing.
         /// </summary>
-        public OptionsBuilder WithMemoryPool(MemoryPool<char> pool)
+        public OptionsBuilder WithMemoryPool(MemoryPool<char> memoryPool)
         {
-            pool = pool ?? MemoryPool<char>.Shared;
+            memoryPool = memoryPool ?? MemoryPool<char>.Shared;
 
-            MemoryPool = pool;
+            MemoryPool = memoryPool;
             return this;
         }
 
@@ -323,9 +348,9 @@ namespace Cesil
         /// Set or clear the character that starts a row
         /// that is a comment.
         /// </summary>
-        public OptionsBuilder WithCommentCharacter(char? c)
+        public OptionsBuilder WithCommentCharacter(char? commentStart)
         {
-            CommentCharacter = c;
+            CommentCharacter = commentStart;
             return this;
         }
 
@@ -389,14 +414,14 @@ namespace Cesil
         /// The options are either when the reader is disposed (the default) or
         ///   when the row is explicitly disposed.
         /// </summary>
-        public OptionsBuilder WithDynamicRowDisposal(DynamicRowDisposal d)
+        public OptionsBuilder WithDynamicRowDisposal(DynamicRowDisposal dynamicRowDisposal)
         {
-            if (!Enum.IsDefined(typeof(DynamicRowDisposal), d))
+            if (!Enum.IsDefined(typeof(DynamicRowDisposal), dynamicRowDisposal))
             {
-                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(DynamicRowDisposal)} value: {d}", nameof(d));
+                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(DynamicRowDisposal)} value: {dynamicRowDisposal}", nameof(dynamicRowDisposal));
             }
 
-            return WithDynamicRowDisposalInternal(d);
+            return WithDynamicRowDisposalInternal(dynamicRowDisposal);
         }
 
         // sometimes we want to skip validation in tests

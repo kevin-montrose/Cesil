@@ -6,6 +6,20 @@ namespace Cesil
 {
     internal static class Utils
     {
+        // Use this when we're validating parameters that the type system
+        //   thinks are non-null but we know a USER could subvert
+        //
+        // Places where the type system thinks we're nullable, don't use this.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void CheckArgumentNull<T>(T arg, string argName)
+            where T: class
+        {
+            if(arg == null)
+            {
+                Throw.ArgumentNullException<object>(argName);
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static T NonNull<T>(T? toCheck)
             where T : class
@@ -16,6 +30,19 @@ namespace Cesil
             }
 
             return toCheck;
+        }
+
+        // todo: I think we can completely remove this if we're smarter
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static T NonNullStruct<T>(T? toCheck)
+            where T : struct
+        {
+            if (toCheck == null)
+            {
+                return Throw.Exception<T>("Expected non-null value, but found null");
+            }
+
+            return toCheck.Value;
         }
 
         // won't return empty entries
@@ -448,8 +475,15 @@ tryAgain:
             short* probMap = stackalloc short[PROBABILITY_MAP_SIZE];
             probMap[0] = 9216;
             AddCharacterToProbMap(probMap, sepChar);
-            AddCharacterToProbMap(probMap, escapeValueChar);
-            AddCharacterToProbMap(probMap, escapeChar);
+            if (escapeValueChar.HasValue)
+            {
+                AddCharacterToProbMap(probMap, escapeValueChar.Value);
+                if (escapeChar.HasValue)
+                {
+
+                    AddCharacterToProbMap(probMap, escapeChar.Value);
+                }
+            }
 
             fixed (char* charPtr = span)
             {
@@ -488,8 +522,15 @@ tryAgain:
             short* probMap = stackalloc short[PROBABILITY_MAP_SIZE];
             probMap[0] = 9216;
             AddCharacterToProbMap(probMap, sepChar);
-            AddCharacterToProbMap(probMap, escapeValueChar);
-            AddCharacterToProbMap(probMap, escapeChar);
+            if (escapeValueChar.HasValue)
+            {
+                AddCharacterToProbMap(probMap, escapeValueChar.Value);
+                if (escapeChar.HasValue)
+                {
+
+                    AddCharacterToProbMap(probMap, escapeChar.Value);
+                }
+            }
             AddCharacterToProbMap(probMap, commentChar);
 
             fixed (char* charPtr = span)
@@ -567,13 +608,33 @@ tryAgain:
             var defaultSize = rawStr.Length + 2 + 1;
 
             var pool = config.MemoryPool;
-            var escapeChar = config.EscapeValueEscapeChar;
+            var escapeCharNull = config.EscapeValueEscapeChar;
+            char escapeChar;
+            if(escapeCharNull == null)
+            {
+                return Throw.Exception<string>("Attempted to encode a string without a configured escape char, shouldn't be possible");
+            }
+            else
+            {
+                escapeChar = escapeCharNull.Value;
+            }
+
+            var escapedValueStartAndStopNull = config.EscapedValueStartAndStop;
+            char escapedValueStartAndStop;
+            if (escapedValueStartAndStopNull == null)
+            {
+                return Throw.Exception<string>("Attempted to encode a string without a configured escape sequence start char, shouldn't be possible");
+            }
+            else
+            {
+                escapedValueStartAndStop = escapedValueStartAndStopNull.Value;
+            }
 
             var raw = rawStr.AsMemory();
             var retOwner = config.MemoryPool.Rent(defaultSize);
             try
             {
-                retOwner.Memory.Span[0] = config.EscapedValueStartAndStop;
+                retOwner.Memory.Span[0] = escapedValueStartAndStop;
 
                 var rawIx = 0;
                 var destIx = 1;
@@ -601,7 +662,7 @@ tryAgain:
 
                 var retSpan = retOwner.Memory.Span;
 
-                retSpan[destIx] = config.EscapedValueStartAndStop;
+                retSpan[destIx] = escapedValueStartAndStop;
                 destIx++;
 
                 var retStr = new string(retSpan.Slice(0, destIx));

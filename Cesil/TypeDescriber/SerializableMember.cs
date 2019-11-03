@@ -4,24 +4,6 @@ using System.Reflection;
 namespace Cesil
 {
     /// <summary>
-    /// Whether or not the default value for a member will be serialized.
-    /// </summary>
-    public enum WillEmitDefaultValue : byte
-    {
-        /// <summary>
-        /// A member must be present, it is
-        /// an error to omit it.
-        /// </summary>
-        Yes = 1,
-
-        /// <summary>
-        /// A member does not have to be present,
-        /// it is not an error if it is omitted.
-        /// </summary>
-        No = 2
-    }
-
-    /// <summary>
     /// Represents a member of a type to use when serializing.
     /// </summary>
     public sealed class SerializableMember : IEquatable<SerializableMember>
@@ -38,52 +20,52 @@ namespace Cesil
 
         internal bool EmitDefaultValue { get; }
 
-        private SerializableMember(string name, Getter getter, Formatter formatter, ShouldSerialize? shouldSerialize, bool emitDefaultValue)
+        private SerializableMember(string name, Getter getter, Formatter formatter, ShouldSerialize? shouldSerialize, bool emitDefault)
         {
             Name = name;
             Getter = getter;
             Formatter = formatter;
             ShouldSerialize.SetAllowNull(shouldSerialize);
-            EmitDefaultValue = emitDefaultValue;
+            EmitDefaultValue = emitDefault;
         }
 
         /// <summary>
         /// Creates a SerializableMember for the given property.
         /// </summary>
-        public static SerializableMember ForProperty(PropertyInfo prop)
+        public static SerializableMember ForProperty(PropertyInfo property)
         {
-            var propType = prop?.PropertyType;
+            var propType = property?.PropertyType;
             var formatter = propType != null ? Formatter.GetDefault(propType.GetTypeInfo()) : null;
-            return CreateInner(prop?.DeclaringType?.GetTypeInfo(), prop?.Name, (Getter?)prop?.GetMethod, formatter, null, WillEmitDefaultValue.Yes);
+            return CreateInner(property?.DeclaringType?.GetTypeInfo(), property?.Name, (Getter?)property?.GetMethod, formatter, null, Cesil.EmitDefaultValue.Yes);
         }
 
         /// <summary>
         /// Creates a SerializableMember for the given property, with the given name.
         /// </summary>
-        public static SerializableMember ForProperty(PropertyInfo prop, string name)
+        public static SerializableMember ForProperty(PropertyInfo property, string name)
         {
-            var propType = prop?.PropertyType;
+            var propType = property?.PropertyType;
             var formatter = propType != null ? Formatter.GetDefault(propType.GetTypeInfo()) : null;
-            return CreateInner(prop?.DeclaringType?.GetTypeInfo(), name, (Getter?)prop?.GetMethod, formatter, null, WillEmitDefaultValue.Yes);
+            return CreateInner(property?.DeclaringType?.GetTypeInfo(), name, (Getter?)property?.GetMethod, formatter, null, Cesil.EmitDefaultValue.Yes);
         }
 
         /// <summary>
         /// Creates a SerializableMember for the given property, with the given name and formatter.
         /// </summary>
-        public static SerializableMember ForProperty(PropertyInfo prop, string name, Formatter formatter)
-        => CreateInner(prop?.DeclaringType?.GetTypeInfo(), name, (Getter?)prop?.GetMethod, formatter, null, WillEmitDefaultValue.Yes);
+        public static SerializableMember ForProperty(PropertyInfo property, string name, Formatter formatter)
+        => CreateInner(property?.DeclaringType?.GetTypeInfo(), name, (Getter?)property?.GetMethod, formatter, null, Cesil.EmitDefaultValue.Yes);
 
         /// <summary>
         /// Creates a SerializableMember for the given property, with the given name, formatter, and ShouldSerialize method.
         /// </summary>
-        public static SerializableMember ForProperty(PropertyInfo prop, string name, Formatter formatter, ShouldSerialize shouldSerialize)
-        => CreateInner(prop?.DeclaringType?.GetTypeInfo(), name, (Getter?)prop?.GetMethod, formatter, shouldSerialize, WillEmitDefaultValue.Yes);
+        public static SerializableMember ForProperty(PropertyInfo property, string name, Formatter formatter, ShouldSerialize shouldSerialize)
+        => CreateInner(property?.DeclaringType?.GetTypeInfo(), name, (Getter?)property?.GetMethod, formatter, shouldSerialize, Cesil.EmitDefaultValue.Yes);
 
         /// <summary>
         /// Creates a SerializableMember for the given property, with the given name, formatter, ShouldSerialize method, and whether to emit a default value.
         /// </summary>
-        public static SerializableMember ForProperty(PropertyInfo prop, string name, Formatter formatter, ShouldSerialize shouldSerialize, WillEmitDefaultValue emitDefaultValue)
-        => CreateInner(prop?.DeclaringType?.GetTypeInfo(), name, (Getter?)prop?.GetMethod, formatter, shouldSerialize, emitDefaultValue);
+        public static SerializableMember ForProperty(PropertyInfo property, string name, Formatter formatter, ShouldSerialize shouldSerialize, EmitDefaultValue emitDefault)
+        => CreateInner(property?.DeclaringType?.GetTypeInfo(), name, (Getter?)property?.GetMethod, formatter, shouldSerialize, emitDefault);
 
         /// <summary>
         /// Creates a SerializableMember for the given field.
@@ -92,7 +74,7 @@ namespace Cesil
         {
             var fieldType = field?.FieldType;
             var formatter = fieldType != null ? Formatter.GetDefault(fieldType.GetTypeInfo()) : null;
-            return CreateInner(field?.DeclaringType?.GetTypeInfo(), field?.Name, (Getter?)field, formatter, null, WillEmitDefaultValue.Yes);
+            return CreateInner(field?.DeclaringType?.GetTypeInfo(), field?.Name, (Getter?)field, formatter, null, Cesil.EmitDefaultValue.Yes);
         }
 
         /// <summary>
@@ -102,34 +84,42 @@ namespace Cesil
         {
             var fieldType = field?.FieldType;
             var formatter = fieldType != null ? Formatter.GetDefault(fieldType.GetTypeInfo()) : null;
-            return CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Getter?)field, formatter, null, WillEmitDefaultValue.Yes);
+            return CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Getter?)field, formatter, null, Cesil.EmitDefaultValue.Yes);
         }
 
         /// <summary>
         /// Creates a SerializableMember for the given field, with the given name and formatter.
         /// </summary>
         public static SerializableMember ForField(FieldInfo field, string name, Formatter formatter)
-        => CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Getter?)field, formatter, null, WillEmitDefaultValue.Yes);
+        => CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Getter?)field, formatter, null, Cesil.EmitDefaultValue.Yes);
 
         /// <summary>
         /// Creates a SerializableMember for the given field, with the given name, formatter, and ShouldSerialize method.
         /// </summary>
         public static SerializableMember ForField(FieldInfo field, string name, Formatter formatter, ShouldSerialize shouldSerialize)
-        => CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Getter?)field, formatter, shouldSerialize, WillEmitDefaultValue.Yes);
+        => CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Getter?)field, formatter, shouldSerialize, Cesil.EmitDefaultValue.Yes);
 
         /// <summary>
         /// Creates a SerializableMember for the given field, with the given name, formatter, ShouldSerialize method, and whether to emit a default value.
         /// </summary>
-        public static SerializableMember ForField(FieldInfo field, string name, Formatter formatter, ShouldSerialize shouldSerialize, WillEmitDefaultValue emitDefaultValue)
-        => CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Getter?)field, formatter, shouldSerialize, emitDefaultValue);
+        public static SerializableMember ForField(FieldInfo field, string name, Formatter formatter, ShouldSerialize shouldSerialize, EmitDefaultValue emitDefault)
+        => CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Getter?)field, formatter, shouldSerialize, emitDefault);
 
         /// <summary>
         /// Create a SerializableMember with an explicit type being serialized, name, getter, formatter, ShouldSerialize method, and whether to emit a default value.
         /// </summary>
-        public static SerializableMember Create(TypeInfo beingSerializedType, string name, Getter getter, Formatter formatter, ShouldSerialize? shouldSerialize, WillEmitDefaultValue emitDefaultValue)
-        => CreateInner(beingSerializedType, name, getter, formatter, shouldSerialize, emitDefaultValue);
+        public static SerializableMember Create(
+            TypeInfo forType, 
+            string name, 
+            Getter getter, 
+            Formatter formatter,
+            [NullableExposed("ShouldSerialize is truly optional here, it's required and validated elsewhere")]
+            ShouldSerialize? shouldSerialize, 
+            EmitDefaultValue emitDefault
+        )
+        => CreateInner(forType, name, getter, formatter, shouldSerialize, emitDefault);
 
-        internal static SerializableMember CreateInner(TypeInfo? beingSerializedType, string? name, Getter? getter, Formatter? formatter, ShouldSerialize? shouldSerialize, WillEmitDefaultValue emitDefaultValue)
+        internal static SerializableMember CreateInner(TypeInfo? beingSerializedType, string? name, Getter? getter, Formatter? formatter, ShouldSerialize? shouldSerialize, EmitDefaultValue emitDefault)
         {
             if (beingSerializedType == null)
             {
@@ -152,16 +142,16 @@ namespace Cesil
             }
 
             bool emitDefaultValueBool;
-            switch (emitDefaultValue)
+            switch (emitDefault)
             {
-                case WillEmitDefaultValue.Yes:
+                case Cesil.EmitDefaultValue.Yes:
                     emitDefaultValueBool = true;
                     break;
-                case WillEmitDefaultValue.No:
+                case Cesil.EmitDefaultValue.No:
                     emitDefaultValueBool = false;
                     break;
                 default:
-                    return Throw.InvalidOperationException<SerializableMember>($"Unexpected {nameof(WillEmitDefaultValue)}: {emitDefaultValue}");
+                    return Throw.InvalidOperationException<SerializableMember>($"Unexpected {nameof(Cesil.EmitDefaultValue)}: {emitDefault}");
             }
 
             var toSerializeType = getter.Returns;
@@ -211,26 +201,26 @@ namespace Cesil
         /// <summary>
         /// Returns true if this object equals the given SerializableMember.
         /// </summary>
-        public bool Equals(SerializableMember s)
+        public bool Equals(SerializableMember serializableMember)
         {
-            if (ReferenceEquals(s, null)) return false;
+            if (ReferenceEquals(serializableMember, null)) return false;
 
             if (ShouldSerialize.HasValue)
             {
-                if (!s.ShouldSerialize.HasValue) return false;
+                if (!serializableMember.ShouldSerialize.HasValue) return false;
 
-                if (ShouldSerialize.Value != s.ShouldSerialize.Value) return false;
+                if (ShouldSerialize.Value != serializableMember.ShouldSerialize.Value) return false;
             }
             else
             {
-                if (s.ShouldSerialize.HasValue) return false;
+                if (serializableMember.ShouldSerialize.HasValue) return false;
             }
 
             return
-                s.EmitDefaultValue == EmitDefaultValue &&
-                s.Formatter == Formatter &&
-                s.Getter == Getter &&
-                s.Name == Name;
+                serializableMember.EmitDefaultValue == EmitDefaultValue &&
+                serializableMember.Formatter == Formatter &&
+                serializableMember.Getter == Getter &&
+                serializableMember.Name == Name;
         }
 
         /// <summary>

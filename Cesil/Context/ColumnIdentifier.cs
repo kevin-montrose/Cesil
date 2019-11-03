@@ -6,7 +6,7 @@ namespace Cesil
     /// Identifies a particular column, either by index or 
     ///   index and name.
     /// </summary>
-    public struct ColumnIdentifier : IEquatable<ColumnIdentifier>
+    public readonly struct ColumnIdentifier : IEquatable<ColumnIdentifier>
     {
         /// <summary>
         /// Index of the column, base-0.
@@ -14,14 +14,14 @@ namespace Cesil
         [IntentionallyExposedPrimitive("Best way to indicate an index, given that this is already wrapped up semantically")]
         public int Index { get; }
 
+        private readonly NonNull<string> _Name;
+
         /// <summary>
         /// Whether this column has a known name.
         /// </summary>
         [IntentionallyExposedPrimitive("Best way to indicate something exists, it's fine")]
-        public bool HasName => _Name != null;
+        public bool HasName => _Name.HasValue;
 
-
-        private string? _Name;
         /// <summary>
         /// The name of the column.
         /// </summary>
@@ -29,27 +29,29 @@ namespace Cesil
         {
             get
             {
-                if (_Name == null)
+                // special to make the error "nicer", when most NonNull's indicate an internal error
+                if (!_Name.HasValue)
                 {
-                    return Throw.InvalidOperationException<string>("Column does not have a name");
+                    return Throw.InvalidOperationException<string>($"{nameof(Name)} is not set, check HasName before calling this");
                 }
 
-                return _Name;
+                return _Name.Value;
             }
         }
 
         private ColumnIdentifier(int ix, string? name)
         {
             Index = ix;
-            _Name = name;
+            _Name = default;
+            _Name.SetAllowNull(name);
         }
 
         /// <summary>
-        /// Create a ColumnIdentifier for the given index, optionally with a name.
+        /// Create a ColumnIdentifier for the given index.
         /// </summary>
         public static ColumnIdentifier Create(
-            [IntentionallyExposedPrimitive("Best way to identifier an index")]int index,
-            string? name = null
+            [IntentionallyExposedPrimitive("Best way to identify an index")]
+            int index
         )
         {
             if (index < 0)
@@ -57,14 +59,36 @@ namespace Cesil
                 return Throw.ArgumentException<ColumnIdentifier>($"Must be >= 0, found {index}", nameof(index));
             }
 
+            return CreateInner(index, null);
+        }
+
+        /// <summary>
+        /// Create a ColumnIdentifier for the given index and name.
+        /// </summary>
+        public static ColumnIdentifier Create(
+            [IntentionallyExposedPrimitive("Best way to identify an index")]
+            int index, 
+            string name
+        )
+        {
+            if (index < 0)
+            {
+                return Throw.ArgumentException<ColumnIdentifier>($"Must be >= 0, found {index}", nameof(index));
+            }
+
+            Utils.CheckArgumentNull(name, nameof(name));
+
             return CreateInner(index, name);
         }
 
         internal static ColumnIdentifier Create(int index, NonNull<string> name)
         {
-            var nameNull = name.HasValue ? name.Value : null;
+            if (name.HasValue)
+            {
+                return Create(index, name.Value);
+            }
 
-            return Create(index, nameNull);
+            return Create(index);
         }
 
         // just for testing
@@ -87,15 +111,15 @@ namespace Cesil
         /// <summary>
         /// Returns true if the given object is equivalent to this one
         /// </summary>
-        public bool Equals(ColumnIdentifier other)
+        public bool Equals(ColumnIdentifier column)
         {
-            if (Index != other.Index) return false;
+            if (Index != column.Index) return false;
 
-            if (HasName != other.HasName) return false;
+            if (HasName != column.HasName) return false;
 
             if (HasName)
             {
-                return Name.Equals(other.Name);
+                return Name.Equals(column.Name);
             }
 
             return true;

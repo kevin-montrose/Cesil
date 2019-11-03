@@ -67,7 +67,7 @@ namespace Cesil.Tests
         {
             var describer = new _BridgeDelegate_Describer();
 
-            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(describer).ToOptions();
 
             RunSyncReaderVariants<_BridgeDelegate>(
                 opts,
@@ -118,11 +118,11 @@ namespace Cesil.Tests
         {
             InstanceProvider builder = (InstanceProvider)typeof(InstanceProviderTests).GetMethod(nameof(_MethodBacking_Method), BindingFlags.Static | BindingFlags.NonPublic);
 
-            var describer = new ManualTypeDescriber();
-            describer.SetBuilder(builder);
+            var describer = ManualTypeDescriberBuilder.CreateBuilder();
+            describer.SetInstanceProvider(builder);
             describer.AddDeserializableProperty(typeof(_MethodBacking_Type).GetProperty(nameof(_MethodBacking_Type.Bar)));
 
-            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
             RunSyncReaderVariants<_MethodBacking_Type>(
                 opts,

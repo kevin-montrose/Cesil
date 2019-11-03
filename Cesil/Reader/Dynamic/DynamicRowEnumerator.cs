@@ -5,21 +5,13 @@ using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
-    // todo: why isn't this checking row generation?
     internal sealed class DynamicRowEnumerator<T> : IEnumerator<T>, ITestableDisposable
     {
-        private DynamicRow.DynamicColumnEnumerator? Enumerator;
+        // this checks that reusing the underlying DynamicRow will
+        //   cause a generation check failure
+        private readonly DynamicRow.DynamicColumnEnumerator Enumerator;
 
-        public bool IsDisposed
-        {
-            get
-            {
-                var e = Enumerator;
-                if (e == null) return true;
-
-                return e.IsDisposed;
-            }
-        }
+        public bool IsDisposed => Enumerator.IsDisposed;
 
         private T _Current;
         public T Current
@@ -43,17 +35,15 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
-            var e = Utils.NonNull(Enumerator);
-
-            if (!e.MoveNext())
+            if (!Enumerator.MoveNext())
             {
                 _Current = default!;
                 return false;
             }
 
-            var col = e.Current;
+            var col = Enumerator.Current;
 
-            var val = e.Row.GetCellAt(col.Index);
+            var val = Enumerator.Row.GetCellAt(col.Index);
             if(val == null)
             {
                 if(typeof(T).IsValueType)
@@ -75,14 +65,16 @@ namespace Cesil
             AssertNotDisposed(this);
 
             _Current = default!;
-            Utils.NonNull(Enumerator).Reset();
+            Enumerator.Reset();
         }
 
 
         public void Dispose()
         {
-            Enumerator?.Dispose();
-            Enumerator = null;
+            if (!IsDisposed)
+            {
+                Enumerator.Dispose();
+            }
         }
 
         public override string ToString()

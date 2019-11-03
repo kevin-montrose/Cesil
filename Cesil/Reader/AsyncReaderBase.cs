@@ -34,10 +34,9 @@ namespace Cesil
         private ValueTask<TCollection> ReadAllIntoCollectionAsync<TCollection>(TCollection into, CancellationToken cancel)
         where TCollection : class, ICollection<T>
         {
-            if (into == null)
-            {
-                return Throw.ArgumentNullException<ValueTask<TCollection>>(nameof(into));
-            }
+            AssertNotDisposed(this);
+
+            Utils.CheckArgumentNull(into, nameof(into));
 
             var headersAndRowEndingsTask = HandleRowEndingsAndHeadersAsync(cancel);
             if (!headersAndRowEndingsTask.IsCompletedSuccessfully(this))

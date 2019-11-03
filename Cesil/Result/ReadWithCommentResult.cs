@@ -4,9 +4,9 @@
     /// Represents the result of an attempted read operation which supports comments.
     /// </summary>
     [NotEquatable("Value is open, hashcode and equality may not be sensible")]
-    public readonly struct ReadWithCommentResult<T>
+    public readonly struct ReadWithCommentResult<TRow>
     {
-        internal static readonly ReadWithCommentResult<T> Empty = new ReadWithCommentResult<T>(ReadWithCommentResultType.NoValue);
+        internal static readonly ReadWithCommentResult<TRow> Empty = new ReadWithCommentResult<TRow>(ReadWithCommentResultType.NoValue);
 
         /// <summary>
         /// Indicates what, if anything, is available on this result.
@@ -27,20 +27,20 @@
         [IntentionallyExposedPrimitive("Best way to expose a presense, it's fine")]
         public bool HasComment => ResultType == ReadWithCommentResultType.HasComment;
 
-        private readonly T _Value;
+        private readonly TRow _Value;
 
         /// <summary>
         /// The value read, if ResultType == HasValue.
         /// 
         /// Throws otherwise.
         /// </summary>
-        public T Value
+        public TRow Value
         {
             get
             {
                 if (ResultType != ReadWithCommentResultType.HasValue)
                 {
-                    return Throw.InvalidOperationException<T>($"{nameof(ReadWithCommentResult<T>)} has no value");
+                    return Throw.InvalidOperationException<TRow>($"{nameof(ReadWithCommentResult<TRow>)} has no value");
                 }
 
                 return _Value;
@@ -60,14 +60,14 @@
             {
                 if (ResultType != ReadWithCommentResultType.HasComment)
                 {
-                    return Throw.InvalidOperationException<string>($"{nameof(ReadWithCommentResult<T>)} has no comment");
+                    return Throw.InvalidOperationException<string>($"{nameof(ReadWithCommentResult<TRow>)} has no comment");
                 }
 
                 return _Comment!;
             }
         }
 
-        internal ReadWithCommentResult(T val)
+        internal ReadWithCommentResult(TRow val)
         {
             ResultType = ReadWithCommentResultType.HasValue;
             _Value = val;
@@ -98,11 +98,11 @@
             switch (ResultType)
             {
                 case ReadWithCommentResultType.NoValue:
-                    return $"{nameof(ReadWithCommentResult<T>)} which is empty)";
+                    return $"{nameof(ReadWithCommentResult<TRow>)} which is empty)";
                 case ReadWithCommentResultType.HasValue:
-                    return $"{nameof(ReadWithCommentResult<T>)} with {Value}";
+                    return $"{nameof(ReadWithCommentResult<TRow>)} with {Value}";
                 case ReadWithCommentResultType.HasComment:
-                    return $"{nameof(ReadWithCommentResult<T>)} with comment: {Comment}";
+                    return $"{nameof(ReadWithCommentResult<TRow>)} with comment: {Comment}";
                 default:
                     return Throw.InvalidOperationException<string>($"Unexpected {nameof(ReadWithCommentResultType)}: {ResultType}");
             }

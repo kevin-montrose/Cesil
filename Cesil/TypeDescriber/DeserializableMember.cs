@@ -4,24 +4,6 @@ using System.Reflection;
 namespace Cesil
 {
     /// <summary>
-    /// Whether or not a member is required during deserialization.
-    /// </summary>
-    public enum IsMemberRequired : byte
-    {
-        /// <summary>
-        /// A member must be present, it is
-        /// an error to omit it.
-        /// </summary>
-        Yes = 1,
-
-        /// <summary>
-        /// A member does not have to be present,
-        /// it is not an error if it is omitted.
-        /// </summary>
-        No = 2
-    }
-
-    /// <summary>
     /// Represents a member of a type to use when deserializing.
     /// </summary>
     public sealed class DeserializableMember : IEquatable<DeserializableMember>
@@ -61,7 +43,7 @@ namespace Cesil
         {
             var propType = property?.PropertyType.GetTypeInfo();
             var parser = propType != null ? Parser.GetDefault(propType) : null;
-            return CreateInner(property?.DeclaringType?.GetTypeInfo(), property?.Name, (Setter?)property?.SetMethod, parser, IsMemberRequired.No, null);
+            return CreateInner(property?.DeclaringType?.GetTypeInfo(), property?.Name, (Setter?)property?.SetMethod, parser, MemberRequired.No, null);
         }
 
         /// <summary>
@@ -71,26 +53,26 @@ namespace Cesil
         {
             var propType = property?.PropertyType.GetTypeInfo();
             var parser = propType != null ? Parser.GetDefault(propType) : null;
-            return CreateInner(property?.DeclaringType?.GetTypeInfo(), name, (Setter?)property?.SetMethod, parser, IsMemberRequired.No, null);
+            return CreateInner(property?.DeclaringType?.GetTypeInfo(), name, (Setter?)property?.SetMethod, parser, MemberRequired.No, null);
         }
 
         /// <summary>
         /// Creates a DeserializableMember for the given property, with the given name and parser.
         /// </summary>
         public static DeserializableMember ForProperty(PropertyInfo property, string name, Parser parser)
-        => CreateInner(property?.DeclaringType?.GetTypeInfo(), name, (Setter?)property?.SetMethod, parser, IsMemberRequired.No, null);
+        => CreateInner(property?.DeclaringType?.GetTypeInfo(), name, (Setter?)property?.SetMethod, parser, MemberRequired.No, null);
 
         /// <summary>
         /// Creates a DeserializableMember for the given property, with the given name, parser, and whether it is required.
         /// </summary>
-        public static DeserializableMember ForProperty(PropertyInfo property, string name, Parser parser, IsMemberRequired isRequired)
-        => CreateInner(property?.DeclaringType?.GetTypeInfo(), name, (Setter?)property?.SetMethod, parser, isRequired, null);
+        public static DeserializableMember ForProperty(PropertyInfo property, string name, Parser parser, MemberRequired required)
+        => CreateInner(property?.DeclaringType?.GetTypeInfo(), name, (Setter?)property?.SetMethod, parser, required, null);
 
         /// <summary>
         /// Creates a DeserializableMember for the given property, with the given name, parser, whether it is required, and a reset method.
         /// </summary>
-        public static DeserializableMember ForProperty(PropertyInfo property, string name, Parser parser, IsMemberRequired isRequired, Reset reset)
-        => CreateInner(property?.DeclaringType?.GetTypeInfo(), name, (Setter?)property?.SetMethod, parser, isRequired, reset);
+        public static DeserializableMember ForProperty(PropertyInfo property, string name, Parser parser, MemberRequired required, Reset reset)
+        => CreateInner(property?.DeclaringType?.GetTypeInfo(), name, (Setter?)property?.SetMethod, parser, required, reset);
 
         /// <summary>
         /// Creates a DeserializableMember for the given field.
@@ -99,7 +81,7 @@ namespace Cesil
         {
             var fieldType = field?.FieldType.GetTypeInfo();
             var parser = fieldType != null ? Parser.GetDefault(fieldType) : null;
-            return CreateInner(field?.DeclaringType?.GetTypeInfo(), field?.Name, (Setter?)field, parser, IsMemberRequired.No, null);
+            return CreateInner(field?.DeclaringType?.GetTypeInfo(), field?.Name, (Setter?)field, parser, MemberRequired.No, null);
         }
 
         /// <summary>
@@ -109,34 +91,42 @@ namespace Cesil
         {
             var fieldType = field?.FieldType.GetTypeInfo();
             var parser = fieldType != null ? Parser.GetDefault(fieldType) : null;
-            return CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Setter?)field, parser, IsMemberRequired.No, null);
+            return CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Setter?)field, parser, MemberRequired.No, null);
         }
 
         /// <summary>
         /// Creates a DeserializableMember for the given field, with the given name and parser.
         /// </summary>
         public static DeserializableMember ForField(FieldInfo field, string name, Parser parser)
-        => CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Setter?)field, parser, IsMemberRequired.No, null);
+        => CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Setter?)field, parser, MemberRequired.No, null);
 
         /// <summary>
         /// Creates a DeserializableMember for the given property, with the given name, parser, and whether it is required.
         /// </summary>
-        public static DeserializableMember ForField(FieldInfo field, string name, Parser parser, IsMemberRequired isRequired)
-        => CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Setter?)field, parser, isRequired, null);
+        public static DeserializableMember ForField(FieldInfo field, string name, Parser parser, MemberRequired required)
+        => CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Setter?)field, parser, required, null);
 
         /// <summary>
         /// Creates a DeserializableMember for the given property, with the given name, parser, whether it is required, and a reset method.
         /// </summary>
-        public static DeserializableMember ForField(FieldInfo field, string name, Parser parser, IsMemberRequired isRequired, Reset reset)
-        => CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Setter?)field, parser, isRequired, reset);
+        public static DeserializableMember ForField(FieldInfo field, string name, Parser parser, MemberRequired required, Reset reset)
+        => CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Setter?)field, parser, required, reset);
 
         /// <summary>
-        /// Create a Deserializable member with an explicit name, setter, parser, whether it is required, and a reset method.
+        /// Create a DeserializableMember with an explicit type being serialized, name, setter, parser, whether it is required, and a reset method.
         /// </summary>
-        public static DeserializableMember Create(TypeInfo beingDeserializedType, string name, Setter setter, Parser parser, IsMemberRequired isRequired, Reset? reset)
-        => CreateInner(beingDeserializedType, name, setter, parser, isRequired, reset);
+        public static DeserializableMember Create(
+            TypeInfo forType,
+            string name, 
+            Setter setter, 
+            Parser parser, 
+            MemberRequired required,
+            [NullableExposed("Reset is truly optional here, it's required and validated elsewhere")]
+            Reset? reset
+        )
+        => CreateInner(forType, name, setter, parser, required, reset);
 
-        internal static DeserializableMember CreateInner(TypeInfo? beingDeserializedType, string? name, Setter? setter, Parser? parser, IsMemberRequired isRequired, Reset? reset)
+        internal static DeserializableMember CreateInner(TypeInfo? beingDeserializedType, string? name, Setter? setter, Parser? parser, MemberRequired isRequired, Reset? reset)
         {
             if (beingDeserializedType == null)
             {
@@ -167,14 +157,14 @@ namespace Cesil
 
             switch (isRequired)
             {
-                case IsMemberRequired.Yes:
+                case MemberRequired.Yes:
                     isRequiredBool = true;
                     break;
-                case IsMemberRequired.No:
+                case MemberRequired.No:
                     isRequiredBool = false;
                     break;
                 default:
-                    return Throw.ArgumentException<DeserializableMember>($"Unexpected {nameof(IsMemberRequired)}: {isRequired}", nameof(isRequired));
+                    return Throw.ArgumentException<DeserializableMember>($"Unexpected {nameof(MemberRequired)}: {isRequired}", nameof(isRequired));
             }
 
             var valueType = setter.Takes;
@@ -211,26 +201,26 @@ namespace Cesil
         /// <summary>
         /// Returns true if this object equals the given DeserializableMember.
         /// </summary>
-        public bool Equals(DeserializableMember d)
+        public bool Equals(DeserializableMember deserializableMember)
         {
-            if (ReferenceEquals(d, null)) return false;
+            if (ReferenceEquals(deserializableMember, null)) return false;
 
             if (Reset.HasValue)
             {
-                if (!d.Reset.HasValue) return false;
+                if (!deserializableMember.Reset.HasValue) return false;
 
-                if (Reset.Value != d.Reset.Value) return false;
+                if (Reset.Value != deserializableMember.Reset.Value) return false;
             }
             else
             {
-                if (d.Reset.HasValue) return false;
+                if (deserializableMember.Reset.HasValue) return false;
             }
 
             return
-                d.IsRequired == IsRequired &&
-                d.Name == Name &&
-                d.Parser == Parser &&
-                d.Setter == Setter;
+                deserializableMember.IsRequired == IsRequired &&
+                deserializableMember.Name == Name &&
+                deserializableMember.Parser == Parser &&
+                deserializableMember.Setter == Setter;
         }
 
         /// <summary>

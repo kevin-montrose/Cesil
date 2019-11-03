@@ -55,11 +55,10 @@ namespace Cesil.Tests
                 var config =
                     (ConcreteBoundConfiguration<_CommentBeforeHeader>)
                         Configuration.For<_CommentBeforeHeader>(
-                            Options.Default
-                                .NewBuilder()
+                            Options.CreateBuilder(Options.Default)
                                 .WithCommentCharacter('#')
-                                .WithRowEnding(RowEndings.CarriageReturnLineFeed)
-                                .Build()
+                                .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                                .ToOptions()
                         );
 
                 using (var str = new StringReader("#hello\rfoo\nbar\r\nFoo,Bar"))
@@ -88,11 +87,10 @@ namespace Cesil.Tests
                 var config =
                     (ConcreteBoundConfiguration<_CommentBeforeHeader>)
                         Configuration.For<_CommentBeforeHeader>(
-                            Options.Default
-                                .NewBuilder()
+                            Options.CreateBuilder(Options.Default)
                                 .WithCommentCharacter('#')
-                                .WithRowEnding(RowEndings.CarriageReturn)
-                                .Build()
+                                .WithRowEnding(RowEnding.CarriageReturn)
+                                .ToOptions()
                         );
 
                 using (var str = new StringReader("#hello\nfoo\n\rFoo,Bar"))
@@ -114,11 +112,10 @@ namespace Cesil.Tests
                 var config =
                     (ConcreteBoundConfiguration<_CommentBeforeHeader>)
                         Configuration.For<_CommentBeforeHeader>(
-                            Options.Default
-                                .NewBuilder()
+                            Options.CreateBuilder(Options.Default)
                                 .WithCommentCharacter('#')
-                                .WithRowEnding(RowEndings.LineFeed)
-                                .Build()
+                                .WithRowEnding(RowEnding.LineFeed)
+                                .ToOptions()
                         );
 
                 using (var str = new StringReader("#hello\rfoo\r..\nFoo,Bar"))
@@ -145,7 +142,7 @@ namespace Cesil.Tests
         [Fact]
         public void BufferToLarge()
         {
-            var config = (ConcreteBoundConfiguration<_BufferToLarge>)Configuration.For<_BufferToLarge>(Options.Default.NewBuilder().WithMemoryPool(new TestMemoryPool<char>(16)).Build());
+            var config = (ConcreteBoundConfiguration<_BufferToLarge>)Configuration.For<_BufferToLarge>(Options.CreateBuilder(Options.Default).WithMemoryPool(new TestMemoryPool<char>(16)).ToOptions());
 
             // none
             {
@@ -315,7 +312,7 @@ namespace Cesil.Tests
                     }
                 );
 
-            var config = (ConcreteBoundConfiguration<_ManyHeaders>)Configuration.For<_ManyHeaders>(Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).Build());
+            var config = (ConcreteBoundConfiguration<_ManyHeaders>)Configuration.For<_ManyHeaders>(Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions());
 
             using (var str = new StringReader(csv))
             {
@@ -342,7 +339,7 @@ namespace Cesil.Tests
         [Fact]
         public void TrailingRecords()
         {
-            var config = (ConcreteBoundConfiguration<_JustHeaders>)Configuration.For<_JustHeaders>(Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).Build());
+            var config = (ConcreteBoundConfiguration<_JustHeaders>)Configuration.For<_JustHeaders>(Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions());
 
             // none
             {
@@ -464,11 +461,10 @@ namespace Cesil.Tests
             // \r\n
             {
                 var opts =
-                    Options.Default
-                        .NewBuilder()
+                    Options.CreateBuilder(Options.Default)
                         .WithCommentCharacter('#')
-                        .WithRowEnding(RowEndings.CarriageReturnLineFeed)
-                        .Build();
+                        .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                        .ToOptions();
 
                 await RunAsyncReaderVariants<_CommentBeforeHeader>(
                     opts,
@@ -509,11 +505,10 @@ namespace Cesil.Tests
             // \r
             {
                 var opts =
-                    Options.Default
-                        .NewBuilder()
+                   Options.CreateBuilder(Options.Default)
                         .WithCommentCharacter('#')
-                        .WithRowEnding(RowEndings.CarriageReturn)
-                        .Build();
+                        .WithRowEnding(RowEnding.CarriageReturn)
+                        .ToOptions();
 
                 await RunAsyncReaderVariants<_CommentBeforeHeader>(
                     opts,
@@ -552,11 +547,10 @@ namespace Cesil.Tests
             // \n
             {
                 var opts =
-                    Options.Default
-                        .NewBuilder()
+                    Options.CreateBuilder(Options.Default)
                         .WithCommentCharacter('#')
-                        .WithRowEnding(RowEndings.LineFeed)
-                        .Build();
+                        .WithRowEnding(RowEnding.LineFeed)
+                        .ToOptions();
 
                 await RunAsyncReaderVariants<_CommentBeforeHeader>(
                     opts,
@@ -857,7 +851,7 @@ namespace Cesil.Tests
         [Fact]
         public async Task ManyHeadersAsync()
         {
-            var config = Configuration.For<_ManyHeaders>(Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).Build());
+            var config = Configuration.For<_ManyHeaders>(Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions());
 
             var csv =
                 string.Join(

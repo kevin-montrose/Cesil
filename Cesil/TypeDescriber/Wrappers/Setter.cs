@@ -6,12 +6,12 @@ namespace Cesil
     /// <summary>
     /// Delegate type for setters that don't take an instance.
     /// </summary>
-    public delegate void StaticSetterDelegate<V>(V value);
+    public delegate void StaticSetterDelegate<TValue>(TValue value);
 
     /// <summary>
     /// Delegate type for setters.
     /// </summary>
-    public delegate void SetterDelegate<T, V>(T instance, V value);
+    public delegate void SetterDelegate<TRow, TValue>(TRow instance, TValue value);
 
     /// <summary>
     /// Represents code used to set parsed values onto types.
@@ -102,35 +102,32 @@ namespace Cesil
         ///    cannot return a value
         ///    and must be static
         /// </summary>
-        public static Setter ForMethod(MethodInfo setter)
+        public static Setter ForMethod(MethodInfo method)
         {
-            if (setter == null)
-            {
-                return Throw.ArgumentNullException<Setter>(nameof(setter));
-            }
+            Utils.CheckArgumentNull(method, nameof(method));
 
-            var returnsNoValue = setter.ReturnType == Types.VoidType;
+            var returnsNoValue = method.ReturnType == Types.VoidType;
 
             if (!returnsNoValue)
             {
-                return Throw.ArgumentException<Setter>($"{nameof(setter)} must not return a value", nameof(setter));
+                return Throw.ArgumentException<Setter>($"{nameof(method)} must not return a value", nameof(method));
             }
 
             TypeInfo? setOnType;
             TypeInfo takesType;
 
-            var args = setter.GetParameters();
+            var args = method.GetParameters();
             if (args.Length == 1)
             {
                 takesType = args[0].ParameterType.GetTypeInfo();
 
-                if (setter.IsStatic)
+                if (method.IsStatic)
                 {
                     setOnType = null;
                 }
                 else
                 {
-                    setOnType = setter.DeclaringTypeNonNull();
+                    setOnType = method.DeclaringTypeNonNull();
                 }
             }
             else if (args.Length == 2)
@@ -138,17 +135,17 @@ namespace Cesil
                 setOnType = args[0].ParameterType.GetTypeInfo();
                 takesType = args[1].ParameterType.GetTypeInfo();
 
-                if (!setter.IsStatic)
+                if (!method.IsStatic)
                 {
-                    return Throw.ArgumentException<Setter>($"{nameof(setter)} taking two parameters must be static", nameof(setter));
+                    return Throw.ArgumentException<Setter>($"{nameof(method)} taking two parameters must be static", nameof(method));
                 }
             }
             else
             {
-                return Throw.ArgumentException<Setter>($"{nameof(setter)} must take one or two parameters", nameof(setter));
+                return Throw.ArgumentException<Setter>($"{nameof(method)} must take one or two parameters", nameof(method));
             }
 
-            return new Setter(setOnType, takesType, setter);
+            return new Setter(setOnType, takesType, method);
         }
 
         /// <summary>
@@ -158,10 +155,7 @@ namespace Cesil
         /// </summary>
         public static Setter ForField(FieldInfo field)
         {
-            if (field == null)
-            {
-                return Throw.ArgumentNullException<Setter>(nameof(field));
-            }
+            Utils.CheckArgumentNull(field, nameof(field));
 
             TypeInfo? rowType;
             if (field.IsStatic)
@@ -181,14 +175,11 @@ namespace Cesil
         /// <summary>
         /// Create a Setter from the given delegate.
         /// </summary>
-        public static Setter ForDelegate<V>(StaticSetterDelegate<V> del)
+        public static Setter ForDelegate<TValue>(StaticSetterDelegate<TValue> del)
         {
-            if (del == null)
-            {
-                return Throw.ArgumentNullException<Setter>(nameof(del));
-            }
+            Utils.CheckArgumentNull(del, nameof(del));
 
-            var takesType = typeof(V).GetTypeInfo();
+            var takesType = typeof(TValue).GetTypeInfo();
 
             return new Setter(null, takesType, del);
         }
@@ -196,15 +187,12 @@ namespace Cesil
         /// <summary>
         /// Create a Setter from the given delegate.
         /// </summary>
-        public static Setter ForDelegate<T, V>(SetterDelegate<T, V> del)
+        public static Setter ForDelegate<TRow, TValue>(SetterDelegate<TRow, TValue> del)
         {
-            if (del == null)
-            {
-                return Throw.ArgumentNullException<Setter>(nameof(del));
-            }
+            Utils.CheckArgumentNull(del, nameof(del));
 
-            var setOnType = typeof(T).GetTypeInfo();
-            var takesType = typeof(V).GetTypeInfo();
+            var setOnType = typeof(TRow).GetTypeInfo();
+            var takesType = typeof(TValue).GetTypeInfo();
 
             return new Setter(setOnType, takesType, del);
         }
@@ -225,33 +213,33 @@ namespace Cesil
         /// <summary>
         /// Returns true if this object equals the given Setter.
         /// </summary>
-        public bool Equals(Setter s)
+        public bool Equals(Setter setter)
         {
-            if (ReferenceEquals(s, null)) return false;
+            if (ReferenceEquals(setter, null)) return false;
 
             var mode = Mode;
-            var otherMode = s.Mode;
+            var otherMode = setter.Mode;
 
             if (mode != otherMode) return false;
-            if (Takes != s.Takes) return false;
+            if (Takes != setter.Takes) return false;
             if (IsStatic != IsStatic) return false;
 
             if (RowType.HasValue)
             {
-                if (!s.RowType.HasValue) return false;
+                if (!setter.RowType.HasValue) return false;
 
-                if (RowType.Value != s.RowType.Value) return false;
+                if (RowType.Value != setter.RowType.Value) return false;
             }
             else
             {
-                if (s.RowType.HasValue) return false;
+                if (setter.RowType.HasValue) return false;
             }
 
             switch (mode)
             {
-                case BackingMode.Delegate: return Delegate.Value == s.Delegate.Value;
-                case BackingMode.Field: return Field.Value == s.Field.Value;
-                case BackingMode.Method: return Method.Value == s.Method.Value;
+                case BackingMode.Delegate: return Delegate.Value == setter.Delegate.Value;
+                case BackingMode.Field: return Field.Value == setter.Field.Value;
+                case BackingMode.Method: return Method.Value == setter.Method.Value;
 
                 default:
                     return Throw.Exception<bool>($"Unexpected {nameof(BackingMode)}: {mode}");

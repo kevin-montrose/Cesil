@@ -70,9 +70,17 @@ namespace Cesil
                     PlaceCharInStaging(Config.ValueSeparator);
                 }
 
-                var col = i < columnNamesValue.Length ? columnNamesValue[i].Name : null;
+                ColumnIdentifier ci;
+                if (i < columnNamesValue.Length)
+                {
+                    ci = ColumnIdentifier.Create(i, columnNamesValue[i].Name);
+                }
+                else
+                {
+                    ci = ColumnIdentifier.Create(i);
+                }
 
-                var ctx = WriteContext.WritingColumn(RowNumber, ColumnIdentifier.Create(i, col), Context);
+                var ctx = WriteContext.WritingColumn(RowNumber, ci, Context);
 
                 var formatter = cell.Formatter;
                 var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
@@ -82,7 +90,7 @@ namespace Cesil
                 var val = cell.Value as object;
                 if (!del(val, in ctx, Buffer))
                 {
-                    Throw.SerializationException<object>($"Could not write column {col}, formatter {formatter} returned false");
+                    Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
                 }
 
                 var res = Buffer.Buffer;
@@ -104,18 +112,14 @@ end:
 
         public override void WriteComment(string comment)
         {
-            if (comment == null)
-            {
-                Throw.ArgumentNullException<object>(nameof(comment));
-                return;
-            }
-
             AssertNotDisposed(this);
+
+            Utils.CheckArgumentNull(comment, nameof(comment));
 
             var shouldEndRecord = true;
             if (IsFirstRow)
             {
-                if (Config.WriteHeader == Cesil.WriteHeaders.Always)
+                if (Config.WriteHeader == Cesil.WriteHeader.Always)
                 {
                     Throw.InvalidOperationException<object>($"First operation on a dynamic writer cannot be {nameof(WriteComment)} if configured to write headers, headers cannot be inferred");
                 }
@@ -211,7 +215,7 @@ end:
         //   writing the next one
         private bool CheckHeaders(dynamic? firstRow)
         {
-            if (Config.WriteHeader == Cesil.WriteHeaders.Never)
+            if (Config.WriteHeader == Cesil.WriteHeader.Never)
             {
                 // nothing to write, so bail
                 ColumnNames.Value = Array.Empty<(string, string)>();
@@ -239,7 +243,7 @@ end:
 
                 if (colName == null)
                 {
-                    Throw.InvalidOperationException<object>($"No column name found at index {colIx} when {nameof(Cesil.WriteHeaders)} = {Config.WriteHeader}");
+                    Throw.InvalidOperationException<object>($"No column name found at index {colIx} when {nameof(Cesil.WriteHeader)} = {Config.WriteHeader}");
                     return;
                 }
 
@@ -310,7 +314,7 @@ end:
                     CheckHeaders(null);
                 }
 
-                if (Config.WriteTrailingNewLine == WriteTrailingNewLines.Always)
+                if (Config.WriteTrailingNewLine == WriteTrailingNewLine.Always)
                 {
                     EndRecord();
                 }

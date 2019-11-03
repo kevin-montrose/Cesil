@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Cesil
 {
     /// <summary>
     /// Interface for a synchronous reader.
     /// </summary>
-    public interface IReader<T> : IDisposable
+    public interface IReader<TRow> : IDisposable
     {
         /// <summary>
         /// Reads all rows into the provided collection, returning the entire set at once.
@@ -14,25 +15,28 @@ namespace Cesil
         /// into must be non-null.
         /// </summary>
         TCollection ReadAll<TCollection>(TCollection into)
-        where TCollection : class, ICollection<T>;
+        where TCollection : class, ICollection<TRow>;
 
         /// <summary>
         /// Reads all rows, returning the entire set at once.
         /// </summary>
-        List<T> ReadAll();
+        List<TRow> ReadAll();
 
         /// <summary>
         /// Returns an enumerable that will read and yield
         /// one row at a time.
         /// </summary>
-        IEnumerable<T> EnumerateAll();
+        IEnumerable<TRow> EnumerateAll();
 
         /// <summary>
         /// Reads a single row, populating row and returning true
         /// if a row was available and false otherwise.
         /// </summary>
         [return: IntentionallyExposedPrimitive("Most convenient way to indicate success, and fits the TryXXX pattern")]
-        bool TryRead(out T row);
+        bool TryRead(
+            [MaybeNullWhen(false)] 
+            out TRow row
+        );
 
         /// <summary>
         /// Reads a single row into the existing instance of row,
@@ -44,7 +48,7 @@ namespace Cesil
         /// to return false.  In that case row should be ignored>
         /// </summary>
         [return: IntentionallyExposedPrimitive("Most convenient way to indicate success, and fits the TryXXX pattern")]
-        bool TryReadWithReuse(ref T row);
+        bool TryReadWithReuse(ref TRow row);
 
         /// <summary>
         /// Reads a single row or comment.
@@ -55,7 +59,7 @@ namespace Cesil
         /// Note, it is possible for row to be initialized BUT for this method
         /// to return a comment or no value.  In that case row should be ignored.
         /// </summary>
-        ReadWithCommentResult<T> TryReadWithComment();
+        ReadWithCommentResult<TRow> TryReadWithComment();
 
         /// <summary>
         /// Reads a single row (storing into an existing instance of a row
@@ -69,6 +73,6 @@ namespace Cesil
         /// Note, it is possible for row to be initialized BUT for this method
         /// to return a comment or no value.  In that case row should be ignored.
         /// </summary>
-        ReadWithCommentResult<T> TryReadWithCommentReuse(ref T row);
+        ReadWithCommentResult<TRow> TryReadWithCommentReuse(ref TRow row);
     }
 }

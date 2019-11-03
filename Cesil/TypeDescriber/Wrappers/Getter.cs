@@ -5,14 +5,14 @@ using System.Reflection;
 namespace Cesil
 {
     /// <summary>
-    /// Delegate type for getters that doesn't take an instance.
+    /// Delegate type for getters that doesn't take a row.
     /// </summary>
-    public delegate V StaticGetterDelegate<V>();
+    public delegate TValue StaticGetterDelegate<TValue>();
 
     /// <summary>
     /// Delegate type for getters.
     /// </summary>
-    public delegate V GetterDelegate<T, V>(T instance);
+    public delegate TValue GetterDelegate<TRow, TValue>(TRow instance);
 
     /// <summary>
     /// Represents code used to get a value from a type.
@@ -195,22 +195,19 @@ namespace Cesil
         ///      the 1 parameter must be the type to be serialized, or something it is assignable to
         ///   if it's an instance method, it can only take 0 parameters
         /// </summary>
-        public static Getter ForMethod(MethodInfo getter)
+        public static Getter ForMethod(MethodInfo method)
         {
-            if (getter == null)
+            Utils.CheckArgumentNull(method, nameof(method));
+
+            if (method.ReturnType == Types.VoidType)
             {
-                return Throw.ArgumentNullException<Getter>(nameof(getter));
+                return Throw.ArgumentException<Getter>($"{nameof(method)} must return a non-void value", nameof(method));
             }
 
-            if (getter.ReturnType == Types.VoidType)
-            {
-                return Throw.ArgumentException<Getter>($"{nameof(getter)} must return a non-void value", nameof(getter));
-            }
-
-            var getterParams = getter.GetParameters();
+            var getterParams = method.GetParameters();
 
             TypeInfo? rowType;
-            if (getter.IsStatic)
+            if (method.IsStatic)
             {
                 if (getterParams.Length == 0)
                 {
@@ -223,22 +220,22 @@ namespace Cesil
                 }
                 else
                 {
-                    return Throw.ArgumentException<Getter>($"Since {getter} is a static method, it cannot take more than 1 parameter", nameof(getter));
+                    return Throw.ArgumentException<Getter>($"Since {method} is a static method, it cannot take more than 1 parameter", nameof(method));
                 }
             }
             else
             {
-                rowType = getter.DeclaringTypeNonNull();
+                rowType = method.DeclaringTypeNonNull();
 
                 if (getterParams.Length > 0)
                 {
-                    return Throw.ArgumentException<Getter>($"Since {getter} is an instance method, it cannot take any parameters", nameof(getter));
+                    return Throw.ArgumentException<Getter>($"Since {method} is an instance method, it cannot take any parameters", nameof(method));
                 }
             }
 
-            var returns = getter.ReturnType.GetTypeInfo();
+            var returns = method.ReturnType.GetTypeInfo();
 
-            return new Getter(rowType, returns, getter);
+            return new Getter(rowType, returns, method);
         }
 
         /// <summary>
@@ -248,10 +245,7 @@ namespace Cesil
         /// </summary>
         public static Getter ForField(FieldInfo field)
         {
-            if (field == null)
-            {
-                return Throw.ArgumentNullException<Getter>(nameof(field));
-            }
+            Utils.CheckArgumentNull(field, nameof(field));
 
             TypeInfo? onType;
             if (field.IsStatic)
@@ -271,27 +265,21 @@ namespace Cesil
         /// <summary>
         /// Create a Getter from the given delegate.
         /// </summary>
-        public static Getter ForDelegate<T, V>(GetterDelegate<T, V> del)
+        public static Getter ForDelegate<TRow, TValue>(GetterDelegate<TRow, TValue> del)
         {
-            if (del == null)
-            {
-                return Throw.ArgumentNullException<Getter>(nameof(del));
-            }
+            Utils.CheckArgumentNull(del, nameof(del));
 
-            return new Getter(typeof(T).GetTypeInfo(), typeof(V).GetTypeInfo(), del);
+            return new Getter(typeof(TRow).GetTypeInfo(), typeof(TValue).GetTypeInfo(), del);
         }
 
         /// <summary>
         /// Create a Getter from the given delegate.
         /// </summary>
-        public static Getter ForDelegate<V>(StaticGetterDelegate<V> del)
+        public static Getter ForDelegate<TValue>(StaticGetterDelegate<TValue> del)
         {
-            if (del == null)
-            {
-                return Throw.ArgumentNullException<Getter>(nameof(del));
-            }
+            Utils.CheckArgumentNull(del, nameof(del));
 
-            return new Getter(null, typeof(V).GetTypeInfo(), del);
+            return new Getter(null, typeof(TValue).GetTypeInfo(), del);
         }
 
         /// <summary>
@@ -310,36 +298,36 @@ namespace Cesil
         /// <summary>
         /// Compares for equality to another Getter.
         /// </summary>
-        public bool Equals(Getter g)
+        public bool Equals(Getter getter)
         {
-            if (ReferenceEquals(g, null)) return false;
+            if (ReferenceEquals(getter, null)) return false;
 
-            if (g.Returns != Returns) return false;
-            if (g.RowType.HasValue)
+            if (getter.Returns != Returns) return false;
+            if (getter.RowType.HasValue)
             {
                 if (!RowType.HasValue)
                 {
                     return false;
                 }
 
-                if (g.RowType.Value != RowType.Value) return false;
+                if (getter.RowType.Value != RowType.Value) return false;
             }
             else
             {
                 if (RowType.HasValue) return false;
             }
 
-            var otherMode = g.Mode;
+            var otherMode = getter.Mode;
             if (otherMode != Mode) return false;
 
             switch (otherMode)
             {
                 case BackingMode.Field:
-                    return g.Field.Value == Field.Value;
+                    return getter.Field.Value == Field.Value;
                 case BackingMode.Method:
-                    return g.Method.Value == Method.Value;
+                    return getter.Method.Value == Method.Value;
                 case BackingMode.Delegate:
-                    return g.Delegate.Value == Delegate.Value;
+                    return getter.Delegate.Value == Delegate.Value;
                 default:
                     return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {otherMode}");
             }

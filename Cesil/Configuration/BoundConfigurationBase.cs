@@ -21,13 +21,13 @@ namespace Cesil
         // internal for testing purposes
         internal NonNull<ITypeDescriber> TypeDescriber;
         internal readonly char ValueSeparator;
-        internal readonly char EscapedValueStartAndStop;
-        internal readonly char EscapeValueEscapeChar;
-        internal readonly RowEndings RowEnding;
+        internal readonly char? EscapedValueStartAndStop;
+        internal readonly char? EscapeValueEscapeChar;
+        internal readonly RowEnding RowEnding;
         internal readonly ReadOnlyMemory<char> RowEndingMemory;
-        internal readonly ReadHeaders ReadHeader;
-        internal readonly WriteHeaders WriteHeader;
-        internal readonly WriteTrailingNewLines WriteTrailingNewLine;
+        internal readonly ReadHeader ReadHeader;
+        internal readonly WriteHeader WriteHeader;
+        internal readonly WriteTrailingNewLine WriteTrailingNewLine;
         internal readonly MemoryPool<char> MemoryPool;
         internal readonly char? CommentChar;
         internal readonly int? WriteBufferSizeHint;
@@ -52,12 +52,12 @@ namespace Cesil
         protected BoundConfigurationBase(
             ITypeDescriber? describer,
             char valueSeparator,
-            char escapedValueStartAndStop,
-            char escapeValueEscapeChar,
-            RowEndings rowEndings,
-            ReadHeaders readHeader,
-            WriteHeaders writeHeaders,
-            WriteTrailingNewLines writeTrailingNewLine,
+            char? escapedValueStartAndStop,
+            char? escapeValueEscapeChar,
+            RowEnding rowEndings,
+            ReadHeader readHeader,
+            WriteHeader writeHeaders,
+            WriteTrailingNewLine writeTrailingNewLine,
             MemoryPool<char> memoryPool,
             char? commentChar,
             int? writeBufferSizeHint,
@@ -81,13 +81,13 @@ namespace Cesil
 
             switch (RowEnding)
             {
-                case RowEndings.CarriageReturn:
+                case RowEnding.CarriageReturn:
                     RowEndingMemory = CarriageReturn;
                     break;
-                case RowEndings.CarriageReturnLineFeed:
+                case RowEnding.CarriageReturnLineFeed:
                     RowEndingMemory = CarriageReturnLineFeed;
                     break;
-                case RowEndings.LineFeed:
+                case RowEnding.LineFeed:
                     RowEndingMemory = LineFeed;
                     break;
                 default:
@@ -114,12 +114,12 @@ namespace Cesil
             Column[] serializeColumns,
             bool[] serializeColumnsNeedEscape,
             char valueSeparator,
-            char escapedValueStartAndStop,
-            char escapeValueEscapeChar,
-            RowEndings rowEndings,
-            ReadHeaders readHeader,
-            WriteHeaders writeHeaders,
-            WriteTrailingNewLines writeTrailingNewLine,
+            char? escapedValueStartAndStop,
+            char? escapeValueEscapeChar,
+            RowEnding rowEndings,
+            ReadHeader readHeader,
+            WriteHeader writeHeaders,
+            WriteTrailingNewLine writeTrailingNewLine,
             MemoryPool<char> memoryPool,
             char? commentChar,
             int? writeBufferSizeHint,
@@ -139,13 +139,13 @@ namespace Cesil
 
             switch (RowEnding)
             {
-                case RowEndings.CarriageReturn:
+                case RowEnding.CarriageReturn:
                     RowEndingMemory = CarriageReturn;
                     break;
-                case RowEndings.CarriageReturnLineFeed:
+                case RowEnding.CarriageReturnLineFeed:
                     RowEndingMemory = CarriageReturnLineFeed;
                     break;
-                case RowEndings.LineFeed:
+                case RowEnding.LineFeed:
                     RowEndingMemory = LineFeed;
                     break;
                 default:
@@ -164,15 +164,8 @@ namespace Cesil
 
         public IAsyncReader<T> CreateAsyncReader(PipeReader reader, Encoding encoding, object? context = null)
         {
-            if(reader == null)
-            {
-                return Throw.ArgumentNullException<IAsyncReader<T>>(nameof(reader));
-            }
-
-            if (encoding == null)
-            {
-                return Throw.ArgumentNullException<IAsyncReader<T>>(nameof(encoding));
-            }
+            Utils.CheckArgumentNull(reader, nameof(reader));
+            Utils.CheckArgumentNull(encoding, nameof(encoding));
 
             // context is legally null
 
@@ -183,10 +176,7 @@ namespace Cesil
 
         public IAsyncReader<T> CreateAsyncReader(TextReader reader, object? context = null)
         {
-            if (reader == null)
-            {
-                return Throw.ArgumentNullException<IAsyncReader<T>>(nameof(reader));
-            }
+            Utils.CheckArgumentNull(reader, nameof(reader));
 
             // context is legally null
 
@@ -197,15 +187,8 @@ namespace Cesil
 
         public IAsyncWriter<T> CreateAsyncWriter(PipeWriter writer, Encoding encoding, object? context = null)
         {
-            if(writer == null)
-            {
-                return Throw.ArgumentNullException<IAsyncWriter<T>>(nameof(writer));
-            }
-
-            if (encoding == null)
-            {
-                return Throw.ArgumentNullException<IAsyncWriter<T>>(nameof(encoding));
-            }
+            Utils.CheckArgumentNull(writer, nameof(writer));
+            Utils.CheckArgumentNull(encoding, nameof(encoding));
 
             // context is legally null
 
@@ -216,10 +199,7 @@ namespace Cesil
 
         public IAsyncWriter<T> CreateAsyncWriter(TextWriter writer, object? context = null)
         {
-            if(writer == null)
-            {
-                return Throw.ArgumentNullException<IAsyncWriter<T>>(nameof(writer));
-            }
+            Utils.CheckArgumentNull(writer, nameof(writer));
 
             // context is legally null
 
@@ -230,10 +210,7 @@ namespace Cesil
 
         public IReader<T> CreateReader(ReadOnlySequence<byte> sequence, Encoding encoding, object? context = null)
         {
-            if(encoding == null)
-            {
-                return Throw.ArgumentNullException<IReader<T>>(nameof(encoding));
-            }
+            Utils.CheckArgumentNull(encoding, nameof(encoding));
 
             // context is legally null
 
@@ -253,10 +230,7 @@ namespace Cesil
 
         public IReader<T> CreateReader(TextReader reader, object? context = null)
         {
-            if(reader == null)
-            {
-                return Throw.ArgumentNullException<IReader<T>>(nameof(reader));
-            }
+            Utils.CheckArgumentNull(reader, nameof(reader));
 
             // context is legeally null
 
@@ -267,15 +241,8 @@ namespace Cesil
 
         public IWriter<T> CreateWriter(IBufferWriter<byte> writer, Encoding encoding, object? context = null)
         {
-            if (writer == null)
-            {
-                return Throw.ArgumentNullException<IWriter<T>>(nameof(writer));
-            }
-
-            if(encoding == null)
-            {
-                return Throw.ArgumentNullException<IWriter<T>>(nameof(encoding));
-            }
+            Utils.CheckArgumentNull(writer, nameof(writer));
+            Utils.CheckArgumentNull(encoding, nameof(encoding));
 
             // context is legally null
 
@@ -286,10 +253,7 @@ namespace Cesil
 
         public IWriter<T> CreateWriter(IBufferWriter<char> writer, object? context = null)
         {
-            if(writer == null)
-            {
-                return Throw.ArgumentNullException<IWriter<T>>(nameof(writer));
-            }
+            Utils.CheckArgumentNull(writer, nameof(writer));
 
             // context is legally null
 
@@ -300,10 +264,7 @@ namespace Cesil
 
         public IWriter<T> CreateWriter(TextWriter writer, object? context = null)
         {
-            if(writer == null)
-            {
-                return Throw.ArgumentNullException<IWriter<T>>(nameof(writer));
-            }
+            Utils.CheckArgumentNull(writer, nameof(writer));
 
             // context is legally null
 

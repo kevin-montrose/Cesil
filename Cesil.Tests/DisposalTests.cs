@@ -95,10 +95,6 @@ namespace Cesil.Tests
                 {
                     IDisposable_DynamicRow();
                 }
-                else if (t == typeof(DynamicRowEnumerable<>))
-                {
-                    IDisposable_DynamicRowEnumerable();
-                }
                 else if (t == typeof(DynamicRowEnumerator<>))
                 {
                     IDisposable_DynamicRowEnumerator();
@@ -658,8 +654,8 @@ namespace Cesil.Tests
                         CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd', out _),
                         'a',
                         'b',
-                        RowEndings.CarriageReturnLineFeed,
-                        ReadHeaders.Always,
+                        RowEnding.CarriageReturnLineFeed,
+                        ReadHeader.Always,
                         false
                     );
                     return ret;
@@ -1189,7 +1185,7 @@ namespace Cesil.Tests
                 IReader<dynamic> MakeReader()
                 {
                     return
-                        Configuration.ForDynamic(Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build())
+                        Configuration.ForDynamic(Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions())
                             .CreateReader(new StringReader(""));
                 }
             }
@@ -1228,51 +1224,6 @@ namespace Cesil.Tests
                 DynamicRow MakeRow()
                 {
                     return new DynamicRow();
-                }
-            }
-
-            // test for DynamicRowEnumerable
-            void IDisposable_DynamicRowEnumerable()
-            {
-                // double dispose does not error
-                {
-                    var r = MakeDynamicRowEnumerable();
-                    r.Dispose();
-                    r.Dispose();
-                }
-
-                // assert throws after dispose
-                {
-                    var r = MakeDynamicRowEnumerable();
-                    r.Dispose();
-                    Assert.Throws<ObjectDisposedException>(() => ((ITestableDisposable)r).AssertNotDisposed());
-                }
-
-                var testCases = 0;
-
-                // figure out how many _public_ methods need testing
-                int expectedTestCases;
-                {
-                    using (var r = MakeDynamicRowEnumerable())
-                    {
-                        expectedTestCases = GetNumberExpectedDisposableTestCases(r);
-                    }
-                }
-
-                // GetEnumerator
-                {
-                    var r = MakeDynamicRowEnumerable();
-                    r.Dispose();
-                    Assert.Throws<ObjectDisposedException>(() => r.GetEnumerator());
-                    testCases++;
-                }
-
-                Assert.Equal(expectedTestCases, testCases);
-
-                // make a reader that's "good to go"
-                DynamicRowEnumerable<_IDisposable> MakeDynamicRowEnumerable()
-                {
-                    return new DynamicRowEnumerable<_IDisposable>(new DynamicRow());
                 }
             }
 
@@ -1333,7 +1284,7 @@ namespace Cesil.Tests
                 // make a reader that's "good to go"
                 IEnumerator<string> MakeDynamicRowEnumerator()
                 {
-                    var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+                    var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
                     var config = Configuration.ForDynamic(opts);
 
                     var r = config.CreateReader(new StringReader("a,b,c"));
@@ -1469,7 +1420,7 @@ namespace Cesil.Tests
                 // make a writer that's "good to go"
                 IWriter<dynamic> MakeWriter()
                 {
-                    var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+                    var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
                     return
                         Configuration.ForDynamic(opts)
@@ -1536,7 +1487,7 @@ namespace Cesil.Tests
                 // make a reader that's "good to go"
                 IEnumerator<ColumnIdentifier> MakeEnumerator()
                 {
-                    var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+                    var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
                     var config = Configuration.ForDynamic(opts);
 
                     var r = config.CreateReader(new StringReader("a,b,c"));
@@ -2044,7 +1995,7 @@ namespace Cesil.Tests
                 IAsyncReader<dynamic> MakeReader()
                 {
                     return
-                        Configuration.ForDynamic(Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build())
+                        Configuration.ForDynamic(Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions())
                             .CreateAsyncReader(TextReader.Null);
                 }
             }
@@ -2117,7 +2068,7 @@ namespace Cesil.Tests
         [Fact]
         public void DynamicRowThrowsAfterDisposed()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
             RunSyncDynamicReaderVariants(
                 opts,
@@ -2162,7 +2113,7 @@ namespace Cesil.Tests
         [Fact]
         public void DynamicCellThrowsAfterRowDisposed()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
             RunSyncDynamicReaderVariants(
                 opts,

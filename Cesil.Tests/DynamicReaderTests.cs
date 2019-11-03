@@ -66,7 +66,7 @@ namespace Cesil.Tests
 
             // without headers
             {
-                var opts = Options.DynamicDefault.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions();
                 var config = Configuration.ForDynamic(opts);
                 using (var txt = new StringReader("1,2"))
                 using (var csv = config.CreateReader(txt))
@@ -207,7 +207,7 @@ namespace Cesil.Tests
 
             var describer = new _CustomRowConverters_TypeDescriber(converter);
 
-            var opts = Options.DynamicDefault.NewBuilder().WithTypeDescriber(describer).Build();
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithTypeDescriber(describer).ToOptions();
 
             RunSyncDynamicReaderVariants(
                 opts,
@@ -303,8 +303,8 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts1 = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturnLineFeed).WithReadHeader(ReadHeaders.Always).Build();
-                var opts2 = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturnLineFeed).WithReadHeader(ReadHeaders.Never).Build();
+                var opts1 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
+                var opts2 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // with headers
                 RunSyncDynamicReaderVariants(
@@ -403,8 +403,8 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts1 = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturn).WithReadHeader(ReadHeaders.Always).Build();
-                var opts2 = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturn).WithReadHeader(ReadHeaders.Never).Build();
+                var opts1 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturn).WithReadHeader(ReadHeader.Always).ToOptions();
+                var opts2 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturn).WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // with headers
                 RunSyncDynamicReaderVariants(
@@ -503,8 +503,8 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts1 = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.LineFeed).WithReadHeader(ReadHeaders.Always).Build();
-                var opts2 = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.LineFeed).WithReadHeader(ReadHeaders.Never).Build();
+                var opts1 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.LineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
+                var opts2 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.LineFeed).WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // with headers
                 RunSyncDynamicReaderVariants(
@@ -606,7 +606,7 @@ namespace Cesil.Tests
         public void WeirdComments()
         {
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').WithRowEnding(RowEndings.LineFeed).WithReadHeader(ReadHeaders.Always).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.LineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
                 RunSyncDynamicReaderVariants(
                     opts,
                     (config, getReader) =>
@@ -637,7 +637,7 @@ namespace Cesil.Tests
             }
 
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturn).WithReadHeader(ReadHeaders.Always).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturn).WithReadHeader(ReadHeader.Always).ToOptions();
                 RunSyncDynamicReaderVariants(
                     opts,
                     (config, getReader) =>
@@ -668,7 +668,7 @@ namespace Cesil.Tests
             }
 
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturnLineFeed).WithReadHeader(ReadHeaders.Always).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
                 RunSyncDynamicReaderVariants(
                     opts,
                     (config, getReader) =>
@@ -730,7 +730,7 @@ namespace Cesil.Tests
         [Fact]
         public void Comments()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').WithReadHeader(ReadHeaders.Always).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithReadHeader(ReadHeader.Always).ToOptions();
 
             // comment first line
             RunSyncDynamicReaderVariants(
@@ -800,7 +800,7 @@ namespace Cesil.Tests
         [Fact]
         public void RangeUseableAfterDisposeOrReuse()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).ToOptions();
 
             RunSyncDynamicReaderVariants(
                 opts,
@@ -883,7 +883,7 @@ namespace Cesil.Tests
         [Fact]
         public void Range()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
             var equivalent = new[] { "1", "2", "3" };
 
@@ -981,7 +981,7 @@ namespace Cesil.Tests
         [Fact]
         public void Index()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
             RunSyncDynamicReaderVariants(
                 opts,
@@ -1081,12 +1081,11 @@ namespace Cesil.Tests
             dynamic MakeRow(ITypeDescriber c = null)
             {
                 var opts =
-                    Options.Default
-                        .NewBuilder()
-                        .WithReadHeader(ReadHeaders.Never)
+                    Options.CreateBuilder(Options.Default)
+                        .WithReadHeader(ReadHeader.Never)
                         .WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose)
                         .WithTypeDescriber(c ?? TypeDescribers.Default)
-                        .Build();
+                        .ToOptions();
                 var config = Configuration.ForDynamic(opts);
 
                 using (var str = new System.IO.StringReader("1,2,3"))
@@ -1102,7 +1101,7 @@ namespace Cesil.Tests
         [Fact]
         public void ChangingRowIndexTypes()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).ToOptions();
             var config = Configuration.ForDynamic(opts);
 
             using (var str = new System.IO.StringReader("a,b,c\r\n1,2,3"))
@@ -1282,12 +1281,11 @@ namespace Cesil.Tests
                     Assert.Equal(1, e.Current);
 
                     var opts =
-                    Options.Default
-                        .NewBuilder()
-                        .WithReadHeader(ReadHeaders.Never)
+                    Options.CreateBuilder(Options.Default)
+                        .WithReadHeader(ReadHeader.Never)
                         .WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose)
                         .WithTypeDescriber(TypeDescribers.Default)
-                        .Build();
+                        .ToOptions();
                     var config = Configuration.ForDynamic(opts);
 
                     using (var str = new System.IO.StringReader("4,5,6"))
@@ -1311,12 +1309,11 @@ namespace Cesil.Tests
                 Assert.Equal(1, (int)obj);
 
                 var opts =
-                Options.Default
-                    .NewBuilder()
-                    .WithReadHeader(ReadHeaders.Never)
+                Options.CreateBuilder(Options.Default)
+                    .WithReadHeader(ReadHeader.Never)
                     .WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose)
                     .WithTypeDescriber(TypeDescribers.Default)
-                    .Build();
+                    .ToOptions();
                 var config = Configuration.ForDynamic(opts);
 
                 using (var str = new System.IO.StringReader("4,5,6"))
@@ -1340,12 +1337,11 @@ namespace Cesil.Tests
             static dynamic MakeRow(ITypeDescriber c = null)
             {
                 var opts =
-                    Options.Default
-                        .NewBuilder()
-                        .WithReadHeader(ReadHeaders.Never)
+                    Options.CreateBuilder(Options.Default)
+                        .WithReadHeader(ReadHeader.Never)
                         .WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose)
                         .WithTypeDescriber(c ?? TypeDescribers.Default)
-                        .Build();
+                        .ToOptions();
                 var config = Configuration.ForDynamic(opts);
 
                 using (var str = new System.IO.StringReader("1,2,3"))
@@ -1403,7 +1399,7 @@ namespace Cesil.Tests
 
                 converter.Add(typeof(int).GetTypeInfo(), cellConverter);
 
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).WithTypeDescriber(converter).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithTypeDescriber(converter).ToOptions();
                 RunSyncDynamicReaderVariants(
                     opts,
                     (config, getReader) =>
@@ -1450,7 +1446,7 @@ namespace Cesil.Tests
 
                 converter.Add(typeof(int).GetTypeInfo(), cellConverter);
 
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).WithTypeDescriber(converter).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithTypeDescriber(converter).ToOptions();
                 RunSyncDynamicReaderVariants(
                     opts,
                     (config, getReader) =>
@@ -1488,7 +1484,7 @@ namespace Cesil.Tests
 
                 converter.Add(typeof(_CustomDynamicCellConverter_Cons).GetTypeInfo(), cellConverter);
 
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).WithTypeDescriber(converter).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithTypeDescriber(converter).ToOptions();
                 RunSyncDynamicReaderVariants(
                     opts,
                     (config, getReader) =>
@@ -1526,7 +1522,7 @@ namespace Cesil.Tests
 
                 converter.Add(typeof(_CustomDynamicCellConverter_Cons).GetTypeInfo(), cellConverter);
 
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).WithTypeDescriber(converter).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithTypeDescriber(converter).ToOptions();
                 RunSyncDynamicReaderVariants(
                     opts,
                     (config, getReader) =>
@@ -1591,7 +1587,7 @@ namespace Cesil.Tests
         [Fact]
         public void DetectLineEndings()
         {
-            var opts = Options.Default.NewBuilder().WithRowEnding(RowEndings.Detect).WithReadHeader(ReadHeaders.Never).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.Detect).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // normal
             {
@@ -1858,7 +1854,7 @@ namespace Cesil.Tests
         [Fact]
         public void Multi()
         {
-            var optsHeader = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+            var optsHeader = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
             // with headers
             RunSyncDynamicReaderVariants(
@@ -1931,7 +1927,7 @@ namespace Cesil.Tests
                 }
             );
 
-            var optsNoHeader = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+            var optsNoHeader = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // no headers
             RunSyncDynamicReaderVariants(
@@ -1984,7 +1980,7 @@ namespace Cesil.Tests
         [Fact]
         public void Simple()
         {
-            var optsHeader = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+            var optsHeader = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
             // with headers
             RunSyncDynamicReaderVariants(
@@ -2110,7 +2106,7 @@ loop:
                 }
             );
 
-            var optsNoHeader = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+            var optsNoHeader = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // no headers
             RunSyncDynamicReaderVariants(
@@ -2238,7 +2234,7 @@ loop:
         [Fact]
         public void Conversions()
         {
-            var optsHeaders = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+            var optsHeaders = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
             // with headers
             RunSyncDynamicReaderVariants(
@@ -2277,7 +2273,7 @@ loop:
                 }
             );
 
-            var optsNoHeaders = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+            var optsNoHeaders = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // with no headers
             RunSyncDynamicReaderVariants(
@@ -2326,7 +2322,7 @@ loop:
         [Fact]
         public void Tuple()
         {
-            var optWithHeaders = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+            var optWithHeaders = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
             // headers
             {
@@ -2505,7 +2501,7 @@ loop:
                 }
             }
 
-            var optNoHeaders = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+            var optNoHeaders = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // no headers
             {
@@ -2690,7 +2686,7 @@ loop:
         {
             // headers
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
                 // one
                 RunSyncDynamicReaderVariants(
@@ -2868,7 +2864,7 @@ loop:
 
             // no headers
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // one
                 RunSyncDynamicReaderVariants(
@@ -3064,7 +3060,7 @@ loop:
         {
             // headers
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
                 RunSyncDynamicReaderVariants(
                     opts,
@@ -3093,7 +3089,7 @@ loop:
 
             // no headers
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
                 RunSyncDynamicReaderVariants(
                     opts,
@@ -3133,7 +3129,7 @@ loop:
         [Fact]
         public void POCO_Properties()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
             RunSyncDynamicReaderVariants(
                 opts,
@@ -3218,7 +3214,7 @@ loop:
 
             var describer = new _POCO_Fields(conv);
 
-            var opts = Options.DynamicDefault.NewBuilder().WithTypeDescriber(describer).Build();
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithTypeDescriber(describer).ToOptions();
 
             RunSyncDynamicReaderVariants(
                 opts,
@@ -3268,7 +3264,7 @@ loop:
 
             var describer = new _POCO_Fields(conv);
 
-            var opts = Options.DynamicDefault.NewBuilder().WithTypeDescriber(describer).Build();
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithTypeDescriber(describer).ToOptions();
 
             RunSyncDynamicReaderVariants(
                 opts,
@@ -3306,7 +3302,7 @@ loop:
         {
             // dispose with reader
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
                 RunSyncDynamicReaderVariants(
                     opts,
                     (config, makeReader) =>
@@ -3347,7 +3343,7 @@ loop:
 
             // explicit disposal
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).ToOptions();
                 RunSyncDynamicReaderVariants(
                     opts,
                     (config, makeReader) =>
@@ -3412,7 +3408,7 @@ loop:
         {
             // both auto
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
                 RunSyncDynamicReaderVariants(
                     opts,
                     (config1, makeReader1) =>
@@ -3457,8 +3453,8 @@ loop:
 
             // auto then explicitly
             {
-                var opts1 = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
-                var opts2 = opts1.NewBuilder().WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).Build();
+                var opts1 = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
+                var opts2 = Options.CreateBuilder(opts1).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).ToOptions();
                 RunSyncDynamicReaderVariants(
                     opts1,
                     (config1, makeReader1) =>
@@ -3508,8 +3504,8 @@ loop:
 
             // explicitly then auto
             {
-                var opts1 = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).Build();
-                var opts2 = opts1.NewBuilder().WithDynamicRowDisposal(DynamicRowDisposal.OnReaderDispose).Build();
+                var opts1 = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).ToOptions();
+                var opts2 = Options.CreateBuilder(opts1).WithDynamicRowDisposal(DynamicRowDisposal.OnReaderDispose).ToOptions();
                 RunSyncDynamicReaderVariants(
                     opts1,
                     (config1, makeReader1) =>
@@ -3561,7 +3557,7 @@ loop:
 
             // both explicitly
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).ToOptions();
                 RunSyncDynamicReaderVariants(
                     opts,
                     (config1, makeReader1) =>
@@ -3664,7 +3660,7 @@ loop:
 
             // headers
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithTypeDescriber(convert).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithTypeDescriber(convert).ToOptions();
 
                 RunSyncDynamicReaderVariants(
                     opts,
@@ -3691,7 +3687,7 @@ loop:
 
             // no headers
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).WithTypeDescriber(convert).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithTypeDescriber(convert).ToOptions();
 
                 RunSyncDynamicReaderVariants(
                     opts,
@@ -3783,7 +3779,7 @@ loop:
 
             var describer = new _POCO_Fields(conv);
 
-            var opts = Options.DynamicDefault.NewBuilder().WithTypeDescriber(describer).Build();
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithTypeDescriber(describer).ToOptions();
 
             await RunAsyncDynamicReaderVariants(
                 opts,
@@ -3837,7 +3833,7 @@ loop:
 
             var describer = new _POCO_Fields(conv);
 
-            var opts = Options.DynamicDefault.NewBuilder().WithTypeDescriber(describer).Build();
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithTypeDescriber(describer).ToOptions();
 
             await RunAsyncDynamicReaderVariants(
                 opts,
@@ -3863,8 +3859,8 @@ loop:
         {
             // \r\n
             {
-                var opts1 = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturnLineFeed).WithReadHeader(ReadHeaders.Always).Build();
-                var opts2 = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturnLineFeed).WithReadHeader(ReadHeaders.Never).Build();
+                var opts1 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
+                var opts2 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // with headers
                 await RunAsyncDynamicReaderVariants(
@@ -3963,8 +3959,8 @@ loop:
 
             // \r
             {
-                var opts1 = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturn).WithReadHeader(ReadHeaders.Always).Build();
-                var opts2 = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturn).WithReadHeader(ReadHeaders.Never).Build();
+                var opts1 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturn).WithReadHeader(ReadHeader.Always).ToOptions();
+                var opts2 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturn).WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // with headers
                 await RunAsyncDynamicReaderVariants(
@@ -4063,8 +4059,8 @@ loop:
 
             // \n
             {
-                var opts1 = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.LineFeed).WithReadHeader(ReadHeaders.Always).Build();
-                var opts2 = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.LineFeed).WithReadHeader(ReadHeaders.Never).Build();
+                var opts1 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.LineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
+                var opts2 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.LineFeed).WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // with headers
                 await RunAsyncDynamicReaderVariants(
@@ -4166,7 +4162,7 @@ loop:
         public async Task WeirdCommentsAsync()
         {
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').WithRowEnding(RowEndings.LineFeed).WithReadHeader(ReadHeaders.Always).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.LineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
                 await RunAsyncDynamicReaderVariants(
                     opts,
                     async (config, getReader) =>
@@ -4197,7 +4193,7 @@ loop:
             }
 
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturn).WithReadHeader(ReadHeaders.Always).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturn).WithReadHeader(ReadHeader.Always).ToOptions();
                 await RunAsyncDynamicReaderVariants(
                     opts,
                     async (config, getReader) =>
@@ -4228,7 +4224,7 @@ loop:
             }
 
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturnLineFeed).WithReadHeader(ReadHeaders.Always).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
                 await RunAsyncDynamicReaderVariants(
                     opts,
                     async (config, getReader) =>
@@ -4290,7 +4286,7 @@ loop:
         [Fact]
         public async Task CommentsAsync()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').WithReadHeader(ReadHeaders.Always).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithReadHeader(ReadHeader.Always).ToOptions();
 
             // comment first line
             await RunAsyncDynamicReaderVariants(
@@ -4360,7 +4356,7 @@ loop:
         [Fact]
         public async Task RangeAsync()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
             var equivalent = new[] { "1", "2", "3" };
 
@@ -4461,7 +4457,7 @@ loop:
         [Fact]
         public async Task IndexAsync()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
             await RunAsyncDynamicReaderVariants(
                 opts,
@@ -4531,7 +4527,7 @@ loop:
 
                 converter.Add(typeof(int).GetTypeInfo(), cellConverter);
 
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).WithTypeDescriber(converter).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithTypeDescriber(converter).ToOptions();
                 await RunAsyncDynamicReaderVariants(
                     opts,
                     async (config, getReader) =>
@@ -4581,7 +4577,7 @@ loop:
 
                 converter.Add(typeof(int).GetTypeInfo(), cellConverter);
 
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).WithTypeDescriber(converter).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithTypeDescriber(converter).ToOptions();
                 await RunAsyncDynamicReaderVariants(
                     opts,
                     async (config, getReader) =>
@@ -4622,7 +4618,7 @@ loop:
 
                 converter.Add(typeof(_CustomDynamicCellConverter_Cons).GetTypeInfo(), cellConverter);
 
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).WithTypeDescriber(converter).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithTypeDescriber(converter).ToOptions();
                 await RunAsyncDynamicReaderVariants(
                     opts,
                     async (config, getReader) =>
@@ -4663,7 +4659,7 @@ loop:
 
                 converter.Add(typeof(_CustomDynamicCellConverter_Cons).GetTypeInfo(), cellConverter);
 
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).WithTypeDescriber(converter).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithTypeDescriber(converter).ToOptions();
                 await RunAsyncDynamicReaderVariants(
                     opts,
                     async (config, getReader) =>
@@ -4700,7 +4696,7 @@ loop:
         [Fact]
         public async Task DetectLineEndingsAsync()
         {
-            var opts = Options.Default.NewBuilder().WithRowEnding(RowEndings.Detect).WithReadHeader(ReadHeaders.Never).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.Detect).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // normal
             {
@@ -5030,7 +5026,7 @@ loop:
         [Fact]
         public async Task MultiAsync()
         {
-            var optsHeader = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+            var optsHeader = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
             // with headers
             await RunAsyncDynamicReaderVariants(
@@ -5103,7 +5099,7 @@ loop:
                 }
             );
 
-            var optsNoHeader = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+            var optsNoHeader = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // no headers
             await RunAsyncDynamicReaderVariants(
@@ -5156,7 +5152,7 @@ loop:
         [Fact]
         public async Task SimpleAsync()
         {
-            var optsHeader = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+            var optsHeader = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
             // with headers
             await RunAsyncDynamicReaderVariants(
@@ -5282,7 +5278,7 @@ loop:
                 }
             );
 
-            var optsNoHeader = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+            var optsNoHeader = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // no headers
             await RunAsyncDynamicReaderVariants(
@@ -5400,7 +5396,7 @@ loop:
         [Fact]
         public async Task ConversionsAsync()
         {
-            var optsHeaders = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+            var optsHeaders = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
             // with headers
             await RunAsyncDynamicReaderVariants(
@@ -5439,7 +5435,7 @@ loop:
                 }
             );
 
-            var optsNoHeaders = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+            var optsNoHeaders = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // with no headers
             await RunAsyncDynamicReaderVariants(
@@ -5482,7 +5478,7 @@ loop:
         [Fact]
         public async Task TupleAsync()
         {
-            var optWithHeaders = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+            var optWithHeaders = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
             // headers
             {
@@ -5661,7 +5657,7 @@ loop:
                 }
             }
 
-            var optNoHeaders = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+            var optNoHeaders = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // no headers
             {
@@ -5846,7 +5842,7 @@ loop:
         {
             // headers
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
                 // one
                 await RunAsyncDynamicReaderVariants(
@@ -6024,7 +6020,7 @@ loop:
 
             // no headers
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // one
                 await RunAsyncDynamicReaderVariants(
@@ -6206,7 +6202,7 @@ loop:
         {
             // headers
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
                 await RunAsyncDynamicReaderVariants(
                     opts,
@@ -6235,7 +6231,7 @@ loop:
 
             // no headers
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
                 await RunAsyncDynamicReaderVariants(
                     opts,
@@ -6266,7 +6262,7 @@ loop:
         [Fact]
         public async Task POCO_PropertiesAsync()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
             await RunAsyncDynamicReaderVariants(
                 opts,
@@ -6298,7 +6294,7 @@ loop:
         {
             // dispose with reader
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
                 await RunAsyncDynamicReaderVariants(
                     opts,
                     async (config, makeReader) =>
@@ -6339,7 +6335,7 @@ loop:
 
             // explicit disposal
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).ToOptions();
                 await RunAsyncDynamicReaderVariants(
                     opts,
                     async (config, makeReader) =>
@@ -6404,7 +6400,7 @@ loop:
         {
             // both auto
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
                 await RunAsyncDynamicReaderVariants(
                     opts,
                     async (config1, makeReader1) =>
@@ -6459,8 +6455,8 @@ loop:
 
             // auto then explicitly
             {
-                var opts1 = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
-                var opts2 = opts1.NewBuilder().WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).Build();
+                var opts1 = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
+                var opts2 = Options.CreateBuilder(opts1).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).ToOptions();
                 await RunAsyncDynamicReaderVariants(
                     opts1,
                     async (config1, makeReader1) =>
@@ -6518,8 +6514,8 @@ loop:
 
             // explicitly then auto
             {
-                var opts1 = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).Build();
-                var opts2 = opts1.NewBuilder().WithDynamicRowDisposal(DynamicRowDisposal.OnReaderDispose).Build();
+                var opts1 = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).ToOptions();
+                var opts2 = Options.CreateBuilder(opts1).WithDynamicRowDisposal(DynamicRowDisposal.OnReaderDispose).ToOptions();
                 await RunAsyncDynamicReaderVariants(
                     opts1,
                     async (config1, makeReader1) =>
@@ -6579,7 +6575,7 @@ loop:
 
             // both explicitly
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).ToOptions();
                 await RunAsyncDynamicReaderVariants(
                     opts,
                     async (config1, makeReader1) =>
@@ -6657,7 +6653,7 @@ loop:
 
             // headers
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithTypeDescriber(convert).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithTypeDescriber(convert).ToOptions();
 
                 await RunAsyncDynamicReaderVariants(
                     opts,
@@ -6684,7 +6680,7 @@ loop:
 
             // no headers
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).WithTypeDescriber(convert).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithTypeDescriber(convert).ToOptions();
 
                 await RunAsyncDynamicReaderVariants(
                     opts,

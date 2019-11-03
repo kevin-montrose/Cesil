@@ -51,13 +51,9 @@ namespace Cesil
 
         public override void WriteComment(string comment)
         {
-            if (comment == null)
-            {
-                Throw.ArgumentNullException<object>(nameof(comment));
-                return;
-            }
-
             AssertNotDisposed(this);
+
+            Utils.CheckArgumentNull(comment, nameof(comment));
 
             WriteHeadersAndEndRowIfNeeded();
 
@@ -120,7 +116,7 @@ namespace Cesil
             // make a note of what the columns to write actually are
             Columns.Value = Config.SerializeColumns;
 
-            if (Config.WriteHeader == Cesil.WriteHeaders.Never)
+            if (Config.WriteHeader == Cesil.WriteHeader.Never)
             {
                 // nothing to write, so bail
                 return false;
@@ -154,15 +150,18 @@ namespace Cesil
                 }
                 else
                 {
+                    var escapedValueStartAndStop = Utils.NonNullStruct(Config.EscapedValueStartAndStop);
+                    var escapeValueEscapeChar = Utils.NonNullStruct(Config.EscapeValueEscapeChar);
+
                     // start with the escape char
-                    PlaceCharInStaging(Config.EscapedValueStartAndStop);
+                    PlaceCharInStaging(escapedValueStartAndStop);
 
                     // try and blit everything in relatively few calls
 
                     var colSpan = colName.AsSpan();
 
                     var start = 0;
-                    var end = Utils.FindChar(colSpan, start, Config.EscapedValueStartAndStop);
+                    var end = Utils.FindChar(colSpan, start, escapedValueStartAndStop);
                     while (end != -1)
                     {
                         var len = end - start;
@@ -172,10 +171,10 @@ namespace Cesil
                         PlaceAllInStaging(toWrite);
 
                         // place the escape char
-                        PlaceCharInStaging(Config.EscapeValueEscapeChar);
+                        PlaceCharInStaging(escapeValueEscapeChar);
 
                         start = end;
-                        end = Utils.FindChar(colSpan, start + 1, Config.EscapedValueStartAndStop);
+                        end = Utils.FindChar(colSpan, start + 1, escapedValueStartAndStop);
                     }
 
                     // copy the last bit
@@ -187,7 +186,7 @@ namespace Cesil
                     }
 
                     // end with the escape char
-                    PlaceCharInStaging(Config.EscapedValueStartAndStop);
+                    PlaceCharInStaging(escapedValueStartAndStop);
                 }
             }
         }
@@ -201,7 +200,7 @@ namespace Cesil
                     CheckHeaders();
                 }
 
-                if (Config.WriteTrailingNewLine == WriteTrailingNewLines.Always)
+                if (Config.WriteTrailingNewLine == WriteTrailingNewLine.Always)
                 {
                     EndRecord();
                 }

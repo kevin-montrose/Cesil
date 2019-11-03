@@ -10,46 +10,6 @@ using System.Runtime.Serialization;
 
 namespace Cesil
 {
-    // todo: reorg
-    internal readonly struct ConstructorPOCOResult
-    {
-        public static readonly ConstructorPOCOResult Empty = new ConstructorPOCOResult();
-
-        public bool HasValue => Constructor.HasValue;
-        public readonly NonNull<ConstructorInfo> Constructor;
-        public readonly NonNull<ColumnIdentifier[]> Columns;
-
-        public ConstructorPOCOResult(ConstructorInfo cons, ColumnIdentifier[] cols)
-        {
-            Constructor = default;
-            Constructor.Value = cons;
-
-            Columns = default;
-            Columns.Value = cols;
-        }
-    }
-
-    // todo: reorg
-    internal readonly struct PropertyPOCOResult
-    {
-        public static readonly PropertyPOCOResult Empty = new PropertyPOCOResult();
-
-        public bool HasValue => Constructor.HasValue;
-        public readonly NonNull<ConstructorInfo> Constructor;
-        public readonly NonNull<Setter[]> Setters;
-        public readonly NonNull<ColumnIdentifier[]> Columns;
-
-        public PropertyPOCOResult(ConstructorInfo cons, Setter[] sets, ColumnIdentifier[] cols)
-        {
-            Constructor = default;
-            Constructor.Value = cons;
-            Setters = default;
-            Setters.Value = sets;
-            Columns = default;
-            Columns.Value = cols;
-        }
-    }
-
     /// <summary>
     /// The default implementation of ITypeDescriber used to
     ///   determine how to (de)serialize types and how to convert
@@ -84,12 +44,10 @@ namespace Cesil
         ///   
         /// Throws if there is no parameterless constructor.
         /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         public virtual InstanceProvider? GetInstanceProvider(TypeInfo forType)
         {
-            if(forType == null)
-            {
-                return Throw.ArgumentNullException<InstanceProvider>(nameof(forType));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
 
             var cons = forType.GetConstructor(TypeInfo.EmptyTypes);
             if (cons == null)
@@ -105,10 +63,7 @@ namespace Cesil
         /// </summary>
         public virtual IEnumerable<DeserializableMember> EnumerateMembersToDeserialize(TypeInfo forType)
         {
-            if(forType == null)
-            {
-                return Throw.ArgumentNullException<IEnumerable<DeserializableMember>>(nameof(forType));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
 
             var buffer = new List<(DeserializableMember Member, int? Position)>();
 
@@ -161,15 +116,8 @@ namespace Cesil
         /// </summary>
         protected virtual bool ShouldDeserialize(TypeInfo forType, PropertyInfo property)
         {
-            if(forType == null)
-            {
-                return Throw.ArgumentNullException<bool>(nameof(forType));
-            }
-
-            if (property == null)
-            {
-                return Throw.ArgumentNullException<bool>(nameof(property));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(property, nameof(property));
 
             if (property.SetMethod == null) return false;
 
@@ -200,15 +148,8 @@ namespace Cesil
         /// </summary>
         protected virtual string GetDeserializationName(TypeInfo forType, PropertyInfo property)
         {
-            if(forType == null)
-            {
-                return Throw.ArgumentNullException<string>(nameof(forType));
-            }
-
-            if (property == null)
-            {
-                return Throw.ArgumentNullException<string>(nameof(property));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(property, nameof(property));
 
             return GetDeserializationName(property);
         }
@@ -218,17 +159,11 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         protected virtual Setter? GetSetter(TypeInfo forType, PropertyInfo property)
         {
-            if (forType == null)
-            {
-                return Throw.ArgumentNullException<Setter>(nameof(forType));
-            }
-
-            if (property == null)
-            {
-                return Throw.ArgumentNullException<Setter>(nameof(property));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(property, nameof(property));
 
             return (Setter?)property.SetMethod;
         }
@@ -238,17 +173,11 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         protected virtual Parser? GetParser(TypeInfo forType, PropertyInfo property)
         {
-            if(forType == null)
-            {
-                return Throw.ArgumentNullException<Parser?>(nameof(forType));
-            }
-
-            if(property == null)
-            {
-                return Throw.ArgumentNullException<Parser?>(nameof(property));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(property, nameof(property));
 
             var set = property.SetMethod;
             if(set == null)
@@ -278,15 +207,8 @@ namespace Cesil
         /// </summary>
         protected virtual int? GetPosition(TypeInfo forType, PropertyInfo property)
         {
-            if (forType == null)
-            {
-                return Throw.ArgumentNullException<int?>(nameof(forType));
-            }
-
-            if (property == null)
-            {
-                return Throw.ArgumentNullException<int?>(nameof(property));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(property, nameof(property));
 
             return GetPosition(property);
         }
@@ -296,17 +218,10 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        protected virtual IsMemberRequired GetIsRequired(TypeInfo forType, PropertyInfo property)
+        protected virtual MemberRequired GetIsRequired(TypeInfo forType, PropertyInfo property)
         {
-            if (forType == null)
-            {
-                return Throw.ArgumentNullException<IsMemberRequired>(nameof(forType));
-            }
-
-            if (property == null)
-            {
-                return Throw.ArgumentNullException<IsMemberRequired>(nameof(property));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(property, nameof(property));
 
             return GetIsRequired(property);
         }
@@ -316,17 +231,11 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         protected virtual Reset? GetReset(TypeInfo forType, PropertyInfo property)
         {
-            if(forType == null)
-            {
-                return Throw.ArgumentNullException<Reset?>(nameof(forType));
-            }
-
-            if(property == null)
-            {
-                return Throw.ArgumentNullException<Reset?>(nameof(property));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(property, nameof(property));
 
             // intentionally letting this be null
             var mtd = forType.GetMethod("Reset" + property.Name, BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
@@ -354,15 +263,8 @@ namespace Cesil
         /// </summary>
         protected virtual bool ShouldDeserialize(TypeInfo forType, FieldInfo field)
         {
-            if (forType == null)
-            {
-                return Throw.ArgumentNullException<bool>(nameof(forType));
-            }
-
-            if (field == null)
-            {
-                return Throw.ArgumentNullException<bool>(nameof(field));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(field, nameof(field));
 
             var dataMember = field.GetCustomAttribute<DataMemberAttribute>();
             if (dataMember != null)
@@ -380,15 +282,8 @@ namespace Cesil
         /// </summary>
         protected virtual string GetDeserializationName(TypeInfo forType, FieldInfo field)
         {
-            if(forType == null)
-            {
-                return Throw.ArgumentNullException<string>(nameof(forType));
-            }
-
-            if (field == null)
-            {
-                return Throw.ArgumentNullException<string>(nameof(field));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(field, nameof(field));
 
             return GetDeserializationName(field);
         }
@@ -398,17 +293,11 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         protected virtual Parser? GetParser(TypeInfo forType, FieldInfo field)
         {
-            if (forType == null)
-            {
-                return Throw.ArgumentNullException<Parser?>(nameof(forType));
-            }
-
-            if (field == null)
-            {
-                return Throw.ArgumentNullException<Parser?>(nameof(field));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(field, nameof(field));
 
             return GetParser(field.FieldType.GetTypeInfo());
         }
@@ -423,15 +312,8 @@ namespace Cesil
         /// </summary>
         protected virtual int? GetPosition(TypeInfo forType, FieldInfo field)
         {
-            if (forType == null)
-            {
-                return Throw.ArgumentNullException<int?>(nameof(forType));
-            }
-
-            if (field == null)
-            {
-                return Throw.ArgumentNullException<int?>(nameof(field));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(field, nameof(field));
 
             return GetPosition(field);
         }
@@ -441,17 +323,10 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        protected virtual IsMemberRequired GetIsRequired(TypeInfo forType, FieldInfo field)
+        protected virtual MemberRequired GetIsRequired(TypeInfo forType, FieldInfo field)
         {
-            if (forType == null)
-            {
-                return Throw.ArgumentNullException<IsMemberRequired>(nameof(forType));
-            }
-
-            if (field == null)
-            {
-                return Throw.ArgumentNullException<IsMemberRequired>(nameof(field));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(field, nameof(field));
 
             return GetIsRequired(field);
         }
@@ -461,17 +336,11 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         protected virtual Reset? GetReset(TypeInfo forType, FieldInfo field)
         {
-            if (forType == null)
-            {
-                return Throw.ArgumentNullException<Reset?>(nameof(forType));
-            }
-
-            if (field == null)
-            {
-                return Throw.ArgumentNullException<Reset?>(nameof(field));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(field, nameof(field));
 
             return null;
         }
@@ -492,15 +361,15 @@ namespace Cesil
         private static Parser? GetParser(TypeInfo forType)
         => Parser.GetDefault(forType);
 
-        private static IsMemberRequired GetIsRequired(MemberInfo member)
+        private static MemberRequired GetIsRequired(MemberInfo member)
         {
             var dataMember = member.GetCustomAttribute<DataMemberAttribute>();
             if (dataMember != null)
             {
-                return dataMember.IsRequired ? IsMemberRequired.Yes : IsMemberRequired.No;
+                return dataMember.IsRequired ? MemberRequired.Yes : MemberRequired.No;
             }
 
-            return IsMemberRequired.No;
+            return MemberRequired.No;
         }
 
         /// <summary>
@@ -556,15 +425,8 @@ namespace Cesil
         /// </summary>
         protected virtual bool ShouldSerialize(TypeInfo forType, PropertyInfo property)
         {
-            if (forType == null)
-            {
-                return Throw.ArgumentNullException<bool>(nameof(forType));
-            }
-
-            if (property == null)
-            {
-                return Throw.ArgumentNullException<bool>(nameof(property));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(property, nameof(property));
 
             if (property.GetMethod == null) return false;
 
@@ -595,15 +457,8 @@ namespace Cesil
         /// </summary>
         protected virtual string GetSerializationName(TypeInfo forType, PropertyInfo property)
         {
-            if (forType == null)
-            {
-                return Throw.ArgumentNullException<string>(nameof(forType));
-            }
-
-            if (property == null)
-            {
-                return Throw.ArgumentNullException<string>(nameof(property));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(property, nameof(property));
 
             return GetDeserializationName(property);
         }
@@ -613,17 +468,11 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         protected virtual Getter? GetGetter(TypeInfo forType, PropertyInfo property)
         {
-            if (forType == null)
-            {
-                return Throw.ArgumentNullException<Getter?>(nameof(forType));
-            }
-
-            if (property == null)
-            {
-                return Throw.ArgumentNullException<Getter?>(nameof(property));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(property, nameof(property));
 
             return (Getter?)property.GetMethod;
         }
@@ -637,17 +486,11 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         protected virtual ShouldSerialize? GetShouldSerializeMethod(TypeInfo forType, PropertyInfo property)
         {
-            if (forType == null)
-            {
-                return Throw.ArgumentNullException<ShouldSerialize?>(nameof(forType));
-            }
-
-            if (property == null)
-            {
-                return Throw.ArgumentNullException<ShouldSerialize?>(nameof(property));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(property, nameof(property));
 
             // intentionally letting this be null
             var mtd = forType.GetMethod("ShouldSerialize" + property.Name, BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
@@ -670,17 +513,11 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         protected virtual Formatter? GetFormatter(TypeInfo forType, PropertyInfo property)
         {
-            if (forType == null)
-            {
-                return Throw.ArgumentNullException<Formatter?>(nameof(forType));
-            }
-
-            if (property == null)
-            {
-                return Throw.ArgumentNullException<Formatter?>(nameof(property));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(property, nameof(property));
 
             return GetFormatter(property.PropertyType.GetTypeInfo());
         }
@@ -694,17 +531,10 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        protected virtual WillEmitDefaultValue GetEmitDefaultValue(TypeInfo forType, PropertyInfo property)
+        protected virtual EmitDefaultValue GetEmitDefaultValue(TypeInfo forType, PropertyInfo property)
         {
-            if (forType == null)
-            {
-                return Throw.ArgumentNullException<WillEmitDefaultValue>(nameof(forType));
-            }
-
-            if (property == null)
-            {
-                return Throw.ArgumentNullException<WillEmitDefaultValue>(nameof(property));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(property, nameof(property));
 
             return GetEmitDefaultValue(property);
         }
@@ -718,15 +548,8 @@ namespace Cesil
         /// </summary>
         protected virtual bool ShouldSerialize(TypeInfo forType, FieldInfo field)
         {
-            if (forType == null)
-            {
-                return Throw.ArgumentNullException<bool>(nameof(forType));
-            }
-
-            if (field == null)
-            {
-                return Throw.ArgumentNullException<bool>(nameof(field));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(field, nameof(field));
 
             var dataMember = field.GetCustomAttribute<DataMemberAttribute>();
             if (dataMember != null)
@@ -744,15 +567,8 @@ namespace Cesil
         /// </summary>
         protected virtual string GetSerializationName(TypeInfo forType, FieldInfo field)
         {
-            if (forType == null)
-            {
-                return Throw.ArgumentNullException<string>(nameof(forType));
-            }
-
-            if (field == null)
-            {
-                return Throw.ArgumentNullException<string>(nameof(field));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(field, nameof(field));
 
             return GetDeserializationName(field);
         }
@@ -766,17 +582,11 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         protected virtual ShouldSerialize? GetShouldSerializeMethod(TypeInfo forType, FieldInfo field)
         {
-            if (forType == null)
-            {
-                return Throw.ArgumentNullException<ShouldSerialize?>(nameof(forType));
-            }
-
-            if (field == null)
-            {
-                return Throw.ArgumentNullException<ShouldSerialize?>(nameof(field));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(field, nameof(field));
 
             return null;
         }
@@ -786,17 +596,11 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         protected virtual Formatter? GetFormatter(TypeInfo forType, FieldInfo field)
         {
-            if (forType == null)
-            {
-                return Throw.ArgumentNullException<Formatter?>(nameof(forType));
-            }
-
-            if (field == null)
-            {
-                return Throw.ArgumentNullException<Formatter?>(nameof(field));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(field, nameof(field));
 
             return GetFormatter(field.FieldType.GetTypeInfo());
         }
@@ -810,17 +614,10 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        protected virtual WillEmitDefaultValue GetEmitDefaultValue(TypeInfo forType, FieldInfo field)
+        protected virtual EmitDefaultValue GetEmitDefaultValue(TypeInfo forType, FieldInfo field)
         {
-            if (forType == null)
-            {
-                return Throw.ArgumentNullException<WillEmitDefaultValue>(nameof(forType));
-            }
-
-            if (field == null)
-            {
-                return Throw.ArgumentNullException<WillEmitDefaultValue>(nameof(field));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(field, nameof(field));
 
             return GetEmitDefaultValue(field);
         }
@@ -840,22 +637,22 @@ namespace Cesil
             return null;
         }
 
-        private static WillEmitDefaultValue GetEmitDefaultValue(MemberInfo member)
+        private static EmitDefaultValue GetEmitDefaultValue(MemberInfo member)
         {
             var dataMember = member.GetCustomAttribute<DataMemberAttribute>();
             if (dataMember != null)
             {
                 if (dataMember.EmitDefaultValue)
                 {
-                    return WillEmitDefaultValue.Yes;
+                    return EmitDefaultValue.Yes;
                 }
                 else
                 {
-                    return WillEmitDefaultValue.No;
+                    return EmitDefaultValue.No;
                 }
             }
 
-            return WillEmitDefaultValue.Yes;
+            return EmitDefaultValue.Yes;
         }
 
         /// <summary>
@@ -870,7 +667,7 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        public virtual IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext ctx, dynamic row)
+        public virtual IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext context, dynamic row)
         {
             // handle no value
             var rowObj = row as object;
@@ -890,12 +687,12 @@ namespace Cesil
                 foreach (var col in cols)
                 {
                     var name = col.Name;
-                    if (!ShouldIncludeCell(name, in ctx, rowObj)) continue;
+                    if (!ShouldIncludeCell(name, in context, rowObj)) continue;
 
                     var valueRaw = asOwnRow.GetDataSpan(ix);
                     var value = new string(valueRaw);
 
-                    var formatter = GetFormatter(Types.StringType, name, in ctx, rowObj);
+                    var formatter = GetFormatter(Types.StringType, name, in context, rowObj);
                     if(formatter == null)
                     {
                         return Throw.InvalidOperationException<IEnumerable<DynamicCellValue>>($"No formatter returned by {nameof(GetFormatter)}");
@@ -919,16 +716,16 @@ namespace Cesil
                     var value = kv.Value;
                     Formatter? formatter;
 
-                    if (!ShouldIncludeCell(name, in ctx, rowObj)) continue;
+                    if (!ShouldIncludeCell(name, in context, rowObj)) continue;
 
                     if (value == null)
                     {
-                        formatter = GetFormatter(Types.StringType, name, in ctx, rowObj);
+                        formatter = GetFormatter(Types.StringType, name, in context, rowObj);
                     }
                     else
                     {
                         var valueType = value.GetType().GetTypeInfo();
-                        formatter = GetFormatter(valueType, name, in ctx, rowObj);
+                        formatter = GetFormatter(valueType, name, in context, rowObj);
                         if (formatter == null)
                         {
                             // try and coerce into a string?
@@ -988,16 +785,16 @@ namespace Cesil
                     // skip it, access failed
                     if (skip) continue;
 
-                    if (!ShouldIncludeCell(name, in ctx, rowObj)) continue;
+                    if (!ShouldIncludeCell(name, in context, rowObj)) continue;
 
                     if (value == null)
                     {
-                        formatter = GetFormatter(Types.StringType, name, in ctx, rowObj);
+                        formatter = GetFormatter(Types.StringType, name, in context, rowObj);
                     }
                     else
                     {
                         var valueType = value.GetType().GetTypeInfo();
-                        formatter = GetFormatter(valueType, name, in ctx, rowObj);
+                        formatter = GetFormatter(valueType, name, in context, rowObj);
 
                         if (formatter == null)
                         {
@@ -1007,7 +804,7 @@ namespace Cesil
                             try
                             {
                                 value = convertCallSite.Target.Invoke(convertCallSite, value);
-                                formatter = GetFormatter(Types.StringType, name, in ctx, rowObj);
+                                formatter = GetFormatter(Types.StringType, name, in context, rowObj);
                             }
                             catch
                             {
@@ -1033,11 +830,11 @@ namespace Cesil
                 foreach (var mem in toSerialize)
                 {
                     var name = mem.Name;
-                    if (!ShouldIncludeCell(name, in ctx, rowObj)) continue;
+                    if (!ShouldIncludeCell(name, in context, rowObj)) continue;
 
                     var getter = mem.Getter;
 
-                    var formatter = GetFormatter(getter.Returns, name, in ctx, rowObj);
+                    var formatter = GetFormatter(getter.Returns, name, in context, rowObj);
                     if(formatter == null)
                     {
                         return Throw.InvalidOperationException<IEnumerable<DynamicCellValue>>($"No formatter returned by {nameof(GetFormatter)}");
@@ -1059,7 +856,7 @@ namespace Cesil
         /// 
         /// Override to customize behavior.
         /// </summary>
-        protected bool ShouldIncludeCell(string name, in WriteContext ctx, dynamic row)
+        protected bool ShouldIncludeCell(string name, in WriteContext context, dynamic row)
         => true;
 
         /// <summary>
@@ -1067,7 +864,8 @@ namespace Cesil
         /// 
         /// Override to customize behavior.
         /// </summary>
-        protected Formatter? GetFormatter(TypeInfo forType, string name, in WriteContext ctx, dynamic row)
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
+        protected Formatter? GetFormatter(TypeInfo forType, string name, in WriteContext context, dynamic row)
         => Formatter.GetDefault(forType);
 
         /// <summary>
@@ -1075,7 +873,8 @@ namespace Cesil
         /// 
         /// Override to customize behavior.
         /// </summary>
-        public virtual Parser? GetDynamicCellParserFor(in ReadContext ctx, TypeInfo targetType)
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
+        public virtual Parser? GetDynamicCellParserFor(in ReadContext context, TypeInfo targetType)
         {
             var onePCons = targetType.GetConstructor(BindingFlags.Instance | BindingFlags.Public, null, Types.ParserConstructorOneParameterTypes_Array, null);
             var twoPCons = targetType.GetConstructor(BindingFlags.Instance | BindingFlags.Public, null, Types.ParserConstructorTwoParameterTypes_Array, null);
@@ -1100,7 +899,8 @@ namespace Cesil
         ///    the appropriate number of objects (can be dynamic in source) is on 
         ///    the the type.
         /// </summary>
-        public virtual DynamicRowConverter? GetDynamicRowConverter(in ReadContext ctx, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
+        public virtual DynamicRowConverter? GetDynamicRowConverter(in ReadContext context, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
         {
             // handle tuples
             if (IsValueTuple(targetType))

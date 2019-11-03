@@ -4,9 +4,9 @@
     /// Represents the result of an attempted read operation.
     /// </summary>
     [NotEquatable("Value is open, hashcode and equality may not be sensible")]
-    public readonly struct ReadResult<T>
+    public readonly struct ReadResult<TRow>
     {
-        internal static readonly ReadResult<T> Empty = new ReadResult<T>(false);
+        internal static readonly ReadResult<TRow> Empty = new ReadResult<TRow>(false);
 
         /// <summary>
         /// True if a value was read, false if not.
@@ -16,27 +16,27 @@
         [IntentionallyExposedPrimitive("Best way to expose a presense, it's fine")]
         public bool HasValue { get; }
 
-        private readonly T _Value;
+        private readonly TRow _Value;
 
         /// <summary>
         /// The value read, if HasValue == true.
         /// 
         /// Throws otherwise.
         /// </summary>
-        public T Value
+        public TRow Value
         {
             get
             {
                 if (!HasValue)
                 {
-                    return Throw.InvalidOperationException<T>($"{nameof(ReadResult<T>)} has no value");
+                    return Throw.InvalidOperationException<TRow>($"{nameof(ReadResult<TRow>)} has no value");
                 }
 
                 return _Value;
             }
         }
 
-        internal ReadResult(T val)
+        internal ReadResult(TRow val)
         {
             HasValue = true;
             _Value = val;
@@ -57,15 +57,15 @@
         {
             if (!HasValue)
             {
-                return $"{nameof(ReadResult<T>)} which is empty";
+                return $"{nameof(ReadResult<TRow>)} which is empty";
             }
 
             if (_Value == null)
             {
-                return $"{nameof(ReadResult<T>)} with (null) Value";
+                return $"{nameof(ReadResult<TRow>)} with (null) Value";
             }
 
-            return $"{nameof(ReadResult<T>)} with {_Value}";
+            return $"{nameof(ReadResult<TRow>)} with {_Value}";
         }
     }
 }

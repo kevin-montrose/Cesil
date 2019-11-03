@@ -68,13 +68,14 @@ namespace Cesil
 
         internal static readonly TypeInfo[] ParserConstructorTwoParameterTypes_Array = new[] { typeof(ReadOnlySpan<char>).GetTypeInfo(), typeof(ReadContext).MakeByRefType().GetTypeInfo() };
 
-        internal static readonly TypeInfo RowEndingsType = typeof(RowEndings).GetTypeInfo();
-        internal static readonly TypeInfo ReadHeadersType = typeof(ReadHeaders).GetTypeInfo();
-        internal static readonly TypeInfo WriteHeadersType = typeof(WriteHeaders).GetTypeInfo();
-        internal static readonly TypeInfo WriteTrailingNewLinesType = typeof(WriteTrailingNewLines).GetTypeInfo();
+        internal static readonly TypeInfo RowEndingsType = typeof(RowEnding).GetTypeInfo();
+        internal static readonly TypeInfo ReadHeadersType = typeof(ReadHeader).GetTypeInfo();
+        internal static readonly TypeInfo WriteHeadersType = typeof(WriteHeader).GetTypeInfo();
+        internal static readonly TypeInfo WriteTrailingNewLinesType = typeof(WriteTrailingNewLine).GetTypeInfo();
         internal static readonly TypeInfo ReadContextType = typeof(ReadContext).GetTypeInfo();
         internal static readonly TypeInfo WriteContextType = typeof(WriteContext).GetTypeInfo();
         internal static readonly TypeInfo DynamicRowDisposalType = typeof(DynamicRowDisposal).GetTypeInfo();
+        internal static readonly TypeInfo ManualTypeDescriberFallbackBehaviorsType = typeof(ManualTypeDescriberFallbackBehavior).GetTypeInfo();
         internal static readonly TypeInfo InstanceProviderDelegateType = typeof(InstanceProviderDelegate<>).GetTypeInfo();
 
         internal static readonly TypeInfo DefaultTypeParsersType = typeof(DefaultTypeParsers).GetTypeInfo();

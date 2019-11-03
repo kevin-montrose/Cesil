@@ -23,6 +23,7 @@ namespace Cesil
         /// <summary>
         /// Cell value
         /// </summary>
+        [NullableExposed("User may want to provide a null")]
         public dynamic? Value { get; }
         /// <summary>
         /// Instance of Formatter to use when formatting the associated value
@@ -38,30 +39,36 @@ namespace Cesil
             Formatter = f;
         }
 
+        // note, not doing overrides without name (so it can be non-nullable) for Create because
+        //       it is BAD NEWS to have overloads where one of the terms is dynamic
+
         /// <summary>
         /// Create a DynamicCellValue to format the given value of the given column.
         /// 
         /// It's permissable for both name and val to be null.
         /// </summary>
-        public static DynamicCellValue Create(string? name, dynamic? val, Formatter formatter)
+        public static DynamicCellValue Create(
+            [NullableExposed("May be purely positional, in which case it has no name")]
+            string? name,
+            [NullableExposed("User may want to provide a null")]
+            dynamic? value,
+            Formatter formatter
+        )
         {
             // name can be null, that's fine
 
-            // val can be null, that's fine
+            // value can be null, that's fine
 
-            if (formatter == null)
-            {
-                return Throw.ArgumentNullException<DynamicCellValue>(nameof(formatter));
-            }
+            Utils.CheckArgumentNull(formatter, nameof(formatter));
 
-            var valType = (val as object)?.GetType().GetTypeInfo();
+            var valType = (value as object)?.GetType().GetTypeInfo();
 
             if (valType != null && !formatter.Takes.IsAssignableFrom(valType))
             {
                 return Throw.ArgumentException<DynamicCellValue>($"Formatter must accept an object assignable from {valType}", nameof(formatter));
             }
 
-            return new DynamicCellValue(name, val, formatter);
+            return new DynamicCellValue(name, value, formatter);
         }
 
         /// <summary>
@@ -80,23 +87,23 @@ namespace Cesil
         /// <summary>
         /// Returns true if this object equals the given DynamicCellValue.
         /// </summary>
-        public bool Equals(DynamicCellValue d)
+        public bool Equals(DynamicCellValue value)
         {
-            if (d.Formatter != Formatter) return false;
+            if (value.Formatter != Formatter) return false;
 
             if (HasName)
             {
-                if (!d.HasName) return false;
+                if (!value.HasName) return false;
 
-                if (Name != d.Name) return false;
+                if (Name != value.Name) return false;
             }
             else
             {
-                if (!d.HasName) return false;
+                if (!value.HasName) return false;
             }
 
             var selfAsObj = Value as object;
-            var dAsObj = d.Value as object;
+            var dAsObj = value.Value as object;
 
             if(selfAsObj == null)
             {

@@ -6,7 +6,7 @@ namespace Cesil
     /// <summary>
     /// Delegate used to create InstanceProviders.
     /// </summary>
-    public delegate bool InstanceProviderDelegate<T>(out T instance);
+    public delegate bool InstanceProviderDelegate<TInstance>(out TInstance instance);
 
     /// <summary>
     /// Represents a way to create new instances of a type.
@@ -62,38 +62,35 @@ namespace Cesil
         ///   - return a bool
         ///   - have a single out parameter of the constructed type
         /// </summary>
-        public static InstanceProvider ForMethod(MethodInfo mtd)
+        public static InstanceProvider ForMethod(MethodInfo method)
         {
-            if (mtd == null)
+            Utils.CheckArgumentNull(method, nameof(method));
+
+            if (!method.IsStatic)
             {
-                return Throw.ArgumentNullException<InstanceProvider>(nameof(mtd));
+                return Throw.ArgumentException<InstanceProvider>("Method must be static", nameof(method));
             }
 
-            if (!mtd.IsStatic)
+            if (method.ReturnType.GetTypeInfo() != Types.BoolType)
             {
-                return Throw.ArgumentException<InstanceProvider>("Method must be static", nameof(mtd));
+                return Throw.ArgumentException<InstanceProvider>("Method must return a boolean", nameof(method));
             }
 
-            if (mtd.ReturnType.GetTypeInfo() != Types.BoolType)
-            {
-                return Throw.ArgumentException<InstanceProvider>("Method must return a boolean", nameof(mtd));
-            }
-
-            var ps = mtd.GetParameters();
+            var ps = method.GetParameters();
             if (ps.Length != 1)
             {
-                return Throw.ArgumentException<InstanceProvider>("Method must have a single out parameter", nameof(mtd));
+                return Throw.ArgumentException<InstanceProvider>("Method must have a single out parameter", nameof(method));
             }
 
             var outP = ps[0].ParameterType.GetTypeInfo();
             if (!outP.IsByRef)
             {
-                return Throw.ArgumentException<InstanceProvider>("Method must have a single out parameter, parameter was not by ref", nameof(mtd));
+                return Throw.ArgumentException<InstanceProvider>("Method must have a single out parameter, parameter was not by ref", nameof(method));
             }
 
             var constructs = outP.GetElementTypeNonNull();
 
-            return new InstanceProvider(mtd, constructs);
+            return new InstanceProvider(method, constructs);
         }
 
         /// <summary>
@@ -105,41 +102,38 @@ namespace Cesil
         ///   - not a generic parameter
         ///   - not an unbound generic type (ie. a generic type definition)
         /// </summary>
-        public static InstanceProvider ForParameterlessConstructor(ConstructorInfo cons)
+        public static InstanceProvider ForParameterlessConstructor(ConstructorInfo constructor)
         {
-            if (cons == null)
-            {
-                return Throw.ArgumentNullException<InstanceProvider>(nameof(cons));
-            }
+            Utils.CheckArgumentNull(constructor, nameof(constructor));
 
-            var ps = cons.GetParameters();
+            var ps = constructor.GetParameters();
             if (ps.Length != 0)
             {
-                return Throw.ArgumentException<InstanceProvider>("Constructor must take 0 parameters", nameof(cons));
+                return Throw.ArgumentException<InstanceProvider>("Constructor must take 0 parameters", nameof(constructor));
             }
 
-            var t = cons.DeclaringTypeNonNull();
+            var t = constructor.DeclaringTypeNonNull();
             if (t.IsInterface)
             {
-                return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found an interface", nameof(cons));
+                return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found an interface", nameof(constructor));
             }
 
             if (t.IsAbstract)
             {
-                return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found an abstract class", nameof(cons));
+                return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found an abstract class", nameof(constructor));
             }
 
             if (t.IsGenericTypeParameter)
             {
-                return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found a generic parameter", nameof(cons));
+                return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found a generic parameter", nameof(constructor));
             }
 
             if (t.IsGenericTypeDefinition)
             {
-                return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found a generic type definition", nameof(cons));
+                return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found a generic type definition", nameof(constructor));
             }
 
-            return new InstanceProvider(cons);
+            return new InstanceProvider(constructor);
         }
 
         /// <summary>
@@ -148,14 +142,11 @@ namespace Cesil
         /// There are no restrictions on what the give delegate may do,
         ///   but be aware that it may be called from many different contexts.
         /// </summary>
-        public static InstanceProvider ForDelegate<T>(InstanceProviderDelegate<T> del)
+        public static InstanceProvider ForDelegate<TInstance>(InstanceProviderDelegate<TInstance> del)
         {
-            if (del == null)
-            {
-                return Throw.ArgumentNullException<InstanceProvider>(nameof(del));
-            }
+            Utils.CheckArgumentNull(del, nameof(del));
 
-            return new InstanceProvider(del, typeof(T).GetTypeInfo());
+            return new InstanceProvider(del, typeof(TInstance).GetTypeInfo());
         }
 
         /// <summary>
@@ -174,19 +165,19 @@ namespace Cesil
         /// <summary>
         /// Returns true if this object equals the given InstanceProvider.
         /// </summary>
-        public bool Equals(InstanceProvider i)
+        public bool Equals(InstanceProvider instanceProvider)
         {
-            if (ReferenceEquals(i, null)) return false;
+            if (ReferenceEquals(instanceProvider, null)) return false;
 
-            if (Mode != i.Mode) return false;
+            if (Mode != instanceProvider.Mode) return false;
 
-            if (ConstructsType != i.ConstructsType) return false;
+            if (ConstructsType != instanceProvider.ConstructsType) return false;
 
             switch (Mode)
             {
-                case BackingMode.Constructor: return i.Constructor.Value == Constructor.Value;
-                case BackingMode.Delegate: return i.Delegate.Value == Delegate.Value;
-                case BackingMode.Method: return i.Method.Value == Method.Value;
+                case BackingMode.Constructor: return instanceProvider.Constructor.Value == Constructor.Value;
+                case BackingMode.Delegate: return instanceProvider.Delegate.Value == Delegate.Value;
+                case BackingMode.Method: return instanceProvider.Method.Value == Method.Value;
                 default: return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}");
             }
         }

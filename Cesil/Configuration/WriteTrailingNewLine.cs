@@ -4,7 +4,7 @@
     /// Whether or not their should be a trailing new line
     ///   after the last row when serializing.
     /// </summary>
-    public enum WriteTrailingNewLines : byte
+    public enum WriteTrailingNewLine : byte
     {
         /// <summary>
         /// After the last record is written, always append an additional new line / row ending.

@@ -66,6 +66,7 @@ namespace Cesil
         ///   performing the read operation which is described
         ///   by this context.
         /// </summary>
+        [NullableExposed("The provided context is nullable, so the returned one must be")]
         public object? Context { get; }
 
         private ReadContext(ReadContextMode m, int r, ColumnIdentifier? ci, object? ctx)
@@ -101,11 +102,11 @@ namespace Cesil
         /// <summary>
         /// Returns true if this object equals the given ReadContext.
         /// </summary>
-        public bool Equals(ReadContext r)
-        => r.Mode == Mode &&
-           r._Column == _Column &&
-           r.Context == Context &&
-           r.RowNumber == RowNumber;
+        public bool Equals(ReadContext context)
+        => context.Mode == Mode &&
+           context._Column == _Column &&
+           context.Context == Context &&
+           context.RowNumber == RowNumber;
 
         /// <summary>
         /// Returns a stable hash for this ReadContext.

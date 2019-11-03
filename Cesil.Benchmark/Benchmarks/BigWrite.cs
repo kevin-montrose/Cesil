@@ -24,7 +24,7 @@ namespace Cesil.Benchmark.Benchmarks
         public const string Path = @"D:\InternalRefs.csv";
         private static readonly string[] Headers = new[] { nameof(Row.CreationDate), nameof(Row.Url), nameof(Row.Referer), nameof(Row.UserIdentifier), nameof(Row.EventTarget), nameof(Row.EventSource) };
         private static readonly Func<Row, string[]> RowMapper = r => new[] { "" + r.CreationDate, r.Url ?? "", r.Referer ?? "", r.UserIdentifier ?? "", r.EventTarget ?? "", r.EventSource ?? "" };
-        private static readonly IBoundConfiguration<Row> Config = Configuration.For<Row>(Options.Default.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).Build());
+        private static readonly IBoundConfiguration<Row> Config = Configuration.For<Row>(Options.CreateBuilder(Options.Default).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).ToOptions());
         private const int TakeRows = 10_000;
         private const int Repeat = 100;
 

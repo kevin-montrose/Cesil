@@ -9,7 +9,7 @@ namespace Cesil
     /// <summary>
     /// Delegate type for formatters.
     /// </summary>
-    public delegate bool FormatterDelegate<T>(T value, in WriteContext context, IBufferWriter<char> buffer);
+    public delegate bool FormatterDelegate<TValue>(TValue value, in WriteContext context, IBufferWriter<char> writer);
 
     /// <summary>
     /// Represents code used to format a value into a IBufferWriter(char).
@@ -129,28 +129,25 @@ namespace Cesil
         ///     -an IBufferWriter(char)
         ///   * return bool (false indicates insufficient space was available)
         /// </summary>
-        public static Formatter ForMethod(MethodInfo formatter)
+        public static Formatter ForMethod(MethodInfo method)
         {
-            if (formatter == null)
+            Utils.CheckArgumentNull(method, nameof(method));
+
+            if (!method.IsStatic)
             {
-                return Throw.ArgumentNullException<Formatter>(nameof(formatter));
+                return Throw.ArgumentException<Formatter>($"{nameof(method)} must be a static method", nameof(method));
             }
 
-            if (!formatter.IsStatic)
-            {
-                return Throw.ArgumentException<Formatter>($"{nameof(formatter)} must be a static method", nameof(formatter));
-            }
-
-            var formatterRetType = formatter.ReturnType.GetTypeInfo();
+            var formatterRetType = method.ReturnType.GetTypeInfo();
             if (formatterRetType != Types.BoolType)
             {
-                return Throw.ArgumentException<Formatter>($"{nameof(formatter)} must return bool", nameof(formatter));
+                return Throw.ArgumentException<Formatter>($"{nameof(method)} must return bool", nameof(method));
             }
 
-            var args = formatter.GetParameters();
+            var args = method.GetParameters();
             if (args.Length != 3)
             {
-                return Throw.ArgumentException<Formatter>($"{nameof(formatter)} must take 3 parameters", nameof(formatter));
+                return Throw.ArgumentException<Formatter>($"{nameof(method)} must take 3 parameters", nameof(method));
             }
 
             var takes = args[0].ParameterType.GetTypeInfo();
@@ -158,44 +155,39 @@ namespace Cesil
             var p2 = args[1].ParameterType.GetTypeInfo();
             if (!p2.IsByRef)
             {
-                return Throw.ArgumentException<Formatter>($"The second paramater to {nameof(formatter)} must be an in {nameof(WriteContext)}, was not by ref", nameof(formatter));
+                return Throw.ArgumentException<Formatter>($"The second paramater to {nameof(method)} must be an in {nameof(WriteContext)}, was not by ref", nameof(method));
             }
 
             if (p2.GetElementTypeNonNull() != Types.WriteContextType)
             {
-                return Throw.ArgumentException<Formatter>($"The second paramater to {nameof(formatter)} must be an in {nameof(WriteContext)}", nameof(formatter));
+                return Throw.ArgumentException<Formatter>($"The second paramater to {nameof(method)} must be an in {nameof(WriteContext)}", nameof(method));
             }
 
             if (args[2].ParameterType.GetTypeInfo() != Types.IBufferWriterOfCharType)
             {
-                return Throw.ArgumentException<Formatter>($"The third paramater to {nameof(formatter)} must be a {nameof(IBufferWriter<char>)}", nameof(formatter));
+                return Throw.ArgumentException<Formatter>($"The third paramater to {nameof(method)} must be a {nameof(IBufferWriter<char>)}", nameof(method));
             }
 
-            return new Formatter(takes, formatter);
+            return new Formatter(takes, method);
         }
 
         /// <summary>
         /// Create a Formatter from the given delegate.
         /// </summary>
-        public static Formatter ForDelegate<T>(FormatterDelegate<T> formatter)
+        public static Formatter ForDelegate<TValue>(FormatterDelegate<TValue> del)
         {
-            if (formatter == null)
-            {
-                return Throw.ArgumentNullException<Formatter>(nameof(formatter));
-            }
+            Utils.CheckArgumentNull(del, nameof(del));
 
-            return new Formatter(typeof(T).GetTypeInfo(), formatter);
+            return new Formatter(typeof(TValue).GetTypeInfo(), del);
         }
 
         /// <summary>
         /// Returns the default formatter for the given type, if one exists.
         /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         public static Formatter? GetDefault(TypeInfo forType)
         {
-            if(forType == null)
-            {
-                return Throw.ArgumentNullException<Formatter>(nameof(forType));
-            }
+            Utils.CheckArgumentNull(forType, nameof(forType));
 
             if (forType.IsEnum)
             {
@@ -262,21 +254,21 @@ namespace Cesil
         /// <summary>
         /// Compares for equality to another Formatter.
         /// </summary>
-        public bool Equals(Formatter f)
+        public bool Equals(Formatter formatter)
         {
-            if (ReferenceEquals(f, null)) return false;
+            if (ReferenceEquals(formatter, null)) return false;
 
-            if (Takes != f.Takes) return false;
+            if (Takes != formatter.Takes) return false;
 
-            var otherMode = f.Mode;
+            var otherMode = formatter.Mode;
             if (otherMode != Mode) return false;
 
             switch (otherMode)
             {
                 case BackingMode.Method:
-                    return Method.Value == f.Method.Value;
+                    return Method.Value == formatter.Method.Value;
                 case BackingMode.Delegate:
-                    return Delegate.Value == f.Delegate.Value;
+                    return Delegate.Value == formatter.Delegate.Value;
                 default:
                     return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {otherMode}");
             }

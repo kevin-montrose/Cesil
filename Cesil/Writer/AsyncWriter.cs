@@ -85,10 +85,7 @@ namespace Cesil
 
         public override ValueTask WriteCommentAsync(string comment, CancellationToken cancel = default)
         {
-            if (comment == null)
-            {
-                return Throw.ArgumentNullException<ValueTask>(nameof(comment));
-            }
+            Utils.CheckArgumentNull(comment, nameof(comment));
 
             AssertNotDisposed(this);
 
@@ -447,7 +444,7 @@ namespace Cesil
             // make a note of what the columns to write actually are
             Columns.Value = Config.SerializeColumns;
 
-            if (Config.WriteHeader == WriteHeaders.Never)
+            if (Config.WriteHeader == WriteHeader.Never)
             {
                 // nothing to write, so bail
                 return new ValueTask<bool>(false);
@@ -560,18 +557,20 @@ namespace Cesil
             else
             {
                 // try and blit everything in relatively few calls
+                var escapedValueStartAndStop = Utils.NonNullStruct(Config.EscapedValueStartAndStop);
+                var escapeValueEscapeChar = Utils.NonNullStruct(Config.EscapeValueEscapeChar);
 
                 var colMem = colName.AsMemory();
 
                 // start with the escape char
-                var startEscapeTask = PlaceCharInStagingAsync(Config.EscapedValueStartAndStop, cancel);
+                var startEscapeTask = PlaceCharInStagingAsync(escapedValueStartAndStop, cancel);
                 if (!startEscapeTask.IsCompletedSuccessfully(this))
                 {
                     return WriteSingleHeaderAsync_CompleteAfterFirstCharAsync(this, startEscapeTask, colMem, cancel);
                 }
 
                 var start = 0;
-                var end = Utils.FindChar(colMem, start, Config.EscapedValueStartAndStop);
+                var end = Utils.FindChar(colMem, start, escapedValueStartAndStop);
                 while (end != -1)
                 {
                     var len = end - start;
@@ -584,14 +583,14 @@ namespace Cesil
                     }
 
                     // place the escape char
-                    var escapeTask = PlaceCharInStagingAsync(Config.EscapeValueEscapeChar, cancel);
+                    var escapeTask = PlaceCharInStagingAsync(escapeValueEscapeChar, cancel);
                     if (!escapeTask.IsCompletedSuccessfully(this))
                     {
                         return WriteSingleHeaderAsync_CompleteAfterEscapeAsync(this, escapeTask, colMem, end, cancel);
                     }
 
                     start = end;
-                    end = Utils.FindChar(colMem, start + 1, Config.EscapedValueStartAndStop);
+                    end = Utils.FindChar(colMem, start + 1, escapedValueStartAndStop);
                 }
 
                 // copy the last bit
@@ -607,7 +606,7 @@ namespace Cesil
                 }
 
                 // end with the escape char
-                var endEscapeTask = PlaceCharInStagingAsync(Config.EscapedValueStartAndStop, cancel);
+                var endEscapeTask = PlaceCharInStagingAsync(escapedValueStartAndStop, cancel);
                 if (!endEscapeTask.IsCompletedSuccessfully(this))
                 {
                     return endEscapeTask;
@@ -622,8 +621,11 @@ namespace Cesil
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
 
+                var escapedValueStartAndStop = Utils.NonNullStruct(self.Config.EscapedValueStartAndStop);
+                var escapeValueEscapeChar = Utils.NonNullStruct(self.Config.EscapeValueEscapeChar);
+
                 var start = 0;
-                var end = Utils.FindChar(colMem, start, self.Config.EscapedValueStartAndStop);
+                var end = Utils.FindChar(colMem, start, escapedValueStartAndStop);
                 while (end != -1)
                 {
                     var len = end - start;
@@ -634,12 +636,12 @@ namespace Cesil
                     cancel.ThrowIfCancellationRequested();
 
                     // place the escape char
-                    var secondPlaceTask = self.PlaceCharInStagingAsync(self.Config.EscapeValueEscapeChar, cancel);
+                    var secondPlaceTask = self.PlaceCharInStagingAsync(escapeValueEscapeChar, cancel);
                     await secondPlaceTask;
                     cancel.ThrowIfCancellationRequested();
 
                     start = end;
-                    end = Utils.FindChar(colMem, start + 1, self.Config.EscapedValueStartAndStop);
+                    end = Utils.FindChar(colMem, start + 1, escapedValueStartAndStop);
                 }
 
                 // copy the last bit
@@ -653,7 +655,7 @@ namespace Cesil
                 }
 
                 // end with the escape char
-                var fourthPlaceTask = self.PlaceCharInStagingAsync(self.Config.EscapedValueStartAndStop, cancel);
+                var fourthPlaceTask = self.PlaceCharInStagingAsync(escapedValueStartAndStop, cancel);
                 await fourthPlaceTask;
                 cancel.ThrowIfCancellationRequested();
             }
@@ -664,12 +666,15 @@ namespace Cesil
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
 
-                var placeTask = self.PlaceCharInStagingAsync(self.Config.EscapeValueEscapeChar, cancel);
+                var escapedValueStartAndStop = Utils.NonNullStruct(self.Config.EscapedValueStartAndStop);
+                var escapeValueEscapeChar = Utils.NonNullStruct(self.Config.EscapeValueEscapeChar);
+
+                var placeTask = self.PlaceCharInStagingAsync(escapedValueStartAndStop, cancel);
                 await placeTask;
                 cancel.ThrowIfCancellationRequested();
 
                 var start = end;
-                end = Utils.FindChar(colMem, start + 1, self.Config.EscapedValueStartAndStop);
+                end = Utils.FindChar(colMem, start + 1, escapedValueStartAndStop);
 
                 while (end != -1)
                 {
@@ -681,12 +686,12 @@ namespace Cesil
                     cancel.ThrowIfCancellationRequested();
 
                     // place the escape char
-                    var thirdPlaceTask = self.PlaceCharInStagingAsync(self.Config.EscapeValueEscapeChar, cancel);
+                    var thirdPlaceTask = self.PlaceCharInStagingAsync(escapeValueEscapeChar, cancel);
                     await thirdPlaceTask;
                     cancel.ThrowIfCancellationRequested();
 
                     start = end;
-                    end = Utils.FindChar(colMem, start + 1, self.Config.EscapedValueStartAndStop);
+                    end = Utils.FindChar(colMem, start + 1, escapedValueStartAndStop);
                 }
 
                 // copy the last bit
@@ -700,7 +705,7 @@ namespace Cesil
                 }
 
                 // end with the escape char
-                var fifthPlaceTask = self.PlaceCharInStagingAsync(self.Config.EscapedValueStartAndStop, cancel);
+                var fifthPlaceTask = self.PlaceCharInStagingAsync(escapedValueStartAndStop, cancel);
                 await fifthPlaceTask;
                 cancel.ThrowIfCancellationRequested();
             }
@@ -711,8 +716,11 @@ namespace Cesil
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
 
+                var escapedValueStartAndStop = Utils.NonNullStruct(self.Config.EscapedValueStartAndStop);
+                var escapeValueEscapeChar = Utils.NonNullStruct(self.Config.EscapeValueEscapeChar);
+
                 var start = end;
-                end = Utils.FindChar(colMem, start + 1, self.Config.EscapedValueStartAndStop);
+                end = Utils.FindChar(colMem, start + 1, escapedValueStartAndStop);
 
                 while (end != -1)
                 {
@@ -724,12 +732,12 @@ namespace Cesil
                     cancel.ThrowIfCancellationRequested();
 
                     // place the escape char
-                    var secondPlaceTask = self.PlaceCharInStagingAsync(self.Config.EscapeValueEscapeChar, cancel);
+                    var secondPlaceTask = self.PlaceCharInStagingAsync(escapeValueEscapeChar, cancel);
                     await secondPlaceTask;
                     cancel.ThrowIfCancellationRequested();
 
                     start = end;
-                    end = Utils.FindChar(colMem, start + 1, self.Config.EscapedValueStartAndStop);
+                    end = Utils.FindChar(colMem, start + 1, escapedValueStartAndStop);
                 }
 
                 // copy the last bit
@@ -743,7 +751,7 @@ namespace Cesil
                 }
 
                 // end with the escape char
-                var fourthPlaceTask = self.PlaceCharInStagingAsync(self.Config.EscapedValueStartAndStop, cancel);
+                var fourthPlaceTask = self.PlaceCharInStagingAsync(escapedValueStartAndStop, cancel);
                 await fourthPlaceTask;
                 cancel.ThrowIfCancellationRequested();
             }
@@ -754,8 +762,10 @@ namespace Cesil
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
 
+                var escapedValueStartAndStop = Utils.NonNullStruct(self.Config.EscapedValueStartAndStop);
+
                 // end with the escape char
-                var placeTask = self.PlaceCharInStagingAsync(self.Config.EscapedValueStartAndStop, cancel);
+                var placeTask = self.PlaceCharInStagingAsync(escapedValueStartAndStop, cancel);
                 await placeTask;
                 cancel.ThrowIfCancellationRequested();
             }
@@ -774,7 +784,7 @@ namespace Cesil
                     }
                 }
 
-                if (Config.WriteTrailingNewLine == WriteTrailingNewLines.Always)
+                if (Config.WriteTrailingNewLine == WriteTrailingNewLine.Always)
                 {
                     var endRecordTask = EndRecordAsync(CancellationToken.None);
                     if (!endRecordTask.IsCompletedSuccessfully(this))
@@ -818,7 +828,7 @@ namespace Cesil
             {
                 await waitFor;
 
-                if (self.Config.WriteTrailingNewLine == WriteTrailingNewLines.Always)
+                if (self.Config.WriteTrailingNewLine == WriteTrailingNewLine.Always)
                 {
                     var endTask = self.EndRecordAsync(CancellationToken.None);
                     await endTask;

@@ -165,7 +165,7 @@ namespace Cesil
 
         private ValueTask HandleLineEndingsAsync(CancellationToken cancel)
         {
-            if (Configuration.RowEnding != Cesil.RowEndings.Detect)
+            if (Configuration.RowEnding != Cesil.RowEnding.Detect)
             {
                 RowEndings = Configuration.RowEnding;
                 TryMakeStateMachine();
@@ -198,7 +198,7 @@ namespace Cesil
 
 
             // wait for header detection to finish, then continue async
-            static async ValueTask HandleLineEndingsAsync_ContinueAfterDetectAsync(AsyncReader<T> self, ValueTask<(RowEndings Ending, Memory<char> PushBack)?> waitFor, RowEndingDetector<T> needsDispose, CancellationToken cancel)
+            static async ValueTask HandleLineEndingsAsync_ContinueAfterDetectAsync(AsyncReader<T> self, ValueTask<(RowEnding Ending, Memory<char> PushBack)?> waitFor, RowEndingDetector<T> needsDispose, CancellationToken cancel)
             {
                 try
                 {
@@ -232,10 +232,10 @@ namespace Cesil
 
         private ValueTask HandleHeadersAsync(CancellationToken cancel)
         {
-            if (Configuration.ReadHeader == Cesil.ReadHeaders.Never)
+            if (Configuration.ReadHeader == Cesil.ReadHeader.Never)
             {
                 // can just use the discovered copy from source
-                ReadHeaders = Cesil.ReadHeaders.Never;
+                ReadHeaders = Cesil.ReadHeader.Never;
                 TryMakeStateMachine();
                 Columns.Value = Configuration.DeserializeColumns;
 

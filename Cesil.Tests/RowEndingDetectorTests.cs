@@ -19,32 +19,32 @@ namespace Cesil.Tests
         }
 
         [Theory]
-        [InlineData("foo\r\n", RowEndings.CarriageReturnLineFeed)]
-        [InlineData("foo,bar\r\n", RowEndings.CarriageReturnLineFeed)]
-        [InlineData("foo,bar\r\nfizz,buzz", RowEndings.CarriageReturnLineFeed)]
-        [InlineData("\"foo bar\"\r\n", RowEndings.CarriageReturnLineFeed)]
-        [InlineData("\"foo\r\nbar\"\r\n", RowEndings.CarriageReturnLineFeed)]
-        [InlineData("\"foo\rbar\"\r\n", RowEndings.CarriageReturnLineFeed)]
-        [InlineData("\"foo\nbar\"\r\n", RowEndings.CarriageReturnLineFeed)]
+        [InlineData("foo\r\n", RowEnding.CarriageReturnLineFeed)]
+        [InlineData("foo,bar\r\n", RowEnding.CarriageReturnLineFeed)]
+        [InlineData("foo,bar\r\nfizz,buzz", RowEnding.CarriageReturnLineFeed)]
+        [InlineData("\"foo bar\"\r\n", RowEnding.CarriageReturnLineFeed)]
+        [InlineData("\"foo\r\nbar\"\r\n", RowEnding.CarriageReturnLineFeed)]
+        [InlineData("\"foo\rbar\"\r\n", RowEnding.CarriageReturnLineFeed)]
+        [InlineData("\"foo\nbar\"\r\n", RowEnding.CarriageReturnLineFeed)]
 
-        [InlineData("foo\n", RowEndings.LineFeed)]
-        [InlineData("foo,bar\n", RowEndings.LineFeed)]
-        [InlineData("foo,bar\nfizz,buzz", RowEndings.LineFeed)]
-        [InlineData("\"foo bar\"\n", RowEndings.LineFeed)]
-        [InlineData("\"foo\r\nbar\"\n", RowEndings.LineFeed)]
-        [InlineData("\"foo\rbar\"\n", RowEndings.LineFeed)]
-        [InlineData("\"foo\nbar\"\n", RowEndings.LineFeed)]
+        [InlineData("foo\n", RowEnding.LineFeed)]
+        [InlineData("foo,bar\n", RowEnding.LineFeed)]
+        [InlineData("foo,bar\nfizz,buzz", RowEnding.LineFeed)]
+        [InlineData("\"foo bar\"\n", RowEnding.LineFeed)]
+        [InlineData("\"foo\r\nbar\"\n", RowEnding.LineFeed)]
+        [InlineData("\"foo\rbar\"\n", RowEnding.LineFeed)]
+        [InlineData("\"foo\nbar\"\n", RowEnding.LineFeed)]
 
-        [InlineData("foo\r", RowEndings.CarriageReturn)]
-        [InlineData("foo,bar\r", RowEndings.CarriageReturn)]
-        [InlineData("foo,bar\rfizz,buzz", RowEndings.CarriageReturn)]
-        [InlineData("\"foo bar\"\r", RowEndings.CarriageReturn)]
-        [InlineData("\"foo\r\nbar\"\r", RowEndings.CarriageReturn)]
-        [InlineData("\"foo\rbar\"\r", RowEndings.CarriageReturn)]
-        [InlineData("\"foo\nbar\"\r", RowEndings.CarriageReturn)]
-        public void Sync(string csv, RowEndings expected)
+        [InlineData("foo\r", RowEnding.CarriageReturn)]
+        [InlineData("foo,bar\r", RowEnding.CarriageReturn)]
+        [InlineData("foo,bar\rfizz,buzz", RowEnding.CarriageReturn)]
+        [InlineData("\"foo bar\"\r", RowEnding.CarriageReturn)]
+        [InlineData("\"foo\r\nbar\"\r", RowEnding.CarriageReturn)]
+        [InlineData("\"foo\rbar\"\r", RowEnding.CarriageReturn)]
+        [InlineData("\"foo\nbar\"\r", RowEnding.CarriageReturn)]
+        public void Sync(string csv, RowEnding expected)
         {
-            var config = (ConcreteBoundConfiguration<_Test>)Configuration.For<_Test>(Options.Default.NewBuilder().WithReadHeaderInternal(default).WithRowEnding(RowEndings.Detect).BuildInternal());
+            var config = (ConcreteBoundConfiguration<_Test>)Configuration.For<_Test>(Options.CreateBuilder(Options.Default).WithReadHeaderInternal(default).WithRowEnding(RowEnding.Detect).BuildInternal());
 
             using (var str = new StringReader(csv))
             {
@@ -59,32 +59,32 @@ namespace Cesil.Tests
         }
 
         [Theory]
-        [InlineData("foo\r\n", RowEndings.CarriageReturnLineFeed)]
-        [InlineData("foo,bar\r\n", RowEndings.CarriageReturnLineFeed)]
-        [InlineData("foo,bar\r\nfizz,buzz", RowEndings.CarriageReturnLineFeed)]
-        [InlineData("\"foo bar\"\r\n", RowEndings.CarriageReturnLineFeed)]
-        [InlineData("\"foo\r\nbar\"\r\n", RowEndings.CarriageReturnLineFeed)]
-        [InlineData("\"foo\rbar\"\r\n", RowEndings.CarriageReturnLineFeed)]
-        [InlineData("\"foo\nbar\"\r\n", RowEndings.CarriageReturnLineFeed)]
+        [InlineData("foo\r\n", RowEnding.CarriageReturnLineFeed)]
+        [InlineData("foo,bar\r\n", RowEnding.CarriageReturnLineFeed)]
+        [InlineData("foo,bar\r\nfizz,buzz", RowEnding.CarriageReturnLineFeed)]
+        [InlineData("\"foo bar\"\r\n", RowEnding.CarriageReturnLineFeed)]
+        [InlineData("\"foo\r\nbar\"\r\n", RowEnding.CarriageReturnLineFeed)]
+        [InlineData("\"foo\rbar\"\r\n", RowEnding.CarriageReturnLineFeed)]
+        [InlineData("\"foo\nbar\"\r\n", RowEnding.CarriageReturnLineFeed)]
 
-        [InlineData("foo\n", RowEndings.LineFeed)]
-        [InlineData("foo,bar\n", RowEndings.LineFeed)]
-        [InlineData("foo,bar\nfizz,buzz", RowEndings.LineFeed)]
-        [InlineData("\"foo bar\"\n", RowEndings.LineFeed)]
-        [InlineData("\"foo\r\nbar\"\n", RowEndings.LineFeed)]
-        [InlineData("\"foo\rbar\"\n", RowEndings.LineFeed)]
-        [InlineData("\"foo\nbar\"\n", RowEndings.LineFeed)]
+        [InlineData("foo\n", RowEnding.LineFeed)]
+        [InlineData("foo,bar\n", RowEnding.LineFeed)]
+        [InlineData("foo,bar\nfizz,buzz", RowEnding.LineFeed)]
+        [InlineData("\"foo bar\"\n", RowEnding.LineFeed)]
+        [InlineData("\"foo\r\nbar\"\n", RowEnding.LineFeed)]
+        [InlineData("\"foo\rbar\"\n", RowEnding.LineFeed)]
+        [InlineData("\"foo\nbar\"\n", RowEnding.LineFeed)]
 
-        [InlineData("foo\r", RowEndings.CarriageReturn)]
-        [InlineData("foo,bar\r", RowEndings.CarriageReturn)]
-        [InlineData("foo,bar\rfizz,buzz", RowEndings.CarriageReturn)]
-        [InlineData("\"foo bar\"\r", RowEndings.CarriageReturn)]
-        [InlineData("\"foo\r\nbar\"\r", RowEndings.CarriageReturn)]
-        [InlineData("\"foo\rbar\"\r", RowEndings.CarriageReturn)]
-        [InlineData("\"foo\nbar\"\r", RowEndings.CarriageReturn)]
-        public async Task Async(string csv, RowEndings expected)
+        [InlineData("foo\r", RowEnding.CarriageReturn)]
+        [InlineData("foo,bar\r", RowEnding.CarriageReturn)]
+        [InlineData("foo,bar\rfizz,buzz", RowEnding.CarriageReturn)]
+        [InlineData("\"foo bar\"\r", RowEnding.CarriageReturn)]
+        [InlineData("\"foo\r\nbar\"\r", RowEnding.CarriageReturn)]
+        [InlineData("\"foo\rbar\"\r", RowEnding.CarriageReturn)]
+        [InlineData("\"foo\nbar\"\r", RowEnding.CarriageReturn)]
+        public async Task Async(string csv, RowEnding expected)
         {
-            var opts = Options.Default.NewBuilder().WithReadHeaderInternal(default).WithRowEnding(RowEndings.Detect).BuildInternal();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeaderInternal(default).WithRowEnding(RowEnding.Detect).BuildInternal();
 
             await RunAsyncReaderVariants<_Test>(
                     Options.Default,

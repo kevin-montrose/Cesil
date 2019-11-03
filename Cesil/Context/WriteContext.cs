@@ -93,6 +93,7 @@ namespace Cesil
         ///   performing the writer operation which is described
         ///   by this context.
         /// </summary>
+        [NullableExposed("The provided context is nullable, so the returned one must be")]
         public object? Context { get; }
 
         private WriteContext(WriteContextMode m, int? r, ColumnIdentifier? ci, object? ctx)
@@ -128,11 +129,11 @@ namespace Cesil
         /// <summary>
         /// Returns true if this object equals the given WriteContext.
         /// </summary>
-        public bool Equals(WriteContext w)
-        => w._Column == _Column &&
-           w.Context == Context &&
-           w.Mode == Mode &&
-           w._RowNumber == _RowNumber;
+        public bool Equals(WriteContext context)
+        => context._Column == _Column &&
+           context.Context == Context &&
+           context.Mode == Mode &&
+           context._RowNumber == _RowNumber;
 
         /// <summary>
         /// Returns a stable hash for this WriteContext.

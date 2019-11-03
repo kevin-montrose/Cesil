@@ -10,7 +10,7 @@ namespace Cesil
     /// 
     /// Used to create readers and writers.
     /// </summary>
-    public interface IBoundConfiguration<T>
+    public interface IBoundConfiguration<TRow>
     {
         /// <summary>
         /// Create a synchronous reader for the given sequence, converting bytes to characters using the provided encoding.
@@ -18,26 +18,37 @@ namespace Cesil
         /// Takes an optional context object which is made available
         ///   during certain operations as a member on ReadContext.
         /// </summary>
-        IReader<T> CreateReader(
+        IReader<TRow> CreateReader(
             [IntentionallyExposedPrimitive("Bytes are the whole point here")] 
             ReadOnlySequence<byte> sequence, 
             Encoding encoding,
+            [NullableExposed("context is truly options")]
             object? context = null
         );
+
         /// <summary>
         /// Create a synchronous reader for the given sequence.
         /// 
         /// Takes an optional context object which is made available
         ///   during certain operations as a member on ReadContext.
         /// </summary>
-        IReader<T> CreateReader(ReadOnlySequence<char> sequence, object? context = null);
+        IReader<TRow> CreateReader(
+            ReadOnlySequence<char> sequence,
+            [NullableExposed("context is truly options")]
+            object? context = null
+        );
+        
         /// <summary>
         /// Create a synchronous reader for the given reader.
         /// 
         /// Takes an optional context object which is made available
         ///   during certain operations as a member on ReadContext.
         /// </summary>
-        IReader<T> CreateReader(TextReader reader, object? context = null);
+        IReader<TRow> CreateReader(
+            TextReader reader,
+            [NullableExposed("context is truly options")]
+            object? context = null
+        );
 
         /// <summary>
         /// Create an asynchronous reader for the given reader.
@@ -48,14 +59,24 @@ namespace Cesil
         /// Takes an optional context object which is made available
         ///   during certain operations as a member on ReadContext.
         /// </summary>
-        IAsyncReader<T> CreateAsyncReader(PipeReader reader, Encoding encoding, object? context = null);
+        IAsyncReader<TRow> CreateAsyncReader(
+            PipeReader reader, 
+            Encoding encoding,
+            [NullableExposed("context is truly options")]
+            object? context = null
+        );
+
         /// <summary>
         /// Create an asynchronous reader for the given reader.
         /// 
         /// Takes an optional context object which is made available
         ///   during certain operations as a member on ReadContext.
         /// </summary>
-        IAsyncReader<T> CreateAsyncReader(TextReader reader, object? context = null);
+        IAsyncReader<TRow> CreateAsyncReader(
+            TextReader reader,
+            [NullableExposed("context is truly options")]
+            object? context = null
+        );
 
         /// <summary>
         /// Create a synchronous writer for the given writer, convering chars to bytes using the given encoding.
@@ -63,26 +84,37 @@ namespace Cesil
         /// Takes an optional context object which is made available
         ///   during certain operations as a member on WriteContext.
         /// </summary>
-        IWriter<T> CreateWriter(
+        IWriter<TRow> CreateWriter(
             [IntentionallyExposedPrimitive("Bytes are the whole point here")] 
             IBufferWriter<byte> writer,
-            Encoding encoding, 
+            Encoding encoding,
+            [NullableExposed("context is truly options")]
             object? context = null
         );
+
         /// <summary>
         /// Create a synchronous writer for the given writer.
         /// 
         /// Takes an optional context object which is made available
         ///   during certain operations as a member on WriteContext.
         /// </summary>
-        IWriter<T> CreateWriter(IBufferWriter<char> writer, object? context = null);
+        IWriter<TRow> CreateWriter(
+            IBufferWriter<char> writer,
+            [NullableExposed("context is truly options")]
+            object? context = null
+        );
+
         /// <summary>
         /// Create a synchronous writer for the given writer.
         /// 
         /// Takes an optional context object which is made available
         ///   during certain operations as a member on WriteContext.
         /// </summary>
-        IWriter<T> CreateWriter(TextWriter writer, object? context = null);
+        IWriter<TRow> CreateWriter(
+            TextWriter writer,
+            [NullableExposed("context is truly options")]
+            object? context = null
+        );
 
         /// <summary>
         /// Create an asynchronous writer for the given writer.
@@ -93,13 +125,23 @@ namespace Cesil
         /// Takes an optional context object which is made available
         ///   during certain operations as a member on WriteContext.
         /// </summary>
-        IAsyncWriter<T> CreateAsyncWriter(PipeWriter writer, Encoding encoding, object? context = null);
+        IAsyncWriter<TRow> CreateAsyncWriter(
+            PipeWriter writer, 
+            Encoding encoding,
+            [NullableExposed("context is truly options")]
+            object? context = null
+        );
+
         /// <summary>
         /// Create an asynchronous writer for the given writer.
         /// 
         /// Takes an optional context object which is made available
         ///   during certain operations as a member on WriteContext.
         /// </summary>
-        IAsyncWriter<T> CreateAsyncWriter(TextWriter writer, object? context = null);
+        IAsyncWriter<TRow> CreateAsyncWriter(
+            TextWriter writer,
+            [NullableExposed("context is truly options")]
+            object? context = null
+        );
     }
 }

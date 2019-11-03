@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -7,121 +8,86 @@ using System.Text;
 namespace Cesil
 {
     /// <summary>
-    /// How to behave if a ManualTypeDescriber needs to
-    ///   describe a type that isn't explicitly configured.
-    /// </summary>
-    public enum SurrogateTypeDescriberFallbackBehavior : byte
-    {
-        /// <summary>
-        /// Throw if no type is configured.
-        /// </summary>
-        Throw = 1,
-        /// <summary>
-        /// Use DefaultTypeDescriber if no type is configured.
-        /// </summary>
-        UseDefault = 2,
-        /// <summary>
-        /// Use the ITypeDescriber provided for use on registered surrogate types.
-        /// </summary>
-        UseProvided = 3
-    }
-
-    /// <summary>
     /// A ITypeDesciber that enumerates members on a surrogate type and maps them to another type.
     /// 
     /// Used when you don't control the type you need to (de)serialize - you markup the surrogate type
     ///   and then the uncontrolled type is (de)serialized as if it were the surrogate type.
     /// </summary>
-    [NotEquatable("Mutable")]
-    public sealed class SurrogateTypeDescriber : ITypeDescriber
+    public sealed class SurrogateTypeDescriber : ITypeDescriber, IEquatable<SurrogateTypeDescriber>
     {
-        private readonly ITypeDescriber TypeDescriber;
+        internal readonly ITypeDescriber TypeDescriber;
 
-        private readonly ITypeDescriber? FallbackDescriber;
+        internal readonly ITypeDescriber FallbackDescriber;
 
-        private readonly bool ThrowOnNoRegisteredSurrogate;
+        internal readonly bool ThrowOnNoRegisteredSurrogate;
 
-        private readonly Dictionary<TypeInfo, TypeInfo> SurrogateTypes;
+        internal readonly ImmutableDictionary<TypeInfo, TypeInfo> SurrogateTypes;
 
-        /// <summary>
-        /// Create a new SurrogateTypeDescriber.
-        /// </summary>
-        public SurrogateTypeDescriber(ITypeDescriber surrogateTypeDescriber, SurrogateTypeDescriberFallbackBehavior fallbackBehavior)
+        internal SurrogateTypeDescriber(ITypeDescriber typeDescriber, ITypeDescriber fallback, SurrogateTypeDescriberFallbackBehavior fallbackBehavior, ImmutableDictionary<TypeInfo, TypeInfo> surrogateTypes)
         {
-            SurrogateTypes = new Dictionary<TypeInfo, TypeInfo>();
-            TypeDescriber = surrogateTypeDescriber;
-
-            if (surrogateTypeDescriber == null)
-            {
-                Throw.ArgumentNullException<object>(nameof(surrogateTypeDescriber));
-                return;
-            }
+            SurrogateTypes = surrogateTypes;
+            TypeDescriber = typeDescriber;
+            FallbackDescriber = fallback;
 
             switch (fallbackBehavior)
             {
                 case SurrogateTypeDescriberFallbackBehavior.Throw:
                     ThrowOnNoRegisteredSurrogate = true;
-                    FallbackDescriber = null;
                     break;
-                case SurrogateTypeDescriberFallbackBehavior.UseDefault:
+                case SurrogateTypeDescriberFallbackBehavior.UseFallback:
                     ThrowOnNoRegisteredSurrogate = false;
-                    FallbackDescriber = TypeDescribers.Default;
                     break;
-                case SurrogateTypeDescriberFallbackBehavior.UseProvided:
-                    ThrowOnNoRegisteredSurrogate = false;
-                    FallbackDescriber = surrogateTypeDescriber;
+                default: 
+                    Throw.Exception<object>($"Unexpected {nameof(SurrogateTypeDescriberFallbackBehavior)}: {fallbackBehavior}");
                     break;
-                default:
-                    Throw.ArgumentException<object>($"Unexpected {nameof(SurrogateTypeDescriberFallbackBehavior)}: {fallbackBehavior}", nameof(fallbackBehavior));
-                    return;
             }
         }
 
-        /// <summary>
-        /// Create a new SurrogateTypeDescriber, using the given ITypeDescriber.
-        /// 
-        /// Uses the given ITypeDescriber on types that are not explicitly registered.
-        /// </summary>
-        public SurrogateTypeDescriber(ITypeDescriber proxiedTypeDescriber) : this(proxiedTypeDescriber, SurrogateTypeDescriberFallbackBehavior.UseProvided) { }
-        /// <summary>
-        /// Create a new SurrogateTypeDescriber, using the given SurrogateTypeDescriberFallbackBehavior.
-        /// 
-        /// Uses TypeDescribers.Default as it's inner ITypeDescriber.
-        /// </summary>
-        public SurrogateTypeDescriber(SurrogateTypeDescriberFallbackBehavior fallbackBehavior) : this(TypeDescribers.Default, fallbackBehavior) { }
+        // builders
 
         /// <summary>
-        /// Registered a surrogate type for forType.
-        /// 
-        /// Whenever forType is passed to one of the EnumerateXXX methods, surrogateType
-        ///   will be used to discover members instead.  The discovered members will then
-        ///   be mapped to forType, and returned.
+        /// Creates a SurrogateTypeDescriberBuilder which using TypeDescriber.Default to describes surrogates,
+        ///   and falls back to TypeDescriber.Default if no surrogate is registered.
         /// </summary>
-        public void AddSurrogateType(TypeInfo forType, TypeInfo surrogateType)
-        {
-            if (forType == null)
-            {
-                Throw.ArgumentNullException<object>(nameof(forType));
-                return;
-            }
+        public static SurrogateTypeDescriberBuilder CreateBuilder()
+        => SurrogateTypeDescriberBuilder.CreateBuilder();
 
-            if (surrogateType == null)
-            {
-                Throw.ArgumentNullException<object>(nameof(surrogateType));
-                return;
-            }
+        /// <summary>
+        /// Creates a SurrogateTypeDescriberBuilder with the given fallback behavior.
+        /// 
+        /// Uses TypeDescriber.Default to describes surrogates,
+        ///   and falls back to TypeDescriber.Default if no surrogate is registered and the provided SurrogateTypeDescriberFallbackBehavior
+        ///   allows it.
+        /// </summary>
+        public static SurrogateTypeDescriberBuilder CreateBuilder(SurrogateTypeDescriberFallbackBehavior fallbackBehavior)
+        => SurrogateTypeDescriberBuilder.CreateBuilder(fallbackBehavior);
 
-            if (forType == surrogateType)
-            {
-                Throw.InvalidOperationException<object>($"Type {forType} cannot be a surrogate for itself");
-                return;
-            }
+        /// <summary>
+        /// Creates a SurrogateTypeDescriberBuilder with the given fallback behavior and type describer.
+        /// 
+        /// Uses the given ITypeDescriber to describes surrogates,
+        ///   and falls back to TypeDescriber.Default if no surrogate is registered if the provided SurrogateTypeDescriberFallbackBehavior
+        ///   allows it.
+        /// </summary>
+        public static SurrogateTypeDescriberBuilder CreateBuilder(SurrogateTypeDescriberFallbackBehavior fallbackBehavior, ITypeDescriber typeDescriber)
+        => SurrogateTypeDescriberBuilder.CreateBuilder(fallbackBehavior, typeDescriber);
 
-            if (!SurrogateTypes.TryAdd(forType, surrogateType))
-            {
-                Throw.InvalidOperationException<object>($"Surrogate already registered for {forType}");
-            }
-        }
+        /// <summary>
+        /// Creates a SurrogateTypeDescriberBuilder with the given fallback behavior, type describer, and fallback type describer.
+        /// 
+        /// Uses the given ITypeDescriber to describes surrogates,
+        ///   and falls back to provided fallback if no surrogate is registered and the provided SurrogateTypeDescriberFallbackBehavior
+        ///   allows it.
+        /// </summary>
+        public static SurrogateTypeDescriberBuilder CreateBuilder(SurrogateTypeDescriberFallbackBehavior fallbackBehavior, ITypeDescriber typeDescriber, ITypeDescriber fallbackTypeDescriber)
+        => SurrogateTypeDescriberBuilder.CreateBuilder(fallbackBehavior, typeDescriber, fallbackTypeDescriber);
+
+        /// <summary>
+        /// Creates a SurrogateTypeDescriberBuilder which copies it's fallback behavior, type describer, fallback type describer, and
+        ///   surrogate types from the given SurrogateTypeDescriber.
+        /// </summary>
+        public static SurrogateTypeDescriberBuilder CreateBuilder(SurrogateTypeDescriber typeDescriber)
+        => SurrogateTypeDescriberBuilder.CreateBuilder(typeDescriber);
 
         /// <summary>
         /// Enumerate all the members on forType to deserialize.
@@ -142,7 +108,7 @@ namespace Cesil
                     return Throw.InvalidOperationException<IEnumerable<DeserializableMember>>($"No surrogate registered for {forType}");
                 }
 
-                return TypeDescriber.EnumerateMembersToDeserialize(forType);
+                return FallbackDescriber.EnumerateMembersToDeserialize(forType);
             }
 
             var ret = new List<DeserializableMember>();
@@ -176,8 +142,7 @@ namespace Cesil
                     return Throw.InvalidOperationException<IEnumerable<SerializableMember>>($"No surrogate registered for {forType}");
                 }
 
-                return TypeDescriber.EnumerateMembersToSerialize(forType);
-
+                return FallbackDescriber.EnumerateMembersToSerialize(forType);
             }
 
             var ret = new List<SerializableMember>();
@@ -202,6 +167,7 @@ namespace Cesil
         ///   be passed to TypeDescriber.GetInstanceProvider depending on the value of
         ///   ThrowOnNoRegisteredSurrogate.
         /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         public InstanceProvider? GetInstanceProvider(TypeInfo forType)
         {
             if (!SurrogateTypes.TryGetValue(forType, out var proxy))
@@ -211,7 +177,7 @@ namespace Cesil
                     return Throw.InvalidOperationException<InstanceProvider>($"No surrogate registered for {forType}");
                 }
 
-                return TypeDescriber.GetInstanceProvider(forType);
+                return FallbackDescriber.GetInstanceProvider(forType);
             }
 
             var fromProxy = TypeDescriber.GetInstanceProvider(proxy);
@@ -443,12 +409,56 @@ handleMethod:
         }
 
         // internal for testing purposes
-        internal static WillEmitDefaultValue GetEquivalentEmitFor(bool b)
-        => b ? WillEmitDefaultValue.Yes : WillEmitDefaultValue.No;
+        internal static EmitDefaultValue GetEquivalentEmitFor(bool b)
+        => b ? EmitDefaultValue.Yes : EmitDefaultValue.No;
 
         // internal for testing purposes
-        internal static IsMemberRequired GetEquivalentRequiredFor(bool b)
-        => b ? IsMemberRequired.Yes : IsMemberRequired.No;
+        internal static MemberRequired GetEquivalentRequiredFor(bool b)
+        => b ? MemberRequired.Yes : MemberRequired.No;
+
+        /// <summary>
+        /// Returns a stable hash for this SurrogateTypeDescriber.
+        /// </summary>
+        public override int GetHashCode()
+        // including count, not the actual types, because traversal order isn't stable
+        => HashCode.Combine(TypeDescriber, FallbackDescriber, ThrowOnNoRegisteredSurrogate, SurrogateTypes.Count);
+
+
+        /// <summary>
+        /// Returns true if this SurrogateTypeDescriber equals the given object
+        /// </summary>
+        public override bool Equals(object? obj)
+        {
+            if(obj is SurrogateTypeDescriber other)
+            {
+                return Equals(other);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Returns true if this SurrogateTypeDescriber equals the given SurrogateTypeDescriber.
+        /// </summary>
+        public bool Equals(SurrogateTypeDescriber? typeDescriber)
+        {
+            if (ReferenceEquals(typeDescriber, null)) return false;
+
+            if (typeDescriber.ThrowOnNoRegisteredSurrogate != ThrowOnNoRegisteredSurrogate) return false;
+            if (typeDescriber.SurrogateTypes.Count != SurrogateTypes.Count) return false;
+
+            if (!typeDescriber.TypeDescriber.Equals(TypeDescriber)) return false;
+            if (!typeDescriber.FallbackDescriber.Equals(FallbackDescriber)) return false;
+
+            foreach(var kv in typeDescriber.SurrogateTypes)
+            {
+                if (!SurrogateTypes.TryGetValue(kv.Key, out var val)) return false;
+
+                if (kv.Value != val) return false;
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// Returns a representation of this SurrogateTypeDescriber object.
@@ -459,7 +469,7 @@ handleMethod:
         {
             var ret = new StringBuilder();
 
-            ret.Append($"{nameof(SurrogateTypeDescriber)} using type describer {this.TypeDescriber}");
+            ret.Append($"{nameof(SurrogateTypeDescriber)} using type describer {TypeDescriber}");
             if (ThrowOnNoRegisteredSurrogate)
             {
                 ret.Append(" which throws when no surrogate registered");
@@ -468,6 +478,8 @@ handleMethod:
             {
                 ret.Append(" which delegates when no surrogate registered");
             }
+
+            ret.Append($" and falls back to {FallbackDescriber} if no surrogate is registered");
 
             if (SurrogateTypes.Any())
             {
@@ -488,22 +500,42 @@ handleMethod:
             return ret.ToString();
         }
 
-        /// <summary>
-        /// Delegates to TypeDescriber.
-        /// </summary>
-        public Parser? GetDynamicCellParserFor(in ReadContext ctx, TypeInfo targetType)
-        => TypeDescriber.GetDynamicCellParserFor(in ctx, targetType);
+        // dynamic bits
 
         /// <summary>
         /// Delegates to TypeDescriber.
         /// </summary>
-        public DynamicRowConverter? GetDynamicRowConverter(in ReadContext ctx, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
-        => TypeDescriber.GetDynamicRowConverter(in ctx, columns, targetType);
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
+        public Parser? GetDynamicCellParserFor(in ReadContext context, TypeInfo targetType)
+        => TypeDescriber.GetDynamicCellParserFor(in context, targetType);
 
         /// <summary>
         /// Delegates to TypeDescriber.
         /// </summary>
-        public IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext ctx, object row)
-        => TypeDescriber.GetCellsForDynamicRow(in ctx, row);
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
+        public DynamicRowConverter? GetDynamicRowConverter(in ReadContext context, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
+        => TypeDescriber.GetDynamicRowConverter(in context, columns, targetType);
+
+        /// <summary>
+        /// Delegates to TypeDescriber.
+        /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
+        public IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext context, object row)
+        => TypeDescriber.GetCellsForDynamicRow(in context, row);
+
+        // operators
+
+        /// <summary>
+        /// Compare two SurrogateTypeDescribers for equality
+        /// </summary>
+        public static bool operator ==(SurrogateTypeDescriber? a, SurrogateTypeDescriber? b)
+        => Utils.NullReferenceEquality(a, b);
+
+
+        /// <summary>
+        /// Compare two SurrogateTypeDescribers for inequality
+        /// </summary>
+        public static bool operator !=(SurrogateTypeDescriber? a, SurrogateTypeDescriber? b)
+        => !(a == b);
     }
 }

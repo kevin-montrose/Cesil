@@ -16,11 +16,10 @@ namespace Cesil.Tests
         private static dynamic MakeDynamicRow(string csvStr)
         {
             var opts =
-                Options.Default
-                    .NewBuilder()
-                    .WithReadHeader(ReadHeaders.Always)
+                Options.CreateBuilder(Options.Default)
+                    .WithReadHeader(ReadHeader.Always)
                     .WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose)
-                    .Build();
+                    .ToOptions();
 
             var config = Configuration.ForDynamic(opts);
 
@@ -31,6 +30,145 @@ namespace Cesil.Tests
                 Assert.False(csv.TryRead(out _));
 
                 return ret;
+            }
+        }
+
+        [Fact]
+        public void NoEscapes()
+        {
+            // no escapes at all (TSV)
+            {
+                var opts = OptionsBuilder.CreateBuilder(Options.DynamicDefault).WithValueSeparator('\t').WithEscapedValueStartAndEnd(null).WithEscapedValueEscapeCharacter(null).ToOptions();
+
+                // correct
+                RunSyncDynamicWriterVariants(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.Write(new { Foo = "abc", Bar = "123" });
+                            csv.Write(new { Foo = "\"", Bar = "," });
+                        }
+
+                        var str = getStr();
+                        Assert.Equal("Foo\tBar\r\nabc\t123\r\n\"\t,", str);
+                    }
+                );
+
+                // explodes if there's an value separator in a value, since there are no escapes
+                {
+                    // \t
+                    RunSyncDynamicWriterVariants(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                var inv = Assert.Throws<InvalidOperationException>(() => csv.Write(new { Foo = "\t", Bar = "foo" }));
+
+                                Assert.Equal("Tried to write a value contain '\t' which requires escaping a value, but no way to escape a value is configured", inv.Message);
+                            }
+
+                            getStr();
+                        }
+                    );
+
+                    // \r\n
+                    RunSyncDynamicWriterVariants(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                var inv = Assert.Throws<InvalidOperationException>(() => csv.Write(new { Foo = "foo", Bar = "\r\n" }));
+
+                                Assert.Equal("Tried to write a value contain '\r' which requires escaping a value, but no way to escape a value is configured", inv.Message);
+                            }
+
+                            getStr();
+                        }
+                    );
+
+                    var optsWithComment = OptionsBuilder.CreateBuilder(opts).WithCommentCharacter('#').ToOptions();
+                    // #
+                    RunSyncDynamicWriterVariants(
+                        optsWithComment,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                var inv = Assert.Throws<InvalidOperationException>(() => csv.Write(new { Foo = "#", Bar = "fizz" }));
+
+                                Assert.Equal("Tried to write a value contain '#' which requires escaping a value, but no way to escape a value is configured", inv.Message);
+                            }
+
+                            getStr();
+                        }
+                    );
+                }
+            }
+
+            // escapes, but no escape for the escape start and end char
+            {
+                var opts = OptionsBuilder.CreateBuilder(Options.DynamicDefault).WithValueSeparator('\t').WithEscapedValueStartAndEnd('"').WithEscapedValueEscapeCharacter(null).ToOptions();
+
+                // correct
+                RunSyncDynamicWriterVariants(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.Write(new { Foo = "a\tbc", Bar = "#123" });
+                            csv.Write(new { Foo = "\r", Bar = "," });
+                        }
+
+                        var str = getStr();
+                        Assert.Equal("Foo\tBar\r\n\"a\tbc\"\t#123\r\n\"\r\"\t,", str);
+                    }
+                );
+
+                var optsWithComments = OptionsBuilder.CreateBuilder(opts).WithCommentCharacter('#').ToOptions();
+
+                // correct with comments
+                RunSyncDynamicWriterVariants(
+                    optsWithComments,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.Write(new { Foo = "a\tbc", Bar = "#123" });
+                            csv.Write(new { Foo = "\r", Bar = "," });
+                        }
+
+                        var str = getStr();
+                        Assert.Equal("Foo\tBar\r\n\"a\tbc\"\t\"#123\"\r\n\"\r\"\t,", str);
+                    }
+                );
+
+                // explodes if there's an escape start character in a value, since it can't be escaped
+                RunSyncDynamicWriterVariants(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            var inv = Assert.Throws<InvalidOperationException>(() => csv.Write(new { Foo = "a\tbc", Bar = "\"" }));
+
+                            Assert.Equal("Tried to write a value contain '\"' which requires escaping the character in an escaped value, but no way to escape inside an escaped value is configured", inv.Message);
+                        }
+
+                        getStr();
+                    }
+                );
             }
         }
 
@@ -69,7 +207,7 @@ namespace Cesil.Tests
         [Fact]
         public void FailingDynamicCellFormatter()
         {
-            var opts = Options.DynamicDefault.NewBuilder().WithTypeDescriber(new _FailingDynamicCellFormatter()).Build();
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithTypeDescriber(new _FailingDynamicCellFormatter()).ToOptions();
 
             RunSyncDynamicWriterVariants(
                 opts,
@@ -90,7 +228,7 @@ namespace Cesil.Tests
         [Fact]
         public void LotsOfComments()
         {
-            var opts = Options.DynamicDefault.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
             RunSyncDynamicWriterVariants(
                 opts,
@@ -114,13 +252,13 @@ namespace Cesil.Tests
         [Fact]
         public void WriteComment()
         {
-            var dynOpts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+            var dynOpts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // no trailing new line
             {
                 // first line, no headers
                 {
-                    var opts = dynOpts.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+                    var opts = Options.CreateBuilder(dynOpts).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     RunSyncDynamicWriterVariants(
@@ -173,7 +311,7 @@ namespace Cesil.Tests
 
                 // second line, no headers
                 {
-                    var opts = dynOpts.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+                    var opts = Options.CreateBuilder(dynOpts).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     RunSyncDynamicWriterVariants(
@@ -228,7 +366,7 @@ namespace Cesil.Tests
 
                 // second line, headers
                 {
-                    var opts = dynOpts.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+                    var opts = Options.CreateBuilder(dynOpts).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Always).ToOptions();
 
                     // one line
                     RunSyncDynamicWriterVariants(
@@ -267,7 +405,7 @@ namespace Cesil.Tests
 
                 // before row, no headers
                 {
-                    var opts = dynOpts.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+                    var opts = Options.CreateBuilder(dynOpts).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     RunSyncDynamicWriterVariants(
@@ -325,7 +463,7 @@ namespace Cesil.Tests
             {
                 // first line, no headers
                 {
-                    var opts = dynOpts.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     RunSyncDynamicWriterVariants(
@@ -378,7 +516,7 @@ namespace Cesil.Tests
 
                 // second line, no headers
                 {
-                    var opts = dynOpts.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     RunSyncDynamicWriterVariants(
@@ -433,7 +571,7 @@ namespace Cesil.Tests
 
                 // second line, headers
                 {
-                    var opts = dynOpts.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Always).ToOptions();
 
                     // one line
                     RunSyncDynamicWriterVariants(
@@ -472,7 +610,7 @@ namespace Cesil.Tests
 
                 // before row, no headers
                 {
-                    var opts = dynOpts.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     RunSyncDynamicWriterVariants(
@@ -533,12 +671,11 @@ namespace Cesil.Tests
             // \r\n
             {
                 var opts =
-                    Options.Default
-                        .NewBuilder()
-                        .WithReadHeader(ReadHeaders.Always)
-                        .WithWriteHeader(WriteHeaders.Always)
-                        .WithRowEnding(RowEndings.CarriageReturnLineFeed)
-                        .Build();
+                    Options.CreateBuilder(Options.Default)
+                        .WithReadHeader(ReadHeader.Always)
+                        .WithWriteHeader(WriteHeader.Always)
+                        .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                        .ToOptions();
 
                 RunSyncDynamicWriterVariants(
                     opts,
@@ -568,11 +705,10 @@ namespace Cesil.Tests
             // \r\n
             {
                 var opts =
-                    Options.DynamicDefault
-                        .NewBuilder()
-                        .WithWriteHeader(WriteHeaders.Always)
-                        .WithRowEnding(RowEndings.CarriageReturnLineFeed)
-                        .Build();
+                    Options.CreateBuilder(Options.DynamicDefault)
+                        .WithWriteHeader(WriteHeader.Always)
+                        .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                        .ToOptions();
 
                 // DynamicRow
                 RunSyncDynamicWriterVariants(
@@ -715,11 +851,10 @@ namespace Cesil.Tests
             // \r
             {
                 var opts =
-                    Options.DynamicDefault
-                        .NewBuilder()
-                        .WithWriteHeader(WriteHeaders.Always)
-                        .WithRowEnding(RowEndings.CarriageReturn)
-                        .Build();
+                    Options.CreateBuilder(Options.DynamicDefault)
+                        .WithWriteHeader(WriteHeader.Always)
+                        .WithRowEnding(RowEnding.CarriageReturn)
+                        .ToOptions();
 
                 // DynamicRow
                 RunSyncDynamicWriterVariants(
@@ -862,11 +997,10 @@ namespace Cesil.Tests
             // \n
             {
                 var opts =
-                    Options.DynamicDefault
-                        .NewBuilder()
-                        .WithWriteHeader(WriteHeaders.Always)
-                        .WithRowEnding(RowEndings.LineFeed)
-                        .Build();
+                    Options.CreateBuilder(Options.DynamicDefault)
+                        .WithWriteHeader(WriteHeader.Always)
+                        .WithRowEnding(RowEnding.LineFeed)
+                        .ToOptions();
 
                 // DynamicRow
                 RunSyncDynamicWriterVariants(
@@ -1013,12 +1147,12 @@ namespace Cesil.Tests
             // \r\n
             {
                 var opts =
-                    Options.DynamicDefault.NewBuilder()
-                        .WithWriteHeader(WriteHeaders.Never)
-                        .WithRowEnding(RowEndings.CarriageReturnLineFeed)
+                    Options.CreateBuilder(Options.DynamicDefault)
+                        .WithWriteHeader(WriteHeader.Never)
+                        .WithRowEnding(RowEnding.CarriageReturnLineFeed)
                         .WithCommentCharacter('#')
-                        .WithWriteTrailingNewLine(WriteTrailingNewLines.Always)
-                        .Build();
+                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .ToOptions();
 
                 RunSyncDynamicWriterVariants(
                     opts,
@@ -1052,12 +1186,12 @@ namespace Cesil.Tests
             // \r
             {
                 var opts =
-                    Options.DynamicDefault.NewBuilder()
-                        .WithWriteHeader(WriteHeaders.Never)
-                        .WithRowEnding(RowEndings.CarriageReturn)
+                    Options.CreateBuilder(Options.DynamicDefault)
+                        .WithWriteHeader(WriteHeader.Never)
+                        .WithRowEnding(RowEnding.CarriageReturn)
                         .WithCommentCharacter('#')
-                        .WithWriteTrailingNewLine(WriteTrailingNewLines.Always)
-                        .Build();
+                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .ToOptions();
 
                 RunSyncDynamicWriterVariants(
                     opts,
@@ -1091,12 +1225,12 @@ namespace Cesil.Tests
             // \n
             {
                 var opts =
-                    Options.DynamicDefault.NewBuilder()
-                        .WithWriteHeader(WriteHeaders.Never)
-                        .WithRowEnding(RowEndings.LineFeed)
+                    Options.CreateBuilder(Options.DynamicDefault)
+                        .WithWriteHeader(WriteHeader.Never)
+                        .WithRowEnding(RowEnding.LineFeed)
                         .WithCommentCharacter('#')
-                        .WithWriteTrailingNewLine(WriteTrailingNewLines.Always)
-                        .Build();
+                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .ToOptions();
 
                 RunSyncDynamicWriterVariants(
                     opts,
@@ -1134,12 +1268,11 @@ namespace Cesil.Tests
             // \r\n
             {
                 var opts =
-                    Options.DynamicDefault
-                        .NewBuilder()
-                        .WithWriteHeader(WriteHeaders.Always)
-                        .WithRowEnding(RowEndings.CarriageReturnLineFeed)
-                        .WithWriteTrailingNewLine(WriteTrailingNewLines.Always)
-                        .Build();
+                    Options.CreateBuilder(Options.DynamicDefault)
+                        .WithWriteHeader(WriteHeader.Always)
+                        .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .ToOptions();
 
                 RunSyncDynamicWriterVariants(
                     opts,
@@ -1170,12 +1303,11 @@ namespace Cesil.Tests
             // \r
             {
                 var opts =
-                    Options.DynamicDefault
-                        .NewBuilder()
-                        .WithWriteHeader(WriteHeaders.Always)
-                        .WithRowEnding(RowEndings.CarriageReturn)
-                        .WithWriteTrailingNewLine(WriteTrailingNewLines.Always)
-                        .Build();
+                    Options.CreateBuilder(Options.DynamicDefault)
+                        .WithWriteHeader(WriteHeader.Always)
+                        .WithRowEnding(RowEnding.CarriageReturn)
+                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .ToOptions();
 
                 RunSyncDynamicWriterVariants(
                     opts,
@@ -1206,12 +1338,11 @@ namespace Cesil.Tests
             // \n
             {
                 var opts =
-                    Options.DynamicDefault
-                        .NewBuilder()
-                        .WithWriteHeader(WriteHeaders.Always)
-                        .WithRowEnding(RowEndings.LineFeed)
-                        .WithWriteTrailingNewLine(WriteTrailingNewLines.Always)
-                        .Build();
+                    Options.CreateBuilder(Options.DynamicDefault)
+                        .WithWriteHeader(WriteHeader.Always)
+                        .WithRowEnding(RowEnding.LineFeed)
+                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .ToOptions();
 
                 RunSyncDynamicWriterVariants(
                     opts,
@@ -1245,7 +1376,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.DynamicDefault.NewBuilder().WithWriteHeader(WriteHeaders.Never).WithRowEnding(RowEndings.CarriageReturnLineFeed).Build();
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
 
                 RunSyncDynamicWriterVariants(
                     opts,
@@ -1266,7 +1397,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.DynamicDefault.NewBuilder().WithWriteHeader(WriteHeaders.Never).WithRowEnding(RowEndings.CarriageReturn).Build();
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturn).ToOptions();
 
                 RunSyncDynamicWriterVariants(
                     opts,
@@ -1287,7 +1418,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.DynamicDefault.NewBuilder().WithWriteHeader(WriteHeaders.Never).WithRowEnding(RowEndings.LineFeed).Build();
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.LineFeed).ToOptions();
 
                 RunSyncDynamicWriterVariants(
                     opts,
@@ -1332,7 +1463,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.DynamicDefault.NewBuilder().WithWriteHeader(WriteHeaders.Always).WithRowEnding(RowEndings.CarriageReturnLineFeed).Build();
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
 
                 RunSyncDynamicWriterVariants(
                     opts,
@@ -1359,7 +1490,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.DynamicDefault.NewBuilder().WithWriteHeader(WriteHeaders.Always).WithRowEnding(RowEndings.CarriageReturn).Build();
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturn).ToOptions();
 
                 RunSyncDynamicWriterVariants(
                     opts,
@@ -1386,7 +1517,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.DynamicDefault.NewBuilder().WithWriteHeader(WriteHeaders.Always).WithRowEnding(RowEndings.LineFeed).Build();
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.LineFeed).ToOptions();
 
                 RunSyncDynamicWriterVariants(
                     opts,
@@ -1415,6 +1546,145 @@ namespace Cesil.Tests
         // async tests
 
         [Fact]
+        public async Task NoEscapesAsync()
+        {
+            // no escapes at all (TSV)
+            {
+                var opts = OptionsBuilder.CreateBuilder(Options.DynamicDefault).WithValueSeparator('\t').WithEscapedValueStartAndEnd(null).WithEscapedValueEscapeCharacter(null).ToOptions();
+
+                // correct
+                await RunAsyncDynamicWriterVariants(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAsync(new { Foo = "abc", Bar = "123" });
+                            await csv.WriteAsync(new { Foo = "\"", Bar = "," });
+                        }
+
+                        var str = await getStr();
+                        Assert.Equal("Foo\tBar\r\nabc\t123\r\n\"\t,", str);
+                    }
+                );
+
+                // explodes if there's an value separator in a value, since there are no escapes
+                {
+                    // \t
+                    await RunAsyncDynamicWriterVariants(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            await using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                var inv = await Assert.ThrowsAsync<InvalidOperationException>(async () => await csv.WriteAsync(new { Foo = "\t", Bar = "foo" }));
+
+                                Assert.Equal("Tried to write a value contain '\t' which requires escaping a value, but no way to escape a value is configured", inv.Message);
+                            }
+
+                            await getStr();
+                        }
+                    );
+
+                    // \r\n
+                    await RunAsyncDynamicWriterVariants(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            await using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                var inv = await Assert.ThrowsAsync<InvalidOperationException>(async () => await csv.WriteAsync(new { Foo = "foo", Bar = "\r\n" }));
+
+                                Assert.Equal("Tried to write a value contain '\r' which requires escaping a value, but no way to escape a value is configured", inv.Message);
+                            }
+
+                            await getStr();
+                        }
+                    );
+
+                    var optsWithComment = OptionsBuilder.CreateBuilder(opts).WithCommentCharacter('#').ToOptions();
+                    // #
+                    await RunAsyncDynamicWriterVariants(
+                        optsWithComment,
+                        async (config, getWriter, getStr) =>
+                        {
+                            await using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                var inv = await Assert.ThrowsAsync<InvalidOperationException>(async () => await csv.WriteAsync(new { Foo = "#", Bar = "fizz" }));
+
+                                Assert.Equal("Tried to write a value contain '#' which requires escaping a value, but no way to escape a value is configured", inv.Message);
+                            }
+
+                            await getStr();
+                        }
+                    );
+                }
+            }
+
+            // escapes, but no escape for the escape start and end char
+            {
+                var opts = OptionsBuilder.CreateBuilder(Options.DynamicDefault).WithValueSeparator('\t').WithEscapedValueStartAndEnd('"').WithEscapedValueEscapeCharacter(null).ToOptions();
+
+                // correct
+                await RunAsyncDynamicWriterVariants(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAsync(new { Foo = "a\tbc", Bar = "#123" });
+                            await csv.WriteAsync(new { Foo = "\r", Bar = "," });
+                        }
+
+                        var str = await getStr();
+                        Assert.Equal("Foo\tBar\r\n\"a\tbc\"\t#123\r\n\"\r\"\t,", str);
+                    }
+                );
+
+                var optsWithComments = OptionsBuilder.CreateBuilder(opts).WithCommentCharacter('#').ToOptions();
+
+                // correct with comments
+                await RunAsyncDynamicWriterVariants(
+                    optsWithComments,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAsync(new { Foo = "a\tbc", Bar = "#123" });
+                            await csv.WriteAsync(new { Foo = "\r", Bar = "," });
+                        }
+
+                        var str = await getStr();
+                        Assert.Equal("Foo\tBar\r\n\"a\tbc\"\t\"#123\"\r\n\"\r\"\t,", str);
+                    }
+                );
+
+                // explodes if there's an escape start character in a value, since it can't be escaped
+                await RunAsyncDynamicWriterVariants(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            var inv = await Assert.ThrowsAsync<InvalidOperationException>(async () => await csv.WriteAsync(new { Foo = "a\tbc", Bar = "\"" }));
+
+                            Assert.Equal("Tried to write a value contain '\"' which requires escaping the character in an escaped value, but no way to escape inside an escaped value is configured", inv.Message);
+                        }
+
+                        await getStr();
+                    }
+                );
+            }
+        }
+
+        [Fact]
         public async Task NullCommentAsync()
         {
             await RunAsyncDynamicWriterVariants(
@@ -1436,7 +1706,7 @@ namespace Cesil.Tests
         [Fact]
         public async Task FailingDynamicCellFormatterAsync()
         {
-            var opts = Options.DynamicDefault.NewBuilder().WithTypeDescriber(new _FailingDynamicCellFormatter()).Build();
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithTypeDescriber(new _FailingDynamicCellFormatter()).ToOptions();
 
             await RunAsyncDynamicWriterVariants(
                 opts,
@@ -1457,7 +1727,7 @@ namespace Cesil.Tests
         [Fact]
         public async Task LotsOfCommentsAsync()
         {
-            var opts = Options.DynamicDefault.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
             await RunAsyncDynamicWriterVariants(
                 opts,
@@ -1484,11 +1754,10 @@ namespace Cesil.Tests
             // \r\n
             {
                 var opts =
-                    Options.DynamicDefault
-                        .NewBuilder()
-                        .WithWriteHeader(WriteHeaders.Always)
-                        .WithRowEnding(RowEndings.CarriageReturnLineFeed)
-                        .Build();
+                    Options.CreateBuilder(Options.DynamicDefault)
+                        .WithWriteHeader(WriteHeader.Always)
+                        .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                        .ToOptions();
 
                 // DynamicRow
                 await RunAsyncDynamicWriterVariants(
@@ -1631,11 +1900,10 @@ namespace Cesil.Tests
             // \r
             {
                 var opts =
-                    Options.DynamicDefault
-                        .NewBuilder()
-                        .WithWriteHeader(WriteHeaders.Always)
-                        .WithRowEnding(RowEndings.CarriageReturn)
-                        .Build();
+                    Options.CreateBuilder(Options.DynamicDefault)
+                        .WithWriteHeader(WriteHeader.Always)
+                        .WithRowEnding(RowEnding.CarriageReturn)
+                        .ToOptions();
 
                 // DynamicRow
                 await RunAsyncDynamicWriterVariants(
@@ -1778,11 +2046,10 @@ namespace Cesil.Tests
             // \n
             {
                 var opts =
-                    Options.DynamicDefault
-                        .NewBuilder()
-                        .WithWriteHeader(WriteHeaders.Always)
-                        .WithRowEnding(RowEndings.LineFeed)
-                        .Build();
+                    Options.CreateBuilder(Options.DynamicDefault)
+                        .WithWriteHeader(WriteHeader.Always)
+                        .WithRowEnding(RowEnding.LineFeed)
+                        .ToOptions();
 
                 // DynamicRow
                 await RunAsyncDynamicWriterVariants(
@@ -1926,13 +2193,13 @@ namespace Cesil.Tests
         [Fact]
         public async Task WriteCommentAsync()
         {
-            var dynOpts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+            var dynOpts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // no trailing new line
             {
                 // first line, no headers
                 {
-                    var opts = dynOpts.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+                    var opts = Options.CreateBuilder(dynOpts).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     await RunAsyncDynamicWriterVariants(
@@ -1985,7 +2252,7 @@ namespace Cesil.Tests
 
                 // second line, no headers
                 {
-                    var opts = dynOpts.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+                    var opts = Options.CreateBuilder(dynOpts).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     await RunAsyncDynamicWriterVariants(
@@ -2040,7 +2307,7 @@ namespace Cesil.Tests
 
                 // second line, headers
                 {
-                    var opts = dynOpts.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+                    var opts = Options.CreateBuilder(dynOpts).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Always).ToOptions();
 
                     // one line
                     await RunAsyncDynamicWriterVariants(
@@ -2079,7 +2346,7 @@ namespace Cesil.Tests
 
                 // before row, no headers
                 {
-                    var opts = dynOpts.NewBuilder().WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+                    var opts = Options.CreateBuilder(dynOpts).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     await RunAsyncDynamicWriterVariants(
@@ -2137,7 +2404,7 @@ namespace Cesil.Tests
             {
                 // first line, no headers
                 {
-                    var opts = dynOpts.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     await RunAsyncDynamicWriterVariants(
@@ -2190,7 +2457,7 @@ namespace Cesil.Tests
 
                 // second line, no headers
                 {
-                    var opts = dynOpts.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     await RunAsyncDynamicWriterVariants(
@@ -2245,7 +2512,7 @@ namespace Cesil.Tests
 
                 // second line, headers
                 {
-                    var opts = dynOpts.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Always).Build();
+                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Always).ToOptions();
 
                     // one line
                     await RunAsyncDynamicWriterVariants(
@@ -2284,7 +2551,7 @@ namespace Cesil.Tests
 
                 // before row, no headers
                 {
-                    var opts = dynOpts.NewBuilder().WithWriteTrailingNewLine(WriteTrailingNewLines.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeaders.Never).Build();
+                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     await RunAsyncDynamicWriterVariants(
@@ -2345,12 +2612,11 @@ namespace Cesil.Tests
             // \r\n
             {
                 var opts =
-                    Options.Default
-                        .NewBuilder()
-                        .WithReadHeader(ReadHeaders.Always)
-                        .WithWriteHeader(WriteHeaders.Always)
-                        .WithRowEnding(RowEndings.CarriageReturnLineFeed)
-                        .Build();
+                    Options.CreateBuilder(Options.DynamicDefault)
+                        .WithReadHeader(ReadHeader.Always)
+                        .WithWriteHeader(WriteHeader.Always)
+                        .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                        .ToOptions();
 
                 await RunAsyncDynamicWriterVariants(
                     opts,
@@ -2380,12 +2646,12 @@ namespace Cesil.Tests
             // \r\n
             {
                 var opts =
-                    Options.DynamicDefault.NewBuilder()
-                        .WithWriteHeader(WriteHeaders.Never)
-                        .WithRowEnding(RowEndings.CarriageReturnLineFeed)
+                    Options.CreateBuilder(Options.DynamicDefault)
+                        .WithWriteHeader(WriteHeader.Never)
+                        .WithRowEnding(RowEnding.CarriageReturnLineFeed)
                         .WithCommentCharacter('#')
-                        .WithWriteTrailingNewLine(WriteTrailingNewLines.Always)
-                        .Build();
+                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .ToOptions();
 
                 await RunAsyncDynamicWriterVariants(
                     opts,
@@ -2419,12 +2685,12 @@ namespace Cesil.Tests
             // \r
             {
                 var opts =
-                    Options.DynamicDefault.NewBuilder()
-                        .WithWriteHeader(WriteHeaders.Never)
-                        .WithRowEnding(RowEndings.CarriageReturn)
+                    Options.CreateBuilder(Options.DynamicDefault)
+                        .WithWriteHeader(WriteHeader.Never)
+                        .WithRowEnding(RowEnding.CarriageReturn)
                         .WithCommentCharacter('#')
-                        .WithWriteTrailingNewLine(WriteTrailingNewLines.Always)
-                        .Build();
+                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .ToOptions();
 
                 await RunAsyncDynamicWriterVariants(
                     opts,
@@ -2458,12 +2724,12 @@ namespace Cesil.Tests
             // \n
             {
                 var opts =
-                    Options.DynamicDefault.NewBuilder()
-                        .WithWriteHeader(WriteHeaders.Never)
-                        .WithRowEnding(RowEndings.LineFeed)
+                    Options.CreateBuilder(Options.DynamicDefault)
+                        .WithWriteHeader(WriteHeader.Never)
+                        .WithRowEnding(RowEnding.LineFeed)
                         .WithCommentCharacter('#')
-                        .WithWriteTrailingNewLine(WriteTrailingNewLines.Always)
-                        .Build();
+                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .ToOptions();
 
                 await RunAsyncDynamicWriterVariants(
                     opts,
@@ -2501,12 +2767,11 @@ namespace Cesil.Tests
             // \r\n
             {
                 var opts =
-                    Options.DynamicDefault
-                        .NewBuilder()
-                        .WithWriteHeader(WriteHeaders.Always)
-                        .WithRowEnding(RowEndings.CarriageReturnLineFeed)
-                        .WithWriteTrailingNewLine(WriteTrailingNewLines.Always)
-                        .Build();
+                    Options.CreateBuilder(Options.DynamicDefault)
+                        .WithWriteHeader(WriteHeader.Always)
+                        .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .ToOptions();
 
                 await RunAsyncDynamicWriterVariants(
                     opts,
@@ -2537,12 +2802,11 @@ namespace Cesil.Tests
             // \r
             {
                 var opts =
-                    Options.DynamicDefault
-                        .NewBuilder()
-                        .WithWriteHeader(WriteHeaders.Always)
-                        .WithRowEnding(RowEndings.CarriageReturn)
-                        .WithWriteTrailingNewLine(WriteTrailingNewLines.Always)
-                        .Build();
+                    Options.CreateBuilder(Options.DynamicDefault)
+                        .WithWriteHeader(WriteHeader.Always)
+                        .WithRowEnding(RowEnding.CarriageReturn)
+                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .ToOptions();
 
                 await RunAsyncDynamicWriterVariants(
                     opts,
@@ -2573,12 +2837,11 @@ namespace Cesil.Tests
             // \n
             {
                 var opts =
-                    Options.DynamicDefault
-                        .NewBuilder()
-                        .WithWriteHeader(WriteHeaders.Always)
-                        .WithRowEnding(RowEndings.LineFeed)
-                        .WithWriteTrailingNewLine(WriteTrailingNewLines.Always)
-                        .Build();
+                    Options.CreateBuilder(Options.DynamicDefault)
+                        .WithWriteHeader(WriteHeader.Always)
+                        .WithRowEnding(RowEnding.LineFeed)
+                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .ToOptions();
 
                 await RunAsyncDynamicWriterVariants(
                     opts,
@@ -2612,7 +2875,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.DynamicDefault.NewBuilder().WithWriteHeader(WriteHeaders.Never).WithRowEnding(RowEndings.CarriageReturnLineFeed).Build();
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
 
                 await RunAsyncDynamicWriterVariants(
                     opts,
@@ -2633,7 +2896,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.DynamicDefault.NewBuilder().WithWriteHeader(WriteHeaders.Never).WithRowEnding(RowEndings.CarriageReturn).Build();
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturn).ToOptions();
 
                 await RunAsyncDynamicWriterVariants(
                     opts,
@@ -2654,7 +2917,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.DynamicDefault.NewBuilder().WithWriteHeader(WriteHeaders.Never).WithRowEnding(RowEndings.LineFeed).Build();
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.LineFeed).ToOptions();
 
                 await RunAsyncDynamicWriterVariants(
                     opts,
@@ -2699,7 +2962,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.DynamicDefault.NewBuilder().WithWriteHeader(WriteHeaders.Always).WithRowEnding(RowEndings.CarriageReturnLineFeed).Build();
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
 
                 await RunAsyncDynamicWriterVariants(
                     opts,
@@ -2726,7 +2989,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.DynamicDefault.NewBuilder().WithWriteHeader(WriteHeaders.Always).WithRowEnding(RowEndings.CarriageReturn).Build();
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturn).ToOptions();
 
                 await RunAsyncDynamicWriterVariants(
                     opts,
@@ -2753,7 +3016,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.DynamicDefault.NewBuilder().WithWriteHeader(WriteHeaders.Always).WithRowEnding(RowEndings.LineFeed).Build();
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.LineFeed).ToOptions();
 
                 await RunAsyncDynamicWriterVariants(
                     opts,

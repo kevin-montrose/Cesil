@@ -25,9 +25,9 @@ namespace Cesil
 
         internal static unsafe CharacterLookup MakeCharacterLookup(
             MemoryPool<char> memoryPool,
-            char escapeStartChar,
+            char? escapeStartChar,
             char valueSeparatorChar,
-            char escapeChar,
+            char? escapeChar,
             char? commentChar,
             out int neededSize
         )
@@ -37,8 +37,8 @@ namespace Cesil
                     Math.Min(
                         Math.Min(
                             Math.Min(
-                                Math.Min(escapeStartChar, valueSeparatorChar),
-                                escapeChar
+                                Math.Min(escapeStartChar ?? char.MaxValue, valueSeparatorChar),
+                                escapeChar ?? char.MaxValue
                             ),
                             commentChar ?? char.MaxValue
                         ),
@@ -51,8 +51,8 @@ namespace Cesil
                     Math.Max(
                         Math.Max(
                             Math.Max(
-                                Math.Max(escapeStartChar, valueSeparatorChar),
-                                escapeChar
+                                Math.Max(escapeStartChar ?? char.MinValue, valueSeparatorChar),
+                                escapeChar ?? char.MinValue
                             ),
                             commentChar ?? char.MinValue
                         ),

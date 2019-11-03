@@ -24,7 +24,7 @@ namespace Cesil.Tests
         [Fact]
         public void MissingHeaders()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
             RunSyncReaderVariants<_MissingHeaders>(
                 opts,
@@ -127,7 +127,7 @@ namespace Cesil.Tests
         public void UncommonAdvanceResults()
         {
             {
-                var opts = Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).WithEscapedValueStartAndEnd('\\').Build();
+                var opts = Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithEscapedValueStartAndEnd('\\').ToOptions();
 
                 // escape char after \r
                 RunSyncReaderVariants<_UncommonAdvanceResults>(
@@ -146,7 +146,7 @@ namespace Cesil.Tests
             }
 
             {
-                var opts = Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).WithEscapedValueStartAndEnd('\\').WithReadHeader(ReadHeaders.Never).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithEscapedValueStartAndEnd('\\').WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // kept reading after things were busted
                 RunSyncReaderVariants<_UncommonAdvanceResults>(
@@ -166,7 +166,7 @@ namespace Cesil.Tests
             }
 
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // kept reading after things were busted
                 RunSyncReaderVariants<_UncommonAdvanceResults>(
@@ -184,7 +184,7 @@ namespace Cesil.Tests
             }
 
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // kept reading after things were busted
                 RunSyncReaderVariants<_UncommonAdvanceResults>(
@@ -202,7 +202,7 @@ namespace Cesil.Tests
             }
 
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
                 // kept reading after things were busted
                 RunSyncReaderVariants<_UncommonAdvanceResults>(
@@ -228,7 +228,7 @@ namespace Cesil.Tests
         [Fact]
         public void CommentEndingInCarriageReturn()
         {
-            var opt = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturnLineFeed).Build();
+            var opt = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
 
             RunSyncReaderVariants<_CommentEndingInCarriageReturn>(
                 opt,
@@ -302,9 +302,9 @@ namespace Cesil.Tests
         [Fact]
         public void FailingParser()
         {
-            var m = new ManualTypeDescriber(ManualTypeDescriberFallbackBehavior.UseDefault);
+            var m = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback);
 
-            m.SetBuilder(InstanceProvider.ForDelegate((out _FailingParser val) => { val = new _FailingParser(); return true; }));
+            m.SetInstanceProvider(InstanceProvider.ForDelegate((out _FailingParser val) => { val = new _FailingParser(); return true; }));
 
             var t = typeof(_FailingParser).GetTypeInfo();
             var s = Setter.ForMethod(t.GetProperty(nameof(_FailingParser.Foo)).SetMethod);
@@ -312,7 +312,7 @@ namespace Cesil.Tests
 
             m.AddExplicitSetter(t, "Foo", s, p);
 
-            var opt = Options.Default.NewBuilder().WithTypeDescriber(m).Build();
+            var opt = Options.CreateBuilder(Options.Default).WithTypeDescriber(m.ToManualTypeDescriber()).ToOptions();
 
             RunSyncReaderVariants<_FailingParser>(
                 opt,
@@ -442,12 +442,12 @@ namespace Cesil.Tests
 
                 // 4
                 {
-                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(null, "Baf", parser, IsMemberRequired.Yes));
-                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(f, null, parser, IsMemberRequired.Yes));
-                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(f, "Baf", null, IsMemberRequired.Yes));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(null, "Baf", parser, MemberRequired.Yes));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(f, null, parser, MemberRequired.Yes));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(f, "Baf", null, MemberRequired.Yes));
                     // there's a separate test for bogus IsMemberRequired
 
-                    var d1 = DeserializableMember.ForField(f, "Baf", parser, IsMemberRequired.Yes);
+                    var d1 = DeserializableMember.ForField(f, "Baf", parser, MemberRequired.Yes);
                     Assert.True(d1.IsRequired);
                     Assert.Equal("Baf", d1.Name);
                     Assert.Equal(parser, d1.Parser);
@@ -459,13 +459,13 @@ namespace Cesil.Tests
 
                 // 5
                 {
-                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(null, "Baz", parser, IsMemberRequired.Yes, reset));
-                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(f, null, parser, IsMemberRequired.Yes, reset));
-                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(f, "Baz", null, IsMemberRequired.Yes, reset));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(null, "Baz", parser, MemberRequired.Yes, reset));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(f, null, parser, MemberRequired.Yes, reset));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForField(f, "Baz", null, MemberRequired.Yes, reset));
                     // there's a separate test for bogus IsMemberRequired
                     // it's ok for reset = null
 
-                    var d1 = DeserializableMember.ForField(f, "Baz", parser, IsMemberRequired.Yes, reset);
+                    var d1 = DeserializableMember.ForField(f, "Baz", parser, MemberRequired.Yes, reset);
                     Assert.True(d1.IsRequired);
                     Assert.Equal("Baz", d1.Name);
                     Assert.Equal(parser, d1.Parser);
@@ -521,12 +521,12 @@ namespace Cesil.Tests
 
                 // 4
                 {
-                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(null, "Baf", parser, IsMemberRequired.Yes));
-                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(p, null, parser, IsMemberRequired.Yes));
-                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(p, "Baf", null, IsMemberRequired.Yes));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(null, "Baf", parser, MemberRequired.Yes));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(p, null, parser, MemberRequired.Yes));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(p, "Baf", null, MemberRequired.Yes));
                     // there's a separate test for bogus IsMemberRequired
 
-                    var d1 = DeserializableMember.ForProperty(p, "Baf", parser, IsMemberRequired.Yes);
+                    var d1 = DeserializableMember.ForProperty(p, "Baf", parser, MemberRequired.Yes);
                     Assert.True(d1.IsRequired);
                     Assert.Equal("Baf", d1.Name);
                     Assert.Equal(parser, d1.Parser);
@@ -538,13 +538,13 @@ namespace Cesil.Tests
 
                 // 5
                 {
-                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(null, "Baz", parser, IsMemberRequired.Yes, reset));
-                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(p, null, parser, IsMemberRequired.Yes, reset));
-                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(p, "Baz", null, IsMemberRequired.Yes, reset));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(null, "Baz", parser, MemberRequired.Yes, reset));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(p, null, parser, MemberRequired.Yes, reset));
+                    Assert.Throws<ArgumentNullException>(() => DeserializableMember.ForProperty(p, "Baz", null, MemberRequired.Yes, reset));
                     // there's a separate test for bogus IsMemberRequired
                     // it's ok for reset = null
 
-                    var d1 = DeserializableMember.ForProperty(p, "Baz", parser, IsMemberRequired.Yes, reset);
+                    var d1 = DeserializableMember.ForProperty(p, "Baz", parser, MemberRequired.Yes, reset);
                     Assert.True(d1.IsRequired);
                     Assert.Equal("Baz", d1.Name);
                     Assert.Equal(parser, d1.Parser);
@@ -572,7 +572,7 @@ namespace Cesil.Tests
                 var b = Parser.ForDelegate<int>((ReadOnlySpan<char> s, in ReadContext rc, out int val) => { val = 123; return true; });
                 parsers = new[] { a, b };
             }
-            var isMemberRequireds = new[] { IsMemberRequired.Yes, IsMemberRequired.No };
+            var isMemberRequireds = new[] { MemberRequired.Yes, MemberRequired.No };
             IEnumerable<Reset> resets;
             {
                 var a = Reset.ForDelegate(() => { });
@@ -646,17 +646,17 @@ namespace Cesil.Tests
             var setter = Setter.ForMethod(type.GetProperty(name).SetMethod);
             var parser = Parser.GetDefault(typeof(string).GetTypeInfo());
 
-            Assert.Throws<ArgumentNullException>(() => DeserializableMember.Create(null, name, setter, parser, IsMemberRequired.Yes, null));
-            Assert.Throws<ArgumentNullException>(() => DeserializableMember.Create(type, null, setter, parser, IsMemberRequired.Yes, null));
-            Assert.Throws<ArgumentNullException>(() => DeserializableMember.Create(type, name, null, parser, IsMemberRequired.Yes, null));
-            Assert.Throws<ArgumentNullException>(() => DeserializableMember.Create(type, name, setter, null, IsMemberRequired.Yes, null));
+            Assert.Throws<ArgumentNullException>(() => DeserializableMember.Create(null, name, setter, parser, MemberRequired.Yes, null));
+            Assert.Throws<ArgumentNullException>(() => DeserializableMember.Create(type, null, setter, parser, MemberRequired.Yes, null));
+            Assert.Throws<ArgumentNullException>(() => DeserializableMember.Create(type, name, null, parser, MemberRequired.Yes, null));
+            Assert.Throws<ArgumentNullException>(() => DeserializableMember.Create(type, name, setter, null, MemberRequired.Yes, null));
             Assert.Throws<ArgumentException>(() => DeserializableMember.Create(type, name, setter, parser, 0, null));
 
             var badParser = Parser.GetDefault(typeof(int).GetTypeInfo());
-            Assert.Throws<ArgumentException>(() => DeserializableMember.Create(type, name, setter, badParser, IsMemberRequired.Yes, null));
+            Assert.Throws<ArgumentException>(() => DeserializableMember.Create(type, name, setter, badParser, MemberRequired.Yes, null));
 
             var badReset = Reset.ForDelegate<string>((_) => { });
-            Assert.Throws<ArgumentException>(() => DeserializableMember.Create(type, name, setter, parser, IsMemberRequired.Yes, badReset));
+            Assert.Throws<ArgumentException>(() => DeserializableMember.Create(type, name, setter, parser, MemberRequired.Yes, badReset));
         }
 
         [Fact]
@@ -762,11 +762,11 @@ namespace Cesil.Tests
                 };
 
 
-            var typeDesc = new ManualTypeDescriber();
+            var typeDesc = ManualTypeDescriberBuilder.CreateBuilder();
             typeDesc.AddDeserializableProperty(typeof(_RowCreationFailure).GetProperty(nameof(_RowCreationFailure.Foo)));
-            typeDesc.SetBuilder((InstanceProvider)builder);
+            typeDesc.SetInstanceProvider((InstanceProvider)builder);
 
-            var opts = Options.Default.NewBuilder().WithTypeDescriber(typeDesc).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)typeDesc.ToManualTypeDescriber()).ToOptions();
 
             RunSyncReaderVariants<_RowCreationFailure>(
                 opts,
@@ -841,7 +841,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturnLineFeed).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
 
                 // with headers
                 RunSyncReaderVariants<_WithComments>(
@@ -954,7 +954,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturn).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturn).ToOptions();
 
                 // with headers
                 RunSyncReaderVariants<_WithComments>(
@@ -1067,7 +1067,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.LineFeed).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.LineFeed).ToOptions();
 
                 // with headers
                 RunSyncReaderVariants<_WithComments>(
@@ -1199,12 +1199,12 @@ namespace Cesil.Tests
             var setter = Setter.ForMethod(typeof(_DelegateReset).GetProperty(name).SetMethod);
             var reset = Reset.ForDelegate(resetDel);
 
-            var describer = new ManualTypeDescriber();
-            describer.AddExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, IsMemberRequired.No, reset);
+            var describer = ManualTypeDescriberBuilder.CreateBuilder();
+            describer.AddExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, MemberRequired.No, reset);
             InstanceProviderDelegate<_DelegateReset> del = (out _DelegateReset i) => { i = new _DelegateReset(); return true; };
-            describer.SetBuilder((InstanceProvider)del);
+            describer.SetInstanceProvider((InstanceProvider)del);
 
-            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
             RunSyncReaderVariants<_DelegateReset>(
                 opts,
@@ -1246,12 +1246,12 @@ namespace Cesil.Tests
             var setter = Setter.ForMethod(typeof(_DelegateReset).GetProperty(name).SetMethod);
             var reset = Reset.ForDelegate(resetDel);
 
-            var describer = new ManualTypeDescriber();
-            describer.AddExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, IsMemberRequired.No, reset);
+            var describer = ManualTypeDescriberBuilder.CreateBuilder();
+            describer.AddExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, MemberRequired.No, reset);
             InstanceProviderDelegate<_DelegateReset> del = (out _DelegateReset i) => { i = new _DelegateReset(); return true; };
-            describer.SetBuilder((InstanceProvider)del);
+            describer.SetInstanceProvider((InstanceProvider)del);
 
-            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
             RunSyncReaderVariants<_DelegateReset>(
                 opts,
@@ -1294,12 +1294,12 @@ namespace Cesil.Tests
                     setterCalled++;
                 };
 
-            var describer = new ManualTypeDescriber();
+            var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.AddExplicitSetter(typeof(_DelegateSetter).GetTypeInfo(), "Foo", Setter.ForDelegate(parser));
             InstanceProviderDelegate<_DelegateSetter> del = (out _DelegateSetter i) => { i = new _DelegateSetter(); return true; };
-            describer.SetBuilder((InstanceProvider)del);
+            describer.SetInstanceProvider((InstanceProvider)del);
 
-            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
             RunSyncReaderVariants<_DelegateSetter>(
                 opts,
@@ -1339,12 +1339,12 @@ namespace Cesil.Tests
                     row.Foo = value * 2;
                 };
 
-            var describer = new ManualTypeDescriber();
+            var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.AddExplicitSetter(typeof(_DelegateSetter).GetTypeInfo(), "Foo", Setter.ForDelegate(parser));
             InstanceProviderDelegate<_DelegateSetter> del = (out _DelegateSetter i) => { i = new _DelegateSetter(); return true; };
-            describer.SetBuilder((InstanceProvider)del);
+            describer.SetInstanceProvider((InstanceProvider)del);
 
-            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
             RunSyncReaderVariants<_DelegateSetter>(
                 opts,
@@ -1405,7 +1405,7 @@ namespace Cesil.Tests
 
             // single param
             {
-                var describer = new ManualTypeDescriber();
+                var describer = ManualTypeDescriberBuilder.CreateBuilder();
                 describer.AddDeserializableProperty(
                     typeof(_ConstructorParser_Outer).GetProperty(nameof(_ConstructorParser_Outer.Foo)),
                     nameof(_ConstructorParser_Outer.Foo),
@@ -1413,9 +1413,9 @@ namespace Cesil.Tests
                 );
 
                 InstanceProviderDelegate<_ConstructorParser_Outer> del = (out _ConstructorParser_Outer i) => { i = new _ConstructorParser_Outer(); return true; };
-                describer.SetBuilder((InstanceProvider)del);
+                describer.SetInstanceProvider((InstanceProvider)del);
 
-                var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
                 RunSyncReaderVariants<_ConstructorParser_Outer>(
                     opts,
@@ -1444,16 +1444,16 @@ namespace Cesil.Tests
 
             // two params
             {
-                var describer = new ManualTypeDescriber();
+                var describer = ManualTypeDescriberBuilder.CreateBuilder();
                 describer.AddDeserializableProperty(
                     typeof(_ConstructorParser_Outer).GetProperty(nameof(_ConstructorParser_Outer.Foo)),
                     nameof(_ConstructorParser_Outer.Foo),
                     Parser.ForConstructor(cons2)
                 );
                 InstanceProviderDelegate<_ConstructorParser_Outer> del = (out _ConstructorParser_Outer i) => { i = new _ConstructorParser_Outer(); return true; };
-                describer.SetBuilder((InstanceProvider)del);
+                describer.SetInstanceProvider((InstanceProvider)del);
 
-                var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
                 RunSyncReaderVariants<_ConstructorParser_Outer>(
                     opts,
@@ -1500,16 +1500,16 @@ namespace Cesil.Tests
                     return true;
                 };
 
-            var describer = new ManualTypeDescriber();
+            var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.AddDeserializableProperty(
                 typeof(_DelegateParser).GetProperty(nameof(_DelegateParser.Foo)),
                 nameof(_DelegateParser.Foo),
                 Parser.ForDelegate(parser)
             );
             InstanceProviderDelegate<_DelegateParser> del = (out _DelegateParser i) => { i = new _DelegateParser(); return true; };
-            describer.SetBuilder((InstanceProvider)del);
+            describer.SetInstanceProvider((InstanceProvider)del);
 
-            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
             RunSyncReaderVariants<_DelegateParser>(
                 opts,
@@ -1544,12 +1544,12 @@ namespace Cesil.Tests
         [Fact]
         public void StaticSetter()
         {
-            var describer = new ManualTypeDescriber();
+            var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.AddDeserializableProperty(typeof(_StaticSetter).GetProperty(nameof(_StaticSetter.Foo), BindingFlags.Static | BindingFlags.Public));
             InstanceProviderDelegate<_StaticSetter> del = (out _StaticSetter i) => { i = new _StaticSetter(); return true; };
-            describer.SetBuilder((InstanceProvider)del);
+            describer.SetInstanceProvider((InstanceProvider)del);
 
-            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
             RunSyncReaderVariants<_StaticSetter>(
                 opts,
@@ -1724,7 +1724,7 @@ namespace Cesil.Tests
             Assert.Equal(characterTypeMax + 1, ReaderStateMachine.RuleCacheCharacterCount);
             Assert.Equal((maxStateVal + 1) * (characterTypeMax + 1), ReaderStateMachine.RuleCacheConfigSize);
 
-            var rowEndingsMax = Enum.GetValues(typeof(RowEndings)).Cast<byte>().Max();
+            var rowEndingsMax = Enum.GetValues(typeof(RowEnding)).Cast<byte>().Max();
 
             Assert.Equal(rowEndingsMax + 1, ReaderStateMachine.RuleCacheRowEndingCount);
             Assert.Equal((rowEndingsMax + 1) * 4, ReaderStateMachine.RuleCacheConfigCount);
@@ -1803,7 +1803,7 @@ namespace Cesil.Tests
             const string TSV = @"Foo	Bar
 ""hello""""world""	123
 ";
-            var opts = Options.Default.NewBuilder().WithEscapedValueStartAndEnd('"').WithValueSeparator('\t').Build();
+            var opts = Options.CreateBuilder(Options.Default).WithEscapedValueStartAndEnd('"').WithValueSeparator('\t').ToOptions();
 
             RunSyncReaderVariants<_TabSeparator>(
                 opts,
@@ -1832,7 +1832,7 @@ namespace Cesil.Tests
         [Fact]
         public void DifferentEscapes()
         {
-            var opts = Options.Default.NewBuilder().WithEscapedValueStartAndEnd('"').WithEscapedValueEscapeCharacter('\\').Build();
+            var opts = Options.CreateBuilder(Options.Default).WithEscapedValueStartAndEnd('"').WithEscapedValueEscapeCharacter('\\').ToOptions();
 
             // simple
             {
@@ -2177,7 +2177,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public void OneColumnOneRow()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // normal
             RunSyncReaderVariants<_OneColumnOneRow>(
@@ -2240,7 +2240,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public void TwoColumnOneRow()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // normal
             RunSyncReaderVariants<_TwoColumnOneRow>(
@@ -2306,7 +2306,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public void TwoColumnTwoRow()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).WithRowEnding(RowEndings.CarriageReturnLineFeed).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
 
             // normal
             RunSyncReaderVariants<_TwoColumnTwoRow>(
@@ -2382,7 +2382,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public void DetectLineEndings()
         {
-            var opts = Options.Default.NewBuilder().WithRowEnding(RowEndings.Detect).WithReadHeader(ReadHeaders.Never).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.Detect).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // normal
             {
@@ -2655,7 +2655,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public void DetectHeaders()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Detect).WithRowEnding(RowEndings.Detect).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Detect).WithRowEnding(RowEnding.Detect).ToOptions();
 
             // no headers
             RunSyncReaderVariants<_DetectHeaders>(
@@ -2669,7 +2669,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                         Assert.Equal(123, t.Hello);
                         Assert.Equal(4.56, t.World);
 
-                        Assert.Equal(ReadHeaders.Never, reader.ReadHeaders.Value);
+                        Assert.Equal(ReadHeader.Never, reader.ReadHeaders.Value);
 
                         Assert.Collection(
                             reader.Columns.Value,
@@ -2696,7 +2696,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(123, t.Hello);
                             Assert.Equal(4.56, t.World);
 
-                            Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
+                            Assert.Equal(ReadHeader.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
                                 reader.Columns.Value,
@@ -2725,7 +2725,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(123, t.Hello);
                             Assert.Equal(4.56, t.World);
 
-                            Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
+                            Assert.Equal(ReadHeader.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
                                 reader.Columns.Value,
@@ -2754,7 +2754,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(123, t.Hello);
                             Assert.Equal(4.56, t.World);
 
-                            Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
+                            Assert.Equal(ReadHeader.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
                                 reader.Columns.Value,
@@ -2786,7 +2786,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(123, t.Hello);
                             Assert.Equal(4.56, t.World);
 
-                            Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
+                            Assert.Equal(ReadHeader.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
                                 reader.Columns.Value,
@@ -2815,7 +2815,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(123, t.Hello);
                             Assert.Equal(4.56, t.World);
 
-                            Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
+                            Assert.Equal(ReadHeader.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
                                 reader.Columns.Value,
@@ -2844,7 +2844,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(123, t.Hello);
                             Assert.Equal(4.56, t.World);
 
-                            Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
+                            Assert.Equal(ReadHeader.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
                                 reader.Columns.Value,
@@ -2876,7 +2876,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(0, t.Hello);
                             Assert.Equal(4.56, t.World);
 
-                            Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
+                            Assert.Equal(ReadHeader.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
                                 reader.Columns.Value,
@@ -2905,7 +2905,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(0, t.Hello);
                             Assert.Equal(4.56, t.World);
 
-                            Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
+                            Assert.Equal(ReadHeader.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
                                 reader.Columns.Value,
@@ -2934,7 +2934,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(0, t.Hello);
                             Assert.Equal(4.56, t.World);
 
-                            Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
+                            Assert.Equal(ReadHeader.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
                                 reader.Columns.Value,
@@ -3034,7 +3034,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         public void WeirdComments()
         {
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').WithRowEnding(RowEndings.LineFeed).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.LineFeed).ToOptions();
                 RunSyncReaderVariants<_Comment>(
                     opts,
                     (config, getReader) =>
@@ -3065,7 +3065,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             }
 
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturn).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturn).ToOptions();
                 RunSyncReaderVariants<_Comment>(
                     opts,
                     (config, getReader) =>
@@ -3096,7 +3096,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             }
 
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturnLineFeed).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
                 RunSyncReaderVariants<_Comment>(
                     opts,
                     (config, getReader) =>
@@ -3166,7 +3166,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public void Comments()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').ToOptions();
 
             // comment first line
             RunSyncReaderVariants<_Comment>(
@@ -3268,12 +3268,12 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             var parseFoo = (Parser)typeof(ReaderTests).GetMethod(nameof(_Context_ParseFoo));
             var parseBar = (Parser)typeof(ReaderTests).GetMethod(nameof(_Context_ParseBar));
 
-            var describer = new ManualTypeDescriber(ManualTypeDescriberFallbackBehavior.UseDefault);
-            describer.SetBuilder((InstanceProvider)typeof(_Context).GetConstructor(Type.EmptyTypes));
+            var describer = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback);
+            describer.SetInstanceProvider((InstanceProvider)typeof(_Context).GetConstructor(Type.EmptyTypes));
             describer.AddDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), parseFoo);
             describer.AddDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), parseBar);
 
-            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(describer.ToManualTypeDescriber()).ToOptions();
 
             // no headers
             {
@@ -3349,7 +3349,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public async Task MissingHeadersAsync()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
             await RunAsyncReaderVariants<_MissingHeaders>(
                 opts,
@@ -3433,7 +3433,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         public async Task UncommonAdvanceResultsAsync()
         {
             {
-                var opts = Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).WithEscapedValueStartAndEnd('\\').Build();
+                var opts = Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithEscapedValueStartAndEnd('\\').ToOptions();
 
                 // escape char after \r
                 await RunAsyncReaderVariants<_UncommonAdvanceResults>(
@@ -3452,7 +3452,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             }
 
             {
-                var opts = Options.Default.NewBuilder().WithRowEnding(RowEndings.CarriageReturnLineFeed).WithEscapedValueStartAndEnd('\\').WithReadHeader(ReadHeaders.Never).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithEscapedValueStartAndEnd('\\').WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // kept reading after things were busted
                 await RunAsyncReaderVariants<_UncommonAdvanceResults>(
@@ -3472,7 +3472,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             }
 
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // kept reading after things were busted
                 await RunAsyncReaderVariants<_UncommonAdvanceResults>(
@@ -3490,7 +3490,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             }
 
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // kept reading after things were busted
                 await RunAsyncReaderVariants<_UncommonAdvanceResults>(
@@ -3508,7 +3508,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             }
 
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
                 // kept reading after things were busted
                 await RunAsyncReaderVariants<_UncommonAdvanceResults>(
@@ -3576,7 +3576,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
 
             // with comments
             {
-                var withComments = Options.Default.NewBuilder().WithCommentCharacter('#').Build();
+                var withComments = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').ToOptions();
 
                 await RunAsyncReaderVariants<_ResultsErrors>(
                     withComments,
@@ -3621,7 +3621,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public async Task CommentEndingInCarriageReturnAsync()
         {
-            var opt = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturnLineFeed).Build();
+            var opt = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
 
             await RunAsyncReaderVariants<_CommentEndingInCarriageReturn>(
                 opt,
@@ -3674,9 +3674,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public async Task FailingParserAsync()
         {
-            var m = new ManualTypeDescriber(ManualTypeDescriberFallbackBehavior.UseDefault);
+            var m = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback);
 
-            m.SetBuilder(InstanceProvider.ForDelegate((out _FailingParser val) => { val = new _FailingParser(); return true; }));
+            m.SetInstanceProvider(InstanceProvider.ForDelegate((out _FailingParser val) => { val = new _FailingParser(); return true; }));
 
             var t = typeof(_FailingParser).GetTypeInfo();
             var s = Setter.ForMethod(t.GetProperty(nameof(_FailingParser.Foo)).SetMethod);
@@ -3684,7 +3684,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
 
             m.AddExplicitSetter(t, "Foo", s, p);
 
-            var opt = Options.Default.NewBuilder().WithTypeDescriber(m).Build();
+            var opt = Options.CreateBuilder(Options.Default).WithTypeDescriber(m.ToManualTypeDescriber()).ToOptions();
 
             await RunAsyncReaderVariants<_FailingParser>(
                 opt,
@@ -3810,11 +3810,11 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                 };
 
 
-            var typeDesc = new ManualTypeDescriber();
+            var typeDesc = ManualTypeDescriberBuilder.CreateBuilder();
             typeDesc.AddDeserializableProperty(typeof(_RowCreationFailure).GetProperty(nameof(_RowCreationFailure.Foo)));
-            typeDesc.SetBuilder((InstanceProvider)builder);
+            typeDesc.SetInstanceProvider((InstanceProvider)builder);
 
-            var opts = Options.Default.NewBuilder().WithTypeDescriber(typeDesc).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)typeDesc.ToManualTypeDescriber()).ToOptions();
 
             await RunAsyncReaderVariants<_RowCreationFailure>(
                 opts,
@@ -3850,7 +3850,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         {
             // \r\n
             {
-                var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturnLineFeed).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
 
                 // with headers
                 await RunAsyncReaderVariants<_WithComments>(
@@ -3963,7 +3963,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
 
             // \r
             {
-                var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturn).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturn).ToOptions();
 
                 // with headers
                 await RunAsyncReaderVariants<_WithComments>(
@@ -4076,7 +4076,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
 
             // \n
             {
-                var opts = Options.Default.NewBuilder().WithCommentCharacter('#').WithRowEnding(RowEndings.LineFeed).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.LineFeed).ToOptions();
 
                 // with headers
                 await RunAsyncReaderVariants<_WithComments>(
@@ -4192,7 +4192,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         public async Task WeirdCommentsAsync()
         {
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').WithRowEnding(RowEndings.LineFeed).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.LineFeed).ToOptions();
                 await RunAsyncReaderVariants<_Comment>(
                     opts,
                     async (config, getReader) =>
@@ -4223,7 +4223,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             }
 
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturn).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturn).ToOptions();
                 await RunAsyncReaderVariants<_Comment>(
                     opts,
                     async (config, getReader) =>
@@ -4254,7 +4254,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             }
 
             {
-                var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').WithRowEnding(RowEndings.CarriageReturnLineFeed).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
                 await RunAsyncReaderVariants<_Comment>(
                     opts,
                     async (config, getReader) =>
@@ -4328,12 +4328,12 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             var setter = Setter.ForMethod(typeof(_DelegateReset).GetProperty(name).SetMethod);
             var reset = Reset.ForDelegate(resetDel);
 
-            var describer = new ManualTypeDescriber();
-            describer.AddExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, IsMemberRequired.No, reset);
+            var describer = ManualTypeDescriberBuilder.CreateBuilder();
+            describer.AddExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, MemberRequired.No, reset);
             InstanceProviderDelegate<_DelegateReset> del = (out _DelegateReset i) => { i = new _DelegateReset(); return true; };
-            describer.SetBuilder((InstanceProvider)del);
+            describer.SetInstanceProvider((InstanceProvider)del);
 
-            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
             await RunAsyncReaderVariants<_DelegateReset>(
                 opts,
@@ -4375,12 +4375,12 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             var setter = Setter.ForMethod(typeof(_DelegateReset).GetProperty(name).SetMethod);
             var reset = Reset.ForDelegate(resetDel);
 
-            var describer = new ManualTypeDescriber();
-            describer.AddExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, IsMemberRequired.No, reset);
+            var describer = ManualTypeDescriberBuilder.CreateBuilder();
+            describer.AddExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, MemberRequired.No, reset);
             InstanceProviderDelegate<_DelegateReset> del = (out _DelegateReset i) => { i = new _DelegateReset(); return true; };
-            describer.SetBuilder((InstanceProvider)del);
+            describer.SetInstanceProvider((InstanceProvider)del);
 
-            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
             await RunAsyncReaderVariants<_DelegateReset>(
                 opts,
@@ -4418,12 +4418,12 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     setterCalled++;
                 };
 
-            var describer = new ManualTypeDescriber();
+            var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.AddExplicitSetter(typeof(_DelegateSetter).GetTypeInfo(), "Foo", Setter.ForDelegate(parser));
             InstanceProviderDelegate<_DelegateSetter> del = (out _DelegateSetter i) => { i = new _DelegateSetter(); return true; };
-            describer.SetBuilder((InstanceProvider)del);
+            describer.SetInstanceProvider((InstanceProvider)del);
 
-            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
             await RunAsyncReaderVariants<_DelegateSetter>(
                 opts,
@@ -4463,12 +4463,12 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     row.Foo = value * 2;
                 };
 
-            var describer = new ManualTypeDescriber();
+            var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.AddExplicitSetter(typeof(_DelegateSetter).GetTypeInfo(), "Foo", Setter.ForDelegate(parser));
             InstanceProviderDelegate<_DelegateSetter> del = (out _DelegateSetter i) => { i = new _DelegateSetter(); return true; };
-            describer.SetBuilder((InstanceProvider)del);
+            describer.SetInstanceProvider((InstanceProvider)del);
 
-            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
             await RunAsyncReaderVariants<_DelegateSetter>(
                 opts,
@@ -4503,16 +4503,16 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
 
             // single param
             {
-                var describer = new ManualTypeDescriber();
+                var describer = ManualTypeDescriberBuilder.CreateBuilder();
                 describer.AddDeserializableProperty(
                     typeof(_ConstructorParser_Outer).GetProperty(nameof(_ConstructorParser_Outer.Foo)),
                     nameof(_ConstructorParser_Outer.Foo),
                     Parser.ForConstructor(cons1)
                 );
                 InstanceProviderDelegate<_ConstructorParser_Outer> del = (out _ConstructorParser_Outer i) => { i = new _ConstructorParser_Outer(); return true; };
-                describer.SetBuilder((InstanceProvider)del);
+                describer.SetInstanceProvider((InstanceProvider)del);
 
-                var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
                 await RunAsyncReaderVariants<_ConstructorParser_Outer>(
                     opts,
@@ -4541,16 +4541,16 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
 
             // two params
             {
-                var describer = new ManualTypeDescriber();
+                var describer = ManualTypeDescriberBuilder.CreateBuilder();
                 describer.AddDeserializableProperty(
                     typeof(_ConstructorParser_Outer).GetProperty(nameof(_ConstructorParser_Outer.Foo)),
                     nameof(_ConstructorParser_Outer.Foo),
                     Parser.ForConstructor(cons2)
                 );
                 InstanceProviderDelegate<_ConstructorParser_Outer> del = (out _ConstructorParser_Outer i) => { i = new _ConstructorParser_Outer(); return true; };
-                describer.SetBuilder((InstanceProvider)del);
+                describer.SetInstanceProvider((InstanceProvider)del);
 
-                var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+                var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
                 await RunAsyncReaderVariants<_ConstructorParser_Outer>(
                     opts,
@@ -4592,16 +4592,16 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     return true;
                 };
 
-            var describer = new ManualTypeDescriber();
+            var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.AddDeserializableProperty(
                 typeof(_DelegateParser).GetProperty(nameof(_DelegateParser.Foo)),
                 nameof(_DelegateParser.Foo),
                 Parser.ForDelegate(parser)
             );
             InstanceProviderDelegate<_DelegateParser> del = (out _DelegateParser i) => { i = new _DelegateParser(); return true; };
-            describer.SetBuilder((InstanceProvider)del);
+            describer.SetInstanceProvider((InstanceProvider)del);
 
-            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
             await RunAsyncReaderVariants<_DelegateParser>(
                 opts,
@@ -5001,7 +5001,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public async Task OneColumnOneRowAsync()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // normal
             {
@@ -5074,7 +5074,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public async Task TwoColumnOneRowAsync()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // normal
             {
@@ -5146,7 +5146,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public async Task TwoColumnTwoRowAsync()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Never).WithRowEnding(RowEndings.CarriageReturnLineFeed).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
 
             // normal
             {
@@ -5230,7 +5230,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public async Task DetectLineEndingsAsync()
         {
-            var opts = Options.Default.NewBuilder().WithRowEnding(RowEndings.Detect).WithReadHeader(ReadHeaders.Never).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.Detect).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // normal
             {
@@ -5526,7 +5526,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public async Task DetectHeadersAsync()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Detect).WithRowEnding(RowEndings.Detect).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Detect).WithRowEnding(RowEnding.Detect).ToOptions();
 
             // no headers
             await RunAsyncReaderVariants<_DetectHeaders>(
@@ -5541,7 +5541,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                         Assert.Equal(123, t.Value.Hello);
                         Assert.Equal(4.56, t.Value.World);
 
-                        Assert.Equal(ReadHeaders.Never, reader.ReadHeaders.Value);
+                        Assert.Equal(ReadHeader.Never, reader.ReadHeaders.Value);
 
                         Assert.Collection(
                             reader.Columns.Value,
@@ -5570,7 +5570,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(123, t.Value.Hello);
                             Assert.Equal(4.56, t.Value.World);
 
-                            Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
+                            Assert.Equal(ReadHeader.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
                                 reader.Columns.Value,
@@ -5602,7 +5602,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(123, t.Value.Hello);
                             Assert.Equal(4.56, t.Value.World);
 
-                            Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
+                            Assert.Equal(ReadHeader.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
                                 reader.Columns.Value,
@@ -5634,7 +5634,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(123, t.Value.Hello);
                             Assert.Equal(4.56, t.Value.World);
 
-                            Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
+                            Assert.Equal(ReadHeader.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
                                 reader.Columns.Value,
@@ -5669,7 +5669,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(123, t.Value.Hello);
                             Assert.Equal(4.56, t.Value.World);
 
-                            Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
+                            Assert.Equal(ReadHeader.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
                                 reader.Columns.Value,
@@ -5701,7 +5701,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(123, t.Value.Hello);
                             Assert.Equal(4.56, t.Value.World);
 
-                            Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
+                            Assert.Equal(ReadHeader.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
                                 reader.Columns.Value,
@@ -5733,7 +5733,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(123, t.Value.Hello);
                             Assert.Equal(4.56, t.Value.World);
 
-                            Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
+                            Assert.Equal(ReadHeader.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
                                 reader.Columns.Value,
@@ -5768,7 +5768,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(0, t.Value.Hello);
                             Assert.Equal(4.56, t.Value.World);
 
-                            Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
+                            Assert.Equal(ReadHeader.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
                                 reader.Columns.Value,
@@ -5800,7 +5800,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(0, t.Value.Hello);
                             Assert.Equal(4.56, t.Value.World);
 
-                            Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
+                            Assert.Equal(ReadHeader.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
                                 reader.Columns.Value,
@@ -5832,7 +5832,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             Assert.Equal(0, t.Value.Hello);
                             Assert.Equal(4.56, t.Value.World);
 
-                            Assert.Equal(ReadHeaders.Always, reader.ReadHeaders.Value);
+                            Assert.Equal(ReadHeader.Always, reader.ReadHeaders.Value);
 
                             Assert.Collection(
                                 reader.Columns.Value,
@@ -5932,7 +5932,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public async Task DifferentEscapesAsync()
         {
-            var opts = Options.Default.NewBuilder().WithEscapedValueStartAndEnd('"').WithEscapedValueEscapeCharacter('\\').Build();
+            var opts = Options.CreateBuilder(Options.Default).WithEscapedValueStartAndEnd('"').WithEscapedValueEscapeCharacter('\\').ToOptions();
 
             // simple
             {
@@ -6041,7 +6041,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             const string TSV = @"Foo	Bar
 ""hello""""world""	123
 ";
-            var opts = Options.Default.NewBuilder().WithEscapedValueStartAndEnd('"').WithValueSeparator('\t').Build();
+            var opts = Options.CreateBuilder(Options.Default).WithEscapedValueStartAndEnd('"').WithValueSeparator('\t').ToOptions();
 
             await RunAsyncReaderVariants<_TabSeparator>(
                 opts,
@@ -6064,7 +6064,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public async Task CommentsAsync()
         {
-            var opts = Options.Default.NewBuilder().WithReadHeader(ReadHeaders.Always).WithCommentCharacter('#').Build();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').ToOptions();
 
             // comment first line
             {
@@ -6145,12 +6145,12 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             var parseFoo = (Parser)typeof(ReaderTests).GetMethod(nameof(_Context_ParseFoo));
             var parseBar = (Parser)typeof(ReaderTests).GetMethod(nameof(_Context_ParseBar));
 
-            var describer = new ManualTypeDescriber(ManualTypeDescriberFallbackBehavior.UseDefault);
-            describer.SetBuilder((InstanceProvider)typeof(_Context).GetConstructor(Type.EmptyTypes));
+            var describer = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback);
+            describer.SetInstanceProvider((InstanceProvider)typeof(_Context).GetConstructor(Type.EmptyTypes));
             describer.AddDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), parseFoo);
             describer.AddDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), parseBar);
 
-            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(describer.ToManualTypeDescriber()).ToOptions();
 
             // no headers
             {
@@ -6226,12 +6226,12 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public async Task StaticSetterAsync()
         {
-            var describer = new ManualTypeDescriber();
+            var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.AddDeserializableProperty(typeof(_StaticSetter).GetProperty(nameof(_StaticSetter.Foo), BindingFlags.Static | BindingFlags.Public));
             InstanceProviderDelegate<_StaticSetter> del = (out _StaticSetter i) => { i = new _StaticSetter(); return true; };
-            describer.SetBuilder((InstanceProvider)del);
+            describer.SetInstanceProvider((InstanceProvider)del);
 
-            var opts = Options.Default.NewBuilder().WithTypeDescriber(describer).Build();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
             await RunAsyncReaderVariants<_StaticSetter>(
                 opts,

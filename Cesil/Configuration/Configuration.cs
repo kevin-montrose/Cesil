@@ -24,15 +24,11 @@ namespace Cesil
         /// </summary>
         public static IBoundConfiguration<dynamic> ForDynamic(Options options)
         {
-            // todo: make this a helper, null! everywhere kind of sucks
-            if (options == null!)
-            {
-                return Throw.ArgumentNullException<IBoundConfiguration<dynamic>>(nameof(options));
-            }
+            Utils.CheckArgumentNull(options, nameof(options));
 
-            if (options.ReadHeader == ReadHeaders.Detect)
+            if (options.ReadHeader == ReadHeader.Detect)
             {
-                return Throw.ArgumentException<IBoundConfiguration<dynamic>>($"Dynamic deserialization cannot detect the presense of headers, you must specify a {nameof(ReadHeaders)} of {nameof(ReadHeaders.Always)} or {nameof(ReadHeaders.Never)}", nameof(options));
+                return Throw.ArgumentException<IBoundConfiguration<dynamic>>($"Dynamic deserialization cannot detect the presense of headers, you must specify a {nameof(ReadHeader)} of {nameof(ReadHeader.Always)} or {nameof(ReadHeader.Never)}", nameof(options));
             }
 
             return
@@ -54,38 +50,34 @@ namespace Cesil
         }
 
         /// <summary>
-        /// Create a new IBoundConfiguration(T) with Options.Default, for
+        /// Create a new IBoundConfiguration(TRow) with Options.Default, for
         ///   use with the given type.
         /// </summary>
-        public static IBoundConfiguration<T> For<T>()
-        => For<T>(Options.Default);
+        public static IBoundConfiguration<TRow> For<TRow>()
+        => For<TRow>(Options.Default);
 
         /// <summary>
         /// Create a new IBoundConfiguration(T) with the given Options, for
         ///   use with the given type.
         /// </summary>
-        public static IBoundConfiguration<T> For<T>(Options options)
+        public static IBoundConfiguration<TRow> For<TRow>(Options options)
         {
-            // todo: make this a helper, null! everywhere kind of sucks
-            if (options == null!)
-            {
-                return Throw.ArgumentNullException<IBoundConfiguration<T>>(nameof(options));
-            }
+            Utils.CheckArgumentNull(options, nameof(options));
 
-            var forType = typeof(T).GetTypeInfo();
+            var forType = typeof(TRow).GetTypeInfo();
 
             if (forType == Types.ObjectType)
             {
-                return Throw.InvalidOperationException<IBoundConfiguration<T>>($"Use {nameof(ForDynamic)} when creating configurations for dynamic types");
+                return Throw.InvalidOperationException<IBoundConfiguration<TRow>>($"Use {nameof(ForDynamic)} when creating configurations for dynamic types");
             }
 
             var deserializeColumns = DiscoverDeserializeColumns(forType, options);
             var serializeColumns = DiscoverSerializeColumns(forType, options);
-            var cons = DiscoverInstanceProvider<T>(forType, options);
+            var cons = DiscoverInstanceProvider<TRow>(forType, options);
 
             if (deserializeColumns.Length == 0 && serializeColumns.Length == 0)
             {
-                return Throw.InvalidOperationException<IBoundConfiguration<T>>($"No columns found to read or write for {typeof(T).FullName}");
+                return Throw.InvalidOperationException<IBoundConfiguration<TRow>>($"No columns found to read or write for {typeof(TRow).FullName}");
             }
 
             // this is entirely knowable now, so go ahead and calculate
@@ -109,7 +101,7 @@ namespace Cesil
             }
 
             return
-                new ConcreteBoundConfiguration<T>(
+                new ConcreteBoundConfiguration<TRow>(
                     cons,
                     deserializeColumns,
                     serializeColumns,

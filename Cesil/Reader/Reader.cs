@@ -66,10 +66,10 @@ namespace Cesil
 
         private void HandleHeaders()
         {
-            if (Configuration.ReadHeader == Cesil.ReadHeaders.Never)
+            if (Configuration.ReadHeader == Cesil.ReadHeader.Never)
             {
                 // can just use the discovered copy from source
-                ReadHeaders = Cesil.ReadHeaders.Never;
+                ReadHeaders = Cesil.ReadHeader.Never;
                 TryMakeStateMachine();
                 Columns.Value = Configuration.DeserializeColumns;
 
@@ -113,7 +113,7 @@ namespace Cesil
 
         private void HandleLineEndings()
         {
-            if (Configuration.RowEnding != Cesil.RowEndings.Detect)
+            if (Configuration.RowEnding != Cesil.RowEnding.Detect)
             {
                 RowEndings = Configuration.RowEnding;
                 TryMakeStateMachine();

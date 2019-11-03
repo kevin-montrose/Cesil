@@ -8,14 +8,20 @@ namespace Cesil
     /// 
     /// DefaultTypeDescriber, ManualTypeDescriber, and SurrogateTypeDescriber all implement
     ///   this interface and handle the most common desired configurations.
+    ///   
+    /// Note to implementors: All ITypeDescriber methods must be thread safe, as they are invoked 
+    ///   as needed during operation with no guarantee about the calling thread(s).
     /// </summary>
     public interface ITypeDescriber
     {
+        // for static typing scenarios
+
         /// <summary>
         /// Get the provider for instances of forType.
         /// 
         /// Returns null if no InstanceProvider could be found.
         /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         InstanceProvider? GetInstanceProvider(TypeInfo forType);
         /// <summary>
         /// Enumerate all the members on forType to serialize.
@@ -26,26 +32,29 @@ namespace Cesil
         /// </summary>
         IEnumerable<DeserializableMember> EnumerateMembersToDeserialize(TypeInfo forType);
 
+        // for dynamic typing scenarios
+
         /// <summary>
         /// Called to determine how to convert a dynamic cell.
         /// 
         /// Returns null if no Parser could be found.
         /// </summary>
-        Parser? GetDynamicCellParserFor(in ReadContext ctx, TypeInfo targetType);
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
+        Parser? GetDynamicCellParserFor(in ReadContext context, TypeInfo targetType);
 
         /// <summary>
-        /// Called to determine how to convert an entire dynamic row into the given type, as identified by
-        ///   it's number (base-0), into the given type.
-        ///   
-        /// Column names will be exposed on individual column identifiers only if they are set.
+        /// Called to determine how to convert an entire dynamic row into the given type.
         /// 
         /// Returns null if no DynamicRowConverter could be found.
         /// </summary>
-        DynamicRowConverter? GetDynamicRowConverter(in ReadContext ctx, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType);
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
+        DynamicRowConverter? GetDynamicRowConverter(in ReadContext context, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType);
 
         /// <summary>
         /// Called to determine the cells that make up the given dynamic row.
+        /// 
+        /// Used to enumerate cells when serializing dynamically.
         /// </summary>
-        IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext ctx, object row);
+        IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext context, object row);
     }
 }

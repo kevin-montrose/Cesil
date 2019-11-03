@@ -10,8 +10,8 @@ namespace Cesil
 
         public State CurrentState;
 
-        internal RowEndings RowEndings;
-        internal ReadHeaders HasHeaders;
+        internal RowEnding RowEndings;
+        internal ReadHeader HasHeaders;
 
         private ReadOnlyMemory<TransitionRule> TransitionMatrixMemory;
         private CharacterLookup CharacterLookup;
@@ -28,10 +28,10 @@ namespace Cesil
 
         internal void Initialize(
             CharacterLookup preAllocLookup,
-            char escapeStartChar,
-            char escapeChar,
-            RowEndings rowEndings,
-            ReadHeaders hasHeaders,
+            char? escapeStartChar,
+            char? escapeChar,
+            RowEnding rowEndings,
+            ReadHeader hasHeaders,
             bool readingComments
         )
         {
@@ -41,21 +41,21 @@ namespace Cesil
 
             switch (HasHeaders)
             {
-                case ReadHeaders.Always:
+                case ReadHeader.Always:
                     CurrentState = State.Header_Start;
                     break;
-                case ReadHeaders.Never:
+                case ReadHeader.Never:
                     CurrentState = State.Record_Start;
                     break;
                 default:
-                    Throw.InvalidOperationException<object>($"Unexpected {nameof(ReadHeaders)}: {HasHeaders}");
+                    Throw.InvalidOperationException<object>($"Unexpected {nameof(ReadHeader)}: {HasHeaders}");
                     break;
             }
 
             TransitionMatrixMemory =
                 GetTransitionMatrix(
                     RowEndings,
-                    escapeStartChar == escapeChar,
+                    escapeStartChar.HasValue && escapeStartChar == escapeChar,
                     readingComments
                 );
         }

@@ -24,7 +24,7 @@ namespace Cesil
 
         private NonNull<IReaderAdapter> Inner;
 
-        private RowEndings Ending;
+        private RowEnding Ending;
 
         private readonly ReaderStateMachine State;
 
@@ -57,7 +57,7 @@ namespace Cesil
                 config.EscapedValueStartAndStop,
                 config.EscapeValueEscapeChar,
                 default,
-                ReadHeaders.Never,
+                ReadHeader.Never,
                 false
             );
 
@@ -73,7 +73,7 @@ namespace Cesil
             BufferStart = 0;
         }
 
-        internal ValueTask<(RowEndings Ending, Memory<char> PushBack)?> DetectAsync(CancellationToken cancel)
+        internal ValueTask<(RowEnding Ending, Memory<char> PushBack)?> DetectAsync(CancellationToken cancel)
         {
             var handle = State.Pin();
             var disposeHandle = true;
@@ -101,8 +101,8 @@ namespace Cesil
                         {
                             switch (buffSpan[0])
                             {
-                                case '\r': Ending = RowEndings.CarriageReturn; break;
-                                case '\n': Ending = RowEndings.LineFeed; break;
+                                case '\r': Ending = RowEnding.CarriageReturn; break;
+                                case '\n': Ending = RowEnding.LineFeed; break;
                             }
                         }
                         break;
@@ -126,7 +126,7 @@ namespace Cesil
                                 BufferStart = 1;
                                 continue;
                             default:
-                                return new ValueTask<(RowEndings Ending, Memory<char> PushBack)?>(default((RowEndings Ending, Memory<char> PushBack)?));
+                                return new ValueTask<(RowEnding Ending, Memory<char> PushBack)?>(default((RowEnding Ending, Memory<char> PushBack)?));
                         }
                     }
                 }
@@ -134,10 +134,10 @@ namespace Cesil
                 // this implies we're only gonna read a row... so whatever
                 if (Ending == 0)
                 {
-                    Ending = RowEndings.CarriageReturnLineFeed;
+                    Ending = RowEnding.CarriageReturnLineFeed;
                 }
 
-                return new ValueTask<(RowEndings Ending, Memory<char> PushBack)?>((Ending, Pushback.Slice(0, PushbackLength)));
+                return new ValueTask<(RowEnding Ending, Memory<char> PushBack)?>((Ending, Pushback.Slice(0, PushbackLength)));
 
             }
             finally
@@ -148,7 +148,7 @@ namespace Cesil
                 }
             }
 
-            static async ValueTask<(RowEndings Ending, Memory<char> PushBack)?> DetectAsync_ContinueAfterReadAsync(
+            static async ValueTask<(RowEnding Ending, Memory<char> PushBack)?> DetectAsync_ContinueAfterReadAsync(
                 RowEndingDetector<T> self, 
                 ValueTask<int> waitFor, 
                 ReaderStateMachine.PinHandle handle,
@@ -174,8 +174,8 @@ namespace Cesil
                         {
                             switch (buffMem.Span[0])
                             {
-                                case '\r': self.Ending = RowEndings.CarriageReturn; break;
-                                case '\n': self.Ending = RowEndings.LineFeed; break;
+                                case '\r': self.Ending = RowEnding.CarriageReturn; break;
+                                case '\n': self.Ending = RowEnding.LineFeed; break;
                             }
                         }
                         goto end;
@@ -224,8 +224,8 @@ loopStart:
                             {
                                 switch (buffMem.Span[0])
                                 {
-                                    case '\r': self.Ending = RowEndings.CarriageReturn; break;
-                                    case '\n': self.Ending = RowEndings.LineFeed; break;
+                                    case '\r': self.Ending = RowEnding.CarriageReturn; break;
+                                    case '\n': self.Ending = RowEnding.LineFeed; break;
                                 }
                             }
                             break;
@@ -257,7 +257,7 @@ loopStart:
 end:
                     if (self.Ending == 0)
                     {
-                        self.Ending = RowEndings.CarriageReturnLineFeed;
+                        self.Ending = RowEnding.CarriageReturnLineFeed;
                     }
 
                     return (self.Ending, self.Pushback.Slice(0, self.PushbackLength));
@@ -265,7 +265,7 @@ end:
             }
         }
 
-        internal (RowEndings Ending, Memory<char> PushBack)? Detect()
+        internal (RowEnding Ending, Memory<char> PushBack)? Detect()
         {
             using (State.Pin())
             {
@@ -282,8 +282,8 @@ end:
                         {
                             switch (buffSpan[0])
                             {
-                                case '\r': Ending = RowEndings.CarriageReturn; break;
-                                case '\n': Ending = RowEndings.LineFeed; break;
+                                case '\r': Ending = RowEnding.CarriageReturn; break;
+                                case '\n': Ending = RowEnding.LineFeed; break;
                             }
                         }
                         break;
@@ -315,7 +315,7 @@ end:
                 // this implies we're only gonna read a row... so whatever
                 if (Ending == 0)
                 {
-                    Ending = RowEndings.CarriageReturnLineFeed;
+                    Ending = RowEnding.CarriageReturnLineFeed;
                 }
             }
 
@@ -362,7 +362,7 @@ end:
                 {
                     if (cc == '\n')
                     {
-                        Ending = RowEndings.LineFeed;
+                        Ending = RowEnding.LineFeed;
                         return AdvanceResult.Finished;
                     }
 
@@ -378,11 +378,11 @@ end:
 
                         if (nextCC == '\n')
                         {
-                            Ending = RowEndings.CarriageReturnLineFeed;
+                            Ending = RowEnding.CarriageReturnLineFeed;
                         }
                         else
                         {
-                            Ending = RowEndings.CarriageReturn;
+                            Ending = RowEnding.CarriageReturn;
                         }
 
                         return AdvanceResult.Finished;

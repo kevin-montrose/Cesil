@@ -49,17 +49,15 @@ namespace Cesil
                 var ix = NextIndex;
                 if (ix < Row.Width)
                 {
-                    string? name;
                     if (Row.Names.HasValue)
                     {
-                        name = Row.Names.Value[ix];
+                        var name = Row.Names.Value[ix];
+                        _Current = ColumnIdentifier.Create(ix, name);
                     }
                     else
                     {
-                        name = null;
+                        _Current = ColumnIdentifier.Create(ix);
                     }
-
-                    _Current = ColumnIdentifier.Create(ix, name);
 
                     NextIndex++;
                     return true;
@@ -99,17 +97,13 @@ namespace Cesil
                 {
                     AssertNotDisposed(Row);
                     var ix = index;
-                    string? name;
                     if (Row.Names.HasValue)
                     {
-                        name = Row.Names.Value[ix];
-                    }
-                    else
-                    {
-                        name = null;
+                        var name = Row.Names.Value[ix];
+                        return ColumnIdentifier.Create(ix, name);
                     }
 
-                    return ColumnIdentifier.Create(ix, name);
+                    return ColumnIdentifier.Create(ix);
                 }
             }
 

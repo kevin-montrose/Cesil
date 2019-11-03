@@ -4,14 +4,14 @@ using System.Reflection;
 namespace Cesil
 {
     /// <summary>
-    /// Delegate type for 'should serialize' that don't take an instance.
+    /// Delegate type for 'should serialize' that don't take a row.
     /// </summary>
     public delegate bool StaticShouldSerializeDelegate();
 
     /// <summary>
     /// Delegate type for 'should serialize'.
     /// </summary>
-    public delegate bool ShouldSerializeDelegate<T>(T instance);
+    public delegate bool ShouldSerializeDelegate<TRow>(TRow instance);
 
     /// <summary>
     /// Represents code used to determine whether or not to write a value.
@@ -71,10 +71,7 @@ namespace Cesil
         /// </summary>
         public static ShouldSerialize ForMethod(MethodInfo method)
         {
-            if (method == null)
-            {
-                return Throw.ArgumentNullException<ShouldSerialize>(nameof(method));
-            }
+            Utils.CheckArgumentNull(method, nameof(method));
 
             var args = method.GetParameters();
             if (args.Length > 0)
@@ -107,14 +104,11 @@ namespace Cesil
         /// <summary>
         /// Create a ShouldSerialize from the given delegate.
         /// </summary>
-        public static ShouldSerialize ForDelegate<T>(ShouldSerializeDelegate<T> del)
+        public static ShouldSerialize ForDelegate<TRow>(ShouldSerializeDelegate<TRow> del)
         {
-            if (del == null)
-            {
-                return Throw.ArgumentNullException<ShouldSerialize>(nameof(del));
-            }
+            Utils.CheckArgumentNull(del, nameof(del));
 
-            return new ShouldSerialize(typeof(T).GetTypeInfo(), del);
+            return new ShouldSerialize(typeof(TRow).GetTypeInfo(), del);
         }
 
         /// <summary>
@@ -122,10 +116,7 @@ namespace Cesil
         /// </summary>
         public static ShouldSerialize ForDelegate(StaticShouldSerializeDelegate del)
         {
-            if (del == null)
-            {
-                return Throw.ArgumentNullException<ShouldSerialize>(nameof(del));
-            }
+            Utils.CheckArgumentNull(del, nameof(del));
 
             return new ShouldSerialize(null, del);
         }
@@ -146,33 +137,33 @@ namespace Cesil
         /// <summary>
         /// Returns true if this object equals the given ShouldSerialize.
         /// </summary>
-        public bool Equals(ShouldSerialize s)
+        public bool Equals(ShouldSerialize shouldSerialize)
         {
-            if (ReferenceEquals(s, null)) return false;
+            if (ReferenceEquals(shouldSerialize, null)) return false;
 
             var mode = Mode;
-            var otherMode = s.Mode;
+            var otherMode = shouldSerialize.Mode;
             if (mode != otherMode) return false;
 
-            if (IsStatic != s.IsStatic) return false;
+            if (IsStatic != shouldSerialize.IsStatic) return false;
 
             if (Takes.HasValue)
             {
-                if (!s.Takes.HasValue) return false;
+                if (!shouldSerialize.Takes.HasValue) return false;
 
-                if (Takes.Value != s.Takes.Value) return false;
+                if (Takes.Value != shouldSerialize.Takes.Value) return false;
             }
             else
             {
-                if (s.Takes.HasValue) return false;
+                if (shouldSerialize.Takes.HasValue) return false;
             }
 
             switch (mode)
             {
                 case BackingMode.Delegate:
-                    return Delegate.Value == s.Delegate.Value;
+                    return Delegate.Value == shouldSerialize.Delegate.Value;
                 case BackingMode.Method:
-                    return Method.Value == s.Method.Value;
+                    return Method.Value == shouldSerialize.Method.Value;
 
                 default:
                     return Throw.Exception<bool>($"Unexpected {nameof(BackingMode)}: {mode}");

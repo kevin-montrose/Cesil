@@ -112,7 +112,7 @@ namespace Cesil
         {
             ReadHeaders = Configuration.ReadHeader;
            
-            var allowColumnsByName = Configuration.ReadHeader == Cesil.ReadHeaders.Always;
+            var allowColumnsByName = Configuration.ReadHeader == Cesil.ReadHeader.Always;
 
             var headerConfig =
                 new DynamicBoundConfiguration(
@@ -179,7 +179,7 @@ namespace Cesil
 
         private void HandleLineEndings()
         {
-            if (Configuration.RowEnding != Cesil.RowEndings.Detect)
+            if (Configuration.RowEnding != Cesil.RowEnding.Detect)
             {
                 RowEndings = Configuration.RowEnding;
                 TryMakeStateMachine();

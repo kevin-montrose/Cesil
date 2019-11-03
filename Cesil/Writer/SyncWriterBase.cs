@@ -24,11 +24,7 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
-            if (rows == null)
-            {
-                Throw.ArgumentNullException<object>(nameof(rows));
-                return;
-            }
+            Utils.CheckArgumentNull(rows, nameof(rows));
 
             foreach (var row in rows)
             {
@@ -68,11 +64,15 @@ namespace Cesil
             }
             else
             {
-                PlaceCharInStaging(Config.EscapedValueStartAndStop);
+                CheckCanEncode(charSpan);
+
+                var escapedValueStartAndStop = Utils.NonNullStruct(Config.EscapedValueStartAndStop);
+
+                PlaceCharInStaging(escapedValueStartAndStop);
 
                 WriteEncoded(charSpan);
 
-                PlaceCharInStaging(Config.EscapedValueStartAndStop);
+                PlaceCharInStaging(escapedValueStartAndStop);
             }
         }
 
@@ -91,6 +91,8 @@ namespace Cesil
             }
             else
             {
+                CheckCanEncode(head);
+
                 // we have to encode this value, but let's try to do it in only a couple of
                 //    write calls
 
@@ -100,8 +102,10 @@ namespace Cesil
 
         internal void WriteEncoded(ReadOnlySequence<char> head)
         {
+            var escapedValueStartAndStop = Utils.NonNullStruct(Config.EscapedValueStartAndStop);
+
             // start with whatever the escape is
-            PlaceCharInStaging(Config.EscapedValueStartAndStop);
+            PlaceCharInStaging(escapedValueStartAndStop);
 
             foreach (var cur in head)
             {
@@ -109,26 +113,30 @@ namespace Cesil
             }
 
             // end with the escape
-            PlaceCharInStaging(Config.EscapedValueStartAndStop);
+            PlaceCharInStaging(escapedValueStartAndStop);
         }
 
         internal void WriteEncoded(ReadOnlySpan<char> charSpan)
         {
+            var escapedValueStartAndStop = Utils.NonNullStruct(Config.EscapedValueStartAndStop);
+            
             // try and blit things in in big chunks
             var start = 0;
-            var end = Utils.FindChar(charSpan, start, Config.EscapedValueStartAndStop);
+            var end = Utils.FindChar(charSpan, start, escapedValueStartAndStop);
 
             while (end != -1)
             {
+                var escapeValueEscapeChar = Utils.NonNullStruct(Config.EscapeValueEscapeChar);
+
                 var len = end - start;
                 var toWrite = charSpan.Slice(start, len);
 
                 PlaceAllInStaging(toWrite);
 
-                PlaceCharInStaging(Config.EscapeValueEscapeChar);
+                PlaceCharInStaging(escapeValueEscapeChar);
 
                 start += len;
-                end = Utils.FindChar(charSpan, start + 1, Config.EscapedValueStartAndStop);
+                end = Utils.FindChar(charSpan, start + 1, escapedValueStartAndStop);
             }
 
             if (start != charSpan.Length)

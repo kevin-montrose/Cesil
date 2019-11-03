@@ -1,39 +1,22 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 
-using static Cesil.DisposableHelper;
-
 namespace Cesil
 {
-    // todo: why is this disposable?  and why isn't it checking row generation?
-    internal sealed class DynamicRowEnumerable<T> : IEnumerable<T>, ITestableDisposable
+    internal sealed class DynamicRowEnumerable<T> : IEnumerable<T>
     {
-        private bool EnumerableDisposed;
-        private DynamicRow Row;
-
-        public bool IsDisposed
-        {
-            get
-            {
-                if (EnumerableDisposed) return true;
-
-                return Row.IsDisposed;
-            }
-        }
+        private readonly uint Generation;
+        private readonly DynamicRow Row;
 
         internal DynamicRowEnumerable(object row)
         {
             Row = (DynamicRow)row;
-        }
-
-        public void Dispose()
-        {
-            EnumerableDisposed = true;
+            Generation = Row.Generation;
         }
 
         public IEnumerator<T> GetEnumerator()
         {
-            AssertNotDisposed(this);
+            Row.AssertGenerationMatch(Generation);
 
             return new DynamicRowEnumerator<T>(Row);
         }

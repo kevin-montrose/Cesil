@@ -11,7 +11,7 @@ namespace Cesil
     /// <summary>
     /// Delegate type for resets.
     /// </summary>
-    public delegate void ResetDelegate<T>(T onType);
+    public delegate void ResetDelegate<TRow>(TRow onType);
 
     /// <summary>
     /// Represents code called before a setter is called or a field
@@ -74,17 +74,14 @@ namespace Cesil
         /// If the reset is instance or takes a parameter, the instance or parameter
         ///   type must be assignable from the type being deserialized.
         /// </summary>
-        public static Reset ForMethod(MethodInfo resetMethod)
+        public static Reset ForMethod(MethodInfo method)
         {
-            if (resetMethod == null)
-            {
-                return Throw.ArgumentNullException<Reset>(nameof(resetMethod));
-            }
+            Utils.CheckArgumentNull(method, nameof(method));
 
             TypeInfo? rowType;
 
-            var args = resetMethod.GetParameters();
-            if (resetMethod.IsStatic)
+            var args = method.GetParameters();
+            if (method.IsStatic)
             {
                 if (args.Length == 0)
                 {
@@ -97,34 +94,31 @@ namespace Cesil
                 }
                 else
                 {
-                    return Throw.ArgumentException<Reset>($"{resetMethod} is static, it must take 0 or 1 parameters", nameof(resetMethod));
+                    return Throw.ArgumentException<Reset>($"{method} is static, it must take 0 or 1 parameters", nameof(method));
                 }
             }
             else
             {
                 if (args.Length != 0)
                 {
-                    return Throw.ArgumentException<Reset>($"{resetMethod} is an instance method, it must take 0 parameters", nameof(resetMethod));
+                    return Throw.ArgumentException<Reset>($"{method} is an instance method, it must take 0 parameters", nameof(method));
                 }
 
-                rowType = resetMethod.DeclaringTypeNonNull();
+                rowType = method.DeclaringTypeNonNull();
             }
 
-            return new Reset(rowType, resetMethod);
+            return new Reset(rowType, method);
         }
 
 
         /// <summary>
         /// Create a reset from a delegate.
         /// </summary>
-        public static Reset ForDelegate<T>(ResetDelegate<T> del)
+        public static Reset ForDelegate<TRow>(ResetDelegate<TRow> del)
         {
-            if (del == null)
-            {
-                return Throw.ArgumentNullException<Reset>(nameof(del));
-            }
+            Utils.CheckArgumentNull(del, nameof(del));
 
-            return new Reset(typeof(T).GetTypeInfo(), del);
+            return new Reset(typeof(TRow).GetTypeInfo(), del);
         }
 
         /// <summary>
@@ -132,10 +126,7 @@ namespace Cesil
         /// </summary>
         public static Reset ForDelegate(StaticResetDelegate del)
         {
-            if (del == null)
-            {
-                return Throw.ArgumentNullException<Reset>(nameof(del));
-            }
+            Utils.CheckArgumentNull(del, nameof(del));
 
             return new Reset(null, del);
         }
@@ -156,32 +147,32 @@ namespace Cesil
         /// <summary>
         /// Returns true if this object equals the given Reset.
         /// </summary>
-        public bool Equals(Reset r)
+        public bool Equals(Reset reset)
         {
-            if (ReferenceEquals(r, null)) return false;
+            if (ReferenceEquals(reset, null)) return false;
 
             var mode = Mode;
-            var otherMode = r.Mode;
+            var otherMode = reset.Mode;
 
             if (mode != otherMode) return false;
 
             if (RowType.HasValue)
             {
-                if (!r.RowType.HasValue) return false;
+                if (!reset.RowType.HasValue) return false;
 
-                if (RowType.Value != r.RowType.Value) return false;
+                if (RowType.Value != reset.RowType.Value) return false;
             }
             else
             {
-                if (r.RowType.HasValue) return false;
+                if (reset.RowType.HasValue) return false;
             }
 
             switch (mode)
             {
                 case BackingMode.Delegate:
-                    return r.Delegate.Value == Delegate.Value && r.IsStatic == IsStatic;
+                    return reset.Delegate.Value == Delegate.Value && reset.IsStatic == IsStatic;
                 case BackingMode.Method:
-                    return r.Method.Value == Method.Value && r.IsStatic == IsStatic;
+                    return reset.Method.Value == Method.Value && reset.IsStatic == IsStatic;
 
                 default:
                     return Throw.Exception<bool>($"Unexpected {nameof(BackingMode)}: {mode}");

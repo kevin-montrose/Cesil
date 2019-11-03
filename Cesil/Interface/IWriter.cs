@@ -6,17 +6,17 @@ namespace Cesil
     /// <summary>
     /// Interface for synchronously writing rows.
     /// </summary>
-    public interface IWriter<T> : IDisposable
+    public interface IWriter<TRow> : IDisposable
     {
         /// <summary>
         /// Write all rows in the provided enumerable.
         /// </summary>
-        void WriteAll(IEnumerable<T> rows);
+        void WriteAll(IEnumerable<TRow> rows);
 
         /// <summary>
         /// Write a single row.
         /// </summary>
-        void Write(T row);
+        void Write(TRow row);
 
         /// <summary>
         /// Write a comment as a row.

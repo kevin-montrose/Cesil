@@ -7,7 +7,7 @@
     /// This can be determined automatically with
     ///   Detect.
     /// </summary>
-    public enum ReadHeaders : byte
+    public enum ReadHeader : byte
     {
         /// <summary>
         /// Reading will fail if headers are present.

@@ -128,10 +128,10 @@ namespace Cesil
             // init all the transition matrixes
             for (var i = 0; i < RuleCacheRowEndingCount; i++)
             {
-                InitTransitionMatrix((RowEndings)i, false, false);
-                InitTransitionMatrix((RowEndings)i, false, true);
-                InitTransitionMatrix((RowEndings)i, true, false);
-                InitTransitionMatrix((RowEndings)i, true, true);
+                InitTransitionMatrix((RowEnding)i, false, false);
+                InitTransitionMatrix((RowEnding)i, false, true);
+                InitTransitionMatrix((RowEnding)i, true, false);
+                InitTransitionMatrix((RowEnding)i, true, true);
             }
         }
 
@@ -194,7 +194,7 @@ namespace Cesil
         private static readonly TransitionRule Invalid_Skip_Character = (State.Invalid, AdvanceResult.Skip_Character);
 
         private static ReadOnlyMemory<TransitionRule> GetTransitionMatrix(
-            RowEndings rowEndings,
+            RowEnding rowEndings,
             bool escapeStartEqualsEscape,
             bool readComments
         )
@@ -206,7 +206,7 @@ namespace Cesil
         }
 
         private static void InitTransitionMatrix(
-            RowEndings rowEndings,
+            RowEnding rowEndings,
             bool escapeStartEqualsEscape,
             bool readComments
         )
@@ -238,7 +238,7 @@ namespace Cesil
             InitTransitionMatrix_Invalid(GetTransitionRulesSpan(State.Invalid, rowEndings, escapeStartEqualsEscape, readComments));
         }
 
-        private static Span<TransitionRule> GetTransitionRulesSpan(State state, RowEndings rowEndings, bool escapeStartEqualsEscape, bool readComments)
+        private static Span<TransitionRule> GetTransitionRulesSpan(State state, RowEnding rowEndings, bool escapeStartEqualsEscape, bool readComments)
         {
             var configStart = GetConfigurationStartIndex(rowEndings, escapeStartEqualsEscape, readComments);
 
@@ -250,7 +250,7 @@ namespace Cesil
             return new Span<TransitionRule>(RuleCache, offset, len);
         }
 
-        private static int GetConfigurationStartIndex(RowEndings rowEndings, bool escapeStartEqualsEscape, bool readComments)
+        private static int GetConfigurationStartIndex(RowEnding rowEndings, bool escapeStartEqualsEscape, bool readComments)
         {
             var configNum = (byte)rowEndings;
             if (escapeStartEqualsEscape)
@@ -385,7 +385,7 @@ namespace Cesil
         }
 
         // moving from Comment_BeforeRecord
-        private static void InitTransitionMatrix_Comment_BeforeRecord(RowEndings rowEndings, bool readComments, Span<TransitionRule> innerRet)
+        private static void InitTransitionMatrix_Comment_BeforeRecord(RowEnding rowEndings, bool readComments, Span<TransitionRule> innerRet)
         {
             // Looks like
             // - # 
@@ -415,15 +415,15 @@ namespace Cesil
             TransitionRule forCarriageReturn;
             switch (rowEndings)
             {
-                case RowEndings.CarriageReturn:
+                case RowEnding.CarriageReturn:
                     // ends the comment
                     forCarriageReturn = commentEndTreatment;
                     break;
-                case RowEndings.CarriageReturnLineFeed:
+                case RowEnding.CarriageReturnLineFeed:
                     // may end the comment, if followed by a \n
                     forCarriageReturn = Comment_BeforeRecord_ExpectingEndOfComment_Skip_Character;
                     break;
-                case RowEndings.LineFeed:
+                case RowEnding.LineFeed:
                     // comment continues
                     forCarriageReturn = commentCharacterTreatment;
                     break;
@@ -437,15 +437,15 @@ namespace Cesil
             TransitionRule forLineFeed;
             switch (rowEndings)
             {
-                case RowEndings.CarriageReturn:
+                case RowEnding.CarriageReturn:
                     // comment continues
                     forLineFeed = commentCharacterTreatment;
                     break;
-                case RowEndings.CarriageReturnLineFeed:
+                case RowEnding.CarriageReturnLineFeed:
                     // comment continues
                     forLineFeed = commentCharacterTreatment;
                     break;
-                case RowEndings.LineFeed:
+                case RowEnding.LineFeed:
                     // ends the comment
                     forLineFeed = commentEndTreatment;
                     break;
@@ -463,7 +463,7 @@ namespace Cesil
         }
 
         // moving from Comment_BeforeHeader
-        private static void InitTransitionMatrix_Comment_BeforeHeader(RowEndings rowEndings, bool readComments, Span<TransitionRule> innerRet)
+        private static void InitTransitionMatrix_Comment_BeforeHeader(RowEnding rowEndings, bool readComments, Span<TransitionRule> innerRet)
         {
             // Looks like
             // - # 
@@ -493,15 +493,15 @@ namespace Cesil
             TransitionRule forCarriageReturn;
             switch (rowEndings)
             {
-                case RowEndings.CarriageReturn:
+                case RowEnding.CarriageReturn:
                     // ends the comment
                     forCarriageReturn = commentEndTreatment;
                     break;
-                case RowEndings.CarriageReturnLineFeed:
+                case RowEnding.CarriageReturnLineFeed:
                     // may end the comment, if followed by a \n
                     forCarriageReturn = Comment_BeforeHeader_ExpectingEndOfComment_Skip_Character;
                     break;
-                case RowEndings.LineFeed:
+                case RowEnding.LineFeed:
                     // comment continues
                     forCarriageReturn = commentCharacterTreatment;
                     break;
@@ -515,15 +515,15 @@ namespace Cesil
             TransitionRule forLineFeed;
             switch (rowEndings)
             {
-                case RowEndings.CarriageReturn:
+                case RowEnding.CarriageReturn:
                     // comment continues
                     forLineFeed = commentCharacterTreatment;
                     break;
-                case RowEndings.CarriageReturnLineFeed:
+                case RowEnding.CarriageReturnLineFeed:
                     // comment continues
                     forLineFeed = commentCharacterTreatment;
                     break;
-                case RowEndings.LineFeed:
+                case RowEnding.LineFeed:
                     // ends the comment
                     forLineFeed = commentEndTreatment;
                     break;
@@ -541,7 +541,7 @@ namespace Cesil
         }
 
         // moving from Header_Start
-        private static void InitTransitionMatrix_Header_Start(RowEndings rowEndings, Span<TransitionRule> innerRet)
+        private static void InitTransitionMatrix_Header_Start(RowEnding rowEndings, Span<TransitionRule> innerRet)
         {
             // Looks like
             //  - <EMPTY>
@@ -561,11 +561,11 @@ namespace Cesil
             TransitionRule forCarriageReturn;
             switch (rowEndings)
             {
-                case RowEndings.CarriageReturn:
+                case RowEnding.CarriageReturn:
                     // ends the header
                     forCarriageReturn = Record_Start_SkipCharacter;
                     break;
-                case RowEndings.CarriageReturnLineFeed:
+                case RowEnding.CarriageReturnLineFeed:
                     // may end the header, if followed by a \n
                     forCarriageReturn = Header_ExpectingEndOfRecord_SkipCharacter;
                     break;
@@ -579,7 +579,7 @@ namespace Cesil
             TransitionRule forLineFeed;
             switch (rowEndings)
             {
-                case RowEndings.LineFeed:
+                case RowEnding.LineFeed:
                     // ends header
                     forLineFeed = Record_Start_SkipCharacter;
                     break;
@@ -597,7 +597,7 @@ namespace Cesil
         }
 
         // moving from Record_Start
-        private static void InitTransitionMatrix_Record_Start(RowEndings rowEndings, Span<TransitionRule> innerRet)
+        private static void InitTransitionMatrix_Record_Start(RowEnding rowEndings, Span<TransitionRule> innerRet)
         {
             // Looks like
             //  - <EMPTY>
@@ -617,11 +617,11 @@ namespace Cesil
             TransitionRule forCarriageReturn;
             switch (rowEndings)
             {
-                case RowEndings.CarriageReturn:
+                case RowEnding.CarriageReturn:
                     // ends the header
                     forCarriageReturn = Record_Start_Finished_Record;
                     break;
-                case RowEndings.CarriageReturnLineFeed:
+                case RowEnding.CarriageReturnLineFeed:
                     // may end the header, if followed by a \n
                     forCarriageReturn = Record_ExpectingEndOfRecord_Skip_Character;
                     break;
@@ -635,7 +635,7 @@ namespace Cesil
             TransitionRule forLineFeed;
             switch (rowEndings)
             {
-                case RowEndings.LineFeed:
+                case RowEnding.LineFeed:
                     // ends header
                     forLineFeed = Record_Start_Finished_Record;
                     break;
@@ -653,7 +653,7 @@ namespace Cesil
         }
 
         // moving from Header_InEscapedValue_ExpectingEndOfValueOrRecord
-        private static void InitTransitionMatrix_Header_InEscapedValue_ExpectingEndOfValueOrRecord(RowEndings rowEndings, Span<TransitionRule> innerRet)
+        private static void InitTransitionMatrix_Header_InEscapedValue_ExpectingEndOfValueOrRecord(RowEnding rowEndings, Span<TransitionRule> innerRet)
         {
             // Look like
             // - "df"
@@ -669,11 +669,11 @@ namespace Cesil
             TransitionRule forCarriageReturn;
             switch (rowEndings)
             {
-                case RowEndings.CarriageReturn:
+                case RowEnding.CarriageReturn:
                     // ends the header
                     forCarriageReturn = Record_Start_SkipCharacter;
                     break;
-                case RowEndings.CarriageReturnLineFeed:
+                case RowEnding.CarriageReturnLineFeed:
                     // may end the header, if followed by a \n
                     forCarriageReturn = Header_ExpectingEndOfRecord_SkipCharacter;
                     break;
@@ -686,7 +686,7 @@ namespace Cesil
             TransitionRule forLineFeed;
             switch (rowEndings)
             {
-                case RowEndings.LineFeed:
+                case RowEnding.LineFeed:
                     // ends header
                     forLineFeed = Record_Start_SkipCharacter;
                     break;
@@ -706,7 +706,7 @@ namespace Cesil
         }
 
         // moving from Record_InEscapedValue_ExpectingEndOfValueOrRecord
-        private static void InitTransitionMatrix_Record_InEscapedValue_ExpectingEndOfValueOrRecord(RowEndings rowEndings, Span<TransitionRule> innerRet)
+        private static void InitTransitionMatrix_Record_InEscapedValue_ExpectingEndOfValueOrRecord(RowEnding rowEndings, Span<TransitionRule> innerRet)
         {
             // Look like
             // - "df"
@@ -722,11 +722,11 @@ namespace Cesil
             TransitionRule forCarriageReturn;
             switch (rowEndings)
             {
-                case RowEndings.CarriageReturn:
+                case RowEnding.CarriageReturn:
                     // ends the record
                     forCarriageReturn = Record_Start_Finished_Record;
                     break;
-                case RowEndings.CarriageReturnLineFeed:
+                case RowEnding.CarriageReturnLineFeed:
                     // may end the header, if followed by a \n
                     forCarriageReturn = Record_ExpectingEndOfRecord_Skip_Character;
                     break;
@@ -740,7 +740,7 @@ namespace Cesil
             TransitionRule forLineFeed;
             switch (rowEndings)
             {
-                case RowEndings.LineFeed:
+                case RowEnding.LineFeed:
                     // ends header
                     forLineFeed = Record_Start_Finished_Record;
                     break;
@@ -800,7 +800,7 @@ namespace Cesil
         }
 
         // moving from Header_InEscapedValueWithPendingEscape
-        private static void InitTransitionMatrix_Header_InEscapedValueWithPendingEscape(RowEndings rowEndings, bool escapeStartCharEqualsEscapeChar, Span<TransitionRule> innerRet)
+        private static void InitTransitionMatrix_Header_InEscapedValueWithPendingEscape(RowEnding rowEndings, bool escapeStartCharEqualsEscapeChar, Span<TransitionRule> innerRet)
         {
             // looks like (assuming escape = ")
             //  - ""
@@ -834,7 +834,7 @@ namespace Cesil
             TransitionRule forCarriageReturn;
             switch (rowEndings)
             {
-                case RowEndings.CarriageReturnLineFeed:
+                case RowEnding.CarriageReturnLineFeed:
                     if (escapeStartCharEqualsEscapeChar)
                     {
                         // "df"\r
@@ -847,7 +847,7 @@ namespace Cesil
                         forCarriageReturn = Invalid_Exception_UnexpectedCharacterInEscapeSequence;
                     }
                     break;
-                case RowEndings.CarriageReturn:
+                case RowEnding.CarriageReturn:
                     if (escapeStartCharEqualsEscapeChar)
                     {
                         // "df"\r
@@ -873,7 +873,7 @@ namespace Cesil
             TransitionRule forLineFeed;
             switch (rowEndings)
             {
-                case RowEndings.LineFeed:
+                case RowEnding.LineFeed:
                     if (escapeStartCharEqualsEscapeChar)
                     {
                         // "df"\n
@@ -917,7 +917,7 @@ namespace Cesil
         }
 
         // moving from Header_Unescaped_NoValue
-        private static void InitTransitionMatrix_Header_Unescaped_NoValue(RowEndings rowEndings, bool escapeStartCharEqualsEscapeChar, Span<TransitionRule> innerRet)
+        private static void InitTransitionMatrix_Header_Unescaped_NoValue(RowEnding rowEndings, bool escapeStartCharEqualsEscapeChar, Span<TransitionRule> innerRet)
         {
             // Looks like (assuming escape is ", sep is ,)
             // - <EMPTY>
@@ -944,15 +944,15 @@ namespace Cesil
             TransitionRule forCarriageReturn;
             switch (rowEndings)
             {
-                case RowEndings.CarriageReturnLineFeed:
+                case RowEnding.CarriageReturnLineFeed:
                     // may end header
                     forCarriageReturn = Header_ExpectingEndOfRecord_SkipCharacter;
                     break;
-                case RowEndings.CarriageReturn:
+                case RowEnding.CarriageReturn:
                     // ends header
                     forCarriageReturn = Record_Start_SkipCharacter;
                     break;
-                case RowEndings.LineFeed:
+                case RowEnding.LineFeed:
                     // doesn't end header
                     forCarriageReturn = Header_Unescaped_WithValue_Skip_Character;
                     break;
@@ -966,15 +966,15 @@ namespace Cesil
             TransitionRule forLineFeed;
             switch (rowEndings)
             {
-                case RowEndings.CarriageReturnLineFeed:
+                case RowEnding.CarriageReturnLineFeed:
                     // doesn't end header
                     forLineFeed = Header_Unescaped_WithValue_Skip_Character;
                     break;
-                case RowEndings.LineFeed:
+                case RowEnding.LineFeed:
                     // ends header
                     forLineFeed = Record_Start_SkipCharacter;
                     break;
-                case RowEndings.CarriageReturn:
+                case RowEnding.CarriageReturn:
                     // doesn't end header
                     forLineFeed = Header_Unescaped_WithValue_Skip_Character;
                     break;
@@ -995,7 +995,7 @@ namespace Cesil
         }
 
         // moving from Header_Unescaped_WithValue
-        private static void InitTransitionMatrix_Header_Unescaped_WithValue(RowEndings rowEndings, bool escapeStartCharEqualsEscapeChar, Span<TransitionRule> innerRet)
+        private static void InitTransitionMatrix_Header_Unescaped_WithValue(RowEnding rowEndings, bool escapeStartCharEqualsEscapeChar, Span<TransitionRule> innerRet)
         {
             // Looks like (assuming escape is ", sep is ,)
             // - df
@@ -1022,15 +1022,15 @@ namespace Cesil
             TransitionRule forCarriageReturn;
             switch (rowEndings)
             {
-                case RowEndings.CarriageReturnLineFeed:
+                case RowEnding.CarriageReturnLineFeed:
                     // will end the record if \n is the next char
                     forCarriageReturn = Header_ExpectingEndOfRecord_SkipCharacter;
                     break;
-                case RowEndings.CarriageReturn:
+                case RowEnding.CarriageReturn:
                     // ends the record
                     forCarriageReturn = Record_Start_SkipCharacter;
                     break;
-                case RowEndings.LineFeed:
+                case RowEnding.LineFeed:
                     // doesn't end the record
                     forCarriageReturn = Header_Unescaped_WithValue_Skip_Character;
                     break;
@@ -1045,15 +1045,15 @@ namespace Cesil
             TransitionRule forLineFeed;
             switch (rowEndings)
             {
-                case RowEndings.CarriageReturnLineFeed:
+                case RowEnding.CarriageReturnLineFeed:
                     // doesn't end the record
                     forLineFeed = Header_Unescaped_WithValue_Skip_Character;
                     break;
-                case RowEndings.LineFeed:
+                case RowEnding.LineFeed:
                     // ends the record
                     forLineFeed = Record_Start_SkipCharacter;
                     break;
-                case RowEndings.CarriageReturn:
+                case RowEnding.CarriageReturn:
                     // doesn't end the record
                     forLineFeed = Header_Unescaped_WithValue_Skip_Character;
                     break;
@@ -1142,7 +1142,7 @@ namespace Cesil
         }
 
         // moving from Record_InEscapedValueWithPendingEscape
-        private static void InitTransitionMatrix_Record_InEscapedValueWithPendingEscape(RowEndings rowEndings, bool escapeStartCharEqualsEscapeChar, Span<TransitionRule> innerRet)
+        private static void InitTransitionMatrix_Record_InEscapedValueWithPendingEscape(RowEnding rowEndings, bool escapeStartCharEqualsEscapeChar, Span<TransitionRule> innerRet)
         {
             // looks like (assuming escape = ")
             //  - ""
@@ -1175,7 +1175,7 @@ namespace Cesil
             TransitionRule forCarriageReturn;
             switch (rowEndings)
             {
-                case RowEndings.CarriageReturnLineFeed:
+                case RowEnding.CarriageReturnLineFeed:
                     if (escapeStartCharEqualsEscapeChar)
                     {
                         // "df"\r
@@ -1188,7 +1188,7 @@ namespace Cesil
                         forCarriageReturn = Invalid_Exception_UnexpectedCharacterInEscapeSequence;
                     }
                     break;
-                case RowEndings.CarriageReturn:
+                case RowEnding.CarriageReturn:
                     if (escapeStartCharEqualsEscapeChar)
                     {
                         // "df"\r
@@ -1214,7 +1214,7 @@ namespace Cesil
             TransitionRule forLineFeed;
             switch (rowEndings)
             {
-                case RowEndings.LineFeed:
+                case RowEnding.LineFeed:
                     if (escapeStartCharEqualsEscapeChar)
                     {
                         // "df"\n
@@ -1256,7 +1256,7 @@ namespace Cesil
         }
 
         // moving from Record_Unescaped_NoValue
-        private static void InitTransitionMatrix_Record_Unescaped_NoValue(RowEndings rowEndings, Span<TransitionRule> innerRet)
+        private static void InitTransitionMatrix_Record_Unescaped_NoValue(RowEnding rowEndings, Span<TransitionRule> innerRet)
         {
             // Looks like (assuming escape is ", sep is ,)
             // - <EMPTY>
@@ -1274,15 +1274,15 @@ namespace Cesil
             TransitionRule forCarriageReturn;
             switch (rowEndings)
             {
-                case RowEndings.CarriageReturnLineFeed:
+                case RowEnding.CarriageReturnLineFeed:
                     // may end record, if followed by a \n
                     forCarriageReturn = Record_ExpectingEndOfRecord_Skip_Character;
                     break;
-                case RowEndings.CarriageReturn:
+                case RowEnding.CarriageReturn:
                     // ends record
                     forCarriageReturn = Record_Start_Finished_Record;
                     break;
-                case RowEndings.LineFeed:
+                case RowEnding.LineFeed:
                     // does not end record
                     forCarriageReturn = Record_Unescaped_WithValue_Append_Character;
                     break;
@@ -1296,15 +1296,15 @@ namespace Cesil
             TransitionRule forLineFeed;
             switch (rowEndings)
             {
-                case RowEndings.CarriageReturnLineFeed:
+                case RowEnding.CarriageReturnLineFeed:
                     // does not end record
                     forLineFeed = Record_Unescaped_WithValue_Append_Character;
                     break;
-                case RowEndings.LineFeed:
+                case RowEnding.LineFeed:
                     // ends record
                     forLineFeed = Record_Start_Finished_Record;
                     break;
-                case RowEndings.CarriageReturn:
+                case RowEnding.CarriageReturn:
                     // does not end record
                     forLineFeed = Record_Unescaped_WithValue_Append_Character;
                     break;
@@ -1325,7 +1325,7 @@ namespace Cesil
         }
 
         // moving from Record_Unescaped_WithValue
-        private static void InitTransitionMatrix_Record_Unescaped_WithValue(RowEndings rowEndings, Span<TransitionRule> innerRet)
+        private static void InitTransitionMatrix_Record_Unescaped_WithValue(RowEnding rowEndings, Span<TransitionRule> innerRet)
         {
             // looks like
             //  - df
@@ -1343,15 +1343,15 @@ namespace Cesil
             TransitionRule forCarriageReturn;
             switch (rowEndings)
             {
-                case RowEndings.CarriageReturnLineFeed:
+                case RowEnding.CarriageReturnLineFeed:
                     // may end record, if followed by \n
                     forCarriageReturn = Record_ExpectingEndOfRecord_Skip_Character;
                     break;
-                case RowEndings.CarriageReturn:
+                case RowEnding.CarriageReturn:
                     // ends record
                     forCarriageReturn = Record_Start_Finished_Record;
                     break;
-                case RowEndings.LineFeed:
+                case RowEnding.LineFeed:
                     // does not end record
                     forCarriageReturn = Record_Unescaped_WithValue_Append_Character;
                     break;
@@ -1365,15 +1365,15 @@ namespace Cesil
             TransitionRule forLineFeed;
             switch (rowEndings)
             {
-                case RowEndings.CarriageReturnLineFeed:
+                case RowEnding.CarriageReturnLineFeed:
                     // does not end record
                     forLineFeed = Record_Unescaped_WithValue_Append_Character;
                     break;
-                case RowEndings.LineFeed:
+                case RowEnding.LineFeed:
                     // ends record
                     forLineFeed = Record_Start_Finished_Record;
                     break;
-                case RowEndings.CarriageReturn:
+                case RowEnding.CarriageReturn:
                     // does not end record
                     forLineFeed = Record_Unescaped_WithValue_Append_Character;
                     break;

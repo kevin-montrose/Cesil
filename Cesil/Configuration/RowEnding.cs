@@ -6,7 +6,7 @@
     /// This can be determined automatically with
     ///   Detect.
     /// </summary>
-    public enum RowEndings : byte
+    public enum RowEnding : byte
     {
         /// <summary>
         /// The \r character.

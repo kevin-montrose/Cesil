@@ -218,7 +218,7 @@ namespace Cesil.Tests
             foreach (var maker in SyncReaderAdapters)
             {
                 var defaultConfig = bindConfig(opts);
-                var smallBufferConfig = bindConfig(opts.NewBuilder().WithReadBufferSizeHint(1).Build());
+                var smallBufferConfig = bindConfig(Options.CreateBuilder(opts).WithReadBufferSizeHint(1).ToOptions());
 
                 // default buffer
                 {
@@ -239,7 +239,7 @@ namespace Cesil.Tests
                 // leaks
                 {
                     var leakDetector = new TrackedMemoryPool<char>();
-                    var leakDetectorConfig = bindConfig(opts.NewBuilder().WithMemoryPool(leakDetector).Build());
+                    var leakDetectorConfig = bindConfig(Options.CreateBuilder(opts).WithMemoryPool(leakDetector).ToOptions());
 
                     var runCount = 0;
                     run(leakDetectorConfig, str => { runCount++; return maker(str); });
@@ -348,7 +348,7 @@ namespace Cesil.Tests
                 await RunOnce(bindConfig, maker, opts, run, checkRunCounts);
 
                 // with a small buffer
-                var smallBufferOpts = opts.NewBuilder().WithReadBufferSizeHint(1).Build();
+                var smallBufferOpts = Options.CreateBuilder(opts).WithReadBufferSizeHint(1).ToOptions();
                 await RunOnce(bindConfig, maker, smallBufferOpts, run, checkRunCounts);
 
                 // checking that we don't hold any pins across awaits
@@ -454,7 +454,7 @@ namespace Cesil.Tests
 
                 //run the test with a small buffer
                 {
-                    var smallBufferOpts = baseOpts.NewBuilder().WithReadBufferSizeHint(1).Build();
+                    var smallBufferOpts = Options.CreateBuilder(baseOpts).WithReadBufferSizeHint(1).ToOptions();
                     var smallBufferConfig = bind(smallBufferOpts);
 
                     int runCount = 0;
@@ -468,7 +468,7 @@ namespace Cesil.Tests
                 //run the test once, but look for leaks
                 {
                     var leakDetector = new TrackedMemoryPool<char>();
-                    var leakDetectorConfig = bind(baseOpts.NewBuilder().WithMemoryPool(leakDetector).Build());
+                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).ToOptions());
 
                     int runCount = 0;
                     await run(leakDetectorConfig, str => { runCount++; return readerMaker(str); });
@@ -520,7 +520,7 @@ namespace Cesil.Tests
                 while (true)
                 {
                     var leakDetector = new TrackedMemoryPool<char>();
-                    var leakDetectorConfig = bind(baseOpts.NewBuilder().WithMemoryPool(leakDetector).Build());
+                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).ToOptions());
 
                     var wrappedConfig = new AsyncCountingAndForcingConfig<T>(leakDetectorConfig);
                     wrappedConfig.GoAsyncAfter = forceUpTo;
@@ -663,7 +663,7 @@ namespace Cesil.Tests
         )
         {
             var defaultConfig = bindConfig(baseOptions);
-            var noBufferConfig = bindConfig(baseOptions.NewBuilder().WithWriteBufferSizeHint(0).Build());
+            var noBufferConfig = bindConfig(Options.CreateBuilder(baseOptions).WithWriteBufferSizeHint(0).ToOptions());
 
             foreach (var maker in SyncWriterAdapters)
             {
@@ -693,7 +693,7 @@ namespace Cesil.Tests
                 (writer, getter) = maker();
                 {
                     var leakDetector = new TrackedMemoryPool<char>();
-                    var leakConfig = bindConfig(baseOptions.NewBuilder().WithMemoryPool(leakDetector).Build());
+                    var leakConfig = bindConfig(Options.CreateBuilder(baseOptions).WithMemoryPool(leakDetector).ToOptions());
 
                     var gotWriter = 0;
                     var gotString = 0;
@@ -708,7 +708,7 @@ namespace Cesil.Tests
                 (writer, getter) = maker();
                 {
                     var leakDetector = new TrackedMemoryPool<char>();
-                    var leakConfig = bindConfig(baseOptions.NewBuilder().WithMemoryPool(leakDetector).WithWriteBufferSizeHint(0).Build());
+                    var leakConfig = bindConfig(Options.CreateBuilder(baseOptions).WithMemoryPool(leakDetector).WithWriteBufferSizeHint(0).ToOptions());
 
                     var gotWriter = 0;
                     var gotString = 0;
@@ -813,7 +813,7 @@ namespace Cesil.Tests
         {
             foreach (var maker in AsyncWriterAdapters)
             {
-                var smallBufferOpts = opts.NewBuilder().WithWriteBufferSizeHint(0).Build();
+                var smallBufferOpts = Options.CreateBuilder(opts).WithWriteBufferSizeHint(0).ToOptions();
 
                 await RunOnce(bindConfig, maker, opts, run, checkRunCounts);
                 await RunOnce(bindConfig, maker, smallBufferOpts, run, checkRunCounts);
@@ -853,7 +853,7 @@ namespace Cesil.Tests
 
                 // run the test with a small buffer
                 {
-                    var smallBufferOpts = baseOpts.NewBuilder().WithWriteBufferSizeHint(1).Build();
+                    var smallBufferOpts = Options.CreateBuilder(baseOpts).WithWriteBufferSizeHint(1).ToOptions();
                     var smallBufferConfig = bind(smallBufferOpts);
 
                     int writerCount = 0;
@@ -874,7 +874,7 @@ namespace Cesil.Tests
                 // run the test once, but look for leaks
                 {
                     var leakDetector = new TrackedMemoryPool<char>();
-                    var leakDetectorConfig = bind(baseOpts.NewBuilder().WithMemoryPool(leakDetector).Build());
+                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).ToOptions());
 
                     int writerCount = 0;
                     int stringCount = 0;
@@ -940,7 +940,7 @@ namespace Cesil.Tests
                 while (true)
                 {
                     var leakDetector = new TrackedMemoryPool<char>();
-                    var leakDetectorConfig = bind(baseOpts.NewBuilder().WithMemoryPool(leakDetector).Build());
+                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).ToOptions());
 
                     var wrappedConfig = new AsyncCountingAndForcingConfig<T>(leakDetectorConfig);
                     wrappedConfig.GoAsyncAfter = forceUpTo;

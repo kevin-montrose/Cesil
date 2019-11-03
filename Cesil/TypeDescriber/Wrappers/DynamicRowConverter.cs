@@ -9,7 +9,7 @@ namespace Cesil
     /// <summary>
     /// Delegate type for DynamicRowConverters.
     /// </summary>
-    public delegate bool DynamicRowConverterDelegate<T>(object row, in ReadContext ctx, out T result);
+    public delegate bool DynamicRowConverterDelegate<TOutput>(object row, in ReadContext context, out TOutput result);
 
     /// <summary>
     /// Describes how to convert a dynamic row value
@@ -93,14 +93,11 @@ namespace Cesil
         /// <summary>
         /// Create a DynamicRowConverter from the given delegate.
         /// </summary>
-        public static DynamicRowConverter ForDelegate<T>(DynamicRowConverterDelegate<T> del)
+        public static DynamicRowConverter ForDelegate<TOutput>(DynamicRowConverterDelegate<TOutput> del)
         {
-            if (del == null)
-            {
-                return Throw.ArgumentNullException<DynamicRowConverter>(nameof(del));
-            }
+            Utils.CheckArgumentNull(del, nameof(del));
 
-            return new DynamicRowConverter(typeof(T).GetTypeInfo(), del);
+            return new DynamicRowConverter(typeof(TOutput).GetTypeInfo(), del);
         }
 
         /// <summary>
@@ -108,26 +105,23 @@ namespace Cesil
         /// 
         /// Constructor must take an object (which can be dynamic in source).
         /// </summary>
-        public static DynamicRowConverter ForConstructorTakingDynamic(ConstructorInfo cons)
+        public static DynamicRowConverter ForConstructorTakingDynamic(ConstructorInfo constructor)
         {
-            if (cons == null)
-            {
-                return Throw.ArgumentNullException<DynamicRowConverter>(nameof(cons));
-            }
+            Utils.CheckArgumentNull(constructor, nameof(constructor));
 
-            var ps = cons.GetParameters();
+            var ps = constructor.GetParameters();
             if (ps.Length != 1)
             {
-                return Throw.ArgumentException<DynamicRowConverter>($"Constructor {cons} must take a single object", nameof(cons));
+                return Throw.ArgumentException<DynamicRowConverter>($"Constructor {constructor} must take a single object", nameof(constructor));
             }
 
             var p = ps[0].ParameterType.GetTypeInfo();
             if (p != Types.ObjectType)
             {
-                return Throw.ArgumentException<DynamicRowConverter>($"Constructor {cons} must take a object, found a {p}", nameof(cons));
+                return Throw.ArgumentException<DynamicRowConverter>($"Constructor {constructor} must take a object, found a {p}", nameof(constructor));
             }
 
-            return new DynamicRowConverter(cons);
+            return new DynamicRowConverter(constructor);
         }
 
         /// <summary>
@@ -139,26 +133,19 @@ namespace Cesil
         /// Mapping will use column names if available, and fallback to indexes.
         /// </summary>
         public static DynamicRowConverter ForConstructorTakingTypedParameters(
-            ConstructorInfo cons,
-            IEnumerable<ColumnIdentifier> columnIndexesForParams
+            ConstructorInfo constructor,
+            IEnumerable<ColumnIdentifier> columnsForParameters
         )
         {
-            if (cons == null)
-            {
-                return Throw.ArgumentNullException<DynamicRowConverter>(nameof(cons));
-            }
+            Utils.CheckArgumentNull(constructor, nameof(constructor));
+            Utils.CheckArgumentNull(columnsForParameters, nameof(columnsForParameters));
 
-            if (columnIndexesForParams == null)
-            {
-                return Throw.ArgumentNullException<DynamicRowConverter>(nameof(columnIndexesForParams));
-            }
+            var cifp = columnsForParameters.ToArray();
 
-            var cifp = columnIndexesForParams.ToArray();
-
-            var ps = cons.GetParameters();
+            var ps = constructor.GetParameters();
             if (ps.Length != cifp.Length)
             {
-                return Throw.InvalidOperationException<DynamicRowConverter>($"Constructor {cons} takes {ps.Length} parameters, while only {cifp.Length} column indexes were passed");
+                return Throw.InvalidOperationException<DynamicRowConverter>($"Constructor {constructor} takes {ps.Length} parameters, while only {cifp.Length} column indexes were passed");
             }
 
             for (var i = 0; i < cifp.Length; i++)
@@ -166,7 +153,7 @@ namespace Cesil
                 var colIx = cifp[i].Index;
                 if (colIx < 0)
                 {
-                    return Throw.ArgumentException<DynamicRowConverter>($"Column indexes must be >= 0, found {colIx} at {i}", nameof(columnIndexesForParams));
+                    return Throw.ArgumentException<DynamicRowConverter>($"Column indexes must be >= 0, found {colIx} at {i}", nameof(columnsForParameters));
                 }
             }
 
@@ -176,7 +163,7 @@ namespace Cesil
                 psAsTypeInfo[i] = ps[i].ParameterType.GetTypeInfo();
             }
 
-            return new DynamicRowConverter(cons, psAsTypeInfo, cifp);
+            return new DynamicRowConverter(constructor, psAsTypeInfo, cifp);
         }
 
         /// <summary>
@@ -188,41 +175,31 @@ namespace Cesil
         /// Mapping will use column names if available, and fallback to indexes.
         /// </summary>
         public static DynamicRowConverter ForEmptyConstructorAndSetters(
-            ConstructorInfo cons,
+            ConstructorInfo constructor,
             IEnumerable<Setter> setters,
-            IEnumerable<ColumnIdentifier> colsToSetters
+            IEnumerable<ColumnIdentifier> columnsForSetters
         )
         {
-            if (cons == null)
-            {
-                return Throw.ArgumentNullException<DynamicRowConverter>(nameof(cons));
-            }
+            Utils.CheckArgumentNull(constructor, nameof(constructor));
 
-            var consPs = cons.GetParameters();
+            var consPs = constructor.GetParameters();
             if (consPs.Length != 0)
             {
-                return Throw.ArgumentException<DynamicRowConverter>($"Constructor {cons} must take zero parameters", nameof(cons));
+                return Throw.ArgumentException<DynamicRowConverter>($"Constructor {constructor} must take zero parameters", nameof(constructor));
             }
 
-            if (setters == null)
-            {
-                return Throw.ArgumentNullException<DynamicRowConverter>(nameof(setters));
-            }
-
-            if (colsToSetters == null)
-            {
-                return Throw.ArgumentNullException<DynamicRowConverter>(nameof(colsToSetters));
-            }
+            Utils.CheckArgumentNull(setters, nameof(setters));
+            Utils.CheckArgumentNull(columnsForSetters, nameof(columnsForSetters));
 
             var s = setters.ToArray();
-            var cts = colsToSetters.ToArray();
+            var cts = columnsForSetters.ToArray();
 
             if (s.Length != cts.Length)
             {
-                return Throw.InvalidOperationException<DynamicRowConverter>($"{nameof(setters)} and {nameof(colsToSetters)} must be the same length, found {s.Length} and {cts.Length}");
+                return Throw.InvalidOperationException<DynamicRowConverter>($"{nameof(setters)} and {nameof(columnsForSetters)} must be the same length, found {s.Length} and {cts.Length}");
             }
 
-            var constructedType = cons.DeclaringTypeNonNull();
+            var constructedType = constructor.DeclaringTypeNonNull();
 
 
             for (var i = 0; i < s.Length; i++)
@@ -245,11 +222,11 @@ namespace Cesil
                 var colIx = cts[i].Index;
                 if (colIx < 0)
                 {
-                    return Throw.ArgumentException<DynamicRowConverter>($"Column indexes must be >= 0, found {colIx} at {i}", nameof(colsToSetters));
+                    return Throw.ArgumentException<DynamicRowConverter>($"Column indexes must be >= 0, found {colIx} at {i}", nameof(columnsForSetters));
                 }
             }
 
-            return new DynamicRowConverter(cons, s, cts);
+            return new DynamicRowConverter(constructor, s, cts);
         }
 
         /// <summary>
@@ -261,10 +238,7 @@ namespace Cesil
         /// </summary>
         public static DynamicRowConverter ForMethod(MethodInfo method)
         {
-            if (method == null)
-            {
-                return Throw.ArgumentNullException<DynamicRowConverter>(nameof(method));
-            }
+            Utils.CheckArgumentNull(method, nameof(method));
 
             if (!method.IsStatic)
             {
@@ -409,12 +383,12 @@ namespace Cesil
         /// <summary>
         /// Returns true if the given DynamicRowConverter is equivalent to this one
         /// </summary>
-        public bool Equals(DynamicRowConverter other)
+        public bool Equals(DynamicRowConverter rowConverter)
         {
-            if (ReferenceEquals(other, null)) return false;
+            if (ReferenceEquals(rowConverter, null)) return false;
 
             var thisMode = Mode;
-            var otherMode = other.Mode;
+            var otherMode = rowConverter.Mode;
             if (thisMode != otherMode)
             {
                 return false;
@@ -422,20 +396,20 @@ namespace Cesil
 
             switch (thisMode)
             {
-                case BackingMode.Method: return Method.Value.Equals(other.Method.Value);
+                case BackingMode.Method: return Method.Value.Equals(rowConverter.Method.Value);
                 case BackingMode.Constructor:
                     if (ConstructorForObject.HasValue)
                     {
-                        if (!other.ConstructorForObject.HasValue) return false;
+                        if (!rowConverter.ConstructorForObject.HasValue) return false;
 
-                        return ConstructorForObject.Value.Equals(other.ConstructorForObject.Value);
+                        return ConstructorForObject.Value.Equals(rowConverter.ConstructorForObject.Value);
                     }
 
                     if (ConstructorTakingParams.HasValue)
                     {
-                        if (!other.ConstructorTakingParams.HasValue) return false;
+                        if (!rowConverter.ConstructorTakingParams.HasValue) return false;
 
-                        if (!ConstructorTakingParams.Value.Equals(other.ConstructorTakingParams.Value))
+                        if (!ConstructorTakingParams.Value.Equals(rowConverter.ConstructorTakingParams.Value))
                         {
                             return false;
                         }
@@ -444,7 +418,7 @@ namespace Cesil
 
                         var parameterTypesValue = ParameterTypes.Value;
                         var columnsForParametersValue = ColumnsForParameters.Value;
-                        var otherColumnsForParametersValue = other.ColumnsForParameters.Value;
+                        var otherColumnsForParametersValue = rowConverter.ColumnsForParameters.Value;
                         for (var i = 0; i < parameterTypesValue.Length; i++)
                         {
                             var thisCol = columnsForParametersValue[i];
@@ -461,25 +435,25 @@ namespace Cesil
 
                     if (EmptyConstructor.HasValue)
                     {
-                        if (!other.EmptyConstructor.HasValue)
+                        if (!rowConverter.EmptyConstructor.HasValue)
                         {
                             return false;
                         }
 
-                        if (!EmptyConstructor.Value.Equals(other.EmptyConstructor.Value))
+                        if (!EmptyConstructor.Value.Equals(rowConverter.EmptyConstructor.Value))
                         {
                             return false;
                         }
 
                         var settersValue = Setters.Value;
-                        var otherSettersValue = other.Setters.Value;
+                        var otherSettersValue = rowConverter.Setters.Value;
                         if (settersValue.Length != otherSettersValue.Length)
                         {
                             return false;
                         }
 
                         var columnsForSettersValue = ColumnsForSetters.Value;
-                        var otherColumnsForSettersValue = other.ColumnsForSetters.Value;
+                        var otherColumnsForSettersValue = rowConverter.ColumnsForSetters.Value;
                         for (var i = 0; i < settersValue.Length; i++)
                         {
                             var thisSetter = settersValue[i];
@@ -498,7 +472,7 @@ namespace Cesil
                     }
 
                     return Throw.Exception<bool>($"Shouldn't be possible, unexpected Constructor configuration");
-                case BackingMode.Delegate: return Delegate.Value.Equals(other.Delegate.Value);
+                case BackingMode.Delegate: return Delegate.Value.Equals(rowConverter.Delegate.Value);
                 default:
                     return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {thisMode}");
             }

@@ -256,7 +256,7 @@ namespace Cesil
                     Configuration.DynamicRowDisposal
                 );
 
-            var allowColumnsByName = Configuration.ReadHeader == Cesil.ReadHeaders.Always;
+            var allowColumnsByName = Configuration.ReadHeader == Cesil.ReadHeader.Always;
 
             var reader = new HeadersReader<object>(StateMachine, headerConfig, SharedCharacterLookup, Inner, Buffer);
             var disposeReader = true;
@@ -379,7 +379,7 @@ namespace Cesil
 
         private ValueTask HandleLineEndingsAsync(CancellationToken cancel)
         {
-            if (Configuration.RowEnding != Cesil.RowEndings.Detect)
+            if (Configuration.RowEnding != Cesil.RowEnding.Detect)
             {
                 RowEndings = Configuration.RowEnding;
                 TryMakeStateMachine();
@@ -409,7 +409,7 @@ namespace Cesil
             }
 
             // wait for the call to DetectAsync to complete
-            static async ValueTask HandleLineEndingsAsync_WaitForDetector(AsyncDynamicReader self, ValueTask<(RowEndings Ending, Memory<char> PushBack)?> toAwait, RowEndingDetector<object> detector, CancellationToken cancel)
+            static async ValueTask HandleLineEndingsAsync_WaitForDetector(AsyncDynamicReader self, ValueTask<(RowEnding Ending, Memory<char> PushBack)?> toAwait, RowEndingDetector<object> detector, CancellationToken cancel)
             {
                 try
                 {

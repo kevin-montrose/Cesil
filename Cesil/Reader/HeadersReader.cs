@@ -174,7 +174,7 @@ namespace Cesil
                 config.EscapedValueStartAndStop,
                 config.EscapeValueEscapeChar,
                 config.RowEnding,
-                ReadHeaders.Never,
+                ReadHeader.Never,
                 false
             );
 
@@ -472,7 +472,7 @@ finish:
                         return Throw.InvalidOperationException<bool>($"Encountered '{c}' in an escape sequence, which is invalid");
                     case ReaderStateMachine.AdvanceResult.Exception_UnexpectedLineEnding:
                         unprocessedCharacters = default;
-                        return Throw.Exception<bool>($"Unexpected {nameof(RowEndings)} value encountered");
+                        return Throw.Exception<bool>($"Unexpected {nameof(RowEnding)} value encountered");
                     case ReaderStateMachine.AdvanceResult.Exception_UnexpectedState:
                         unprocessedCharacters = default;
                         return Throw.Exception<bool>($"Unexpected state value entered");

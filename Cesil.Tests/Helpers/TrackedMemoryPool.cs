@@ -45,7 +45,11 @@ namespace Cesil.Tests
             }
         }
 
-        private int NextId;
+        private int NextRentId;
+
+        private static int NextPoolId;
+
+        private readonly int PoolId;
 
         private int _OutstandinRentals;
         public int OutstandingRentals => _OutstandinRentals;
@@ -57,7 +61,9 @@ namespace Cesil.Tests
 
         public TrackedMemoryPool()
         {
-            Debug.WriteLine($"Initializing {nameof(TrackedMemoryOwner)}");
+            PoolId = Interlocked.Increment(ref NextPoolId);
+
+            Debug.WriteLine($"Initializing {nameof(TrackedMemoryOwner)} PoolId={PoolId}");
 
             _OutstandinRentals = 0;
             _TotalRentals = 0;
@@ -71,7 +77,7 @@ namespace Cesil.Tests
             Interlocked.Increment(ref _OutstandinRentals);
             Interlocked.Increment(ref _TotalRentals);
 
-            var id = Interlocked.Increment(ref NextId);
+            var id = Interlocked.Increment(ref NextRentId);
 
             Debug.WriteLineIf(LOG, $"\tRented {id}");
 

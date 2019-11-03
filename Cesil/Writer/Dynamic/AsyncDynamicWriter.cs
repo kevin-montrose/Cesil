@@ -92,9 +92,17 @@ namespace Cesil
                         }
                     }
 
-                    var col = i < columnNamesValue.Length ? columnNamesValue[i].Name : null;
+                    ColumnIdentifier ci;
+                    if(i < columnNamesValue.Length)
+                    {
+                        ci = ColumnIdentifier.Create(i, columnNamesValue[i].Name);
+                    }
+                    else
+                    {
+                        ci = ColumnIdentifier.Create(i);
+                    }
 
-                    var ctx = WriteContext.WritingColumn(RowNumber, ColumnIdentifier.Create(i, col), Context);
+                    var ctx = WriteContext.WritingColumn(RowNumber, ci, Context);
 
                     var formatter = cell.Formatter;
                     var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
@@ -104,7 +112,7 @@ namespace Cesil
                     var val = cell.Value as object;
                     if (!del(val, in ctx, Buffer))
                     {
-                        return Throw.SerializationException<ValueTask>($"Could not write column {col}, formatter {formatter} returned false");
+                        return Throw.SerializationException<ValueTask>($"Could not write column {ci}, formatter {formatter} returned false");
                     }
 
                     var res = Buffer.Buffer;
@@ -163,9 +171,17 @@ end:
                         cancel.ThrowIfCancellationRequested();
                     }
 
-                    var col = i < selfColumnNamesValue.Length ? selfColumnNamesValue[i].Name : null;
+                    ColumnIdentifier ci;
+                    if (i < selfColumnNamesValue.Length)
+                    {
+                        ci = ColumnIdentifier.Create(i, selfColumnNamesValue[i].Name);
+                    }
+                    else
+                    {
+                        ci = ColumnIdentifier.Create(i);
+                    }
 
-                    var ctx = WriteContext.WritingColumn(self.RowNumber, ColumnIdentifier.Create(i, col), self.Context);
+                    var ctx = WriteContext.WritingColumn(self.RowNumber, ci, self.Context);
 
                     var formatter = cell.Formatter;
                     var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
@@ -175,7 +191,7 @@ end:
                     var val = cell.Value as object;
                     if (!del(val, in ctx, self.Buffer))
                     {
-                        Throw.SerializationException<object>($"Could not write column {col}, formatter {formatter} returned false");
+                        Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
                     }
 
                     var res = self.Buffer.Buffer;
@@ -210,9 +226,17 @@ end:
 
                     // finish the loop
                     {
-                        var col = i < selfColumnNamesValue.Length ? selfColumnNamesValue[i].Name : null;
+                        ColumnIdentifier ci;
+                        if (i < selfColumnNamesValue.Length)
+                        {
+                            ci = ColumnIdentifier.Create(i, selfColumnNamesValue[i].Name);
+                        }
+                        else
+                        {
+                            ci = ColumnIdentifier.Create(i);
+                        }
 
-                        var ctx = WriteContext.WritingColumn(self.RowNumber, ColumnIdentifier.Create(i, col), self.Context);
+                        var ctx = WriteContext.WritingColumn(self.RowNumber, ci, self.Context);
 
                         var formatter = cell.Formatter;
                         var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
@@ -222,7 +246,7 @@ end:
                         var val = cell.Value as object;
                         if (!del(val, in ctx, self.Buffer))
                         {
-                            Throw.SerializationException<object>($"Could not write column {col}, formatter {formatter} returned false");
+                            Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
                         }
 
                         var res = self.Buffer.Buffer;
@@ -255,9 +279,17 @@ end:
                             cancel.ThrowIfCancellationRequested();
                         }
 
-                        var col = i < selfColumnNamesValue.Length ? selfColumnNamesValue[i].Name : null;
+                        ColumnIdentifier ci;
+                        if (i < selfColumnNamesValue.Length)
+                        {
+                            ci = ColumnIdentifier.Create(i, selfColumnNamesValue[i].Name);
+                        }
+                        else
+                        {
+                            ci = ColumnIdentifier.Create(i);
+                        }
 
-                        var ctx = WriteContext.WritingColumn(self.RowNumber, ColumnIdentifier.Create(i, col), self.Context);
+                        var ctx = WriteContext.WritingColumn(self.RowNumber, ci, self.Context);
 
                         var formatter = cell.Formatter;
                         var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
@@ -267,7 +299,7 @@ end:
                         var val = cell.Value as object;
                         if (!del(val, in ctx, self.Buffer))
                         {
-                            Throw.SerializationException<object>($"Could not write column {col}, formatter {formatter} returned false");
+                            Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
                         }
 
                         var res = self.Buffer.Buffer;
@@ -325,9 +357,17 @@ end:
                             cancel.ThrowIfCancellationRequested();
                         }
 
-                        var col = i < selfColumnNamesValue.Length ? selfColumnNamesValue[i].Name : null;
+                        ColumnIdentifier ci;
+                        if (i < selfColumnNamesValue.Length)
+                        {
+                            ci = ColumnIdentifier.Create(i, selfColumnNamesValue[i].Name);
+                        }
+                        else
+                        {
+                            ci = ColumnIdentifier.Create(i);
+                        }
 
-                        var ctx = WriteContext.WritingColumn(self.RowNumber, ColumnIdentifier.Create(i, col), self.Context);
+                        var ctx = WriteContext.WritingColumn(self.RowNumber, ci, self.Context);
 
                         var formatter = cell.Formatter;
                         var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
@@ -337,7 +377,7 @@ end:
                         var val = cell.Value as object;
                         if (!del(val, in ctx, self.Buffer))
                         {
-                            Throw.SerializationException<object>($"Could not write column {col}, formatter {formatter} returned false");
+                            Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
                         }
 
                         var res = self.Buffer.Buffer;
@@ -368,17 +408,14 @@ end:
 
         public override ValueTask WriteCommentAsync(string comment, CancellationToken cancel = default)
         {
-            if (comment == null)
-            {
-                return Throw.ArgumentNullException<ValueTask>(nameof(comment));
-            }
-
             AssertNotDisposed(this);
+
+            Utils.CheckArgumentNull(comment, nameof(comment));
 
             var shouldEndRecord = true;
             if (IsFirstRow)
             {
-                if (Config.WriteHeader == WriteHeaders.Always)
+                if (Config.WriteHeader == WriteHeader.Always)
                 {
                     return Throw.InvalidOperationException<ValueTask>($"First operation on a dynamic writer cannot be {nameof(WriteCommentAsync)} if configured to write headers, headers cannot be inferred");
                 }
@@ -747,7 +784,7 @@ end:
         //   writing the next one
         private ValueTask<bool> CheckHeadersAsync(dynamic? firstRow, CancellationToken cancel)
         {
-            if (Config.WriteHeader == WriteHeaders.Never)
+            if (Config.WriteHeader == WriteHeader.Never)
             {
                 // nothing to write, so bail
                 ColumnNames.Value = Array.Empty<(string, string)>();
@@ -788,7 +825,7 @@ end:
 
                 if (colName == null)
                 {
-                    Throw.InvalidOperationException<object>($"No column name found at index {colIx} when {nameof(Cesil.WriteHeaders)} = {Config.WriteHeader}");
+                    Throw.InvalidOperationException<object>($"No column name found at index {colIx} when {nameof(Cesil.WriteHeader)} = {Config.WriteHeader}");
                     return;
                 }
 
@@ -936,7 +973,7 @@ end:
                     }
                 }
 
-                if (Config.WriteTrailingNewLine == WriteTrailingNewLines.Always)
+                if (Config.WriteTrailingNewLine == WriteTrailingNewLine.Always)
                 {
                     var endRecordTask = EndRecordAsync(CancellationToken.None);
                     if (!endRecordTask.IsCompletedSuccessfully(this))
@@ -980,7 +1017,7 @@ end:
             {
                 await waitFor;
 
-                if (self.Config.WriteTrailingNewLine == WriteTrailingNewLines.Always)
+                if (self.Config.WriteTrailingNewLine == WriteTrailingNewLine.Always)
                 {
                     var endTask = self.EndRecordAsync(CancellationToken.None);
                     await endTask;

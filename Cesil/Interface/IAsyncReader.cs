@@ -8,7 +8,7 @@ namespace Cesil
     /// <summary>
     /// Interface for an asynchronous reader.
     /// </summary>
-    public interface IAsyncReader<T> : IAsyncDisposable
+    public interface IAsyncReader<TRow> : IAsyncDisposable
     {
         /// <summary>
         /// Returns an async enumerable that will read and yield
@@ -17,7 +17,7 @@ namespace Cesil
         /// The enumerable will attempt to complete synchronously,
         /// but will not block if results are not available.
         /// </summary>
-        IAsyncEnumerable<T> EnumerateAllAsync();
+        IAsyncEnumerable<TRow> EnumerateAllAsync();
 
         /// <summary>
         /// Asynchronously reads all rows, storing into the provided collection.
@@ -28,7 +28,7 @@ namespace Cesil
         /// but will not block if results are not available.
         /// </summary>
         ValueTask<TCollection> ReadAllAsync<TCollection>(TCollection into, CancellationToken cancel = default)
-        where TCollection : class, ICollection<T>;
+        where TCollection : class, ICollection<TRow>;
 
         /// <summary>
         /// Asynchronously reads all rows into a list, returning the entire set at once.
@@ -36,7 +36,7 @@ namespace Cesil
         /// The task will attempt to complete synchronously, 
         /// but will not block if results are not available.
         /// </summary>
-        ValueTask<List<T>> ReadAllAsync(CancellationToken cancel = default);
+        ValueTask<List<TRow>> ReadAllAsync(CancellationToken cancel = default);
 
         /// <summary>
         /// Try to read a single row asynchronously, returning a ReadResult that 
@@ -45,7 +45,7 @@ namespace Cesil
         /// The task will attempt to complete synchronously, 
         /// but will not block if results are not available.
         /// </summary>
-        ValueTask<ReadResult<T>> TryReadAsync(CancellationToken cancel = default);
+        ValueTask<ReadResult<TRow>> TryReadAsync(CancellationToken cancel = default);
 
         /// <summary>
         /// Reads a single row into the existing instance of row,
@@ -60,7 +60,7 @@ namespace Cesil
         /// The task will attempt to complete synchronously, 
         /// but will not block if results are not available.
         /// </summary>
-        ValueTask<ReadResult<T>> TryReadWithReuseAsync(ref T row, CancellationToken cancel = default);
+        ValueTask<ReadResult<TRow>> TryReadWithReuseAsync(ref TRow row, CancellationToken cancel = default);
 
         /// <summary>
         /// Reads a single row or comment.
@@ -74,7 +74,7 @@ namespace Cesil
         /// The task will attempt to complete synchronously, 
         /// but will not block if results are not available.
         /// </summary>
-        ValueTask<ReadWithCommentResult<T>> TryReadWithCommentAsync(CancellationToken cancel = default);
+        ValueTask<ReadWithCommentResult<TRow>> TryReadWithCommentAsync(CancellationToken cancel = default);
 
         /// <summary>
         /// Reads a single row (storing into an existing instance of a row
@@ -91,6 +91,6 @@ namespace Cesil
         /// The task will attempt to complete synchronously, 
         /// but will not block if results are not available.
         /// </summary>
-        ValueTask<ReadWithCommentResult<T>> TryReadWithCommentReuseAsync(ref T row, CancellationToken cancel = default);
+        ValueTask<ReadWithCommentResult<TRow>> TryReadWithCommentReuseAsync(ref TRow row, CancellationToken cancel = default);
     }
 }

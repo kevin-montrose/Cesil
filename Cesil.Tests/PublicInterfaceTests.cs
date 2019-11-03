@@ -1,10 +1,14 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.IO.Pipelines;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -12,9 +16,6 @@ namespace Cesil.Tests
 {
     public class PublicInterfaceTests
     {
-        // todo: add a test that fails if there are nullable references exposed in
-        //       public interfaces without a justification
-
         private static IEnumerable<TypeInfo> AllTypes()
         {
             var ts = typeof(Configuration).Assembly.GetTypes();
@@ -69,13 +70,26 @@ namespace Cesil.Tests
             }
         }
 
+        private static IEnumerable<TypeInfo> AllPublicDelegates()
+        {
+            var types = AllPubicTypes();
+
+            foreach(var t in types)
+            {
+                if(t.BaseType == typeof(MulticastDelegate))
+                {
+                    yield return t;
+                }
+            }
+        }
+
         private static IEnumerable<ConstructorInfo> AllPublicConstructors()
         {
-            foreach(var t in AllPubicTypes())
+            foreach (var t in AllPubicTypes())
             {
-                foreach(var cons in t.GetConstructors())
+                foreach (var cons in t.GetConstructors())
                 {
-                    if(cons.IsPublic)
+                    if (cons.IsPublic)
                     {
                         yield return cons;
                     }
@@ -119,7 +133,7 @@ namespace Cesil.Tests
         [Fact]
         public void ThrowOnlyNoInlining()
         {
-            foreach(var mtd in typeof(Throw).GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
+            foreach (var mtd in typeof(Throw).GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
             {
                 if (mtd.DeclaringType != typeof(Throw)) continue;
 
@@ -158,10 +172,10 @@ namespace Cesil.Tests
         [Fact]
         public void NoArraysBoolsOrNumbers()
         {
-            foreach(var cons in AllPublicConstructors())
+            foreach (var cons in AllPublicConstructors())
             {
                 var ps = cons.GetParameters();
-                for(var i = 0; i < ps.Length; i++)
+                for (var i = 0; i < ps.Length; i++)
                 {
                     var p = ps[i];
 
@@ -584,6 +598,28 @@ namespace Cesil.Tests
                     Assert.False(exNull1 == ex);
                     Assert.True(exNull1 == exNull2);
                 }
+                else if(t == typeof(ManualTypeDescriber))
+                {
+                    var ex = ManualTypeDescriber.CreateBuilder().ToManualTypeDescriber();
+                    var exNull1 = default(ManualTypeDescriber);
+                    var exNull2 = default(ManualTypeDescriber);
+
+                    CommonNonOperatorChecks(ex, exNull1, exNull2);
+                    Assert.False(ex == exNull1);
+                    Assert.False(exNull1 == ex);
+                    Assert.True(exNull1 == exNull2);
+                }
+                else if (t == typeof(SurrogateTypeDescriber))
+                {
+                    var ex = SurrogateTypeDescriberBuilder.CreateBuilder().ToSurrogateTypeDescriber();
+                    var exNull1 = default(SurrogateTypeDescriber);
+                    var exNull2 = default(SurrogateTypeDescriber);
+
+                    CommonNonOperatorChecks(ex, exNull1, exNull2);
+                    Assert.False(ex == exNull1);
+                    Assert.False(exNull1 == ex);
+                    Assert.True(exNull1 == exNull2);
+                }
                 else
                 {
                     Assert.True(false, $"({t.Name}) doesn't have a test for null checks");
@@ -591,7 +627,7 @@ namespace Cesil.Tests
             }
 
             static void CommonNonOperatorChecks<T>(T ex, T exNull1, T exNull2)
-                where T: class, IEquatable<T>
+                where T : class, IEquatable<T>
             {
                 Assert.NotNull(ex);
                 Assert.True(ex.Equals(ex));
@@ -740,9 +776,17 @@ namespace Cesil.Tests
                 {
                     msg = InvokeToString_ManualTypeDescriber();
                 }
+                else if (t == typeof(ManualTypeDescriberBuilder))
+                {
+                    msg = InvokeToString_ManualTypeDescriberBuilder();
+                }
                 else if (t == typeof(SurrogateTypeDescriber))
                 {
                     msg = InvokeToString_SurrogateTypeDescriber();
+                }
+                else if (t == typeof(SurrogateTypeDescriberBuilder))
+                {
+                    msg = InvokeToString_SurrogateTypeDescriberBuilder();
                 }
                 else if (t == typeof(DeserializableMember))
                 {
@@ -875,7 +919,7 @@ namespace Cesil.Tests
 
             static string InvokeToString_DynamicRowMemberNameEnumerator()
             {
-                var config = Configuration.ForDynamic(Options.DynamicDefault.NewBuilder().WithReadHeader(ReadHeaders.Never).Build());
+                var config = Configuration.ForDynamic(Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions());
 
                 using (var str = new StringReader("foo"))
                 using (var csv = config.CreateReader(str))
@@ -891,7 +935,7 @@ namespace Cesil.Tests
 
             static string InvokeToString_DynamicRowMemberNameEnumerable()
             {
-                var config = Configuration.ForDynamic(Options.DynamicDefault.NewBuilder().WithReadHeader(ReadHeaders.Never).Build());
+                var config = Configuration.ForDynamic(Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions());
 
                 using (var str = new StringReader("foo"))
                 using (var csv = config.CreateReader(str))
@@ -916,7 +960,7 @@ namespace Cesil.Tests
 
             static string InvokeToString_DynamicColumnEnumerable()
             {
-                var config = Configuration.ForDynamic(Options.DynamicDefault.NewBuilder().WithReadHeader(ReadHeaders.Never).Build());
+                var config = Configuration.ForDynamic(Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions());
 
                 using (var str = new StringReader("foo"))
                 using (var csv = config.CreateReader(str))
@@ -932,7 +976,7 @@ namespace Cesil.Tests
 
             static string InvokeToString_DynamicColumnEnumerator()
             {
-                var config = Configuration.ForDynamic(Options.DynamicDefault.NewBuilder().WithReadHeader(ReadHeaders.Never).Build());
+                var config = Configuration.ForDynamic(Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions());
 
                 using (var str = new StringReader("foo"))
                 using (var csv = config.CreateReader(str))
@@ -957,7 +1001,7 @@ namespace Cesil.Tests
 
             static string InvokeToString_DynamicRowEnumeratorNonGeneric()
             {
-                var config = Configuration.ForDynamic(Options.DynamicDefault.NewBuilder().WithReadHeader(ReadHeaders.Never).Build());
+                var config = Configuration.ForDynamic(Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions());
 
                 using (var str = new StringReader("foo"))
                 using (var csv = config.CreateReader(str))
@@ -974,7 +1018,7 @@ namespace Cesil.Tests
 
             static string InvokeToString_DynamicRowEnumerableNonGeneric()
             {
-                var config = Configuration.ForDynamic(Options.DynamicDefault.NewBuilder().WithReadHeader(ReadHeaders.Never).Build());
+                var config = Configuration.ForDynamic(Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions());
 
                 using (var str = new StringReader("foo"))
                 using (var csv = config.CreateReader(str))
@@ -990,7 +1034,7 @@ namespace Cesil.Tests
 
             static string InvokeToString_DynamicRowEnumerator()
             {
-                var config = Configuration.ForDynamic(Options.DynamicDefault.NewBuilder().WithReadHeader(ReadHeaders.Never).Build());
+                var config = Configuration.ForDynamic(Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions());
 
                 using (var str = new StringReader("foo"))
                 using (var csv = config.CreateReader(str))
@@ -1009,7 +1053,7 @@ namespace Cesil.Tests
 
             static string InvokeToString_DynamicRowEnumerable()
             {
-                var config = Configuration.ForDynamic(Options.DynamicDefault.NewBuilder().WithReadHeader(ReadHeaders.Never).Build());
+                var config = Configuration.ForDynamic(Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions());
 
                 using (var str = new StringReader("foo"))
                 using (var csv = config.CreateReader(str))
@@ -1025,7 +1069,7 @@ namespace Cesil.Tests
 
             static string InvokeToString_DynamicRow()
             {
-                var config = Configuration.ForDynamic(Options.DynamicDefault.NewBuilder().WithReadHeader(ReadHeaders.Never).Build());
+                var config = Configuration.ForDynamic(Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions());
 
                 using (var str = new StringReader("foo"))
                 using (var csv = config.CreateReader(str))
@@ -1039,7 +1083,7 @@ namespace Cesil.Tests
 
             static string InvokeToString_DynamicCell()
             {
-                var config = Configuration.ForDynamic(Options.DynamicDefault.NewBuilder().WithReadHeader(ReadHeaders.Never).Build());
+                var config = Configuration.ForDynamic(Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions());
 
                 using (var str = new StringReader("foo"))
                 using (var csv = config.CreateReader(str))
@@ -1185,12 +1229,29 @@ namespace Cesil.Tests
 
             static string InvokeToString_SurrogateTypeDescriber()
             {
-                return (new SurrogateTypeDescriber(TypeDescribers.Default)).ToString();
+                var sb = SurrogateTypeDescriberBuilder.CreateBuilder();
+                var s = sb.ToSurrogateTypeDescriber();
+
+                return s.ToString();
+            }
+
+            static string InvokeToString_SurrogateTypeDescriberBuilder()
+            {
+                var sb = SurrogateTypeDescriberBuilder.CreateBuilder();
+
+                return sb.ToString();
+            }
+
+            static string InvokeToString_ManualTypeDescriberBuilder()
+            {
+                var m = ManualTypeDescriberBuilder.CreateBuilder();
+                return m.ToString();
             }
 
             static string InvokeToString_ManualTypeDescriber()
             {
-                return (new ManualTypeDescriber()).ToString();
+                var m = ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber();
+                return m.ToString();
             }
 
             static string InvokeToString_DefaultTypeDescriber()
@@ -1200,7 +1261,7 @@ namespace Cesil.Tests
 
             static string InvokeToString_OptionsBuilder()
             {
-                return Options.Default.NewBuilder().ToString();
+                return Options.CreateBuilder(Options.Default).ToString();
             }
 
             static string InvokeToString_Options()
@@ -1371,6 +1432,619 @@ namespace Cesil.Tests
                 {
                     Assert.False(0 == v, $"{t.Name} has a 0 value, which will make debugging a pain");
                 }
+            }
+        }
+
+        [Fact]
+        public void NullableReferencesInPublicTypes()
+        {
+            foreach (var t in AllPubicTypes())
+            {
+                // skip delegates
+                if (t.BaseType == typeof(MulticastDelegate)) continue;
+
+                foreach (var prop in t.GetProperties())
+                {
+                    var pType = prop.PropertyType.GetTypeInfo();
+                    if (pType.IsValueType) continue;
+
+                    var thing = $"{t.Name}.{prop.Name} property";
+
+                    var pAttrs = prop.CustomAttributes.ToList();
+                    var propIsNullable = IsNullable(thing, t, null, pAttrs);
+
+                    if (propIsNullable)
+                    {
+                        var allowed = pAttrs.SingleOrDefault(p => p.AttributeType == typeof(NullableExposedAttribute));
+                        Assert.True(allowed != null, $"{thing} nullable without documentation");
+                    }
+                }
+
+                foreach (var c in t.GetConstructors())
+                {
+                    foreach (var p in c.GetParameters())
+                    {
+                        if (p.ParameterType.IsValueType) continue;
+
+                        var thing = $"{t.Name} constructor parameter {p.Name}";
+
+                        var pAttrs = p.CustomAttributes.ToList();
+
+                        var parameterIsNullable = p.Attributes.HasFlag(ParameterAttributes.Optional) || IsNullable(thing, t, null, pAttrs);
+
+                        if (parameterIsNullable)
+                        {
+                            var allowed = pAttrs.SingleOrDefault(p => p.AttributeType == typeof(NullableExposedAttribute));
+                            Assert.True(allowed != null, $"{thing} nullable without documentation");
+                        }
+                    }
+                }
+
+                // remove implementations of interfaces that come from the BCL
+                var relevantMethods =
+                    t.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)
+                        .Where(m => m.IsPublic || m.IsFamily)
+                        .ToList();
+                foreach (var i in t.GetInterfaces())
+                {
+                    if (i.FullName.StartsWith("System."))
+                    {
+                        if (!t.IsInterface)
+                        {
+                            var iMap = t.GetInterfaceMap(i);
+                            relevantMethods.RemoveAll(r => iMap.TargetMethods.Contains(r));
+                        }
+                    }
+                }
+
+                // remove operators
+                relevantMethods.RemoveAll(r => r.Name.StartsWith("op_"));
+
+                // remove any method declared in a base class in the BCL
+                relevantMethods.RemoveAll(
+                    r =>
+                    {
+                        var baseMtd = r.GetBaseDefinition();
+                        if (baseMtd == null) return false;
+
+                        return baseMtd.DeclaringType.FullName.StartsWith("System.");
+                    }
+                );
+
+                foreach (var m in relevantMethods)
+                {
+                    // skip properties, they're handled elsewhere
+                    if (m.Name.StartsWith("get_") || m.Name.StartsWith("set_")) continue;
+
+                    if (!m.ReturnType.IsValueType)
+                    {
+                        var thing = $"{t.Name}.{m.Name} return";
+
+                        var rAttrs = m.ReturnParameter.CustomAttributes.ToList();
+
+                        var returnIsNullable = IsNullable(thing, t, m, rAttrs);
+                        if (returnIsNullable)
+                        {
+                            var allowed = rAttrs.SingleOrDefault(p => p.AttributeType == typeof(NullableExposedAttribute));
+                            Assert.True(allowed != null, $"{thing} nullable without documentation");
+                        }
+                    }
+
+                    foreach (var p in m.GetParameters())
+                    {
+                        if (p.ParameterType.IsValueType) continue;
+
+                        var thing = $"{t.Name}.{m.Name} parameter {p.Name}";
+
+                        var pAttrs = p.CustomAttributes.ToList();
+
+                        var parameterIsNullable = p.Attributes.HasFlag(ParameterAttributes.Optional) || IsNullable(thing, t, m, pAttrs);
+
+                        if (parameterIsNullable)
+                        {
+                            var allowed = pAttrs.SingleOrDefault(p => p.AttributeType == typeof(NullableExposedAttribute));
+                            Assert.True(allowed != null, $"{thing} nullable without documentation");
+                        }
+                    }
+                }
+            }
+
+            static bool IsNullable(string thing, TypeInfo inType, MethodInfo inMethod, IEnumerable<CustomAttributeData> data)
+            {
+                var hasAnnotation = false;
+
+                var ns = data.Where(d => d.AttributeType.FullName == "System.Runtime.CompilerServices.NullableAttribute").ToList();
+                foreach (var n in ns)
+                {
+                    hasAnnotation = true;
+
+                    if (AnyIndicatesNullable(n.ConstructorArguments)) return true;
+                }
+
+                if (!hasAnnotation && inMethod != null)
+                {
+                    ns = inMethod.CustomAttributes.Where(d => d.AttributeType.FullName == "System.Runtime.CompilerServices.NullableContextAttribute").ToList();
+                    foreach (var n in ns)
+                    {
+                        hasAnnotation = true;
+
+                        if (AnyIndicatesNullable(n.ConstructorArguments)) return true;
+                    }
+                }
+
+                if (!hasAnnotation && inType != null)
+                {
+                    ns = inType.CustomAttributes.Where(d => d.AttributeType.FullName == "System.Runtime.CompilerServices.NullableContextAttribute").ToList();
+                    foreach (var n in ns)
+                    {
+                        hasAnnotation = true;
+
+                        if (AnyIndicatesNullable(n.ConstructorArguments)) return true;
+                    }
+                }
+
+                if (!hasAnnotation)
+                {
+                    throw new InvalidOperationException($"{thing} was missing a nullable annotation... that makes no sense");
+                }
+
+                return false;
+            }
+
+            static bool AnyIndicatesNullable(IList<CustomAttributeTypedArgument> args)
+            {
+                foreach (var arg in args)
+                {
+                    if (arg.ArgumentType == typeof(byte))
+                    {
+                        if (arg.Value.Equals((byte)2)) return true;
+                    }
+                    else if (arg.ArgumentType == typeof(byte[]))
+                    {
+                        var asByteArr = (byte[])arg.Value;
+
+                        if (asByteArr.Any(b => b == 2)) return true;
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException($"Unexpected constructor for [Nullable]");
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        private class _ParameterNamesApproved<TRow, TCollection, TValue, TOutput, TInstance>
+        { }
+
+        class NamedComparer : IEqualityComparer<TypeInfo>
+        {
+            public bool Equals(TypeInfo x, TypeInfo y)
+            {
+                if (x == y) return true;
+
+                if (!x.IsGenericType || !y.IsGenericType) return false;
+
+                var xGen = x.IsGenericTypeDefinition ? x : x.GetGenericTypeDefinition();
+                var yGen = y.IsGenericTypeDefinition ? y : y.GetGenericTypeDefinition();
+
+                if (xGen != yGen) return false;
+
+                var xArgs = x.GetGenericArguments();
+                var yArgs = y.GetGenericArguments();
+
+                for (var i = 0; i < xArgs.Length; i++)
+                {
+                    var xArg = xArgs[i];
+                    var yArg = yArgs[i];
+
+                    if (xArg.IsGenericParameter != yArg.IsGenericParameter) return false;
+
+                    if (xArg.IsGenericParameter)
+                    {
+                        var xStr = xArg.Name;
+                        var yStr = yArg.Name;
+
+                        if (xStr != yStr) return false;
+                    }
+                    else
+                    {
+                        if (xArg != yArg) return false;
+                    }
+                }
+
+                return true;
+            }
+
+            public int GetHashCode(TypeInfo obj)
+            {
+                if (!obj.IsGenericType) return obj.FullName.GetHashCode();
+
+                var args = obj.GetGenericArguments();
+
+                var ret = obj.FullName + " (" + string.Join(", ", args.Select(a => a.FullName ?? a.Name)) + ")";
+
+                return ret.GetHashCode();
+            }
+        }
+
+        [Fact]
+        public void ParameterNamesApproved()
+        {
+            var genArgs = typeof(_ParameterNamesApproved<,,,,>).GetGenericArguments();
+            Assert.True(genArgs.All(a => a.IsGenericParameter));
+
+            // these should be descriptive, but aren't actually important for stability
+            var legalGenericArgNames = genArgs.Select(t => t.Name).ToHashSet();
+
+            var genLookups = genArgs.ToDictionary(t => t.Name, t => t);
+
+            // special types
+            var enumerableOfRow = typeof(IEnumerable<>).MakeGenericType(genLookups["TRow"]).GetTypeInfo();
+            var asyncEnumerableOfRow = typeof(IAsyncEnumerable<>).MakeGenericType(genLookups["TRow"]).GetTypeInfo();
+
+            // names of parameters end up in the contract, because of named parameters
+            // so these actually need to be "vetted" to not suck
+            var legal =
+                new Dictionary<TypeInfo, string[]>(new NamedComparer())
+                {
+                    // basic types
+                    [typeof(object).GetTypeInfo()] = new[] { "obj", "context", "row", "value" },
+                    [typeof(int).GetTypeInfo()] = new[] { "index", "sizeHint" },
+                    [typeof(int?).GetTypeInfo()] = new[] { "sizeHint" },
+                    [typeof(string).GetTypeInfo()] = new[] { "name", "comment" },
+                    [typeof(char).GetTypeInfo()] = new[] { "valueSeparator" },
+                    [typeof(char?).GetTypeInfo()] = new[] { "commentStart", "escapeStart", "escape" },
+
+                    // system types
+                    [typeof(CancellationToken).GetTypeInfo()] = new[] { "cancel" },
+                    [typeof(Encoding).GetTypeInfo()] = new[] { "encoding" },
+                    [typeof(IBufferWriter<char>).GetTypeInfo()] = new[] { "writer" },
+                    [typeof(IBufferWriter<byte>).GetTypeInfo()] = new[] { "writer" },
+                    [typeof(TextWriter).GetTypeInfo()] = new[] { "writer" },
+                    [typeof(PipeWriter).GetTypeInfo()] = new[] { "writer" },
+                    [typeof(ReadOnlySequence<char>).GetTypeInfo()] = new[] { "sequence" },
+                    [typeof(ReadOnlySequence<byte>).GetTypeInfo()] = new[] { "sequence" },
+                    [typeof(TextReader).GetTypeInfo()] = new[] { "reader" },
+                    [typeof(PipeReader).GetTypeInfo()] = new[] { "reader" },
+                    [typeof(MemoryPool<char>).GetTypeInfo()] = new[] { "memoryPool" },
+                    [typeof(ReadOnlySpan<char>).GetTypeInfo()] = new[] { "data" },
+
+                    // reflection types
+                    [typeof(TypeInfo).GetTypeInfo()] = new[] { "forType", "targetType", "surrogateType" },
+                    [typeof(MethodInfo).GetTypeInfo()] = new[] { "method" },
+                    [typeof(PropertyInfo).GetTypeInfo()] = new[] { "property" },
+                    [typeof(FieldInfo).GetTypeInfo()] = new[] { "field" },
+                    [typeof(ConstructorInfo).GetTypeInfo()] = new[] { "constructor" },
+
+                    // custom types
+                    [typeof(Options).GetTypeInfo()] = new[] { "options" },
+                    [typeof(ColumnIdentifier).GetTypeInfo()] = new[] { "column" },
+                    [typeof(ITypeDescriber).GetTypeInfo()] = new[] { "typeDescriber", "surrogateTypeDescriber", "fallbackTypeDescriber" },
+                    [typeof(ManualTypeDescriber).GetTypeInfo()] = new[] { "typeDescriber" },
+                    [typeof(SurrogateTypeDescriber).GetTypeInfo()] = new[] { "typeDescriber" },
+                    [typeof(WriteContext).GetTypeInfo()] = new[] { "context" },
+                    [typeof(ReadContext).GetTypeInfo()] = new[] { "context" },
+                    [typeof(RowEnding).GetTypeInfo()] = new[] { "rowEnding" },
+                    [typeof(ReadHeader).GetTypeInfo()] = new[] { "readHeader" },
+                    [typeof(WriteHeader).GetTypeInfo()] = new[] { "writeHeader" },
+                    [typeof(WriteTrailingNewLine).GetTypeInfo()] = new[] { "writeTrailingNewLine" },
+                    [typeof(IEnumerable<ColumnIdentifier>).GetTypeInfo()] = new[] { "columns", "columnsForSetters", "columnsForParameters" },
+                    [typeof(ManualTypeDescriberFallbackBehavior).GetTypeInfo()] = new[] { "fallbackBehavior" },
+                    [typeof(SurrogateTypeDescriberFallbackBehavior).GetTypeInfo()] = new[] { "fallbackBehavior" },
+                    [typeof(EmitDefaultValue).GetTypeInfo()] = new[] { "emitDefault" },
+                    [typeof(MemberRequired).GetTypeInfo()] = new[] { "required" },
+                    [typeof(DynamicRowDisposal).GetTypeInfo()] = new[] { "dynamicRowDisposal" },
+
+                    // wrapper types
+                    [typeof(DynamicCellValue).GetTypeInfo()] = new[] { "value" },
+                    [typeof(Formatter).GetTypeInfo()] = new[] { "formatter" },
+                    [typeof(Getter).GetTypeInfo()] = new[] { "getter" },
+                    [typeof(Setter).GetTypeInfo()] = new[] { "setter" },
+                    [typeof(IEnumerable<Setter>).GetTypeInfo()] = new[] { "setters" },
+                    [typeof(Parser).GetTypeInfo()] = new[] { "parser" },
+                    [typeof(Reset).GetTypeInfo()] = new[] { "reset" },
+                    [typeof(ShouldSerialize).GetTypeInfo()] = new[] { "shouldSerialize" },
+                    [typeof(InstanceProvider).GetTypeInfo()] = new[] { "instanceProvider" },
+                    [typeof(DynamicRowConverter).GetTypeInfo()] = new[] { "rowConverter" },
+                    [typeof(SerializableMember).GetTypeInfo()] = new [] { "serializableMember" },
+                    [typeof(DeserializableMember).GetTypeInfo()] = new[] { "deserializableMember" },
+
+                    // delegates
+                    [typeof(FormatterDelegate<>).GetTypeInfo()] = new [] {"del"},
+                    [typeof(GetterDelegate<,>).GetTypeInfo()] = new[] { "del" },
+                    [typeof(StaticGetterDelegate<>).GetTypeInfo()] = new[] { "del" },
+                    [typeof(InstanceProviderDelegate<>).GetTypeInfo()] = new[] { "del" },
+                    [typeof(ParserDelegate<>).GetTypeInfo()] = new[] { "del" },
+                    [typeof(ResetDelegate<>).GetTypeInfo()] = new[] { "del" },
+                    [typeof(StaticResetDelegate).GetTypeInfo()] = new[] { "del" },
+                    [typeof(StaticSetterDelegate<>).GetTypeInfo()] = new[] { "del" },
+                    [typeof(SetterDelegate<,>).GetTypeInfo()] = new[] { "del" },
+                    [typeof(ShouldSerializeDelegate<>).GetTypeInfo()] = new[] { "del" },
+                    [typeof(StaticShouldSerializeDelegate).GetTypeInfo()] = new[] { "del" },
+                    [typeof(DynamicRowConverterDelegate<>).GetTypeInfo()] = new[] { "del" },
+
+                    // generic args
+                    [enumerableOfRow] = new[] { "rows" },
+                    [asyncEnumerableOfRow] = new[] { "rows" },
+                };
+
+            var failing = new StringBuilder();
+
+            foreach (var c in AllPublicConstructors())
+            {
+                var t = c.DeclaringType;
+
+                // skip delegates
+                if (t.BaseType == typeof(MulticastDelegate)) continue;
+
+                foreach (var p in c.GetParameters())
+                {
+                    var pType = p.ParameterType.GetTypeInfo();
+                    if(pType.IsByRef)
+                    {
+                        pType = pType.GetElementType().GetTypeInfo();
+                    }
+
+                    if (pType.IsGenericType && !pType.IsGenericTypeDefinition && pType.BaseType == typeof(MulticastDelegate))
+                    {
+                        pType = pType.GetGenericTypeDefinition().GetTypeInfo();
+                    }
+
+                    // already dealt with elsewhere
+                    if (pType.IsGenericParameter) continue;
+
+                    var pName = p.Name;
+
+                    if (!legal.TryGetValue(pType, out var legalNames))
+                    {
+                        failing.AppendLine($"{pName} of {pType.Name} on constructor of {t.Name}; no entry for {pType.Name}");
+                    }
+                    else
+                    {
+                        if (!legalNames.Contains(pName))
+                        {
+                            failing.AppendLine($"{pName} of {pType.Name} on constructor of {t.Name}; '{pName}' is not approved");
+                        }
+                    }
+                }
+            }
+
+            foreach(var m in AllPublicMethods())
+            {
+                var t = m.DeclaringType;
+
+                // skip delegates
+                if (t.BaseType == typeof(MulticastDelegate)) continue;
+
+                // skip operators
+                if (m.Name.StartsWith("op_")) continue;
+
+                if(m.IsGenericMethodDefinition)
+                {
+                    var args = m.GetGenericArguments();
+                    foreach(var a in args)
+                    {
+                        var aName = a.Name;
+
+                        if(!legalGenericArgNames.Contains(aName))
+                        {
+                            failing.AppendLine($"{aName} generic arg on method {m.Name} of {t.Name}; not a legal generic parameter name");
+                        }
+                    }
+                }
+
+                foreach (var p in m.GetParameters())
+                {
+                    var pType = p.ParameterType.GetTypeInfo();
+                    if (pType.IsByRef)
+                    {
+                        pType = pType.GetElementType().GetTypeInfo();
+                    }
+
+                    if (pType.IsGenericType && !pType.IsGenericTypeDefinition && pType.BaseType == typeof(MulticastDelegate))
+                    {
+                        pType = pType.GetGenericTypeDefinition().GetTypeInfo();
+                    }
+
+                    // already dealt with elsewhere
+                    if (pType.IsGenericParameter) continue;
+
+                    var pName = p.Name;
+
+                    if (!legal.TryGetValue(pType, out var legalNames))
+                    {
+                        failing.AppendLine($"{pName} of {pType.Name} on method {m.Name} of {t.Name}; no entry for {pType.Name}");
+                    }
+                    else
+                    {
+                        if (!legalNames.Contains(pName))
+                        {
+                            failing.AppendLine($"{pName} of {pType.Name} on method {m.Name} of {t.Name}; '{pName}' is not approved");
+                        }
+                    }
+                }
+            }
+
+            foreach(var d in AllPublicDelegates())
+            {
+                if (d.IsGenericTypeDefinition)
+                {
+                    var args = d.GetGenericArguments();
+                    foreach (var a in args)
+                    {
+                        var aName = a.Name;
+
+                        if (!legalGenericArgNames.Contains(aName))
+                        {
+                            failing.AppendLine($"{aName} generic arg on delegate {d.Name}; not a legal generic parameter name");
+                        }
+                    }
+                }
+
+                var invokeMtd = d.GetMethod("Invoke");
+
+                foreach(var p in invokeMtd.GetParameters())
+                {
+                    var pType = p.ParameterType.GetTypeInfo();
+                    if (pType.IsByRef)
+                    {
+                        pType = pType.GetElementType().GetTypeInfo();
+                    }
+
+                    if (pType.IsGenericType && !pType.IsGenericTypeDefinition && pType.BaseType == typeof(MulticastDelegate))
+                    {
+                        pType = pType.GetGenericTypeDefinition().GetTypeInfo();
+                    }
+
+                    // already dealt with elsewhere
+                    if (pType.IsGenericParameter) continue;
+
+                    var pName = p.Name;
+
+                    if (!legal.TryGetValue(pType, out var legalNames))
+                    {
+                        failing.AppendLine($"{pName} of {pType.Name} on delegate {d.Name}; no entry for {pType.Name}");
+                    }
+                    else
+                    {
+                        if (!legalNames.Contains(pName))
+                        {
+                            failing.AppendLine($"{pName} of {pType.Name} on delegate {d.Name}; '{pName}' is not approved");
+                        }
+                    }
+                }
+            }
+
+            foreach(var t in AllPubicTypes())
+            {
+                // skip delegates
+                if (t.BaseType == typeof(MulticastDelegate)) continue;
+
+                if (t.IsGenericTypeDefinition)
+                {
+                    var args = t.GetGenericArguments();
+                    foreach (var a in args)
+                    {
+                        var aName = a.Name;
+
+                        if (!legalGenericArgNames.Contains(aName))
+                        {
+                            failing.AppendLine($"{aName} generic arg on type {t.Name}; not a legal generic parameter name");
+                        }
+                    }
+                }
+            }
+
+            var str = failing.ToString();
+            Assert.Equal("", str);
+        }
+
+        [Fact]
+        public void Builders()
+        {
+            // patterned after Immutable collections builder pattern
+
+            var pubTypes = AllPubicTypes();
+
+            var builders = pubTypes.Where(p => p.Name.EndsWith("Builder")).ToList();
+
+            var builderToBuilt = builders.ToDictionary(b => b, b => pubTypes.Single(x => x.Name == b.Name.Substring(0, b.Name.Length - "Builder".Length)));
+
+            foreach(var kv in builderToBuilt)
+            {
+                var builder = kv.Key;
+                var built = kv.Value;
+
+                var builderMtds = builder.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static).ToList();
+                var builtMtds = built.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+
+                // remove types it doesn't implement
+                builderMtds.RemoveAll(m => m.DeclaringType != builder);
+
+                // remove ToString(), it's fine
+                builderMtds.RemoveAll(m => m.Name == nameof(object.ToString));
+
+                // nuke all the property _getters_; setters are still bad news
+                builderMtds.RemoveAll(m => m.Name.StartsWith("get_"));
+
+                var staticBuilderMtds = builderMtds.Where(b => b.IsStatic).ToList();
+                var instanceBuilderMtds = builderMtds.Where(b => !b.IsStatic).ToList();
+
+                var staticBuiltMtds = builtMtds.Where(b => b.IsStatic).ToArray();
+
+                // there's a method on the builder called CreateBuilder, that returns the builder, and takes an instance of the built
+                Assert.Contains(
+                    staticBuilderMtds,
+                    m =>
+                    {
+                        if (m.Name != "CreateBuilder") return false;
+                        if (m.ReturnType != builder) return false;
+
+                        var mParams = m.GetParameters();
+                        if (mParams.Length != 1) return false;
+
+                        return mParams[0].ParameterType == built;
+                    }
+                );
+
+                // all static methods on the builder return the builder, are named CreateBuilder, and there's a paired method on the built type
+                Assert.All(
+                    staticBuilderMtds,
+                    m =>
+                    {
+                        Assert.Equal("CreateBuilder", m.Name);
+                        Assert.Equal(builder, m.ReturnType);
+
+                        var mParams = m.GetParameters();
+
+                        var paired =
+                            staticBuiltMtds.SingleOrDefault(
+                                s =>
+                                {
+                                    if (s.Name != m.Name) return false;
+
+                                    if (s.ReturnType != m.ReturnType) return false;
+
+                                    var sParams = s.GetParameters();
+
+                                    if (sParams.Length != mParams.Length) return false;
+
+                                    for(var i = 0; i < sParams.Length; i++)
+                                    {
+                                        if (sParams[i].ParameterType!= mParams[i].ParameterType) return false;
+                                    }
+
+                                    return true;
+                                }
+                            );
+
+                        Assert.NotNull(paired);
+                    }
+                );
+
+                // there's a single method called To<Built>() on the builder that returns the built
+                Assert.Contains(
+                    instanceBuilderMtds,
+                    m =>
+                    {
+                        var name = "To" + built.Name;
+                        if (name != m.Name) return false;
+
+                        var p = m.GetParameters();
+                        if (p.Length != 0) return false;
+
+                        return m.ReturnType == built;
+                    }
+                );
+
+                // all methods on builder return the builder
+                var builtInstanceExceptToXXX = instanceBuilderMtds.Where(m => m.Name != "To" + built.Name).ToList();
+                Assert.All(
+                    builtInstanceExceptToXXX,
+                    m => Assert.Equal(builder, m.ReturnType)
+                );
             }
         }
     }

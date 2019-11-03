@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace Cesil
 {
@@ -23,6 +24,8 @@ namespace Cesil
             get => _Value != null;
         }
 
+        [DisallowNull]
+        [NotNull]
         public T Value
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]

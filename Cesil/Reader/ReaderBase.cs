@@ -23,8 +23,8 @@ namespace Cesil
 
         internal NonNull<Column[]> Columns;
 
-        internal RowEndings? RowEndings { get; set; }
-        internal ReadHeaders? ReadHeaders { get; set; }
+        internal RowEnding? RowEndings { get; set; }
+        internal ReadHeader? ReadHeaders { get; set; }
 
         internal int RowNumber;
 
@@ -292,7 +292,7 @@ namespace Cesil
 
                 // this is CRAZY unlikely, but indicates that the TransitionMatrix used was incorrect
                 case ReaderStateMachine.AdvanceResult.Exception_UnexpectedLineEnding:
-                    return Throw.Exception<ReadWithCommentResultType>($"Unexpected {nameof(Cesil.RowEndings)} value encountered");
+                    return Throw.Exception<ReadWithCommentResultType>($"Unexpected {nameof(Cesil.RowEnding)} value encountered");
 
                 // likewise, CRAZY unlikely
                 case ReaderStateMachine.AdvanceResult.Exception_UnexpectedState:
@@ -366,17 +366,17 @@ namespace Cesil
         {
             if (!headers.IsHeader)
             {
-                if (Configuration.ReadHeader == Cesil.ReadHeaders.Always)
+                if (Configuration.ReadHeader == Cesil.ReadHeader.Always)
                 {
                     Throw.InvalidOperationException<object>("First row of input was not a row of headers");
                 }
             }
 
             // what are we _actually_ doing?
-            this.ReadHeaders = headers.IsHeader ? Cesil.ReadHeaders.Always : Cesil.ReadHeaders.Never;
+            this.ReadHeaders = headers.IsHeader ? Cesil.ReadHeader.Always : Cesil.ReadHeader.Never;
             TryMakeStateMachine();
 
-            if (this.ReadHeaders == Cesil.ReadHeaders.Always)
+            if (this.ReadHeaders == Cesil.ReadHeader.Always)
             {
                 var columnsInDiscoveredOrder = new Column[headers.Headers.Count];
                 foreach (var col in Configuration.DeserializeColumns)
@@ -426,7 +426,7 @@ namespace Cesil
             Buffer.PushBackFromOutsideBuffer(headers.PushBack);
         }
 
-        protected void HandleLineEndingsDetectionResult((RowEndings Ending, Memory<char> PushBack)? res)
+        protected void HandleLineEndingsDetectionResult((RowEnding Ending, Memory<char> PushBack)? res)
         {
             if (res == null)
             {

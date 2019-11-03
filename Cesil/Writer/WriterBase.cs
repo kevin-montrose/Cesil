@@ -74,5 +74,97 @@ namespace Cesil
 
             return (c, seq);
         }
+
+        internal void CheckCanEncode(ReadOnlySpan<char> chars)
+        {
+            // we can always encode if we have both (the common case)
+            if (Config.EscapedValueStartAndStop.HasValue && Config.EscapeValueEscapeChar.HasValue)
+            {
+                return;
+            }
+
+            // we can NEVER encode if we don't have the ability to start an escaped value
+            if(Config.EscapedValueStartAndStop == null)
+            {
+                // we can be slow here, we're about to throw an exception
+                var carriageReturnIx = Utils.FindChar(chars, 0, '\r');
+                var newLineIx = Utils.FindChar(chars, 0, '\n');
+                var separatorIx = Utils.FindChar(chars, 0, Config.ValueSeparator);
+                var commentIx = Config.CommentChar.HasValue ? Utils.FindChar(chars, 0, Config.CommentChar.Value) : -1;
+
+                if (carriageReturnIx == -1) carriageReturnIx = int.MaxValue;
+                if (newLineIx == -1) newLineIx = int.MaxValue;
+                if (separatorIx == -1) separatorIx = int.MaxValue;
+                if (commentIx == -1) commentIx = int.MaxValue;
+
+                var offendingIx = Math.Min(carriageReturnIx, Math.Min(newLineIx, Math.Min(separatorIx, commentIx)));
+                var offendingChar = chars[offendingIx];
+
+                Throw.InvalidOperationException<object>($"Tried to write a value contain '{offendingChar}' which requires escaping a value, but no way to escape a value is configured");
+                return;
+            }
+
+            // we're only in trouble if the value contains EscapedValueStartAndStop
+            var escapeStartIx = Utils.FindChar(chars, 0, Config.EscapedValueStartAndStop.Value);
+            if (escapeStartIx == -1) return;
+
+            Throw.InvalidOperationException<object>($"Tried to write a value contain '{Config.EscapedValueStartAndStop.Value}' which requires escaping the character in an escaped value, but no way to escape inside an escaped value is configured");
+        }
+
+        internal void CheckCanEncode(ReadOnlySequence<char> chars)
+        {
+            // we can always encode if we have both (the common case)
+            if (Config.EscapedValueStartAndStop.HasValue && Config.EscapeValueEscapeChar.HasValue)
+            {
+                return;
+            }
+
+            if(chars.IsSingleSegment)
+            {
+                CheckCanEncode(chars.FirstSpan);
+                return;
+            }
+
+            // we can NEVER encode if we don't have the ability to start an escaped value
+            if (Config.EscapedValueStartAndStop == null)
+            {
+                // we can be slow here, we're about to throw an exception
+                var carriageReturnIx = Utils.FindChar(chars, 0, '\r');
+                var newLineIx = Utils.FindChar(chars, 0, '\n');
+                var separatorIx = Utils.FindChar(chars, 0, Config.ValueSeparator);
+                var commentIx = Config.CommentChar.HasValue ? Utils.FindChar(chars, 0, Config.CommentChar.Value) : -1;
+
+                if (carriageReturnIx == -1) carriageReturnIx = int.MaxValue;
+                if (newLineIx == -1) newLineIx = int.MaxValue;
+                if (separatorIx == -1) separatorIx = int.MaxValue;
+                if (commentIx == -1) commentIx = int.MaxValue;
+
+                var offendingIx = Math.Min(carriageReturnIx, Math.Min(newLineIx, Math.Min(separatorIx, commentIx)));
+
+                char offendingChar;
+                if(offendingIx == carriageReturnIx)
+                {
+                    offendingChar = '\r';
+                }else if(offendingIx == newLineIx)
+                {
+                    offendingChar = '\n';
+                } else if (offendingIx == separatorIx)
+                {
+                    offendingChar = Config.ValueSeparator;
+                } else
+                {
+                    offendingChar = Utils.NonNullStruct(Config.CommentChar);
+                }
+
+                Throw.InvalidOperationException<object>($"Tried to write a value contain '{offendingChar}' which requires escaping a value, but no way to escape a value is configured");
+                return;
+            }
+
+            // we're only in trouble if the value contains EscapedValueStartAndStop
+            var escapeStartIx = Utils.FindChar(chars, 0, Config.EscapedValueStartAndStop.Value);
+            if (escapeStartIx == -1) return;
+
+            Throw.InvalidOperationException<object>($"Tried to write a value contain '{Config.EscapedValueStartAndStop.Value}' which requires escaping the character in an escaped value, but no way to escape inside an escaped value is configured");
+        }
     }
 }
