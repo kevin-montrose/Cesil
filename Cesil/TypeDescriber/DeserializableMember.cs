@@ -117,9 +117,9 @@ namespace Cesil
         /// </summary>
         public static DeserializableMember Create(
             TypeInfo forType,
-            string name, 
-            Setter setter, 
-            Parser parser, 
+            string name,
+            Setter setter,
+            Parser parser,
             MemberRequired required,
             [NullableExposed("Reset is truly optional here, it's required and validated elsewhere")]
             Reset? reset

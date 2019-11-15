@@ -111,7 +111,7 @@ namespace Cesil
         private void HandleHeaders()
         {
             ReadHeaders = Configuration.ReadHeader;
-           
+
             var allowColumnsByName = Configuration.ReadHeader == Cesil.ReadHeader.Always;
 
             var headerConfig =

@@ -2850,7 +2850,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _Formatter_Failable : IBufferWriter<char>
+        private class _Formatter_Failable : IBufferWriter<char>
         {
             private readonly char[] Buffer;
 

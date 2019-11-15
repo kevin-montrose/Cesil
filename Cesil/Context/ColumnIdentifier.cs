@@ -67,7 +67,7 @@ namespace Cesil
         /// </summary>
         public static ColumnIdentifier Create(
             [IntentionallyExposedPrimitive("Best way to identify an index")]
-            int index, 
+            int index,
             string name
         )
         {

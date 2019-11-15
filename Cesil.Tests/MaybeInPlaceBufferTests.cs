@@ -153,7 +153,7 @@ namespace Cesil.Tests
                     buffer.AppendSingle(ReadOnlySpan<char>.Empty, 'r');
                     expectedLength++;
                     Assert.Equal(MaybeInPlaceBuffer<char>.Mode.Copy, buffer.CurrentMode);
-                    while(buffer.Length < buffer.Copy.Length)
+                    while (buffer.Length < buffer.Copy.Length)
                     {
                         buffer.AppendSingle(ReadOnlySpan<char>.Empty, 'e');
                         Assert.Equal(MaybeInPlaceBuffer<char>.Mode.Copy, buffer.CurrentMode);

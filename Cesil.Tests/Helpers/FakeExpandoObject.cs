@@ -1,5 +1,4 @@
-﻿using Cesil.Tests;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -7,6 +6,7 @@ using System.Dynamic;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Cesil.Tests;
 
 namespace Cesil.Tests
 {

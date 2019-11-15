@@ -24,7 +24,7 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
-            if(NextIndex == Memory.Length)
+            if (NextIndex == Memory.Length)
             {
                 if (!Memory.IsEmpty)
                 {
@@ -45,7 +45,7 @@ namespace Cesil
 
             while (!chars.IsEmpty)
             {
-                if(Memory.Length == NextIndex)
+                if (Memory.Length == NextIndex)
                 {
                     if (!Memory.IsEmpty)
                     {
@@ -68,7 +68,7 @@ namespace Cesil
         {
             if (!IsDisposed)
             {
-                if(NextIndex != 0)
+                if (NextIndex != 0)
                 {
                     Writer.Advance(NextIndex);
                     NextIndex = 0;

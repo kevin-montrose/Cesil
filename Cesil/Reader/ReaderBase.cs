@@ -164,7 +164,7 @@ namespace Cesil
                         inBatchableResult = ReaderStateMachine.AdvanceResult.Append_Character;
                         consistentResultSince = i;
                         continue;
-                        
+
                     case ReaderStateMachine.AdvanceResult.Append_CarriageReturnAndCurrentCharacter:
                         Partial.AppendCarriageReturn(buffSpan);
                         Partial.AppendCharacters(buffSpan, i, 1);
@@ -252,7 +252,7 @@ namespace Cesil
                         PushPendingCharactersToValue();
                     }
                     return ReadWithCommentResultType.HasValue;
-                
+
                 case ReaderStateMachine.AdvanceResult.Finished_Comment:
                     return ReadWithCommentResultType.HasComment;
 
@@ -283,7 +283,7 @@ namespace Cesil
                     return Throw.InvalidOperationException<ReadWithCommentResultType>($"Encountered '{c}', starting an escaped value, when already in a value");
                 case ReaderStateMachine.AdvanceResult.Exception_UnexpectedCharacterInEscapeSequence:
                     return Throw.InvalidOperationException<ReadWithCommentResultType>($"Encountered '{c}' in an escape sequence, which is invalid");
-                
+
                 case ReaderStateMachine.AdvanceResult.Exception_ExpectedEndOfRecordOrValue:
                     return Throw.InvalidOperationException<ReadWithCommentResultType>($"Encountered '{c}' when expecting the end of a record or value");
 

@@ -6,7 +6,7 @@ using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
-    internal sealed class ReadOnlyByteSequenceAdapter: ByteSequenceAdapterBase, IReaderAdapter
+    internal sealed class ReadOnlyByteSequenceAdapter : ByteSequenceAdapterBase, IReaderAdapter
     {
         public bool IsDisposed { get; private set; }
 

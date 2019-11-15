@@ -54,7 +54,7 @@ namespace Cesil.Tests
                     {
                         var res = await pipe.Reader.ReadAsync();
 
-                        foreach(var seg in res.Buffer)
+                        foreach (var seg in res.Buffer)
                         {
                             readBytes.AddRange(seg.ToArray());
                         }
@@ -142,7 +142,7 @@ namespace Cesil.Tests
         {
             var failures = new StringBuilder();
 
-            for(var i = 0; i < _NaughtStringsAsync_AllEncodings.Length; i++)
+            for (var i = 0; i < _NaughtStringsAsync_AllEncodings.Length; i++)
             {
                 var encoding = _NaughtStringsAsync_AllEncodings[i];
 
@@ -182,7 +182,7 @@ namespace Cesil.Tests
                 while (true)
                 {
                     var res = await read.ReadAsync();
-                    foreach(var seq in res.Buffer)
+                    foreach (var seq in res.Buffer)
                     {
                         ret.AddRange(seq.ToArray());
                     }

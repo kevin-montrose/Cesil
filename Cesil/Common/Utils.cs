@@ -12,9 +12,9 @@ namespace Cesil
         // Places where the type system thinks we're nullable, don't use this.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static void CheckArgumentNull<T>(T arg, string argName)
-            where T: class
+            where T : class
         {
-            if(arg == null)
+            if (arg == null)
             {
                 Throw.ArgumentNullException<object>(argName);
             }
@@ -610,7 +610,7 @@ tryAgain:
             var pool = config.MemoryPool;
             var escapeCharNull = config.EscapeValueEscapeChar;
             char escapeChar;
-            if(escapeCharNull == null)
+            if (escapeCharNull == null)
             {
                 return Throw.Exception<string>("Attempted to encode a string without a configured escape char, shouldn't be possible");
             }

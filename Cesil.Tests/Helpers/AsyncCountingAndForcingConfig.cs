@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 
 namespace Cesil.Tests
 {
@@ -15,7 +14,7 @@ namespace Cesil.Tests
 
         private ITestableAsyncProvider Single;
 
-        public AsyncCountingAndForcingConfig(BoundConfigurationBase<T> inner) : 
+        public AsyncCountingAndForcingConfig(BoundConfigurationBase<T> inner) :
             base(inner.TypeDescriber.HasValue ? inner.TypeDescriber.Value : null, inner.ValueSeparator, inner.EscapedValueStartAndStop, inner.EscapeValueEscapeChar, inner.RowEnding, inner.ReadHeader, inner.WriteHeader, inner.WriteTrailingNewLine, inner.MemoryPool, inner.CommentChar, inner.WriteBufferSizeHint, inner.ReadBufferSizeHint, inner.DynamicRowDisposal)
         {
             InnerConfig = inner;
@@ -59,7 +58,7 @@ namespace Cesil.Tests
         }
 
         internal override IWriter<T> CreateWriter(IWriterAdapter reader, object context = null)
-        { 
+        {
             throw new NotImplementedException("No sync writer");
         }
     }

@@ -75,7 +75,7 @@ namespace Cesil.Tests
             expectedRuns
         );
 
-        class SyncReaderAdapter_CharNode : ReadOnlySequenceSegment<char>
+        private class SyncReaderAdapter_CharNode : ReadOnlySequenceSegment<char>
         {
             public SyncReaderAdapter_CharNode(ReadOnlyMemory<char> m)
             {
@@ -94,7 +94,7 @@ namespace Cesil.Tests
             }
         }
 
-        class SyncReaderAdapter_ByteNode : ReadOnlySequenceSegment<byte>
+        private class SyncReaderAdapter_ByteNode : ReadOnlySequenceSegment<byte>
         {
             public SyncReaderAdapter_ByteNode(ReadOnlyMemory<byte> m)
             {

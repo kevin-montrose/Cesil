@@ -44,7 +44,7 @@ namespace Cesil
             {
                 return MoveNextAsync_ContinueAfterReadAsync(this, task, Token);
             }
-            
+
             var res = task.Result;
             if (!res.HasValue)
             {
@@ -53,7 +53,7 @@ namespace Cesil
 
             Current = res.Value;
             return new ValueTask<bool>(true);
-            
+
             // wait for a read to finish, then continue async
             static async ValueTask<bool> MoveNextAsync_ContinueAfterReadAsync(AsyncEnumerator<T> self, ValueTask<ReadResult<T>> waitFor, CancellationToken cancel)
             {

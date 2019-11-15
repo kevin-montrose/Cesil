@@ -18,8 +18,8 @@ namespace Cesil.Tests
                 Options.DynamicDefault,
                 async (config, getReader) =>
                 {
-                    await using(var reader = await getReader("hello,world\r\n1,foo\r\n2,bar"))
-                    await using(var csv = config.CreateAsyncReader(reader))
+                    await using (var reader = await getReader("hello,world\r\n1,foo\r\n2,bar"))
+                    await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var token = new CancellationTokenSource();
 

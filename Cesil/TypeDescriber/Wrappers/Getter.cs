@@ -367,7 +367,7 @@ namespace Cesil
                         return $"{nameof(Getter)} backed by delegate {Delegate} returning {Returns}";
                     }
                 case BackingMode.Field:
-                    if(!IsStatic)
+                    if (!IsStatic)
                     {
                         return $"{nameof(Getter)} backed by field {Field} on {RowType} returning {Returns}";
                     }

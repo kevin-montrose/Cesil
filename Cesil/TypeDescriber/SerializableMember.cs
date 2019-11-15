@@ -109,12 +109,12 @@ namespace Cesil
         /// Create a SerializableMember with an explicit type being serialized, name, getter, formatter, ShouldSerialize method, and whether to emit a default value.
         /// </summary>
         public static SerializableMember Create(
-            TypeInfo forType, 
-            string name, 
-            Getter getter, 
+            TypeInfo forType,
+            string name,
+            Getter getter,
             Formatter formatter,
             [NullableExposed("ShouldSerialize is truly optional here, it's required and validated elsewhere")]
-            ShouldSerialize? shouldSerialize, 
+            ShouldSerialize? shouldSerialize,
             EmitDefaultValue emitDefault
         )
         => CreateInner(forType, name, getter, formatter, shouldSerialize, emitDefault);

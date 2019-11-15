@@ -14,7 +14,7 @@ namespace Cesil
     // to modify it, you'll want to return `ref NonNull` or
     // your updates will work on a copy.
     internal struct NonNull<T>
-        where T: class
+        where T : class
     {
         private T? _Value;
 

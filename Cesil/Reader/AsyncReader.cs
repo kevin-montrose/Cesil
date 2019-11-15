@@ -34,7 +34,7 @@ namespace Cesil
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
 
-                if(self.ReadHeaders == null)
+                if (self.ReadHeaders == null)
                 {
                     await self.HandleHeadersAsync(cancel);
                     cancel.ThrowIfCancellationRequested();
@@ -318,7 +318,7 @@ namespace Cesil
                 {
                     return DisposeAsync_ContinueAfterInnerDisposedAsync(this, disposeTask);
                 }
-                
+
                 Buffer.Dispose();
                 Partial.Dispose();
                 StateMachine?.Dispose();

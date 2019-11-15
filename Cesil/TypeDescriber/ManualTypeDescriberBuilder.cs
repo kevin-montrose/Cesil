@@ -47,7 +47,7 @@ namespace Cesil
             FallbackTypeDescriber = other.Fallback;
 
             Builders = ImmutableDictionary.CreateBuilder<TypeInfo, InstanceProvider>();
-            foreach(var b in other.Builders)
+            foreach (var b in other.Builders)
             {
                 Builders[b.Key] = b.Value;
             }
@@ -77,7 +77,7 @@ namespace Cesil
         /// Create a new ManualTypeDescriberBuilder which fallbacks to TypeDescribers.Default when a type with
         ///    no registered members is requested.
         /// </summary>
-        public static ManualTypeDescriberBuilder CreateBuilder() 
+        public static ManualTypeDescriberBuilder CreateBuilder()
         => CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback);
 
         /// <summary>
@@ -131,7 +131,7 @@ namespace Cesil
             var deserializers = Deserializers.ToImmutableDictionary(kv => kv.Key, kv => kv.Value.ToImmutable());
 
             bool throws;
-            switch(FallbackBehavior)
+            switch (FallbackBehavior)
             {
                 case ManualTypeDescriberFallbackBehavior.Throw: throws = true; break;
                 case ManualTypeDescriberFallbackBehavior.UseFallback: throws = false; break;
@@ -159,7 +159,7 @@ namespace Cesil
         }
 
         // fallback itypedescriber
-        
+
         /// <summary>
         /// Sets the ITypeDescriber to fallback to, provided that FallbackBehavior allows falling back, 
         ///   when a method has no regisrations to return.
@@ -700,7 +700,7 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(reset, nameof(reset));
 
-           return  AddDeserializeMember(property?.DeclaringType?.GetTypeInfo(), (Setter?)property?.SetMethod, name, parser, required, reset);
+            return AddDeserializeMember(property?.DeclaringType?.GetTypeInfo(), (Setter?)property?.SetMethod, name, parser, required, reset);
         }
 
         private ManualTypeDescriberBuilder AddDeserializeMember(TypeInfo? forType, Setter? setter, string? name, Parser? parser, MemberRequired required, Reset? reset)

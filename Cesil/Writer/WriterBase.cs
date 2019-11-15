@@ -84,7 +84,7 @@ namespace Cesil
             }
 
             // we can NEVER encode if we don't have the ability to start an escaped value
-            if(Config.EscapedValueStartAndStop == null)
+            if (Config.EscapedValueStartAndStop == null)
             {
                 // we can be slow here, we're about to throw an exception
                 var carriageReturnIx = Utils.FindChar(chars, 0, '\r');
@@ -119,7 +119,7 @@ namespace Cesil
                 return;
             }
 
-            if(chars.IsSingleSegment)
+            if (chars.IsSingleSegment)
             {
                 CheckCanEncode(chars.FirstSpan);
                 return;
@@ -142,16 +142,19 @@ namespace Cesil
                 var offendingIx = Math.Min(carriageReturnIx, Math.Min(newLineIx, Math.Min(separatorIx, commentIx)));
 
                 char offendingChar;
-                if(offendingIx == carriageReturnIx)
+                if (offendingIx == carriageReturnIx)
                 {
                     offendingChar = '\r';
-                }else if(offendingIx == newLineIx)
+                }
+                else if (offendingIx == newLineIx)
                 {
                     offendingChar = '\n';
-                } else if (offendingIx == separatorIx)
+                }
+                else if (offendingIx == separatorIx)
                 {
                     offendingChar = Config.ValueSeparator;
-                } else
+                }
+                else
                 {
                     offendingChar = Utils.NonNullStruct(Config.CommentChar);
                 }

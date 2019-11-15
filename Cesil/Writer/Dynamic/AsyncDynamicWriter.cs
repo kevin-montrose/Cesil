@@ -22,13 +22,13 @@ namespace Cesil
 
         private Dictionary<object, Delegate>? DelegateCache;
 
-        internal AsyncDynamicWriter(DynamicBoundConfiguration config, IAsyncWriterAdapter inner, object? context) : base(config, inner, context) 
-        { 
-            
+        internal AsyncDynamicWriter(DynamicBoundConfiguration config, IAsyncWriterAdapter inner, object? context) : base(config, inner, context)
+        {
+
         }
 
         CachedDelegate<V> IDelegateCache.TryGet<T, V>(T key)
-            where V: class
+            where V : class
         {
             if (DelegateCache == null)
             {
@@ -93,7 +93,7 @@ namespace Cesil
                     }
 
                     ColumnIdentifier ci;
-                    if(i < columnNamesValue.Length)
+                    if (i < columnNamesValue.Length)
                     {
                         ci = ColumnIdentifier.Create(i, columnNamesValue[i].Name);
                     }
@@ -200,7 +200,7 @@ end:
                         // nothing was written, so just move on
                         goto end;
                     }
-                    
+
                     var writeValueTask = self.WriteValueAsync(res, cancel);
                     await writeValueTask;
                     cancel.ThrowIfCancellationRequested();
@@ -442,7 +442,7 @@ end:
             }
 
             var (commentChar, segments) = SplitCommentIntoLines(comment);
-            
+
             // we know we can write directly now
             var isFirstRow = true;
             var e = segments.GetEnumerator();
@@ -562,11 +562,11 @@ end:
             }
 
             static async ValueTask WriteCommentAsync_ContinueAfterEndRowAsync(
-                AsyncDynamicWriter self, 
-                ValueTask waitFor, 
+                AsyncDynamicWriter self,
+                ValueTask waitFor,
                 char commentChar,
-                ReadOnlyMemory<char> seg, 
-                ReadOnlySequence<char>.Enumerator e, 
+                ReadOnlyMemory<char> seg,
+                ReadOnlySequence<char>.Enumerator e,
                 CancellationToken cancel
             )
             {
@@ -612,11 +612,11 @@ end:
 
             // continue after writing the comment start char completes
             static async ValueTask WriteCommentAsync_ContinueAfterPlaceCharAsync(
-                AsyncDynamicWriter self, 
-                ValueTask waitFor, 
+                AsyncDynamicWriter self,
+                ValueTask waitFor,
                 char commentChar,
-                ReadOnlyMemory<char> seg, 
-                ReadOnlySequence<char>.Enumerator e, 
+                ReadOnlyMemory<char> seg,
+                ReadOnlySequence<char>.Enumerator e,
                 CancellationToken cancel
             )
             {
@@ -658,10 +658,10 @@ end:
 
             // continue after writing a chunk of the comment completes
             static async ValueTask WriteCommentAsync_ContinueAfterPlaceSegementAsync(
-                AsyncDynamicWriter self, 
-                ValueTask waitFor, 
+                AsyncDynamicWriter self,
+                ValueTask waitFor,
                 char commentChar,
-                ReadOnlySequence<char>.Enumerator e, 
+                ReadOnlySequence<char>.Enumerator e,
                 CancellationToken cancel
             )
             {

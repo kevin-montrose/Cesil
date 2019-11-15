@@ -11,14 +11,14 @@ namespace Cesil.Tests
 {
     public class WrapperTests
     {
-        class _IDelegateCaches
+        private class _IDelegateCaches
         {
 #pragma warning disable CS0649
             public int A;
 #pragma warning restore CS0649
         }
 
-        class _IDelegateCaches_Cache : IDelegateCache
+        private class _IDelegateCaches_Cache : IDelegateCache
         {
             private readonly Dictionary<object, Delegate> Cache = new Dictionary<object, Delegate>();
 
@@ -71,7 +71,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _ColumnSetters_Val
+        private class _ColumnSetters_Val
         {
             public readonly string Value;
 
@@ -83,7 +83,7 @@ namespace Cesil.Tests
             public _ColumnSetters_Val(ReadOnlySpan<char> r, in ReadContext ctx) : this(r) { }
         }
 
-        class _ColumnSetters
+        private class _ColumnSetters
         {
             public static bool StaticResetCalled;
             public static _ColumnSetters_Val StaticField;
@@ -225,12 +225,12 @@ namespace Cesil.Tests
             }
         }
 
-        class _ColumnWriters_Val
+        private class _ColumnWriters_Val
         {
             public string Value { get; set; }
         }
 
-        class _ColumnWriters
+        private class _ColumnWriters
         {
             public static _ColumnWriters_Val StaticA;
             public _ColumnWriters_Val A;
@@ -467,7 +467,7 @@ namespace Cesil.Tests
             Assert.Equal(2, cCalled);
         }
 
-        class _IDelegateCache : IDelegateCache
+        private class _IDelegateCache : IDelegateCache
         {
             private readonly Dictionary<object, object> Cache = new Dictionary<object, object>();
 
@@ -1069,7 +1069,7 @@ namespace Cesil.Tests
         private static bool _BadArgs5Parser(ReadOnlySpan<char> data, in WriteContext ctx, int res) { return false; }
         private static string _BadReturnParser(ReadOnlySpan<char> data, in WriteContext ctx, out int res) { res = 0; return ""; }
 
-        class _Parsers
+        private class _Parsers
         {
             public _Parsers(int a) { }
             public _Parsers(int a, int b) { }
@@ -1772,7 +1772,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _DynamicRowConverters
+        private class _DynamicRowConverters
         {
             public static int FooStatic { get; set; }
 
@@ -2052,7 +2052,7 @@ namespace Cesil.Tests
             Assert.Equal(1, cCalled);
         }
 
-        class _InstanceBuilders
+        private class _InstanceBuilders
         {
             public _InstanceBuilders() { }
 
@@ -2066,12 +2066,12 @@ namespace Cesil.Tests
         private static bool _BadArgs1Builder(int a, int b) { return true; }
         private static bool _BadArgs2Builder(_InstanceBuilders val) { return true; }
 
-        abstract class _InstanceBuilders_Abstract
+        private abstract class _InstanceBuilders_Abstract
         {
             public _InstanceBuilders_Abstract() { }
         }
 
-        class _InstanceBuilders_Generic<T>
+        private class _InstanceBuilders_Generic<T>
         {
             public _InstanceBuilders_Generic() { }
         }

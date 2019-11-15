@@ -18,7 +18,7 @@ namespace Cesil
         internal readonly IAsyncWriterAdapter Inner;
 
         internal NonNull<IMemoryOwner<char>> OneCharOwner;
-        
+
         private Memory<char> OneCharMemory;
 
         internal AsyncWriterBase(BoundConfigurationBase<T> config, IAsyncWriterAdapter inner, object? context) : base(config, context)
@@ -69,7 +69,7 @@ namespace Cesil
                     {
                         var row = e.Current;
                         var writeAsyncTask = self.WriteAsync(row, cancel);
-                        
+
                         await writeAsyncTask;
                         cancel.ThrowIfCancellationRequested();
                     }
@@ -450,7 +450,7 @@ namespace Cesil
         internal ValueTask WriteEncodedAsync(ReadOnlyMemory<char> charMem, CancellationToken cancel)
         {
             var escapedValueStartAndStop = Utils.NonNullStruct(Config.EscapedValueStartAndStop);
-            
+
 
             // try and blit things in in big chunks
             var start = 0;

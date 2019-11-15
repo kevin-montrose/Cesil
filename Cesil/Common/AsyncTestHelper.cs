@@ -10,7 +10,7 @@ namespace Cesil
         {
 #if DEBUG
             var self = (ITestableAsyncProvider)selfObj;
-            
+
             // act like we haven't completed, so we can try out the "slow" path
             if (self.ShouldGoAsync())
             {

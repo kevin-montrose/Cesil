@@ -1,9 +1,9 @@
-﻿using BenchmarkDotNet.Configs;
+﻿using System.IO;
+using System.Linq;
+using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
 using BenchmarkDotNet.Validators;
 using Cesil.Benchmark.Benchmarks;
-using System.IO;
-using System.Linq;
 
 namespace Cesil.Benchmark
 {

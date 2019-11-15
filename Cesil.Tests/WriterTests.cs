@@ -173,8 +173,8 @@ namespace Cesil.Tests
                 Options.Default,
                 (config, makeWriter, getStr) =>
                 {
-                    using(var w = makeWriter())
-                    using(var csv = config.CreateWriter(w))
+                    using (var w = makeWriter())
+                    using (var csv = config.CreateWriter(w))
                     {
                         Assert.Throws<ArgumentNullException>(() => csv.WriteAll(null));
 
@@ -313,7 +313,7 @@ namespace Cesil.Tests
             );
         }
 
-        class _SerializableMemberDefaults
+        private class _SerializableMemberDefaults
         {
             public int Prop { get; set; }
 #pragma warning disable CS0649
@@ -360,7 +360,7 @@ namespace Cesil.Tests
                             return true;
                         }
                     );
-                
+
                 // 3
                 {
                     Assert.Throws<ArgumentNullException>(() => SerializableMember.ForField(null, "Yep", formatter));
@@ -565,7 +565,7 @@ namespace Cesil.Tests
                     var hashEq = m1.GetHashCode() == m2.GetHashCode();
                     var objEq = m1.Equals((object)m2);
 
-                    if(i == j)
+                    if (i == j)
                     {
                         Assert.True(eq);
                         Assert.False(neq);
@@ -587,14 +587,14 @@ namespace Cesil.Tests
             }
         }
 
-        class _SerializableMemberErrors
+        private class _SerializableMemberErrors
         {
 #pragma warning disable CS0649
             public int A;
 #pragma warning restore CS0649
         }
 
-        class _SerializeMemberErrors_Unreleated
+        private class _SerializeMemberErrors_Unreleated
         {
             public bool ShouldSerializeA() { return true; }
         }
@@ -621,7 +621,7 @@ namespace Cesil.Tests
             Assert.Throws<ArgumentException>(() => SerializableMember.Create(type, "foo", getter, formatter, shouldSerialize, Cesil.EmitDefaultValue.Yes));
         }
 
-        class _LotsOfComments
+        private class _LotsOfComments
         {
             public string Hello { get; set; }
         }
@@ -650,7 +650,7 @@ namespace Cesil.Tests
             );
         }
 
-        class _NullCommentError
+        private class _NullCommentError
         {
             public string Foo { get; set; }
         }
@@ -3052,7 +3052,7 @@ namespace Cesil.Tests
             var pipe = new Pipe();
 
             var config = Configuration.For<_PipeWriterAsync>();
-            await using(var csv = config.CreateAsyncWriter(pipe.Writer, Encoding.UTF7))
+            await using (var csv = config.CreateAsyncWriter(pipe.Writer, Encoding.UTF7))
             {
                 await csv.WriteAsync(new _PipeWriterAsync { Fizz = "hello", Buzz = 12345 });
             }
@@ -3063,12 +3063,12 @@ namespace Cesil.Tests
             while (true)
             {
                 var res = await pipe.Reader.ReadAsync();
-                foreach(var seg in res.Buffer)
+                foreach (var seg in res.Buffer)
                 {
                     bytes.AddRange(seg.ToArray());
                 }
 
-                if(res.IsCompleted || res.IsCanceled)
+                if (res.IsCompleted || res.IsCanceled)
                 {
                     break;
                 }

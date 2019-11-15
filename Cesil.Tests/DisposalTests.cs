@@ -115,11 +115,11 @@ namespace Cesil.Tests
                 {
                     IDisposable_TextWriterAdapter();
                 }
-                else if(t == typeof(TextReaderAdapter))
+                else if (t == typeof(TextReaderAdapter))
                 {
                     IDisposable_TextReaderAdapter();
                 }
-                else if(t == typeof(BufferWriterCharAdapter))
+                else if (t == typeof(BufferWriterCharAdapter))
                 {
                     IDisposable_BufferWriterAdapter();
                 }
@@ -127,13 +127,13 @@ namespace Cesil.Tests
                 {
                     IDisposable_ReadOnlySequenceAdapter();
                 }
-                else if(t == typeof(ReaderStateMachine.RePin))
+                else if (t == typeof(ReaderStateMachine.RePin))
                 {
                     // intentionally NOT testing this one, it's a useful hack
                     //   to use using for this one but it's not a traditional
                     //   disposable
                 }
-                else if(t == typeof(DynamicRowMemberNameEnumerator))
+                else if (t == typeof(DynamicRowMemberNameEnumerator))
                 {
                     IDisposable_DynamicRowMemberNameEnumerator();
                 }
@@ -1536,7 +1536,7 @@ namespace Cesil.Tests
                 {
                     await IAsyncDisposable_AsyncDynamicWriterAsync();
                 }
-                else if(t == typeof(AsyncTextWriterAdapter))
+                else if (t == typeof(AsyncTextWriterAdapter))
                 {
                     await IAsyncDisposable_TextWriterAsyncAdapater();
                 }

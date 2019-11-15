@@ -1,7 +1,7 @@
-﻿using BenchmarkDotNet.Attributes;
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
+using BenchmarkDotNet.Attributes;
 using C = Csv;
 using CH = CsvHelper;
 

@@ -54,7 +54,7 @@ namespace Cesil
                 }
 
                 var cell = row.GetCellAt(i);
-                if(cell == null)
+                if (cell == null)
                 {
                     return Throw.InvalidOperationException<object[]>("Unexpected null value in dynamic row cell");
                 }

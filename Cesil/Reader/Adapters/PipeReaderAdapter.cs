@@ -13,8 +13,8 @@ namespace Cesil
         public bool IsDisposed { get; private set; }
 
         private readonly PipeReader Inner;
-        
-        public PipeReaderAdapter(PipeReader reader, Encoding encoding): base(encoding)
+
+        public PipeReaderAdapter(PipeReader reader, Encoding encoding) : base(encoding)
         {
             Inner = reader;
         }
@@ -28,7 +28,7 @@ namespace Cesil
                 return new ValueTask<int>(0);
             }
 
-            tryAgain:
+tryAgain:
 
             var readTask = Inner.ReadAsync(cancel);
             if (!readTask.IsCompletedSuccessfully(this))
@@ -41,7 +41,7 @@ namespace Cesil
 
             // we need to wait for more to happen, returning 0 will
             //    incorrectly signal that the writer has finished
-            if(handled == 0 && !IsComplete)
+            if (handled == 0 && !IsComplete)
             {
                 goto tryAgain;
             }
@@ -51,7 +51,7 @@ namespace Cesil
             // continue after a ReadAsync call completes
             static async ValueTask<int> ReadAsync_ContinueAfterReadAsync(PipeReaderAdapter self, ValueTask<ReadResult> waitFor, Memory<char> into, CancellationToken cancel)
             {
-                tryAgainAsync:
+tryAgainAsync:
                 var res = await waitFor;
 
                 var handled = self.MapByteSequenceToChar(res, into);

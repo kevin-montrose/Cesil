@@ -1,10 +1,10 @@
-﻿using BenchmarkDotNet.Attributes;
-using CsvHelper;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using BenchmarkDotNet.Attributes;
+using CsvHelper;
 
 namespace Cesil.Benchmark.Benchmarks
 {

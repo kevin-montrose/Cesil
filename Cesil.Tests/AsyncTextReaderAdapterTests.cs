@@ -9,7 +9,7 @@ namespace Cesil.Tests
     {
         private sealed class _NonAsyncDisposalAsync : TextReader
         {
-            public bool DisposeCalled { get;private set;}
+            public bool DisposeCalled { get; private set; }
 
             protected override void Dispose(bool disposing)
             {

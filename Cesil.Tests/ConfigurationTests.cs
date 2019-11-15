@@ -16,7 +16,7 @@ namespace Cesil.Tests
         [Fact]
         public void TransitionMatrixInBounds()
         {
-            foreach(var state in Enum.GetValues(typeof(ReaderStateMachine.State)).Cast<ReaderStateMachine.State>())
+            foreach (var state in Enum.GetValues(typeof(ReaderStateMachine.State)).Cast<ReaderStateMachine.State>())
             {
                 foreach (var type in Enum.GetValues(typeof(ReaderStateMachine.CharacterType)).Cast<ReaderStateMachine.CharacterType>())
                 {
@@ -26,7 +26,7 @@ namespace Cesil.Tests
                     Assert.True(ix < ReaderStateMachine.RuleCacheConfigSize);
                 }
             }
-            
+
         }
 
         [Fact]
@@ -70,7 +70,7 @@ namespace Cesil.Tests
             Assert.Throws<InvalidOperationException>(() => Configuration.For<object>());
         }
 
-        class _OptionsEquality_MemoryPool : MemoryPool<char>
+        private class _OptionsEquality_MemoryPool : MemoryPool<char>
         {
             public override int MaxBufferSize => Shared.MaxBufferSize;
 
@@ -86,41 +86,41 @@ namespace Cesil.Tests
             var opts = new List<Options>();
 
             foreach (var commentChar in new char?[] { null, '#', })
-            foreach(DynamicRowDisposal drd in Enum.GetValues(typeof(DynamicRowDisposal)))
-            foreach(var escapeChar in new char[] { '"', '\\'})
-            foreach(var escapeStartChar in new char[] {  '"', '!'})
-            foreach(var memPool in new [] {  MemoryPool<char>.Shared, new _OptionsEquality_MemoryPool() })
-            foreach(var readHint in new [] { 1, 10 })
-            foreach(ReadHeader rh in Enum.GetValues(typeof(ReadHeader)))
-            foreach(RowEnding re in Enum.GetValues(typeof(RowEnding)))
-            foreach(var typeDesc in new [] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() })
-            foreach(var valSepChar in new char[] {  ',', ';'})
-            foreach(var writeHint in new int? [] {  null, 10})
-            foreach(WriteHeader wh in Enum.GetValues(typeof(WriteHeader)))
-            foreach(WriteTrailingNewLine wt in Enum.GetValues(typeof(WriteTrailingNewLine)))
-            {
-                var builder = OptionsBuilder.CreateBuilder();
-                var opt =
-                    builder
-                        .WithCommentCharacter(commentChar)
-                        .WithDynamicRowDisposal(drd)
-                        .WithEscapedValueEscapeCharacter(escapeChar)
-                        .WithEscapedValueStartAndEnd(escapeStartChar)
-                        .WithMemoryPool(memPool)
-                        .WithReadBufferSizeHint(readHint)
-                        .WithReadHeader(rh)
-                        .WithRowEnding(re)
-                        .WithTypeDescriber(typeDesc)
-                        .WithValueSeparator(valSepChar)
-                        .WithWriteBufferSizeHint(writeHint)
-                        .WithWriteHeader(wh)
-                        .WithWriteTrailingNewLine(wt)
-                        .ToOptions();
+                foreach (DynamicRowDisposal drd in Enum.GetValues(typeof(DynamicRowDisposal)))
+                    foreach (var escapeChar in new char[] { '"', '\\' })
+                        foreach (var escapeStartChar in new char[] { '"', '!' })
+                            foreach (var memPool in new[] { MemoryPool<char>.Shared, new _OptionsEquality_MemoryPool() })
+                                foreach (var readHint in new[] { 1, 10 })
+                                    foreach (ReadHeader rh in Enum.GetValues(typeof(ReadHeader)))
+                                        foreach (RowEnding re in Enum.GetValues(typeof(RowEnding)))
+                                            foreach (var typeDesc in new[] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() })
+                                                foreach (var valSepChar in new char[] { ',', ';' })
+                                                    foreach (var writeHint in new int?[] { null, 10 })
+                                                        foreach (WriteHeader wh in Enum.GetValues(typeof(WriteHeader)))
+                                                            foreach (WriteTrailingNewLine wt in Enum.GetValues(typeof(WriteTrailingNewLine)))
+                                                            {
+                                                                var builder = OptionsBuilder.CreateBuilder();
+                                                                var opt =
+                                                                    builder
+                                                                        .WithCommentCharacter(commentChar)
+                                                                        .WithDynamicRowDisposal(drd)
+                                                                        .WithEscapedValueEscapeCharacter(escapeChar)
+                                                                        .WithEscapedValueStartAndEnd(escapeStartChar)
+                                                                        .WithMemoryPool(memPool)
+                                                                        .WithReadBufferSizeHint(readHint)
+                                                                        .WithReadHeader(rh)
+                                                                        .WithRowEnding(re)
+                                                                        .WithTypeDescriber(typeDesc)
+                                                                        .WithValueSeparator(valSepChar)
+                                                                        .WithWriteBufferSizeHint(writeHint)
+                                                                        .WithWriteHeader(wh)
+                                                                        .WithWriteTrailingNewLine(wt)
+                                                                        .ToOptions();
 
-                opts.Add(opt);
-            }
+                                                                opts.Add(opt);
+                                                            }
 
-            for(var i = 0; i < opts.Count; i++)
+            for (var i = 0; i < opts.Count; i++)
             {
                 var a = opts[i];
 
@@ -130,7 +130,7 @@ namespace Cesil.Tests
                 Assert.False(eqNull);
                 Assert.True(neqNull);
 
-                for(var j = i; j < opts.Count; j++)
+                for (var j = i; j < opts.Count; j++)
                 {
                     var b = opts[j];
 
@@ -138,7 +138,7 @@ namespace Cesil.Tests
                     var neq = a != b;
                     var hashEq = a.GetHashCode() == b.GetHashCode();
 
-                    if(i == j)
+                    if (i == j)
                     {
                         Assert.True(eq);
                         Assert.False(neq);

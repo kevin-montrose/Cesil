@@ -18,7 +18,7 @@ namespace Cesil
         => Cache.TryAdd(key, cached);
 
         CachedDelegate<V> IDelegateCache.TryGet<T, V>(T key)
-            where V: class
+            where V : class
         {
             if (!Cache.TryGetValue(key, out var cachedNull))
             {

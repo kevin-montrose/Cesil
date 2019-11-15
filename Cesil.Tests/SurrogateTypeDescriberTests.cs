@@ -786,7 +786,7 @@ namespace Cesil.Tests
             var str2 = s2.ToString();
 
             // can be one of two things, because dictionary order isn't stable
-            var str1Legal = new []
+            var str1Legal = new[]
                 {
                     "SurrogateTypeDescriber using type describer DefaultTypeDescriber Shared Instance which delegates when no surrogate registered and falls back to DefaultTypeDescriber Shared Instance if no surrogate is registered and uses Cesil.Tests.SurrogateTypeDescriberTests+_ToStrings2_Surrogate for Cesil.Tests.SurrogateTypeDescriberTests+_ToStrings2, Cesil.Tests.SurrogateTypeDescriberTests+_ToStrings1_Surrogate for Cesil.Tests.SurrogateTypeDescriberTests+_ToStrings1",
                     "SurrogateTypeDescriber using type describer DefaultTypeDescriber Shared Instance which delegates when no surrogate registered and falls back to DefaultTypeDescriber Shared Instance if no surrogate is registered and uses Cesil.Tests.SurrogateTypeDescriberTests+_ToStrings1_Surrogate for Cesil.Tests.SurrogateTypeDescriberTests+_ToStrings1, Cesil.Tests.SurrogateTypeDescriberTests+_ToStrings2_Surrogate for Cesil.Tests.SurrogateTypeDescriberTests+_ToStrings2",
@@ -800,7 +800,7 @@ namespace Cesil.Tests
                     "SurrogateTypeDescriber using type describer DefaultTypeDescriber Shared Instance which throws when no surrogate registered and falls back to DefaultTypeDescriber Shared Instance if no surrogate is registered and uses Cesil.Tests.SurrogateTypeDescriberTests+_ToStrings2_Surrogate for Cesil.Tests.SurrogateTypeDescriberTests+_ToStrings2, Cesil.Tests.SurrogateTypeDescriberTests+_ToStrings1_Surrogate for Cesil.Tests.SurrogateTypeDescriberTests+_ToStrings1",
                     "SurrogateTypeDescriber using type describer DefaultTypeDescriber Shared Instance which throws when no surrogate registered and falls back to DefaultTypeDescriber Shared Instance if no surrogate is registered and uses Cesil.Tests.SurrogateTypeDescriberTests+_ToStrings1_Surrogate for Cesil.Tests.SurrogateTypeDescriberTests+_ToStrings1, Cesil.Tests.SurrogateTypeDescriberTests+_ToStrings2_Surrogate for Cesil.Tests.SurrogateTypeDescriberTests+_ToStrings2"
                 };
-            
+
             Assert.Contains(str2, str2Legal);
         }
 

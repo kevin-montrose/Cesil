@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
@@ -74,9 +73,9 @@ namespace Cesil.Tests
         {
             var types = AllPubicTypes();
 
-            foreach(var t in types)
+            foreach (var t in types)
             {
-                if(t.BaseType == typeof(MulticastDelegate))
+                if (t.BaseType == typeof(MulticastDelegate))
                 {
                     yield return t;
                 }
@@ -598,7 +597,7 @@ namespace Cesil.Tests
                     Assert.False(exNull1 == ex);
                     Assert.True(exNull1 == exNull2);
                 }
-                else if(t == typeof(ManualTypeDescriber))
+                else if (t == typeof(ManualTypeDescriber))
                 {
                     var ex = ManualTypeDescriber.CreateBuilder().ToManualTypeDescriber();
                     var exNull1 = default(ManualTypeDescriber);
@@ -1618,7 +1617,7 @@ namespace Cesil.Tests
         private class _ParameterNamesApproved<TRow, TCollection, TValue, TOutput, TInstance>
         { }
 
-        class NamedComparer : IEqualityComparer<TypeInfo>
+        private class NamedComparer : IEqualityComparer<TypeInfo>
         {
             public bool Equals(TypeInfo x, TypeInfo y)
             {
@@ -1748,11 +1747,11 @@ namespace Cesil.Tests
                     [typeof(ShouldSerialize).GetTypeInfo()] = new[] { "shouldSerialize" },
                     [typeof(InstanceProvider).GetTypeInfo()] = new[] { "instanceProvider" },
                     [typeof(DynamicRowConverter).GetTypeInfo()] = new[] { "rowConverter" },
-                    [typeof(SerializableMember).GetTypeInfo()] = new [] { "serializableMember" },
+                    [typeof(SerializableMember).GetTypeInfo()] = new[] { "serializableMember" },
                     [typeof(DeserializableMember).GetTypeInfo()] = new[] { "deserializableMember" },
 
                     // delegates
-                    [typeof(FormatterDelegate<>).GetTypeInfo()] = new [] {"del"},
+                    [typeof(FormatterDelegate<>).GetTypeInfo()] = new[] { "del" },
                     [typeof(GetterDelegate<,>).GetTypeInfo()] = new[] { "del" },
                     [typeof(StaticGetterDelegate<>).GetTypeInfo()] = new[] { "del" },
                     [typeof(InstanceProviderDelegate<>).GetTypeInfo()] = new[] { "del" },
@@ -1782,7 +1781,7 @@ namespace Cesil.Tests
                 foreach (var p in c.GetParameters())
                 {
                     var pType = p.ParameterType.GetTypeInfo();
-                    if(pType.IsByRef)
+                    if (pType.IsByRef)
                     {
                         pType = pType.GetElementType().GetTypeInfo();
                     }
@@ -1811,7 +1810,7 @@ namespace Cesil.Tests
                 }
             }
 
-            foreach(var m in AllPublicMethods())
+            foreach (var m in AllPublicMethods())
             {
                 var t = m.DeclaringType;
 
@@ -1821,14 +1820,14 @@ namespace Cesil.Tests
                 // skip operators
                 if (m.Name.StartsWith("op_")) continue;
 
-                if(m.IsGenericMethodDefinition)
+                if (m.IsGenericMethodDefinition)
                 {
                     var args = m.GetGenericArguments();
-                    foreach(var a in args)
+                    foreach (var a in args)
                     {
                         var aName = a.Name;
 
-                        if(!legalGenericArgNames.Contains(aName))
+                        if (!legalGenericArgNames.Contains(aName))
                         {
                             failing.AppendLine($"{aName} generic arg on method {m.Name} of {t.Name}; not a legal generic parameter name");
                         }
@@ -1867,7 +1866,7 @@ namespace Cesil.Tests
                 }
             }
 
-            foreach(var d in AllPublicDelegates())
+            foreach (var d in AllPublicDelegates())
             {
                 if (d.IsGenericTypeDefinition)
                 {
@@ -1885,7 +1884,7 @@ namespace Cesil.Tests
 
                 var invokeMtd = d.GetMethod("Invoke");
 
-                foreach(var p in invokeMtd.GetParameters())
+                foreach (var p in invokeMtd.GetParameters())
                 {
                     var pType = p.ParameterType.GetTypeInfo();
                     if (pType.IsByRef)
@@ -1917,7 +1916,7 @@ namespace Cesil.Tests
                 }
             }
 
-            foreach(var t in AllPubicTypes())
+            foreach (var t in AllPubicTypes())
             {
                 // skip delegates
                 if (t.BaseType == typeof(MulticastDelegate)) continue;
@@ -1952,7 +1951,7 @@ namespace Cesil.Tests
 
             var builderToBuilt = builders.ToDictionary(b => b, b => pubTypes.Single(x => x.Name == b.Name.Substring(0, b.Name.Length - "Builder".Length)));
 
-            foreach(var kv in builderToBuilt)
+            foreach (var kv in builderToBuilt)
             {
                 var builder = kv.Key;
                 var built = kv.Value;
@@ -2011,9 +2010,9 @@ namespace Cesil.Tests
 
                                     if (sParams.Length != mParams.Length) return false;
 
-                                    for(var i = 0; i < sParams.Length; i++)
+                                    for (var i = 0; i < sParams.Length; i++)
                                     {
-                                        if (sParams[i].ParameterType!= mParams[i].ParameterType) return false;
+                                        if (sParams[i].ParameterType != mParams[i].ParameterType) return false;
                                     }
 
                                     return true;

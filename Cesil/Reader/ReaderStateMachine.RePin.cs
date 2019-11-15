@@ -5,7 +5,7 @@ namespace Cesil
 {
     internal sealed partial class ReaderStateMachine
     {
-        internal struct PinHandle: IDisposable
+        internal struct PinHandle : IDisposable
         {
             private bool Pinned;
             private readonly ReaderStateMachine Outer;

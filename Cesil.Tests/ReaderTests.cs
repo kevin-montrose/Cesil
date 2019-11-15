@@ -327,7 +327,7 @@ namespace Cesil.Tests
             );
         }
 
-        class _NonGenericEnumerator
+        private class _NonGenericEnumerator
         {
             public string Foo { get; set; }
             public string Bar { get; set; }
@@ -382,7 +382,7 @@ namespace Cesil.Tests
             );
         }
 
-        class _DeserializableMemberHelpers
+        private class _DeserializableMemberHelpers
         {
 #pragma warning disable CS0649
             public int Field;
@@ -554,7 +554,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _DeserializableMemberEquality
+        private class _DeserializableMemberEquality
         {
             public int Foo { get; set; }
             public int Bar { get; set; }
@@ -633,7 +633,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _DeserializeMemberErrors
+        private class _DeserializeMemberErrors
         {
             public string Foo { get; set; }
         }
@@ -731,12 +731,12 @@ namespace Cesil.Tests
             }
         }
 
-        class _ResultsErrors
+        private class _ResultsErrors
         {
             public string Foo { get; set; }
         }
 
-        class _RowCreationFailure
+        private class _RowCreationFailure
         {
             public int Foo { get; set; }
         }

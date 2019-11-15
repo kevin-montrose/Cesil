@@ -19,8 +19,8 @@ namespace Cesil
         ///   during certain operations as a member on ReadContext.
         /// </summary>
         IReader<TRow> CreateReader(
-            [IntentionallyExposedPrimitive("Bytes are the whole point here")] 
-            ReadOnlySequence<byte> sequence, 
+            [IntentionallyExposedPrimitive("Bytes are the whole point here")]
+            ReadOnlySequence<byte> sequence,
             Encoding encoding,
             [NullableExposed("context is truly options")]
             object? context = null
@@ -37,7 +37,7 @@ namespace Cesil
             [NullableExposed("context is truly options")]
             object? context = null
         );
-        
+
         /// <summary>
         /// Create a synchronous reader for the given reader.
         /// 
@@ -60,7 +60,7 @@ namespace Cesil
         ///   during certain operations as a member on ReadContext.
         /// </summary>
         IAsyncReader<TRow> CreateAsyncReader(
-            PipeReader reader, 
+            PipeReader reader,
             Encoding encoding,
             [NullableExposed("context is truly options")]
             object? context = null
@@ -85,7 +85,7 @@ namespace Cesil
         ///   during certain operations as a member on WriteContext.
         /// </summary>
         IWriter<TRow> CreateWriter(
-            [IntentionallyExposedPrimitive("Bytes are the whole point here")] 
+            [IntentionallyExposedPrimitive("Bytes are the whole point here")]
             IBufferWriter<byte> writer,
             Encoding encoding,
             [NullableExposed("context is truly options")]
@@ -126,7 +126,7 @@ namespace Cesil
         ///   during certain operations as a member on WriteContext.
         /// </summary>
         IAsyncWriter<TRow> CreateAsyncWriter(
-            PipeWriter writer, 
+            PipeWriter writer,
             Encoding encoding,
             [NullableExposed("context is truly options")]
             object? context = null

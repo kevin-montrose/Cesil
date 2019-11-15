@@ -66,7 +66,7 @@ namespace Cesil.Tests
                 .ThenBy(e => e.EncodingName)
                 .ToArray();
 
-        class NaughtyStrings_ByteNode : ReadOnlySequenceSegment<byte>
+        private class NaughtyStrings_ByteNode : ReadOnlySequenceSegment<byte>
         {
             public NaughtyStrings_ByteNode(ReadOnlyMemory<byte> m)
             {
@@ -88,9 +88,9 @@ namespace Cesil.Tests
         [Fact]
         public void NaughtyStrings()
         {
-            foreach(var str in _NaughtyStrings_TestStrings)
+            foreach (var str in _NaughtyStrings_TestStrings)
             {
-                foreach(var enc in _NaughtStrings_AllEncodings)
+                foreach (var enc in _NaughtStrings_AllEncodings)
                 {
                     var bytes = enc.GetBytes(str);
 
@@ -125,12 +125,12 @@ namespace Cesil.Tests
 
             static IEnumerable<ReadOnlySequence<byte>> MakeSequences(byte[] buffer)
             {
-                if(buffer.Length == 0)
+                if (buffer.Length == 0)
                 {
                     return new[] { ReadOnlySequence<byte>.Empty };
                 }
 
-                if(buffer.Length < 2)
+                if (buffer.Length < 2)
                 {
                     return new[] { new ReadOnlySequence<byte>(buffer) };
                 }

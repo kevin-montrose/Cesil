@@ -69,7 +69,7 @@ namespace Cesil
 
             var cOffset = GetCharLookupOffset(in CharacterLookup, fromState, c);
             CharacterType cType;
-            if(cOffset == null)
+            if (cOffset == null)
             {
                 cType = CharacterType.Other;
             }

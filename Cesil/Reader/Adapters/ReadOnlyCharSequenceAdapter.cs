@@ -5,7 +5,7 @@ using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
-    internal sealed class ReadOnlyCharSequenceAdapter: IReaderAdapter
+    internal sealed class ReadOnlyCharSequenceAdapter : IReaderAdapter
     {
         public bool IsDisposed { get; private set; }
 
@@ -29,7 +29,7 @@ namespace Cesil
                 return 0;
             }
 
-            tryAgain:
+tryAgain:
             if (CurrentSegment.IsEmpty)
             {
                 if (!Enumerator.MoveNext())
@@ -60,7 +60,7 @@ namespace Cesil
             else
             {
                 // current segment will fill into
-                
+
                 CurrentSegment.Span.Slice(0, intoLen).CopyTo(into);
                 CurrentSegment = CurrentSegment.Slice(intoLen);
                 return intoLen;

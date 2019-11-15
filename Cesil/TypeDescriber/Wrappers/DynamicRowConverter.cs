@@ -483,12 +483,12 @@ namespace Cesil
         /// </summary>
         public override int GetHashCode()
         => HashCode.Combine(
-            nameof(DynamicRowConverter), 
-            Mode, 
-            Method, 
-            ConstructorForObject, 
-            ConstructorTakingParams, 
-            EmptyConstructor, 
+            nameof(DynamicRowConverter),
+            Mode,
+            Method,
+            ConstructorForObject,
+            ConstructorTakingParams,
+            EmptyConstructor,
             Delegate
         );
 

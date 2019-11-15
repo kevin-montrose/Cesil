@@ -141,7 +141,7 @@ namespace Cesil
             var neededType = typeof(T).GetTypeInfo();
 
             var builder = opts.TypeDescriber.GetInstanceProvider(forType);
-            if(builder == null)
+            if (builder == null)
             {
                 return Throw.InvalidOperationException<InstanceProviderDelegate<T>>($"No {nameof(InstanceProvider)} returned for {typeof(T)}");
             }

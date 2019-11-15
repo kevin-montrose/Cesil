@@ -291,8 +291,8 @@ namespace Cesil
 
             // wait for read to complete, then continue async
             static async ValueTask<(HeaderEnumerator Headers, bool IsHeader, Memory<char> PushBack)> ReadAsync_ContinueAfterReadAsync(
-                HeadersReader<T> self, 
-                ValueTask<int> waitFor, 
+                HeadersReader<T> self,
+                ValueTask<int> waitFor,
                 ReaderStateMachine.PinHandle handle,
                 CancellationToken cancel)
             {

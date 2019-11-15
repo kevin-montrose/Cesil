@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Buffers;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -149,8 +148,8 @@ namespace Cesil
             }
 
             static async ValueTask<(RowEnding Ending, Memory<char> PushBack)?> DetectAsync_ContinueAfterReadAsync(
-                RowEndingDetector<T> self, 
-                ValueTask<int> waitFor, 
+                RowEndingDetector<T> self,
+                ValueTask<int> waitFor,
                 ReaderStateMachine.PinHandle handle,
                 CancellationToken cancel
             )

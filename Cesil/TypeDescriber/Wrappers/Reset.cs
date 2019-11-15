@@ -42,7 +42,8 @@ namespace Cesil
                     case BackingMode.Delegate: return !RowType.HasValue;
 
                     default:
-                        return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}");                }
+                        return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                }
             }
         }
 

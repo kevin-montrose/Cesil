@@ -213,8 +213,8 @@ namespace Cesil.Tests
                 opts,
                 (config, getReader) =>
                 {
-                    using(var reader = getReader("A,B,C,D,E,F\r\n1,2,3,4,5,6\r\n7,8,9,0,1,2"))
-                    using(var csv = config.CreateReader(reader))
+                    using (var reader = getReader("A,B,C,D,E,F\r\n1,2,3,4,5,6\r\n7,8,9,0,1,2"))
+                    using (var csv = config.CreateReader(reader))
                     {
                         var rows = csv.ReadAll();
 
@@ -262,7 +262,7 @@ namespace Cesil.Tests
                 Options.DynamicDefault,
                 (config, getTextReader) =>
                 {
-                    using(var reader = getTextReader("Hello,World,Foo,Bar\r\n1,2,3,4"))
+                    using (var reader = getTextReader("Hello,World,Foo,Bar\r\n1,2,3,4"))
                     using (var csv = config.CreateReader(reader))
                     {
                         var rows = csv.ReadAll();
@@ -275,7 +275,7 @@ namespace Cesil.Tests
                                 var names = metaObj.GetDynamicMemberNames();
 
                                 var ix = 0;
-                                foreach(var n in names)
+                                foreach (var n in names)
                                 {
                                     var v = r[n];
                                     switch (n)
@@ -2032,7 +2032,7 @@ namespace Cesil.Tests
                                     var i = e.GetEnumerator();
 
                                     var reset = true;
-                                    loop:
+loop:
                                     var ix = 0;
                                     while (i.MoveNext())
                                     {
@@ -2146,7 +2146,7 @@ loop:
                                     var i = e.GetEnumerator();
 
                                     var reset = true;
-                                    loop:
+loop:
                                     var ix = 0;
                                     while (i.MoveNext())
                                     {
@@ -3220,8 +3220,8 @@ loop:
                 opts,
                 (config, getReader) =>
                 {
-                    using(var reader = getReader("A,B\r\n1234,foo\r\n567,\"yup, man\""))
-                    using(var csv = config.CreateReader(reader))
+                    using (var reader = getReader("A,B\r\n1234,foo\r\n567,\"yup, man\""))
+                    using (var csv = config.CreateReader(reader))
                     {
                         var rows = csv.ReadAll();
                         var typed = rows.Select(r => (_POCO_Fields_Obj)r).ToArray();
@@ -5204,7 +5204,7 @@ loop:
                                     var i = e.GetEnumerator();
 
                                     var reset = true;
-                                    loop:
+loop:
                                     var ix = 0;
                                     while (i.MoveNext())
                                     {
@@ -5243,7 +5243,7 @@ loop:
                                 // typed enumerator
                                 {
                                     IEnumerable<string> e = row;
-                                    using(var i = e.GetEnumerator())
+                                    using (var i = e.GetEnumerator())
                                     {
                                         var reset = true;
 loop:
@@ -5318,7 +5318,7 @@ loop:
                                     var i = e.GetEnumerator();
 
                                     var reset = true;
-                                    loop:
+loop:
                                     var ix = 0;
                                     while (i.MoveNext())
                                     {

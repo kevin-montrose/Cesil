@@ -22,7 +22,7 @@ namespace Cesil.Tests
             Assert.Throws<ArgumentException>(() => ManualTypeDescriber.CreateBuilder((ManualTypeDescriberFallbackBehavior)0));
         }
 
-        class _Serializing
+        private class _Serializing
         {
 #pragma warning disable CS0649
             public string Field;
@@ -38,7 +38,7 @@ namespace Cesil.Tests
                 // 1 arg
                 {
                     var m = ManualTypeDescriber.CreateBuilder();
-   
+
                     m.SetInstanceProvider(InstanceProvider.ForDelegate((out _Serializing val) => { val = new _Serializing(); return true; }));
                 }
 
@@ -136,7 +136,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _Deserializing
+        private class _Deserializing
         {
 #pragma warning disable CS0649
             public double Field;
@@ -207,7 +207,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _Errors
+        private class _Errors
         {
 #pragma warning disable CS0649
             public int Field;
@@ -282,7 +282,7 @@ namespace Cesil.Tests
                 // 2 arg
                 Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(null, "foo"));
                 Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(f, null));
-                
+
                 Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(null, f));
                 Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(typeof(_Errors).GetTypeInfo(), null));
 
@@ -405,7 +405,7 @@ namespace Cesil.Tests
 #pragma warning disable CS0649
         }
 
-        private sealed class _SerializeBaseClass_Sub: _SerializeBaseClass
+        private sealed class _SerializeBaseClass_Sub : _SerializeBaseClass
         {
 
         }
@@ -609,7 +609,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _ToStringOverride
+        private class _ToStringOverride
         {
             public int Bar { get; set; }
         }

@@ -37,7 +37,7 @@ namespace Cesil
                 case SurrogateTypeDescriberFallbackBehavior.UseFallback:
                     ThrowOnNoRegisteredSurrogate = false;
                     break;
-                default: 
+                default:
                     Throw.Exception<object>($"Unexpected {nameof(SurrogateTypeDescriberFallbackBehavior)}: {fallbackBehavior}");
                     break;
             }
@@ -181,7 +181,7 @@ namespace Cesil
             }
 
             var fromProxy = TypeDescriber.GetInstanceProvider(proxy);
-            if(fromProxy == null)
+            if (fromProxy == null)
             {
                 return Throw.InvalidOperationException<InstanceProvider>($"No {nameof(InstanceProvider)} returned by {TypeDescriber} for {proxy}");
             }
@@ -282,7 +282,7 @@ namespace Cesil
         private static SerializableMember Map(TypeInfo ontoType, SerializableMember member)
         {
             ShouldSerialize? shouldSerializeOnType;
-            
+
             if (member.ShouldSerialize.HasValue)
             {
                 var surrogateShouldSerializeWrapper = member.ShouldSerialize.Value;
@@ -429,7 +429,7 @@ handleMethod:
         /// </summary>
         public override bool Equals(object? obj)
         {
-            if(obj is SurrogateTypeDescriber other)
+            if (obj is SurrogateTypeDescriber other)
             {
                 return Equals(other);
             }
@@ -450,7 +450,7 @@ handleMethod:
             if (!typeDescriber.TypeDescriber.Equals(TypeDescriber)) return false;
             if (!typeDescriber.FallbackDescriber.Equals(FallbackDescriber)) return false;
 
-            foreach(var kv in typeDescriber.SurrogateTypes)
+            foreach (var kv in typeDescriber.SurrogateTypes)
             {
                 if (!SurrogateTypes.TryGetValue(kv.Key, out var val)) return false;
 

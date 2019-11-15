@@ -44,9 +44,9 @@ namespace Cesil
             var col = Enumerator.Current;
 
             var val = Enumerator.Row.GetCellAt(col.Index);
-            if(val == null)
+            if (val == null)
             {
-                if(typeof(T).IsValueType)
+                if (typeof(T).IsValueType)
                 {
                     return Throw.InvalidOperationException<bool>($"Attempted to coerce missing value to {typeof(T)}, a value type");
                 }

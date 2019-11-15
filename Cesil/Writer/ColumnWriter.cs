@@ -178,7 +178,7 @@ namespace Cesil
                     }
                 }
 
-                done:
+done:
                 var ifIsDefaultReturnTrue = Expression.IfThen(isDefault, Expression.Goto(returnTrue));
 
                 statements.Add(ifIsDefaultReturnTrue);

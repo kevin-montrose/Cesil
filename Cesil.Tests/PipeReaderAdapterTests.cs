@@ -34,7 +34,7 @@ namespace Cesil.Tests
 
                 var res = new StringBuilder();
 
-                using(var mem = MemoryPool<char>.Shared.Rent())
+                using (var mem = MemoryPool<char>.Shared.Rent())
                 await using (var adapter = new PipeReaderAdapter(pipe.Reader, Encoding.UTF8))
                 {
                     var provider = (ITestableAsyncProvider)adapter;

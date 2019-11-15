@@ -22,7 +22,7 @@ namespace Cesil
         internal DynamicWriter(DynamicBoundConfiguration config, IWriterAdapter inner, object? context) : base(config, inner, context) { }
 
         CachedDelegate<V> IDelegateCache.TryGet<T, V>(T key)
-            where V: class
+            where V : class
         {
             if (DelegateCache == null)
             {

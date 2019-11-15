@@ -119,7 +119,7 @@ namespace Cesil
         internal void WriteEncoded(ReadOnlySpan<char> charSpan)
         {
             var escapedValueStartAndStop = Utils.NonNullStruct(Config.EscapedValueStartAndStop);
-            
+
             // try and blit things in in big chunks
             var start = 0;
             var end = Utils.FindChar(charSpan, start, escapedValueStartAndStop);

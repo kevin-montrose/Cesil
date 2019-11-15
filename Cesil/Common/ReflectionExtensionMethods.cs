@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Reflection;
 
 namespace Cesil
@@ -9,7 +8,7 @@ namespace Cesil
         public static ConstructorInfo GetConstructorNonNull(this TypeInfo type, BindingFlags bindingAttr, Binder? binder, TypeInfo[] types, ParameterModifier[]? modifiers)
         {
             var consNull = type.GetConstructor(bindingAttr, binder, types, modifiers);
-            if(consNull == null)
+            if (consNull == null)
             {
                 return Throw.InvalidOperationException<ConstructorInfo>($"Could not get constructor on {type} for {string.Join(", ", (IEnumerable<TypeInfo>)types)} with {bindingAttr}");
             }
@@ -20,7 +19,7 @@ namespace Cesil
         public static ConstructorInfo GetConstructorNonNull(this TypeInfo type, TypeInfo[] args)
         {
             var consNull = type.GetConstructor(args);
-            if(consNull == null)
+            if (consNull == null)
             {
                 return Throw.InvalidOperationException<ConstructorInfo>($"Could not get constructor on {type} for {string.Join(", ", (IEnumerable<TypeInfo>)args)}");
             }
@@ -42,7 +41,7 @@ namespace Cesil
         public static TypeInfo DeclaringTypeNonNull(this ConstructorInfo cons)
         {
             var declNull = cons.DeclaringType;
-            if(declNull == null)
+            if (declNull == null)
             {
                 return Throw.InvalidOperationException<TypeInfo>($"Could not find declaring type for {cons}");
             }

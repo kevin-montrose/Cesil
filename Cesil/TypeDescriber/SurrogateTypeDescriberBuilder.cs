@@ -208,7 +208,7 @@ namespace Cesil
             ret.Append($"{nameof(SurrogateTypeDescriberBuilder)} using type describer {TypeDescriber}");
             ret.Append($" and fallback behavior {FallbackBehavior}");
             ret.Append($" with fallback type describer {FallbackTypeDescriber}");
-            
+
             if (SurrogateTypes.Count > 0)
             {
                 ret.Append(" and uses ");

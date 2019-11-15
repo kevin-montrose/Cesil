@@ -76,7 +76,7 @@ namespace Cesil
         [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         public InstanceProvider? GetInstanceProvider(TypeInfo forType)
         {
-            if(!Builders.TryGetValue(forType, out var ret))
+            if (!Builders.TryGetValue(forType, out var ret))
             {
                 if (ThrowsOnNoConfiguredType)
                 {
@@ -259,7 +259,7 @@ namespace Cesil
         /// </summary>
         public override bool Equals(object? obj)
         {
-            if(obj is ManualTypeDescriber m)
+            if (obj is ManualTypeDescriber m)
             {
                 return Equals(m);
             }
@@ -289,26 +289,26 @@ namespace Cesil
             if (typeDescriber.Deserializers.Count != Deserializers.Count) return false;
             if (typeDescriber.Serializers.Count != Serializers.Count) return false;
 
-            foreach(var b in Builders)
+            foreach (var b in Builders)
             {
                 if (!typeDescriber.Builders.TryGetKey(b.Key, out var other)) return false;
 
                 if (!b.Value.Equals(other)) return false;
             }
 
-            foreach(var d in Deserializers)
+            foreach (var d in Deserializers)
             {
                 if (!typeDescriber.Deserializers.TryGetValue(d.Key, out var other)) return false;
 
                 if (d.Value.Length != other.Length) return false;
 
-                foreach(var v in d.Value)
+                foreach (var v in d.Value)
                 {
                     if (!other.Contains(v)) return false;
                 }
             }
 
-            foreach(var s in Serializers)
+            foreach (var s in Serializers)
             {
                 if (!typeDescriber.Serializers.TryGetValue(s.Key, out var other)) return false;
 

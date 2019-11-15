@@ -4,7 +4,7 @@
        where T : class, IIntrusiveLinkedList<T>
     {
         ref NonNull<T> Next { get; }
-        
+
         ref NonNull<T> Previous { get; }
     }
 

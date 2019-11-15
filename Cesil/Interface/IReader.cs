@@ -34,7 +34,7 @@ namespace Cesil
         /// </summary>
         [return: IntentionallyExposedPrimitive("Most convenient way to indicate success, and fits the TryXXX pattern")]
         bool TryRead(
-            [MaybeNullWhen(false)] 
+            [MaybeNullWhen(false)]
             out TRow row
         );
 

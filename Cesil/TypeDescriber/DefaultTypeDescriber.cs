@@ -1,5 +1,4 @@
-﻿using Microsoft.CSharp.RuntimeBinder;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Dynamic;
 // todo: remove Linq here
@@ -7,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
+using Microsoft.CSharp.RuntimeBinder;
 
 namespace Cesil
 {
@@ -180,13 +180,13 @@ namespace Cesil
             Utils.CheckArgumentNull(property, nameof(property));
 
             var set = property.SetMethod;
-            if(set == null)
+            if (set == null)
             {
                 return Throw.ArgumentException<Parser?>("Property has no setter", nameof(property));
             }
 
             var ps = set.GetParameters();
-            if(ps.Length != 1)
+            if (ps.Length != 1)
             {
                 return Throw.ArgumentException<Parser?>($"Setter takes {ps.Length} parameters, but must take 1", nameof(property));
             }
@@ -693,7 +693,7 @@ namespace Cesil
                     var value = new string(valueRaw);
 
                     var formatter = GetFormatter(Types.StringType, name, in context, rowObj);
-                    if(formatter == null)
+                    if (formatter == null)
                     {
                         return Throw.InvalidOperationException<IEnumerable<DynamicCellValue>>($"No formatter returned by {nameof(GetFormatter)}");
                     }
@@ -835,7 +835,7 @@ namespace Cesil
                     var getter = mem.Getter;
 
                     var formatter = GetFormatter(getter.Returns, name, in context, rowObj);
-                    if(formatter == null)
+                    if (formatter == null)
                     {
                         return Throw.InvalidOperationException<IEnumerable<DynamicCellValue>>($"No formatter returned by {nameof(GetFormatter)}");
                     }

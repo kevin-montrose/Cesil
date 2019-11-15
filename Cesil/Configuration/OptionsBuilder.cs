@@ -152,7 +152,7 @@ namespace Cesil
                 return Throw.InvalidOperationException<Options>($"{nameof(EscapedValueStartAndEnd)} cannot equal {nameof(CommentCharacter)}, both are '{EscapedValueStartAndEnd}'");
             }
             // can't have an escape char if you can't start an escape sequence
-            if(EscapedValueStartAndEnd == null && EscapedValueEscapeCharacter != null)
+            if (EscapedValueStartAndEnd == null && EscapedValueEscapeCharacter != null)
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(EscapedValueEscapeCharacter)} cannot be set if, {nameof(EscapedValueStartAndEnd)} isn't set");
             }
