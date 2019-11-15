@@ -651,11 +651,13 @@ namespace Cesil.Tests
                 {
                     var ret = new ReaderStateMachine();
                     ret.Initialize(
-                        CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd', out _),
+                        CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd', false, out _),
                         'a',
                         'b',
                         RowEnding.CarriageReturnLineFeed,
                         ReadHeader.Always,
+                        false,
+                        false,
                         false
                     );
                     return ret;
@@ -879,7 +881,7 @@ namespace Cesil.Tests
                     return new RowEndingDetector<_IDisposable>(
                         new ReaderStateMachine(),
                         (ConcreteBoundConfiguration<_IDisposable>)Configuration.For<_IDisposable>(),
-                        CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd', out _),
+                        CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd', false, out _),
                         new TextReaderAdapter(TextReader.Null)
                     );
                 }
@@ -924,12 +926,13 @@ namespace Cesil.Tests
                         new HeadersReader<_IDisposable>(
                             new ReaderStateMachine(),
                             config,
-                            CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd', out _),
+                            CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd', false, out _),
                             new TextReaderAdapter(TextReader.Null),
                             new BufferWithPushback(
                                 MemoryPool<char>.Shared,
                                 64
-                            )
+                            ),
+                            WhitespaceTreatments.Preserve
                         );
                 }
             }
@@ -991,7 +994,7 @@ namespace Cesil.Tests
                 // make a partial that's "good to go"
                 HeadersReader<_IDisposable>.HeaderEnumerator MakeEnumerator()
                 {
-                    return new HeadersReader<_IDisposable>.HeaderEnumerator(0, ReadOnlyMemory<char>.Empty);
+                    return new HeadersReader<_IDisposable>.HeaderEnumerator(0, ReadOnlyMemory<char>.Empty, WhitespaceTreatments.Preserve);
                 }
             }
 
@@ -1028,7 +1031,7 @@ namespace Cesil.Tests
                 // make a partial that's "good to go"
                 CharacterLookup MakeLookup()
                 {
-                    return CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd', out _);
+                    return CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd', false, out _);
                 }
             }
 

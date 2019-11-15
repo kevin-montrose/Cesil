@@ -7,6 +7,37 @@ namespace Cesil
 {
     internal struct CharacterLookup : ITestableDisposable
     {
+        // internal for testing purposes
+        internal static readonly char[] WhitespaceCharacters =
+            new[]
+            {
+                '\u0009',
+                '\u000A',
+                '\u000B',
+                '\u000C',
+                '\u000D',
+                '\u0020',
+                '\u0085',
+                '\u00A0',
+                '\u1680',
+                '\u2000',
+                '\u2001',
+                '\u2002',
+                '\u2003',
+                '\u2004',
+                '\u2005',
+                '\u2006',
+                '\u2007',
+                '\u2008',
+                '\u2009',
+                '\u200A',
+                '\u2028',
+                '\u2029',
+                '\u202F',
+                '\u205F',
+                '\u3000'
+            };
+
         public bool IsDisposed { get; private set; }
 
         internal readonly int MinimumCharacter;
@@ -29,6 +60,7 @@ namespace Cesil
             char valueSeparatorChar,
             char? escapeChar,
             char? commentChar,
+            bool whitespaceSpecial,
             out int neededSize
         )
         {
@@ -60,6 +92,15 @@ namespace Cesil
                     ),
                     '\n'
                 );
+
+            if (whitespaceSpecial)
+            {
+                foreach (var c in WhitespaceCharacters)
+                {
+                    maxChar = Math.Max(maxChar, c);
+                    minimumCharacter = Math.Min(minimumCharacter, c);
+                }
+            }
 
             var charLookupOffset = (maxChar - minimumCharacter) + 1;
             neededSize = charLookupOffset * 2;
@@ -94,6 +135,10 @@ namespace Cesil
                     else if (commentChar != null && c == commentChar)
                     {
                         cType = CharacterType.CommentStart;
+                    }
+                    else if (whitespaceSpecial && Array.IndexOf(WhitespaceCharacters, c) != -1)
+                    {
+                        cType = CharacterType.Whitespace;
                     }
                     else
                     {
@@ -131,6 +176,10 @@ namespace Cesil
                     else if (commentChar != null && c == commentChar)
                     {
                         cType = CharacterType.CommentStart;
+                    }
+                    else if (whitespaceSpecial && Array.IndexOf(WhitespaceCharacters, c) != -1)
+                    {
+                        cType = CharacterType.Whitespace;
                     }
                     else
                     {

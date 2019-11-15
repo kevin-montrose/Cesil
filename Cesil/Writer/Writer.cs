@@ -149,8 +149,8 @@ namespace Cesil
                 }
                 else
                 {
-                    var escapedValueStartAndStop = Utils.NonNullStruct(Config.EscapedValueStartAndStop);
-                    var escapeValueEscapeChar = Utils.NonNullStruct(Config.EscapeValueEscapeChar);
+                    var escapedValueStartAndStop = Config.EscapedValueStartAndStop;
+                    var escapeValueEscapeChar = Config.EscapeValueEscapeChar;
 
                     // start with the escape char
                     PlaceCharInStaging(escapedValueStartAndStop);

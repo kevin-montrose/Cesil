@@ -47,13 +47,18 @@ namespace Cesil
                 );
             Partial = new Partial<T>(config.MemoryPool);
 
+            var start = config.HasEscapedValueStartAndStop ? config.EscapedValueStartAndStop : default(char?);
+            var escape = config.HasEscapeValueEscapeChar ? config.EscapeValueEscapeChar : default(char?);
+            var comment = config.HasCommentChar ? config.CommentChar : default(char?);
+
             SharedCharacterLookup =
                 CharacterLookup.MakeCharacterLookup(
                     config.MemoryPool,
-                    config.EscapedValueStartAndStop,
+                    start,
                     config.ValueSeparator,
-                    config.EscapeValueEscapeChar,
-                    config.CommentChar,
+                    escape,
+                    comment,
+                    config.WhitespaceTreatment != WhitespaceTreatments.Preserve,
                     out _
                 );
             StateMachine = new ReaderStateMachine();
@@ -173,14 +178,25 @@ namespace Cesil
                     // cannot reach ReaderStateMachine.AdvanceResult.Append_CarriageReturnAndEndComment, because that only happens
                     //   when the data ENDs
 
-                    case ReaderStateMachine.AdvanceResult.Finished_Value:
-                        PushPendingCharactersToValue();
+                    case ReaderStateMachine.AdvanceResult.Finished_Unescaped_Value:
+                        PushPendingCharactersToValue(false);
+                        break;
+                    case ReaderStateMachine.AdvanceResult.Finished_Escaped_Value:
+                        PushPendingCharactersToValue(true);
                         break;
 
-                    case ReaderStateMachine.AdvanceResult.Finished_Record:
+                    case ReaderStateMachine.AdvanceResult.Finished_LastValueUnescaped_Record:
                         if (Partial.PendingCharsCount > 0)
                         {
-                            PushPendingCharactersToValue();
+                            PushPendingCharactersToValue(false);
+                        }
+
+                        unprocessedCharacters = bufferLen - i - 1;
+                        return ReadWithCommentResultType.HasValue;
+                    case ReaderStateMachine.AdvanceResult.Finished_LastValueEscaped_Record:
+                        if (Partial.PendingCharsCount > 0)
+                        {
+                            PushPendingCharactersToValue(true);
                         }
 
                         unprocessedCharacters = bufferLen - i - 1;
@@ -242,14 +258,23 @@ namespace Cesil
                     Partial.AppendCarriageReturn(ReadOnlySpan<char>.Empty);
                     return ReadWithCommentResultType.HasComment;
 
-                case ReaderStateMachine.AdvanceResult.Finished_Value:
-                    PushPendingCharactersToValue();
+                case ReaderStateMachine.AdvanceResult.Finished_Unescaped_Value:
+                    PushPendingCharactersToValue(false);
+                    return ReadWithCommentResultType.HasValue;
+                case ReaderStateMachine.AdvanceResult.Finished_Escaped_Value:
+                    PushPendingCharactersToValue(true);
                     return ReadWithCommentResultType.HasValue;
 
-                case ReaderStateMachine.AdvanceResult.Finished_Record:
+                case ReaderStateMachine.AdvanceResult.Finished_LastValueUnescaped_Record:
                     if (Partial.PendingCharsCount > 0)
                     {
-                        PushPendingCharactersToValue();
+                        PushPendingCharactersToValue(false);
+                    }
+                    return ReadWithCommentResultType.HasValue;
+                case ReaderStateMachine.AdvanceResult.Finished_LastValueEscaped_Record:
+                    if (Partial.PendingCharsCount > 0)
+                    {
+                        PushPendingCharactersToValue(true);
                     }
                     return ReadWithCommentResultType.HasValue;
 
@@ -334,7 +359,7 @@ namespace Cesil
             Partial.BufferToBeReused(Buffer.Buffer.Span);
         }
 
-        private void PushPendingCharactersToValue()
+        private void PushPendingCharactersToValue(bool wasEscaped)
         {
             var columnsValue = Columns.Value;
             if (Partial.CurrentColumnIndex >= columnsValue.Length)
@@ -343,6 +368,32 @@ namespace Cesil
             }
 
             var dataSpan = Partial.PendingAsMemory(Buffer.Buffer);
+
+            var whitespace = Configuration.WhitespaceTreatment;
+
+            // The state machine will skip leading values outside of values, so we only need to do any trimming IN the values
+            //
+            // Technically we could probably have the state machine skip leading inside too...
+            // todo: do that ^^^
+            var needsLeadingTrim = whitespace.HasFlag(WhitespaceTreatments.TrimLeadingInValues);
+            if (needsLeadingTrim)
+            {
+                dataSpan = Utils.TrimLeadingWhitespace(dataSpan);
+            }
+
+            // We need to trim trailing IN values if requested, and we need to trim trailing after values
+            //   if requested AND the value wasn't escaped.
+            //
+            // Trimming trailing requires look ahead, which would greatly complicate the state machine
+            //   (technically making it not a state machine) so this will have to do.
+            var needsTrailingTrim =
+                whitespace.HasFlag(WhitespaceTreatments.TrimTrailingInValues) ||
+                (whitespace.HasFlag(WhitespaceTreatments.TrimAfterValues) && !wasEscaped);
+
+            if (needsTrailingTrim)
+            {
+                dataSpan = Utils.TrimTrailingWhitespace(dataSpan);
+            }
 
             var colIx = Partial.CurrentColumnIndex;
             var column = columnsValue[colIx];
@@ -447,13 +498,19 @@ namespace Cesil
             if (RowEndings == null || ReadHeaders == null) return;
 
             StateMachineInitialized = true;
+
+            var escapeStart = Configuration.HasEscapedValueStartAndStop ? Configuration.EscapedValueStartAndStop : default(char?);
+            var escape = Configuration.HasEscapeValueEscapeChar ? Configuration.EscapeValueEscapeChar : default(char?);
+
             StateMachine.Initialize(
                     SharedCharacterLookup,
-                    Configuration.EscapedValueStartAndStop,
-                    Configuration.EscapeValueEscapeChar,
+                    escapeStart,
+                    escape,
                     RowEndings.Value,
                     ReadHeaders.Value,
-                    Configuration.CommentChar.HasValue
+                    Configuration.HasCommentChar,
+                    Configuration.WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimBeforeValues),
+                    Configuration.WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimAfterValues)
                 );
         }
     }

@@ -239,26 +239,31 @@ namespace Cesil
         {
             ReadHeaders = Configuration.ReadHeader;
 
+            var start = Configuration.HasEscapedValueStartAndStop ? Configuration.EscapedValueStartAndStop : default(char?);
+            var escape = Configuration.HasEscapeValueEscapeChar ? Configuration.EscapeValueEscapeChar : default(char?);
+            var comment = Configuration.HasCommentChar ? Configuration.CommentChar : default(char?);
+
             var headerConfig =
                 new DynamicBoundConfiguration(
                     Configuration.TypeDescriber.Value,
                     Configuration.ValueSeparator,
-                    Configuration.EscapedValueStartAndStop,
-                    Configuration.EscapeValueEscapeChar,
+                    start,
+                    escape,
                     RowEndings!.Value,
                     Configuration.ReadHeader,
                     Configuration.WriteHeader,
                     Configuration.WriteTrailingNewLine,
                     Configuration.MemoryPool,
-                    Configuration.CommentChar,
+                    comment,
                     Configuration.WriteBufferSizeHint,
                     Configuration.ReadBufferSizeHint,
-                    Configuration.DynamicRowDisposal
+                    Configuration.DynamicRowDisposal,
+                    Configuration.WhitespaceTreatment
                 );
 
             var allowColumnsByName = Configuration.ReadHeader == Cesil.ReadHeader.Always;
 
-            var reader = new HeadersReader<object>(StateMachine, headerConfig, SharedCharacterLookup, Inner, Buffer);
+            var reader = new HeadersReader<object>(StateMachine, headerConfig, SharedCharacterLookup, Inner, Buffer, Configuration.WhitespaceTreatment);
             var disposeReader = true;
             try
             {

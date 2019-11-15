@@ -278,7 +278,7 @@ namespace Cesil
             {
                 CheckCanEncode(charMem.Span);
 
-                var escapedValueStartAndStop = Utils.NonNullStruct(Config.EscapedValueStartAndStop);
+                var escapedValueStartAndStop = Config.EscapedValueStartAndStop;
 
                 var startEscapeTask = PlaceCharInStagingAsync(escapedValueStartAndStop, cancel);
                 if (!startEscapeTask.IsCompletedSuccessfully(this))
@@ -379,7 +379,7 @@ namespace Cesil
 
         internal ValueTask WriteEncodedAsync(ReadOnlySequence<char> head, CancellationToken cancel)
         {
-            var escapedValueStartAndStop = Utils.NonNullStruct(Config.EscapedValueStartAndStop);
+            var escapedValueStartAndStop = Config.EscapedValueStartAndStop;
 
             // start with whatever the escape is
             var startEscapeTask = PlaceCharInStagingAsync(escapedValueStartAndStop, cancel);
@@ -449,7 +449,7 @@ namespace Cesil
 
         internal ValueTask WriteEncodedAsync(ReadOnlyMemory<char> charMem, CancellationToken cancel)
         {
-            var escapedValueStartAndStop = Utils.NonNullStruct(Config.EscapedValueStartAndStop);
+            var escapedValueStartAndStop = Config.EscapedValueStartAndStop;
 
 
             // try and blit things in in big chunks
@@ -458,7 +458,7 @@ namespace Cesil
 
             while (end != -1)
             {
-                var escapeValueEscapeChar = Utils.NonNullStruct(Config.EscapeValueEscapeChar);
+                var escapeValueEscapeChar = Config.EscapeValueEscapeChar;
 
                 var len = end - start;
                 var toWrite = charMem.Slice(start, len);

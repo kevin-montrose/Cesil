@@ -18,21 +18,67 @@ namespace Cesil
         internal readonly Column[] SerializeColumns;
         internal readonly bool[] SerializeColumnsNeedEscape;
 
+        // todo: maybe just replace this with an Options?
         // internal for testing purposes
         internal NonNull<ITypeDescriber> TypeDescriber;
         internal readonly char ValueSeparator;
-        internal readonly char? EscapedValueStartAndStop;
-        internal readonly char? EscapeValueEscapeChar;
         internal readonly RowEnding RowEnding;
         internal readonly ReadOnlyMemory<char> RowEndingMemory;
         internal readonly ReadHeader ReadHeader;
         internal readonly WriteHeader WriteHeader;
         internal readonly WriteTrailingNewLine WriteTrailingNewLine;
         internal readonly MemoryPool<char> MemoryPool;
-        internal readonly char? CommentChar;
         internal readonly int? WriteBufferSizeHint;
         internal readonly int ReadBufferSizeHint;
         internal readonly DynamicRowDisposal DynamicRowDisposal;
+        internal readonly WhitespaceTreatments WhitespaceTreatment;
+
+        private readonly char? _EscapedValueStartAndStop;
+        internal bool HasEscapedValueStartAndStop => _EscapedValueStartAndStop != null;
+        internal char EscapedValueStartAndStop
+        {
+            get
+            {
+                if(_EscapedValueStartAndStop == null)
+                {
+                    return Throw.Exception<char>($"{nameof(_EscapedValueStartAndStop)} has no value, this shouldn't be possible");
+                }
+
+                return _EscapedValueStartAndStop.Value;
+            }
+        }
+
+        private readonly char? _EscapeValueEscapeChar;
+        internal bool HasEscapeValueEscapeChar => _EscapeValueEscapeChar != null;
+        internal char EscapeValueEscapeChar
+        {
+            get
+            {
+                if (_EscapeValueEscapeChar == null)
+                {
+                    return Throw.Exception<char>($"{nameof(_EscapeValueEscapeChar)} has no value, this shouldn't be possible");
+                }
+
+                return _EscapeValueEscapeChar.Value;
+            }
+        }
+
+        private readonly char? _CommentChar;
+        internal bool HasCommentChar => _CommentChar != null;
+        internal char CommentChar
+        {
+            get
+            {
+                if (_CommentChar == null)
+                {
+                    return Throw.Exception<char>($"{nameof(_CommentChar)} has no value, this shouldn't be possible");
+                }
+
+                return _CommentChar.Value;
+            }
+        }
+
+        internal readonly NeedsEncodeMode NeedsEncodeMode;
 
 #pragma warning disable CS8618
         /// <summary>
@@ -62,7 +108,8 @@ namespace Cesil
             char? commentChar,
             int? writeBufferSizeHint,
             int readBufferSizeHint,
-            DynamicRowDisposal dynamicRowDisposal
+            DynamicRowDisposal dynamicRowDisposal,
+            WhitespaceTreatments whitespaceTreatment
         )
         {
             if (describer != null)
@@ -73,8 +120,8 @@ namespace Cesil
             SerializeColumns = Array.Empty<Column>();
             SerializeColumnsNeedEscape = Array.Empty<bool>();
             ValueSeparator = valueSeparator;
-            EscapedValueStartAndStop = escapedValueStartAndStop;
-            EscapeValueEscapeChar = escapeValueEscapeChar;
+            _EscapedValueStartAndStop = escapedValueStartAndStop;
+            _EscapeValueEscapeChar = escapeValueEscapeChar;
             RowEnding = rowEndings;
             WriteBufferSizeHint = writeBufferSizeHint;
             ReadBufferSizeHint = readBufferSizeHint;
@@ -101,8 +148,32 @@ namespace Cesil
             WriteHeader = writeHeaders;
             WriteTrailingNewLine = writeTrailingNewLine;
             MemoryPool = memoryPool;
-            CommentChar = commentChar;
+            _CommentChar = commentChar;
             DynamicRowDisposal = dynamicRowDisposal;
+            WhitespaceTreatment = whitespaceTreatment;
+
+            if (HasEscapedValueStartAndStop)
+            {
+                if (HasCommentChar)
+                {
+                    NeedsEncodeMode = NeedsEncodeMode.SeparatorLineEndingsEscapeStartComment;
+                }
+                else
+                {
+                    NeedsEncodeMode = NeedsEncodeMode.SeparatorLineEndingsEscapeStart;
+                }
+            }
+            else
+            {
+                if (HasCommentChar)
+                {
+                    NeedsEncodeMode = NeedsEncodeMode.SeparatorLineEndingsComment;
+                }
+                else
+                {
+                    NeedsEncodeMode = NeedsEncodeMode.SeparatorAndLineEndings;
+                }
+            }
         }
 
         /// <summary>
@@ -123,7 +194,8 @@ namespace Cesil
             MemoryPool<char> memoryPool,
             char? commentChar,
             int? writeBufferSizeHint,
-            int readBufferSizeHint
+            int readBufferSizeHint,
+            WhitespaceTreatments whitespaceTreatment
         )
         {
             NewCons.Value = newCons;
@@ -131,8 +203,8 @@ namespace Cesil
             SerializeColumns = serializeColumns;
             SerializeColumnsNeedEscape = serializeColumnsNeedEscape;
             ValueSeparator = valueSeparator;
-            EscapedValueStartAndStop = escapedValueStartAndStop;
-            EscapeValueEscapeChar = escapeValueEscapeChar;
+            _EscapedValueStartAndStop = escapedValueStartAndStop;
+            _EscapeValueEscapeChar = escapeValueEscapeChar;
             RowEnding = rowEndings;
             WriteBufferSizeHint = writeBufferSizeHint;
             ReadBufferSizeHint = readBufferSizeHint;
@@ -159,7 +231,31 @@ namespace Cesil
             WriteHeader = writeHeaders;
             WriteTrailingNewLine = writeTrailingNewLine;
             MemoryPool = memoryPool;
-            CommentChar = commentChar;
+            _CommentChar = commentChar;
+            WhitespaceTreatment = whitespaceTreatment;
+
+            if (HasEscapedValueStartAndStop)
+            {
+                if (HasCommentChar)
+                {
+                    NeedsEncodeMode = NeedsEncodeMode.SeparatorLineEndingsEscapeStartComment;
+                }
+                else
+                {
+                    NeedsEncodeMode = NeedsEncodeMode.SeparatorLineEndingsEscapeStart;
+                }
+            }
+            else
+            {
+                if (HasCommentChar)
+                {
+                    NeedsEncodeMode = NeedsEncodeMode.SeparatorLineEndingsComment;
+                }
+                else
+                {
+                    NeedsEncodeMode = NeedsEncodeMode.SeparatorAndLineEndings;
+                }
+            }
         }
 
         public IAsyncReader<T> CreateAsyncReader(PipeReader reader, Encoding encoding, object? context = null)

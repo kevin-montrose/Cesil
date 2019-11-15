@@ -28,6 +28,7 @@ namespace Cesil
         ///   - does not support comments
         ///   - uses the default read buffer size
         ///   - dynamic rows are disposed when the reader that returns them is disposed
+        ///   - whitespace is preserved
         /// </summary>
         public static readonly Options Default =
             CreateBuilder()
@@ -44,6 +45,7 @@ namespace Cesil
                 .WithCommentCharacter(null)
                 .WithReadBufferSizeHint(0)
                 .WithDynamicRowDisposal(DynamicRowDisposal.OnReaderDispose)
+                .WithWhitespaceTreatment(WhitespaceTreatments.Preserve)
                 .ToOptions();
 
         /// <summary>
@@ -61,6 +63,7 @@ namespace Cesil
         ///   - does not support comments
         ///   - uses the default read buffer size
         ///   - dynamic rows are disposed when the reader that returns them is disposed
+        ///   - whitespace is preserved
         /// </summary>
         public static readonly Options DynamicDefault =
             CreateBuilder()
@@ -77,6 +80,7 @@ namespace Cesil
                 .WithCommentCharacter(null)
                 .WithReadBufferSizeHint(0)
                 .WithDynamicRowDisposal(DynamicRowDisposal.OnReaderDispose)
+                .WithWhitespaceTreatment(WhitespaceTreatments.Preserve)
                 .ToOptions();
 
         /// <summary>
@@ -155,6 +159,10 @@ namespace Cesil
         /// When to dispose any dynamic rows returned by an IReader or IAsyncReader.
         /// </summary>
         public DynamicRowDisposal DynamicRowDisposal { get; }
+        /// <summary>
+        /// How to handle whitespace when encountered during parsing.
+        /// </summary>
+        public WhitespaceTreatments WhitespaceTreatment { get; private set; }
 
         internal Options(OptionsBuilder copy)
         {
@@ -171,6 +179,7 @@ namespace Cesil
             WriteBufferSizeHint = copy.WriteBufferSizeHint;
             ReadBufferSizeHint = copy.ReadBufferSizeHint;
             DynamicRowDisposal = copy.DynamicRowDisposal;
+            WhitespaceTreatment = copy.WhitespaceTreatment;
         }
 
         /// <summary>
@@ -219,7 +228,8 @@ namespace Cesil
                 options.ValueSeparator == ValueSeparator &&
                 options.WriteBufferSizeHint == WriteBufferSizeHint &&
                 options.WriteHeader == WriteHeader &&
-                options.WriteTrailingNewLine == WriteTrailingNewLine;
+                options.WriteTrailingNewLine == WriteTrailingNewLine &&
+                options.WhitespaceTreatment == WhitespaceTreatment;
         }
 
         /// <summary>
@@ -240,7 +250,8 @@ namespace Cesil
                 ValueSeparator,
                 WriteBufferSizeHint,
                 WriteHeader,
-                WriteTrailingNewLine
+                WriteTrailingNewLine,
+                WhitespaceTreatment
             ));
 
         /// <summary>
@@ -265,6 +276,7 @@ namespace Cesil
             ret.Append($", {nameof(WriteBufferSizeHint)}={WriteBufferSizeHint}");
             ret.Append($", {nameof(WriteHeader)}={WriteHeader}");
             ret.Append($", {nameof(WriteTrailingNewLine)}={WriteTrailingNewLine}");
+            ret.Append($", {nameof(WhitespaceTreatment)}={WhitespaceTreatment}");
 
             return ret.ToString();
         }

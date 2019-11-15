@@ -18,7 +18,8 @@ namespace Cesil
             char? commentChar,
             int? writeBufferSizeHint,
             int readBufferSizeHint,
-            DynamicRowDisposal dynamicRowDisposal
+            DynamicRowDisposal dynamicRowDisposal,
+            WhitespaceTreatments whitespaceTreatment
             ) :
             base(
                 describer,
@@ -33,7 +34,8 @@ namespace Cesil
                 commentChar,
                 writeBufferSizeHint,
                 readBufferSizeHint,
-                dynamicRowDisposal
+                dynamicRowDisposal,
+                whitespaceTreatment
             )
         { }
 
@@ -61,11 +63,20 @@ namespace Cesil
         {
             var ret = new StringBuilder();
             ret.Append($"{nameof(DynamicBoundConfiguration)} with ");
-            ret.Append($"{nameof(CommentChar)}={CommentChar}");
+            if (HasCommentChar)
+            {
+                ret.Append($"{nameof(CommentChar)}={CommentChar}");
+            }
             ret.Append($", {nameof(DynamicRowDisposal)}={DynamicRowDisposal}");
             ret.Append($", {nameof(TypeDescriber)}={TypeDescriber}");
-            ret.Append($", {nameof(EscapedValueStartAndStop)}={EscapedValueStartAndStop}");
-            ret.Append($", {nameof(EscapeValueEscapeChar)}={EscapeValueEscapeChar}");
+            if (HasEscapedValueStartAndStop)
+            {
+                ret.Append($", {nameof(EscapedValueStartAndStop)}={EscapedValueStartAndStop}");
+            }
+            if (HasEscapeValueEscapeChar)
+            {
+                ret.Append($", {nameof(EscapeValueEscapeChar)}={EscapeValueEscapeChar}");
+            }
             ret.Append($", {nameof(MemoryPool)}={MemoryPool}");
             // skipping NewCons
             ret.Append($", {nameof(ReadBufferSizeHint)}={ReadBufferSizeHint}");

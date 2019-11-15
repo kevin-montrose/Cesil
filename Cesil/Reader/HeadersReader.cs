@@ -12,6 +12,10 @@ namespace Cesil
 {
     internal sealed partial class HeadersReader<T> : ITestableDisposable
     {
+#if DEBUG
+        private const bool LOG_STATE_TRANSITION = true;
+#endif
+
         private const int LENGTH_SIZE = sizeof(uint) / sizeof(char);
 
         internal struct HeaderEnumerator : IEnumerator<ReadOnlyMemory<char>>, ITestableDisposable
@@ -21,6 +25,8 @@ namespace Cesil
             private int NextHeaderIndex;
             private int CurrentBufferIndex;
             private readonly ReadOnlyMemory<char> Buffer;
+
+            private readonly WhitespaceTreatments WhitespaceTreatment;
 
             public bool IsDisposed { get; private set; }
 
@@ -40,7 +46,7 @@ namespace Cesil
 
             object IEnumerator.Current => Current;
 
-            internal HeaderEnumerator(int count, ReadOnlyMemory<char> buffer)
+            internal HeaderEnumerator(int count, ReadOnlyMemory<char> buffer, WhitespaceTreatments whitespaceTreatment)
             {
                 IsDisposed = false;
                 Count = count;
@@ -48,6 +54,7 @@ namespace Cesil
                 NextHeaderIndex = 0;
                 CurrentBufferIndex = 0;
                 Buffer = buffer;
+                WhitespaceTreatment = whitespaceTreatment;
             }
 
             public bool MoveNext()
@@ -61,13 +68,41 @@ namespace Cesil
 
                 var span = Buffer.Span;
                 var lenChars = span.Slice(CurrentBufferIndex, LENGTH_SIZE);
-                var lenUint = MemoryMarshal.Cast<char, int>(lenChars);
-                var len = lenUint[0];
+                var lenIntSpan = MemoryMarshal.Cast<char, int>(lenChars);
+                var stored = lenIntSpan[0];
+                var len = Math.Abs(stored);
+                var wasEscaped = stored < 0;
 
                 var dataIx = CurrentBufferIndex + LENGTH_SIZE;
                 var endIx = dataIx + len;
 
-                Current = Buffer.Slice(dataIx, len);
+                var rawHeader = Buffer.Slice(dataIx, len);
+
+                // The state machine will skip leading values outside of values, so we only need to do any trimming IN the values
+                //
+                // Technically we could probably have the state machine skip leading inside too...
+                // todo: do that ^^^
+                var needsLeadingTrim = WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimLeadingInValues);
+                if (needsLeadingTrim)
+                {
+                    rawHeader = Utils.TrimLeadingWhitespace(rawHeader);
+                }
+
+                // We need to trim trailing IN values if requested, and we need to trim trailing after values
+                //   if requested AND the value wasn't escaped.
+                //
+                // Trimming trailing requires look ahead, which would greatly complicate the state machine
+                //   (technically making it not a state machine) so this will have to do.
+                var needsTrailingTrim =
+                    WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimTrailingInValues) ||
+                    (WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimAfterValues) && !wasEscaped);
+
+                if (needsTrailingTrim)
+                {
+                    rawHeader = Utils.TrimTrailingWhitespace(rawHeader);
+                }
+
+                Current = rawHeader;
 
                 CurrentBufferIndex = endIx;
                 NextHeaderIndex++;
@@ -103,6 +138,7 @@ namespace Cesil
         private readonly ReaderStateMachine StateMachine;
         private readonly BufferWithPushback Buffer;
         private readonly int BufferSizeHint;
+        private readonly WhitespaceTreatments WhitespaceTreatment;
 
         private int CurrentBuilderStart;
         private int CurrentBuilderLength;
@@ -139,18 +175,20 @@ namespace Cesil
             BoundConfigurationBase<T> config,
             CharacterLookup charLookup,
             IReaderAdapter inner,
-            BufferWithPushback buffer
+            BufferWithPushback buffer,
+            WhitespaceTreatments whitespaceTreatment
         )
-        : this(stateMachine, config, charLookup, inner, null, buffer) { }
+        : this(stateMachine, config, charLookup, inner, null, buffer, whitespaceTreatment) { }
 
         internal HeadersReader(
             ReaderStateMachine stateMachine,
             BoundConfigurationBase<T> config,
             CharacterLookup charLookup,
             IAsyncReaderAdapter inner,
-            BufferWithPushback buffer
+            BufferWithPushback buffer,
+            WhitespaceTreatments whitespaceTreatment
         )
-        : this(stateMachine, config, charLookup, null, inner, buffer) { }
+        : this(stateMachine, config, charLookup, null, inner, buffer, whitespaceTreatment) { }
 
         private HeadersReader(
             ReaderStateMachine stateMachine,
@@ -158,9 +196,12 @@ namespace Cesil
             CharacterLookup charLookup,
             IReaderAdapter? inner,
             IAsyncReaderAdapter? innerAsync,
-            BufferWithPushback buffer
+            BufferWithPushback buffer,
+            WhitespaceTreatments whitespaceTreatment
         )
         {
+            System.Diagnostics.Debug.WriteLineIf(LOG_STATE_TRANSITION, $"New {nameof(HeadersReader<T>)}");
+
             Inner.SetAllowNull(inner);
             InnerAsync.SetAllowNull(innerAsync);
 
@@ -175,13 +216,16 @@ namespace Cesil
                 config.EscapeValueEscapeChar,
                 config.RowEnding,
                 ReadHeader.Never,
-                false
+                false,
+                config.WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimBeforeValues),
+                config.WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimAfterValues)
             );
 
             Buffer = buffer;
 
             HeaderCount = 0;
             PushBackLength = 0;
+            WhitespaceTreatment = whitespaceTreatment;
         }
 
         internal (HeaderEnumerator Headers, bool IsHeader, Memory<char> PushBack) Read()
@@ -195,7 +239,8 @@ namespace Cesil
                     {
                         if (BuilderBacking.Length > 0)
                         {
-                            PushPendingCharactersToValue();
+                            var inEscapedValue = ReaderStateMachine.IsInEscapedValue(StateMachine.CurrentState);
+                            PushPendingCharactersToValue(inEscapedValue);
                         }
                         break;
                     }
@@ -264,7 +309,8 @@ namespace Cesil
                     {
                         if (BuilderBacking.Length > 0)
                         {
-                            PushPendingCharactersToValue();
+                            var inEscapedValue = ReaderStateMachine.IsInEscapedValue(StateMachine.CurrentState);
+                            PushPendingCharactersToValue(inEscapedValue);
                         }
                         break;
                     }
@@ -309,7 +355,8 @@ namespace Cesil
                     {
                         if (self.BuilderBacking.Length > 0)
                         {
-                            self.PushPendingCharactersToValue();
+                            var inEscapedValue = ReaderStateMachine.IsInEscapedValue(self.StateMachine.CurrentState);
+                            self.PushPendingCharactersToValue(inEscapedValue);
                         }
 
                         return self.IsHeaderResult();
@@ -337,7 +384,8 @@ namespace Cesil
                         {
                             if (self.BuilderBacking.Length > 0)
                             {
-                                self.PushPendingCharactersToValue();
+                                var inEscapedValue = ReaderStateMachine.IsInEscapedValue(self.StateMachine.CurrentState);
+                                self.PushPendingCharactersToValue(inEscapedValue);
                             }
                             break;
                         }
@@ -402,9 +450,17 @@ finish:
 
             for (var i = 0; i < bufferLen; i++)
             {
+#if DEBUG
+                var curState = StateMachine.CurrentState;
+#endif
+
                 var c = buffSpan[i];
 
                 var res = StateMachine.Advance(c);
+
+#if DEBUG
+                System.Diagnostics.Debug.WriteLineIf(LOG_STATE_TRANSITION, $"{curState} + {c} => {StateMachine.CurrentState } & {res}");
+#endif
 
                 if (res == ReaderStateMachine.AdvanceResult.Append_Character)
                 {
@@ -446,13 +502,25 @@ finish:
                     // case ReaderStateMachine.AdvanceResult.Append_CarriageReturn_And_Character is handled by
                     //      the above buffering logic
 
-                    case ReaderStateMachine.AdvanceResult.Finished_Value:
-                        PushPendingCharactersToValue();
+                    case ReaderStateMachine.AdvanceResult.Finished_Unescaped_Value:
+                        PushPendingCharactersToValue(false);
                         break;
-                    case ReaderStateMachine.AdvanceResult.Finished_Record:
+                    case ReaderStateMachine.AdvanceResult.Finished_Escaped_Value:
+                        PushPendingCharactersToValue(true);
+                        break;
+                    
+                    case ReaderStateMachine.AdvanceResult.Finished_LastValueUnescaped_Record:
                         if (CurrentBuilderLength > 0)
                         {
-                            PushPendingCharactersToValue();
+                            PushPendingCharactersToValue(false);
+                        }
+
+                        unprocessedCharacters = bufferLen - i - 1;
+                        return true;
+                    case ReaderStateMachine.AdvanceResult.Finished_LastValueEscaped_Record:
+                        if (CurrentBuilderLength > 0)
+                        {
+                            PushPendingCharactersToValue(true);
                         }
 
                         unprocessedCharacters = bufferLen - i - 1;
@@ -524,20 +592,26 @@ finish:
             CurrentBuilderLength += chars.Length;
         }
 
-        private void RecordLength(int curHeaderLength)
+        private void RecordLengthAndEscaped(int curHeaderLength, bool valueWasEscaped)
         {
             var lengthIx = CurrentBuilderStart - LENGTH_SIZE;
             var destSlice = BuilderBacking.Slice(lengthIx, LENGTH_SIZE);
             var destSpan = destSlice.Span;
 
             var uintDestSpan = MemoryMarshal.Cast<char, int>(destSpan);
-            uintDestSpan[0] = curHeaderLength;
+
+            var toStore = curHeaderLength;
+            if (valueWasEscaped)
+            {
+                toStore = -toStore;
+            }
+
+            uintDestSpan[0] = toStore;
         }
 
-        private void PushPendingCharactersToValue()
+        private void PushPendingCharactersToValue(bool valueWasEscaped)
         {
-            RecordLength(CurrentBuilderLength);
-
+            RecordLengthAndEscaped(CurrentBuilderLength, valueWasEscaped);
             CurrentBuilderStart += CurrentBuilderLength;
             CurrentBuilderStart += LENGTH_SIZE;
 
@@ -548,7 +622,7 @@ finish:
 
         private HeaderEnumerator MakeEnumerator()
         {
-            return new HeaderEnumerator(HeaderCount, BuilderBacking);
+            return new HeaderEnumerator(HeaderCount, BuilderBacking, WhitespaceTreatment);
         }
 
         public void Dispose()

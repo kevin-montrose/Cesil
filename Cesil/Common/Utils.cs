@@ -6,6 +6,111 @@ namespace Cesil
 {
     internal static class Utils
     {
+        private static class LegalFlagEnum<T>
+            where T: unmanaged, Enum
+        {
+            // has all the bits set that are present in 
+            public static readonly byte Mask;
+            public static readonly byte AntiMask;
+
+            static LegalFlagEnum()
+            {
+                var values = Enum.GetValues(typeof(T));
+                byte ret = 0;
+                for(var i = 0; i < values.Length; i++)
+                {
+                    var o = values.GetValue(i);
+                    if(o == null)
+                    {
+                        Throw.Exception<object>("Shouldn't be possible");
+                        return;
+                    }
+
+                    ret |= (byte)o;
+                }
+
+                Mask = ret;
+                AntiMask = (byte)(~ret);
+            }
+        }
+
+        internal static ReadOnlyMemory<char> TrimLeadingWhitespace(ReadOnlyMemory<char> mem)
+        {
+            // todo: are these early returns worth it?
+
+            if(mem.IsEmpty)
+            {
+                return mem;
+            }
+
+            var skip = 0;
+            var span = mem.Span;
+            var len = span.Length;
+
+            while(skip < len)
+            {
+                var c = span[skip];
+                if (!char.IsWhiteSpace(c)) break;
+
+                skip++;
+            }
+
+            if (skip == 0) return mem;
+            if (skip == len) return ReadOnlyMemory<char>.Empty;
+
+            return mem.Slice(skip);
+        }
+
+        internal static ReadOnlyMemory<char> TrimTrailingWhitespace(ReadOnlyMemory<char> mem)
+        {
+            // todo: are these early returns worth it?
+
+            if (mem.IsEmpty)
+            {
+                return mem;
+            }
+
+            var span = mem.Span;
+            var len = span.Length;
+            var start = len - 1;
+            var skip = start;
+
+            while (skip >= 0)
+            {
+                var c = span[skip];
+                if (!char.IsWhiteSpace(c)) break;
+
+                skip--;
+            }
+
+            if (skip == start) return mem;
+            if (skip == -1) return ReadOnlyMemory<char>.Empty;
+            
+
+            return mem.Slice(0, skip + 1);
+        }
+
+        internal static bool IsLegalFlagEnum<T>(T e)
+            where T: unmanaged, Enum
+        {
+            byte eAsByte;
+
+            unsafe
+            {
+                T* ePtr = &e;
+                byte* eBytePtr = (byte*)ePtr;
+
+                eAsByte = *eBytePtr;
+            }
+
+            if (eAsByte == 0) return true;
+
+            var anySet = (eAsByte & LegalFlagEnum<T>.Mask) != 0;
+            var unsetSet = (eAsByte & LegalFlagEnum<T>.AntiMask) != 0;
+
+            return anySet && !unsetSet;
+        }
+
         // Use this when we're validating parameters that the type system
         //   thinks are non-null but we know a USER could subvert
         //
@@ -30,19 +135,6 @@ namespace Cesil
             }
 
             return toCheck;
-        }
-
-        // todo: I think we can completely remove this if we're smarter
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static T NonNullStruct<T>(T? toCheck)
-            where T : struct
-        {
-            if (toCheck == null)
-            {
-                return Throw.Exception<T>("Expected non-null value, but found null");
-            }
-
-            return toCheck.Value;
         }
 
         // won't return empty entries
@@ -449,41 +541,29 @@ tryAgain:
         internal static int FindNeedsEncode<T>(ReadOnlySpan<char> span, int start, BoundConfigurationBase<T> config)
         {
             var subset = span.Slice(start);
+
             int ret;
 
-            if (config.CommentChar == null)
+            switch(config.NeedsEncodeMode)
             {
-                ret = FindNeedsEncodeNoComment(subset, config);
-            }
-            else
-            {
-                ret = FindNeedsEncodeWithComment(subset, config);
+                case NeedsEncodeMode.SeparatorAndLineEndings: ret = FindsNeedsEncodeSingle(subset, config.ValueSeparator);break;
+                case NeedsEncodeMode.SeparatorLineEndingsComment: ret = FindNeedsEncodeDouble(subset, config.ValueSeparator, config.CommentChar); break;
+                case NeedsEncodeMode.SeparatorLineEndingsEscapeStart: ret = FindNeedsEncodeDouble(subset, config.ValueSeparator, config.EscapedValueStartAndStop); break;
+                case NeedsEncodeMode.SeparatorLineEndingsEscapeStartComment: ret = FindNeedsEncodeTriple(subset, config.ValueSeparator, config.EscapedValueStartAndStop, config.CommentChar); break;
+                default: return Throw.Exception<int>($"Unexpected {nameof(NeedsEncodeMode)}: {config.NeedsEncodeMode}");
             }
 
             if (ret == -1) return -1;
 
-            return ret + start;
+            return start + ret;
         }
 
-        private static unsafe int FindNeedsEncodeNoComment<T>(ReadOnlySpan<char> span, BoundConfigurationBase<T> config)
+        private static unsafe int FindsNeedsEncodeSingle(ReadOnlySpan<char> span, char c1)
         {
-            var sepChar = config.ValueSeparator;
-            var escapeValueChar = config.EscapedValueStartAndStop;
-            var escapeChar = config.EscapeValueEscapeChar;
-
             // allocate and initalize with \r and \n
             short* probMap = stackalloc short[PROBABILITY_MAP_SIZE];
             probMap[0] = 9216;
-            AddCharacterToProbMap(probMap, sepChar);
-            if (escapeValueChar.HasValue)
-            {
-                AddCharacterToProbMap(probMap, escapeValueChar.Value);
-                if (escapeChar.HasValue)
-                {
-
-                    AddCharacterToProbMap(probMap, escapeChar.Value);
-                }
-            }
+            AddCharacterToProbMap(probMap, c1);
 
             fixed (char* charPtr = span)
             {
@@ -499,7 +579,7 @@ tryAgain:
                 for (var i = ix; i < len; i++)
                 {
                     var c = *charPtrMut;
-                    if (c == sepChar || c == '\r' || c == '\n' || c == escapeValueChar || c == escapeChar)
+                    if (c == c1 || c == '\r' || c == '\n')
                     {
                         return i;
                     }
@@ -511,27 +591,13 @@ tryAgain:
             return -1;
         }
 
-        private static unsafe int FindNeedsEncodeWithComment<T>(ReadOnlySpan<char> span, BoundConfigurationBase<T> config)
+        private static unsafe int FindNeedsEncodeDouble(ReadOnlySpan<char> span, char c1, char c2)
         {
-            var sepChar = config.ValueSeparator;
-            var escapeValueChar = config.EscapedValueStartAndStop;
-            var escapeChar = config.EscapeValueEscapeChar;
-            var commentChar = config.CommentChar!.Value;
-
             // allocate and initalize with \r and \n
             short* probMap = stackalloc short[PROBABILITY_MAP_SIZE];
             probMap[0] = 9216;
-            AddCharacterToProbMap(probMap, sepChar);
-            if (escapeValueChar.HasValue)
-            {
-                AddCharacterToProbMap(probMap, escapeValueChar.Value);
-                if (escapeChar.HasValue)
-                {
-
-                    AddCharacterToProbMap(probMap, escapeChar.Value);
-                }
-            }
-            AddCharacterToProbMap(probMap, commentChar);
+            AddCharacterToProbMap(probMap, c1);
+            AddCharacterToProbMap(probMap, c2);
 
             fixed (char* charPtr = span)
             {
@@ -547,7 +613,42 @@ tryAgain:
                 for (var i = ix; i < len; i++)
                 {
                     var c = *charPtrMut;
-                    if (c == sepChar || c == '\r' || c == '\n' || c == escapeValueChar || c == escapeChar || c == commentChar)
+                    if (c == c1 || c == c2 || c == '\r' || c == '\n')
+                    {
+                        return i;
+                    }
+
+                    charPtrMut++;
+                }
+            }
+
+            return -1;
+        }
+
+        private static unsafe int FindNeedsEncodeTriple(ReadOnlySpan<char> span, char c1, char c2, char c3)
+        {
+            // allocate and initalize with \r and \n
+            short* probMap = stackalloc short[PROBABILITY_MAP_SIZE];
+            probMap[0] = 9216;
+            AddCharacterToProbMap(probMap, c1);
+            AddCharacterToProbMap(probMap, c2);
+            AddCharacterToProbMap(probMap, c3);
+
+            fixed (char* charPtr = span)
+            {
+                char* charPtrMut = charPtr;
+
+                var len = span.Length;
+                var ix = ProbablyContains(probMap, ref charPtrMut, len);
+                if (ix == -1)
+                {
+                    return -1;
+                }
+
+                for (var i = ix; i < len; i++)
+                {
+                    var c = *charPtrMut;
+                    if (c == c1 || c == c2 || c == c3 || c == '\r' || c == '\n')
                     {
                         return i;
                     }
@@ -608,27 +709,19 @@ tryAgain:
             var defaultSize = rawStr.Length + 2 + 1;
 
             var pool = config.MemoryPool;
-            var escapeCharNull = config.EscapeValueEscapeChar;
-            char escapeChar;
-            if (escapeCharNull == null)
+            if (!config.HasEscapedValueStartAndStop)
             {
                 return Throw.Exception<string>("Attempted to encode a string without a configured escape char, shouldn't be possible");
             }
-            else
-            {
-                escapeChar = escapeCharNull.Value;
-            }
 
-            var escapedValueStartAndStopNull = config.EscapedValueStartAndStop;
-            char escapedValueStartAndStop;
-            if (escapedValueStartAndStopNull == null)
+            var escapeChar = config.EscapeValueEscapeChar;
+
+            if (!config.HasEscapeValueEscapeChar)
             {
                 return Throw.Exception<string>("Attempted to encode a string without a configured escape sequence start char, shouldn't be possible");
             }
-            else
-            {
-                escapedValueStartAndStop = escapedValueStartAndStopNull.Value;
-            }
+
+            var escapedValueStartAndStop = config.EscapedValueStartAndStop;
 
             var raw = rawStr.AsMemory();
             var retOwner = config.MemoryPool.Rent(defaultSize);

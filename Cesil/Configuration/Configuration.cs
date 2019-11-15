@@ -45,7 +45,8 @@ namespace Cesil
                     options.CommentCharacter,
                     options.WriteBufferSizeHint,
                     options.ReadBufferSizeHint,
-                    options.DynamicRowDisposal
+                    options.DynamicRowDisposal,
+                    options.WhitespaceTreatment
                 );
         }
 
@@ -116,7 +117,8 @@ namespace Cesil
                     options.MemoryPool,
                     options.CommentCharacter,
                     options.WriteBufferSizeHint,
-                    options.ReadBufferSizeHint
+                    options.ReadBufferSizeHint,
+                    options.WhitespaceTreatment
                 );
         }
 

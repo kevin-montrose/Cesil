@@ -9,8 +9,6 @@ namespace Cesil.Tests
 {
     public class CancellationTests
     {
-        // todo: need to test all the cancellation points... somehow?
-
         [Fact]
         public async Task AsyncEnumeratorAsync()
         {

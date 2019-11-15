@@ -15,7 +15,22 @@ namespace Cesil.Tests
         private ITestableAsyncProvider Single;
 
         public AsyncCountingAndForcingConfig(BoundConfigurationBase<T> inner) :
-            base(inner.TypeDescriber.HasValue ? inner.TypeDescriber.Value : null, inner.ValueSeparator, inner.EscapedValueStartAndStop, inner.EscapeValueEscapeChar, inner.RowEnding, inner.ReadHeader, inner.WriteHeader, inner.WriteTrailingNewLine, inner.MemoryPool, inner.CommentChar, inner.WriteBufferSizeHint, inner.ReadBufferSizeHint, inner.DynamicRowDisposal)
+            base(
+                inner.TypeDescriber.HasValue ? inner.TypeDescriber.Value : null, 
+                inner.ValueSeparator, 
+                inner.HasEscapedValueStartAndStop ? inner.EscapedValueStartAndStop : default(char?), 
+                inner.HasEscapeValueEscapeChar ? inner.EscapeValueEscapeChar : default(char?),
+                inner.RowEnding, 
+                inner.ReadHeader, 
+                inner.WriteHeader, 
+                inner.WriteTrailingNewLine, 
+                inner.MemoryPool, 
+                inner.HasCommentChar ? inner.CommentChar : default(char?),
+                inner.WriteBufferSizeHint,
+                inner.ReadBufferSizeHint, 
+                inner.DynamicRowDisposal,
+                inner.WhitespaceTreatment
+            )
         {
             InnerConfig = inner;
             GoAsyncAfter = -1;

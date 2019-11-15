@@ -557,8 +557,8 @@ namespace Cesil
             else
             {
                 // try and blit everything in relatively few calls
-                var escapedValueStartAndStop = Utils.NonNullStruct(Config.EscapedValueStartAndStop);
-                var escapeValueEscapeChar = Utils.NonNullStruct(Config.EscapeValueEscapeChar);
+                var escapedValueStartAndStop = Config.EscapedValueStartAndStop;
+                var escapeValueEscapeChar = Config.EscapeValueEscapeChar;
 
                 var colMem = colName.AsMemory();
 
@@ -566,7 +566,7 @@ namespace Cesil
                 var startEscapeTask = PlaceCharInStagingAsync(escapedValueStartAndStop, cancel);
                 if (!startEscapeTask.IsCompletedSuccessfully(this))
                 {
-                    return WriteSingleHeaderAsync_CompleteAfterFirstCharAsync(this, startEscapeTask, colMem, cancel);
+                    return WriteSingleHeaderAsync_CompleteAfterFirstCharAsync(this, startEscapeTask, escapedValueStartAndStop, escapeValueEscapeChar, colMem, cancel);
                 }
 
                 var start = 0;
@@ -579,14 +579,14 @@ namespace Cesil
                     var writeTask = PlaceInStagingAsync(toWrite, cancel);
                     if (!writeTask.IsCompletedSuccessfully(this))
                     {
-                        return WriteSingleHeaderAsync_CompleteAfterWriteAsync(this, writeTask, colMem, end, cancel);
+                        return WriteSingleHeaderAsync_CompleteAfterWriteAsync(this, writeTask, escapedValueStartAndStop, escapeValueEscapeChar, colMem, end, cancel);
                     }
 
                     // place the escape char
                     var escapeTask = PlaceCharInStagingAsync(escapeValueEscapeChar, cancel);
                     if (!escapeTask.IsCompletedSuccessfully(this))
                     {
-                        return WriteSingleHeaderAsync_CompleteAfterEscapeAsync(this, escapeTask, colMem, end, cancel);
+                        return WriteSingleHeaderAsync_CompleteAfterEscapeAsync(this, escapeTask, escapedValueStartAndStop, escapeValueEscapeChar, colMem, end, cancel);
                     }
 
                     start = end;
@@ -601,7 +601,7 @@ namespace Cesil
                     var writeTask = PlaceInStagingAsync(toWrite, cancel);
                     if (!writeTask.IsCompletedSuccessfully(this))
                     {
-                        return WriteSingleHeaderAsync_CompleteAfterLastWriteAsync(this, writeTask, cancel);
+                        return WriteSingleHeaderAsync_CompleteAfterLastWriteAsync(this, writeTask, escapedValueStartAndStop, cancel);
                     }
                 }
 
@@ -616,13 +616,10 @@ namespace Cesil
             }
 
             // waits for the first char to write, then does the rest asynchronously
-            static async ValueTask WriteSingleHeaderAsync_CompleteAfterFirstCharAsync(AsyncWriter<T> self, ValueTask waitFor, ReadOnlyMemory<char> colMem, CancellationToken cancel)
+            static async ValueTask WriteSingleHeaderAsync_CompleteAfterFirstCharAsync(AsyncWriter<T> self, ValueTask waitFor, char escapedValueStartAndStop, char escapeValueEscapeChar, ReadOnlyMemory<char> colMem, CancellationToken cancel)
             {
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
-
-                var escapedValueStartAndStop = Utils.NonNullStruct(self.Config.EscapedValueStartAndStop);
-                var escapeValueEscapeChar = Utils.NonNullStruct(self.Config.EscapeValueEscapeChar);
 
                 var start = 0;
                 var end = Utils.FindChar(colMem, start, escapedValueStartAndStop);
@@ -661,13 +658,10 @@ namespace Cesil
             }
 
             // waits for a write to finish, then complete the rest of the while loop and method async
-            static async ValueTask WriteSingleHeaderAsync_CompleteAfterWriteAsync(AsyncWriter<T> self, ValueTask waitFor, ReadOnlyMemory<char> colMem, int end, CancellationToken cancel)
+            static async ValueTask WriteSingleHeaderAsync_CompleteAfterWriteAsync(AsyncWriter<T> self, ValueTask waitFor, char escapedValueStartAndStop, char escapeValueEscapeChar, ReadOnlyMemory<char> colMem, int end, CancellationToken cancel)
             {
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
-
-                var escapedValueStartAndStop = Utils.NonNullStruct(self.Config.EscapedValueStartAndStop);
-                var escapeValueEscapeChar = Utils.NonNullStruct(self.Config.EscapeValueEscapeChar);
 
                 var placeTask = self.PlaceCharInStagingAsync(escapedValueStartAndStop, cancel);
                 await placeTask;
@@ -711,13 +705,10 @@ namespace Cesil
             }
 
             // waits for an escape to finish, then completes the rest of the while loop and method async
-            static async ValueTask WriteSingleHeaderAsync_CompleteAfterEscapeAsync(AsyncWriter<T> self, ValueTask waitFor, ReadOnlyMemory<char> colMem, int end, CancellationToken cancel)
+            static async ValueTask WriteSingleHeaderAsync_CompleteAfterEscapeAsync(AsyncWriter<T> self, ValueTask waitFor, char escapedValueStartAndStop, char escapeValueEscapeChar, ReadOnlyMemory<char> colMem, int end, CancellationToken cancel)
             {
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
-
-                var escapedValueStartAndStop = Utils.NonNullStruct(self.Config.EscapedValueStartAndStop);
-                var escapeValueEscapeChar = Utils.NonNullStruct(self.Config.EscapeValueEscapeChar);
 
                 var start = end;
                 end = Utils.FindChar(colMem, start + 1, escapedValueStartAndStop);
@@ -757,12 +748,10 @@ namespace Cesil
             }
 
             // waits for a write to finish, then writes out the final char and maybe flushes async
-            static async ValueTask WriteSingleHeaderAsync_CompleteAfterLastWriteAsync(AsyncWriter<T> self, ValueTask waitFor, CancellationToken cancel)
+            static async ValueTask WriteSingleHeaderAsync_CompleteAfterLastWriteAsync(AsyncWriter<T> self, ValueTask waitFor, char escapedValueStartAndStop, CancellationToken cancel)
             {
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
-
-                var escapedValueStartAndStop = Utils.NonNullStruct(self.Config.EscapedValueStartAndStop);
 
                 // end with the escape char
                 var placeTask = self.PlaceCharInStagingAsync(escapedValueStartAndStop, cancel);

@@ -57,7 +57,9 @@ namespace Cesil
                 config.EscapeValueEscapeChar,
                 default,
                 ReadHeader.Never,
-                false
+                false,
+                config.WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimBeforeValues),
+                config.WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimAfterValues)
             );
 
             MemoryPool = config.MemoryPool;
@@ -393,7 +395,8 @@ end:
                 {
                     case ReaderStateMachine.AdvanceResult.Append_Character:
                     case ReaderStateMachine.AdvanceResult.Append_CarriageReturnAndCurrentCharacter:
-                    case ReaderStateMachine.AdvanceResult.Finished_Value:
+                    case ReaderStateMachine.AdvanceResult.Finished_Unescaped_Value:
+                    case ReaderStateMachine.AdvanceResult.Finished_Escaped_Value:
                     case ReaderStateMachine.AdvanceResult.Skip_Character:
                         break;
 

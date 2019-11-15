@@ -76,6 +76,10 @@ namespace Cesil
                 return;
             }
 
+            var start = Configuration.HasEscapedValueStartAndStop ? Configuration.EscapedValueStartAndStop : default(char?);
+            var escape = Configuration.HasEscapeValueEscapeChar ? Configuration.EscapeValueEscapeChar : default(char?);
+            var comment = Configuration.HasCommentChar ? Configuration.CommentChar : default(char?);
+
             var headerConfig =
                 new ConcreteBoundConfiguration<T>(
                     Configuration.NewCons.Value,
@@ -83,16 +87,17 @@ namespace Cesil
                     Array.Empty<Column>(),
                     Array.Empty<bool>(),
                     Configuration.ValueSeparator,
-                    Configuration.EscapedValueStartAndStop,
-                    Configuration.EscapeValueEscapeChar,
+                    start,
+                    escape,
                     RowEndings!.Value,
                     Configuration.ReadHeader,
                     Configuration.WriteHeader,
                     Configuration.WriteTrailingNewLine,
                     Configuration.MemoryPool,
-                    Configuration.CommentChar,
+                    comment,
                     null,
-                    Configuration.ReadBufferSizeHint
+                    Configuration.ReadBufferSizeHint,
+                    Configuration.WhitespaceTreatment
                 );
 
             using (
@@ -101,7 +106,8 @@ namespace Cesil
                     headerConfig,
                     SharedCharacterLookup,
                     Inner,
-                    Buffer
+                    Buffer,
+                    Configuration.WhitespaceTreatment
                 )
             )
             {

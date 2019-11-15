@@ -35,8 +35,10 @@ namespace Cesil.Tests
             // test that no combination of characters and state transitions
             //   will reach outside the size of the backing pin
 
-            using (var c = CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, char.MinValue, char.MaxValue, 'c', 'd', out var maxSize1))
-            using (var d = CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, '"', ',', '"', '#', out var maxSize2))
+            using (var c = CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, char.MinValue, char.MaxValue, 'c', 'd', false, out var maxSize1))
+            using (var d = CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, '"', ',', '"', '#', false, out var maxSize2))
+            using (var e = CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, char.MinValue, char.MaxValue, 'c', 'd', true, out var maxSize3))
+            using (var f = CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, '"', ',', '"', '#', true, out var maxSize4))
             {
                 foreach (var state in Enum.GetValues(typeof(ReaderStateMachine.State)).Cast<ReaderStateMachine.State>())
                 {
@@ -54,6 +56,20 @@ namespace Cesil.Tests
                         {
                             Assert.True(offset2 >= 0);
                             Assert.True(offset2 < maxSize2);
+                        }
+
+                        var offset3 = ReaderStateMachine.GetCharLookupOffset(in e, state, (char)x);
+                        if (offset3 != null)
+                        {
+                            Assert.True(offset3 >= 0);
+                            Assert.True(offset3 < maxSize3);
+                        }
+
+                        var offset4 = ReaderStateMachine.GetCharLookupOffset(in f, state, (char)x);
+                        if (offset4 != null)
+                        {
+                            Assert.True(offset4 >= 0);
+                            Assert.True(offset4 < maxSize4);
                         }
                     }
                 }

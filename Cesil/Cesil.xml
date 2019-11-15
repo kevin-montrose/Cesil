@@ -11,12 +11,12 @@
             Created instance is nearly unusable.
             </summary>
         </member>
-        <member name="M:Cesil.BoundConfigurationBase`1.#ctor(Cesil.ITypeDescriber,System.Char,System.Nullable{System.Char},System.Nullable{System.Char},Cesil.RowEnding,Cesil.ReadHeader,Cesil.WriteHeader,Cesil.WriteTrailingNewLine,System.Buffers.MemoryPool{System.Char},System.Nullable{System.Char},System.Nullable{System.Int32},System.Int32,Cesil.DynamicRowDisposal)">
+        <member name="M:Cesil.BoundConfigurationBase`1.#ctor(Cesil.ITypeDescriber,System.Char,System.Nullable{System.Char},System.Nullable{System.Char},Cesil.RowEnding,Cesil.ReadHeader,Cesil.WriteHeader,Cesil.WriteTrailingNewLine,System.Buffers.MemoryPool{System.Char},System.Nullable{System.Char},System.Nullable{System.Int32},System.Int32,Cesil.DynamicRowDisposal,Cesil.WhitespaceTreatments)">
             <summary>
             For working with dynamic.
             </summary>
         </member>
-        <member name="M:Cesil.BoundConfigurationBase`1.#ctor(Cesil.InstanceProviderDelegate{`0},Cesil.Column[],Cesil.Column[],System.Boolean[],System.Char,System.Nullable{System.Char},System.Nullable{System.Char},Cesil.RowEnding,Cesil.ReadHeader,Cesil.WriteHeader,Cesil.WriteTrailingNewLine,System.Buffers.MemoryPool{System.Char},System.Nullable{System.Char},System.Nullable{System.Int32},System.Int32)">
+        <member name="M:Cesil.BoundConfigurationBase`1.#ctor(Cesil.InstanceProviderDelegate{`0},Cesil.Column[],Cesil.Column[],System.Boolean[],System.Char,System.Nullable{System.Char},System.Nullable{System.Char},Cesil.RowEnding,Cesil.ReadHeader,Cesil.WriteHeader,Cesil.WriteTrailingNewLine,System.Buffers.MemoryPool{System.Char},System.Nullable{System.Char},System.Nullable{System.Int32},System.Int32,Cesil.WhitespaceTreatments)">
             <summary>
             For working with concrete types.
             </summary>
@@ -187,6 +187,7 @@
               - does not support comments
               - uses the default read buffer size
               - dynamic rows are disposed when the reader that returns them is disposed
+              - whitespace is preserved
             </summary>
         </member>
         <member name="F:Cesil.Options.DynamicDefault">
@@ -205,6 +206,7 @@
               - does not support comments
               - uses the default read buffer size
               - dynamic rows are disposed when the reader that returns them is disposed
+              - whitespace is preserved
             </summary>
         </member>
         <member name="P:Cesil.Options.ValueSeparator">
@@ -292,6 +294,11 @@
         <member name="P:Cesil.Options.DynamicRowDisposal">
             <summary>
             When to dispose any dynamic rows returned by an IReader or IAsyncReader.
+            </summary>
+        </member>
+        <member name="P:Cesil.Options.WhitespaceTreatment">
+            <summary>
+            How to handle whitespace when encountered during parsing.
             </summary>
         </member>
         <member name="M:Cesil.Options.CreateBuilder">
@@ -432,6 +439,11 @@
             When to dispose any dynamic rows returned by an IReader or IAsyncReader.
             </summary>
         </member>
+        <member name="P:Cesil.OptionsBuilder.WhitespaceTreatment">
+            <summary>
+            How to handle whitespace when encountered during parsing.
+            </summary>
+        </member>
         <member name="M:Cesil.OptionsBuilder.CreateBuilder">
             <summary>
             Create a new, empty, OptionsBuilder.
@@ -538,6 +550,11 @@
               when the row is explicitly disposed.
             </summary>
         </member>
+        <member name="M:Cesil.OptionsBuilder.WithWhitespaceTreatment(Cesil.WhitespaceTreatments)">
+            <summary>
+            Set how to treat whitespace when parsing.
+            </summary>
+        </member>
         <member name="M:Cesil.OptionsBuilder.ToString">
             <summary>
             Returns a representation of this OptionsBuilder object.
@@ -597,6 +614,75 @@
             <summary>
             Will probe the CSV and discover which sequence of characters
                indicates the end of a record.
+            </summary>
+        </member>
+        <member name="T:Cesil.WhitespaceTreatments">
+            <summary>
+            How to handle whitespace when encountered during parsing.
+            
+            Allows for automatic removal of leading or trailing whitespace in or outside of
+              values or headers, depending on whether in an escaped sequence.
+            </summary>
+        </member>
+        <member name="F:Cesil.WhitespaceTreatments.Preserve">
+            <summary>
+            Leave whitespace untouched, if in a value or header
+              it will be preserved, if before or after an escaped
+              value or header it will result in an error.
+            </summary>
+        </member>
+        <member name="F:Cesil.WhitespaceTreatments.TrimLeadingInValues">
+            <summary>
+            Removes whitespace that is at the start of a value or header.
+            
+            For unescaped values this behaves the same as TrimBeforeValues.
+            
+            For escaped values this removed leading whitespace.
+            </summary>
+        </member>
+        <member name="F:Cesil.WhitespaceTreatments.TrimTrailingInValues">
+            <summary>
+            Removes whitespace that follows a value or header.
+            
+            For unescaped values this behaves the same as TrimAfterValues.
+            
+            Leading whitespace in escaped values and headers will be
+              removed.
+            </summary>
+        </member>
+        <member name="F:Cesil.WhitespaceTreatments.TrimInValues">
+            <summary>
+            Combines TrimLeadingInValues and TrimTrailingInValues.
+            </summary>
+        </member>
+        <member name="F:Cesil.WhitespaceTreatments.TrimBeforeValues">
+            <summary>
+            Removes whitespace before a value or header.
+            
+            For unescaped values this behaves the same as TrimLeadingInValues.
+            
+            For escaped values, only whitespace before the start of escaped value will be
+              removed.
+            </summary>
+        </member>
+        <member name="F:Cesil.WhitespaceTreatments.TrimAfterValues">
+            <summary>
+            Removes whitespace after a value or header.
+            
+            For unescaped values this behaves the same as TrimTrailingInValues.
+            
+            For escaped values, only whitespace after the end of escaped value will be
+              removed.
+            </summary>
+        </member>
+        <member name="F:Cesil.WhitespaceTreatments.TrimBetweenValues">
+            <summary>
+            Combines TrimBeforeValues and TrimAfterValues.
+            </summary>
+        </member>
+        <member name="F:Cesil.WhitespaceTreatments.Trim">
+            <summary>
+            Combines TrimInValues and TrimBetweenValues.
             </summary>
         </member>
         <member name="T:Cesil.WriteHeader">

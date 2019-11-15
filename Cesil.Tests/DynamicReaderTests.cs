@@ -14,6 +14,447 @@ namespace Cesil.Tests
     public class DynamicReaderTests
     {
         [Fact]
+        public void WhitespaceTrimming()
+        {
+            // in values
+            {
+                // leading
+                {
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithWhitespaceTreatment(WhitespaceTreatments.TrimLeadingInValues).ToOptions();
+
+                    RunSyncDynamicReaderVariants(
+                        opts,
+                        (config, makeReader) =>
+                        {
+                            using (var reader = makeReader("  Foo,  Bar\r\nhello,123\r\n   world,\t456\r\n\"\t \nfizz\",\"\t\t\t789\""))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.Foo);
+                                        Assert.Equal(123, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("world", (string)a.Foo);
+                                        Assert.Equal(456, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("fizz", (string)a.Foo);
+                                        Assert.Equal(789, (int)a.Bar);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // trailing
+                {
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithWhitespaceTreatment(WhitespaceTreatments.TrimTrailingInValues).ToOptions();
+
+                    RunSyncDynamicReaderVariants(
+                        opts,
+                        (config, makeReader) =>
+                        {
+                            using (var reader = makeReader("Foo   ,Bar   \r\nhello,123\r\nworld   ,456\t\r\n\"fizz\t \n\",\"789\t\t\t\""))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.Foo);
+                                        Assert.Equal(123, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("world", (string)a.Foo);
+                                        Assert.Equal(456, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("fizz", (string)a.Foo);
+                                        Assert.Equal(789, (int)a.Bar);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // both
+                {
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithWhitespaceTreatment(WhitespaceTreatments.TrimInValues).ToOptions();
+
+                    RunSyncDynamicReaderVariants(
+                        opts,
+                        (config, makeReader) =>
+                        {
+                            using (var reader = makeReader("   Foo   ,   Bar   \r\nhello,123\r\n\tworld   ,   456\t\r\n\"\tfizz\t \n\",\"\t789\t\t\t\""))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.Foo);
+                                        Assert.Equal(123, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("world", (string)a.Foo);
+                                        Assert.Equal(456, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("fizz", (string)a.Foo);
+                                        Assert.Equal(789, (int)a.Bar);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+            }
+
+            // outside of values
+            {
+                // leading
+                {
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithWhitespaceTreatment(WhitespaceTreatments.TrimBeforeValues).ToOptions();
+
+                    RunSyncDynamicReaderVariants(
+                        opts,
+                        (config, makeReader) =>
+                        {
+                            using (var reader = makeReader("  Foo,  Bar\r\nhello,123\r\n   world,\t456\r\n\"\t \nfizz\", \t \"789\""))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.Foo);
+                                        Assert.Equal(123, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("world", (string)a.Foo);
+                                        Assert.Equal(456, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("\t \nfizz", (string)a.Foo);
+                                        Assert.Equal(789, (int)a.Bar);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // trailing
+                {
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithWhitespaceTreatment(WhitespaceTreatments.TrimAfterValues).ToOptions();
+
+                    RunSyncDynamicReaderVariants(
+                        opts,
+                        (config, makeReader) =>
+                        {
+                            using (var reader = makeReader("Foo  ,\"Bar\"  \r\nhello,123\r\nworld   ,456\t\r\n\"fizz\t \n\",\"789\" \t "))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.Foo);
+                                        Assert.Equal(123, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("world", (string)a.Foo);
+                                        Assert.Equal(456, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("fizz\t \n", (string)a.Foo);
+                                        Assert.Equal(789, (int)a.Bar);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // leading
+                {
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithWhitespaceTreatment(WhitespaceTreatments.TrimBeforeValues).ToOptions();
+
+                    RunSyncDynamicReaderVariants(
+                        opts,
+                        (config, makeReader) =>
+                        {
+                            using (var reader = makeReader("  Foo,  Bar\r\nhello,123\r\n   world,\t456\r\n\"\t \nfizz\", \t \"789\""))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.Foo);
+                                        Assert.Equal(123, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("world", (string)a.Foo);
+                                        Assert.Equal(456, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("\t \nfizz", (string)a.Foo);
+                                        Assert.Equal(789, (int)a.Bar);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // both
+                {
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithWhitespaceTreatment(WhitespaceTreatments.TrimBeforeValues | WhitespaceTreatments.TrimAfterValues).ToOptions();
+
+                    RunSyncDynamicReaderVariants(
+                        opts,
+                        (config, makeReader) =>
+                        {
+                            using (var reader = makeReader("  Foo  ,\t\"Bar\"  \r\nhello,123\r\n\t world   ,456\t\r\n  \"fizz\t \n\",  \"789\" \t "))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.Foo);
+                                        Assert.Equal(123, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("world", (string)a.Foo);
+                                        Assert.Equal(456, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("fizz\t \n", (string)a.Foo);
+                                        Assert.Equal(789, (int)a.Bar);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+            }
+
+            // inside and outside of values
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWhitespaceTreatment(WhitespaceTreatments.Trim).ToOptions();
+
+                RunSyncDynamicReaderVariants(
+                    opts,
+                    (config, makeReader) =>
+                    {
+                        using (var reader = makeReader("  \"  Foo  \"  ,\t\t\"\tBar\t\"  \r\nhello,123\r\n\t world   ,456\t\r\n  \"fizz\t \n\",  \"  789\r\n\" \t "))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.Collection(
+                                rows,
+                                a =>
+                                {
+                                    Assert.Equal("hello", (string)a.Foo);
+                                    Assert.Equal(123, (int)a.Bar);
+                                },
+                                a =>
+                                {
+                                    Assert.Equal("world", (string)a.Foo);
+                                    Assert.Equal(456, (int)a.Bar);
+                                },
+                                a =>
+                                {
+                                    Assert.Equal("fizz", (string)a.Foo);
+                                    Assert.Equal(789, (int)a.Bar);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+
+            // none
+            {
+                // no changes in values
+                RunSyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    (config, makeReader) =>
+                    {
+                        using (var reader = makeReader("Foo,\"Bar\"\r\nhello\t,123\r\n  world,456\r\n\"\r\nfizz\",\"789\""))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.Collection(
+                                rows,
+                                a =>
+                                {
+                                    Assert.Equal("hello\t", (string)a.Foo);
+                                    Assert.Equal(123, (int)a.Bar);
+                                },
+                                a =>
+                                {
+                                    Assert.Equal("  world", (string)a.Foo);
+                                    Assert.Equal(456, (int)a.Bar);
+                                },
+                                a =>
+                                {
+                                    Assert.Equal("\r\nfizz", (string)a.Foo);
+                                    Assert.Equal(789, (int)a.Bar);
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // bad headers
+                {
+                    // leading value
+                    RunSyncDynamicReaderVariants(
+                        Options.DynamicDefault,
+                        (config, makeReader) =>
+                        {
+                            using (var reader = makeReader("  Foo,\"Bar\"\r\nfoo,123"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("foo", (string)a["  Foo"]);
+                                        Assert.Equal(123, (int)a.Bar);
+                                    }
+                                );
+                            }
+                        }
+                    );
+
+                    // trailing value
+                    RunSyncDynamicReaderVariants(
+                        Options.DynamicDefault,
+                        (config, makeReader) =>
+                        {
+                            using (var reader = makeReader("Foo\t,\"Bar\"\r\nfoo,123"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("foo", (string)a["Foo\t"]);
+                                        Assert.Equal(123, (int)a.Bar);
+                                    }
+                                );
+                            }
+                        }
+                    );
+
+                    // leading value, escaped
+                    RunSyncDynamicReaderVariants(
+                        Options.DynamicDefault,
+                        (config, makeReader) =>
+                        {
+                            using (var reader = makeReader("Foo,\"  Bar\"\r\nfoo,123"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("foo", (string)a.Foo);
+                                        Assert.Equal(123, (int)a["  Bar"]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+
+                    // leading value, escaped, exceptional
+                    RunSyncDynamicReaderVariants(
+                        Options.DynamicDefault,
+                        (config, makeReader) =>
+                        {
+                            using (var reader = makeReader("Foo,\t\"  Bar\"\r\nfoo,123"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                Assert.Throws<InvalidOperationException>(() => csv.ReadAll());
+                            }
+                        }
+                    );
+
+                    // trailing value, escaped
+                    RunSyncDynamicReaderVariants(
+                        Options.DynamicDefault,
+                        (config, makeReader) =>
+                        {
+                            using (var reader = makeReader("Foo,\"Bar\r\n\"\r\nfoo,123"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("foo", (string)a.Foo);
+                                        Assert.Equal(123, (int)a["Bar\r\n"]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+
+                    // trailing value, escaped, exceptional
+                    RunSyncDynamicReaderVariants(
+                        Options.DynamicDefault,
+                        (config, makeReader) =>
+                        {
+                            using (var reader = makeReader("Foo,\"Bar\r\n\"\t\t\r\nfoo,123"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                Assert.Throws<InvalidOperationException>(() => csv.ReadAll());
+                            }
+                        }
+                    );
+                }
+            }
+        }
+
+        [Fact]
         public void DynamicRowMemberNameEnumerators()
         {
             // with headers
@@ -3714,6 +4155,467 @@ loop:
         }
 
         // async tests
+
+        [Fact]
+        public async Task WhitespaceTrimmingAsync()
+        {
+            // in values
+            {
+                // leading
+                {
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithWhitespaceTreatment(WhitespaceTreatments.TrimLeadingInValues).ToOptions();
+
+                    await RunAsyncDynamicReaderVariants(
+                        opts,
+                        async (config, makeReader) =>
+                        {
+                            await using (var reader = await makeReader("  Foo,  Bar\r\nhello,123\r\n   world,\t456\r\n\"\t \nfizz\",\"\t\t\t789\""))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.Foo);
+                                        Assert.Equal(123, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("world", (string)a.Foo);
+                                        Assert.Equal(456, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("fizz", (string)a.Foo);
+                                        Assert.Equal(789, (int)a.Bar);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // trailing
+                {
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithWhitespaceTreatment(WhitespaceTreatments.TrimTrailingInValues).ToOptions();
+
+                    await RunAsyncDynamicReaderVariants(
+                        opts,
+                        async (config, makeReader) =>
+                        {
+                            await using (var reader = await makeReader("Foo   ,Bar   \r\nhello,123\r\nworld   ,456\t\r\n\"fizz\t \n\",\"789\t\t\t\""))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.Foo);
+                                        Assert.Equal(123, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("world", (string)a.Foo);
+                                        Assert.Equal(456, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("fizz", (string)a.Foo);
+                                        Assert.Equal(789, (int)a.Bar);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // both
+                {
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithWhitespaceTreatment(WhitespaceTreatments.TrimInValues).ToOptions();
+
+                    await RunAsyncDynamicReaderVariants(
+                        opts,
+                        async (config, makeReader) =>
+                        {
+                            await using (var reader = await makeReader("   Foo   ,   Bar   \r\nhello,123\r\n\tworld   ,   456\t\r\n\"\tfizz\t \n\",\"\t789\t\t\t\""))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.Foo);
+                                        Assert.Equal(123, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("world", (string)a.Foo);
+                                        Assert.Equal(456, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("fizz", (string)a.Foo);
+                                        Assert.Equal(789, (int)a.Bar);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+            }
+
+            // outside of values
+            {
+                // leading
+                {
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithWhitespaceTreatment(WhitespaceTreatments.TrimBeforeValues).ToOptions();
+
+                    await RunAsyncDynamicReaderVariants(
+                        opts,
+                        async (config, makeReader) =>
+                        {
+                            await using (var reader = await makeReader("  Foo,  Bar\r\nhello,123\r\n   world,\t456\r\n\"\t \nfizz\", \t \"789\""))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.Foo);
+                                        Assert.Equal(123, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("world", (string)a.Foo);
+                                        Assert.Equal(456, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("\t \nfizz", (string)a.Foo);
+                                        Assert.Equal(789, (int)a.Bar);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // trailing
+                {
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithWhitespaceTreatment(WhitespaceTreatments.TrimAfterValues).ToOptions();
+
+                    await RunAsyncDynamicReaderVariants(
+                        opts,
+                        async (config, makeReader) =>
+                        {
+                            await using (var reader = await makeReader("Foo  ,\"Bar\"  \r\nhello,123\r\nworld   ,456\t\r\n\"fizz\t \n\",\"789\" \t "))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.Foo);
+                                        Assert.Equal(123, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("world", (string)a.Foo);
+                                        Assert.Equal(456, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("fizz\t \n", (string)a.Foo);
+                                        Assert.Equal(789, (int)a.Bar);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // leading
+                {
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithWhitespaceTreatment(WhitespaceTreatments.TrimBeforeValues).ToOptions();
+
+                    await RunAsyncDynamicReaderVariants(
+                        opts,
+                        async (config, makeReader) =>
+                        {
+                            await using (var reader = await makeReader("  Foo,  Bar\r\nhello,123\r\n   world,\t456\r\n\"\t \nfizz\", \t \"789\""))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.Foo);
+                                        Assert.Equal(123, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("world", (string)a.Foo);
+                                        Assert.Equal(456, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("\t \nfizz", (string)a.Foo);
+                                        Assert.Equal(789, (int)a.Bar);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // both
+                {
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithWhitespaceTreatment(WhitespaceTreatments.TrimBeforeValues | WhitespaceTreatments.TrimAfterValues).ToOptions();
+
+                    await RunAsyncDynamicReaderVariants(
+                        opts,
+                        async (config, makeReader) =>
+                        {
+                            await using (var reader = await makeReader("  Foo  ,\t\"Bar\"  \r\nhello,123\r\n\t world   ,456\t\r\n  \"fizz\t \n\",  \"789\" \t "))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.Foo);
+                                        Assert.Equal(123, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("world", (string)a.Foo);
+                                        Assert.Equal(456, (int)a.Bar);
+                                    },
+                                    a =>
+                                    {
+                                        Assert.Equal("fizz\t \n", (string)a.Foo);
+                                        Assert.Equal(789, (int)a.Bar);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+            }
+
+            // inside and outside of values
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWhitespaceTreatment(WhitespaceTreatments.Trim).ToOptions();
+
+                await RunAsyncDynamicReaderVariants(
+                    opts,
+                    async (config, makeReader) =>
+                    {
+                        await using (var reader = await makeReader("  \"  Foo  \"  ,\t\t\"\tBar\t\"  \r\nhello,123\r\n\t world   ,456\t\r\n  \"fizz\t \n\",  \"  789\r\n\" \t "))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.Collection(
+                                rows,
+                                a =>
+                                {
+                                    Assert.Equal("hello", (string)a.Foo);
+                                    Assert.Equal(123, (int)a.Bar);
+                                },
+                                a =>
+                                {
+                                    Assert.Equal("world", (string)a.Foo);
+                                    Assert.Equal(456, (int)a.Bar);
+                                },
+                                a =>
+                                {
+                                    Assert.Equal("fizz", (string)a.Foo);
+                                    Assert.Equal(789, (int)a.Bar);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+
+            // none
+            {
+                // no changes in values
+                await RunAsyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    async (config, makeReader) =>
+                    {
+                        await using (var reader = await makeReader("Foo,\"Bar\"\r\nhello\t,123\r\n  world,456\r\n\"\r\nfizz\",\"789\""))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.Collection(
+                                rows,
+                                a =>
+                                {
+                                    Assert.Equal("hello\t", (string)a.Foo);
+                                    Assert.Equal(123, (int)a.Bar);
+                                },
+                                a =>
+                                {
+                                    Assert.Equal("  world", (string)a.Foo);
+                                    Assert.Equal(456, (int)a.Bar);
+                                },
+                                a =>
+                                {
+                                    Assert.Equal("\r\nfizz", (string)a.Foo);
+                                    Assert.Equal(789, (int)a.Bar);
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // bad headers
+                {
+                    // leading value
+                    await RunAsyncDynamicReaderVariants(
+                        Options.DynamicDefault,
+                        async (config, makeReader) =>
+                        {
+                            await using (var reader = await makeReader("  Foo,\"Bar\"\r\nfoo,123"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("foo", (string)a["  Foo"]);
+                                        Assert.Equal(123, (int)a.Bar);
+                                    }
+                                );
+                            }
+                        }
+                    );
+
+                    // trailing value
+                    await RunAsyncDynamicReaderVariants(
+                        Options.DynamicDefault,
+                        async (config, makeReader) =>
+                        {
+                            await using (var reader = await makeReader("Foo\t,\"Bar\"\r\nfoo,123"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("foo", (string)a["Foo\t"]);
+                                        Assert.Equal(123, (int)a.Bar);
+                                    }
+                                );
+                            }
+                        }
+                    );
+
+                    // leading value, escaped
+                    await RunAsyncDynamicReaderVariants(
+                        Options.DynamicDefault,
+                        async (config, makeReader) =>
+                        {
+                            await using (var reader = await makeReader("Foo,\"  Bar\"\r\nfoo,123"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("foo", (string)a.Foo);
+                                        Assert.Equal(123, (int)a["  Bar"]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+
+                    // leading value, escaped, exceptional
+                    await RunAsyncDynamicReaderVariants(
+                        Options.DynamicDefault,
+                        async (config, makeReader) =>
+                        {
+                            await using (var reader = await makeReader("Foo,\t\"  Bar\"\r\nfoo,123"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                await AssertThrowsInnerAsync<InvalidOperationException>(async () => await csv.ReadAllAsync());
+                            }
+                        }
+                    );
+
+                    // trailing value, escaped
+                    await RunAsyncDynamicReaderVariants(
+                        Options.DynamicDefault,
+                        async (config, makeReader) =>
+                        {
+                            await using (var reader = await makeReader("Foo,\"Bar\r\n\"\r\nfoo,123"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("foo", (string)a.Foo);
+                                        Assert.Equal(123, (int)a["Bar\r\n"]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+
+                    // trailing value, escaped, exceptional
+                    await RunAsyncDynamicReaderVariants(
+                        Options.DynamicDefault,
+                        async (config, makeReader) =>
+                        {
+                            await using (var reader = await makeReader("Foo,\"Bar\r\n\"\t\t\r\nfoo,123"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                await AssertThrowsInnerAsync<InvalidOperationException>(async () => await csv.ReadAllAsync());
+                            }
+                        }
+                    );
+                }
+            }
+
+            static async ValueTask AssertThrowsInnerAsync<TException>(Func<ValueTask> func)
+                where TException : Exception
+            {
+                try
+                {
+                    await func();
+                }
+                catch (Exception e)
+                {
+                    if (e is AggregateException)
+                    {
+                        Assert.IsType<TException>(e.InnerException);
+                    }
+                    else
+                    {
+                        Assert.IsType<TException>(e);
+                    }
+                }
+            }
+        }
 
         [Fact]
         public async Task GetDynamicMemberNamesAsync()

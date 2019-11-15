@@ -952,7 +952,7 @@ namespace Cesil.Tests
             {
                 var config = Configuration.For<_HelpfulToString>();
 
-                var e = new HeadersReader<_HelpfulToString>.HeaderEnumerator(0, ReadOnlyMemory<char>.Empty);
+                var e = new HeadersReader<_HelpfulToString>.HeaderEnumerator(0, ReadOnlyMemory<char>.Empty, WhitespaceTreatments.Preserve);
 
                 return e.ToString();
             }
@@ -1427,9 +1427,12 @@ namespace Cesil.Tests
 
                 Assert.Equal(vals.Length, vals.Distinct().Count());
 
-                foreach (var v in vals)
+                if (!t.CustomAttributes.Any(x => x.AttributeType == typeof(FlagsAttribute)))
                 {
-                    Assert.False(0 == v, $"{t.Name} has a 0 value, which will make debugging a pain");
+                    foreach (var v in vals)
+                    {
+                        Assert.False(0 == v, $"{t.Name} has a 0 value, which will make debugging a pain");
+                    }
                 }
             }
         }
@@ -1735,6 +1738,7 @@ namespace Cesil.Tests
                     [typeof(EmitDefaultValue).GetTypeInfo()] = new[] { "emitDefault" },
                     [typeof(MemberRequired).GetTypeInfo()] = new[] { "required" },
                     [typeof(DynamicRowDisposal).GetTypeInfo()] = new[] { "dynamicRowDisposal" },
+                    [typeof(WhitespaceTreatments).GetTypeInfo()] = new[] { "whitespaceTreatment" },
 
                     // wrapper types
                     [typeof(DynamicCellValue).GetTypeInfo()] = new[] { "value" },

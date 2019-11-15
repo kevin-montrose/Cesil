@@ -8,6 +8,56 @@ namespace Cesil.Tests
 {
     public class UtilsTests
     {
+        [Fact]
+        public void CharacterLookupWhitespace()
+        {
+            foreach(var c in CharacterLookup.WhitespaceCharacters)
+            {
+                Assert.True(char.IsWhiteSpace(c));
+            }
+
+            for(int i = char.MinValue; i <= char.MaxValue; i++)
+            {
+                var c = (char)i;
+                if (!char.IsWhiteSpace(c)) continue;
+
+                var ix = Array.IndexOf(CharacterLookup.WhitespaceCharacters, c);
+                Assert.NotEqual(-1, ix);
+            }
+        }
+
+        [Theory]
+        [InlineData("", "")]
+        [InlineData("abc", "abc")]
+        [InlineData("abc ", "abc ")]
+        [InlineData(" ", "")]
+        [InlineData(" a", "a")]
+        [InlineData(" a ", "a ")]
+        public void TrimLeadingWhitespace(string input, string expected)
+        {
+            var inputMem = input.AsMemory();
+            var trimmedMem = Utils.TrimLeadingWhitespace(inputMem);
+            var trimmedStr = new string(trimmedMem.Span);
+
+            Assert.Equal(expected, trimmedStr);
+        }
+
+        [Theory]
+        [InlineData("", "")]
+        [InlineData("abc", "abc")]
+        [InlineData("abc ", "abc")]
+        [InlineData(" ", "")]
+        [InlineData("a ", "a")]
+        [InlineData(" a ", " a")]
+        public void TrimTrailingWhitespace(string input, string expected)
+        {
+            var inputMem = input.AsMemory();
+            var trimmedMem = Utils.TrimTrailingWhitespace(inputMem);
+            var trimmedStr = new string(trimmedMem.Span);
+
+            Assert.Equal(expected, trimmedStr);
+        }
+
         [Theory]
         [InlineData("", "\r\n")]
         [InlineData("hello\r\nworld", "\r\n")]

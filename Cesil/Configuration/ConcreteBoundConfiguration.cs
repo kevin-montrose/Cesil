@@ -20,22 +20,25 @@ namespace Cesil
             MemoryPool<char> memoryPool,
             char? commentChar,
             int? writeBufferSizeHint,
-            int readBufferSizeHint) : base(
-                    newCons,
-                    deserializeColumns,
-                    serializeColumns,
-                    serializeColumnsNeedEscape,
-                    valueSeparator,
-                    escapedValueStartAndStop,
-                    escapeValueEscapeChar,
-                    rowEndings,
-                    readHeader,
-                    writeHeaders,
-                    writeTrailingNewLine,
-                    memoryPool,
-                    commentChar,
-                    writeBufferSizeHint,
-                    readBufferSizeHint
+            int readBufferSizeHint,
+            WhitespaceTreatments whitespaceTreatment) : 
+            base(
+                newCons,
+                deserializeColumns,
+                serializeColumns,
+                serializeColumnsNeedEscape,
+                valueSeparator,
+                escapedValueStartAndStop,
+                escapeValueEscapeChar,
+                rowEndings,
+                readHeader,
+                writeHeaders,
+                writeTrailingNewLine,
+                memoryPool,
+                commentChar,
+                writeBufferSizeHint,
+                readBufferSizeHint,
+                whitespaceTreatment
             )
         { }
 
@@ -83,10 +86,19 @@ namespace Cesil
         {
             var ret = new StringBuilder();
             ret.Append($"{nameof(ConcreteBoundConfiguration<T>)} with ");
-            ret.Append($"{nameof(CommentChar)}={CommentChar}");
+            if (HasCommentChar)
+            {
+                ret.Append($"{nameof(CommentChar)}={CommentChar}");
+            }
             // Dynamic* not included, since not relevant
-            ret.Append($", {nameof(EscapedValueStartAndStop)}={EscapedValueStartAndStop}");
-            ret.Append($", {nameof(EscapeValueEscapeChar)}={EscapeValueEscapeChar}");
+            if (HasEscapedValueStartAndStop)
+            {
+                ret.Append($", {nameof(EscapedValueStartAndStop)}={EscapedValueStartAndStop}");
+            }
+            if (HasEscapeValueEscapeChar)
+            {
+                ret.Append($", {nameof(EscapeValueEscapeChar)}={EscapeValueEscapeChar}");
+            }
             ret.Append($", {nameof(MemoryPool)}={MemoryPool}");
             ret.Append($", {nameof(NewCons)}={NewCons}");
             ret.Append($", {nameof(ReadBufferSizeHint)}={ReadBufferSizeHint}");

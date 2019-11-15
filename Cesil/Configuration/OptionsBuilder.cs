@@ -93,6 +93,10 @@ namespace Cesil
         /// When to dispose any dynamic rows returned by an IReader or IAsyncReader.
         /// </summary>
         public DynamicRowDisposal DynamicRowDisposal { get; private set; }
+        /// <summary>
+        /// How to handle whitespace when encountered during parsing.
+        /// </summary>
+        public WhitespaceTreatments WhitespaceTreatment { get; private set; }
 
         internal OptionsBuilder() { }
 
@@ -111,6 +115,7 @@ namespace Cesil
             WriteBufferSizeHint = copy.WriteBufferSizeHint;
             ReadBufferSizeHint = copy.ReadBufferSizeHint;
             DynamicRowDisposal = copy.DynamicRowDisposal;
+            WhitespaceTreatment = copy.WhitespaceTreatment;
         }
 
         /// <summary>
@@ -200,6 +205,35 @@ namespace Cesil
             if (!Enum.IsDefined(Types.DynamicRowDisposalType, DynamicRowDisposal))
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(DynamicRowDisposal)} has an unexpected value, '{DynamicRowDisposal}'");
+            }
+            // WhitespaceTreatment not recognized
+            if (!Utils.IsLegalFlagEnum(WhitespaceTreatment))
+            {
+                return Throw.InvalidOperationException<Options>($"{nameof(WhitespaceTreatment)} has an unexpected value, '{WhitespaceTreatment}'");
+            }
+
+            // if any of the special characters are whitespace, we can't use them with any of the trimming... parse is ambiguous
+            if (WhitespaceTreatment != WhitespaceTreatments.Preserve)
+            {
+                if (CommentCharacter.HasValue && char.IsWhiteSpace(CommentCharacter.Value))
+                {
+                    return Throw.InvalidOperationException<Options>($"Cannot use a whitespace removing {nameof(WhitespaceTreatment)} ({WhitespaceTreatment}) with a whitespace {nameof(CommentCharacter)} ('{CommentCharacter}')");
+                }
+
+                if (EscapedValueEscapeCharacter.HasValue && char.IsWhiteSpace(EscapedValueEscapeCharacter.Value))
+                {
+                    return Throw.InvalidOperationException<Options>($"Cannot use a whitespace removing {nameof(WhitespaceTreatment)} ({WhitespaceTreatment}) with a whitespace {nameof(EscapedValueEscapeCharacter)} ('{EscapedValueEscapeCharacter}')");
+                }
+
+                if (EscapedValueStartAndEnd.HasValue && char.IsWhiteSpace(EscapedValueStartAndEnd.Value))
+                {
+                    return Throw.InvalidOperationException<Options>($"Cannot use a whitespace removing {nameof(WhitespaceTreatment)} ({WhitespaceTreatment}) with a whitespace {nameof(EscapedValueStartAndEnd)} ('{EscapedValueStartAndEnd}')");
+                }
+
+                if (char.IsWhiteSpace(ValueSeparator))
+                {
+                    return Throw.InvalidOperationException<Options>($"Cannot use a whitespace removing {nameof(WhitespaceTreatment)} ({WhitespaceTreatment}) with a whitespace {nameof(ValueSeparator)} ('{ValueSeparator}')");
+                }
             }
 
             return BuildInternal();
@@ -432,6 +466,26 @@ namespace Cesil
         }
 
         /// <summary>
+        /// Set how to treat whitespace when parsing.
+        /// </summary>
+        public OptionsBuilder WithWhitespaceTreatment(WhitespaceTreatments whitespaceTreatment)
+        {
+            // WhitespaceTreatment not recognized
+            if (!Utils.IsLegalFlagEnum(whitespaceTreatment))
+            {
+                return Throw.ArgumentException<OptionsBuilder>($"{nameof(WhitespaceTreatment)} has an unexpected value, '{WhitespaceTreatment}'", nameof(whitespaceTreatment));
+            }
+
+            return WithWhitespaceTreatmentInternal(whitespaceTreatment);
+        }
+
+        internal OptionsBuilder WithWhitespaceTreatmentInternal(WhitespaceTreatments whitespaceTreatment)
+        {
+            WhitespaceTreatment = whitespaceTreatment;
+            return this;
+        }
+
+        /// <summary>
         /// Returns a representation of this OptionsBuilder object.
         /// 
         /// Only for debugging, this value is not guaranteed to be stable.
@@ -453,6 +507,7 @@ namespace Cesil
             ret.Append($", {nameof(WriteBufferSizeHint)}={WriteBufferSizeHint}");
             ret.Append($", {nameof(WriteHeader)}={WriteHeader}");
             ret.Append($", {nameof(WriteTrailingNewLine)}={WriteTrailingNewLine}");
+            ret.Append($", {nameof(WhitespaceTreatment)}={WhitespaceTreatment}");
 
             return ret.ToString();
         }

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Dynamic;
-// todo: remove Linq here
-using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
@@ -930,7 +928,19 @@ namespace Cesil
                 return DynamicRowConverter.ForConstructorTakingDynamic(cons);
             }
 
-            var width = columns.Count();
+            int width;
+            if(columns is ICollection<ColumnIdentifier> c)
+            {
+                width = c.Count;
+            }
+            else
+            {
+                width = 0;
+                foreach(var _ in columns)
+                {
+                    width++;
+                }
+            }
 
             var isConsPOCO = IsConstructorPOCO(width, targetType);
             if (isConsPOCO.HasValue)

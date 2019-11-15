@@ -13,11 +13,16 @@ namespace Cesil
         internal RowEnding RowEndings;
         internal ReadHeader HasHeaders;
 
+#if DEBUG
+        private int TransitionMatrixMemoryOffset;
+#endif
         private ReadOnlyMemory<TransitionRule> TransitionMatrixMemory;
         private CharacterLookup CharacterLookup;
 
         private MemoryHandle CharLookupPin;
         private unsafe CharacterType* CharLookup;
+
+
 
         private MemoryHandle TransitionMatrixHandle;
         private unsafe TransitionRule* TransitionMatrix;
@@ -26,13 +31,19 @@ namespace Cesil
 
         internal ReaderStateMachine() { }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static bool IsInEscapedValue(State state) 
+        => (((byte)state) & IN_ESCAPED_VALUE_MASK) == IN_ESCAPED_VALUE_MASK;
+
         internal void Initialize(
             CharacterLookup preAllocLookup,
             char? escapeStartChar,
             char? escapeChar,
             RowEnding rowEndings,
             ReadHeader hasHeaders,
-            bool readingComments
+            bool readingComments,
+            bool skipLeadingWhitespace,
+            bool skipTrailingWhitespace
         )
         {
             CharacterLookup = preAllocLookup;
@@ -56,8 +67,17 @@ namespace Cesil
                 GetTransitionMatrix(
                     RowEndings,
                     escapeStartChar.HasValue && escapeStartChar == escapeChar,
-                    readingComments
-                );
+                    readingComments,
+                    skipLeadingWhitespace,
+                    skipTrailingWhitespace,
+#if DEBUG
+                    out TransitionMatrixMemoryOffset
+#else
+                    out _
+#endif
+            );
+
+
         }
 
         internal AdvanceResult EndOfData()
@@ -90,7 +110,7 @@ namespace Cesil
             {
                 return null;
             }
-            var inEscapedValue = (((byte)fromState) & IN_ESCAPED_VALUE_MASK) == IN_ESCAPED_VALUE_MASK;
+            var inEscapedValue = IsInEscapedValue(fromState);
             if (inEscapedValue)
             {
                 cOffset += charLookup.CharLookupOffset;
@@ -126,5 +146,44 @@ namespace Cesil
                 CurrentState = State.NONE;
             }
         }
+
+#if DEBUG
+        // just for debugging purposes
+        internal unsafe string ToDebugString()
+        {
+            PinHandle? pin = null;
+            if (!IsPinned)
+            {
+                pin = Pin();
+            }
+
+            using (pin)
+            {
+                var ret = new System.Text.StringBuilder();
+                ret.AppendLine($"Offset = {TransitionMatrixMemoryOffset}");
+                
+                foreach (State? sNull in Enum.GetValues(typeof(State)))
+                {
+                    var s = sNull!.Value;
+
+                    ret.AppendLine();
+                    ret.AppendLine($"From {s}");
+                    ret.AppendLine("===");
+                    foreach (CharacterType? cNull in Enum.GetValues(typeof(CharacterType)))
+                    {
+                        var c = cNull!.Value;
+
+                        var offset = GetTransitionMatrixOffset(s, c);
+
+                        var rule = TransitionMatrix[offset];
+
+                        ret.AppendLine($"  {c} => ({rule.NextState}, {rule.Result})");
+                    }
+                }
+
+                return ret.ToString();
+            }
+        }
+#endif
     }
 }
