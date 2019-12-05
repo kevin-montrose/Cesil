@@ -12,71 +12,15 @@ namespace Cesil
         private static readonly ReadOnlyMemory<char> LineFeed = "\n".AsMemory();
         private static readonly ReadOnlyMemory<char> CarriageReturnLineFeed = "\r\n".AsMemory();
 
+        public Options Options { get; }
+
+        internal readonly ReadOnlyMemory<char> RowEndingMemory;
+
         internal readonly NonNull<InstanceProviderDelegate<T>> NewCons;
         internal readonly Column[] DeserializeColumns;
 
         internal readonly Column[] SerializeColumns;
         internal readonly bool[] SerializeColumnsNeedEscape;
-
-        // todo: maybe just replace this with an Options?
-        // internal for testing purposes
-        internal NonNull<ITypeDescriber> TypeDescriber;
-        internal readonly char ValueSeparator;
-        internal readonly RowEnding RowEnding;
-        internal readonly ReadOnlyMemory<char> RowEndingMemory;
-        internal readonly ReadHeader ReadHeader;
-        internal readonly WriteHeader WriteHeader;
-        internal readonly WriteTrailingNewLine WriteTrailingNewLine;
-        internal readonly MemoryPool<char> MemoryPool;
-        internal readonly int? WriteBufferSizeHint;
-        internal readonly int ReadBufferSizeHint;
-        internal readonly DynamicRowDisposal DynamicRowDisposal;
-        internal readonly WhitespaceTreatments WhitespaceTreatment;
-
-        private readonly char? _EscapedValueStartAndStop;
-        internal bool HasEscapedValueStartAndStop => _EscapedValueStartAndStop != null;
-        internal char EscapedValueStartAndStop
-        {
-            get
-            {
-                if(_EscapedValueStartAndStop == null)
-                {
-                    return Throw.Exception<char>($"{nameof(_EscapedValueStartAndStop)} has no value, this shouldn't be possible");
-                }
-
-                return _EscapedValueStartAndStop.Value;
-            }
-        }
-
-        private readonly char? _EscapeValueEscapeChar;
-        internal bool HasEscapeValueEscapeChar => _EscapeValueEscapeChar != null;
-        internal char EscapeValueEscapeChar
-        {
-            get
-            {
-                if (_EscapeValueEscapeChar == null)
-                {
-                    return Throw.Exception<char>($"{nameof(_EscapeValueEscapeChar)} has no value, this shouldn't be possible");
-                }
-
-                return _EscapeValueEscapeChar.Value;
-            }
-        }
-
-        private readonly char? _CommentChar;
-        internal bool HasCommentChar => _CommentChar != null;
-        internal char CommentChar
-        {
-            get
-            {
-                if (_CommentChar == null)
-                {
-                    return Throw.Exception<char>($"{nameof(_CommentChar)} has no value, this shouldn't be possible");
-                }
-
-                return _CommentChar.Value;
-            }
-        }
 
         internal readonly NeedsEncodeMode NeedsEncodeMode;
 
@@ -96,37 +40,17 @@ namespace Cesil
         /// For working with dynamic.
         /// </summary>
         protected BoundConfigurationBase(
-            ITypeDescriber? describer,
-            char valueSeparator,
-            char? escapedValueStartAndStop,
-            char? escapeValueEscapeChar,
-            RowEnding rowEndings,
-            ReadHeader readHeader,
-            WriteHeader writeHeaders,
-            WriteTrailingNewLine writeTrailingNewLine,
-            MemoryPool<char> memoryPool,
-            char? commentChar,
-            int? writeBufferSizeHint,
-            int readBufferSizeHint,
-            DynamicRowDisposal dynamicRowDisposal,
-            WhitespaceTreatments whitespaceTreatment
+            Options options
         )
         {
-            if (describer != null)
-            {
-                TypeDescriber.Value = describer;
-            }
+            NewCons.Clear();
             DeserializeColumns = Array.Empty<Column>();
             SerializeColumns = Array.Empty<Column>();
             SerializeColumnsNeedEscape = Array.Empty<bool>();
-            ValueSeparator = valueSeparator;
-            _EscapedValueStartAndStop = escapedValueStartAndStop;
-            _EscapeValueEscapeChar = escapeValueEscapeChar;
-            RowEnding = rowEndings;
-            WriteBufferSizeHint = writeBufferSizeHint;
-            ReadBufferSizeHint = readBufferSizeHint;
 
-            switch (RowEnding)
+            Options = options;
+
+            switch (Options.RowEnding)
             {
                 case RowEnding.CarriageReturn:
                     RowEndingMemory = CarriageReturn;
@@ -144,17 +68,9 @@ namespace Cesil
                     break;
             }
 
-            ReadHeader = readHeader;
-            WriteHeader = writeHeaders;
-            WriteTrailingNewLine = writeTrailingNewLine;
-            MemoryPool = memoryPool;
-            _CommentChar = commentChar;
-            DynamicRowDisposal = dynamicRowDisposal;
-            WhitespaceTreatment = whitespaceTreatment;
-
-            if (HasEscapedValueStartAndStop)
+            if (Options.EscapedValueStartAndEnd != null)
             {
-                if (HasCommentChar)
+                if (Options.CommentCharacter != null)
                 {
                     NeedsEncodeMode = NeedsEncodeMode.SeparatorLineEndingsEscapeStartComment;
                 }
@@ -165,7 +81,7 @@ namespace Cesil
             }
             else
             {
-                if (HasCommentChar)
+                if (Options.CommentCharacter != null)
                 {
                     NeedsEncodeMode = NeedsEncodeMode.SeparatorLineEndingsComment;
                 }
@@ -184,32 +100,17 @@ namespace Cesil
             Column[] deserializeColumns,
             Column[] serializeColumns,
             bool[] serializeColumnsNeedEscape,
-            char valueSeparator,
-            char? escapedValueStartAndStop,
-            char? escapeValueEscapeChar,
-            RowEnding rowEndings,
-            ReadHeader readHeader,
-            WriteHeader writeHeaders,
-            WriteTrailingNewLine writeTrailingNewLine,
-            MemoryPool<char> memoryPool,
-            char? commentChar,
-            int? writeBufferSizeHint,
-            int readBufferSizeHint,
-            WhitespaceTreatments whitespaceTreatment
+            Options options
         )
         {
             NewCons.Value = newCons;
             DeserializeColumns = deserializeColumns;
             SerializeColumns = serializeColumns;
             SerializeColumnsNeedEscape = serializeColumnsNeedEscape;
-            ValueSeparator = valueSeparator;
-            _EscapedValueStartAndStop = escapedValueStartAndStop;
-            _EscapeValueEscapeChar = escapeValueEscapeChar;
-            RowEnding = rowEndings;
-            WriteBufferSizeHint = writeBufferSizeHint;
-            ReadBufferSizeHint = readBufferSizeHint;
 
-            switch (RowEnding)
+            Options = options;
+
+            switch (Options.RowEnding)
             {
                 case RowEnding.CarriageReturn:
                     RowEndingMemory = CarriageReturn;
@@ -227,16 +128,9 @@ namespace Cesil
                     break;
             }
 
-            ReadHeader = readHeader;
-            WriteHeader = writeHeaders;
-            WriteTrailingNewLine = writeTrailingNewLine;
-            MemoryPool = memoryPool;
-            _CommentChar = commentChar;
-            WhitespaceTreatment = whitespaceTreatment;
-
-            if (HasEscapedValueStartAndStop)
+            if (Options.EscapedValueStartAndEnd != null)
             {
-                if (HasCommentChar)
+                if (Options.CommentCharacter != null)
                 {
                     NeedsEncodeMode = NeedsEncodeMode.SeparatorLineEndingsEscapeStartComment;
                 }
@@ -247,7 +141,7 @@ namespace Cesil
             }
             else
             {
-                if (HasCommentChar)
+                if (Options.CommentCharacter != null)
                 {
                     NeedsEncodeMode = NeedsEncodeMode.SeparatorLineEndingsComment;
                 }
@@ -288,7 +182,7 @@ namespace Cesil
 
             // context is legally null
 
-            var wrapper = new PipeWriterAdapter(writer, encoding, MemoryPool);
+            var wrapper = new PipeWriterAdapter(writer, encoding, Options.MemoryPool);
 
             return CreateAsyncWriter(wrapper, context);
         }

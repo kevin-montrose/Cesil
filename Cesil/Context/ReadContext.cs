@@ -7,6 +7,8 @@ namespace Cesil
     /// </summary>
     public readonly struct ReadContext : IEquatable<ReadContext>
     {
+        // todo: should expose Configuration
+
         /// <summary>
         /// What, precisely, a reader is doing.
         /// </summary>

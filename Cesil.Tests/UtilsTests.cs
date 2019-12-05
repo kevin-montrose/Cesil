@@ -97,9 +97,7 @@ namespace Cesil.Tests
         [InlineData(" \"\"\"\"\"\"\"\" ", "\" \"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\" \"")]
         public void Encode(string input, string expected)
         {
-            var config = (BoundConfigurationBase<_Encode>)Configuration.For<_Encode>();
-
-            var res = Utils.Encode(input, config);
+            var res = Utils.Encode(input, Options.Default);
 
             Assert.Equal(expected, res);
         }

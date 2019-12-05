@@ -2,8 +2,6 @@
 
 namespace Cesil
 {
-    // todo: implement whitespace treatment and test!
-
     /// <summary>
     /// How to handle whitespace when encountered during parsing.
     /// 

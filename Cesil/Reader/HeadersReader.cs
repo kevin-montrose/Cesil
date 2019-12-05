@@ -176,9 +176,9 @@ namespace Cesil
             CharacterLookup charLookup,
             IReaderAdapter inner,
             BufferWithPushback buffer,
-            WhitespaceTreatments whitespaceTreatment
+            RowEnding rowEndingOverride
         )
-        : this(stateMachine, config, charLookup, inner, null, buffer, whitespaceTreatment) { }
+        : this(stateMachine, config, charLookup, inner, null, buffer, rowEndingOverride) { }
 
         internal HeadersReader(
             ReaderStateMachine stateMachine,
@@ -186,9 +186,9 @@ namespace Cesil
             CharacterLookup charLookup,
             IAsyncReaderAdapter inner,
             BufferWithPushback buffer,
-            WhitespaceTreatments whitespaceTreatment
+            RowEnding rowEndingOverride
         )
-        : this(stateMachine, config, charLookup, null, inner, buffer, whitespaceTreatment) { }
+        : this(stateMachine, config, charLookup, null, inner, buffer, rowEndingOverride) { }
 
         private HeadersReader(
             ReaderStateMachine stateMachine,
@@ -197,7 +197,7 @@ namespace Cesil
             IReaderAdapter? inner,
             IAsyncReaderAdapter? innerAsync,
             BufferWithPushback buffer,
-            WhitespaceTreatments whitespaceTreatment
+            RowEnding rowEndingOverride
         )
         {
             System.Diagnostics.Debug.WriteLineIf(LOG_STATE_TRANSITION, $"New {nameof(HeadersReader<T>)}");
@@ -205,27 +205,29 @@ namespace Cesil
             Inner.SetAllowNull(inner);
             InnerAsync.SetAllowNull(innerAsync);
 
-            MemoryPool = config.MemoryPool;
-            BufferSizeHint = config.ReadBufferSizeHint;
+            var options = config.Options;
+
+            MemoryPool = options.MemoryPool;
+            BufferSizeHint = options.ReadBufferSizeHint;
             Columns = config.DeserializeColumns;
 
             StateMachine = stateMachine;
             stateMachine.Initialize(
                 charLookup,
-                config.EscapedValueStartAndStop,
-                config.EscapeValueEscapeChar,
-                config.RowEnding,
+                options.EscapedValueStartAndEnd,
+                options.EscapedValueEscapeCharacter,
+                rowEndingOverride,                      // this can be something OTHER than what was provided, due to RowEnding.Detect
                 ReadHeader.Never,
                 false,
-                config.WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimBeforeValues),
-                config.WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimAfterValues)
+                options.WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimBeforeValues),
+                options.WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimAfterValues)
             );
 
             Buffer = buffer;
 
             HeaderCount = 0;
             PushBackLength = 0;
-            WhitespaceTreatment = whitespaceTreatment;
+            WhitespaceTreatment = options.WhitespaceTreatment;
         }
 
         internal (HeaderEnumerator Headers, bool IsHeader, Memory<char> PushBack) Read()

@@ -13,6 +13,16 @@ namespace Cesil
     public interface IBoundConfiguration<TRow>
     {
         /// <summary>
+        /// The Options used to create this configuration.
+        /// 
+        /// If any settings are used that defer decisions (like ReadHeader.Detect)
+        ///   this Options object will remain unchanged when a decision is made.  In other words,
+        ///   this Options object will always match what was used to create the configuration - it
+        ///   is not updated.
+        /// </summary>
+        Options Options { get; }
+
+        /// <summary>
         /// Create a synchronous reader for the given sequence, converting bytes to characters using the provided encoding.
         /// 
         /// Takes an optional context object which is made available

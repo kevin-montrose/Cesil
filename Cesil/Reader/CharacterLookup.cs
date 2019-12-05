@@ -54,6 +54,7 @@ namespace Cesil
             Memory = m;
         }
 
+        // todo: can this just take an Options?
         internal static unsafe CharacterLookup MakeCharacterLookup(
             MemoryPool<char> memoryPool,
             char? escapeStartChar,

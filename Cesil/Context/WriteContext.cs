@@ -7,6 +7,8 @@ namespace Cesil
     /// </summary>
     public readonly struct WriteContext : IEquatable<WriteContext>
     {
+        // todo: should expose Configuration
+
         /// <summary>
         /// What, precisely, a writer is doing.
         /// </summary>

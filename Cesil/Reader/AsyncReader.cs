@@ -165,15 +165,17 @@ namespace Cesil
 
         private ValueTask HandleLineEndingsAsync(CancellationToken cancel)
         {
-            if (Configuration.RowEnding != Cesil.RowEnding.Detect)
+            var options = Configuration.Options;
+
+            if (options.RowEnding != RowEnding.Detect)
             {
-                RowEndings = Configuration.RowEnding;
+                RowEndings = options.RowEnding;
                 TryMakeStateMachine();
                 return default;
             }
 
             var disposeDetector = true;
-            var detector = new RowEndingDetector<T>(StateMachine, Configuration, SharedCharacterLookup, Inner);
+            var detector = new RowEndingDetector(StateMachine, Configuration.Options, SharedCharacterLookup, Inner);
             try
             {
                 var resTask = detector.DetectAsync(cancel);
@@ -198,7 +200,7 @@ namespace Cesil
 
 
             // wait for header detection to finish, then continue async
-            static async ValueTask HandleLineEndingsAsync_ContinueAfterDetectAsync(AsyncReader<T> self, ValueTask<(RowEnding Ending, Memory<char> PushBack)?> waitFor, RowEndingDetector<T> needsDispose, CancellationToken cancel)
+            static async ValueTask HandleLineEndingsAsync_ContinueAfterDetectAsync(AsyncReader<T> self, ValueTask<(RowEnding Ending, Memory<char> PushBack)?> waitFor, RowEndingDetector needsDispose, CancellationToken cancel)
             {
                 try
                 {
@@ -232,49 +234,27 @@ namespace Cesil
 
         private ValueTask HandleHeadersAsync(CancellationToken cancel)
         {
-            if (Configuration.ReadHeader == Cesil.ReadHeader.Never)
+            var options = Configuration.Options;
+
+            if (options.ReadHeader == ReadHeader.Never)
             {
                 // can just use the discovered copy from source
-                ReadHeaders = Cesil.ReadHeader.Never;
+                ReadHeaders = ReadHeader.Never;
                 TryMakeStateMachine();
                 Columns.Value = Configuration.DeserializeColumns;
 
                 return default;
             }
 
-            var start = Configuration.HasEscapedValueStartAndStop ? Configuration.EscapedValueStartAndStop : default(char?);
-            var escape = Configuration.HasEscapeValueEscapeChar ? Configuration.EscapeValueEscapeChar : default(char?);
-            var comment = Configuration.HasCommentChar ? Configuration.CommentChar : default(char?);
-
-            var headerConfig =
-                new ConcreteBoundConfiguration<T>(
-                    Configuration.NewCons.Value,
-                    Configuration.DeserializeColumns,
-                    Array.Empty<Column>(),
-                    Array.Empty<bool>(),
-                    Configuration.ValueSeparator,
-                    start,
-                    escape,
-                    RowEndings!.Value,
-                    Configuration.ReadHeader,
-                    Configuration.WriteHeader,
-                    Configuration.WriteTrailingNewLine,
-                    Configuration.MemoryPool,
-                    comment,
-                    null,
-                    Configuration.ReadBufferSizeHint,
-                    Configuration.WhitespaceTreatment
-                );
-
             var disposeReader = true;
             var headerReader =
                 new HeadersReader<T>(
                     StateMachine,
-                    headerConfig,
+                    Configuration,
                     SharedCharacterLookup,
                     Inner,
                     Buffer, 
-                    Configuration.WhitespaceTreatment
+                    RowEndings!.Value
                 );
             try
             {

@@ -67,7 +67,7 @@ namespace Cesil.Tests
                 {
                     IDisposable_Partial();
                 }
-                else if (t == typeof(RowEndingDetector<>))
+                else if (t == typeof(RowEndingDetector))
                 {
                     IDisposable_RowEndingDetector();
                 }
@@ -876,11 +876,11 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a partial that's "good to go"
-                RowEndingDetector<_IDisposable> MakeDetector()
+                RowEndingDetector MakeDetector()
                 {
-                    return new RowEndingDetector<_IDisposable>(
+                    return new RowEndingDetector(
                         new ReaderStateMachine(),
-                        (ConcreteBoundConfiguration<_IDisposable>)Configuration.For<_IDisposable>(),
+                        Options.Default,
                         CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd', false, out _),
                         new TextReaderAdapter(TextReader.Null)
                     );
@@ -932,7 +932,7 @@ namespace Cesil.Tests
                                 MemoryPool<char>.Shared,
                                 64
                             ),
-                            WhitespaceTreatments.Preserve
+                            RowEnding.CarriageReturnLineFeed
                         );
                 }
             }

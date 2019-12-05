@@ -59,15 +59,19 @@ namespace Cesil
 
             var rowAsObj = row as object;
 
+            var options = Configuration.Options;
+            var typeDescriber = options.TypeDescriber;
+            var valueSeparator = options.ValueSeparator;
+
             var writeHeadersTask = WriteHeadersAndEndRowIfNeededAsync(rowAsObj, cancel);
             if (!writeHeadersTask.IsCompletedSuccessfully(this))
             {
-                return WriteAsync_ContinueAfterWriteHeadersAsync(this, writeHeadersTask, row, cancel);
+                return WriteAsync_ContinueAfterWriteHeadersAsync(this, writeHeadersTask, row, typeDescriber, valueSeparator, cancel);
             }
 
             var wholeRowContext = WriteContext.DiscoveringCells(RowNumber, Context);
 
-            var cellValues = Config.TypeDescriber.Value.GetCellsForDynamicRow(in wholeRowContext, row as object);
+            var cellValues = typeDescriber.GetCellsForDynamicRow(in wholeRowContext, row as object);
             cellValues = ForceInOrder(cellValues);
 
             var columnNamesValue = ColumnNames.Value;
@@ -84,11 +88,11 @@ namespace Cesil
 
                     if (needsSeparator)
                     {
-                        var placeCharTask = PlaceCharInStagingAsync(Config.ValueSeparator, cancel);
+                        var placeCharTask = PlaceCharInStagingAsync(valueSeparator, cancel);
                         if (!placeCharTask.IsCompletedSuccessfully(this))
                         {
                             disposeE = false;
-                            return WriteAsync_ContinueAfterPlaceCharAsync(this, placeCharTask, cell, i, e, cancel);
+                            return WriteAsync_ContinueAfterPlaceCharAsync(this, placeCharTask, valueSeparator, cell, i, e, cancel);
                         }
                     }
 
@@ -126,7 +130,7 @@ namespace Cesil
                     if (!writeValueTask.IsCompletedSuccessfully(this))
                     {
                         disposeE = false;
-                        return WriteAsync_ContinueAfterWriteValueAsync(this, writeValueTask, i, e, cancel);
+                        return WriteAsync_ContinueAfterWriteValueAsync(this, writeValueTask, valueSeparator, i, e, cancel);
                     }
                     Buffer.Reset();
 
@@ -147,14 +151,14 @@ end:
             return default;
 
             // continue after WriteHeadersAndRowIfNeededAsync completes
-            static async ValueTask WriteAsync_ContinueAfterWriteHeadersAsync(AsyncDynamicWriter self, ValueTask waitFor, dynamic row, CancellationToken cancel)
+            static async ValueTask WriteAsync_ContinueAfterWriteHeadersAsync(AsyncDynamicWriter self, ValueTask waitFor, dynamic row, ITypeDescriber typeDescriber, char valueSeparator, CancellationToken cancel)
             {
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
 
                 var wholeRowContext = WriteContext.DiscoveringCells(self.RowNumber, self.Context);
 
-                var cellValues = self.Config.TypeDescriber.Value.GetCellsForDynamicRow(in wholeRowContext, row as object);
+                var cellValues = typeDescriber.GetCellsForDynamicRow(in wholeRowContext, row as object);
                 cellValues = self.ForceInOrder(cellValues);
 
                 var selfColumnNamesValue = self.ColumnNames.Value;
@@ -166,7 +170,7 @@ end:
 
                     if (needsSeparator)
                     {
-                        var placeTask = self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
+                        var placeTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
                         await placeTask;
                         cancel.ThrowIfCancellationRequested();
                     }
@@ -215,7 +219,7 @@ end:
             }
 
             // continue after PlaceCharInStagingAsync completes
-            static async ValueTask WriteAsync_ContinueAfterPlaceCharAsync(AsyncDynamicWriter self, ValueTask waitFor, DynamicCellValue cell, int i, IEnumerator<DynamicCellValue> e, CancellationToken cancel)
+            static async ValueTask WriteAsync_ContinueAfterPlaceCharAsync(AsyncDynamicWriter self, ValueTask waitFor, char valueSeparator, DynamicCellValue cell, int i, IEnumerator<DynamicCellValue> e, CancellationToken cancel)
             {
                 try
                 {
@@ -274,7 +278,7 @@ end:
 
                         if (needsSeparator)
                         {
-                            var placeTask = self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
+                            var placeTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
                             await placeTask;
                             cancel.ThrowIfCancellationRequested();
                         }
@@ -328,7 +332,7 @@ end:
             }
 
             // continue after WriteValueAsync completes
-            static async ValueTask WriteAsync_ContinueAfterWriteValueAsync(AsyncDynamicWriter self, ValueTask waitFor, int i, IEnumerator<DynamicCellValue> e, CancellationToken cancel)
+            static async ValueTask WriteAsync_ContinueAfterWriteValueAsync(AsyncDynamicWriter self, ValueTask waitFor, char valueSeparator, int i, IEnumerator<DynamicCellValue> e, CancellationToken cancel)
             {
                 try
                 {
@@ -352,7 +356,7 @@ end:
 
                         if (needsSeparator)
                         {
-                            var placeTask = self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
+                            var placeTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
                             await placeTask;
                             cancel.ThrowIfCancellationRequested();
                         }
@@ -415,7 +419,7 @@ end:
             var shouldEndRecord = true;
             if (IsFirstRow)
             {
-                if (Config.WriteHeader == WriteHeader.Always)
+                if (Configuration.Options.WriteHeader == WriteHeader.Always)
                 {
                     return Throw.InvalidOperationException<ValueTask>($"First operation on a dynamic writer cannot be {nameof(WriteCommentAsync)} if configured to write headers, headers cannot be inferred");
                 }
@@ -784,7 +788,7 @@ end:
         //   writing the next one
         private ValueTask<bool> CheckHeadersAsync(dynamic? firstRow, CancellationToken cancel)
         {
-            if (Config.WriteHeader == WriteHeader.Never)
+            if (Configuration.Options.WriteHeader == WriteHeader.Never)
             {
                 // nothing to write, so bail
                 ColumnNames.Value = Array.Empty<(string, string)>();
@@ -818,14 +822,16 @@ end:
 
             var ctx = WriteContext.DiscoveringColumns(Context);
 
+            var options = Configuration.Options;
+
             var colIx = 0;
-            foreach (var c in Config.TypeDescriber.Value.GetCellsForDynamicRow(in ctx, o as object))
+            foreach (var c in options.TypeDescriber.GetCellsForDynamicRow(in ctx, o as object))
             {
                 var colName = c.Name;
 
                 if (colName == null)
                 {
-                    Throw.InvalidOperationException<object>($"No column name found at index {colIx} when {nameof(Cesil.WriteHeader)} = {Config.WriteHeader}");
+                    Throw.InvalidOperationException<object>($"No column name found at index {colIx} when {nameof(WriteHeader)} = {options.WriteHeader}");
                     return;
                 }
 
@@ -834,7 +840,7 @@ end:
                 // encode it, if it needs encoding
                 if (NeedsEncode(encodedColName))
                 {
-                    encodedColName = Utils.Encode(encodedColName, Config);
+                    encodedColName = Utils.Encode(encodedColName, options);
                 }
 
                 cols.Add((colName, encodedColName));
@@ -869,16 +875,18 @@ end:
 
         private ValueTask WriteHeadersAsync(CancellationToken cancel)
         {
+            var valueSeparator = Configuration.Options.ValueSeparator;
+
             var columnNamesValue = ColumnNames.Value;
             for (var i = 0; i < columnNamesValue.Length; i++)
             {
                 // for the separator
                 if (i != 0)
                 {
-                    var placeCharTask = PlaceCharInStagingAsync(Config.ValueSeparator, cancel);
+                    var placeCharTask = PlaceCharInStagingAsync(valueSeparator, cancel);
                     if (!placeCharTask.IsCompletedSuccessfully(this))
                     {
-                        return WriteHeadersAsync_ContinueAfterPlaceCharAsync(this, placeCharTask, i, cancel);
+                        return WriteHeadersAsync_ContinueAfterPlaceCharAsync(this, placeCharTask, valueSeparator, i, cancel);
                     }
                 }
 
@@ -889,14 +897,14 @@ end:
                 var placeInStagingTask = PlaceInStagingAsync(colName.AsMemory(), cancel);
                 if (!placeInStagingTask.IsCompletedSuccessfully(this))
                 {
-                    return WriteHeadersAsync_ContinueAfterPlaceInStagingAsync(this, placeInStagingTask, i, cancel);
+                    return WriteHeadersAsync_ContinueAfterPlaceInStagingAsync(this, placeInStagingTask, valueSeparator, i, cancel);
                 }
             }
 
             return default;
 
             // continue after a PlaceCharInStagingAsync call
-            static async ValueTask WriteHeadersAsync_ContinueAfterPlaceCharAsync(AsyncDynamicWriter self, ValueTask waitFor, int i, CancellationToken cancel)
+            static async ValueTask WriteHeadersAsync_ContinueAfterPlaceCharAsync(AsyncDynamicWriter self, ValueTask waitFor, char valueSeparator, int i, CancellationToken cancel)
             {
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
@@ -919,7 +927,7 @@ end:
                 for (; i < selfColumnNamesValue.Length; i++)
                 {
                     // by defintion i != 0, so no need for the if
-                    var secondPlaceTask = self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
+                    var secondPlaceTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
                     await secondPlaceTask;
                     cancel.ThrowIfCancellationRequested();
 
@@ -933,7 +941,7 @@ end:
                 }
             }
 
-            static async ValueTask WriteHeadersAsync_ContinueAfterPlaceInStagingAsync(AsyncDynamicWriter self, ValueTask waitFor, int i, CancellationToken cancel)
+            static async ValueTask WriteHeadersAsync_ContinueAfterPlaceInStagingAsync(AsyncDynamicWriter self, ValueTask waitFor, char valueSeparator, int i, CancellationToken cancel)
             {
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
@@ -945,7 +953,7 @@ end:
                 for (; i < selfColumnNamesValue.Length; i++)
                 {
                     // by defintion i != 0, so no need for the if
-                    var placeTask = self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
+                    var placeTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
                     await placeTask;
                     cancel.ThrowIfCancellationRequested();
 
@@ -964,16 +972,18 @@ end:
         {
             if (!IsDisposed)
             {
+                var writeTrailingNewLine = Configuration.Options.WriteTrailingNewLine;
+
                 if (IsFirstRow)
                 {
                     var checkHeadersTask = CheckHeadersAsync(null, CancellationToken.None);
                     if (!checkHeadersTask.IsCompletedSuccessfully(this))
                     {
-                        return DisposeAsync_ContinueAfterCheckHeadersAsync(this, checkHeadersTask);
+                        return DisposeAsync_ContinueAfterCheckHeadersAsync(this, checkHeadersTask, writeTrailingNewLine);
                     }
                 }
 
-                if (Config.WriteTrailingNewLine == WriteTrailingNewLine.Always)
+                if (writeTrailingNewLine == WriteTrailingNewLine.Always)
                 {
                     var endRecordTask = EndRecordAsync(CancellationToken.None);
                     if (!endRecordTask.IsCompletedSuccessfully(this))
@@ -1013,11 +1023,11 @@ end:
             return default;
 
             // continue after CheckHeadersAsync completes
-            static async ValueTask DisposeAsync_ContinueAfterCheckHeadersAsync(AsyncDynamicWriter self, ValueTask<bool> waitFor)
+            static async ValueTask DisposeAsync_ContinueAfterCheckHeadersAsync(AsyncDynamicWriter self, ValueTask<bool> waitFor, WriteTrailingNewLine writeTrailingNewLine)
             {
                 await waitFor;
 
-                if (self.Config.WriteTrailingNewLine == WriteTrailingNewLine.Always)
+                if (writeTrailingNewLine == WriteTrailingNewLine.Always)
                 {
                     var endTask = self.EndRecordAsync(CancellationToken.None);
                     await endTask;
@@ -1106,7 +1116,7 @@ end:
 
         public override string ToString()
         {
-            return $"{nameof(AsyncDynamicWriter)} with {Config}";
+            return $"{nameof(AsyncDynamicWriter)} with {Configuration}";
         }
     }
 }

@@ -11,12 +11,12 @@
             Created instance is nearly unusable.
             </summary>
         </member>
-        <member name="M:Cesil.BoundConfigurationBase`1.#ctor(Cesil.ITypeDescriber,System.Char,System.Nullable{System.Char},System.Nullable{System.Char},Cesil.RowEnding,Cesil.ReadHeader,Cesil.WriteHeader,Cesil.WriteTrailingNewLine,System.Buffers.MemoryPool{System.Char},System.Nullable{System.Char},System.Nullable{System.Int32},System.Int32,Cesil.DynamicRowDisposal,Cesil.WhitespaceTreatments)">
+        <member name="M:Cesil.BoundConfigurationBase`1.#ctor(Cesil.Options)">
             <summary>
             For working with dynamic.
             </summary>
         </member>
-        <member name="M:Cesil.BoundConfigurationBase`1.#ctor(Cesil.InstanceProviderDelegate{`0},Cesil.Column[],Cesil.Column[],System.Boolean[],System.Char,System.Nullable{System.Char},System.Nullable{System.Char},Cesil.RowEnding,Cesil.ReadHeader,Cesil.WriteHeader,Cesil.WriteTrailingNewLine,System.Buffers.MemoryPool{System.Char},System.Nullable{System.Char},System.Nullable{System.Int32},System.Int32,Cesil.WhitespaceTreatments)">
+        <member name="M:Cesil.BoundConfigurationBase`1.#ctor(Cesil.InstanceProviderDelegate{`0},Cesil.Column[],Cesil.Column[],System.Boolean[],Cesil.Options)">
             <summary>
             For working with concrete types.
             </summary>
@@ -74,6 +74,16 @@
             Represents and Options and Type pair.
             
             Used to create readers and writers.
+            </summary>
+        </member>
+        <member name="P:Cesil.IBoundConfiguration`1.Options">
+            <summary>
+            The Options used to create this configuration.
+            
+            If any settings are used that defer decisions (like ReadHeader.Detect)
+              this Options object will remain unchanged when a decision is made.  In other words,
+              this Options object will always match what was used to create the configuration - it
+              is not updated.
             </summary>
         </member>
         <member name="M:Cesil.IBoundConfiguration`1.CreateReader(System.Buffers.ReadOnlySequence{System.Byte},System.Text.Encoding,System.Object)">

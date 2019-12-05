@@ -22,7 +22,7 @@ namespace Cesil
 
                 if (needsSeparator)
                 {
-                    PlaceCharInStaging(Config.ValueSeparator);
+                    PlaceCharInStaging(Configuration.Options.ValueSeparator);
                 }
 
                 var col = columnsValue[i];
@@ -113,9 +113,9 @@ namespace Cesil
         private bool CheckHeaders()
         {
             // make a note of what the columns to write actually are
-            Columns.Value = Config.SerializeColumns;
+            Columns.Value = Configuration.SerializeColumns;
 
-            if (Config.WriteHeader == Cesil.WriteHeader.Never)
+            if (Configuration.Options.WriteHeader == WriteHeader.Never)
             {
                 // nothing to write, so bail
                 return false;
@@ -128,16 +128,18 @@ namespace Cesil
 
         private void WriteHeaders()
         {
-            var needsEscape = Config.SerializeColumnsNeedEscape;
+            var needsEscape = Configuration.SerializeColumnsNeedEscape;
 
             var columnsValue = Columns.Value;
+
+            var options = Configuration.Options;
 
             for (var i = 0; i < columnsValue.Length; i++)
             {
                 // for the separator
                 if (i != 0)
                 {
-                    PlaceCharInStaging(Config.ValueSeparator);
+                    PlaceCharInStaging(options.ValueSeparator);
                 }
 
                 var colName = columnsValue[i].Name.Value;
@@ -149,8 +151,8 @@ namespace Cesil
                 }
                 else
                 {
-                    var escapedValueStartAndStop = Config.EscapedValueStartAndStop;
-                    var escapeValueEscapeChar = Config.EscapeValueEscapeChar;
+                    var escapedValueStartAndStop = options.EscapedValueStartAndEnd!.Value;
+                    var escapeValueEscapeChar = options.EscapedValueEscapeCharacter!.Value;
 
                     // start with the escape char
                     PlaceCharInStaging(escapedValueStartAndStop);
@@ -199,7 +201,7 @@ namespace Cesil
                     CheckHeaders();
                 }
 
-                if (Config.WriteTrailingNewLine == WriteTrailingNewLine.Always)
+                if (Configuration.Options.WriteTrailingNewLine == WriteTrailingNewLine.Always)
                 {
                     EndRecord();
                 }
@@ -222,7 +224,7 @@ namespace Cesil
 
         public override string ToString()
         {
-            return $"{nameof(Writer<T>)} with {Config}";
+            return $"{nameof(Writer<T>)} with {Configuration}";
         }
     }
 }

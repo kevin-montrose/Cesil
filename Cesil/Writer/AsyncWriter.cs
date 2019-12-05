@@ -368,7 +368,7 @@ namespace Cesil
         {
             if (needsSeparator)
             {
-                var sepTask = PlaceCharInStagingAsync(Config.ValueSeparator, cancel);
+                var sepTask = PlaceCharInStagingAsync(Configuration.Options.ValueSeparator, cancel);
                 if (!sepTask.IsCompletedSuccessfully(this))
                 {
                     return WriteColumnAsync_ContinueAfterSeparatorAsync(this, sepTask, row, colIx, col, cancel);
@@ -442,9 +442,9 @@ namespace Cesil
         private ValueTask<bool> CheckHeadersAsync(CancellationToken cancel)
         {
             // make a note of what the columns to write actually are
-            Columns.Value = Config.SerializeColumns;
+            Columns.Value = Configuration.SerializeColumns;
 
-            if (Config.WriteHeader == WriteHeader.Never)
+            if (Configuration.Options.WriteHeader == WriteHeader.Never)
             {
                 // nothing to write, so bail
                 return new ValueTask<bool>(false);
@@ -470,32 +470,34 @@ namespace Cesil
 
         private ValueTask WriteHeadersAsync(CancellationToken cancel)
         {
-            var needsEscape = Config.SerializeColumnsNeedEscape;
+            var needsEscape = Configuration.SerializeColumnsNeedEscape;
 
             var columnsValue = Columns.Value;
+            var valueSeparator = Configuration.Options.ValueSeparator;
+
             for (var i = 0; i < columnsValue.Length; i++)
             {
                 // for the separator
                 if (i != 0)
                 {
-                    var sepTask = PlaceCharInStagingAsync(Config.ValueSeparator, cancel);
+                    var sepTask = PlaceCharInStagingAsync(valueSeparator, cancel);
                     if (!sepTask.IsCompletedSuccessfully(this))
                     {
-                        return WriteHeadersAsync_CompleteAfterFlushAsync(this, sepTask, needsEscape, i, cancel);
+                        return WriteHeadersAsync_CompleteAfterFlushAsync(this, sepTask, needsEscape, valueSeparator, i, cancel);
                     }
                 }
 
                 var writeTask = WriteSingleHeaderAsync(columnsValue[i], needsEscape[i], cancel);
                 if (!writeTask.IsCompletedSuccessfully(this))
                 {
-                    return WriteHeadersAsync_CompleteAfterHeaderWriteAsync(this, writeTask, needsEscape, i, cancel);
+                    return WriteHeadersAsync_CompleteAfterHeaderWriteAsync(this, writeTask, needsEscape, valueSeparator, i, cancel);
                 }
             }
 
             return default;
 
             // waits for a flush to finish, then proceeds with writing headers
-            static async ValueTask WriteHeadersAsync_CompleteAfterFlushAsync(AsyncWriter<T> self, ValueTask waitFor, bool[] needsEscape, int i, CancellationToken cancel)
+            static async ValueTask WriteHeadersAsync_CompleteAfterFlushAsync(AsyncWriter<T> self, ValueTask waitFor, bool[] needsEscape, char valueSeparator, int i, CancellationToken cancel)
             {
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
@@ -511,7 +513,7 @@ namespace Cesil
                 for (; i < selfColumnsValue.Length; i++)
                 {
                     // by definition we've always wrote at least one column here
-                    var placeTask = self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
+                    var placeTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
                     await placeTask;
                     cancel.ThrowIfCancellationRequested();
 
@@ -522,7 +524,7 @@ namespace Cesil
             }
 
             // waits for a header write to finish, then proceeds with the rest
-            static async ValueTask WriteHeadersAsync_CompleteAfterHeaderWriteAsync(AsyncWriter<T> self, ValueTask waitFor, bool[] needsEscape, int i, CancellationToken cancel)
+            static async ValueTask WriteHeadersAsync_CompleteAfterHeaderWriteAsync(AsyncWriter<T> self, ValueTask waitFor, bool[] needsEscape, char valueSeparator, int i, CancellationToken cancel)
             {
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
@@ -534,7 +536,7 @@ namespace Cesil
                 for (; i < selfColumnsValue.Length; i++)
                 {
                     // by definition we've always wrote at least one column here
-                    var placeTask = self.PlaceCharInStagingAsync(self.Config.ValueSeparator, cancel);
+                    var placeTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
                     await placeTask;
                     cancel.ThrowIfCancellationRequested();
 
@@ -556,9 +558,11 @@ namespace Cesil
             }
             else
             {
+                var options = Configuration.Options;
+
                 // try and blit everything in relatively few calls
-                var escapedValueStartAndStop = Config.EscapedValueStartAndStop;
-                var escapeValueEscapeChar = Config.EscapeValueEscapeChar;
+                var escapedValueStartAndStop = options.EscapedValueStartAndEnd!.Value;
+                var escapeValueEscapeChar = options.EscapedValueEscapeCharacter!.Value;
 
                 var colMem = colName.AsMemory();
 
@@ -764,16 +768,18 @@ namespace Cesil
         {
             if (!IsDisposed)
             {
+                var writeTrailingNewLine = Configuration.Options.WriteTrailingNewLine;
+
                 if (IsFirstRow)
                 {
                     var headersTask = CheckHeadersAsync(CancellationToken.None);
                     if (!headersTask.IsCompletedSuccessfully(this))
                     {
-                        return DisposeAsync_ContinueAfterHeadersAsync(this, headersTask);
+                        return DisposeAsync_ContinueAfterHeadersAsync(this, headersTask, writeTrailingNewLine);
                     }
                 }
 
-                if (Config.WriteTrailingNewLine == WriteTrailingNewLine.Always)
+                if (writeTrailingNewLine == WriteTrailingNewLine.Always)
                 {
                     var endRecordTask = EndRecordAsync(CancellationToken.None);
                     if (!endRecordTask.IsCompletedSuccessfully(this))
@@ -813,11 +819,11 @@ namespace Cesil
             return default;
 
             // wait on headers, then continue asynchronously
-            static async ValueTask DisposeAsync_ContinueAfterHeadersAsync(AsyncWriter<T> self, ValueTask<bool> waitFor)
+            static async ValueTask DisposeAsync_ContinueAfterHeadersAsync(AsyncWriter<T> self, ValueTask<bool> waitFor, WriteTrailingNewLine writeTrailingNewLine)
             {
                 await waitFor;
 
-                if (self.Config.WriteTrailingNewLine == WriteTrailingNewLine.Always)
+                if (writeTrailingNewLine == WriteTrailingNewLine.Always)
                 {
                     var endTask = self.EndRecordAsync(CancellationToken.None);
                     await endTask;
@@ -914,7 +920,7 @@ namespace Cesil
 
         public override string ToString()
         {
-            return $"{nameof(AsyncWriter<T>)} with {Config}";
+            return $"{nameof(AsyncWriter<T>)} with {Configuration}";
         }
     }
 }

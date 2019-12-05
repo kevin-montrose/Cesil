@@ -57,6 +57,8 @@ namespace Cesil
 
                         var rowAsObj = row as object;
 
+                        var options = Configuration.Options;
+
                         if (rowAsObj == null || !(row is DynamicRow))
                         {
                             row = dynRow = MakeRow();
@@ -70,14 +72,14 @@ namespace Cesil
                             if (dynRow.Owner.HasValue && dynRow.Owner.Value != this)
                             {
                                 dynRow.Owner.Value.Remove(dynRow);
-                                if (Configuration.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose)
+                                if (options.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose)
                                 {
                                     NotifyOnDisposeHead.AddHead(ref NotifyOnDisposeHead, dynRow);
                                 }
                             }
                         }
 
-                        dynRow.Init(this, RowNumber, Columns.Value.Length, Context, Configuration.TypeDescriber.Value, ColumnNames, Configuration.MemoryPool);
+                        dynRow.Init(this, RowNumber, Columns.Value.Length, Context, options.TypeDescriber, ColumnNames, options.MemoryPool);
 
                         SetValueToPopulate(row);
                     }
@@ -95,7 +97,7 @@ namespace Cesil
         private DynamicRow MakeRow()
         {
             var ret = new DynamicRow();
-            if (Configuration.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose)
+            if (Configuration.Options.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose)
             {
                 NotifyOnDisposeHead.AddHead(ref NotifyOnDisposeHead, ret);
             }
@@ -110,33 +112,13 @@ namespace Cesil
 
         private void HandleHeaders()
         {
-            ReadHeaders = Configuration.ReadHeader;
+            var options = Configuration.Options;
 
-            var allowColumnsByName = Configuration.ReadHeader == Cesil.ReadHeader.Always;
+            ReadHeaders = options.ReadHeader;
 
-            var start = Configuration.HasEscapedValueStartAndStop ? Configuration.EscapedValueStartAndStop : default(char?);
-            var escape = Configuration.HasEscapeValueEscapeChar ? Configuration.EscapeValueEscapeChar : default(char?);
-            var comment = Configuration.HasCommentChar ? Configuration.CommentChar : default(char?);
+            var allowColumnsByName = options.ReadHeader == ReadHeader.Always;
 
-            var headerConfig =
-                new DynamicBoundConfiguration(
-                    Configuration.TypeDescriber.Value,
-                    Configuration.ValueSeparator,
-                    start,
-                    escape,
-                    RowEndings!.Value,
-                    Configuration.ReadHeader,
-                    Configuration.WriteHeader,
-                    Configuration.WriteTrailingNewLine,
-                    Configuration.MemoryPool,
-                    comment,
-                    Configuration.WriteBufferSizeHint,
-                    Configuration.ReadBufferSizeHint,
-                    Configuration.DynamicRowDisposal,
-                    Configuration.WhitespaceTreatment
-                );
-
-            using (var reader = new HeadersReader<object>(StateMachine, headerConfig, SharedCharacterLookup, Inner, Buffer, Configuration.WhitespaceTreatment))
+            using (var reader = new HeadersReader<object>(StateMachine, Configuration, SharedCharacterLookup, Inner, Buffer, RowEndings!.Value))
             {
                 var res = reader.Read();
                 var foundHeaders = res.Headers.Count;
@@ -184,14 +166,16 @@ namespace Cesil
 
         private void HandleLineEndings()
         {
-            if (Configuration.RowEnding != Cesil.RowEnding.Detect)
+            var options = Configuration.Options;
+
+            if (options.RowEnding != RowEnding.Detect)
             {
-                RowEndings = Configuration.RowEnding;
+                RowEndings = options.RowEnding;
                 TryMakeStateMachine();
                 return;
             }
 
-            using (var detector = new RowEndingDetector<object>(StateMachine, Configuration, SharedCharacterLookup, Inner))
+            using (var detector = new RowEndingDetector(StateMachine, options, SharedCharacterLookup, Inner))
             {
                 var res = detector.Detect();
                 HandleLineEndingsDetectionResult(res);

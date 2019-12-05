@@ -4,11 +4,6 @@ namespace Cesil
 {
     internal abstract class ReaderBase<T>
     {
-        // try and size the buffers so we get a whole page to ourselves
-        private const int OVERHEAD_BYTES = 16;
-        private const int PAGE_SIZE_BYTES = 4098;
-        internal const int DEFAULT_BUFFER_SIZE = (PAGE_SIZE_BYTES / sizeof(char)) - OVERHEAD_BYTES;
-
         internal readonly BufferWithPushback Buffer;
         internal readonly Partial<T> Partial;
 
@@ -34,31 +29,35 @@ namespace Cesil
             Configuration = config;
             Context = context;
 
-            var bufferSize = config.ReadBufferSizeHint;
+            var options = config.Options;
+
+            var bufferSize = options.ReadBufferSizeHint;
             if (bufferSize == 0)
             {
-                bufferSize = DEFAULT_BUFFER_SIZE;
+                bufferSize = Utils.DEFAULT_BUFFER_SIZE;
             }
 
+            var memPool = options.MemoryPool;
+            
             Buffer =
                 new BufferWithPushback(
-                    config.MemoryPool,
+                    memPool,
                     bufferSize
                 );
-            Partial = new Partial<T>(config.MemoryPool);
+            Partial = new Partial<T>(memPool);
 
-            var start = config.HasEscapedValueStartAndStop ? config.EscapedValueStartAndStop : default(char?);
-            var escape = config.HasEscapeValueEscapeChar ? config.EscapeValueEscapeChar : default(char?);
-            var comment = config.HasCommentChar ? config.CommentChar : default(char?);
+            var start = options.EscapedValueStartAndEnd;
+            var escape = options.EscapedValueEscapeCharacter;
+            var comment = options.CommentCharacter;
 
             SharedCharacterLookup =
                 CharacterLookup.MakeCharacterLookup(
-                    config.MemoryPool,
+                    memPool,
                     start,
-                    config.ValueSeparator,
+                    options.ValueSeparator,
                     escape,
                     comment,
-                    config.WhitespaceTreatment != WhitespaceTreatments.Preserve,
+                    options.WhitespaceTreatment != WhitespaceTreatments.Preserve,
                     out _
                 );
             StateMachine = new ReaderStateMachine();
@@ -369,7 +368,7 @@ namespace Cesil
 
             var dataSpan = Partial.PendingAsMemory(Buffer.Buffer);
 
-            var whitespace = Configuration.WhitespaceTreatment;
+            var whitespace = Configuration.Options.WhitespaceTreatment;
 
             // The state machine will skip leading values outside of values, so we only need to do any trimming IN the values
             //
@@ -417,7 +416,7 @@ namespace Cesil
         {
             if (!headers.IsHeader)
             {
-                if (Configuration.ReadHeader == Cesil.ReadHeader.Always)
+                if (Configuration.Options.ReadHeader == Cesil.ReadHeader.Always)
                 {
                     Throw.InvalidOperationException<object>("First row of input was not a row of headers");
                 }
@@ -499,8 +498,10 @@ namespace Cesil
 
             StateMachineInitialized = true;
 
-            var escapeStart = Configuration.HasEscapedValueStartAndStop ? Configuration.EscapedValueStartAndStop : default(char?);
-            var escape = Configuration.HasEscapeValueEscapeChar ? Configuration.EscapeValueEscapeChar : default(char?);
+            var options = Configuration.Options;
+
+            var escapeStart = options.EscapedValueStartAndEnd;
+            var escape = options.EscapedValueEscapeCharacter;
 
             StateMachine.Initialize(
                     SharedCharacterLookup,
@@ -508,9 +509,9 @@ namespace Cesil
                     escape,
                     RowEndings.Value,
                     ReadHeaders.Value,
-                    Configuration.HasCommentChar,
-                    Configuration.WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimBeforeValues),
-                    Configuration.WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimAfterValues)
+                    options.CommentCharacter != null,
+                    options.WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimBeforeValues),
+                    options.WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimAfterValues)
                 );
         }
     }

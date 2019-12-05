@@ -10,35 +10,14 @@ namespace Cesil
             Column[] deserializeColumns,
             Column[] serializeColumns,
             bool[] serializeColumnsNeedEscape,
-            char valueSeparator,
-            char? escapedValueStartAndStop,
-            char? escapeValueEscapeChar,
-            RowEnding rowEndings,
-            ReadHeader readHeader,
-            WriteHeader writeHeaders,
-            WriteTrailingNewLine writeTrailingNewLine,
-            MemoryPool<char> memoryPool,
-            char? commentChar,
-            int? writeBufferSizeHint,
-            int readBufferSizeHint,
-            WhitespaceTreatments whitespaceTreatment) : 
+            Options options
+        ) : 
             base(
                 newCons,
                 deserializeColumns,
                 serializeColumns,
                 serializeColumnsNeedEscape,
-                valueSeparator,
-                escapedValueStartAndStop,
-                escapeValueEscapeChar,
-                rowEndings,
-                readHeader,
-                writeHeaders,
-                writeTrailingNewLine,
-                memoryPool,
-                commentChar,
-                writeBufferSizeHint,
-                readBufferSizeHint,
-                whitespaceTreatment
+                options
             )
         { }
 
@@ -86,30 +65,7 @@ namespace Cesil
         {
             var ret = new StringBuilder();
             ret.Append($"{nameof(ConcreteBoundConfiguration<T>)} with ");
-            if (HasCommentChar)
-            {
-                ret.Append($"{nameof(CommentChar)}={CommentChar}");
-            }
-            // Dynamic* not included, since not relevant
-            if (HasEscapedValueStartAndStop)
-            {
-                ret.Append($", {nameof(EscapedValueStartAndStop)}={EscapedValueStartAndStop}");
-            }
-            if (HasEscapeValueEscapeChar)
-            {
-                ret.Append($", {nameof(EscapeValueEscapeChar)}={EscapeValueEscapeChar}");
-            }
-            ret.Append($", {nameof(MemoryPool)}={MemoryPool}");
-            ret.Append($", {nameof(NewCons)}={NewCons}");
-            ret.Append($", {nameof(ReadBufferSizeHint)}={ReadBufferSizeHint}");
-            ret.Append($", {nameof(ReadHeader)}={ReadHeader}");
-            ret.Append($", {nameof(RowEnding)}={RowEnding}");
-            // skipping RowEndingMemory
-            ret.Append($", {nameof(ValueSeparator)}={ValueSeparator}");
-            ret.Append($", {nameof(WriteBufferSizeHint)}={WriteBufferSizeHint}");
-            ret.Append($", {nameof(WriteHeader)}={WriteHeader}");
-            ret.Append($", {nameof(WriteTrailingNewLine)}={WriteTrailingNewLine}");
-
+            ret.Append($"{nameof(Options)} = ({Options})");
             return ret.ToString();
         }
     }

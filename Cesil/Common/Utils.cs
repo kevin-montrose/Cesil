@@ -6,6 +6,11 @@ namespace Cesil
 {
     internal static class Utils
     {
+        // try and size the buffers so we get a whole page to ourselves
+        private const int OVERHEAD_BYTES = 16;
+        private const int PAGE_SIZE_BYTES = 4098;
+        internal const int DEFAULT_BUFFER_SIZE = (PAGE_SIZE_BYTES / sizeof(char)) - OVERHEAD_BYTES;
+
         private static class LegalFlagEnum<T>
             where T: unmanaged, Enum
         {
@@ -542,14 +547,16 @@ tryAgain:
         {
             var subset = span.Slice(start);
 
+            var options = config.Options;
+
             int ret;
 
             switch(config.NeedsEncodeMode)
             {
-                case NeedsEncodeMode.SeparatorAndLineEndings: ret = FindsNeedsEncodeSingle(subset, config.ValueSeparator);break;
-                case NeedsEncodeMode.SeparatorLineEndingsComment: ret = FindNeedsEncodeDouble(subset, config.ValueSeparator, config.CommentChar); break;
-                case NeedsEncodeMode.SeparatorLineEndingsEscapeStart: ret = FindNeedsEncodeDouble(subset, config.ValueSeparator, config.EscapedValueStartAndStop); break;
-                case NeedsEncodeMode.SeparatorLineEndingsEscapeStartComment: ret = FindNeedsEncodeTriple(subset, config.ValueSeparator, config.EscapedValueStartAndStop, config.CommentChar); break;
+                case NeedsEncodeMode.SeparatorAndLineEndings: ret = FindsNeedsEncodeSingle(subset, options.ValueSeparator);break;
+                case NeedsEncodeMode.SeparatorLineEndingsComment: ret = FindNeedsEncodeDouble(subset, options.ValueSeparator, options.CommentCharacter!.Value); break;
+                case NeedsEncodeMode.SeparatorLineEndingsEscapeStart: ret = FindNeedsEncodeDouble(subset, options.ValueSeparator, options.EscapedValueStartAndEnd!.Value); break;
+                case NeedsEncodeMode.SeparatorLineEndingsEscapeStartComment: ret = FindNeedsEncodeTriple(subset, options.ValueSeparator, options.EscapedValueStartAndEnd!.Value, options.CommentCharacter!.Value); break;
                 default: return Throw.Exception<int>($"Unexpected {nameof(NeedsEncodeMode)}: {config.NeedsEncodeMode}");
             }
 
@@ -703,38 +710,39 @@ tryAgain:
             return -1;
         }
 
-        public static string Encode<T>(string rawStr, BoundConfigurationBase<T> config)
+        public static string Encode(string rawStr, Options options)
         {
             // assume there's a single character that needs escape, so 2 chars for the start and stop and 1 for the escape
             var defaultSize = rawStr.Length + 2 + 1;
 
-            var pool = config.MemoryPool;
-            if (!config.HasEscapedValueStartAndStop)
+            var pool = options.MemoryPool;
+
+            var escapedValueStartAndStop = options.EscapedValueStartAndEnd;
+
+            if (escapedValueStartAndStop == null)
             {
                 return Throw.Exception<string>("Attempted to encode a string without a configured escape char, shouldn't be possible");
             }
 
-            var escapeChar = config.EscapeValueEscapeChar;
+            var escapeChar = options.EscapedValueEscapeCharacter;
 
-            if (!config.HasEscapeValueEscapeChar)
+            if (escapeChar == null)
             {
                 return Throw.Exception<string>("Attempted to encode a string without a configured escape sequence start char, shouldn't be possible");
             }
 
-            var escapedValueStartAndStop = config.EscapedValueStartAndStop;
-
             var raw = rawStr.AsMemory();
-            var retOwner = config.MemoryPool.Rent(defaultSize);
+            var retOwner = options.MemoryPool.Rent(defaultSize);
             try
             {
-                retOwner.Memory.Span[0] = escapedValueStartAndStop;
+                retOwner.Memory.Span[0] = escapedValueStartAndStop.Value;
 
                 var rawIx = 0;
                 var destIx = 1;
 
                 while (rawIx < raw.Length)
                 {
-                    var copyUntil = FindChar(raw, rawIx, escapeChar);
+                    var copyUntil = FindChar(raw, rawIx, escapeChar.Value);
                     if (copyUntil == -1)
                     {
                         var lenToCopy = raw.Length - rawIx;
@@ -743,7 +751,7 @@ tryAgain:
                     }
 
                     destIx += CopyIntoRet(pool, ref retOwner, raw, rawIx, destIx, copyUntil - rawIx);
-                    destIx += AddEscapedChar(pool, ref retOwner, raw.Span[copyUntil], escapeChar, destIx);
+                    destIx += AddEscapedChar(pool, ref retOwner, raw.Span[copyUntil], escapeChar.Value, destIx);
                     rawIx = copyUntil + 1;
                 }
 
@@ -755,7 +763,7 @@ tryAgain:
 
                 var retSpan = retOwner.Memory.Span;
 
-                retSpan[destIx] = escapedValueStartAndStop;
+                retSpan[destIx] = escapedValueStartAndStop.Value;
                 destIx++;
 
                 var retStr = new string(retSpan.Slice(0, destIx));

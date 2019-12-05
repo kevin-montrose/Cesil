@@ -198,7 +198,7 @@ namespace Cesil
 
         internal ValueTask EndRecordAsync(CancellationToken cancel)
         {
-            return PlaceInStagingAsync(Config.RowEndingMemory, cancel);
+            return PlaceInStagingAsync(Configuration.RowEndingMemory, cancel);
         }
 
         internal ValueTask PlaceInStagingAsync(ReadOnlyMemory<char> chars, CancellationToken cancel)
@@ -278,7 +278,7 @@ namespace Cesil
             {
                 CheckCanEncode(charMem.Span);
 
-                var escapedValueStartAndStop = Config.EscapedValueStartAndStop;
+                var escapedValueStartAndStop = Configuration.Options.EscapedValueStartAndEnd!.Value;
 
                 var startEscapeTask = PlaceCharInStagingAsync(escapedValueStartAndStop, cancel);
                 if (!startEscapeTask.IsCompletedSuccessfully(this))
@@ -379,7 +379,7 @@ namespace Cesil
 
         internal ValueTask WriteEncodedAsync(ReadOnlySequence<char> head, CancellationToken cancel)
         {
-            var escapedValueStartAndStop = Config.EscapedValueStartAndStop;
+            var escapedValueStartAndStop = Configuration.Options.EscapedValueStartAndEnd!.Value;
 
             // start with whatever the escape is
             var startEscapeTask = PlaceCharInStagingAsync(escapedValueStartAndStop, cancel);
@@ -449,7 +449,7 @@ namespace Cesil
 
         internal ValueTask WriteEncodedAsync(ReadOnlyMemory<char> charMem, CancellationToken cancel)
         {
-            var escapedValueStartAndStop = Config.EscapedValueStartAndStop;
+            var escapedValueStartAndStop = Configuration.Options.EscapedValueStartAndEnd!.Value;
 
 
             // try and blit things in in big chunks
@@ -458,7 +458,7 @@ namespace Cesil
 
             while (end != -1)
             {
-                var escapeValueEscapeChar = Config.EscapeValueEscapeChar;
+                var escapeValueEscapeChar = Configuration.Options.EscapedValueEscapeCharacter!.Value;
 
                 var len = end - start;
                 var toWrite = charMem.Slice(start, len);
@@ -615,7 +615,7 @@ namespace Cesil
         {
             if (!OneCharOwner.HasValue)
             {
-                OneCharOwner.Value = Config.MemoryPool.Rent(1);
+                OneCharOwner.Value = Configuration.Options.MemoryPool.Rent(1);
                 OneCharMemory = OneCharOwner.Value.Memory.Slice(0, 1);
             }
 

@@ -38,7 +38,7 @@ namespace Cesil
 
         internal void EndRecord()
         {
-            PlaceAllInStaging(Config.RowEndingMemory.Span);
+            PlaceAllInStaging(Configuration.RowEndingMemory.Span);
         }
 
         internal void WriteValue(ReadOnlySequence<char> buffer)
@@ -66,7 +66,7 @@ namespace Cesil
             {
                 CheckCanEncode(charSpan);
 
-                var escapedValueStartAndStop = Config.EscapedValueStartAndStop;
+                var escapedValueStartAndStop = Configuration.Options.EscapedValueStartAndEnd!.Value;
 
                 PlaceCharInStaging(escapedValueStartAndStop);
 
@@ -102,7 +102,7 @@ namespace Cesil
 
         internal void WriteEncoded(ReadOnlySequence<char> head)
         {
-            var escapedValueStartAndStop = Config.EscapedValueStartAndStop;
+            var escapedValueStartAndStop = Configuration.Options.EscapedValueEscapeCharacter!.Value;
 
             // start with whatever the escape is
             PlaceCharInStaging(escapedValueStartAndStop);
@@ -118,7 +118,7 @@ namespace Cesil
 
         internal void WriteEncoded(ReadOnlySpan<char> charSpan)
         {
-            var escapedValueStartAndStop = Config.EscapedValueStartAndStop;
+            var escapedValueStartAndStop = Configuration.Options.EscapedValueStartAndEnd!.Value;
 
             // try and blit things in in big chunks
             var start = 0;
@@ -126,7 +126,7 @@ namespace Cesil
 
             while (end != -1)
             {
-                var escapeValueEscapeChar = Config.EscapeValueEscapeChar;
+                var escapeValueEscapeChar = Configuration.Options.EscapedValueEscapeCharacter!.Value;
 
                 var len = end - start;
                 var toWrite = charSpan.Slice(start, len);

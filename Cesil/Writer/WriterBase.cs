@@ -5,7 +5,7 @@ namespace Cesil
 {
     internal abstract class WriterBase<T>
     {
-        internal BoundConfigurationBase<T> Config { get; }
+        internal readonly BoundConfigurationBase<T> Configuration;
 
         internal readonly MaxSizedBufferWriter Buffer;
 
@@ -23,12 +23,17 @@ namespace Cesil
         protected WriterBase(BoundConfigurationBase<T> config, object? context)
         {
             RowNumber = 0;
-            Config = config;
-            Buffer = new MaxSizedBufferWriter(Config.MemoryPool, config.WriteBufferSizeHint);
+            Configuration = config;
+
+            var options = Configuration.Options;
+            var memPool = options.MemoryPool;
+            var writeSizeHint = options.WriteBufferSizeHint;
+
+            Buffer = new MaxSizedBufferWriter(memPool, writeSizeHint);
             Context = context;
 
             // buffering is configurable
-            if (Config.WriteBufferSizeHint == 0)
+            if (writeSizeHint == 0)
             {
                 Staging.Clear();
                 InStaging = -1;
@@ -36,18 +41,18 @@ namespace Cesil
             else
             {
                 InStaging = 0;
-                Staging.Value = Config.MemoryPool.Rent(Config.WriteBufferSizeHint ?? MaxSizedBufferWriter.DEFAULT_STAGING_SIZE);
+                Staging.Value = memPool.Rent(writeSizeHint ?? MaxSizedBufferWriter.DEFAULT_STAGING_SIZE);
             }
         }
 
         internal bool NeedsEncode(ReadOnlyMemory<char> charMem)
-        => Utils.FindNeedsEncode(charMem, 0, Config) != -1;
+        => Utils.FindNeedsEncode(charMem, 0, Configuration) != -1;
 
         internal bool NeedsEncode(ReadOnlySpan<char> charSpan)
-        => Utils.FindNeedsEncode(charSpan, 0, Config) != -1;
+        => Utils.FindNeedsEncode(charSpan, 0, Configuration) != -1;
 
         internal bool NeedsEncode(ReadOnlySequence<char> head)
-        => Utils.FindNeedsEncode(head, 0, Config) != -1;
+        => Utils.FindNeedsEncode(head, 0, Configuration) != -1;
 
         // returns true if we need to flush staging
         internal bool PlaceInStaging(char c)
@@ -62,35 +67,46 @@ namespace Cesil
 
         internal (char CommentChar, ReadOnlySequence<char> CommentLines) SplitCommentIntoLines(string comment)
         {
-            if (!Config.HasCommentChar)
+            var options = Configuration.Options;
+            var commentChar = options.CommentCharacter;
+
+            if (commentChar == null)
             {
                 return Throw.InvalidOperationException<(char CommentChar, ReadOnlySequence<char> CommentLines)>($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
             }
 
             var commentMem = comment.AsMemory();
 
-            var seq = Utils.Split(commentMem, Config.RowEndingMemory);
-            var c = Config.CommentChar;
+            var seq = Utils.Split(commentMem, Configuration.RowEndingMemory);
+            var c = commentChar.Value;
 
             return (c, seq);
         }
 
         internal void CheckCanEncode(ReadOnlySpan<char> chars)
         {
+            var options = Configuration.Options;
+
+            var escapedValueStartAndEnd = options.EscapedValueStartAndEnd;
+            var hasEscapedValueStartAndStop = escapedValueStartAndEnd != null;
+            var hasEscapeValueEscapeChar = options.EscapedValueEscapeCharacter != null;
+
             // we can always encode if we have both (the common case)
-            if (Config.HasEscapedValueStartAndStop && Config.HasEscapeValueEscapeChar)
+            if (hasEscapedValueStartAndStop && hasEscapeValueEscapeChar)
             {
                 return;
             }
 
             // we can NEVER encode if we don't have the ability to start an escaped value
-            if (!Config.HasEscapedValueStartAndStop)
+            if (!hasEscapedValueStartAndStop)
             {
                 // we can be slow here, we're about to throw an exception
                 var carriageReturnIx = Utils.FindChar(chars, 0, '\r');
                 var newLineIx = Utils.FindChar(chars, 0, '\n');
-                var separatorIx = Utils.FindChar(chars, 0, Config.ValueSeparator);
-                var commentIx = Config.HasCommentChar ? Utils.FindChar(chars, 0, Config.CommentChar) : -1;
+                var separatorIx = Utils.FindChar(chars, 0, options.ValueSeparator);
+
+                var commentChar = options.CommentCharacter;
+                var commentIx = commentChar != null ? Utils.FindChar(chars, 0, commentChar.Value) : -1;
 
                 if (carriageReturnIx == -1) carriageReturnIx = int.MaxValue;
                 if (newLineIx == -1) newLineIx = int.MaxValue;
@@ -105,34 +121,42 @@ namespace Cesil
             }
 
             // we're only in trouble if the value contains EscapedValueStartAndStop
-            var escapeStartIx = Utils.FindChar(chars, 0, Config.EscapedValueStartAndStop);
+            var escapeStartIx = Utils.FindChar(chars, 0, escapedValueStartAndEnd!.Value);
             if (escapeStartIx == -1) return;
 
-            Throw.InvalidOperationException<object>($"Tried to write a value contain '{Config.EscapedValueStartAndStop}' which requires escaping the character in an escaped value, but no way to escape inside an escaped value is configured");
+            Throw.InvalidOperationException<object>($"Tried to write a value contain '{escapedValueStartAndEnd}' which requires escaping the character in an escaped value, but no way to escape inside an escaped value is configured");
         }
 
         internal void CheckCanEncode(ReadOnlySequence<char> chars)
         {
-            // we can always encode if we have both (the common case)
-            if (Config.HasEscapedValueStartAndStop && Config.HasEscapeValueEscapeChar)
-            {
-                return;
-            }
-
             if (chars.IsSingleSegment)
             {
                 CheckCanEncode(chars.FirstSpan);
                 return;
             }
 
+            var options = Configuration.Options;
+
+            var escapedValueStartAndEnd = options.EscapedValueStartAndEnd;
+            var hasEscapedValueStartAndStop = escapedValueStartAndEnd != null;
+            var hasEscapeValueEscapeChar = options.EscapedValueEscapeCharacter != null;
+
+            // we can always encode if we have both (the common case)
+            if (hasEscapedValueStartAndStop && hasEscapeValueEscapeChar)
+            {
+                return;
+            }
+
             // we can NEVER encode if we don't have the ability to start an escaped value
-            if (!Config.HasEscapedValueStartAndStop)
+            if (!hasEscapedValueStartAndStop)
             {
                 // we can be slow here, we're about to throw an exception
                 var carriageReturnIx = Utils.FindChar(chars, 0, '\r');
                 var newLineIx = Utils.FindChar(chars, 0, '\n');
-                var separatorIx = Utils.FindChar(chars, 0, Config.ValueSeparator);
-                var commentIx = Config.HasCommentChar ? Utils.FindChar(chars, 0, Config.CommentChar) : -1;
+                var separatorIx = Utils.FindChar(chars, 0, options.ValueSeparator);
+
+                var commentChar = options.CommentCharacter;
+                var commentIx = commentChar != null ? Utils.FindChar(chars, 0, commentChar.Value) : -1;
 
                 if (carriageReturnIx == -1) carriageReturnIx = int.MaxValue;
                 if (newLineIx == -1) newLineIx = int.MaxValue;
@@ -152,11 +176,11 @@ namespace Cesil
                 }
                 else if (offendingIx == separatorIx)
                 {
-                    offendingChar = Config.ValueSeparator;
+                    offendingChar = options.ValueSeparator;
                 }
                 else
                 {
-                    offendingChar = Config.CommentChar;
+                    offendingChar = commentChar!.Value;
                 }
 
                 Throw.InvalidOperationException<object>($"Tried to write a value contain '{offendingChar}' which requires escaping a value, but no way to escape a value is configured");
@@ -164,10 +188,10 @@ namespace Cesil
             }
 
             // we're only in trouble if the value contains EscapedValueStartAndStop
-            var escapeStartIx = Utils.FindChar(chars, 0, Config.EscapedValueStartAndStop);
+            var escapeStartIx = Utils.FindChar(chars, 0, escapedValueStartAndEnd!.Value);
             if (escapeStartIx == -1) return;
 
-            Throw.InvalidOperationException<object>($"Tried to write a value contain '{Config.EscapedValueStartAndStop}' which requires escaping the character in an escaped value, but no way to escape inside an escaped value is configured");
+            Throw.InvalidOperationException<object>($"Tried to write a value contain '{escapedValueStartAndEnd}' which requires escaping the character in an escaped value, but no way to escape inside an escaped value is configured");
         }
     }
 }

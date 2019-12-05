@@ -66,48 +66,26 @@ namespace Cesil
 
         private void HandleHeaders()
         {
-            if (Configuration.ReadHeader == Cesil.ReadHeader.Never)
+            var options = Configuration.Options;
+
+            if (options.ReadHeader == ReadHeader.Never)
             {
                 // can just use the discovered copy from source
-                ReadHeaders = Cesil.ReadHeader.Never;
+                ReadHeaders = ReadHeader.Never;
                 TryMakeStateMachine();
                 Columns.Value = Configuration.DeserializeColumns;
 
                 return;
             }
 
-            var start = Configuration.HasEscapedValueStartAndStop ? Configuration.EscapedValueStartAndStop : default(char?);
-            var escape = Configuration.HasEscapeValueEscapeChar ? Configuration.EscapeValueEscapeChar : default(char?);
-            var comment = Configuration.HasCommentChar ? Configuration.CommentChar : default(char?);
-
-            var headerConfig =
-                new ConcreteBoundConfiguration<T>(
-                    Configuration.NewCons.Value,
-                    Configuration.DeserializeColumns,
-                    Array.Empty<Column>(),
-                    Array.Empty<bool>(),
-                    Configuration.ValueSeparator,
-                    start,
-                    escape,
-                    RowEndings!.Value,
-                    Configuration.ReadHeader,
-                    Configuration.WriteHeader,
-                    Configuration.WriteTrailingNewLine,
-                    Configuration.MemoryPool,
-                    comment,
-                    null,
-                    Configuration.ReadBufferSizeHint,
-                    Configuration.WhitespaceTreatment
-                );
-
             using (
                 var headerReader = new HeadersReader<T>(
                     StateMachine,
-                    headerConfig,
+                    Configuration,
                     SharedCharacterLookup,
                     Inner,
                     Buffer,
-                    Configuration.WhitespaceTreatment
+                    RowEndings!.Value
                 )
             )
             {
@@ -119,14 +97,16 @@ namespace Cesil
 
         private void HandleLineEndings()
         {
-            if (Configuration.RowEnding != Cesil.RowEnding.Detect)
+            var options = Configuration.Options;
+
+            if (options.RowEnding != RowEnding.Detect)
             {
-                RowEndings = Configuration.RowEnding;
+                RowEndings = options.RowEnding;
                 TryMakeStateMachine();
                 return;
             }
 
-            using (var detector = new RowEndingDetector<T>(StateMachine, Configuration, SharedCharacterLookup, Inner))
+            using (var detector = new RowEndingDetector(StateMachine, options, SharedCharacterLookup, Inner))
             {
                 var res = detector.Detect();
                 HandleLineEndingsDetectionResult(res);

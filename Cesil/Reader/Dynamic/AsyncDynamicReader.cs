@@ -111,8 +111,10 @@ namespace Cesil
             // make sure our row is ready to go
             static DynamicRow GuaranteeInitializedRow(AsyncDynamicReader self, DynamicRow dynRow)
             {
+                var options = self.Configuration.Options;
+
                 self.MonitorForDispose(dynRow);
-                dynRow.Init(self, self.RowNumber, self.Columns.Value.Length, self.Context, self.Configuration.TypeDescriber.Value, self.ColumnNames, self.Configuration.MemoryPool);
+                dynRow.Init(self, self.RowNumber, self.Columns.Value.Length, self.Context, options.TypeDescriber, self.ColumnNames, options.MemoryPool);
 
                 return dynRow;
             }
@@ -224,7 +226,7 @@ namespace Cesil
 
         private void MonitorForDispose(DynamicRow dynRow)
         {
-            if (Configuration.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose)
+            if (Configuration.Options.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose)
             {
                 NotifyOnDisposeHead!.AddHead(ref NotifyOnDisposeHead, dynRow);
             }
@@ -237,33 +239,13 @@ namespace Cesil
 
         private ValueTask HandleHeadersAsync(CancellationToken cancel)
         {
-            ReadHeaders = Configuration.ReadHeader;
+            var options = Configuration.Options;
 
-            var start = Configuration.HasEscapedValueStartAndStop ? Configuration.EscapedValueStartAndStop : default(char?);
-            var escape = Configuration.HasEscapeValueEscapeChar ? Configuration.EscapeValueEscapeChar : default(char?);
-            var comment = Configuration.HasCommentChar ? Configuration.CommentChar : default(char?);
+            ReadHeaders = options.ReadHeader;
 
-            var headerConfig =
-                new DynamicBoundConfiguration(
-                    Configuration.TypeDescriber.Value,
-                    Configuration.ValueSeparator,
-                    start,
-                    escape,
-                    RowEndings!.Value,
-                    Configuration.ReadHeader,
-                    Configuration.WriteHeader,
-                    Configuration.WriteTrailingNewLine,
-                    Configuration.MemoryPool,
-                    comment,
-                    Configuration.WriteBufferSizeHint,
-                    Configuration.ReadBufferSizeHint,
-                    Configuration.DynamicRowDisposal,
-                    Configuration.WhitespaceTreatment
-                );
+            var allowColumnsByName = options.ReadHeader == ReadHeader.Always;
 
-            var allowColumnsByName = Configuration.ReadHeader == Cesil.ReadHeader.Always;
-
-            var reader = new HeadersReader<object>(StateMachine, headerConfig, SharedCharacterLookup, Inner, Buffer, Configuration.WhitespaceTreatment);
+            var reader = new HeadersReader<object>(StateMachine, Configuration, SharedCharacterLookup, Inner, Buffer, RowEndings!.Value);
             var disposeReader = true;
             try
             {
@@ -384,14 +366,16 @@ namespace Cesil
 
         private ValueTask HandleLineEndingsAsync(CancellationToken cancel)
         {
-            if (Configuration.RowEnding != Cesil.RowEnding.Detect)
+            var options = Configuration.Options;
+
+            if (options.RowEnding != RowEnding.Detect)
             {
-                RowEndings = Configuration.RowEnding;
+                RowEndings = options.RowEnding;
                 TryMakeStateMachine();
                 return default;
             }
 
-            var detector = new RowEndingDetector<object>(StateMachine, Configuration, SharedCharacterLookup, Inner);
+            var detector = new RowEndingDetector(StateMachine, options, SharedCharacterLookup, Inner);
             var disposeDetector = true;
             try
             {
@@ -414,7 +398,7 @@ namespace Cesil
             }
 
             // wait for the call to DetectAsync to complete
-            static async ValueTask HandleLineEndingsAsync_WaitForDetector(AsyncDynamicReader self, ValueTask<(RowEnding Ending, Memory<char> PushBack)?> toAwait, RowEndingDetector<object> detector, CancellationToken cancel)
+            static async ValueTask HandleLineEndingsAsync_WaitForDetector(AsyncDynamicReader self, ValueTask<(RowEnding Ending, Memory<char> PushBack)?> toAwait, RowEndingDetector detector, CancellationToken cancel)
             {
                 try
                 {

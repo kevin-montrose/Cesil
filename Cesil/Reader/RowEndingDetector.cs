@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Cesil
 {
-    internal sealed partial class RowEndingDetector<T> : ITestableDisposable
+    internal sealed partial class RowEndingDetector : ITestableDisposable
     {
         private enum AdvanceResult : byte
         {
@@ -39,13 +39,13 @@ namespace Cesil
 
         private Memory<char> Pushback => PushbackOwner.Value.Memory;
 
-        internal RowEndingDetector(ReaderStateMachine stateMachine, BoundConfigurationBase<T> config, CharacterLookup charLookup, IReaderAdapter inner)
-            : this(stateMachine, config, charLookup, inner, null) { }
+        internal RowEndingDetector(ReaderStateMachine stateMachine, Options options, CharacterLookup charLookup, IReaderAdapter inner)
+            : this(stateMachine, options, charLookup, inner, null) { }
 
-        internal RowEndingDetector(ReaderStateMachine stateMachine, BoundConfigurationBase<T> config, CharacterLookup charLookup, IAsyncReaderAdapter innerAsync)
-            : this(stateMachine, config, charLookup, null, innerAsync) { }
+        internal RowEndingDetector(ReaderStateMachine stateMachine, Options options, CharacterLookup charLookup, IAsyncReaderAdapter innerAsync)
+            : this(stateMachine, options, charLookup, null, innerAsync) { }
 
-        private RowEndingDetector(ReaderStateMachine stateMachine, BoundConfigurationBase<T> config, CharacterLookup charLookup, IReaderAdapter? inner, IAsyncReaderAdapter? innerAsync)
+        private RowEndingDetector(ReaderStateMachine stateMachine, Options options, CharacterLookup charLookup, IReaderAdapter? inner, IAsyncReaderAdapter? innerAsync)
         {
             Inner.SetAllowNull(inner);
             InnerAsync.SetAllowNull(innerAsync);
@@ -53,21 +53,21 @@ namespace Cesil
             State = stateMachine;
             stateMachine.Initialize(
                 charLookup,
-                config.EscapedValueStartAndStop,
-                config.EscapeValueEscapeChar,
+                options.EscapedValueStartAndEnd,
+                options.EscapedValueEscapeCharacter,
                 default,
                 ReadHeader.Never,
                 false,
-                config.WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimBeforeValues),
-                config.WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimAfterValues)
+                options.WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimBeforeValues),
+                options.WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimAfterValues)
             );
 
-            MemoryPool = config.MemoryPool;
+            MemoryPool = options.MemoryPool;
 
-            BufferSizeHint = config.ReadBufferSizeHint;
+            BufferSizeHint = options.ReadBufferSizeHint;
             if (BufferSizeHint == 0)
             {
-                BufferSizeHint = ReaderBase<T>.DEFAULT_BUFFER_SIZE;
+                BufferSizeHint = Utils.DEFAULT_BUFFER_SIZE;
             }
 
             BufferOwner = MemoryPool.Rent(BufferSizeHint);
@@ -150,7 +150,7 @@ namespace Cesil
             }
 
             static async ValueTask<(RowEnding Ending, Memory<char> PushBack)?> DetectAsync_ContinueAfterReadAsync(
-                RowEndingDetector<T> self,
+                RowEndingDetector self,
                 ValueTask<int> waitFor,
                 ReaderStateMachine.PinHandle handle,
                 CancellationToken cancel
@@ -430,7 +430,7 @@ end:
 #if DEBUG
     // this is only implemented in DEBUG builds, so tests (and only tests) can force
     //    particular async paths
-    internal sealed partial class RowEndingDetector<T> : ITestableAsyncProvider
+    internal sealed partial class RowEndingDetector : ITestableAsyncProvider
     {
         private int _GoAsyncAfter;
         int ITestableAsyncProvider.GoAsyncAfter { set { _GoAsyncAfter = value; } }

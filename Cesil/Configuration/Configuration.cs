@@ -32,22 +32,7 @@ namespace Cesil
             }
 
             return
-                new DynamicBoundConfiguration(
-                    options.TypeDescriber,
-                    options.ValueSeparator,
-                    options.EscapedValueStartAndEnd,
-                    options.EscapedValueEscapeCharacter,
-                    options.RowEnding,
-                    options.ReadHeader,
-                    options.WriteHeader,
-                    options.WriteTrailingNewLine,
-                    options.MemoryPool,
-                    options.CommentCharacter,
-                    options.WriteBufferSizeHint,
-                    options.ReadBufferSizeHint,
-                    options.DynamicRowDisposal,
-                    options.WhitespaceTreatment
-                );
+                new DynamicBoundConfiguration(options);
         }
 
         /// <summary>
@@ -107,18 +92,7 @@ namespace Cesil
                     deserializeColumns,
                     serializeColumns,
                     needsEscape,
-                    options.ValueSeparator,
-                    options.EscapedValueStartAndEnd,
-                    options.EscapedValueEscapeCharacter,
-                    options.RowEnding,
-                    options.ReadHeader,
-                    options.WriteHeader,
-                    options.WriteTrailingNewLine,
-                    options.MemoryPool,
-                    options.CommentCharacter,
-                    options.WriteBufferSizeHint,
-                    options.ReadBufferSizeHint,
-                    options.WhitespaceTreatment
+                    options
                 );
         }
 

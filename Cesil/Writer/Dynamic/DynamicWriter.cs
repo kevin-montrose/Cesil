@@ -55,7 +55,9 @@ namespace Cesil
 
             var wholeRowContext = WriteContext.DiscoveringCells(RowNumber, Context);
 
-            var cellValues = Config.TypeDescriber.Value.GetCellsForDynamicRow(in wholeRowContext, row as object);
+            var options = Configuration.Options;
+
+            var cellValues = options.TypeDescriber.GetCellsForDynamicRow(in wholeRowContext, row as object);
             cellValues = ForceInOrder(cellValues);
 
             var columnNamesValue = ColumnNames.Value;
@@ -67,7 +69,7 @@ namespace Cesil
 
                 if (needsSeparator)
                 {
-                    PlaceCharInStaging(Config.ValueSeparator);
+                    PlaceCharInStaging(options.ValueSeparator);
                 }
 
                 ColumnIdentifier ci;
@@ -119,7 +121,9 @@ end:
             var shouldEndRecord = true;
             if (IsFirstRow)
             {
-                if (Config.WriteHeader == Cesil.WriteHeader.Always)
+                // todo: I feel like this can be made to work?
+                // it's basically just a write line
+                if (Configuration.Options.WriteHeader == WriteHeader.Always)
                 {
                     Throw.InvalidOperationException<object>($"First operation on a dynamic writer cannot be {nameof(WriteComment)} if configured to write headers, headers cannot be inferred");
                 }
@@ -215,7 +219,7 @@ end:
         //   writing the next one
         private bool CheckHeaders(dynamic? firstRow)
         {
-            if (Config.WriteHeader == Cesil.WriteHeader.Never)
+            if (Configuration.Options.WriteHeader == WriteHeader.Never)
             {
                 // nothing to write, so bail
                 ColumnNames.Value = Array.Empty<(string, string)>();
@@ -236,14 +240,16 @@ end:
 
             var ctx = WriteContext.DiscoveringColumns(Context);
 
+            var options = Configuration.Options;
+            
             var colIx = 0;
-            foreach (var c in Config.TypeDescriber.Value.GetCellsForDynamicRow(in ctx, o as object))
+            foreach (var c in options.TypeDescriber.GetCellsForDynamicRow(in ctx, o as object))
             {
                 var colName = c.Name;
 
                 if (colName == null)
                 {
-                    Throw.InvalidOperationException<object>($"No column name found at index {colIx} when {nameof(Cesil.WriteHeader)} = {Config.WriteHeader}");
+                    Throw.InvalidOperationException<object>($"No column name found at index {colIx} when {nameof(Cesil.WriteHeader)} = {options.WriteHeader}");
                     return;
                 }
 
@@ -252,7 +258,7 @@ end:
                 // encode it, if it needs encoding
                 if (NeedsEncode(encodedColName))
                 {
-                    encodedColName = Utils.Encode(encodedColName, Config);
+                    encodedColName = Utils.Encode(encodedColName, options);
                 }
 
                 cols.Add((colName, encodedColName));
@@ -294,7 +300,7 @@ end:
                 // for the separator
                 if (i != 0)
                 {
-                    PlaceCharInStaging(Config.ValueSeparator);
+                    PlaceCharInStaging(Configuration.Options.ValueSeparator);
                 }
 
                 var colName = columnNamesValue[i].EncodedName;
@@ -314,7 +320,7 @@ end:
                     CheckHeaders(null);
                 }
 
-                if (Config.WriteTrailingNewLine == WriteTrailingNewLine.Always)
+                if (Configuration.Options.WriteTrailingNewLine == WriteTrailingNewLine.Always)
                 {
                     EndRecord();
                 }
@@ -336,6 +342,6 @@ end:
         }
 
         public override string ToString()
-        => $"{nameof(DynamicWriter)} with {Config}";
+        => $"{nameof(DynamicWriter)} with {Configuration}";
     }
 }
