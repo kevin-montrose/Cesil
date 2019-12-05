@@ -812,6 +812,12 @@
             Context object provided during read operations.
             </summary>
         </member>
+        <member name="P:Cesil.ReadContext.Options">
+            <summary>
+            Options used to create reader.  Useful for accessing
+              shared configurations, like MemoryPool(char).
+            </summary>
+        </member>
         <member name="P:Cesil.ReadContext.Mode">
             <summary>
             What, precisely, a reader is doing.
@@ -898,6 +904,12 @@
         <member name="T:Cesil.WriteContext">
             <summary>
             Context object provided during write operations.
+            </summary>
+        </member>
+        <member name="P:Cesil.WriteContext.Options">
+            <summary>
+            Options used to create writer.  Useful for accessing
+              shared configurations, like MemoryPool(char).
             </summary>
         </member>
         <member name="P:Cesil.WriteContext.Mode">
@@ -1955,265 +1967,265 @@
             Create a ManualTypeDescriber with the options configured with this builder.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.SetFallbackBehavior(Cesil.ManualTypeDescriberFallbackBehavior)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithFallbackBehavior(Cesil.ManualTypeDescriberFallbackBehavior)">
             <summary>
             Sets the behavior to fallback to when a method has no registrations to return.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.SetFallback(Cesil.ITypeDescriber)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithFallbackTypeDescriber(Cesil.ITypeDescriber)">
             <summary>
             Sets the ITypeDescriber to fallback to, provided that FallbackBehavior allows falling back, 
               when a method has no regisrations to return.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.SetInstanceProvider(Cesil.InstanceProvider)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithInstanceProvider(Cesil.InstanceProvider)">
             <summary>
             Set the delegate to use when constructing new instances of 
               type T.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.SetInstanceProvider(System.Reflection.TypeInfo,Cesil.InstanceProvider)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithInstanceProvider(System.Reflection.TypeInfo,Cesil.InstanceProvider)">
             <summary>
             Set the delegate to use when constructing new instances of 
               the given type.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddExplicitGetter(System.Reflection.TypeInfo,System.String,Cesil.Getter)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithExplicitGetter(System.Reflection.TypeInfo,System.String,Cesil.Getter)">
             <summary>
             Add a getter for the given type, with the given name, using the given getter.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddExplicitGetter(System.Reflection.TypeInfo,System.String,Cesil.Getter,Cesil.Formatter)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithExplicitGetter(System.Reflection.TypeInfo,System.String,Cesil.Getter,Cesil.Formatter)">
             <summary>
             Add a getter for the given type, with the given name, using the given getter, and formatter.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddExplicitGetter(System.Reflection.TypeInfo,System.String,Cesil.Getter,Cesil.Formatter,Cesil.ShouldSerialize)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithExplicitGetter(System.Reflection.TypeInfo,System.String,Cesil.Getter,Cesil.Formatter,Cesil.ShouldSerialize)">
             <summary>
             Add a getter for the given type, with the given name, using the given getter, formatter, and ShouldSerialize method.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddExplicitGetter(System.Reflection.TypeInfo,System.String,Cesil.Getter,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.EmitDefaultValue)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithExplicitGetter(System.Reflection.TypeInfo,System.String,Cesil.Getter,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.EmitDefaultValue)">
             <summary>
             Add a getter for the given type, with the given name, using the given getter, formatter, ShouldSerialize method, and whether to emit a default value.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddSerializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithSerializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo)">
             <summary>
             Add a field to serialize for the given type.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddSerializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithSerializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String)">
             <summary>
             Add a field to serialize for the given type, using the given name.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddSerializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,Cesil.Formatter)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithSerializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,Cesil.Formatter)">
             <summary>
             Add a field to serialize for the given type, using the given name and formatter.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddSerializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithSerializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize)">
             <summary>
             Add a field to serialize for the given type, using the given name, formatter, and ShouldSerialize method.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddSerializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.EmitDefaultValue)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithSerializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.EmitDefaultValue)">
             <summary>
             Add a field to serialize for the given type, using the given name, formatter, and ShouldSerialize method.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddSerializableField(System.Reflection.FieldInfo)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithSerializableField(System.Reflection.FieldInfo)">
             <summary>
             Add a field to serialize for the type which declares the field.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddSerializableField(System.Reflection.FieldInfo,System.String)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithSerializableField(System.Reflection.FieldInfo,System.String)">
             <summary>
             Add a field to serialize with the given name - for the type which declares the field.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddSerializableField(System.Reflection.FieldInfo,System.String,Cesil.Formatter)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithSerializableField(System.Reflection.FieldInfo,System.String,Cesil.Formatter)">
             <summary>
             Add a field to serialize with the given name and formatter - for the type which declares the field.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddSerializableField(System.Reflection.FieldInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithSerializableField(System.Reflection.FieldInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize)">
             <summary>
             Add a field to serialize with the given name, formatter, and ShouldSerialize method - for the type which declares the field.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddSerializableField(System.Reflection.FieldInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.EmitDefaultValue)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithSerializableField(System.Reflection.FieldInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.EmitDefaultValue)">
             <summary>
             Add a field to serialize with the given name, formatter, ShouldSerialize method, and whether to emit a default value - for the type which declares the field.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddSerializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithSerializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo)">
             <summary>
             Add a property to serialize for the given type.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddSerializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithSerializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String)">
             <summary>
             Add a property to serialize for the given type with the given name.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddSerializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,Cesil.Formatter)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithSerializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,Cesil.Formatter)">
             <summary>
             Add a property to serialize for the given type with the given name and formatter.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddSerializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithSerializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize)">
             <summary>
             Add a property to serialize for the given type with the given name, formatter, and ShouldSerialize method.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddSerializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.EmitDefaultValue)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithSerializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.EmitDefaultValue)">
             <summary>
             Add a property to serialize for the given type with the given name, formatter, ShouldSerialize method, and whether to emit a default value.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddSerializableProperty(System.Reflection.PropertyInfo)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithSerializableProperty(System.Reflection.PropertyInfo)">
             <summary>
             Add a property to serialize for the type which declares the property.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddSerializableProperty(System.Reflection.PropertyInfo,System.String)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithSerializableProperty(System.Reflection.PropertyInfo,System.String)">
             <summary>
             Add a property to serialize with the given name - for the type which declares the property.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddSerializableProperty(System.Reflection.PropertyInfo,System.String,Cesil.Formatter)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithSerializableProperty(System.Reflection.PropertyInfo,System.String,Cesil.Formatter)">
             <summary>
             Add a property to serialize with the given name and formatter - for the type which declares the property.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddSerializableProperty(System.Reflection.PropertyInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithSerializableProperty(System.Reflection.PropertyInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize)">
             <summary>
             Add a property to serialize with the given name, formatter, and ShouldSerialize method - for the type which declares the property.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddSerializableProperty(System.Reflection.PropertyInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.EmitDefaultValue)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithSerializableProperty(System.Reflection.PropertyInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.EmitDefaultValue)">
             <summary>
             Add a property to serialize with the given name, formatter, ShouldSerialize method, and whether to emit a default value - for the type which declares the property.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddExplicitSetter(System.Reflection.TypeInfo,System.String,Cesil.Setter)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithExplicitSetter(System.Reflection.TypeInfo,System.String,Cesil.Setter)">
             <summary>
             Add a setter for the given type, with the given name, using the given setter.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddExplicitSetter(System.Reflection.TypeInfo,System.String,Cesil.Setter,Cesil.Parser)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithExplicitSetter(System.Reflection.TypeInfo,System.String,Cesil.Setter,Cesil.Parser)">
             <summary>
             Add a setter for the given type, with the given name, using the given setter and parser.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddExplicitSetter(System.Reflection.TypeInfo,System.String,Cesil.Setter,Cesil.Parser,Cesil.MemberRequired)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithExplicitSetter(System.Reflection.TypeInfo,System.String,Cesil.Setter,Cesil.Parser,Cesil.MemberRequired)">
             <summary>
             Add a setter for the given type, with the given name, using the given setter, parser, and whether the column is required.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddExplicitSetter(System.Reflection.TypeInfo,System.String,Cesil.Setter,Cesil.Parser,Cesil.MemberRequired,Cesil.Reset)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithExplicitSetter(System.Reflection.TypeInfo,System.String,Cesil.Setter,Cesil.Parser,Cesil.MemberRequired,Cesil.Reset)">
             <summary>
             Add a setter for the given type, with the given name, using the given setter, parser, whether the column is required, and a reset method.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddDeserializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithDeserializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo)">
             <summary>
             Add a field to deserialize for the given type.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddDeserializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithDeserializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String)">
             <summary>
             Add a field to deserialize for the given type with the given name.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddDeserializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,Cesil.Parser)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithDeserializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,Cesil.Parser)">
             <summary>
             Add a field to deserialize for the given type with the given name and parser.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddDeserializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,Cesil.Parser,Cesil.MemberRequired)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithDeserializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,Cesil.Parser,Cesil.MemberRequired)">
             <summary>
             Add a field to deserialize for the given type with the given name, parser, and whether the column is required.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddDeserializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,Cesil.Parser,Cesil.MemberRequired,Cesil.Reset)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithDeserializableField(System.Reflection.TypeInfo,System.Reflection.FieldInfo,System.String,Cesil.Parser,Cesil.MemberRequired,Cesil.Reset)">
             <summary>
             Add a field to deserialize for the given type with the given name, parser, whether the column is required, and a reset method.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddDeserializableField(System.Reflection.FieldInfo)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithDeserializableField(System.Reflection.FieldInfo)">
             <summary>
             Add a field to deserialize for the type which declares the field.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddDeserializableField(System.Reflection.FieldInfo,System.String)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithDeserializableField(System.Reflection.FieldInfo,System.String)">
             <summary>
             Add a field to deserialize with the given name - for the type which declares the field.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddDeserializableField(System.Reflection.FieldInfo,System.String,Cesil.Parser)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithDeserializableField(System.Reflection.FieldInfo,System.String,Cesil.Parser)">
             <summary>
             Add a field to deserialize with the given name and parser - for the type which declares the field.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddDeserializableField(System.Reflection.FieldInfo,System.String,Cesil.Parser,Cesil.MemberRequired)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithDeserializableField(System.Reflection.FieldInfo,System.String,Cesil.Parser,Cesil.MemberRequired)">
             <summary>
             Add a field to deserialize with the given name, parser, and whether the column is required - for the type which declares the field.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddDeserializableField(System.Reflection.FieldInfo,System.String,Cesil.Parser,Cesil.MemberRequired,Cesil.Reset)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithDeserializableField(System.Reflection.FieldInfo,System.String,Cesil.Parser,Cesil.MemberRequired,Cesil.Reset)">
             <summary>
             Add a field to deserialize with the given name, parser, whether the column is required, and a reset method - for the type which declares the field.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddDeserializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithDeserializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo)">
             <summary>
             Add a property to deserialize for the given type.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddDeserializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithDeserializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String)">
             <summary>
             Add a property to deserialize for the given type with the given name.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddDeserializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,Cesil.Parser)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithDeserializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,Cesil.Parser)">
             <summary>
             Add a property to deserialize for the given type with the given name and parser.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddDeserializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,Cesil.Parser,Cesil.MemberRequired)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithDeserializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,Cesil.Parser,Cesil.MemberRequired)">
             <summary>
             Add a property to deserialize for the given type with the given name and parser and whether the column is required.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddDeserializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,Cesil.Parser,Cesil.MemberRequired,Cesil.Reset)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithDeserializableProperty(System.Reflection.TypeInfo,System.Reflection.PropertyInfo,System.String,Cesil.Parser,Cesil.MemberRequired,Cesil.Reset)">
             <summary>
             Add a property to deserialize for the given type with the given name and parser, whether the column is required, and a reset method.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddDeserializableProperty(System.Reflection.PropertyInfo)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithDeserializableProperty(System.Reflection.PropertyInfo)">
             <summary>
             Add a property to deserialize for the type which declares the property.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddDeserializableProperty(System.Reflection.PropertyInfo,System.String)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithDeserializableProperty(System.Reflection.PropertyInfo,System.String)">
             <summary>
             Add a property to deserialize with the given name - for the type which declares the property.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddDeserializableProperty(System.Reflection.PropertyInfo,System.String,Cesil.Parser)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithDeserializableProperty(System.Reflection.PropertyInfo,System.String,Cesil.Parser)">
             <summary>
             Add a property to deserialize with the given name and parser - for the type which declares the property.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddDeserializableProperty(System.Reflection.PropertyInfo,System.String,Cesil.Parser,Cesil.MemberRequired)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithDeserializableProperty(System.Reflection.PropertyInfo,System.String,Cesil.Parser,Cesil.MemberRequired)">
             <summary>
             Add a property to deserialize with the given name, parser, and whether the column is required - for the type which declares the property.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriberBuilder.AddDeserializableProperty(System.Reflection.PropertyInfo,System.String,Cesil.Parser,Cesil.MemberRequired,Cesil.Reset)">
+        <member name="M:Cesil.ManualTypeDescriberBuilder.WithDeserializableProperty(System.Reflection.PropertyInfo,System.String,Cesil.Parser,Cesil.MemberRequired,Cesil.Reset)">
             <summary>
             Add a property to deserialize with the given name, parser, whether the column is required, and a reset method - for the type which declares the property.
             </summary>
@@ -2556,22 +2568,22 @@
             Create a SurrogateTypeDescriber with the options configured with this builder.
             </summary>
         </member>
-        <member name="M:Cesil.SurrogateTypeDescriberBuilder.SetFallbackBehavior(Cesil.SurrogateTypeDescriberFallbackBehavior)">
+        <member name="M:Cesil.SurrogateTypeDescriberBuilder.WithFallbackBehavior(Cesil.SurrogateTypeDescriberFallbackBehavior)">
             <summary>
             Sets the behavior to fallback to when no surrogate type has been registered.
             </summary>
         </member>
-        <member name="M:Cesil.SurrogateTypeDescriberBuilder.SetTypeDescriber(Cesil.ITypeDescriber)">
+        <member name="M:Cesil.SurrogateTypeDescriberBuilder.WithTypeDescriber(Cesil.ITypeDescriber)">
             <summary>
             Sets the ITypeDescriber to use to discover providers and members on a surrogate type.
             </summary>
         </member>
-        <member name="M:Cesil.SurrogateTypeDescriberBuilder.SetFallbackTypeDescriber(Cesil.ITypeDescriber)">
+        <member name="M:Cesil.SurrogateTypeDescriberBuilder.WithFallbackTypeDescriber(Cesil.ITypeDescriber)">
             <summary>
             Sets the ITypeDescriber to use when no surrogate type has been registered, provided FallbackBehavior allows it.
             </summary>
         </member>
-        <member name="M:Cesil.SurrogateTypeDescriberBuilder.AddSurrogateType(System.Reflection.TypeInfo,System.Reflection.TypeInfo)">
+        <member name="M:Cesil.SurrogateTypeDescriberBuilder.WithSurrogateType(System.Reflection.TypeInfo,System.Reflection.TypeInfo)">
             <summary>
             Registered a surrogate type for forType.
             

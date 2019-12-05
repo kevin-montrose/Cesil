@@ -83,10 +83,8 @@ namespace Cesil
             return (c, seq);
         }
 
-        internal void CheckCanEncode(ReadOnlySpan<char> chars)
+        internal static void CheckCanEncode(ReadOnlySpan<char> chars, Options options)
         {
-            var options = Configuration.Options;
-
             var escapedValueStartAndEnd = options.EscapedValueStartAndEnd;
             var hasEscapedValueStartAndStop = escapedValueStartAndEnd != null;
             var hasEscapeValueEscapeChar = options.EscapedValueEscapeCharacter != null;
@@ -127,15 +125,13 @@ namespace Cesil
             Throw.InvalidOperationException<object>($"Tried to write a value contain '{escapedValueStartAndEnd}' which requires escaping the character in an escaped value, but no way to escape inside an escaped value is configured");
         }
 
-        internal void CheckCanEncode(ReadOnlySequence<char> chars)
+        internal static void CheckCanEncode(ReadOnlySequence<char> chars, Options options)
         {
             if (chars.IsSingleSegment)
             {
-                CheckCanEncode(chars.FirstSpan);
+                CheckCanEncode(chars.FirstSpan, options);
                 return;
             }
-
-            var options = Configuration.Options;
 
             var escapedValueStartAndEnd = options.EscapedValueStartAndEnd;
             var hasEscapedValueStartAndStop = escapedValueStartAndEnd != null;

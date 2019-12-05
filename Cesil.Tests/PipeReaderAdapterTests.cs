@@ -201,10 +201,8 @@ namespace Cesil.Tests
 
             threads.ForEach(t => t.Start());
 
-            Debug.WriteLine("Waiting for outer threads to stop");
             await Task.WhenAll(tasks);
-            Debug.WriteLine("Outer threads stopped");
-
+            
             static async Task TryAllStringsForEncoding(Encoding encoding)
             {
                 var mostBytesPerChar = encoding.GetMaxByteCount(1);
@@ -290,7 +288,6 @@ namespace Cesil.Tests
                     for (var step = 1; step <= maxStep; step++)
                     {
                         var offsetMax = Math.Min(bytes.Length, mostBytesPerChar);
-                        Debug.WriteLine($"Thread #{threadId}: Starting {j} ({decodedStr}) for {encoding.EncodingName} at {step}");
 
                         var pipe = new Pipe();
                         var writer = pipe.Writer;
@@ -350,9 +347,7 @@ namespace Cesil.Tests
 
                 runReadQueue = runWriteQueue = false;
 
-                Debug.WriteLine("Waiting for read & write threads to stop");
                 await Task.WhenAll(readThreadFinished.Task, writeThreadFinished.Task);
-                Debug.WriteLine("Threads stopped");
             }
 
             // create a thread that will work through these tasks, signaling and waiting appropriately

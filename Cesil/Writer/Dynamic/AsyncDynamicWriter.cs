@@ -69,7 +69,7 @@ namespace Cesil
                 return WriteAsync_ContinueAfterWriteHeadersAsync(this, writeHeadersTask, row, typeDescriber, valueSeparator, cancel);
             }
 
-            var wholeRowContext = WriteContext.DiscoveringCells(RowNumber, Context);
+            var wholeRowContext = WriteContext.DiscoveringCells(Configuration.Options, RowNumber, Context);
 
             var cellValues = typeDescriber.GetCellsForDynamicRow(in wholeRowContext, row as object);
             cellValues = ForceInOrder(cellValues);
@@ -106,7 +106,7 @@ namespace Cesil
                         ci = ColumnIdentifier.Create(i);
                     }
 
-                    var ctx = WriteContext.WritingColumn(RowNumber, ci, Context);
+                    var ctx = WriteContext.WritingColumn(Configuration.Options, RowNumber, ci, Context);
 
                     var formatter = cell.Formatter;
                     var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
@@ -156,7 +156,7 @@ end:
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
 
-                var wholeRowContext = WriteContext.DiscoveringCells(self.RowNumber, self.Context);
+                var wholeRowContext = WriteContext.DiscoveringCells(self.Configuration.Options, self.RowNumber, self.Context);
 
                 var cellValues = typeDescriber.GetCellsForDynamicRow(in wholeRowContext, row as object);
                 cellValues = self.ForceInOrder(cellValues);
@@ -185,7 +185,7 @@ end:
                         ci = ColumnIdentifier.Create(i);
                     }
 
-                    var ctx = WriteContext.WritingColumn(self.RowNumber, ci, self.Context);
+                    var ctx = WriteContext.WritingColumn(self.Configuration.Options, self.RowNumber, ci, self.Context);
 
                     var formatter = cell.Formatter;
                     var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
@@ -240,7 +240,7 @@ end:
                             ci = ColumnIdentifier.Create(i);
                         }
 
-                        var ctx = WriteContext.WritingColumn(self.RowNumber, ci, self.Context);
+                        var ctx = WriteContext.WritingColumn(self.Configuration.Options, self.RowNumber, ci, self.Context);
 
                         var formatter = cell.Formatter;
                         var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
@@ -293,7 +293,7 @@ end:
                             ci = ColumnIdentifier.Create(i);
                         }
 
-                        var ctx = WriteContext.WritingColumn(self.RowNumber, ci, self.Context);
+                        var ctx = WriteContext.WritingColumn(self.Configuration.Options, self.RowNumber, ci, self.Context);
 
                         var formatter = cell.Formatter;
                         var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
@@ -371,7 +371,7 @@ end:
                             ci = ColumnIdentifier.Create(i);
                         }
 
-                        var ctx = WriteContext.WritingColumn(self.RowNumber, ci, self.Context);
+                        var ctx = WriteContext.WritingColumn(self.Configuration.Options, self.RowNumber, ci, self.Context);
 
                         var formatter = cell.Formatter;
                         var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
@@ -820,7 +820,7 @@ end:
         {
             var cols = new List<(string TrueName, string EncodedName)>();
 
-            var ctx = WriteContext.DiscoveringColumns(Context);
+            var ctx = WriteContext.DiscoveringColumns(Configuration.Options, Context);
 
             var options = Configuration.Options;
 

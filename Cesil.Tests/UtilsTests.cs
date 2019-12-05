@@ -2,12 +2,37 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Xunit;
 
 namespace Cesil.Tests
 {
     public class UtilsTests
     {
+        private sealed class _ReflectionHelpers
+        {
+            public string Foo { set { } }
+        }
+
+        [Fact]
+        public void ReflectionHelpers()
+        {
+            var t = typeof(string).GetTypeInfo();
+            var o = typeof(object).GetTypeInfo();
+
+            Assert.Throws<InvalidOperationException>(() => t.GetConstructorNonNull(new[] { o }));
+            Assert.Throws<InvalidOperationException>(() => t.GetConstructorNonNull(BindingFlags.Public, null, new[] { o }, null));
+            Assert.Throws<InvalidOperationException>(() => t.GetElementTypeNonNull());
+            Assert.Throws<InvalidOperationException>(() => t.GetFieldNonNull("Foo", BindingFlags.Static));
+            Assert.Throws<InvalidOperationException>(() => t.GetMethodNonNull("Foo", BindingFlags.Static));
+            Assert.Throws<InvalidOperationException>(() => t.GetMethodNonNull("Foo"));
+            Assert.Throws<InvalidOperationException>(() => t.GetPropertyNonNull("Foo", BindingFlags.Static));
+
+            var c = typeof(_ReflectionHelpers).GetTypeInfo();
+            var p = c.GetPropertyNonNull("Foo", BindingFlags.Public | BindingFlags.Instance);
+            Assert.Throws<InvalidOperationException>(() => p.GetGetMethodNonNull());
+        }
+
         [Fact]
         public void CharacterLookupWhitespace()
         {

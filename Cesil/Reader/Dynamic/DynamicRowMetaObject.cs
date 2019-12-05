@@ -146,8 +146,11 @@ namespace Cesil
             var columnsNonNull = Expression.Field(selfAsRow, Fields.DynamicRow.Columns);
             var columns = Expression.Call(columnsNonNull, Methods.NonNull.OfIReadOnlyListOfColumnIdentifier.Value);
             var context = Expression.Field(selfAsRow, Fields.DynamicRow.Context);
+            var ownerNull = Expression.Field(selfAsRow, Fields.DynamicRow.Owner);
+            var owner = Expression.Call(ownerNull, Methods.NonNull.OfIDynamicRowOwner.Value);
+            var options = Expression.Call(owner, Methods.IDynamicRowOwner.Options);
 
-            var getCtx = Expression.Call(Methods.ReadContext.ConvertingRow, rowNumber, context);
+            var getCtx = Expression.Call(Methods.ReadContext.ConvertingRow, options, rowNumber, context);
 
             var dynamicRowConverter = Expression.Call(converter, Methods.ITypeDescriber.GetDynamicRowConverter, getCtx, columns, typeConst);
 
@@ -161,7 +164,7 @@ namespace Cesil
 
             var retType = binder.ReturnType.GetTypeInfo();
 
-            var ctx = ReadContext.ConvertingRow(index, Row.Context);
+            var ctx = ReadContext.ConvertingRow(Row.Owner.Value.Options, index, Row.Context);
 
             var converter = converterInterface.GetDynamicRowConverter(in ctx, Row.Columns.Value, retType);
 

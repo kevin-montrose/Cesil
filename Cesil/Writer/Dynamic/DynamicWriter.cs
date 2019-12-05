@@ -53,7 +53,7 @@ namespace Cesil
 
             WriteHeadersAndEndRowIfNeeded(row);
 
-            var wholeRowContext = WriteContext.DiscoveringCells(RowNumber, Context);
+            var wholeRowContext = WriteContext.DiscoveringCells(Configuration.Options, RowNumber, Context);
 
             var options = Configuration.Options;
 
@@ -82,7 +82,7 @@ namespace Cesil
                     ci = ColumnIdentifier.Create(i);
                 }
 
-                var ctx = WriteContext.WritingColumn(RowNumber, ci, Context);
+                var ctx = WriteContext.WritingColumn(Configuration.Options, RowNumber, ci, Context);
 
                 var formatter = cell.Formatter;
                 var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
@@ -238,7 +238,7 @@ end:
         {
             var cols = new List<(string TrueName, string EncodedName)>();
 
-            var ctx = WriteContext.DiscoveringColumns(Context);
+            var ctx = WriteContext.DiscoveringColumns(Configuration.Options, Context);
 
             var options = Configuration.Options;
             

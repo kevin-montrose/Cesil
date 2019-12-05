@@ -16,6 +16,64 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class WriterTests
     {
+        [Fact]
+        public void CheckCanEncode()
+        {
+            // single span
+            {
+                // default options can always encode
+                WriterBase<object>.CheckCanEncode("hello", Options.Default);
+
+                var tsv = Options.CreateBuilder(Options.Default).WithEscapedValueEscapeCharacter(null).WithValueSeparator('\t').ToOptions();
+                // but " isn't
+                Assert.Throws<InvalidOperationException>(() => WriterBase<object>.CheckCanEncode("\"", tsv));
+
+                var noEscape = Options.CreateBuilder(Options.Default).WithEscapedValueEscapeCharacter(null).WithEscapedValueStartAndEnd(null).ToOptions();
+                // comma is not escapable
+                Assert.Throws<InvalidOperationException>(() => WriterBase<object>.CheckCanEncode(",", noEscape));
+            }
+
+            // sequence of single span
+            {
+                // default options can always encode
+                var seq1 = new ReadOnlySequence<char>("hello".AsMemory());
+                Assert.True(seq1.IsSingleSegment);
+                WriterBase<object>.CheckCanEncode(seq1, Options.Default);
+
+                var tsv = Options.CreateBuilder(Options.Default).WithEscapedValueEscapeCharacter(null).WithValueSeparator('\t').ToOptions();
+                // but " isn't
+                var seq2 = new ReadOnlySequence<char>("\"".AsMemory());
+                Assert.True(seq2.IsSingleSegment);
+                Assert.Throws<InvalidOperationException>(() => WriterBase<object>.CheckCanEncode(seq2, tsv));
+
+                var noEscape = Options.CreateBuilder(Options.Default).WithEscapedValueEscapeCharacter(null).WithEscapedValueStartAndEnd(null).ToOptions();
+                // comma is not escapable
+                var seq3 = new ReadOnlySequence<char>(",".AsMemory());
+                Assert.True(seq3.IsSingleSegment);
+                Assert.Throws<InvalidOperationException>(() => WriterBase<object>.CheckCanEncode(",", noEscape));
+            }
+
+            // sequence of multiple spans
+            {
+                // default options can always encode
+                var seq1 = Utils.Split("hel-lo".AsMemory(), "-".AsMemory());
+                Assert.False(seq1.IsSingleSegment);
+                WriterBase<object>.CheckCanEncode(seq1, Options.Default);
+
+                var tsv = Options.CreateBuilder(Options.Default).WithEscapedValueEscapeCharacter(null).WithValueSeparator('\t').ToOptions();
+                // but " isn't
+                var seq2 = Utils.Split("\" -".AsMemory(), " ".AsMemory());
+                Assert.False(seq2.IsSingleSegment);
+                Assert.Throws<InvalidOperationException>(() => WriterBase<object>.CheckCanEncode(seq2, tsv));
+
+                var noEscape = Options.CreateBuilder(Options.Default).WithEscapedValueEscapeCharacter(null).WithEscapedValueStartAndEnd(null).ToOptions();
+                // comma is not escapable
+                var seq3 = Utils.Split("----!, ".AsMemory(), "!".AsMemory());
+                Assert.False(seq3.IsSingleSegment);
+                Assert.Throws<InvalidOperationException>(() => WriterBase<object>.CheckCanEncode(seq3, noEscape));
+            }
+        }
+
         private sealed class _NoEscapes
         {
             public string Foo { get; set; }
@@ -292,8 +350,8 @@ namespace Cesil.Tests
             var g = Getter.ForMethod(t.GetProperty(nameof(_FailingGetter.Foo)).GetMethod);
             var f = Formatter.ForDelegate((int value, in WriteContext context, IBufferWriter<char> buffer) => false);
 
-            m.SetInstanceProvider(InstanceProvider.ForDelegate((out _FailingGetter val) => { val = new _FailingGetter(); return true; }));
-            m.AddExplicitGetter(t, "bar", g, f);
+            m.WithInstanceProvider(InstanceProvider.ForDelegate((out _FailingGetter val) => { val = new _FailingGetter(); return true; }));
+            m.WithExplicitGetter(t, "bar", g, f);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(m.ToManualTypeDescriber()).ToOptions();
 
@@ -677,8 +735,9 @@ namespace Cesil.Tests
         [Fact]
         public void WriteContexts()
         {
-            var dc1 = Cesil.WriteContext.DiscoveringCells(1, null);
-            var dc2 = Cesil.WriteContext.DiscoveringCells(1, "foo");
+            var dc1 = Cesil.WriteContext.DiscoveringCells(Options.Default, 1, null);
+            var dc2 = Cesil.WriteContext.DiscoveringCells(Options.Default, 1, "foo");
+            var dc3 = Cesil.WriteContext.DiscoveringCells(Options.DynamicDefault, 1, null);
 
             Assert.Equal(WriteContextMode.DiscoveringCells, dc1.Mode);
             Assert.False(dc1.HasColumn);
@@ -686,23 +745,25 @@ namespace Cesil.Tests
             Assert.Equal(1, dc1.RowNumber);
             Assert.Throws<InvalidOperationException>(() => dc1.Column);
 
-            var dcol1 = Cesil.WriteContext.DiscoveringColumns(null);
-            var dcol2 = Cesil.WriteContext.DiscoveringColumns("foo");
+            var dcol1 = Cesil.WriteContext.DiscoveringColumns(Options.Default, null);
+            var dcol2 = Cesil.WriteContext.DiscoveringColumns(Options.Default, "foo");
+            var dcol3 = Cesil.WriteContext.DiscoveringColumns(Options.DynamicDefault, null);
             Assert.Equal(WriteContextMode.DiscoveringColumns, dcol1.Mode);
             Assert.False(dcol1.HasRowNumber);
             Assert.False(dcol1.HasColumn);
             Assert.Throws<InvalidOperationException>(() => dcol1.RowNumber);
             Assert.Throws<InvalidOperationException>(() => dcol1.Column);
 
-            var wc1 = Cesil.WriteContext.WritingColumn(1, ColumnIdentifier.Create(1), null);
-            var wc2 = Cesil.WriteContext.WritingColumn(1, ColumnIdentifier.Create(1), "foo");
-            var wc3 = Cesil.WriteContext.WritingColumn(1, ColumnIdentifier.Create(2), null);
-            var wc4 = Cesil.WriteContext.WritingColumn(2, ColumnIdentifier.Create(1), null);
+            var wc1 = Cesil.WriteContext.WritingColumn(Options.Default, 1, ColumnIdentifier.Create(1), null);
+            var wc2 = Cesil.WriteContext.WritingColumn(Options.Default, 1, ColumnIdentifier.Create(1), "foo");
+            var wc3 = Cesil.WriteContext.WritingColumn(Options.Default, 1, ColumnIdentifier.Create(2), null);
+            var wc4 = Cesil.WriteContext.WritingColumn(Options.Default, 2, ColumnIdentifier.Create(1), null);
+            var wc5 = Cesil.WriteContext.WritingColumn(Options.DynamicDefault, 1, ColumnIdentifier.Create(1), null);
             Assert.Equal(WriteContextMode.WritingColumn, wc1.Mode);
             Assert.True(wc1.HasColumn);
             Assert.True(wc1.HasRowNumber);
 
-            var contexts = new[] { dc1, dc2, dcol1, dcol2, wc1, wc2, wc3, wc4 };
+            var contexts = new[] { dc1, dc2, dc3, dcol1, dcol2, dcol3, wc1, wc2, wc3, wc4, wc5 };
 
             var notContext = "";
 
@@ -1397,9 +1458,9 @@ namespace Cesil.Tests
             var shouldSerialize = Cesil.ShouldSerialize.ForDelegate(shouldSerializeDel);
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddExplicitGetter(typeof(_DelegateShouldSerialize).GetTypeInfo(), name, getter, formatter, shouldSerialize);
+            describer.WithExplicitGetter(typeof(_DelegateShouldSerialize).GetTypeInfo(), name, getter, formatter, shouldSerialize);
             InstanceProviderDelegate<_DelegateShouldSerialize> del = (out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).WithWriteHeader(WriteHeader.Always).ToOptions();
 
@@ -1443,9 +1504,9 @@ namespace Cesil.Tests
             var shouldSerialize = Cesil.ShouldSerialize.ForDelegate(shouldSerializeDel);
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddExplicitGetter(typeof(_DelegateShouldSerialize).GetTypeInfo(), name, getter, formatter, shouldSerialize);
+            describer.WithExplicitGetter(typeof(_DelegateShouldSerialize).GetTypeInfo(), name, getter, formatter, shouldSerialize);
             InstanceProviderDelegate<_DelegateShouldSerialize> del = (out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).WithWriteHeader(WriteHeader.Always).ToOptions();
 
@@ -1498,9 +1559,9 @@ namespace Cesil.Tests
             var formatter = Formatter.ForDelegate(formatDel);
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddExplicitGetter(typeof(_DelegateFormatter).GetTypeInfo(), name, getter, formatter);
+            describer.WithExplicitGetter(typeof(_DelegateFormatter).GetTypeInfo(), name, getter, formatter);
             InstanceProviderDelegate<_DelegateFormatter> del = (out _DelegateFormatter i) => { i = new _DelegateFormatter(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).WithWriteHeader(WriteHeader.Always).ToOptions();
 
@@ -1547,9 +1608,9 @@ namespace Cesil.Tests
             var getter = Getter.ForDelegate(getDel);
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddExplicitGetter(typeof(_DelegateGetter).GetTypeInfo(), name, getter);
+            describer.WithExplicitGetter(typeof(_DelegateGetter).GetTypeInfo(), name, getter);
             InstanceProviderDelegate<_DelegateGetter> del = (out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).WithWriteHeader(WriteHeader.Always).ToOptions();
 
@@ -1591,9 +1652,9 @@ namespace Cesil.Tests
             var getter = Getter.ForDelegate(getDel);
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddExplicitGetter(typeof(_DelegateGetter).GetTypeInfo(), name, getter);
+            describer.WithExplicitGetter(typeof(_DelegateGetter).GetTypeInfo(), name, getter);
             InstanceProviderDelegate<_DelegateGetter> del = (out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).WithWriteHeader(WriteHeader.Always).ToOptions();
 
@@ -1866,9 +1927,9 @@ namespace Cesil.Tests
             var formatBar = (Formatter)typeof(WriterTests).GetMethod(nameof(_Context_FormatBar));
 
             var describer = ManualTypeDescriber.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback);
-            describer.SetInstanceProvider((InstanceProvider)typeof(_Context).GetConstructor(Type.EmptyTypes));
-            describer.AddSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), formatFoo);
-            describer.AddSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), formatBar);
+            describer.WithInstanceProvider((InstanceProvider)typeof(_Context).GetConstructor(Type.EmptyTypes));
+            describer.WithSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), formatFoo);
+            describer.WithSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), formatBar);
 
             var optsBase = Options.CreateBuilder(Options.Default).WithTypeDescriber(describer.ToManualTypeDescriber());
 
@@ -2810,9 +2871,9 @@ namespace Cesil.Tests
         public void StaticGetters()
         {
             var m = ManualTypeDescriberBuilder.CreateBuilder();
-            m.SetInstanceProvider((InstanceProvider)typeof(_StaticGetters).GetConstructor(Type.EmptyTypes));
-            m.AddExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Bar", (Getter)typeof(_StaticGetters).GetMethod("GetBar", BindingFlags.Static | BindingFlags.Public));
-            m.AddExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Fizz", (Getter)typeof(_StaticGetters).GetMethod("GetFizz", BindingFlags.Static | BindingFlags.Public));
+            m.WithInstanceProvider((InstanceProvider)typeof(_StaticGetters).GetConstructor(Type.EmptyTypes));
+            m.WithExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Bar", (Getter)typeof(_StaticGetters).GetMethod("GetBar", BindingFlags.Static | BindingFlags.Public));
+            m.WithExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Fizz", (Getter)typeof(_StaticGetters).GetMethod("GetFizz", BindingFlags.Static | BindingFlags.Public));
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)m.ToManualTypeDescriber()).ToOptions();
 
@@ -3087,8 +3148,8 @@ namespace Cesil.Tests
             var g = Getter.ForMethod(t.GetProperty(nameof(_FailingGetter.Foo)).GetMethod);
             var f = Formatter.ForDelegate((int value, in WriteContext context, IBufferWriter<char> buffer) => false);
 
-            m.SetInstanceProvider(InstanceProvider.ForDelegate((out _FailingGetter val) => { val = new _FailingGetter(); return true; }));
-            m.AddExplicitGetter(t, "bar", g, f);
+            m.WithInstanceProvider(InstanceProvider.ForDelegate((out _FailingGetter val) => { val = new _FailingGetter(); return true; }));
+            m.WithExplicitGetter(t, "bar", g, f);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(m.ToManualTypeDescriber()).ToOptions();
 
@@ -3831,9 +3892,9 @@ namespace Cesil.Tests
             var shouldSerialize = Cesil.ShouldSerialize.ForDelegate(shouldSerializeDel);
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddExplicitGetter(typeof(_DelegateShouldSerialize).GetTypeInfo(), name, getter, formatter, shouldSerialize);
+            describer.WithExplicitGetter(typeof(_DelegateShouldSerialize).GetTypeInfo(), name, getter, formatter, shouldSerialize);
             InstanceProviderDelegate<_DelegateShouldSerialize> del = (out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).WithWriteHeader(WriteHeader.Always).ToOptions();
 
@@ -3877,9 +3938,9 @@ namespace Cesil.Tests
             var shouldSerialize = Cesil.ShouldSerialize.ForDelegate(shouldSerializeDel);
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddExplicitGetter(typeof(_DelegateShouldSerialize).GetTypeInfo(), name, getter, formatter, shouldSerialize);
+            describer.WithExplicitGetter(typeof(_DelegateShouldSerialize).GetTypeInfo(), name, getter, formatter, shouldSerialize);
             InstanceProviderDelegate<_DelegateShouldSerialize> del = (out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).WithWriteHeader(WriteHeader.Always).ToOptions();
 
@@ -3950,9 +4011,9 @@ namespace Cesil.Tests
             var formatter = Formatter.ForDelegate(formatDel);
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddExplicitGetter(typeof(_DelegateFormatter).GetTypeInfo(), name, getter, formatter);
+            describer.WithExplicitGetter(typeof(_DelegateFormatter).GetTypeInfo(), name, getter, formatter);
             InstanceProviderDelegate<_DelegateFormatter> del = (out _DelegateFormatter i) => { i = new _DelegateFormatter(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).WithWriteHeader(WriteHeader.Always).ToOptions();
 
@@ -3994,9 +4055,9 @@ namespace Cesil.Tests
             var getter = Getter.ForDelegate(getDel);
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddExplicitGetter(typeof(_DelegateGetter).GetTypeInfo(), name, getter);
+            describer.WithExplicitGetter(typeof(_DelegateGetter).GetTypeInfo(), name, getter);
             InstanceProviderDelegate<_DelegateGetter> del = (out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).WithWriteHeader(WriteHeader.Always).ToOptions();
 
@@ -4038,9 +4099,9 @@ namespace Cesil.Tests
             var getter = Getter.ForDelegate(getDel);
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddExplicitGetter(typeof(_DelegateGetter).GetTypeInfo(), name, getter);
+            describer.WithExplicitGetter(typeof(_DelegateGetter).GetTypeInfo(), name, getter);
             InstanceProviderDelegate<_DelegateGetter> del = (out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).WithWriteHeader(WriteHeader.Always).ToOptions();
 
@@ -4136,9 +4197,9 @@ namespace Cesil.Tests
             var formatBar = (Formatter)typeof(WriterTests).GetMethod(nameof(_Context_FormatBar));
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback);
-            describer.SetInstanceProvider((InstanceProvider)typeof(_Context).GetConstructor(Type.EmptyTypes));
-            describer.AddSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), formatFoo);
-            describer.AddSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), formatBar);
+            describer.WithInstanceProvider((InstanceProvider)typeof(_Context).GetConstructor(Type.EmptyTypes));
+            describer.WithSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), formatFoo);
+            describer.WithSerializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), formatBar);
 
             var optsBase = Options.CreateBuilder(Options.Default).WithTypeDescriber(describer.ToManualTypeDescriber());
 
@@ -4705,9 +4766,9 @@ namespace Cesil.Tests
         public async Task StaticGettersAsync()
         {
             var m = ManualTypeDescriberBuilder.CreateBuilder();
-            m.SetInstanceProvider((InstanceProvider)typeof(_StaticGetters).GetConstructor(Type.EmptyTypes));
-            m.AddExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Bar", (Getter)typeof(_StaticGetters).GetMethod("GetBar", BindingFlags.Static | BindingFlags.Public));
-            m.AddExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Fizz", (Getter)typeof(_StaticGetters).GetMethod("GetFizz", BindingFlags.Static | BindingFlags.Public));
+            m.WithInstanceProvider((InstanceProvider)typeof(_StaticGetters).GetConstructor(Type.EmptyTypes));
+            m.WithExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Bar", (Getter)typeof(_StaticGetters).GetMethod("GetBar", BindingFlags.Static | BindingFlags.Public));
+            m.WithExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Fizz", (Getter)typeof(_StaticGetters).GetMethod("GetFizz", BindingFlags.Static | BindingFlags.Public));
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)m.ToManualTypeDescriber()).ToOptions();
 

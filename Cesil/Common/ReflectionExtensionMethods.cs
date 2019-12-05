@@ -41,6 +41,9 @@ namespace Cesil
         public static TypeInfo DeclaringTypeNonNull(this ConstructorInfo cons)
         {
             var declNull = cons.DeclaringType;
+            
+            // technically possible, but fantastically hard to do in C#
+            // todo: find a way to test this?
             if (declNull == null)
             {
                 return Throw.InvalidOperationException<TypeInfo>($"Could not find declaring type for {cons}");
@@ -52,6 +55,9 @@ namespace Cesil
         public static TypeInfo DeclaringTypeNonNull(this MethodInfo mtd)
         {
             var declNull = mtd.DeclaringType;
+
+            // technically possible, but fantastically hard to do in C#
+            // todo: find a way to test this?
             if (declNull == null)
             {
                 return Throw.InvalidOperationException<TypeInfo>($"Could not find declaring type for {mtd}");
@@ -63,6 +69,9 @@ namespace Cesil
         public static TypeInfo DeclaringTypeNonNull(this FieldInfo field)
         {
             var declNull = field.DeclaringType;
+
+            // technically possible, but fantastically hard to do in C#
+            // todo: find a way to test this?
             if (declNull == null)
             {
                 return Throw.InvalidOperationException<TypeInfo>($"Could not find declaring type for {field}");

@@ -7,7 +7,11 @@ namespace Cesil
     /// </summary>
     public readonly struct WriteContext : IEquatable<WriteContext>
     {
-        // todo: should expose Configuration
+        /// <summary>
+        /// Options used to create writer.  Useful for accessing
+        ///   shared configurations, like MemoryPool(char).
+        /// </summary>
+        public Options Options { get; }
 
         /// <summary>
         /// What, precisely, a writer is doing.
@@ -98,22 +102,23 @@ namespace Cesil
         [NullableExposed("The provided context is nullable, so the returned one must be")]
         public object? Context { get; }
 
-        private WriteContext(WriteContextMode m, int? r, ColumnIdentifier? ci, object? ctx)
+        private WriteContext(Options opts, WriteContextMode m, int? r, ColumnIdentifier? ci, object? ctx)
         {
+            Options = opts;
             Mode = m;
             _RowNumber = r ?? default;
             _Column = ci ?? default;
             Context = ctx;
         }
 
-        internal static WriteContext WritingColumn(int row, ColumnIdentifier col, object? ctx)
-        => new WriteContext(WriteContextMode.WritingColumn, row, col, ctx);
+        internal static WriteContext WritingColumn(Options opts, int row, ColumnIdentifier col, object? ctx)
+        => new WriteContext(opts, WriteContextMode.WritingColumn, row, col, ctx);
 
-        internal static WriteContext DiscoveringCells(int row, object? ctx)
-        => new WriteContext(WriteContextMode.DiscoveringCells, row, null, ctx);
+        internal static WriteContext DiscoveringCells(Options opts, int row, object? ctx)
+        => new WriteContext(opts, WriteContextMode.DiscoveringCells, row, null, ctx);
 
-        internal static WriteContext DiscoveringColumns(object? ctx)
-        => new WriteContext(WriteContextMode.DiscoveringColumns, null, null, ctx);
+        internal static WriteContext DiscoveringColumns(Options opts, object? ctx)
+        => new WriteContext(opts, WriteContextMode.DiscoveringColumns, null, null, ctx);
 
         /// <summary>
         /// Returns true if this object equals the given WriteContext.
@@ -135,13 +140,14 @@ namespace Cesil
         => context._Column == _Column &&
            context.Context == Context &&
            context.Mode == Mode &&
-           context._RowNumber == _RowNumber;
+           context._RowNumber == _RowNumber &&
+           context.Options == Options;
 
         /// <summary>
         /// Returns a stable hash for this WriteContext.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(WriteContext), _Column, Context, Mode, _RowNumber);
+        => HashCode.Combine(nameof(WriteContext), _Column, Context, Mode, _RowNumber, Options);
 
         /// <summary>
         /// Returns a string representation of this WriteContext.
@@ -151,11 +157,11 @@ namespace Cesil
             switch (Mode)
             {
                 case WriteContextMode.DiscoveringCells:
-                    return $"{nameof(WriteContext)} with {nameof(Mode)}={Mode}, {nameof(RowNumber)}={RowNumber}";
+                    return $"{nameof(WriteContext)} with {nameof(Mode)}={Mode}, {nameof(RowNumber)}={RowNumber}, {nameof(Options)}={Options}";
                 case WriteContextMode.DiscoveringColumns:
-                    return $"{nameof(WriteContext)} with {nameof(Mode)}={Mode}";
+                    return $"{nameof(WriteContext)} with {nameof(Mode)}={Mode}, {nameof(Options)}={Options}";
                 case WriteContextMode.WritingColumn:
-                    return $"{nameof(WriteContext)} with {nameof(Mode)}={Mode}, {nameof(RowNumber)}={RowNumber}, {nameof(Column)}={Column}";
+                    return $"{nameof(WriteContext)} with {nameof(Mode)}={Mode}, {nameof(RowNumber)}={RowNumber}, {nameof(Column)}={Column}, {nameof(Options)}={Options}";
                 default:
                     return Throw.InvalidOperationException<string>($"Unexpected {nameof(WriteContextMode)}: {Mode}");
             }

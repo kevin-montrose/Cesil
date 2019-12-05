@@ -291,7 +291,7 @@ namespace Cesil
 
             foreach (var b in Builders)
             {
-                if (!typeDescriber.Builders.TryGetKey(b.Key, out var other)) return false;
+                if (!typeDescriber.Builders.TryGetValue(b.Key, out var other)) return false;
 
                 if (!b.Value.Equals(other)) return false;
             }

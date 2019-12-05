@@ -18,9 +18,8 @@ namespace Cesil.Tests
     {
         private sealed class _FakeOwner : IDynamicRowOwner
         {
+            public Options Options { get; set; }
             public object Context { get; set; }
-
-            public IIntrusiveLinkedList<DynamicRow> NotifyOnDispose { get; set; }
 
             public void Remove(DynamicRow row) { }
         }
@@ -651,7 +650,7 @@ namespace Cesil.Tests
                 {
                     var ret = new ReaderStateMachine();
                     ret.Initialize(
-                        CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd', false, out _),
+                        CharacterLookup.MakeCharacterLookup(Options.Default, out _),
                         'a',
                         'b',
                         RowEnding.CarriageReturnLineFeed,
@@ -881,7 +880,7 @@ namespace Cesil.Tests
                     return new RowEndingDetector(
                         new ReaderStateMachine(),
                         Options.Default,
-                        CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd', false, out _),
+                        CharacterLookup.MakeCharacterLookup(Options.Default, out _),
                         new TextReaderAdapter(TextReader.Null)
                     );
                 }
@@ -926,7 +925,7 @@ namespace Cesil.Tests
                         new HeadersReader<_IDisposable>(
                             new ReaderStateMachine(),
                             config,
-                            CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd', false, out _),
+                            CharacterLookup.MakeCharacterLookup(Options.Default, out _),
                             new TextReaderAdapter(TextReader.Null),
                             new BufferWithPushback(
                                 MemoryPool<char>.Shared,
@@ -1031,7 +1030,7 @@ namespace Cesil.Tests
                 // make a partial that's "good to go"
                 CharacterLookup MakeLookup()
                 {
-                    return CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, 'a', 'b', 'c', 'd', false, out _);
+                    return CharacterLookup.MakeCharacterLookup(Options.Default, out _);
                 }
             }
 

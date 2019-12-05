@@ -40,8 +40,18 @@ namespace Cesil
             public static readonly MethodInfo GetByIdentifier = Types.DynamicRowType.GetMethodNonNull(nameof(Cesil.DynamicRow.GetByIdentifier), BindingFlags.Instance | BindingFlags.NonPublic);
         }
 
+        internal static class IDynamicRowOwner
+        {
+            public static readonly MethodInfo Options = Types.IDynamicRowOwnerType.GetPropertyNonNull(nameof(Cesil.IDynamicRowOwner.Options), BindingFlags.Instance | BindingFlags.Public).GetGetMethodNonNull();
+        }
+
         internal static class NonNull
         {
+            internal static class OfIDynamicRowOwner
+            {
+                public static readonly MethodInfo Value = Types.NonNullType.MakeGenericType(Types.IDynamicRowOwnerType).GetTypeInfo().GetPropertyNonNull(nameof(NonNull<object>.Value), BindingFlags.Instance | BindingFlags.Public).GetGetMethodNonNull();
+            }
+
             internal static class OfITypeDescriber
             {
                 public static readonly MethodInfo Value = Types.NonNullType.MakeGenericType(Types.ITypeDescriberType).GetTypeInfo().GetPropertyNonNull(nameof(NonNull<object>.Value), BindingFlags.Instance | BindingFlags.Public).GetGetMethodNonNull();

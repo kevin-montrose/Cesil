@@ -434,7 +434,9 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
-            return ReadContext.ConvertingRow(RowNumber, Owner.Value.Context);
+            var owner = Owner.Value;
+
+            return ReadContext.ConvertingRow(owner.Options, RowNumber, owner.Context);
         }
 
         private bool TryGetIndex(int index, out object? result)

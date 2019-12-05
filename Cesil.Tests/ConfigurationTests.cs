@@ -35,10 +35,36 @@ namespace Cesil.Tests
             // test that no combination of characters and state transitions
             //   will reach outside the size of the backing pin
 
-            using (var c = CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, char.MinValue, char.MaxValue, 'c', 'd', false, out var maxSize1))
-            using (var d = CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, '"', ',', '"', '#', false, out var maxSize2))
-            using (var e = CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, char.MinValue, char.MaxValue, 'c', 'd', true, out var maxSize3))
-            using (var f = CharacterLookup.MakeCharacterLookup(MemoryPool<char>.Shared, '"', ',', '"', '#', true, out var maxSize4))
+            var cOpts =
+                Options.CreateBuilder(Options.Default)
+                    .WithEscapedValueStartAndEnd(char.MinValue)
+                    .WithValueSeparator(char.MaxValue)
+                    .WithEscapedValueEscapeCharacter('c')
+                    .WithCommentCharacter('d')
+                    .ToOptions();
+
+            var dOpts =
+                Options.CreateBuilder(Options.Default)
+                    .WithEscapedValueStartAndEnd('"')
+                    .WithValueSeparator(',')
+                    .WithEscapedValueEscapeCharacter('"')
+                    .WithCommentCharacter('#')
+                    .ToOptions();
+
+            var eOpts =
+                Options.CreateBuilder(cOpts)
+                    .WithWhitespaceTreatment(WhitespaceTreatments.Trim)
+                    .ToOptions();
+
+            var fOpts =
+                Options.CreateBuilder(dOpts)
+                    .WithWhitespaceTreatment(WhitespaceTreatments.Trim)
+                    .ToOptions();
+
+            using (var c = CharacterLookup.MakeCharacterLookup(cOpts, out var maxSize1))
+            using (var d = CharacterLookup.MakeCharacterLookup(dOpts, out var maxSize2))
+            using (var e = CharacterLookup.MakeCharacterLookup(eOpts, out var maxSize3))
+            using (var f = CharacterLookup.MakeCharacterLookup(fOpts, out var maxSize4))
             {
                 foreach (var state in Enum.GetValues(typeof(ReaderStateMachine.State)).Cast<ReaderStateMachine.State>())
                 {

@@ -151,8 +151,6 @@ namespace Cesil.Tests
                     var str = _NaughtStringsAsync_Strings[j];
                     var shouldMatch = encoding.GetBytes(str);
 
-                    Debug.WriteLine($"Starting ({shouldMatch.Length}) ({i}, {j}) with ({encoding.EncodingName}): {str}");
-
                     var pipe = new Pipe();
                     var writer = pipe.Writer;
                     var reader = pipe.Reader;

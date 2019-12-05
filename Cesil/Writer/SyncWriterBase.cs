@@ -64,9 +64,11 @@ namespace Cesil
             }
             else
             {
-                CheckCanEncode(charSpan);
+                var options = Configuration.Options;
 
-                var escapedValueStartAndStop = Configuration.Options.EscapedValueStartAndEnd!.Value;
+                CheckCanEncode(charSpan, options);
+
+                var escapedValueStartAndStop = options.EscapedValueStartAndEnd!.Value;
 
                 PlaceCharInStaging(escapedValueStartAndStop);
 
@@ -91,7 +93,7 @@ namespace Cesil
             }
             else
             {
-                CheckCanEncode(head);
+                CheckCanEncode(head, Configuration.Options);
 
                 // we have to encode this value, but let's try to do it in only a couple of
                 //    write calls

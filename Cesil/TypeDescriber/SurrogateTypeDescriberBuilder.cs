@@ -131,7 +131,7 @@ namespace Cesil
         /// <summary>
         /// Sets the behavior to fallback to when no surrogate type has been registered.
         /// </summary>
-        public SurrogateTypeDescriberBuilder SetFallbackBehavior(SurrogateTypeDescriberFallbackBehavior fallbackBehavior)
+        public SurrogateTypeDescriberBuilder WithFallbackBehavior(SurrogateTypeDescriberFallbackBehavior fallbackBehavior)
         {
             if (!Enum.IsDefined(typeof(SurrogateTypeDescriberFallbackBehavior), fallbackBehavior))
             {
@@ -146,7 +146,7 @@ namespace Cesil
         /// <summary>
         /// Sets the ITypeDescriber to use to discover providers and members on a surrogate type.
         /// </summary>
-        public SurrogateTypeDescriberBuilder SetTypeDescriber(ITypeDescriber typeDescriber)
+        public SurrogateTypeDescriberBuilder WithTypeDescriber(ITypeDescriber typeDescriber)
         {
             Utils.CheckArgumentNull(typeDescriber, nameof(typeDescriber));
 
@@ -158,7 +158,7 @@ namespace Cesil
         /// <summary>
         /// Sets the ITypeDescriber to use when no surrogate type has been registered, provided FallbackBehavior allows it.
         /// </summary>
-        public SurrogateTypeDescriberBuilder SetFallbackTypeDescriber(ITypeDescriber fallbackTypeDescriber)
+        public SurrogateTypeDescriberBuilder WithFallbackTypeDescriber(ITypeDescriber fallbackTypeDescriber)
         {
             Utils.CheckArgumentNull(fallbackTypeDescriber, nameof(fallbackTypeDescriber));
 
@@ -174,7 +174,7 @@ namespace Cesil
         ///   will be used to discover members instead.  The discovered members will then
         ///   be mapped to forType, and returned.
         /// </summary>
-        public SurrogateTypeDescriberBuilder AddSurrogateType(TypeInfo forType, TypeInfo surrogateType)
+        public SurrogateTypeDescriberBuilder WithSurrogateType(TypeInfo forType, TypeInfo surrogateType)
         {
             Utils.CheckArgumentNull(forType, nameof(forType));
             Utils.CheckArgumentNull(surrogateType, nameof(surrogateType));

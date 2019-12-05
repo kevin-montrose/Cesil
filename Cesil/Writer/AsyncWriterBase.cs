@@ -276,9 +276,11 @@ namespace Cesil
             }
             else
             {
-                CheckCanEncode(charMem.Span);
+                var options = Configuration.Options;
 
-                var escapedValueStartAndStop = Configuration.Options.EscapedValueStartAndEnd!.Value;
+                CheckCanEncode(charMem.Span, options);
+
+                var escapedValueStartAndStop = options.EscapedValueStartAndEnd!.Value;
 
                 var startEscapeTask = PlaceCharInStagingAsync(escapedValueStartAndStop, cancel);
                 if (!startEscapeTask.IsCompletedSuccessfully(this))
@@ -353,7 +355,7 @@ namespace Cesil
             }
             else
             {
-                CheckCanEncode(head);
+                CheckCanEncode(head, Configuration.Options);
 
                 // we have to encode this value, but let's try to do it in only a couple of
                 //    write calls

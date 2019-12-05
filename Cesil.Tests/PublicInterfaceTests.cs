@@ -640,6 +640,11 @@ namespace Cesil.Tests
 
         private class _HelpfulToString
         {
+#pragma warning disable CS0649
+            public int Bar1;
+            public int Bar2;
+#pragma warning restore CS0649
+
             public string Foo { get; set; }
 
             public _HelpfulToString() { }
@@ -699,6 +704,7 @@ namespace Cesil.Tests
             static void InvokeToString(TypeInfo t)
             {
                 string msg;
+                string msg2 = null;
                 if (t == typeof(Reader<>))
                 {
                     msg = InvokeToString_Reader();
@@ -773,7 +779,8 @@ namespace Cesil.Tests
                 }
                 else if (t == typeof(ManualTypeDescriber))
                 {
-                    msg = InvokeToString_ManualTypeDescriber();
+                    msg = InvokeToString_ManualTypeDescriber1();
+                    msg2 = InvokeToString_ManualTypeDescriber2();
                 }
                 else if (t == typeof(ManualTypeDescriberBuilder))
                 {
@@ -914,6 +921,11 @@ namespace Cesil.Tests
                 shouldStartWith += " ";
 
                 Assert.StartsWith(shouldStartWith, msg);
+
+                if(msg2 != null)
+                {
+                    Assert.StartsWith(shouldStartWith, msg2);
+                }
             }
 
             static string InvokeToString_DynamicRowMemberNameEnumerator()
@@ -1237,6 +1249,8 @@ namespace Cesil.Tests
             static string InvokeToString_SurrogateTypeDescriberBuilder()
             {
                 var sb = SurrogateTypeDescriberBuilder.CreateBuilder();
+                sb.WithSurrogateType(typeof(string).GetTypeInfo(), typeof(object).GetTypeInfo());
+                sb.WithSurrogateType(typeof(int).GetTypeInfo(), typeof(long).GetTypeInfo());
 
                 return sb.ToString();
             }
@@ -1247,10 +1261,46 @@ namespace Cesil.Tests
                 return m.ToString();
             }
 
-            static string InvokeToString_ManualTypeDescriber()
+            static string InvokeToString_ManualTypeDescriber1()
             {
-                var m = ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber();
-                return m.ToString();
+                var m = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback);
+                var b1 = InstanceProvider.ForDelegate((out string x) => { x = ""; return true; });
+                var b2 = InstanceProvider.ForDelegate((out int x) => { x = 0; return true; });
+
+                var f1 = typeof(_HelpfulToString).GetField(nameof(_HelpfulToString.Bar1));
+                var f2 = typeof(_HelpfulToString).GetField(nameof(_HelpfulToString.Bar2));
+
+                m.WithInstanceProvider(b1);
+                m.WithInstanceProvider(b2);
+                m.WithDeserializableField(f1);
+                m.WithDeserializableField(f2);
+                m.WithSerializableField(f1);
+                m.WithSerializableField(f2);
+
+                var b = m.ToManualTypeDescriber();
+
+                return b.ToString();
+            }
+
+            static string InvokeToString_ManualTypeDescriber2()
+            {
+                var m = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.Throw);
+                var b1 = InstanceProvider.ForDelegate((out string x) => { x = ""; return true; });
+                var b2 = InstanceProvider.ForDelegate((out int x) => { x = 0; return true; });
+
+                var f1 = typeof(_HelpfulToString).GetField(nameof(_HelpfulToString.Bar1));
+                var f2 = typeof(_HelpfulToString).GetField(nameof(_HelpfulToString.Bar2));
+
+                m.WithInstanceProvider(b1);
+                m.WithInstanceProvider(b2);
+                m.WithDeserializableField(f1);
+                m.WithDeserializableField(f2);
+                m.WithSerializableField(f1);
+                m.WithSerializableField(f2);
+
+                var b = m.ToManualTypeDescriber();
+
+                return b.ToString();
             }
 
             static string InvokeToString_DefaultTypeDescriber()
@@ -1308,13 +1358,13 @@ namespace Cesil.Tests
 
             static string InvokeToString_WriteContext()
             {
-                var c = WriteContext.WritingColumn(4, (ColumnIdentifier)19, null);
+                var c = WriteContext.WritingColumn(Options.Default, 4, (ColumnIdentifier)19, null);
                 return c.ToString();
             }
 
             static string InvokeToString_ReadContext()
             {
-                var c = ReadContext.ConvertingColumn(2, (ColumnIdentifier)4, "foo");
+                var c = ReadContext.ConvertingColumn(Options.Default, 2, (ColumnIdentifier)4, "foo");
                 return c.ToString();
             }
 
@@ -1977,6 +2027,8 @@ namespace Cesil.Tests
 
                 var staticBuiltMtds = builtMtds.Where(b => b.IsStatic).ToArray();
 
+                var builderProps = builder.GetProperties();
+
                 // there's a method on the builder called CreateBuilder, that returns the builder, and takes an instance of the built
                 Assert.Contains(
                     staticBuilderMtds,
@@ -2046,7 +2098,21 @@ namespace Cesil.Tests
                 var builtInstanceExceptToXXX = instanceBuilderMtds.Where(m => m.Name != "To" + built.Name).ToList();
                 Assert.All(
                     builtInstanceExceptToXXX,
-                    m => Assert.Equal(builder, m.ReturnType)
+                    m =>
+                    {
+                        Assert.Equal(builder, m.ReturnType);
+                        Assert.StartsWith("With", m.Name);
+                    }
+                );
+
+                Assert.All(
+                    builderProps,
+                    p =>
+                    {
+                        var with = "With" + p.Name;
+                        var mtd = instanceBuilderMtds.SingleOrDefault(m => m.Name == with);
+                        Assert.NotNull(mtd);
+                    }
                 );
             }
         }

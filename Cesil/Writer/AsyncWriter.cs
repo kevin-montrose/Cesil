@@ -375,7 +375,7 @@ namespace Cesil
                 }
             }
 
-            var ctx = WriteContext.WritingColumn(RowNumber, ColumnIdentifier.Create(colIx, col.Name), Context);
+            var ctx = WriteContext.WritingColumn(Configuration.Options, RowNumber, ColumnIdentifier.Create(colIx, col.Name), Context);
 
             if (!col.Write.Value(row, ctx, Buffer))
             {
@@ -405,7 +405,7 @@ namespace Cesil
                 await waitFor;
                 cancel.ThrowIfCancellationRequested();
 
-                var ctx = WriteContext.WritingColumn(self.RowNumber, ColumnIdentifier.Create(colIx, col.Name), self.Context);
+                var ctx = WriteContext.WritingColumn(self.Configuration.Options, self.RowNumber, ColumnIdentifier.Create(colIx, col.Name), self.Context);
 
                 if (!col.Write.Value(row, ctx, self.Buffer))
                 {

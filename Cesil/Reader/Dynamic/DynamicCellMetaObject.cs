@@ -45,9 +45,12 @@ namespace Cesil
             var converterInterface = Cell.Converter;
             var index = Cell.ColumnNumber;
 
-            var col = Cell.Row.Columns.Value[index];
+            var row = Cell.Row;
+            var owner = row.Owner.Value;
 
-            var ctx = ReadContext.ConvertingColumn(Cell.Row.RowNumber, col, Cell.Row.Owner.Value.Context);
+            var col = row.Columns.Value[index];
+
+            var ctx = ReadContext.ConvertingColumn(owner.Options, row.RowNumber, col, owner.Context);
 
             var converter = converterInterface.GetDynamicCellParserFor(in ctx, retType);
             var restrictions = MakeRestrictions(converter, retType);

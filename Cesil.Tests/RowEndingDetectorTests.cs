@@ -48,7 +48,7 @@ namespace Cesil.Tests
 
             using (var str = new StringReader(csv))
             {
-                using (var charLookup = CharacterLookup.MakeCharacterLookup(config.Options.MemoryPool, config.Options.EscapedValueStartAndEnd, config.Options.ValueSeparator, config.Options.EscapedValueEscapeCharacter, config.Options.CommentCharacter, false, out _))
+                using (var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, out _))
                 {
                     var detector = new RowEndingDetector(new ReaderStateMachine(), config.Options, charLookup, new TextReaderAdapter(str));
                     var detect = detector.Detect();
@@ -98,7 +98,7 @@ namespace Cesil.Tests
                         await using (configUnpin?.CreateAsyncReader(str))
                         {
                             var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
-                            using (var charLookup = CharacterLookup.MakeCharacterLookup(cInner.Options.MemoryPool, cInner.Options.EscapedValueStartAndEnd, cInner.Options.ValueSeparator, cInner.Options.EscapedValueEscapeCharacter, cInner.Options.CommentCharacter, false, out _))
+                            using (var charLookup = CharacterLookup.MakeCharacterLookup(cInner.Options, out _))
                             using (var detector = new RowEndingDetector(stateMachine, cInner.Options, charLookup, str))
                             {
                                 if (configForced != null)

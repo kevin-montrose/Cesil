@@ -759,13 +759,13 @@ namespace Cesil.Tests
         {
             var m = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback);
 
-            m.SetInstanceProvider(InstanceProvider.ForDelegate((out _FailingParser val) => { val = new _FailingParser(); return true; }));
+            m.WithInstanceProvider(InstanceProvider.ForDelegate((out _FailingParser val) => { val = new _FailingParser(); return true; }));
 
             var t = typeof(_FailingParser).GetTypeInfo();
             var s = Setter.ForMethod(t.GetProperty(nameof(_FailingParser.Foo)).SetMethod);
             var p = Parser.ForDelegate((ReadOnlySpan<char> data, in ReadContext ctx, out string result) => { result = ""; return false; });
 
-            m.AddExplicitSetter(t, "Foo", s, p);
+            m.WithExplicitSetter(t, "Foo", s, p);
 
             var opt = Options.CreateBuilder(Options.Default).WithTypeDescriber(m.ToManualTypeDescriber()).ToOptions();
 
@@ -1117,39 +1117,44 @@ namespace Cesil.Tests
         [Fact]
         public void ReadContexts()
         {
-            // columns
             {
-                var cc = Cesil.ReadContext.ConvertingColumn(1, ColumnIdentifier.Create(1), null);
-                var cr = Cesil.ReadContext.ConvertingRow(1, null);
-                var rc = Cesil.ReadContext.ReadingColumn(1, ColumnIdentifier.Create(1), null);
+                var cc = Cesil.ReadContext.ConvertingColumn(Options.Default, 1, ColumnIdentifier.Create(1), null);
+                var cr = Cesil.ReadContext.ConvertingRow(Options.Default, 1, null);
+                var rc = Cesil.ReadContext.ReadingColumn(Options.Default, 1, ColumnIdentifier.Create(1), null);
 
+                Assert.Same(Options.Default, cc.Options);
                 Assert.True(cc.HasColumn);
                 Assert.Equal(ColumnIdentifier.Create(1), cc.Column);
 
+                Assert.Same(Options.Default, cr.Options);
                 Assert.False(cr.HasColumn);
                 Assert.Throws<InvalidOperationException>(() => cr.Column);
 
+                Assert.Same(Options.Default, rc.Options);
                 Assert.True(rc.HasColumn);
                 Assert.Equal(ColumnIdentifier.Create(1), rc.Column);
             }
 
             // equality
             {
-                var cc1 = Cesil.ReadContext.ConvertingColumn(1, ColumnIdentifier.Create(1), null);
-                var cc2 = Cesil.ReadContext.ConvertingColumn(1, ColumnIdentifier.Create(1), "foo");
-                var cc3 = Cesil.ReadContext.ConvertingColumn(1, ColumnIdentifier.Create(2), null);
-                var cc4 = Cesil.ReadContext.ConvertingColumn(2, ColumnIdentifier.Create(1), null);
+                var cc1 = Cesil.ReadContext.ConvertingColumn(Options.Default, 1, ColumnIdentifier.Create(1), null);
+                var cc2 = Cesil.ReadContext.ConvertingColumn(Options.Default, 1, ColumnIdentifier.Create(1), "foo");
+                var cc3 = Cesil.ReadContext.ConvertingColumn(Options.Default, 1, ColumnIdentifier.Create(2), null);
+                var cc4 = Cesil.ReadContext.ConvertingColumn(Options.Default, 2, ColumnIdentifier.Create(1), null);
+                var cc5 = Cesil.ReadContext.ConvertingColumn(Options.DynamicDefault, 1, ColumnIdentifier.Create(1), null);
 
-                var cr1 = Cesil.ReadContext.ConvertingRow(1, null);
-                var cr2 = Cesil.ReadContext.ConvertingRow(1, "foo");
-                var cr3 = Cesil.ReadContext.ConvertingRow(2, null);
+                var cr1 = Cesil.ReadContext.ConvertingRow(Options.Default, 1, null);
+                var cr2 = Cesil.ReadContext.ConvertingRow(Options.Default, 1, "foo");
+                var cr3 = Cesil.ReadContext.ConvertingRow(Options.Default, 2, null);
+                var cr4 = Cesil.ReadContext.ConvertingRow(Options.DynamicDefault, 1, null);
 
-                var rc1 = Cesil.ReadContext.ReadingColumn(1, ColumnIdentifier.Create(1), null);
-                var rc2 = Cesil.ReadContext.ReadingColumn(1, ColumnIdentifier.Create(1), "foo");
-                var rc3 = Cesil.ReadContext.ReadingColumn(1, ColumnIdentifier.Create(2), null);
-                var rc4 = Cesil.ReadContext.ReadingColumn(2, ColumnIdentifier.Create(1), null);
+                var rc1 = Cesil.ReadContext.ReadingColumn(Options.Default, 1, ColumnIdentifier.Create(1), null);
+                var rc2 = Cesil.ReadContext.ReadingColumn(Options.Default, 1, ColumnIdentifier.Create(1), "foo");
+                var rc3 = Cesil.ReadContext.ReadingColumn(Options.Default, 1, ColumnIdentifier.Create(2), null);
+                var rc4 = Cesil.ReadContext.ReadingColumn(Options.Default, 2, ColumnIdentifier.Create(1), null);
+                var rc5 = Cesil.ReadContext.ReadingColumn(Options.DynamicDefault, 1, ColumnIdentifier.Create(1), null);
 
-                var contexts = new[] { cc1, cc2, cc3, cc4, cr1, cr2, cr3, rc1, rc2, rc3, rc4 };
+                var contexts = new[] { cc1, cc2, cc3, cc4, cc5, cr1, cr2, cr3, cr4, rc1, rc2, rc3, rc4, rc5 };
 
                 var notContext = "";
 
@@ -1218,8 +1223,8 @@ namespace Cesil.Tests
 
 
             var typeDesc = ManualTypeDescriberBuilder.CreateBuilder();
-            typeDesc.AddDeserializableProperty(typeof(_RowCreationFailure).GetProperty(nameof(_RowCreationFailure.Foo)));
-            typeDesc.SetInstanceProvider((InstanceProvider)builder);
+            typeDesc.WithDeserializableProperty(typeof(_RowCreationFailure).GetProperty(nameof(_RowCreationFailure.Foo)));
+            typeDesc.WithInstanceProvider((InstanceProvider)builder);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)typeDesc.ToManualTypeDescriber()).ToOptions();
 
@@ -1655,9 +1660,9 @@ namespace Cesil.Tests
             var reset = Reset.ForDelegate(resetDel);
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, MemberRequired.No, reset);
+            describer.WithExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, MemberRequired.No, reset);
             InstanceProviderDelegate<_DelegateReset> del = (out _DelegateReset i) => { i = new _DelegateReset(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
@@ -1702,9 +1707,9 @@ namespace Cesil.Tests
             var reset = Reset.ForDelegate(resetDel);
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, MemberRequired.No, reset);
+            describer.WithExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, MemberRequired.No, reset);
             InstanceProviderDelegate<_DelegateReset> del = (out _DelegateReset i) => { i = new _DelegateReset(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
@@ -1750,9 +1755,9 @@ namespace Cesil.Tests
                 };
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddExplicitSetter(typeof(_DelegateSetter).GetTypeInfo(), "Foo", Setter.ForDelegate(parser));
+            describer.WithExplicitSetter(typeof(_DelegateSetter).GetTypeInfo(), "Foo", Setter.ForDelegate(parser));
             InstanceProviderDelegate<_DelegateSetter> del = (out _DelegateSetter i) => { i = new _DelegateSetter(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
@@ -1795,9 +1800,9 @@ namespace Cesil.Tests
                 };
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddExplicitSetter(typeof(_DelegateSetter).GetTypeInfo(), "Foo", Setter.ForDelegate(parser));
+            describer.WithExplicitSetter(typeof(_DelegateSetter).GetTypeInfo(), "Foo", Setter.ForDelegate(parser));
             InstanceProviderDelegate<_DelegateSetter> del = (out _DelegateSetter i) => { i = new _DelegateSetter(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
@@ -1861,14 +1866,14 @@ namespace Cesil.Tests
             // single param
             {
                 var describer = ManualTypeDescriberBuilder.CreateBuilder();
-                describer.AddDeserializableProperty(
+                describer.WithDeserializableProperty(
                     typeof(_ConstructorParser_Outer).GetProperty(nameof(_ConstructorParser_Outer.Foo)),
                     nameof(_ConstructorParser_Outer.Foo),
                     Parser.ForConstructor(cons1)
                 );
 
                 InstanceProviderDelegate<_ConstructorParser_Outer> del = (out _ConstructorParser_Outer i) => { i = new _ConstructorParser_Outer(); return true; };
-                describer.SetInstanceProvider((InstanceProvider)del);
+                describer.WithInstanceProvider((InstanceProvider)del);
 
                 var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
@@ -1900,13 +1905,13 @@ namespace Cesil.Tests
             // two params
             {
                 var describer = ManualTypeDescriberBuilder.CreateBuilder();
-                describer.AddDeserializableProperty(
+                describer.WithDeserializableProperty(
                     typeof(_ConstructorParser_Outer).GetProperty(nameof(_ConstructorParser_Outer.Foo)),
                     nameof(_ConstructorParser_Outer.Foo),
                     Parser.ForConstructor(cons2)
                 );
                 InstanceProviderDelegate<_ConstructorParser_Outer> del = (out _ConstructorParser_Outer i) => { i = new _ConstructorParser_Outer(); return true; };
-                describer.SetInstanceProvider((InstanceProvider)del);
+                describer.WithInstanceProvider((InstanceProvider)del);
 
                 var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
@@ -1956,13 +1961,13 @@ namespace Cesil.Tests
                 };
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddDeserializableProperty(
+            describer.WithDeserializableProperty(
                 typeof(_DelegateParser).GetProperty(nameof(_DelegateParser.Foo)),
                 nameof(_DelegateParser.Foo),
                 Parser.ForDelegate(parser)
             );
             InstanceProviderDelegate<_DelegateParser> del = (out _DelegateParser i) => { i = new _DelegateParser(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
@@ -2000,9 +2005,9 @@ namespace Cesil.Tests
         public void StaticSetter()
         {
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddDeserializableProperty(typeof(_StaticSetter).GetProperty(nameof(_StaticSetter.Foo), BindingFlags.Static | BindingFlags.Public));
+            describer.WithDeserializableProperty(typeof(_StaticSetter).GetProperty(nameof(_StaticSetter.Foo), BindingFlags.Static | BindingFlags.Public));
             InstanceProviderDelegate<_StaticSetter> del = (out _StaticSetter i) => { i = new _StaticSetter(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
@@ -3724,9 +3729,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             var parseBar = (Parser)typeof(ReaderTests).GetMethod(nameof(_Context_ParseBar));
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback);
-            describer.SetInstanceProvider((InstanceProvider)typeof(_Context).GetConstructor(Type.EmptyTypes));
-            describer.AddDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), parseFoo);
-            describer.AddDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), parseBar);
+            describer.WithInstanceProvider((InstanceProvider)typeof(_Context).GetConstructor(Type.EmptyTypes));
+            describer.WithDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), parseFoo);
+            describer.WithDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), parseBar);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(describer.ToManualTypeDescriber()).ToOptions();
 
@@ -4600,13 +4605,13 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         {
             var m = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback);
 
-            m.SetInstanceProvider(InstanceProvider.ForDelegate((out _FailingParser val) => { val = new _FailingParser(); return true; }));
+            m.WithInstanceProvider(InstanceProvider.ForDelegate((out _FailingParser val) => { val = new _FailingParser(); return true; }));
 
             var t = typeof(_FailingParser).GetTypeInfo();
             var s = Setter.ForMethod(t.GetProperty(nameof(_FailingParser.Foo)).SetMethod);
             var p = Parser.ForDelegate((ReadOnlySpan<char> data, in ReadContext ctx, out string result) => { result = ""; return false; });
 
-            m.AddExplicitSetter(t, "Foo", s, p);
+            m.WithExplicitSetter(t, "Foo", s, p);
 
             var opt = Options.CreateBuilder(Options.Default).WithTypeDescriber(m.ToManualTypeDescriber()).ToOptions();
 
@@ -4735,8 +4740,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
 
 
             var typeDesc = ManualTypeDescriberBuilder.CreateBuilder();
-            typeDesc.AddDeserializableProperty(typeof(_RowCreationFailure).GetProperty(nameof(_RowCreationFailure.Foo)));
-            typeDesc.SetInstanceProvider((InstanceProvider)builder);
+            typeDesc.WithDeserializableProperty(typeof(_RowCreationFailure).GetProperty(nameof(_RowCreationFailure.Foo)));
+            typeDesc.WithInstanceProvider((InstanceProvider)builder);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)typeDesc.ToManualTypeDescriber()).ToOptions();
 
@@ -5253,9 +5258,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             var reset = Reset.ForDelegate(resetDel);
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, MemberRequired.No, reset);
+            describer.WithExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, MemberRequired.No, reset);
             InstanceProviderDelegate<_DelegateReset> del = (out _DelegateReset i) => { i = new _DelegateReset(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
@@ -5300,9 +5305,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             var reset = Reset.ForDelegate(resetDel);
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, MemberRequired.No, reset);
+            describer.WithExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, MemberRequired.No, reset);
             InstanceProviderDelegate<_DelegateReset> del = (out _DelegateReset i) => { i = new _DelegateReset(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
@@ -5343,9 +5348,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                 };
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddExplicitSetter(typeof(_DelegateSetter).GetTypeInfo(), "Foo", Setter.ForDelegate(parser));
+            describer.WithExplicitSetter(typeof(_DelegateSetter).GetTypeInfo(), "Foo", Setter.ForDelegate(parser));
             InstanceProviderDelegate<_DelegateSetter> del = (out _DelegateSetter i) => { i = new _DelegateSetter(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
@@ -5388,9 +5393,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                 };
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddExplicitSetter(typeof(_DelegateSetter).GetTypeInfo(), "Foo", Setter.ForDelegate(parser));
+            describer.WithExplicitSetter(typeof(_DelegateSetter).GetTypeInfo(), "Foo", Setter.ForDelegate(parser));
             InstanceProviderDelegate<_DelegateSetter> del = (out _DelegateSetter i) => { i = new _DelegateSetter(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
@@ -5428,13 +5433,13 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             // single param
             {
                 var describer = ManualTypeDescriberBuilder.CreateBuilder();
-                describer.AddDeserializableProperty(
+                describer.WithDeserializableProperty(
                     typeof(_ConstructorParser_Outer).GetProperty(nameof(_ConstructorParser_Outer.Foo)),
                     nameof(_ConstructorParser_Outer.Foo),
                     Parser.ForConstructor(cons1)
                 );
                 InstanceProviderDelegate<_ConstructorParser_Outer> del = (out _ConstructorParser_Outer i) => { i = new _ConstructorParser_Outer(); return true; };
-                describer.SetInstanceProvider((InstanceProvider)del);
+                describer.WithInstanceProvider((InstanceProvider)del);
 
                 var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
@@ -5466,13 +5471,13 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             // two params
             {
                 var describer = ManualTypeDescriberBuilder.CreateBuilder();
-                describer.AddDeserializableProperty(
+                describer.WithDeserializableProperty(
                     typeof(_ConstructorParser_Outer).GetProperty(nameof(_ConstructorParser_Outer.Foo)),
                     nameof(_ConstructorParser_Outer.Foo),
                     Parser.ForConstructor(cons2)
                 );
                 InstanceProviderDelegate<_ConstructorParser_Outer> del = (out _ConstructorParser_Outer i) => { i = new _ConstructorParser_Outer(); return true; };
-                describer.SetInstanceProvider((InstanceProvider)del);
+                describer.WithInstanceProvider((InstanceProvider)del);
 
                 var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
@@ -5517,13 +5522,13 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                 };
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddDeserializableProperty(
+            describer.WithDeserializableProperty(
                 typeof(_DelegateParser).GetProperty(nameof(_DelegateParser.Foo)),
                 nameof(_DelegateParser.Foo),
                 Parser.ForDelegate(parser)
             );
             InstanceProviderDelegate<_DelegateParser> del = (out _DelegateParser i) => { i = new _DelegateParser(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 
@@ -7070,9 +7075,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             var parseBar = (Parser)typeof(ReaderTests).GetMethod(nameof(_Context_ParseBar));
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback);
-            describer.SetInstanceProvider((InstanceProvider)typeof(_Context).GetConstructor(Type.EmptyTypes));
-            describer.AddDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), parseFoo);
-            describer.AddDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), parseBar);
+            describer.WithInstanceProvider((InstanceProvider)typeof(_Context).GetConstructor(Type.EmptyTypes));
+            describer.WithDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Foo)), nameof(_Context.Foo), parseFoo);
+            describer.WithDeserializableProperty(typeof(_Context).GetProperty(nameof(_Context.Bar)), nameof(_Context.Bar), parseBar);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(describer.ToManualTypeDescriber()).ToOptions();
 
@@ -7151,9 +7156,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         public async Task StaticSetterAsync()
         {
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.AddDeserializableProperty(typeof(_StaticSetter).GetProperty(nameof(_StaticSetter.Foo), BindingFlags.Static | BindingFlags.Public));
+            describer.WithDeserializableProperty(typeof(_StaticSetter).GetProperty(nameof(_StaticSetter.Foo), BindingFlags.Static | BindingFlags.Public));
             InstanceProviderDelegate<_StaticSetter> del = (out _StaticSetter i) => { i = new _StaticSetter(); return true; };
-            describer.SetInstanceProvider((InstanceProvider)del);
+            describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 

@@ -38,7 +38,7 @@ namespace Cesil
             }
 
             var memPool = options.MemoryPool;
-            
+
             Buffer =
                 new BufferWithPushback(
                     memPool,
@@ -46,20 +46,7 @@ namespace Cesil
                 );
             Partial = new Partial<T>(memPool);
 
-            var start = options.EscapedValueStartAndEnd;
-            var escape = options.EscapedValueEscapeCharacter;
-            var comment = options.CommentCharacter;
-
-            SharedCharacterLookup =
-                CharacterLookup.MakeCharacterLookup(
-                    memPool,
-                    start,
-                    options.ValueSeparator,
-                    escape,
-                    comment,
-                    options.WhitespaceTreatment != WhitespaceTreatments.Preserve,
-                    out _
-                );
+            SharedCharacterLookup = CharacterLookup.MakeCharacterLookup(options, out _);
             StateMachine = new ReaderStateMachine();
         }
 
@@ -402,7 +389,7 @@ namespace Cesil
                 Throw.SerializationException<object>($"Column [{column.Name}] is required, but was not found in row");
             }
 
-            var ctx = ReadContext.ReadingColumn(RowNumber, ColumnIdentifier.Create(colIx, column.Name), Context);
+            var ctx = ReadContext.ReadingColumn(Configuration.Options, RowNumber, ColumnIdentifier.Create(colIx, column.Name), Context);
 
             if (!column.Set.Value(dataSpan.Span, in ctx, Partial.Value))
             {

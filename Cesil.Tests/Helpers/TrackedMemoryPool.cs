@@ -11,8 +11,6 @@ namespace Cesil.Tests
     /// </summary>
     public sealed class TrackedMemoryPool<T> : MemoryPool<T>
     {
-        private const bool LOG = true;
-
         private sealed class TrackedMemoryOwner : IMemoryOwner<T>
         {
             public Memory<T> Memory => Inner.Memory;
@@ -41,7 +39,7 @@ namespace Cesil.Tests
 
                 if (res < 0) throw new InvalidOperationException("Outstanding rentals became negative");
 
-                Debug.WriteLineIf(LOG, $"\tFreed {Id}");
+                Debug.WriteLineIf(LogConstants.TRACKED_MEMORY_OWNER, $"\tFreed {Id}");
             }
         }
 
@@ -63,7 +61,7 @@ namespace Cesil.Tests
         {
             PoolId = Interlocked.Increment(ref NextPoolId);
 
-            Debug.WriteLine($"Initializing {nameof(TrackedMemoryOwner)} PoolId={PoolId}");
+            Debug.WriteLineIf(LogConstants.TRACKED_MEMORY_OWNER, $"Initializing {nameof(TrackedMemoryOwner)} PoolId={PoolId}");
 
             _OutstandinRentals = 0;
             _TotalRentals = 0;
@@ -79,7 +77,7 @@ namespace Cesil.Tests
 
             var id = Interlocked.Increment(ref NextRentId);
 
-            Debug.WriteLineIf(LOG, $"\tRented {id}");
+            Debug.WriteLineIf(LogConstants.TRACKED_MEMORY_OWNER, $"\tRented {id}");
 
             return new TrackedMemoryOwner(id, rent, this);
         }

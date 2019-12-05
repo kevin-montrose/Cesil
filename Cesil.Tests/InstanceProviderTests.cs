@@ -119,8 +119,8 @@ namespace Cesil.Tests
             InstanceProvider builder = (InstanceProvider)typeof(InstanceProviderTests).GetMethod(nameof(_MethodBacking_Method), BindingFlags.Static | BindingFlags.NonPublic);
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
-            describer.SetInstanceProvider(builder);
-            describer.AddDeserializableProperty(typeof(_MethodBacking_Type).GetProperty(nameof(_MethodBacking_Type.Bar)));
+            describer.WithInstanceProvider(builder);
+            describer.WithDeserializableProperty(typeof(_MethodBacking_Type).GetProperty(nameof(_MethodBacking_Type.Bar)));
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
 

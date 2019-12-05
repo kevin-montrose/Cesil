@@ -7,7 +7,11 @@ namespace Cesil
     /// </summary>
     public readonly struct ReadContext : IEquatable<ReadContext>
     {
-        // todo: should expose Configuration
+        /// <summary>
+        /// Options used to create reader.  Useful for accessing
+        ///   shared configurations, like MemoryPool(char).
+        /// </summary>
+        public Options Options { get; }
 
         /// <summary>
         /// What, precisely, a reader is doing.
@@ -71,22 +75,23 @@ namespace Cesil
         [NullableExposed("The provided context is nullable, so the returned one must be")]
         public object? Context { get; }
 
-        private ReadContext(ReadContextMode m, int r, ColumnIdentifier? ci, object? ctx)
+        private ReadContext(Options opts, ReadContextMode m, int r, ColumnIdentifier? ci, object? ctx)
         {
+            Options = opts;
             Mode = m;
             RowNumber = r;
             _Column = ci ?? default;
             Context = ctx;
         }
 
-        internal static ReadContext ReadingColumn(int r, ColumnIdentifier col, object? ctx)
-        => new ReadContext(ReadContextMode.ReadingColumn, r, col, ctx);
+        internal static ReadContext ReadingColumn(Options opts, int r, ColumnIdentifier col, object? ctx)
+        => new ReadContext(opts, ReadContextMode.ReadingColumn, r, col, ctx);
 
-        internal static ReadContext ConvertingColumn(int r, ColumnIdentifier col, object? ctx)
-        => new ReadContext(ReadContextMode.ConvertingColumn, r, col, ctx);
+        internal static ReadContext ConvertingColumn(Options opts, int r, ColumnIdentifier col, object? ctx)
+        => new ReadContext(opts, ReadContextMode.ConvertingColumn, r, col, ctx);
 
-        internal static ReadContext ConvertingRow(int r, object? ctx)
-        => new ReadContext(ReadContextMode.ConvertingRow, r, null, ctx);
+        internal static ReadContext ConvertingRow(Options opts, int r, object? ctx)
+        => new ReadContext(opts, ReadContextMode.ConvertingRow, r, null, ctx);
 
         /// <summary>
         /// Returns true if this object equals the given ReadContext.
@@ -108,21 +113,22 @@ namespace Cesil
         => context.Mode == Mode &&
            context._Column == _Column &&
            context.Context == Context &&
-           context.RowNumber == RowNumber;
+           context.RowNumber == RowNumber &&
+           context.Options == Options;
 
         /// <summary>
         /// Returns a stable hash for this ReadContext.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(ReadContext), Mode, _Column, Context, RowNumber);
+        => HashCode.Combine(nameof(ReadContext), Mode, _Column, Context, RowNumber, Options);
 
         /// <summary>
         /// Returns a string representation of this ReadContext.
         /// </summary>
         public override string ToString()
         => HasColumn ?
-            $"{nameof(ReadContext)} of {Mode} with {nameof(RowNumber)}={RowNumber}, {nameof(Column)}={Column}, {nameof(Context)}={Context}" :
-            $"{nameof(ReadContext)} of {Mode} with {nameof(RowNumber)}={RowNumber}, {nameof(Context)}={Context}";
+            $"{nameof(ReadContext)} of {Mode} with {nameof(RowNumber)}={RowNumber}, {nameof(Column)}={Column}, {nameof(Context)}={Context}, {nameof(Options)}={Options}" :
+            $"{nameof(ReadContext)} of {Mode} with {nameof(RowNumber)}={RowNumber}, {nameof(Context)}={Context}, {nameof(Options)}={Options}";
 
         /// <summary>
         /// Compare two ReadContexts for equality

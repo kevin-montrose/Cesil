@@ -39,7 +39,9 @@ namespace Cesil
 
             var name = r.Columns.Value[ColumnNumber];
 
-            return ReadContext.ReadingColumn(r.RowNumber, name, r.Owner.Value.Context);
+            var owner = r.Owner.Value;
+
+            return ReadContext.ReadingColumn(owner.Options, r.RowNumber, name, owner.Context);
         }
 
         public DynamicMetaObject GetMetaObject(Expression exp)

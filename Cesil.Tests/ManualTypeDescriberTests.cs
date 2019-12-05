@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Xunit;
@@ -7,6 +8,86 @@ namespace Cesil.Tests
 {
     public class ManualTypeDescriberTests
     {
+        [Fact]
+        public void Equality()
+        {
+            var behaviors = new[] { ManualTypeDescriberFallbackBehavior.Throw, ManualTypeDescriberFallbackBehavior.UseFallback };
+            var fallbacks = new[] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() };
+            var providers = new[] { InstanceProvider.ForDelegate((out string x) => { x = ""; return true; }), InstanceProvider.ForDelegate((out object o) => { o = new object(); return true; }) };
+            var getters =
+                new[]
+                {
+                    new[] { Getter.ForDelegate(() => 0) },
+                    new[] { Getter.ForDelegate(() => "") },
+                    new [] { Getter.ForDelegate(() => 0), Getter.ForDelegate(() => "") }
+                };
+            var setters =
+                new[] {
+                    new [] {Setter.ForDelegate((int i) => { }) },
+                    new [] { Setter.ForDelegate((string s) => { }) },
+                    new [] { Setter.ForDelegate((int i) => { }) , Setter.ForDelegate((string s) => { }) }
+                };
+
+            var manuals = new List<ManualTypeDescriber>();
+
+            foreach (var a in behaviors)
+            {
+                foreach (var b in fallbacks)
+                {
+                    foreach (var c in providers)
+                    {
+                        foreach (var d in getters)
+                        {
+                            foreach (var e in setters)
+                            {
+                                var x = ManualTypeDescriberBuilder.CreateBuilder(a, b);
+                                x.WithInstanceProvider(c);
+
+                                for (var i = 0; i < d.Length; i++)
+                                {
+                                    x.WithExplicitGetter(typeof(string).GetTypeInfo(), i.ToString(), d[i]);
+                                }
+                                for (var i = 0; i < e.Length; i++)
+                                {
+                                    x.WithExplicitSetter(typeof(string).GetTypeInfo(), i.ToString(), e[i]);
+                                }
+
+                                manuals.Add(x.ToManualTypeDescriber());
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (var i = 0; i < manuals.Count; i++)
+            {
+                var m1 = manuals[i];
+                for (var j = i; j < manuals.Count; j++)
+                {
+                    var m2 = manuals[j];
+
+                    var eq = m1 == m2;
+                    var eqObj = m1.Equals((object)m2);
+                    var neq = m1 != m2;
+                    var hashEqual = m1.GetHashCode() == m2.GetHashCode();
+
+                    if (i == j)
+                    {
+                        Assert.True(eq);
+                        Assert.True(eqObj);
+                        Assert.False(neq);
+                        Assert.True(hashEqual);
+                    }
+                    else
+                    {
+                        Assert.False(eq);
+                        Assert.False(eqObj);
+                        Assert.True(neq);
+                    }
+                }
+            }
+        }
+
         [Fact]
         public void NotSupported()
         {
@@ -20,6 +101,73 @@ namespace Cesil.Tests
         public void ConstructionErrors()
         {
             Assert.Throws<ArgumentException>(() => ManualTypeDescriber.CreateBuilder((ManualTypeDescriberFallbackBehavior)0));
+            Assert.Throws<ArgumentException>(() => ManualTypeDescriber.CreateBuilder((ManualTypeDescriberFallbackBehavior)0, TypeDescribers.Default));
+            Assert.Throws<ArgumentNullException>(() => ManualTypeDescriber.CreateBuilder(ManualTypeDescriberFallbackBehavior.Throw, null));
+            Assert.Throws<ArgumentNullException>(() => ManualTypeDescriber.CreateBuilder(null));
+        }
+
+        private sealed class _Copy
+        {
+            public string Foo { get; set; }
+        }
+
+        [Fact]
+        public void Copy()
+        {
+            var m1 = ManualTypeDescriberBuilder.CreateBuilder();
+
+            var t = typeof(_Copy).GetTypeInfo();
+            var g = Getter.ForMethod(t.GetProperty(nameof(_Copy.Foo)).GetMethod);
+            m1.WithExplicitGetter(t, "Nope", g);
+
+            var t1 = m1.ToManualTypeDescriber();
+
+            var m2 = ManualTypeDescriberBuilder.CreateBuilder(t1);
+            var t2 = m2.ToManualTypeDescriber();
+
+            Assert.Equal(t1, t2);
+        }
+
+        [Fact]
+        public void Setters()
+        {
+            // FallbackBehavior
+            {
+                var m = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.Throw);
+                Assert.Equal(ManualTypeDescriberFallbackBehavior.Throw, m.FallbackBehavior);
+                m.WithFallbackBehavior(ManualTypeDescriberFallbackBehavior.UseFallback);
+                Assert.Equal(ManualTypeDescriberFallbackBehavior.UseFallback, m.FallbackBehavior);
+            }
+
+            // FallbackBehavior, exception
+            {
+                var m = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.Throw);
+                Assert.Throws<ArgumentException>(() => m.WithFallbackBehavior(0));
+            }
+
+            // FallbackTypeDescriber
+            {
+                var m = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.Throw, TypeDescribers.Default);
+                Assert.Same(TypeDescribers.Default, m.FallbackTypeDescriber);
+
+                var s = SurrogateTypeDescriber.CreateBuilder().ToSurrogateTypeDescriber();
+                m.WithFallbackTypeDescriber(s);
+                Assert.Same(s, m.FallbackTypeDescriber);
+            }
+
+            // FallbackTypeDescriber, exception
+            {
+                var m = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.Throw, TypeDescribers.Default);
+                Assert.Throws<ArgumentNullException>(() => m.WithFallbackTypeDescriber(null));
+            }
+
+            // SetInstanceProvider, duplicate
+            {
+                var m = ManualTypeDescriberBuilder.CreateBuilder();
+                m.WithInstanceProvider(InstanceProvider.ForDelegate((out string str) => { str = ""; return true; }));
+
+                Assert.Throws<InvalidOperationException>(() => m.WithInstanceProvider(InstanceProvider.ForDelegate((out string str) => { str = ""; return true; })));
+            }
         }
 
         private class _Serializing
@@ -39,7 +187,7 @@ namespace Cesil.Tests
                 {
                     var m = ManualTypeDescriber.CreateBuilder();
 
-                    m.SetInstanceProvider(InstanceProvider.ForDelegate((out _Serializing val) => { val = new _Serializing(); return true; }));
+                    m.WithInstanceProvider(InstanceProvider.ForDelegate((out _Serializing val) => { val = new _Serializing(); return true; }));
                 }
 
 
@@ -47,7 +195,7 @@ namespace Cesil.Tests
                 {
                     var m = ManualTypeDescriber.CreateBuilder();
 
-                    m.SetInstanceProvider(typeof(_Serializing).GetTypeInfo(), InstanceProvider.ForDelegate((out _Serializing val) => { val = new _Serializing(); return true; }));
+                    m.WithInstanceProvider(typeof(_Serializing).GetTypeInfo(), InstanceProvider.ForDelegate((out _Serializing val) => { val = new _Serializing(); return true; }));
                 }
             }
 
@@ -66,16 +214,16 @@ namespace Cesil.Tests
                 var m = ManualTypeDescriber.CreateBuilder();
 
                 // 3 arg
-                m.AddExplicitGetter(t, "foo", g);
+                m.WithExplicitGetter(t, "foo", g);
 
                 // 4 arg
-                m.AddExplicitGetter(t, "foo", g, f);
+                m.WithExplicitGetter(t, "foo", g, f);
 
                 // 5 arg 
-                m.AddExplicitGetter(t, "foo", g, f, s);
+                m.WithExplicitGetter(t, "foo", g, f, s);
 
                 // 6 arg
-                m.AddExplicitGetter(t, "foo", g, f, s, EmitDefaultValue.Yes);
+                m.WithExplicitGetter(t, "foo", g, f, s, EmitDefaultValue.Yes);
             }
 
             var field = t.GetField(nameof(_Serializing.Field));
@@ -86,26 +234,26 @@ namespace Cesil.Tests
                 var m = ManualTypeDescriber.CreateBuilder();
 
                 // 1 arg
-                m.AddSerializableField(field);
+                m.WithSerializableField(field);
 
                 // 2 arg
-                m.AddSerializableField(field, "foo");
-                m.AddSerializableField(t, field);
+                m.WithSerializableField(field, "foo");
+                m.WithSerializableField(t, field);
 
                 // 3 arg
-                m.AddSerializableField(field, "foo", f);
-                m.AddSerializableField(t, field, "foo");
+                m.WithSerializableField(field, "foo", f);
+                m.WithSerializableField(t, field, "foo");
 
                 // 4 arg
-                m.AddSerializableField(field, "foo", f, s);
-                m.AddSerializableField(t, field, "foo", f, s);
+                m.WithSerializableField(field, "foo", f, s);
+                m.WithSerializableField(t, field, "foo", f, s);
 
                 // 5 arg
-                m.AddSerializableField(field, "foo", f, s, EmitDefaultValue.Yes);
-                m.AddSerializableField(t, field, "foo", f, s);
+                m.WithSerializableField(field, "foo", f, s, EmitDefaultValue.Yes);
+                m.WithSerializableField(t, field, "foo", f, s);
 
                 // 6 arg
-                m.AddSerializableField(t, field, "foo", f, s, EmitDefaultValue.Yes);
+                m.WithSerializableField(t, field, "foo", f, s, EmitDefaultValue.Yes);
             }
 
             // AddSerializableProperty
@@ -113,26 +261,26 @@ namespace Cesil.Tests
                 var m = ManualTypeDescriber.CreateBuilder();
 
                 // 1 arg
-                m.AddSerializableProperty(prop);
+                m.WithSerializableProperty(prop);
 
                 // 2 arg
-                m.AddSerializableProperty(prop, "foo");
-                m.AddSerializableProperty(t, prop);
+                m.WithSerializableProperty(prop, "foo");
+                m.WithSerializableProperty(t, prop);
 
                 // 3 arg
-                m.AddSerializableProperty(prop, "foo", f);
-                m.AddSerializableProperty(t, prop, "foo");
+                m.WithSerializableProperty(prop, "foo", f);
+                m.WithSerializableProperty(t, prop, "foo");
 
                 // 4 arg
-                m.AddSerializableProperty(prop, "foo", f, s);
-                m.AddSerializableProperty(t, prop, "foo", f, s);
+                m.WithSerializableProperty(prop, "foo", f, s);
+                m.WithSerializableProperty(t, prop, "foo", f, s);
 
                 // 5 arg
-                m.AddSerializableProperty(prop, "foo", f, s, EmitDefaultValue.Yes);
-                m.AddSerializableProperty(t, prop, "foo", f, s);
+                m.WithSerializableProperty(prop, "foo", f, s, EmitDefaultValue.Yes);
+                m.WithSerializableProperty(t, prop, "foo", f, s);
 
                 // 6 arg
-                m.AddSerializableProperty(t, prop, "foo", f, s, EmitDefaultValue.Yes);
+                m.WithSerializableProperty(t, prop, "foo", f, s, EmitDefaultValue.Yes);
             }
         }
 
@@ -167,16 +315,16 @@ namespace Cesil.Tests
                 var m = ManualTypeDescriber.CreateBuilder();
 
                 // 3 arg
-                m.AddExplicitSetter(t, "foo", s);
+                m.WithExplicitSetter(t, "foo", s);
 
                 // 4 arg
-                m.AddExplicitSetter(t, "foo", s, p);
+                m.WithExplicitSetter(t, "foo", s, p);
 
                 // 5 arg
-                m.AddExplicitSetter(t, "foo", s, p, MemberRequired.Yes);
+                m.WithExplicitSetter(t, "foo", s, p, MemberRequired.Yes);
 
                 // 6 arg
-                m.AddExplicitSetter(t, "foo", s, p, MemberRequired.Yes, r);
+                m.WithExplicitSetter(t, "foo", s, p, MemberRequired.Yes, r);
             }
 
             // AddDeserializableField
@@ -184,26 +332,26 @@ namespace Cesil.Tests
                 var m = ManualTypeDescriber.CreateBuilder();
 
                 // 1 arg
-                m.AddDeserializableField(field);
+                m.WithDeserializableField(field);
 
                 // 2 arg
-                m.AddDeserializableField(field, "foo");
-                m.AddDeserializableField(t, field);
+                m.WithDeserializableField(field, "foo");
+                m.WithDeserializableField(t, field);
 
                 // 3 arg
-                m.AddDeserializableField(field, "foo", p);
-                m.AddDeserializableField(t, field, "foo");
+                m.WithDeserializableField(field, "foo", p);
+                m.WithDeserializableField(t, field, "foo");
 
                 // 4 arg
-                m.AddDeserializableField(field, "foo", p, MemberRequired.Yes);
-                m.AddDeserializableField(t, field, "foo", p);
+                m.WithDeserializableField(field, "foo", p, MemberRequired.Yes);
+                m.WithDeserializableField(t, field, "foo", p);
 
                 // 5 arg
-                m.AddDeserializableField(field, "foo", p, MemberRequired.Yes, r);
-                m.AddDeserializableField(t, field, "foo", p, MemberRequired.Yes);
+                m.WithDeserializableField(field, "foo", p, MemberRequired.Yes, r);
+                m.WithDeserializableField(t, field, "foo", p, MemberRequired.Yes);
 
                 // 6 arg
-                m.AddDeserializableField(t, field, "foo", p, MemberRequired.Yes, r);
+                m.WithDeserializableField(t, field, "foo", p, MemberRequired.Yes, r);
             }
         }
 
@@ -221,10 +369,10 @@ namespace Cesil.Tests
             // SetBuilder
             {
                 var m = ManualTypeDescriber.CreateBuilder();
-                Assert.Throws<ArgumentNullException>(() => m.SetInstanceProvider(null));
-                Assert.Throws<ArgumentNullException>(() => m.SetInstanceProvider(null, InstanceProvider.ForDelegate((out string val) => { val = ""; return true; })));
-                Assert.Throws<ArgumentNullException>(() => m.SetInstanceProvider(typeof(string).GetTypeInfo(), null));
-                Assert.Throws<InvalidOperationException>(() => m.SetInstanceProvider(typeof(int).GetTypeInfo(), InstanceProvider.ForDelegate((out string val) => { val = ""; return true; })));
+                Assert.Throws<ArgumentNullException>(() => m.WithInstanceProvider(null));
+                Assert.Throws<ArgumentNullException>(() => m.WithInstanceProvider(null, InstanceProvider.ForDelegate((out string val) => { val = ""; return true; })));
+                Assert.Throws<ArgumentNullException>(() => m.WithInstanceProvider(typeof(string).GetTypeInfo(), null));
+                Assert.Throws<InvalidOperationException>(() => m.WithInstanceProvider(typeof(int).GetTypeInfo(), InstanceProvider.ForDelegate((out string val) => { val = ""; return true; })));
             }
 
             // EnumerateMembersToSerialize
@@ -243,29 +391,29 @@ namespace Cesil.Tests
                 var m = ManualTypeDescriber.CreateBuilder();
 
                 // 3 arg version
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitGetter(null, "foo", Getter.ForDelegate(() => 0)));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitGetter(typeof(int).GetTypeInfo(), null, Getter.ForDelegate(() => 0)));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitGetter(typeof(int).GetTypeInfo(), "foo", null));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitGetter(null, "foo", Getter.ForDelegate(() => 0)));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitGetter(typeof(int).GetTypeInfo(), null, Getter.ForDelegate(() => 0)));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitGetter(typeof(int).GetTypeInfo(), "foo", null));
 
                 // 4 arg version
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitGetter(null, "foo", Getter.ForDelegate(() => 0), Formatter.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitGetter(typeof(int).GetTypeInfo(), null, Getter.ForDelegate(() => 0), Formatter.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitGetter(typeof(int).GetTypeInfo(), "foo", null, Formatter.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitGetter(typeof(int).GetTypeInfo(), "foo", Getter.ForDelegate(() => 0), null));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitGetter(null, "foo", Getter.ForDelegate(() => 0), Formatter.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitGetter(typeof(int).GetTypeInfo(), null, Getter.ForDelegate(() => 0), Formatter.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitGetter(typeof(int).GetTypeInfo(), "foo", null, Formatter.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitGetter(typeof(int).GetTypeInfo(), "foo", Getter.ForDelegate(() => 0), null));
 
                 // 5 arg version
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitGetter(null, "foo", Getter.ForDelegate(() => 0), Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitGetter(typeof(int).GetTypeInfo(), null, Getter.ForDelegate(() => 0), Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitGetter(typeof(int).GetTypeInfo(), "foo", null, Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitGetter(typeof(int).GetTypeInfo(), "foo", Getter.ForDelegate(() => 0), null, ShouldSerialize.ForDelegate(() => true)));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitGetter(typeof(int).GetTypeInfo(), "foo", Getter.ForDelegate(() => 0), Formatter.GetDefault(typeof(int).GetTypeInfo()), null));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitGetter(null, "foo", Getter.ForDelegate(() => 0), Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitGetter(typeof(int).GetTypeInfo(), null, Getter.ForDelegate(() => 0), Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitGetter(typeof(int).GetTypeInfo(), "foo", null, Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitGetter(typeof(int).GetTypeInfo(), "foo", Getter.ForDelegate(() => 0), null, ShouldSerialize.ForDelegate(() => true)));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitGetter(typeof(int).GetTypeInfo(), "foo", Getter.ForDelegate(() => 0), Formatter.GetDefault(typeof(int).GetTypeInfo()), null));
 
                 // 6 arg version
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitGetter(null, "foo", Getter.ForDelegate(() => 0), Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitGetter(typeof(int).GetTypeInfo(), null, Getter.ForDelegate(() => 0), Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitGetter(typeof(int).GetTypeInfo(), "foo", null, Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitGetter(typeof(int).GetTypeInfo(), "foo", Getter.ForDelegate(() => 0), null, ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitGetter(typeof(int).GetTypeInfo(), "foo", Getter.ForDelegate(() => 0), Formatter.GetDefault(typeof(int).GetTypeInfo()), null, EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitGetter(null, "foo", Getter.ForDelegate(() => 0), Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitGetter(typeof(int).GetTypeInfo(), null, Getter.ForDelegate(() => 0), Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitGetter(typeof(int).GetTypeInfo(), "foo", null, Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitGetter(typeof(int).GetTypeInfo(), "foo", Getter.ForDelegate(() => 0), null, ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitGetter(typeof(int).GetTypeInfo(), "foo", Getter.ForDelegate(() => 0), Formatter.GetDefault(typeof(int).GetTypeInfo()), null, EmitDefaultValue.Yes));
                 // WillEmitDefaultValue cannot be null
             }
 
@@ -277,54 +425,54 @@ namespace Cesil.Tests
                 Assert.NotNull(f);
 
                 // 1 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(null));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(null));
 
                 // 2 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(null, "foo"));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(f, null));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(null, "foo"));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(f, null));
 
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(null, f));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(typeof(_Errors).GetTypeInfo(), null));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(null, f));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(typeof(_Errors).GetTypeInfo(), null));
 
                 // 3 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(f, null, Formatter.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(f, "foo", null));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(f, null, Formatter.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(f, "foo", null));
 
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(null, f, "foo"));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(typeof(_Errors).GetTypeInfo(), null, "foo"));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(typeof(_Errors).GetTypeInfo(), f, null));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(null, f, "foo"));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(typeof(_Errors).GetTypeInfo(), null, "foo"));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(typeof(_Errors).GetTypeInfo(), f, null));
 
                 // 4 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(f, null, Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(f, "foo", null, ShouldSerialize.ForDelegate(() => true)));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(f, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), null));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(f, null, Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(f, "foo", null, ShouldSerialize.ForDelegate(() => true)));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(f, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), null));
 
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(null, f, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(typeof(_Errors).GetTypeInfo(), null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(typeof(_Errors).GetTypeInfo(), f, null, Formatter.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(typeof(_Errors).GetTypeInfo(), f, "foo", null));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(null, f, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(typeof(_Errors).GetTypeInfo(), null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(typeof(_Errors).GetTypeInfo(), f, null, Formatter.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(typeof(_Errors).GetTypeInfo(), f, "foo", null));
 
                 // 5 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(f, null, Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(f, "foo", null, ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(f, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), null, EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(f, null, Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(f, "foo", null, ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(f, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), null, EmitDefaultValue.Yes));
                 // WillEmitDefaultValue cannot be null
 
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(null, f, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(typeof(_Errors).GetTypeInfo(), null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(typeof(_Errors).GetTypeInfo(), f, null, Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(typeof(_Errors).GetTypeInfo(), f, "foo", null, ShouldSerialize.ForDelegate(() => true)));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(typeof(_Errors).GetTypeInfo(), f, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), null));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(null, f, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(typeof(_Errors).GetTypeInfo(), null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(typeof(_Errors).GetTypeInfo(), f, null, Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(typeof(_Errors).GetTypeInfo(), f, "foo", null, ShouldSerialize.ForDelegate(() => true)));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(typeof(_Errors).GetTypeInfo(), f, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), null));
 
                 // 6 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(null, f, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(typeof(_Errors).GetTypeInfo(), null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(typeof(_Errors).GetTypeInfo(), f, null, Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(typeof(_Errors).GetTypeInfo(), f, "foo", null, ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableField(typeof(_Errors).GetTypeInfo(), f, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), null, EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(null, f, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(typeof(_Errors).GetTypeInfo(), null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(typeof(_Errors).GetTypeInfo(), f, null, Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(typeof(_Errors).GetTypeInfo(), f, "foo", null, ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableField(typeof(_Errors).GetTypeInfo(), f, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), null, EmitDefaultValue.Yes));
                 // WillEmitDefaultValue cannot be null
             }
 
@@ -336,54 +484,54 @@ namespace Cesil.Tests
                 Assert.NotNull(p);
 
                 // 1 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(null));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(null));
 
                 // 2 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(null, "foo"));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(p, null));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(null, "foo"));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(p, null));
 
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(null, p));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(typeof(_Errors).GetTypeInfo(), null));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(null, p));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(typeof(_Errors).GetTypeInfo(), null));
 
                 // 3 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(p, null, Formatter.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(p, "foo", null));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(p, null, Formatter.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(p, "foo", null));
 
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(null, p, "foo"));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(typeof(_Errors).GetTypeInfo(), null, "foo"));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(typeof(_Errors).GetTypeInfo(), p, null));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(null, p, "foo"));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(typeof(_Errors).GetTypeInfo(), null, "foo"));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(typeof(_Errors).GetTypeInfo(), p, null));
 
                 // 4 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(p, null, Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(p, "foo", null, ShouldSerialize.ForDelegate(() => true)));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(p, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), null));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(p, null, Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(p, "foo", null, ShouldSerialize.ForDelegate(() => true)));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(p, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), null));
 
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(null, p, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(typeof(_Errors).GetTypeInfo(), null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(typeof(_Errors).GetTypeInfo(), p, null, Formatter.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(typeof(_Errors).GetTypeInfo(), p, "foo", null));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(null, p, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(typeof(_Errors).GetTypeInfo(), null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(typeof(_Errors).GetTypeInfo(), p, null, Formatter.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(typeof(_Errors).GetTypeInfo(), p, "foo", null));
 
                 // 5 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(p, null, Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(p, "foo", null, ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(p, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), null, EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(p, null, Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(p, "foo", null, ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(p, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), null, EmitDefaultValue.Yes));
                 // WillEmitDefaultValue cannot be null
 
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(null, p, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(typeof(_Errors).GetTypeInfo(), null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(typeof(_Errors).GetTypeInfo(), p, null, Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(typeof(_Errors).GetTypeInfo(), p, "foo", null, ShouldSerialize.ForDelegate(() => true)));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(typeof(_Errors).GetTypeInfo(), p, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), null));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(null, p, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(typeof(_Errors).GetTypeInfo(), null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(typeof(_Errors).GetTypeInfo(), p, null, Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true)));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(typeof(_Errors).GetTypeInfo(), p, "foo", null, ShouldSerialize.ForDelegate(() => true)));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(typeof(_Errors).GetTypeInfo(), p, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), null));
 
                 // 6 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(null, p, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(typeof(_Errors).GetTypeInfo(), null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(typeof(_Errors).GetTypeInfo(), p, null, Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(typeof(_Errors).GetTypeInfo(), p, "foo", null, ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddSerializableProperty(typeof(_Errors).GetTypeInfo(), p, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), null, EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(null, p, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(typeof(_Errors).GetTypeInfo(), null, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(typeof(_Errors).GetTypeInfo(), p, null, Formatter.GetDefault(typeof(int).GetTypeInfo()), ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(typeof(_Errors).GetTypeInfo(), p, "foo", null, ShouldSerialize.ForDelegate(() => true), EmitDefaultValue.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithSerializableProperty(typeof(_Errors).GetTypeInfo(), p, "foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), null, EmitDefaultValue.Yes));
                 // WillEmitDefaultValue cannot be null
             }
 
@@ -394,7 +542,7 @@ namespace Cesil.Tests
                 var g = Getter.ForMethod(p.GetMethod);
 
                 // on illegal class
-                Assert.Throws<InvalidOperationException>(() => m.AddSerializableMember(typeof(int).GetTypeInfo(), g, "Foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), null, EmitDefaultValue.Yes));
+                Assert.Throws<InvalidOperationException>(() => m.WithSerializableMember(typeof(int).GetTypeInfo(), g, "Foo", Formatter.GetDefault(typeof(int).GetTypeInfo()), null, EmitDefaultValue.Yes));
             }
         }
 
@@ -418,7 +566,7 @@ namespace Cesil.Tests
             var field = typeof(_SerializeBaseClass).GetField(nameof(_SerializeBaseClass.Foo));
             var getter = Getter.ForField(field);
 
-            m.AddExplicitGetter(typeof(_SerializeBaseClass_Sub).GetTypeInfo(), "Hello", getter);
+            m.WithExplicitGetter(typeof(_SerializeBaseClass_Sub).GetTypeInfo(), "Hello", getter);
 
             var mx = m.ToManualTypeDescriber();
 
@@ -463,31 +611,31 @@ namespace Cesil.Tests
                 var m = ManualTypeDescriberBuilder.CreateBuilder();
 
                 // 3 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitSetter(null, "foo", Setter.ForDelegate<int>(delegate { })));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitSetter(typeof(_Errors).GetTypeInfo(), null, Setter.ForDelegate<int>(delegate { })));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitSetter(typeof(_Errors).GetTypeInfo(), "foo", null));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitSetter(null, "foo", Setter.ForDelegate<int>(delegate { })));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitSetter(typeof(_Errors).GetTypeInfo(), null, Setter.ForDelegate<int>(delegate { })));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitSetter(typeof(_Errors).GetTypeInfo(), "foo", null));
 
                 // 4 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitSetter(null, "foo", Setter.ForDelegate<int>(delegate { }), Parser.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitSetter(typeof(_Errors).GetTypeInfo(), null, Setter.ForDelegate<int>(delegate { }), Parser.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitSetter(typeof(_Errors).GetTypeInfo(), "foo", null, Parser.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitSetter(typeof(_Errors).GetTypeInfo(), "foo", Setter.ForDelegate<int>(delegate { }), null));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitSetter(null, "foo", Setter.ForDelegate<int>(delegate { }), Parser.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitSetter(typeof(_Errors).GetTypeInfo(), null, Setter.ForDelegate<int>(delegate { }), Parser.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitSetter(typeof(_Errors).GetTypeInfo(), "foo", null, Parser.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitSetter(typeof(_Errors).GetTypeInfo(), "foo", Setter.ForDelegate<int>(delegate { }), null));
 
                 // 5 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitSetter(null, "foo", Setter.ForDelegate<int>(delegate { }), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitSetter(typeof(_Errors).GetTypeInfo(), null, Setter.ForDelegate<int>(delegate { }), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitSetter(typeof(_Errors).GetTypeInfo(), "foo", null, Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitSetter(typeof(_Errors).GetTypeInfo(), "foo", Setter.ForDelegate<int>(delegate { }), null, MemberRequired.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitSetter(null, "foo", Setter.ForDelegate<int>(delegate { }), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitSetter(typeof(_Errors).GetTypeInfo(), null, Setter.ForDelegate<int>(delegate { }), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitSetter(typeof(_Errors).GetTypeInfo(), "foo", null, Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitSetter(typeof(_Errors).GetTypeInfo(), "foo", Setter.ForDelegate<int>(delegate { }), null, MemberRequired.Yes));
                 // IsMemberRequired cannot be null
 
                 // 6 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitSetter(null, "foo", Setter.ForDelegate<int>(delegate { }), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitSetter(typeof(_Errors).GetTypeInfo(), null, Setter.ForDelegate<int>(delegate { }), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitSetter(typeof(_Errors).GetTypeInfo(), "foo", null, Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitSetter(typeof(_Errors).GetTypeInfo(), "foo", Setter.ForDelegate<int>(delegate { }), null, MemberRequired.Yes, Reset.ForDelegate(() => { })));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitSetter(null, "foo", Setter.ForDelegate<int>(delegate { }), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitSetter(typeof(_Errors).GetTypeInfo(), null, Setter.ForDelegate<int>(delegate { }), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitSetter(typeof(_Errors).GetTypeInfo(), "foo", null, Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitSetter(typeof(_Errors).GetTypeInfo(), "foo", Setter.ForDelegate<int>(delegate { }), null, MemberRequired.Yes, Reset.ForDelegate(() => { })));
                 // IsMemberRequired cannot be null
                 // reset can be null
-                Assert.Throws<ArgumentNullException>(() => m.AddExplicitSetter(typeof(_Errors).GetTypeInfo(), "foo", Setter.ForDelegate<int>(delegate { }), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, null));
+                Assert.Throws<ArgumentNullException>(() => m.WithExplicitSetter(typeof(_Errors).GetTypeInfo(), "foo", Setter.ForDelegate<int>(delegate { }), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, null));
             }
 
             // AddDeserializableField
@@ -498,55 +646,55 @@ namespace Cesil.Tests
                 Assert.NotNull(f);
 
                 // 1 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(null));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(null));
 
                 // 2 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(null, "foo"));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(f, null));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(null, "foo"));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(f, null));
 
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(null, f));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(typeof(_Errors).GetTypeInfo(), null));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(null, f));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(typeof(_Errors).GetTypeInfo(), null));
 
                 // 3 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(f, null, Parser.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(f, "foo", null));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(f, null, Parser.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(f, "foo", null));
 
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(null, f, "foo"));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(typeof(_Errors).GetTypeInfo(), null, "foo"));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(typeof(_Errors).GetTypeInfo(), f, null));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(null, f, "foo"));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(typeof(_Errors).GetTypeInfo(), null, "foo"));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(typeof(_Errors).GetTypeInfo(), f, null));
 
                 // 4 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(f, null, Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(f, "foo", null, MemberRequired.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(f, null, Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(f, "foo", null, MemberRequired.Yes));
                 // IsMemberRequired cannot be null
 
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(null, f, "foo", Parser.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(typeof(_Errors).GetTypeInfo(), null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(typeof(_Errors).GetTypeInfo(), f, null, Parser.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(typeof(_Errors).GetTypeInfo(), f, "foo", null));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(null, f, "foo", Parser.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(typeof(_Errors).GetTypeInfo(), null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(typeof(_Errors).GetTypeInfo(), f, null, Parser.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(typeof(_Errors).GetTypeInfo(), f, "foo", null));
 
                 // 5 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(f, null, Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(f, "foo", null, MemberRequired.Yes, Reset.ForDelegate(() => { })));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(f, null, Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(f, "foo", null, MemberRequired.Yes, Reset.ForDelegate(() => { })));
                 // IsMemberRequired cannot be null
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(f, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, null));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(f, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, null));
 
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(null, f, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(typeof(_Errors).GetTypeInfo(), null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(typeof(_Errors).GetTypeInfo(), f, null, Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(typeof(_Errors).GetTypeInfo(), f, "foo", null, MemberRequired.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(null, f, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(typeof(_Errors).GetTypeInfo(), null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(typeof(_Errors).GetTypeInfo(), f, null, Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(typeof(_Errors).GetTypeInfo(), f, "foo", null, MemberRequired.Yes));
                 // IsMemberRequired cannot be null
 
                 // 6 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(null, f, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(typeof(_Errors).GetTypeInfo(), null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(typeof(_Errors).GetTypeInfo(), f, null, Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(typeof(_Errors).GetTypeInfo(), f, "foo", null, MemberRequired.Yes, Reset.ForDelegate(() => { })));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(null, f, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(typeof(_Errors).GetTypeInfo(), null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(typeof(_Errors).GetTypeInfo(), f, null, Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(typeof(_Errors).GetTypeInfo(), f, "foo", null, MemberRequired.Yes, Reset.ForDelegate(() => { })));
                 // IsMemberRequired cannot be null
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableField(typeof(_Errors).GetTypeInfo(), f, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, null));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableField(typeof(_Errors).GetTypeInfo(), f, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, null));
             }
 
             // AddDeserializableProperty
@@ -557,55 +705,55 @@ namespace Cesil.Tests
                 Assert.NotNull(p);
 
                 // 1 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(null));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(null));
 
                 // 2 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(null, "foo"));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(p, null));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(null, "foo"));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(p, null));
 
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(null, p));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(typeof(_Errors).GetTypeInfo(), null));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(null, p));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(typeof(_Errors).GetTypeInfo(), null));
 
                 // 3 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(p, null, Parser.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(p, "foo", null));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(p, null, Parser.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(p, "foo", null));
 
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(null, p, "foo"));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(typeof(_Errors).GetTypeInfo(), null, "foo"));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(typeof(_Errors).GetTypeInfo(), p, null));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(null, p, "foo"));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(typeof(_Errors).GetTypeInfo(), null, "foo"));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(typeof(_Errors).GetTypeInfo(), p, null));
 
                 // 4 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(p, null, Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(p, "foo", null, MemberRequired.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(p, null, Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(p, "foo", null, MemberRequired.Yes));
                 // IsMemberRequired cannot be null
 
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(null, p, "foo", Parser.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(typeof(_Errors).GetTypeInfo(), null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(typeof(_Errors).GetTypeInfo(), p, null, Parser.GetDefault(typeof(int).GetTypeInfo())));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(typeof(_Errors).GetTypeInfo(), p, "foo", null));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(null, p, "foo", Parser.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(typeof(_Errors).GetTypeInfo(), null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(typeof(_Errors).GetTypeInfo(), p, null, Parser.GetDefault(typeof(int).GetTypeInfo())));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(typeof(_Errors).GetTypeInfo(), p, "foo", null));
 
                 // 5 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(p, null, Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(p, "foo", null, MemberRequired.Yes, Reset.ForDelegate(() => { })));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(p, null, Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(p, "foo", null, MemberRequired.Yes, Reset.ForDelegate(() => { })));
                 // IsMemberRequired cannot be null
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(p, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, null));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(p, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, null));
 
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(null, p, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(typeof(_Errors).GetTypeInfo(), null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(typeof(_Errors).GetTypeInfo(), p, null, Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(typeof(_Errors).GetTypeInfo(), p, "foo", null, MemberRequired.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(null, p, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(typeof(_Errors).GetTypeInfo(), null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(typeof(_Errors).GetTypeInfo(), p, null, Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(typeof(_Errors).GetTypeInfo(), p, "foo", null, MemberRequired.Yes));
                 // IsMemberRequired cannot be null
 
                 // 6 arg
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(null, p, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(typeof(_Errors).GetTypeInfo(), null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(typeof(_Errors).GetTypeInfo(), p, null, Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(typeof(_Errors).GetTypeInfo(), p, "foo", null, MemberRequired.Yes, Reset.ForDelegate(() => { })));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(null, p, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(typeof(_Errors).GetTypeInfo(), null, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(typeof(_Errors).GetTypeInfo(), p, null, Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, Reset.ForDelegate(() => { })));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(typeof(_Errors).GetTypeInfo(), p, "foo", null, MemberRequired.Yes, Reset.ForDelegate(() => { })));
                 // IsMemberRequired cannot be null
-                Assert.Throws<ArgumentNullException>(() => m.AddDeserializableProperty(typeof(_Errors).GetTypeInfo(), p, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, null));
+                Assert.Throws<ArgumentNullException>(() => m.WithDeserializableProperty(typeof(_Errors).GetTypeInfo(), p, "foo", Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes, null));
             }
         }
 
@@ -620,16 +768,16 @@ namespace Cesil.Tests
             {
                 var m = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.Throw);
 
-                m.SetInstanceProvider(InstanceProvider.ForDelegate((out string foo) => { foo = ""; return true; }));
-                m.SetInstanceProvider(InstanceProvider.ForDelegate((out int foo) => { foo = 10; return true; }));
+                m.WithInstanceProvider(InstanceProvider.ForDelegate((out string foo) => { foo = ""; return true; }));
+                m.WithInstanceProvider(InstanceProvider.ForDelegate((out int foo) => { foo = 10; return true; }));
 
-                m.AddDeserializableField(typeof(_Errors).GetField(nameof(_Errors.Field)));
-                m.AddDeserializableProperty(typeof(_Errors).GetProperty(nameof(_Errors.Property)));
-                m.AddDeserializableProperty(typeof(_ToStringOverride).GetProperty(nameof(_ToStringOverride.Bar)));
+                m.WithDeserializableField(typeof(_Errors).GetField(nameof(_Errors.Field)));
+                m.WithDeserializableProperty(typeof(_Errors).GetProperty(nameof(_Errors.Property)));
+                m.WithDeserializableProperty(typeof(_ToStringOverride).GetProperty(nameof(_ToStringOverride.Bar)));
 
-                m.AddSerializableField(typeof(_Errors).GetField(nameof(_Errors.Field)));
-                m.AddSerializableProperty(typeof(_Errors).GetProperty(nameof(_Errors.Property)));
-                m.AddSerializableProperty(typeof(_ToStringOverride).GetProperty(nameof(_ToStringOverride.Bar)));
+                m.WithSerializableField(typeof(_Errors).GetField(nameof(_Errors.Field)));
+                m.WithSerializableProperty(typeof(_Errors).GetProperty(nameof(_Errors.Property)));
+                m.WithSerializableProperty(typeof(_ToStringOverride).GetProperty(nameof(_ToStringOverride.Bar)));
 
                 Assert.NotNull(m.ToString());
             }
@@ -637,16 +785,16 @@ namespace Cesil.Tests
             {
                 var m = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback);
 
-                m.SetInstanceProvider(InstanceProvider.ForDelegate((out string foo) => { foo = ""; return true; }));
-                m.SetInstanceProvider(InstanceProvider.ForDelegate((out int foo) => { foo = 10; return true; }));
+                m.WithInstanceProvider(InstanceProvider.ForDelegate((out string foo) => { foo = ""; return true; }));
+                m.WithInstanceProvider(InstanceProvider.ForDelegate((out int foo) => { foo = 10; return true; }));
 
-                m.AddDeserializableField(typeof(_Errors).GetField(nameof(_Errors.Field)));
-                m.AddDeserializableProperty(typeof(_Errors).GetProperty(nameof(_Errors.Property)));
-                m.AddDeserializableProperty(typeof(_ToStringOverride).GetProperty(nameof(_ToStringOverride.Bar)));
+                m.WithDeserializableField(typeof(_Errors).GetField(nameof(_Errors.Field)));
+                m.WithDeserializableProperty(typeof(_Errors).GetProperty(nameof(_Errors.Property)));
+                m.WithDeserializableProperty(typeof(_ToStringOverride).GetProperty(nameof(_ToStringOverride.Bar)));
 
-                m.AddSerializableField(typeof(_Errors).GetField(nameof(_Errors.Field)));
-                m.AddSerializableProperty(typeof(_Errors).GetProperty(nameof(_Errors.Property)));
-                m.AddSerializableProperty(typeof(_ToStringOverride).GetProperty(nameof(_ToStringOverride.Bar)));
+                m.WithSerializableField(typeof(_Errors).GetField(nameof(_Errors.Field)));
+                m.WithSerializableProperty(typeof(_Errors).GetProperty(nameof(_Errors.Property)));
+                m.WithSerializableProperty(typeof(_ToStringOverride).GetProperty(nameof(_ToStringOverride.Bar)));
 
                 Assert.NotNull(m.ToString());
             }

@@ -54,17 +54,19 @@ namespace Cesil
             Memory = m;
         }
 
-        // todo: can this just take an Options?
         internal static unsafe CharacterLookup MakeCharacterLookup(
-            MemoryPool<char> memoryPool,
-            char? escapeStartChar,
-            char valueSeparatorChar,
-            char? escapeChar,
-            char? commentChar,
-            bool whitespaceSpecial,
+            Options options,
             out int neededSize
         )
         {
+            var memoryPool = options.MemoryPool;
+            var escapeStartChar = options.EscapedValueStartAndEnd;
+            var valueSeparatorChar = options.ValueSeparator;
+            var escapeChar = options.EscapedValueEscapeCharacter;
+            var commentChar = options.CommentCharacter;
+
+            var whitespaceSpecial = options.WhitespaceTreatment != WhitespaceTreatments.Preserve;
+
             var minimumCharacter =
                 Math.Min(
                     Math.Min(

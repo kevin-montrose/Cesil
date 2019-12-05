@@ -27,7 +27,7 @@ namespace Cesil
 
                 var col = columnsValue[i];
 
-                var ctx = WriteContext.WritingColumn(RowNumber, ColumnIdentifier.Create(i, col.Name), Context);
+                var ctx = WriteContext.WritingColumn(Configuration.Options, RowNumber, ColumnIdentifier.Create(i, col.Name), Context);
 
                 if (!col.Write.Value(row, ctx, Buffer))
                 {

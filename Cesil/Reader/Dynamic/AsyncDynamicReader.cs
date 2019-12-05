@@ -11,9 +11,10 @@ namespace Cesil
         private NonNull<string[]> ColumnNames;
 
         private DynamicRow? NotifyOnDisposeHead;
-        public IIntrusiveLinkedList<DynamicRow>? NotifyOnDispose => NotifyOnDisposeHead;
 
-        object? IDynamicRowOwner.Context => base.Context;
+        Options IDynamicRowOwner.Options => Configuration.Options;
+
+        object? IDynamicRowOwner.Context => Context;
 
         internal AsyncDynamicReader(IAsyncReaderAdapter reader, DynamicBoundConfiguration config, object? context) : base(reader, config, context) { }
 
