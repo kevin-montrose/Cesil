@@ -972,7 +972,7 @@ end:
         {
             if (!IsDisposed)
             {
-                var writeTrailingNewLine = Configuration.Options.WriteTrailingNewLine;
+                var writeTrailingNewLine = Configuration.Options.WriteTrailingRowEnding;
 
                 if (IsFirstRow)
                 {
@@ -983,7 +983,7 @@ end:
                     }
                 }
 
-                if (writeTrailingNewLine == WriteTrailingNewLine.Always)
+                if (writeTrailingNewLine == WriteTrailingRowEnding.Always)
                 {
                     var endRecordTask = EndRecordAsync(CancellationToken.None);
                     if (!endRecordTask.IsCompletedSuccessfully(this))
@@ -1023,11 +1023,11 @@ end:
             return default;
 
             // continue after CheckHeadersAsync completes
-            static async ValueTask DisposeAsync_ContinueAfterCheckHeadersAsync(AsyncDynamicWriter self, ValueTask<bool> waitFor, WriteTrailingNewLine writeTrailingNewLine)
+            static async ValueTask DisposeAsync_ContinueAfterCheckHeadersAsync(AsyncDynamicWriter self, ValueTask<bool> waitFor, WriteTrailingRowEnding writeTrailingNewLine)
             {
                 await waitFor;
 
-                if (writeTrailingNewLine == WriteTrailingNewLine.Always)
+                if (writeTrailingNewLine == WriteTrailingRowEnding.Always)
                 {
                     var endTask = self.EndRecordAsync(CancellationToken.None);
                     await endTask;

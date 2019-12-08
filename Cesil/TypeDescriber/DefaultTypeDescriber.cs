@@ -72,7 +72,7 @@ namespace Cesil
                 var name = GetDeserializationName(forType, p);
                 var setter = GetSetter(forType, p);
                 var parser = GetParser(forType, p);
-                var order = GetPosition(forType, p);
+                var order = GetOrder(forType, p);
                 var isRequired = GetIsRequired(forType, p);
                 var reset = GetReset(forType, p);
 
@@ -85,7 +85,7 @@ namespace Cesil
 
                 var name = GetDeserializationName(forType, f);
                 var parser = GetParser(forType, f);
-                var order = GetPosition(forType, f);
+                var order = GetOrder(forType, f);
                 var isRequired = GetIsRequired(forType, f);
                 var reset = GetReset(forType, f);
 
@@ -149,7 +149,7 @@ namespace Cesil
             Utils.CheckArgumentNull(forType, nameof(forType));
             Utils.CheckArgumentNull(property, nameof(property));
 
-            return GetDeserializationName(property);
+            return GetName(property);
         }
 
         /// <summary>
@@ -203,12 +203,12 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        protected virtual int? GetPosition(TypeInfo forType, PropertyInfo property)
+        protected virtual int? GetOrder(TypeInfo forType, PropertyInfo property)
         {
             Utils.CheckArgumentNull(forType, nameof(forType));
             Utils.CheckArgumentNull(property, nameof(property));
 
-            return GetPosition(property);
+            return GetOrder(property);
         }
 
         /// <summary>
@@ -283,7 +283,7 @@ namespace Cesil
             Utils.CheckArgumentNull(forType, nameof(forType));
             Utils.CheckArgumentNull(field, nameof(field));
 
-            return GetDeserializationName(field);
+            return GetName(field);
         }
 
         /// <summary>
@@ -308,12 +308,12 @@ namespace Cesil
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        protected virtual int? GetPosition(TypeInfo forType, FieldInfo field)
+        protected virtual int? GetOrder(TypeInfo forType, FieldInfo field)
         {
             Utils.CheckArgumentNull(forType, nameof(forType));
             Utils.CheckArgumentNull(field, nameof(field));
 
-            return GetPosition(field);
+            return GetOrder(field);
         }
 
         /// <summary>
@@ -345,7 +345,7 @@ namespace Cesil
 
         // common deserialization defaults
 
-        private static string GetDeserializationName(MemberInfo member)
+        private static string GetName(MemberInfo member)
         {
             var dataMember = member.GetCustomAttribute<DataMemberAttribute>();
             if (!string.IsNullOrWhiteSpace(dataMember?.Name))
@@ -383,9 +383,9 @@ namespace Cesil
 
                 var name = GetSerializationName(forType, p);
                 var getter = GetGetter(forType, p);
-                var shouldSerialize = GetShouldSerializeMethod(forType, p);
+                var shouldSerialize = GetShouldSerialize(forType, p);
                 var formatter = GetFormatter(forType, p);
-                var order = GetPosition(forType, p);
+                var order = GetOrder(forType, p);
                 var emitDefault = GetEmitDefaultValue(forType, p);
 
                 buffer.Add((SerializableMember.CreateInner(forType, name, getter, formatter, shouldSerialize, emitDefault), order));
@@ -396,10 +396,10 @@ namespace Cesil
                 if (!ShouldSerialize(forType, f)) continue;
 
                 var name = GetSerializationName(forType, f);
-                var getter = Getter.ForField(f);
-                var shouldSerialize = GetShouldSerializeMethod(forType, f);
+                var getter = GetGetter(forType, f);
+                var shouldSerialize = GetShouldSerialize(forType, f);
                 var formatter = GetFormatter(forType, f);
-                var order = GetPosition(forType, f);
+                var order = GetOrder(forType, f);
                 var emitDefault = GetEmitDefaultValue(forType, f);
 
                 buffer.Add((SerializableMember.CreateInner(forType, name, getter, formatter, shouldSerialize, emitDefault), order));
@@ -458,7 +458,7 @@ namespace Cesil
             Utils.CheckArgumentNull(forType, nameof(forType));
             Utils.CheckArgumentNull(property, nameof(property));
 
-            return GetDeserializationName(property);
+            return GetName(property);
         }
 
         /// <summary>
@@ -476,7 +476,7 @@ namespace Cesil
         }
 
         /// <summary>
-        /// Returns the ShouldXXX()-style method to use for the given property when serializing, if
+        /// Returns the ShouldSerializeXXX()-style method to use for the given property when serializing, if
         ///   any.
         ///  
         /// If specified, the method will be invoked for each record to determine whether to write
@@ -485,7 +485,7 @@ namespace Cesil
         /// Override to tweak behavior.
         /// </summary>
         [return: NullableExposed("May not be known, null is cleanest way to handle it")]
-        protected virtual ShouldSerialize? GetShouldSerializeMethod(TypeInfo forType, PropertyInfo property)
+        protected virtual ShouldSerialize? GetShouldSerialize(TypeInfo forType, PropertyInfo property)
         {
             Utils.CheckArgumentNull(forType, nameof(forType));
             Utils.CheckArgumentNull(property, nameof(property));
@@ -493,6 +493,8 @@ namespace Cesil
             // intentionally letting this be null
             var mtd = forType.GetMethod("ShouldSerialize" + property.Name, BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
             if (mtd == null) return null;
+
+            if (mtd.ReturnType != Types.BoolType) return null;
 
             if (mtd.IsStatic)
             {
@@ -559,6 +561,20 @@ namespace Cesil
         }
 
         /// <summary>
+        /// Returns the getter to use for the given field when serialized.
+        /// 
+        /// Override to tweak behavior.
+        /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
+        protected virtual Getter? GetGetter(TypeInfo forType, FieldInfo field)
+        {
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(field, nameof(field));
+
+            return Getter.ForField(field);
+        }
+
+        /// <summary>
         /// Returns the name of the column that should map to the given field when serialized.
         /// 
         /// Override to tweak behavior.
@@ -568,12 +584,12 @@ namespace Cesil
             Utils.CheckArgumentNull(forType, nameof(forType));
             Utils.CheckArgumentNull(field, nameof(field));
 
-            return GetDeserializationName(field);
+            return GetName(field);
         }
 
         /// <summary>
-        /// Returns the ShouldXXX()-style method to use for the given field when serializing, if
-        ///   any.
+        /// Returns the ShouldSerializeXXX()-style method to use for the given field when serializing, if
+        ///   any. By default, always returns null.
         ///  
         /// If specified, the method will be invoked for each record to determine whether to write
         ///   the field.
@@ -581,7 +597,7 @@ namespace Cesil
         /// Override to tweak behavior.
         /// </summary>
         [return: NullableExposed("May not be known, null is cleanest way to handle it")]
-        protected virtual ShouldSerialize? GetShouldSerializeMethod(TypeInfo forType, FieldInfo field)
+        protected virtual ShouldSerialize? GetShouldSerialize(TypeInfo forType, FieldInfo field)
         {
             Utils.CheckArgumentNull(forType, nameof(forType));
             Utils.CheckArgumentNull(field, nameof(field));
@@ -624,7 +640,7 @@ namespace Cesil
         private static Formatter? GetFormatter(TypeInfo t)
         => Formatter.GetDefault(t);
 
-        private static int? GetPosition(MemberInfo member)
+        private static int? GetOrder(MemberInfo member)
         {
             var dataMember = member.GetCustomAttribute<DataMemberAttribute>();
             if (dataMember != null)

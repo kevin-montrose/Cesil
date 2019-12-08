@@ -55,10 +55,10 @@ namespace Cesil
         [NullableExposed("All properties on OptionsBuilder are mutable and nullable, Options handles making sure they're not null")]
         public ITypeDescriber? TypeDescriber { get; private set; }
         /// <summary>
-        /// Whether or not to write a new line after the last row
+        /// Whether or not to write a row ending after the last row
         /// in a CSV.
         /// </summary>
-        public WriteTrailingNewLine WriteTrailingNewLine { get; private set; }
+        public WriteTrailingRowEnding WriteTrailingRowEnding { get; private set; }
         /// <summary>
         /// Which MemoryPool to use when reading or writing a CSV.
         /// </summary>
@@ -109,7 +109,7 @@ namespace Cesil
             ReadHeader = copy.ReadHeader;
             WriteHeader = copy.WriteHeader;
             TypeDescriber = copy.TypeDescriber;
-            WriteTrailingNewLine = copy.WriteTrailingNewLine;
+            WriteTrailingRowEnding = copy.WriteTrailingRowEnding;
             MemoryPool = copy.MemoryPool;
             CommentCharacter = copy.CommentCharacter;
             WriteBufferSizeHint = copy.WriteBufferSizeHint;
@@ -162,17 +162,17 @@ namespace Cesil
                 return Throw.InvalidOperationException<Options>($"{nameof(EscapedValueEscapeCharacter)} cannot be set if, {nameof(EscapedValueStartAndEnd)} isn't set");
             }
             // RowEnding not recognized
-            if (!Enum.IsDefined(Types.RowEndingsType, RowEnding))
+            if (!Enum.IsDefined(Types.RowEndingType, RowEnding))
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(RowEnding)} has an unexpected value, '{RowEnding}'");
             }
             // ReadHeader not recognized
-            if (!Enum.IsDefined(Types.ReadHeadersType, ReadHeader))
+            if (!Enum.IsDefined(Types.ReadHeaderType, ReadHeader))
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(ReadHeader)} has an unexpected value, '{ReadHeader}'");
             }
             // WriteHeader not recognized
-            if (!Enum.IsDefined(Types.WriteHeadersType, WriteHeader))
+            if (!Enum.IsDefined(Types.WriteHeaderType, WriteHeader))
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(WriteHeader)} has an unexpected value, '{WriteHeader}'");
             }
@@ -182,9 +182,9 @@ namespace Cesil
                 return Throw.InvalidOperationException<Options>($"{nameof(TypeDescriber)} has not been set");
             }
             // WriteTrailingNewLine not recognized
-            if (!Enum.IsDefined(Types.WriteTrailingNewLinesType, WriteTrailingNewLine))
+            if (!Enum.IsDefined(Types.WriteTrailingRowEndingType, WriteTrailingRowEnding))
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(WriteTrailingNewLine)} has an unexpected value, '{WriteTrailingNewLine}'");
+                return Throw.InvalidOperationException<Options>($"{nameof(WriteTrailingRowEnding)} has an unexpected value, '{WriteTrailingRowEnding}'");
             }
             // MemoryPool not configured
             if (MemoryPool == null)
@@ -280,7 +280,7 @@ namespace Cesil
         /// </summary>
         public OptionsBuilder WithRowEnding(RowEnding rowEnding)
         {
-            if (!Enum.IsDefined(Types.RowEndingsType, rowEnding))
+            if (!Enum.IsDefined(Types.RowEndingType, rowEnding))
             {
                 return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(Cesil.RowEnding)} value: {rowEnding}", nameof(rowEnding));
             }
@@ -300,7 +300,7 @@ namespace Cesil
         /// </summary>
         public OptionsBuilder WithReadHeader(ReadHeader readHeader)
         {
-            if (!Enum.IsDefined(Types.ReadHeadersType, readHeader))
+            if (!Enum.IsDefined(Types.ReadHeaderType, readHeader))
             {
                 return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(Cesil.ReadHeader)} value: {readHeader}", nameof(readHeader));
             }
@@ -320,7 +320,7 @@ namespace Cesil
         /// </summary>
         public OptionsBuilder WithWriteHeader(WriteHeader writeHeader)
         {
-            if (!Enum.IsDefined(Types.WriteHeadersType, writeHeader))
+            if (!Enum.IsDefined(Types.WriteHeaderType, writeHeader))
             {
                 return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(Cesil.WriteHeader)} value: {writeHeader}", nameof(writeHeader));
             }
@@ -350,20 +350,20 @@ namespace Cesil
         /// <summary>
         /// Set whether or not to end the last row with a new line.
         /// </summary>
-        public OptionsBuilder WithWriteTrailingNewLine(WriteTrailingNewLine writeTrailingNewLine)
+        public OptionsBuilder WithWriteTrailingRowEnding(WriteTrailingRowEnding writeTrailingNewLine)
         {
-            if (!Enum.IsDefined(Types.WriteTrailingNewLinesType, writeTrailingNewLine))
+            if (!Enum.IsDefined(Types.WriteTrailingRowEndingType, writeTrailingNewLine))
             {
-                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(Cesil.WriteTrailingNewLine)} value: {writeTrailingNewLine}", nameof(writeTrailingNewLine));
+                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(Cesil.WriteTrailingRowEnding)} value: {writeTrailingNewLine}", nameof(writeTrailingNewLine));
             }
 
-            return WithWriteTrailingNewLineInternal(writeTrailingNewLine);
+            return WithWriteTrailingRowEndingInternal(writeTrailingNewLine);
         }
 
         // sometimes we want to skip validation in tests
-        internal OptionsBuilder WithWriteTrailingNewLineInternal(WriteTrailingNewLine w)
+        internal OptionsBuilder WithWriteTrailingRowEndingInternal(WriteTrailingRowEnding w)
         {
-            WriteTrailingNewLine = w;
+            WriteTrailingRowEnding = w;
             return this;
         }
 
@@ -506,7 +506,7 @@ namespace Cesil
             ret.Append($", {nameof(ValueSeparator)}={ValueSeparator}");
             ret.Append($", {nameof(WriteBufferSizeHint)}={WriteBufferSizeHint}");
             ret.Append($", {nameof(WriteHeader)}={WriteHeader}");
-            ret.Append($", {nameof(WriteTrailingNewLine)}={WriteTrailingNewLine}");
+            ret.Append($", {nameof(WriteTrailingRowEnding)}={WriteTrailingRowEnding}");
             ret.Append($", {nameof(WhitespaceTreatment)}={WhitespaceTreatment}");
 
             return ret.ToString();

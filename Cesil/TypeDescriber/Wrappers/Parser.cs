@@ -16,7 +16,8 @@ namespace Cesil
     /// </summary>
     public sealed class Parser : IEquatable<Parser>
     {
-        private static readonly IReadOnlyDictionary<TypeInfo, Parser> TypeParsers;
+        // internal for testing purposes
+        internal static readonly IReadOnlyDictionary<TypeInfo, Parser> TypeParsers;
 
         static Parser()
         {

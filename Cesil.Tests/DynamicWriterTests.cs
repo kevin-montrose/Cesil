@@ -463,7 +463,7 @@ namespace Cesil.Tests
             {
                 // first line, no headers
                 {
-                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
+                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     RunSyncDynamicWriterVariants(
@@ -516,7 +516,7 @@ namespace Cesil.Tests
 
                 // second line, no headers
                 {
-                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
+                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     RunSyncDynamicWriterVariants(
@@ -571,7 +571,7 @@ namespace Cesil.Tests
 
                 // second line, headers
                 {
-                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Always).ToOptions();
+                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Always).ToOptions();
 
                     // one line
                     RunSyncDynamicWriterVariants(
@@ -610,7 +610,7 @@ namespace Cesil.Tests
 
                 // before row, no headers
                 {
-                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
+                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     RunSyncDynamicWriterVariants(
@@ -1151,7 +1151,7 @@ namespace Cesil.Tests
                         .WithWriteHeader(WriteHeader.Never)
                         .WithRowEnding(RowEnding.CarriageReturnLineFeed)
                         .WithCommentCharacter('#')
-                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always)
                         .ToOptions();
 
                 RunSyncDynamicWriterVariants(
@@ -1190,7 +1190,7 @@ namespace Cesil.Tests
                         .WithWriteHeader(WriteHeader.Never)
                         .WithRowEnding(RowEnding.CarriageReturn)
                         .WithCommentCharacter('#')
-                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always)
                         .ToOptions();
 
                 RunSyncDynamicWriterVariants(
@@ -1229,7 +1229,7 @@ namespace Cesil.Tests
                         .WithWriteHeader(WriteHeader.Never)
                         .WithRowEnding(RowEnding.LineFeed)
                         .WithCommentCharacter('#')
-                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always)
                         .ToOptions();
 
                 RunSyncDynamicWriterVariants(
@@ -1271,7 +1271,7 @@ namespace Cesil.Tests
                     Options.CreateBuilder(Options.DynamicDefault)
                         .WithWriteHeader(WriteHeader.Always)
                         .WithRowEnding(RowEnding.CarriageReturnLineFeed)
-                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always)
                         .ToOptions();
 
                 RunSyncDynamicWriterVariants(
@@ -1306,7 +1306,7 @@ namespace Cesil.Tests
                     Options.CreateBuilder(Options.DynamicDefault)
                         .WithWriteHeader(WriteHeader.Always)
                         .WithRowEnding(RowEnding.CarriageReturn)
-                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always)
                         .ToOptions();
 
                 RunSyncDynamicWriterVariants(
@@ -1341,7 +1341,7 @@ namespace Cesil.Tests
                     Options.CreateBuilder(Options.DynamicDefault)
                         .WithWriteHeader(WriteHeader.Always)
                         .WithRowEnding(RowEnding.LineFeed)
-                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always)
                         .ToOptions();
 
                 RunSyncDynamicWriterVariants(
@@ -2404,7 +2404,7 @@ namespace Cesil.Tests
             {
                 // first line, no headers
                 {
-                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
+                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     await RunAsyncDynamicWriterVariants(
@@ -2457,7 +2457,7 @@ namespace Cesil.Tests
 
                 // second line, no headers
                 {
-                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
+                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     await RunAsyncDynamicWriterVariants(
@@ -2512,7 +2512,7 @@ namespace Cesil.Tests
 
                 // second line, headers
                 {
-                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Always).ToOptions();
+                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Always).ToOptions();
 
                     // one line
                     await RunAsyncDynamicWriterVariants(
@@ -2551,7 +2551,7 @@ namespace Cesil.Tests
 
                 // before row, no headers
                 {
-                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
+                    var opts = Options.CreateBuilder(dynOpts).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     await RunAsyncDynamicWriterVariants(
@@ -2650,7 +2650,7 @@ namespace Cesil.Tests
                         .WithWriteHeader(WriteHeader.Never)
                         .WithRowEnding(RowEnding.CarriageReturnLineFeed)
                         .WithCommentCharacter('#')
-                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always)
                         .ToOptions();
 
                 await RunAsyncDynamicWriterVariants(
@@ -2689,7 +2689,7 @@ namespace Cesil.Tests
                         .WithWriteHeader(WriteHeader.Never)
                         .WithRowEnding(RowEnding.CarriageReturn)
                         .WithCommentCharacter('#')
-                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always)
                         .ToOptions();
 
                 await RunAsyncDynamicWriterVariants(
@@ -2728,7 +2728,7 @@ namespace Cesil.Tests
                         .WithWriteHeader(WriteHeader.Never)
                         .WithRowEnding(RowEnding.LineFeed)
                         .WithCommentCharacter('#')
-                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always)
                         .ToOptions();
 
                 await RunAsyncDynamicWriterVariants(
@@ -2770,7 +2770,7 @@ namespace Cesil.Tests
                     Options.CreateBuilder(Options.DynamicDefault)
                         .WithWriteHeader(WriteHeader.Always)
                         .WithRowEnding(RowEnding.CarriageReturnLineFeed)
-                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always)
                         .ToOptions();
 
                 await RunAsyncDynamicWriterVariants(
@@ -2805,7 +2805,7 @@ namespace Cesil.Tests
                     Options.CreateBuilder(Options.DynamicDefault)
                         .WithWriteHeader(WriteHeader.Always)
                         .WithRowEnding(RowEnding.CarriageReturn)
-                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always)
                         .ToOptions();
 
                 await RunAsyncDynamicWriterVariants(
@@ -2840,7 +2840,7 @@ namespace Cesil.Tests
                     Options.CreateBuilder(Options.DynamicDefault)
                         .WithWriteHeader(WriteHeader.Always)
                         .WithRowEnding(RowEnding.LineFeed)
-                        .WithWriteTrailingNewLine(WriteTrailingNewLine.Always)
+                        .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always)
                         .ToOptions();
 
                 await RunAsyncDynamicWriterVariants(

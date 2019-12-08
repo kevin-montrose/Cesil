@@ -139,7 +139,7 @@ namespace Cesil.Tests
                                                 foreach (var valSepChar in new char[] { ',', ';' })
                                                     foreach (var writeHint in new int?[] { null, 10 })
                                                         foreach (WriteHeader wh in Enum.GetValues(typeof(WriteHeader)))
-                                                            foreach (WriteTrailingNewLine wt in Enum.GetValues(typeof(WriteTrailingNewLine)))
+                                                            foreach (WriteTrailingRowEnding wt in Enum.GetValues(typeof(WriteTrailingRowEnding)))
                                                             {
                                                                 var builder = OptionsBuilder.CreateBuilder();
                                                                 var opt =
@@ -156,7 +156,7 @@ namespace Cesil.Tests
                                                                         .WithValueSeparator(valSepChar)
                                                                         .WithWriteBufferSizeHint(writeHint)
                                                                         .WithWriteHeader(wh)
-                                                                        .WithWriteTrailingNewLine(wt)
+                                                                        .WithWriteTrailingRowEnding(wt)
                                                                         .ToOptions();
 
                                                                 opts.Add(opt);
@@ -339,7 +339,7 @@ namespace Cesil.Tests
                     .WithReadHeader(ReadHeader.Detect)
                     .WithWriteHeader(WriteHeader.Always)
                     //.WithTypeDescriber(TypeDescribers.Default)
-                    .WithWriteTrailingNewLine(WriteTrailingNewLine.Never)
+                    .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Never)
                     .WithMemoryPool(MemoryPool<char>.Shared)
                     .WithWriteBufferSizeHint(null)
                     .WithCommentCharacter(null)
@@ -347,8 +347,8 @@ namespace Cesil.Tests
                     .ToOptions()
             );
 
-            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithWriteTrailingNewLineInternal(default).ToOptions());
-            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithWriteTrailingNewLineInternal((WriteTrailingNewLine)99).ToOptions());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithWriteTrailingRowEndingInternal(default).ToOptions());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithWriteTrailingRowEndingInternal((WriteTrailingRowEnding)99).ToOptions());
 
             Assert.Throws<InvalidOperationException>(
                 () =>
@@ -359,7 +359,7 @@ namespace Cesil.Tests
                     .WithReadHeader(ReadHeader.Detect)
                     .WithWriteHeader(WriteHeader.Always)
                     .WithTypeDescriber(TypeDescribers.Default)
-                    .WithWriteTrailingNewLine(WriteTrailingNewLine.Never)
+                    .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Never)
                     //.WithMemoryPool(MemoryPool<char>.Shared)
                     .WithWriteBufferSizeHint(null)
                     .WithCommentCharacter(null)
@@ -382,7 +382,7 @@ namespace Cesil.Tests
 
             Assert.Throws<ArgumentException>(() => Options.CreateBuilder(Options.Default).WithWriteHeader(default));
 
-            Assert.Throws<ArgumentException>(() => Options.CreateBuilder(Options.Default).WithWriteTrailingNewLine(default));
+            Assert.Throws<ArgumentException>(() => Options.CreateBuilder(Options.Default).WithWriteTrailingRowEnding(default));
 
             Assert.Throws<ArgumentException>(() => Options.CreateBuilder(Options.Default).WithWriteBufferSizeHint(-12));
 

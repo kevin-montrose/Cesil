@@ -320,7 +320,7 @@ end:
                     CheckHeaders(null);
                 }
 
-                if (Configuration.Options.WriteTrailingNewLine == WriteTrailingNewLine.Always)
+                if (Configuration.Options.WriteTrailingRowEnding == WriteTrailingRowEnding.Always)
                 {
                     EndRecord();
                 }

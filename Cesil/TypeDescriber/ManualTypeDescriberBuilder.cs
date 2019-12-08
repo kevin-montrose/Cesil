@@ -85,7 +85,7 @@ namespace Cesil
         /// </summary>
         public static ManualTypeDescriberBuilder CreateBuilder(ManualTypeDescriberFallbackBehavior fallbackBehavior)
         {
-            if (!Enum.IsDefined(Types.ManualTypeDescriberFallbackBehaviorsType, fallbackBehavior))
+            if (!Enum.IsDefined(Types.ManualTypeDescriberFallbackBehaviorType, fallbackBehavior))
             {
                 return Throw.ArgumentException<ManualTypeDescriberBuilder>($"Unexpected value: {fallbackBehavior}", nameof(fallbackBehavior));
             }
@@ -98,7 +98,7 @@ namespace Cesil
         /// </summary>
         public static ManualTypeDescriberBuilder CreateBuilder(ManualTypeDescriberFallbackBehavior fallbackBehavior, ITypeDescriber fallbackTypeDescriber)
         {
-            if (!Enum.IsDefined(Types.ManualTypeDescriberFallbackBehaviorsType, fallbackBehavior))
+            if (!Enum.IsDefined(Types.ManualTypeDescriberFallbackBehaviorType, fallbackBehavior))
             {
                 return Throw.ArgumentException<ManualTypeDescriberBuilder>($"Unexpected value: {fallbackBehavior}", nameof(fallbackBehavior));
             }
@@ -148,7 +148,7 @@ namespace Cesil
         /// </summary>
         public ManualTypeDescriberBuilder WithFallbackBehavior(ManualTypeDescriberFallbackBehavior fallbackBehavior)
         {
-            if (!Enum.IsDefined(Types.ManualTypeDescriberFallbackBehaviorsType, fallbackBehavior))
+            if (!Enum.IsDefined(Types.ManualTypeDescriberFallbackBehaviorType, fallbackBehavior))
             {
                 return Throw.ArgumentException<ManualTypeDescriberBuilder>($"Unexpected value: {fallbackBehavior}", nameof(fallbackBehavior));
             }

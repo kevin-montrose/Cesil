@@ -20,7 +20,8 @@ namespace Cesil
     {
         internal delegate bool DynamicFormatterDelegate(object? value, in WriteContext context, IBufferWriter<char> buffer);
 
-        private static readonly IReadOnlyDictionary<TypeInfo, Formatter> TypeFormatters;
+        // internal for testing purposes
+        internal static readonly IReadOnlyDictionary<TypeInfo, Formatter> TypeFormatters;
 
         static Formatter()
         {
@@ -194,7 +195,7 @@ namespace Cesil
                 if (forType.GetCustomAttribute<FlagsAttribute>() == null)
                 {
                     var formattingClass = Types.DefaultEnumTypeFormatterType.MakeGenericType(forType).GetTypeInfo();
-                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryParseEnumFormatter), BindingFlags.Static | BindingFlags.NonPublic);
+                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryEnumFormatter), BindingFlags.Static | BindingFlags.NonPublic);
                     var formatter = (Formatter?)formatterField.GetValue(null);
 
                     return formatter;
@@ -202,7 +203,7 @@ namespace Cesil
                 else
                 {
                     var formattingClass = Types.DefaultFlagsEnumTypeFormatterType.MakeGenericType(forType).GetTypeInfo();
-                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultFlagsEnumTypeFormatter<StringComparison>.TryParseFlagsEnumFormatter), BindingFlags.Static | BindingFlags.NonPublic);
+                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultFlagsEnumTypeFormatter<StringComparison>.TryFlagsEnumFormatter), BindingFlags.Static | BindingFlags.NonPublic);
                     var formatter = (Formatter?)formatterField.GetValue(null);
 
                     return formatter;
@@ -215,7 +216,7 @@ namespace Cesil
                 if (nullableElem.GetCustomAttribute<FlagsAttribute>() == null)
                 {
                     var formattingClass = Types.DefaultEnumTypeFormatterType.MakeGenericType(nullableElem).GetTypeInfo();
-                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryParseNullableEnumFormatter), BindingFlags.Static | BindingFlags.NonPublic);
+                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryNullableEnumFormatter), BindingFlags.Static | BindingFlags.NonPublic);
                     var formatter = (Formatter?)formatterField.GetValue(null);
 
                     return formatter;
@@ -223,7 +224,7 @@ namespace Cesil
                 else
                 {
                     var formattingClass = Types.DefaultFlagsEnumTypeFormatterType.MakeGenericType(nullableElem).GetTypeInfo();
-                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultFlagsEnumTypeFormatter<StringComparison>.TryParseNullableFlagsEnumFormatter), BindingFlags.Static | BindingFlags.NonPublic);
+                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultFlagsEnumTypeFormatter<StringComparison>.TryNullableFlagsEnumFormatter), BindingFlags.Static | BindingFlags.NonPublic);
                     var formatter = (Formatter?)formatterField.GetValue(null);
 
                     return formatter;

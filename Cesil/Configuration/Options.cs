@@ -39,7 +39,7 @@ namespace Cesil
                 .WithReadHeader(ReadHeader.Detect)
                 .WithWriteHeader(WriteHeader.Always)
                 .WithTypeDescriber(TypeDescribers.Default)
-                .WithWriteTrailingNewLine(WriteTrailingNewLine.Never)
+                .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Never)
                 .WithMemoryPool(MemoryPool<char>.Shared)
                 .WithWriteBufferSizeHint(null)
                 .WithCommentCharacter(null)
@@ -74,7 +74,7 @@ namespace Cesil
                 .WithReadHeader(ReadHeader.Always)
                 .WithWriteHeader(WriteHeader.Always)
                 .WithTypeDescriber(TypeDescribers.Default)
-                .WithWriteTrailingNewLine(WriteTrailingNewLine.Never)
+                .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Never)
                 .WithMemoryPool(MemoryPool<char>.Shared)
                 .WithWriteBufferSizeHint(null)
                 .WithCommentCharacter(null)
@@ -122,10 +122,10 @@ namespace Cesil
         /// </summary>
         public ITypeDescriber TypeDescriber { get; }
         /// <summary>
-        /// Whether or not to write a new line after the last row
+        /// Whether or not to write a row ending after the last row
         /// in a CSV.
         /// </summary>
-        public WriteTrailingNewLine WriteTrailingNewLine { get; }
+        public WriteTrailingRowEnding WriteTrailingRowEnding { get; }
         /// <summary>
         /// Which MemoryPool to use when reading or writing a CSV.
         /// </summary>
@@ -173,7 +173,7 @@ namespace Cesil
             ReadHeader = copy.ReadHeader;
             WriteHeader = copy.WriteHeader;
             TypeDescriber = copy.TypeDescriber!;
-            WriteTrailingNewLine = copy.WriteTrailingNewLine;
+            WriteTrailingRowEnding = copy.WriteTrailingRowEnding;
             MemoryPool = copy.MemoryPool!;
             CommentCharacter = copy.CommentCharacter;
             WriteBufferSizeHint = copy.WriteBufferSizeHint;
@@ -228,7 +228,7 @@ namespace Cesil
                 options.ValueSeparator == ValueSeparator &&
                 options.WriteBufferSizeHint == WriteBufferSizeHint &&
                 options.WriteHeader == WriteHeader &&
-                options.WriteTrailingNewLine == WriteTrailingNewLine &&
+                options.WriteTrailingRowEnding == WriteTrailingRowEnding &&
                 options.WhitespaceTreatment == WhitespaceTreatment;
         }
 
@@ -250,7 +250,7 @@ namespace Cesil
                 ValueSeparator,
                 WriteBufferSizeHint,
                 WriteHeader,
-                WriteTrailingNewLine,
+                WriteTrailingRowEnding,
                 WhitespaceTreatment
             ));
 
@@ -275,7 +275,7 @@ namespace Cesil
             ret.Append($", {nameof(ValueSeparator)}={ValueSeparator}");
             ret.Append($", {nameof(WriteBufferSizeHint)}={WriteBufferSizeHint}");
             ret.Append($", {nameof(WriteHeader)}={WriteHeader}");
-            ret.Append($", {nameof(WriteTrailingNewLine)}={WriteTrailingNewLine}");
+            ret.Append($", {nameof(WriteTrailingRowEnding)}={WriteTrailingRowEnding}");
             ret.Append($", {nameof(WhitespaceTreatment)}={WhitespaceTreatment}");
 
             return ret.ToString();

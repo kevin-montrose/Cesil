@@ -1781,7 +1781,7 @@ namespace Cesil.Tests
                     [typeof(RowEnding).GetTypeInfo()] = new[] { "rowEnding" },
                     [typeof(ReadHeader).GetTypeInfo()] = new[] { "readHeader" },
                     [typeof(WriteHeader).GetTypeInfo()] = new[] { "writeHeader" },
-                    [typeof(WriteTrailingNewLine).GetTypeInfo()] = new[] { "writeTrailingNewLine" },
+                    [typeof(WriteTrailingRowEnding).GetTypeInfo()] = new[] { "writeTrailingNewLine" },
                     [typeof(IEnumerable<ColumnIdentifier>).GetTypeInfo()] = new[] { "columns", "columnsForSetters", "columnsForParameters" },
                     [typeof(ManualTypeDescriberFallbackBehavior).GetTypeInfo()] = new[] { "fallbackBehavior" },
                     [typeof(SurrogateTypeDescriberFallbackBehavior).GetTypeInfo()] = new[] { "fallbackBehavior" },

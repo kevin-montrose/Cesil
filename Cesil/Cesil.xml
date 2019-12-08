@@ -264,9 +264,9 @@
               as the manner of their reading and writing.
             </summary>
         </member>
-        <member name="P:Cesil.Options.WriteTrailingNewLine">
+        <member name="P:Cesil.Options.WriteTrailingRowEnding">
             <summary>
-            Whether or not to write a new line after the last row
+            Whether or not to write a row ending after the last row
             in a CSV.
             </summary>
         </member>
@@ -407,9 +407,9 @@
               as the manner of their reading and writing.
             </summary>
         </member>
-        <member name="P:Cesil.OptionsBuilder.WriteTrailingNewLine">
+        <member name="P:Cesil.OptionsBuilder.WriteTrailingRowEnding">
             <summary>
-            Whether or not to write a new line after the last row
+            Whether or not to write a row ending after the last row
             in a CSV.
             </summary>
         </member>
@@ -512,7 +512,7 @@
             columns that are read and written.
             </summary>
         </member>
-        <member name="M:Cesil.OptionsBuilder.WithWriteTrailingNewLine(Cesil.WriteTrailingNewLine)">
+        <member name="M:Cesil.OptionsBuilder.WithWriteTrailingRowEnding(Cesil.WriteTrailingRowEnding)">
             <summary>
             Set whether or not to end the last row with a new line.
             </summary>
@@ -714,20 +714,20 @@
             No header row will be written the writer.
             </summary>
         </member>
-        <member name="T:Cesil.WriteTrailingNewLine">
+        <member name="T:Cesil.WriteTrailingRowEnding">
             <summary>
-            Whether or not their should be a trailing new line
+            Whether or not their should be a trailing row ending
               after the last row when serializing.
             </summary>
         </member>
-        <member name="F:Cesil.WriteTrailingNewLine.Always">
+        <member name="F:Cesil.WriteTrailingRowEnding.Always">
             <summary>
-            After the last record is written, always append an additional new line / row ending.
+            After the last row is written, always append an additional row ending.
             </summary>
         </member>
-        <member name="F:Cesil.WriteTrailingNewLine.Never">
+        <member name="F:Cesil.WriteTrailingRowEnding.Never">
             <summary>
-            Do not write an additional new line / row ending after the last record is written.
+            Do not write an additional row ending after the last row is written.
             </summary>
         </member>
         <member name="T:Cesil.ColumnIdentifier">
@@ -1393,7 +1393,7 @@
             Override to tweak behavior.
             </summary>
         </member>
-        <member name="M:Cesil.DefaultTypeDescriber.GetPosition(System.Reflection.TypeInfo,System.Reflection.PropertyInfo)">
+        <member name="M:Cesil.DefaultTypeDescriber.GetOrder(System.Reflection.TypeInfo,System.Reflection.PropertyInfo)">
             <summary>
             Returns the index of the column that should map to the given property.  Headers
               can change this during deserialization.
@@ -1438,7 +1438,7 @@
             Override to tweak behavior.
             </summary>
         </member>
-        <member name="M:Cesil.DefaultTypeDescriber.GetPosition(System.Reflection.TypeInfo,System.Reflection.FieldInfo)">
+        <member name="M:Cesil.DefaultTypeDescriber.GetOrder(System.Reflection.TypeInfo,System.Reflection.FieldInfo)">
             <summary>
             Returns the index of the column that should map to the given field.  Headers
               can change this during deserialization.
@@ -1488,9 +1488,9 @@
             Override to tweak behavior.
             </summary>
         </member>
-        <member name="M:Cesil.DefaultTypeDescriber.GetShouldSerializeMethod(System.Reflection.TypeInfo,System.Reflection.PropertyInfo)">
+        <member name="M:Cesil.DefaultTypeDescriber.GetShouldSerialize(System.Reflection.TypeInfo,System.Reflection.PropertyInfo)">
             <summary>
-            Returns the ShouldXXX()-style method to use for the given property when serializing, if
+            Returns the ShouldSerializeXXX()-style method to use for the given property when serializing, if
               any.
              
             If specified, the method will be invoked for each record to determine whether to write
@@ -1524,6 +1524,13 @@
             Override to tweak behavior.
             </summary>
         </member>
+        <member name="M:Cesil.DefaultTypeDescriber.GetGetter(System.Reflection.TypeInfo,System.Reflection.FieldInfo)">
+            <summary>
+            Returns the getter to use for the given field when serialized.
+            
+            Override to tweak behavior.
+            </summary>
+        </member>
         <member name="M:Cesil.DefaultTypeDescriber.GetSerializationName(System.Reflection.TypeInfo,System.Reflection.FieldInfo)">
             <summary>
             Returns the name of the column that should map to the given field when serialized.
@@ -1531,10 +1538,10 @@
             Override to tweak behavior.
             </summary>
         </member>
-        <member name="M:Cesil.DefaultTypeDescriber.GetShouldSerializeMethod(System.Reflection.TypeInfo,System.Reflection.FieldInfo)">
+        <member name="M:Cesil.DefaultTypeDescriber.GetShouldSerialize(System.Reflection.TypeInfo,System.Reflection.FieldInfo)">
             <summary>
-            Returns the ShouldXXX()-style method to use for the given field when serializing, if
-              any.
+            Returns the ShouldSerializeXXX()-style method to use for the given field when serializing, if
+              any. By default, always returns null.
              
             If specified, the method will be invoked for each record to determine whether to write
               the field.

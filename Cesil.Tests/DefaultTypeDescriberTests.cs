@@ -15,6 +15,16 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class DefaultTypeDescriberTests
     {
+        [Fact]
+        public void DefaultParserFormatterSymmetry()
+        {
+            var formatters = Formatter.TypeFormatters.Keys;
+            var parsers = Parser.TypeParsers.Keys;
+
+            Assert.All(formatters, f => parsers.Contains(f));
+            Assert.All(parsers, p => formatters.Contains(p));
+        }
+
         private delegate bool Parse<T>(ReadOnlySpan<char> foo, in ReadContext ctx, out T val);
 
         private enum _TestEnum
@@ -1999,6 +2009,189 @@ namespace Cesil.Tests
                     reader.AdvanceTo(buff.Buffer.End);
                 }
             }
+
+            // Index
+            {
+                var pipe = new Pipe();
+                var writer = new CharWriter(pipe.Writer);
+                var reader = pipe.Reader;
+
+                var mtd = Formatter.GetDefault(typeof(Index).GetTypeInfo()).Method.Value;
+
+                // start
+                {
+                    var i = new Index(15, false);
+
+                    var res = mtd.Invoke(null, new object[] { i, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(i.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // end
+                {
+                    var i = new Index(22, true);
+
+                    var res = mtd.Invoke(null, new object[] { i, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(i.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+            }
+
+            // Range
+            {
+                var pipe = new Pipe();
+                var writer = new CharWriter(pipe.Writer);
+                var reader = pipe.Reader;
+
+                var mtd = Formatter.GetDefault(typeof(Range).GetTypeInfo()).Method.Value;
+
+                // open ended
+                {
+                    var r = ..;
+
+                    var res = mtd.Invoke(null, new object[] { r, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(r.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // left
+                {
+                    var r = 3..;
+
+                    var res = mtd.Invoke(null, new object[] { r, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(r.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // left end
+                {
+                    var r = ^3..;
+
+                    var res = mtd.Invoke(null, new object[] { r, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(r.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // right
+                {
+                    var r = ..3;
+
+                    var res = mtd.Invoke(null, new object[] { r, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(r.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // right end
+                {
+                    var r = ..^3;
+
+                    var res = mtd.Invoke(null, new object[] { r, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(r.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // closed
+                {
+                    var r = 1..4;
+
+                    var res = mtd.Invoke(null, new object[] { r, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(r.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // closed, left end
+                {
+                    var r = ^1..4;
+
+                    var res = mtd.Invoke(null, new object[] { r, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(r.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // closed, right end
+                {
+                    var r = 1..^4;
+
+                    var res = mtd.Invoke(null, new object[] { r, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(r.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // closed, both end
+                {
+                    var r = ^1..^4;
+
+                    var res = mtd.Invoke(null, new object[] { r, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(r.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+            }
         }
 
         [Fact]
@@ -2840,6 +3033,217 @@ namespace Cesil.Tests
                 // null
                 {
                     var res = mtd.Invoke(null, new object[] { (TimeSpan?)null, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.False(reader.TryRead(out _));
+                }
+            }
+
+            // Index?
+            {
+                var pipe = new Pipe();
+                var writer = new CharWriter(pipe.Writer);
+                var reader = pipe.Reader;
+
+                var mtd = Formatter.GetDefault(typeof(Index?).GetTypeInfo()).Method.Value;
+
+                // start
+                {
+                    Index? i = new Index(15, false);
+
+                    var res = mtd.Invoke(null, new object[] { i, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(i.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // end
+                {
+                    Index? i = new Index(22, true);
+
+                    var res = mtd.Invoke(null, new object[] { i, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(i.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+
+                // null
+                {
+                    Index? i = null;
+
+                    var res = mtd.Invoke(null, new object[] { i, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.False(reader.TryRead(out _));
+                }
+            }
+
+            // Range?
+            {
+                var pipe = new Pipe();
+                var writer = new CharWriter(pipe.Writer);
+                var reader = pipe.Reader;
+
+                var mtd = Formatter.GetDefault(typeof(Range?).GetTypeInfo()).Method.Value;
+
+                // open ended
+                {
+                    Range? r = ..;
+
+                    var res = mtd.Invoke(null, new object[] { r, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(r.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // left
+                {
+                    Range? r = 3..;
+
+                    var res = mtd.Invoke(null, new object[] { r, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(r.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // left end
+                {
+                    Range? r = ^3..;
+
+                    var res = mtd.Invoke(null, new object[] { r, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(r.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // right
+                {
+                    Range? r = ..3;
+
+                    var res = mtd.Invoke(null, new object[] { r, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(r.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // right end
+                {
+                    Range? r = ..^3;
+
+                    var res = mtd.Invoke(null, new object[] { r, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(r.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // closed
+                {
+                    Range? r = 1..4;
+
+                    var res = mtd.Invoke(null, new object[] { r, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(r.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // closed, left end
+                {
+                    Range? r = ^1..4;
+
+                    var res = mtd.Invoke(null, new object[] { r, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(r.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // closed, right end
+                {
+                    Range? r = 1..^4;
+
+                    var res = mtd.Invoke(null, new object[] { r, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(r.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // closed, both end
+                {
+                    Range? r = ^1..^4;
+
+                    var res = mtd.Invoke(null, new object[] { r, default(WriteContext), writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(r.ToString(), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+
+                // null
+                {
+                    Range? r = null;
+
+                    var res = mtd.Invoke(null, new object[] { r, default(WriteContext), writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 

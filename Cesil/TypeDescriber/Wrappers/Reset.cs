@@ -79,6 +79,11 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(method, nameof(method));
 
+            if (method.ReturnType.GetTypeInfo() != Types.VoidType)
+            {
+                return Throw.ArgumentException<Reset>($"{method} does not return void", nameof(method));
+            }
+
             TypeInfo? rowType;
 
             var args = method.GetParameters();

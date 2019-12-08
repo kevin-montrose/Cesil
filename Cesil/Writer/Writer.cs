@@ -201,7 +201,7 @@ namespace Cesil
                     CheckHeaders();
                 }
 
-                if (Configuration.Options.WriteTrailingNewLine == WriteTrailingNewLine.Always)
+                if (Configuration.Options.WriteTrailingRowEnding == WriteTrailingRowEnding.Always)
                 {
                     EndRecord();
                 }

@@ -768,7 +768,7 @@ namespace Cesil
         {
             if (!IsDisposed)
             {
-                var writeTrailingNewLine = Configuration.Options.WriteTrailingNewLine;
+                var writeTrailingNewLine = Configuration.Options.WriteTrailingRowEnding;
 
                 if (IsFirstRow)
                 {
@@ -779,7 +779,7 @@ namespace Cesil
                     }
                 }
 
-                if (writeTrailingNewLine == WriteTrailingNewLine.Always)
+                if (writeTrailingNewLine == WriteTrailingRowEnding.Always)
                 {
                     var endRecordTask = EndRecordAsync(CancellationToken.None);
                     if (!endRecordTask.IsCompletedSuccessfully(this))
@@ -819,11 +819,11 @@ namespace Cesil
             return default;
 
             // wait on headers, then continue asynchronously
-            static async ValueTask DisposeAsync_ContinueAfterHeadersAsync(AsyncWriter<T> self, ValueTask<bool> waitFor, WriteTrailingNewLine writeTrailingNewLine)
+            static async ValueTask DisposeAsync_ContinueAfterHeadersAsync(AsyncWriter<T> self, ValueTask<bool> waitFor, WriteTrailingRowEnding writeTrailingNewLine)
             {
                 await waitFor;
 
-                if (writeTrailingNewLine == WriteTrailingNewLine.Always)
+                if (writeTrailingNewLine == WriteTrailingRowEnding.Always)
                 {
                     var endTask = self.EndRecordAsync(CancellationToken.None);
                     await endTask;

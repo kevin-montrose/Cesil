@@ -1125,7 +1125,7 @@ namespace Cesil.Tests
             {
                 // first line, no headers
                 {
-                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
+                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     RunSyncWriterVariants<_WriteComment>(
@@ -1178,7 +1178,7 @@ namespace Cesil.Tests
 
                 // first line, headers
                 {
-                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Always).ToOptions();
+                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Always).ToOptions();
 
                     // empty line
                     RunSyncWriterVariants<_WriteComment>(
@@ -1231,7 +1231,7 @@ namespace Cesil.Tests
 
                 // second line, no headers
                 {
-                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
+                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // one line
                     RunSyncWriterVariants<_WriteComment>(
@@ -1270,7 +1270,7 @@ namespace Cesil.Tests
 
                 // second line, headers
                 {
-                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Always).ToOptions();
+                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Always).ToOptions();
 
                     // empty line
                     RunSyncWriterVariants<_WriteComment>(
@@ -1325,7 +1325,7 @@ namespace Cesil.Tests
 
                 // before row, no headers
                 {
-                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
+                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     RunSyncWriterVariants<_WriteComment>(
@@ -1380,7 +1380,7 @@ namespace Cesil.Tests
 
                 // before row, headers
                 {
-                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Always).ToOptions();
+                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Always).ToOptions();
 
                     // empty line
                     RunSyncWriterVariants<_WriteComment>(
@@ -2017,7 +2017,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithCommentCharacter('#').WithWriteTrailingNewLine(WriteTrailingNewLine.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithCommentCharacter('#').WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 RunSyncWriterVariants<_CommentEscape>(
                     opts,
@@ -2050,7 +2050,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturn).WithCommentCharacter('#').WithWriteTrailingNewLine(WriteTrailingNewLine.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturn).WithCommentCharacter('#').WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 RunSyncWriterVariants<_CommentEscape>(
                     opts,
@@ -2083,7 +2083,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.LineFeed).WithCommentCharacter('#').WithWriteTrailingNewLine(WriteTrailingNewLine.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.LineFeed).WithCommentCharacter('#').WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 RunSyncWriterVariants<_CommentEscape>(
                     opts,
@@ -2495,7 +2495,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 RunSyncWriterVariants<_EscapeHeaders>(
                     opts,
@@ -2529,7 +2529,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturn).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturn).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 RunSyncWriterVariants<_EscapeHeaders>(
                     opts,
@@ -2563,7 +2563,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.LineFeed).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.LineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 RunSyncWriterVariants<_EscapeHeaders>(
                     opts,
@@ -2621,7 +2621,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 RunSyncWriterVariants<_EscapeLargeHeaders>(
                     opts,
@@ -2654,7 +2654,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturn).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturn).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 RunSyncWriterVariants<_EscapeLargeHeaders>(
                     opts,
@@ -2687,7 +2687,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.LineFeed).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.LineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 RunSyncWriterVariants<_EscapeLargeHeaders>(
                     opts,
@@ -3548,7 +3548,7 @@ namespace Cesil.Tests
             {
                 // first line, no headers
                 {
-                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
+                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     await RunAsyncWriterVariants<_WriteComment>(
@@ -3601,7 +3601,7 @@ namespace Cesil.Tests
 
                 // first line, headers
                 {
-                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Always).ToOptions();
+                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Always).ToOptions();
 
                     // empty line
                     await RunAsyncWriterVariants<_WriteComment>(
@@ -3654,7 +3654,7 @@ namespace Cesil.Tests
 
                 // second line, no headers
                 {
-                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
+                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     await RunAsyncWriterVariants<_WriteComment>(
@@ -3709,7 +3709,7 @@ namespace Cesil.Tests
 
                 // second line, headers
                 {
-                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Always).ToOptions();
+                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Always).ToOptions();
 
                     // empty line
                     await RunAsyncWriterVariants<_WriteComment>(
@@ -3764,7 +3764,7 @@ namespace Cesil.Tests
 
                 // before row, no headers
                 {
-                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
+                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Never).ToOptions();
 
                     // empty line
                     await RunAsyncWriterVariants<_WriteComment>(
@@ -3819,7 +3819,7 @@ namespace Cesil.Tests
 
                 // before row, headers
                 {
-                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Always).ToOptions();
+                    var opts = Options.CreateBuilder(Options.Default).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).WithCommentCharacter('#').WithWriteHeader(WriteHeader.Always).ToOptions();
 
                     // empty line
                     await RunAsyncWriterVariants<_WriteComment>(
@@ -4281,7 +4281,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithCommentCharacter('#').WithWriteTrailingNewLine(WriteTrailingNewLine.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithCommentCharacter('#').WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 await RunAsyncWriterVariants<_CommentEscape>(
                     opts,
@@ -4314,7 +4314,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturn).WithCommentCharacter('#').WithWriteTrailingNewLine(WriteTrailingNewLine.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturn).WithCommentCharacter('#').WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 await RunAsyncWriterVariants<_CommentEscape>(
                     opts,
@@ -4347,7 +4347,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.LineFeed).WithCommentCharacter('#').WithWriteTrailingNewLine(WriteTrailingNewLine.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.LineFeed).WithCommentCharacter('#').WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 await RunAsyncWriterVariants<_CommentEscape>(
                     opts,
@@ -4384,7 +4384,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 await RunAsyncWriterVariants<_EscapeHeaders>(
                     opts,
@@ -4418,7 +4418,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturn).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturn).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 await RunAsyncWriterVariants<_EscapeHeaders>(
                     opts,
@@ -4452,7 +4452,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.LineFeed).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.LineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 await RunAsyncWriterVariants<_EscapeHeaders>(
                     opts,
@@ -5022,7 +5022,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 await RunAsyncWriterVariants<_EscapeLargeHeaders>(
                     opts,
@@ -5055,7 +5055,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturn).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturn).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 await RunAsyncWriterVariants<_EscapeLargeHeaders>(
                     opts,
@@ -5088,7 +5088,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.LineFeed).WithWriteTrailingNewLine(WriteTrailingNewLine.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.LineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 await RunAsyncWriterVariants<_EscapeLargeHeaders>(
                     opts,

@@ -16,8 +16,8 @@ namespace Cesil
         {
             private static readonly string[] Names;
 
-            internal static readonly Formatter TryParseFlagsEnumFormatter;
-            internal static readonly Formatter TryParseNullableFlagsEnumFormatter;
+            internal static readonly Formatter TryFlagsEnumFormatter;
+            internal static readonly Formatter TryNullableFlagsEnumFormatter;
 
             static DefaultFlagsEnumTypeFormatter()
             {
@@ -27,10 +27,10 @@ namespace Cesil
                 var parsingClass = Types.DefaultFlagsEnumTypeFormatterType.MakeGenericType(enumType).GetTypeInfo();
 
                 var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryFormatFlagsEnum), BindingFlags.Static | BindingFlags.NonPublic);
-                TryParseFlagsEnumFormatter = Formatter.ForMethod(enumParsingMtd);
+                TryFlagsEnumFormatter = Formatter.ForMethod(enumParsingMtd);
 
                 var nullableEnumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryFormatNullableFlagsEnum), BindingFlags.Static | BindingFlags.NonPublic);
-                TryParseNullableFlagsEnumFormatter = Formatter.ForMethod(nullableEnumParsingMtd);
+                TryNullableFlagsEnumFormatter = Formatter.ForMethod(nullableEnumParsingMtd);
             }
 
             private static bool TryFormatFlagsEnum(T e, in WriteContext _, IBufferWriter<char> writer)
@@ -77,8 +77,8 @@ namespace Cesil
         internal static class DefaultEnumTypeFormatter<T>
             where T : struct, Enum
         {
-            internal static readonly Formatter TryParseEnumFormatter;
-            internal static readonly Formatter TryParseNullableEnumFormatter;
+            internal static readonly Formatter TryEnumFormatter;
+            internal static readonly Formatter TryNullableEnumFormatter;
 
             static DefaultEnumTypeFormatter()
             {
@@ -87,10 +87,10 @@ namespace Cesil
                 var parsingClass = Types.DefaultEnumTypeFormatterType.MakeGenericType(enumType).GetTypeInfo();
 
                 var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryFormatEnum), BindingFlags.Static | BindingFlags.NonPublic);
-                TryParseEnumFormatter = Formatter.ForMethod(enumParsingMtd);
+                TryEnumFormatter = Formatter.ForMethod(enumParsingMtd);
 
                 var nullableEnumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryFormatNullableEnum), BindingFlags.Static | BindingFlags.NonPublic);
-                TryParseNullableEnumFormatter = Formatter.ForMethod(nullableEnumParsingMtd);
+                TryNullableEnumFormatter = Formatter.ForMethod(nullableEnumParsingMtd);
             }
 
             private static bool TryFormatEnum(T e, in WriteContext _, IBufferWriter<char> writer)
@@ -417,6 +417,93 @@ namespace Cesil
             return true;
         }
 
+        private static bool TryFormatIndex(Index i, in WriteContext _, IBufferWriter<char> writer)
+        {
+            const int MAX_CHARS =
+                1 + // ^
+                11; // int max length
+
+            var charSpan = writer.GetSpan(MAX_CHARS);
+
+            var written = 0;
+
+            if(i.IsFromEnd)
+            {
+                if (charSpan.Length == 0) return false;
+
+                charSpan[0] = '^';
+                charSpan = charSpan.Slice(1);
+                written++;
+            }
+
+            var ret = i.Value.TryFormat(charSpan, out var chars, provider: CultureInfo.InvariantCulture);
+            if (!ret) return false;
+
+            written += chars;
+
+            writer.Advance(written);
+            return true;
+        }
+
+        private static bool TryFormatRange(Range r, in WriteContext _, IBufferWriter<char> writer)
+        {
+            const int MAX_CHARS =
+                   1 +  // ^
+                   11 + // int max length
+                   2 +  // ..
+                   1 +  // ^
+                   11;  // int max length
+
+            var charSpan = writer.GetSpan(MAX_CHARS);
+
+            var written = 0;
+
+            var start = r.Start;
+
+            if (start.IsFromEnd)
+            {
+                if (charSpan.Length == 0) return false;
+
+                charSpan[0] = '^';
+                charSpan = charSpan.Slice(1);
+                written++;
+            }
+
+            var ret = start.Value.TryFormat(charSpan, out var chars, provider: CultureInfo.InvariantCulture);
+            if (!ret) return false;
+
+            written += chars;
+            charSpan = charSpan.Slice(chars);
+
+            if (charSpan.Length < 2) return false;
+
+            charSpan[0] = '.';
+            charSpan[1] = '.';
+
+            charSpan = charSpan.Slice(2);
+
+            written += 2;
+
+            var end = r.End;
+
+            if(end.IsFromEnd)
+            {
+                if (charSpan.Length == 0) return false;
+
+                charSpan[0] = '^';
+                charSpan = charSpan.Slice(1);
+                written++;
+            }
+
+            ret = end.Value.TryFormat(charSpan, out chars, provider: CultureInfo.InvariantCulture);
+            if (!ret) return false;
+
+            written += chars;
+
+            writer.Advance(written);
+            return true;
+        }
+
         // nullable
 
         private static bool TryFormatNullableChar(char? c, in WriteContext _, IBufferWriter<char> writer)
@@ -536,6 +623,20 @@ namespace Cesil
             if (ts == null) return true;
 
             return TryFormatTimeSpan(ts.Value, _, writer);
+        }
+
+        private static bool TryFormatNullableIndex(Index? i, in WriteContext _, IBufferWriter<char> writer)
+        {
+            if (i == null) return true;
+
+            return TryFormatIndex(i.Value, _, writer);
+        }
+
+        private static bool TryFormatNullableRange(Range? r, in WriteContext _, IBufferWriter<char> writer)
+        {
+            if (r == null) return true;
+
+            return TryFormatRange(r.Value, _, writer);
         }
     }
 }
