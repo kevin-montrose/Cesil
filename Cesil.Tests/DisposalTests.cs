@@ -98,9 +98,9 @@ namespace Cesil.Tests
                 {
                     IDisposable_DynamicRowEnumerator();
                 }
-                else if (t == typeof(Enumerator<>))
+                else if (t == typeof(Enumerable<>))
                 {
-                    IDisposable_Enumerator();
+                    IDisposable_Enumerable();
                 }
                 else if (t == typeof(DynamicWriter))
                 {
@@ -1301,67 +1301,60 @@ namespace Cesil.Tests
             }
 
             // test for Enumerator
-            void IDisposable_Enumerator()
+            void IDisposable_Enumerable()
             {
                 // double dispose does not error
                 {
-                    var r = MakeEnumerator();
+                    var r = MakeEnumerable();
                     r.Dispose();
                     r.Dispose();
                 }
 
                 // assert throws after dispose
                 {
-                    var r = MakeEnumerator();
+                    var r = MakeEnumerable();
                     r.Dispose();
                     Assert.Throws<ObjectDisposedException>(() => ((ITestableDisposable)r).AssertNotDisposed());
                 }
 
-                var testCases = 0;
+                // this is a weird one, so were doing this manually
 
-                // figure out how many _public_ methods need testing
-                int expectedTestCases;
+                // GetEnumerator
                 {
-                    using (var r = MakeEnumerator())
-                    {
-                        expectedTestCases = GetNumberExpectedDisposableTestCases(r);
-                    }
+                    var r = MakeEnumerable();
+                    r.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => r.GetEnumerator());
                 }
 
                 // Current
                 {
-                    var r = MakeEnumerator();
+                    var r = MakeEnumerable().GetEnumerator();
                     r.Dispose();
                     Assert.Throws<ObjectDisposedException>(() => r.Current);
-                    testCases++;
                 }
 
                 // MoveNext
                 {
-                    var r = MakeEnumerator();
+                    var r = MakeEnumerable().GetEnumerator();
                     r.Dispose();
                     Assert.Throws<ObjectDisposedException>(() => r.MoveNext());
-                    testCases++;
                 }
 
                 // Reset
                 {
-                    var r = MakeEnumerator();
+                    var r = MakeEnumerable().GetEnumerator();
                     r.Dispose();
                     Assert.Throws<ObjectDisposedException>(() => r.Reset());
-                    testCases++;
                 }
 
-                Assert.Equal(expectedTestCases, testCases);
-
                 // make a reader that's "good to go"
-                IEnumerator<_IDisposable> MakeEnumerator()
+                Enumerable<_IDisposable> MakeEnumerable()
                 {
                     var config = Configuration.For<_IDisposable>();
 
                     var r = config.CreateReader(new StringReader("a\r\nb\r\nc"));
 
-                    return r.EnumerateAll().GetEnumerator();
+                    return (Enumerable<_IDisposable>)r.EnumerateAll();
                 }
             }
 
@@ -1526,9 +1519,9 @@ namespace Cesil.Tests
                 {
                     await IAsyncDisposable_AsyncWriterAsync();
                 }
-                else if (t == typeof(AsyncEnumerator<>))
+                else if (t == typeof(AsyncEnumerable<>))
                 {
-                    await IAsyncDisposable_AsyncEnumeratorAsync();
+                    await IAsyncDisposable_AsyncEnumerableAsync();
                 }
                 else if (t == typeof(AsyncDynamicReader))
                 {
@@ -1557,6 +1550,58 @@ namespace Cesil.Tests
                 else
                 {
                     throw new XunitException($"No test configured for .DisposeAsync() on {t.Name}");
+                }
+            }
+
+            // test pipe writer adapter
+            async Task IAsyncDisposable_AsyncEnumerableAsync()
+            {
+                // double dispose does not error
+                {
+                    var w = MakeAsyncEnumerable();
+                    await w.DisposeAsync();
+                    await w.DisposeAsync();
+                }
+
+                // assert throws after dispose
+                {
+                    var w = MakeAsyncEnumerable();
+                    await w.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => ((ITestableAsyncDisposable)w).AssertNotDisposed());
+                }
+
+                // this one is weird, so do it manually
+
+                // GetAsyncEnumerator
+                {
+                    var e = MakeAsyncEnumerable();
+                    await e.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => e.GetAsyncEnumerator());
+                }
+
+                // MoveNextAsync
+                {
+                    var e = MakeAsyncEnumerable().GetAsyncEnumerator();
+                    await e.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => e.MoveNextAsync());
+                }
+
+                // Current
+                {
+                    var e = MakeAsyncEnumerable().GetAsyncEnumerator();
+                    await e.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => e.Current);
+                }
+
+                // make a writer that's "good to go"
+                AsyncEnumerable<_IDisposable> MakeAsyncEnumerable()
+                {
+                    return
+                        (AsyncEnumerable<_IDisposable>)
+                            Configuration
+                                .For<_IDisposable>()
+                                .CreateAsyncReader(TextReader.Null)
+                                .EnumerateAllAsync();
                 }
             }
 
@@ -1861,56 +1906,6 @@ namespace Cesil.Tests
                     return
                         Configuration.For<_IDisposable>()
                             .CreateAsyncWriter(TextWriter.Null);
-                }
-            }
-
-            // test for AsyncEnumerator
-            async Task IAsyncDisposable_AsyncEnumeratorAsync()
-            {
-                // double dispose does not error
-                {
-                    var e = MakeEnumerator();
-                    await e.DisposeAsync();
-                    await e.DisposeAsync();
-                }
-
-                var testCases = 0;
-
-                // figure out how many _public_ methods need testing
-                int expectedTestCases;
-                {
-                    await using (var e = MakeEnumerator())
-                    {
-                        expectedTestCases = GetNumberExpectedDisposableTestCases(e);
-                    }
-                }
-
-                // Current
-                {
-                    var e = MakeEnumerator();
-                    await e.DisposeAsync();
-                    Assert.Throws<ObjectDisposedException>(() => e.Current);
-                    testCases++;
-                }
-
-                // MoveNextAsync
-                {
-                    var e = MakeEnumerator();
-                    await e.DisposeAsync();
-                    Assert.Throws<ObjectDisposedException>(() => e.MoveNextAsync());
-                    testCases++;
-                }
-
-                Assert.Equal(expectedTestCases, testCases);
-
-                // make a reader that's "good to go"
-                IAsyncEnumerator<_IDisposable> MakeEnumerator()
-                {
-                    return
-                        Configuration.For<_IDisposable>()
-                            .CreateAsyncReader(new StringReader("foo\r\nbar"))
-                            .EnumerateAllAsync()
-                            .GetAsyncEnumerator();
                 }
             }
 

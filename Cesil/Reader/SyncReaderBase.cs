@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 using static Cesil.DisposableHelper;
 
@@ -22,27 +23,36 @@ namespace Cesil
             where TCollection : class, ICollection<T>
         {
             AssertNotDisposed(this);
+            AssertNotPoisoned();
 
             Utils.CheckArgumentNull(into, nameof(into));
 
-            HandleRowEndingsAndHeaders();
-
-            using (StateMachine.Pin())
+            try
             {
-                while (true)
+
+                HandleRowEndingsAndHeaders();
+
+                using (StateMachine.Pin())
                 {
-                    T _ = default!;
-                    var res = TryReadInner(false, true, ref _);
-                    if (!res.HasValue)
+                    while (true)
                     {
-                        break;
+                        T _ = default!;
+                        var res = TryReadInner(false, true, ref _);
+                        if (!res.HasValue)
+                        {
+                            break;
+                        }
+
+                        into.Add(res.Value);
                     }
-
-                    into.Add(res.Value);
                 }
-            }
 
-            return into;
+                return into;
+            }
+            catch (Exception e)
+            {
+                return Throw.PoisonAndRethrow<TCollection>(this, e);
+            }
         }
 
         public List<T> ReadAll()
@@ -51,6 +61,7 @@ namespace Cesil
         public IEnumerable<T> EnumerateAll()
         {
             AssertNotDisposed(this);
+            AssertNotPoisoned();
 
             return new Enumerable<T>(this);
         }
@@ -58,6 +69,7 @@ namespace Cesil
         public bool TryRead(out T record)
         {
             AssertNotDisposed(this);
+            AssertNotPoisoned();
 
             record = default!;
             return TryReadWithReuse(ref record);
@@ -66,23 +78,32 @@ namespace Cesil
         public bool TryReadWithReuse(ref T record)
         {
             AssertNotDisposed(this);
+            AssertNotPoisoned();
 
-            HandleRowEndingsAndHeaders();
-
-            var res = TryReadInner(false, false, ref record);
-            if (res.ResultType == ReadWithCommentResultType.HasValue)
+            try
             {
-                record = res.Value;
-                return true;
-            }
+                HandleRowEndingsAndHeaders();
 
-            // intentionally not clearing record here
-            return false;
+                var res = TryReadInner(false, false, ref record);
+                if (res.ResultType == ReadWithCommentResultType.HasValue)
+                {
+                    record = res.Value;
+                    return true;
+                }
+
+                // intentionally not clearing record here
+                return false;
+            }
+            catch (Exception e)
+            {
+                return Throw.PoisonAndRethrow<bool>(this, e);
+            }
         }
 
         public ReadWithCommentResult<T> TryReadWithComment()
         {
             AssertNotDisposed(this);
+            AssertNotPoisoned();
 
             var record = default(T)!;
             return TryReadWithCommentReuse(ref record);
@@ -91,10 +112,18 @@ namespace Cesil
         public ReadWithCommentResult<T> TryReadWithCommentReuse(ref T record)
         {
             AssertNotDisposed(this);
+            AssertNotPoisoned();
 
-            HandleRowEndingsAndHeaders();
+            try
+            {
+                HandleRowEndingsAndHeaders();
 
-            return TryReadInner(true, false, ref record);
+                return TryReadInner(true, false, ref record);
+            }
+            catch (Exception e)
+            {
+                return Throw.PoisonAndRethrow<ReadWithCommentResult<T>>(this, e);
+            }
         }
 
         internal abstract ReadWithCommentResult<T> TryReadInner(bool returnComments, bool pinAcquired, ref T record);

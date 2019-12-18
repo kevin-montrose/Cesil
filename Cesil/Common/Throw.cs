@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Runtime.Serialization;
 
 namespace Cesil
@@ -51,5 +52,22 @@ namespace Cesil
         [MethodImpl(MethodImplOptions.NoInlining)]
         internal static T NotSupportedException<T>(string type, string method)
         => throw new NotSupportedException($"Method {method} on {type} is not supported");
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        internal static T PoisonAndRethrow<T>(PoisonableBase toPoison, Exception e)
+        {
+            toPoison.SetPoison(e);
+
+            // this preserves stack traces in a way `throw e` doesn't.
+            //
+            // in "normal" code we'd just rethrow with a naked `throw`, but
+            //   we don't want any throws outside of this class for other reasons.
+            //
+            // automating poisoning is a nice bonus
+            var wrapped = ExceptionDispatchInfo.Capture(e);
+            wrapped.Throw();
+            
+            return default;
+        }
     }
 }

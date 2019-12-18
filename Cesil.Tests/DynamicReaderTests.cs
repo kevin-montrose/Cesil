@@ -7231,7 +7231,8 @@ loop:
                                 Assert.Throws<ObjectDisposedException>(() => row[0]);
                             }
                         );
-                    }
+                    },
+                    cancellable: false
                 );
             }
 
@@ -7292,7 +7293,8 @@ loop:
                                 Assert.Throws<ObjectDisposedException>(() => row[0]);
                             }
                         );
-                    }
+                    },
+                    cancellable: false
                 );
             }
         }
@@ -7348,10 +7350,12 @@ loop:
                                     res = await csv2.TryReadWithReuseAsync(ref row);
                                     Assert.False(res.HasValue);
                                 }
-                            }
+                            },
+                            cancellable: false
                         );
                     },
-                    checkRunCounts: false
+                    checkRunCounts: false,
+                    cancellable: false
                 );
             }
 
@@ -7407,10 +7411,12 @@ loop:
                                 row.Dispose();
 
                                 Assert.Throws<ObjectDisposedException>(() => row[0]);
-                            }
+                            },
+                            cancellable: false
                         );
                     },
-                    checkRunCounts: false
+                    checkRunCounts: false,
+                    cancellable: false
                 );
             }
 
@@ -7468,10 +7474,12 @@ loop:
                                 row.Dispose();
 
                                 Assert.Throws<ObjectDisposedException>(() => row[0]);
-                            }
+                            },
+                            cancellable: false
                         );
                     },
-                    checkRunCounts: false
+                    checkRunCounts: false,
+                    cancellable: false
                 );
             }
 
@@ -7526,10 +7534,12 @@ loop:
                                 row.Dispose();
 
                                 Assert.Throws<ObjectDisposedException>(() => row[0]);
-                            }
+                            },
+                            cancellable: false
                         );
                     },
-                    checkRunCounts: false
+                    checkRunCounts: false,
+                    cancellable: false
                 );
             }
         }

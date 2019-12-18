@@ -41,13 +41,6 @@ namespace Cesil
 
         internal static ReadOnlyMemory<char> TrimLeadingWhitespace(ReadOnlyMemory<char> mem)
         {
-            // todo: are these early returns worth it?
-
-            if(mem.IsEmpty)
-            {
-                return mem;
-            }
-
             var skip = 0;
             var span = mem.Span;
             var len = span.Length;
@@ -68,13 +61,6 @@ namespace Cesil
 
         internal static ReadOnlyMemory<char> TrimTrailingWhitespace(ReadOnlyMemory<char> mem)
         {
-            // todo: are these early returns worth it?
-
-            if (mem.IsEmpty)
-            {
-                return mem;
-            }
-
             var span = mem.Span;
             var len = span.Length;
             var start = len - 1;

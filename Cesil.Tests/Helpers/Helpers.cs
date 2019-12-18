@@ -255,23 +255,26 @@ namespace Cesil.Tests
             Func<BoundConfigurationBase<dynamic>,
             Func<string, ValueTask<IAsyncReaderAdapter>>, Task> run,
             bool checkRunCounts = true,
-            bool releasePinsAcrossYields = true
+            bool releasePinsAcrossYields = true,
+            bool cancellable = true
         )
         => RunAsyncReaderVariantsInnerAsync(
             opts => (BoundConfigurationBase<dynamic>)Configuration.ForDynamic(opts),
             opts,
             run,
             checkRunCounts,
-            releasePinsAcrossYields
-            );
+            releasePinsAcrossYields,
+            cancellable
+        );
 
-        internal static Task RunAsyncReaderVariants<T>(Options opts, Func<BoundConfigurationBase<T>, Func<string, ValueTask<IAsyncReaderAdapter>>, Task> run, bool checkRunCounts = true, bool releasePinsAcrossYields = true)
+        internal static Task RunAsyncReaderVariants<T>(Options opts, Func<BoundConfigurationBase<T>, Func<string, ValueTask<IAsyncReaderAdapter>>, Task> run, bool checkRunCounts = true, bool releasePinsAcrossYields = true, bool cancellable = true)
         => RunAsyncReaderVariantsInnerAsync(
             opts => (BoundConfigurationBase<T>)Configuration.For<T>(opts),
             opts,
             run,
             checkRunCounts,
-            releasePinsAcrossYields
+            releasePinsAcrossYields,
+            cancellable
         );
 
         private static readonly Func<string, ValueTask<IAsyncReaderAdapter>>[] AsyncReaderAdapters =
@@ -339,7 +342,8 @@ namespace Cesil.Tests
             Options opts,
             Func<BoundConfigurationBase<T>, Func<string, ValueTask<IAsyncReaderAdapter>>, Task> run,
             bool checkRunCounts,
-            bool releasePinsAcrossYields
+            bool releasePinsAcrossYields,
+            bool cancellable
         )
         {
             foreach (var maker in AsyncReaderAdapters)
@@ -362,14 +366,154 @@ namespace Cesil.Tests
                 await RunForcedAsyncVariantsWithBaseConfig(bindConfig, maker, opts, run, checkRunCounts);
                 await RunForcedAsyncVariantsWithBaseConfig(bindConfig, maker, smallBufferOpts, run, checkRunCounts);
 #endif
+
+                if (cancellable)
+                {
+                    // in DEBUG we have some special stuff to explore all the cancellation points
+#if DEBUG
+                    await RunForcedCancelVariantsWithBaseConfig(bindConfig, maker, opts, run);
+                    await RunForcedCancelVariantsWithBaseConfig(bindConfig, maker, smallBufferOpts, run);
+#endif
+                }
             }
 
-            static async Task RunCheckPins(
+            static async Task RunForcedCancelVariantsWithBaseConfig(
                 Func<Options, BoundConfigurationBase<T>> bind,
                 Func<string, ValueTask<IAsyncReaderAdapter>> readerMaker,
                 Options baseOpts,
                 Func<BoundConfigurationBase<T>, Func<string, ValueTask<IAsyncReaderAdapter>>, Task> run
             )
+            {
+                // defaults
+                {
+                    var config = bind(baseOpts);
+
+                    int cancelPoints;
+                    {
+                        var wrappedConfig = new AsyncCancelControlConfig<T>(config);
+                        await run(wrappedConfig, str => { return readerMaker(str); });
+                        cancelPoints = wrappedConfig.CancelCounter - 1;
+                    }
+
+                    // walk each cancellation point
+                    var forceUpTo = 0;
+                    while (true)
+                    {
+                        var wrappedConfig = new AsyncCancelControlConfig<T>(config);
+                        wrappedConfig.DoCancelAfter = forceUpTo;
+
+                        try
+                        {
+                            await run(wrappedConfig, str => { return readerMaker(str); });
+                        }
+                        catch (Exception e)
+                        {
+                            if (e is AggregateException ae)
+                            {
+                                OperationCanceledException x = null;
+
+                                foreach (var i in ae.InnerExceptions)
+                                {
+                                    if (i is OperationCanceledException oce)
+                                    {
+                                        x = oce;
+                                        break;
+                                    }
+                                }
+
+                                Assert.NotNull(x);
+                            }
+                            else
+                            {
+                                Assert.IsType<OperationCanceledException>(e);
+                            }
+                        }
+
+                        Assert.Equal(PoisonType.Cancelled, wrappedConfig.Poison);
+
+                        if (cancelPoints > forceUpTo)
+                        {
+                            forceUpTo++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+
+
+                // leak detection
+                {
+                    var leakDetector = new TrackedMemoryPool<char>();
+                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).ToOptions());
+
+                    int cancelPoints;
+                    {
+                        var wrappedConfig = new AsyncCancelControlConfig<T>(leakDetectorConfig);
+                        await run(wrappedConfig, str => { return readerMaker(str); });
+
+                        Assert.Equal(0, leakDetector.OutstandingRentals);
+
+                        cancelPoints = wrappedConfig.CancelCounter - 1;
+                    }
+
+                    // walk each cancellation point
+                    var forceUpTo = 0;
+                    while (true)
+                    {
+                        var wrappedConfig = new AsyncCancelControlConfig<T>(leakDetectorConfig);
+                        wrappedConfig.DoCancelAfter = forceUpTo;
+
+                        try
+                        {
+                            await run(wrappedConfig, str => { return readerMaker(str); });
+                        }
+                        catch (Exception e)
+                        {
+                            if (e is AggregateException ae)
+                            {
+                                OperationCanceledException x = null;
+
+                                foreach (var i in ae.InnerExceptions)
+                                {
+                                    if (i is OperationCanceledException oce)
+                                    {
+                                        x = oce;
+                                        break;
+                                    }
+                                }
+
+                                Assert.NotNull(x);
+                            }
+                            else
+                            {
+                                Assert.IsType<OperationCanceledException>(e);
+                            }
+                        }
+
+                        Assert.Equal(PoisonType.Cancelled, wrappedConfig.Poison);
+
+                        Assert.Equal(0, leakDetector.OutstandingRentals);
+
+                        if (cancelPoints > forceUpTo)
+                        {
+                            forceUpTo++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            static async Task RunCheckPins(
+                    Func<Options, BoundConfigurationBase<T>> bind,
+                    Func<string, ValueTask<IAsyncReaderAdapter>> readerMaker,
+                    Options baseOpts,
+                    Func<BoundConfigurationBase<T>, Func<string, ValueTask<IAsyncReaderAdapter>>, Task> run
+                )
             {
                 AsyncInstrumentedPinReaderAdapter adapter = null;
                 AsyncInstrumentedPinConfig<T> config = null;
@@ -823,6 +967,7 @@ namespace Cesil.Tests
                 await RunForcedAsyncVariantsWithBaseConfig(bindConfig, maker, opts, run, checkRunCounts);
                 await RunForcedAsyncVariantsWithBaseConfig(bindConfig, maker, smallBufferOpts, run, checkRunCounts);
 #endif
+                // todo: cancellable?
             }
 
             static async Task RunOnce(

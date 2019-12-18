@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using static Cesil.DisposableHelper;
+using static Cesil.AwaitHelper;
 
 namespace Cesil
 {
@@ -22,10 +23,7 @@ namespace Cesil
 
         private Dictionary<object, Delegate>? DelegateCache;
 
-        internal AsyncDynamicWriter(DynamicBoundConfiguration config, IAsyncWriterAdapter inner, object? context) : base(config, inner, context)
-        {
-
-        }
+        internal AsyncDynamicWriter(DynamicBoundConfiguration config, IAsyncWriterAdapter inner, object? context) : base(config, inner, context) { }
 
         CachedDelegate<V> IDelegateCache.TryGet<T, V>(T key)
             where V : class
@@ -56,231 +54,134 @@ namespace Cesil
         public override ValueTask WriteAsync(dynamic row, CancellationToken cancel = default)
         {
             AssertNotDisposed(this);
+            AssertNotPoisoned();
 
-            var rowAsObj = row as object;
-
-            var options = Configuration.Options;
-            var typeDescriber = options.TypeDescriber;
-            var valueSeparator = options.ValueSeparator;
-
-            var writeHeadersTask = WriteHeadersAndEndRowIfNeededAsync(rowAsObj, cancel);
-            if (!writeHeadersTask.IsCompletedSuccessfully(this))
-            {
-                return WriteAsync_ContinueAfterWriteHeadersAsync(this, writeHeadersTask, row, typeDescriber, valueSeparator, cancel);
-            }
-
-            var wholeRowContext = WriteContext.DiscoveringCells(Configuration.Options, RowNumber, Context);
-
-            var cellValues = typeDescriber.GetCellsForDynamicRow(in wholeRowContext, row as object);
-            cellValues = ForceInOrder(cellValues);
-
-            var columnNamesValue = ColumnNames.Value;
-
-            var i = 0;
-            var e = cellValues.GetEnumerator();
-            bool disposeE = true;
             try
             {
-                while (e.MoveNext())
+
+                var rowAsObj = row as object;
+
+                var options = Configuration.Options;
+                var typeDescriber = options.TypeDescriber;
+                var valueSeparator = options.ValueSeparator;
+
+                var writeHeadersTask = WriteHeadersAndEndRowIfNeededAsync(rowAsObj, cancel);
+                if (!writeHeadersTask.IsCompletedSuccessfully(this))
                 {
-                    var cell = e.Current;
-                    var needsSeparator = i != 0;
-
-                    if (needsSeparator)
-                    {
-                        var placeCharTask = PlaceCharInStagingAsync(valueSeparator, cancel);
-                        if (!placeCharTask.IsCompletedSuccessfully(this))
-                        {
-                            disposeE = false;
-                            return WriteAsync_ContinueAfterPlaceCharAsync(this, placeCharTask, valueSeparator, cell, i, e, cancel);
-                        }
-                    }
-
-                    ColumnIdentifier ci;
-                    if (i < columnNamesValue.Length)
-                    {
-                        ci = ColumnIdentifier.Create(i, columnNamesValue[i].Name);
-                    }
-                    else
-                    {
-                        ci = ColumnIdentifier.Create(i);
-                    }
-
-                    var ctx = WriteContext.WritingColumn(Configuration.Options, RowNumber, ci, Context);
-
-                    var formatter = cell.Formatter;
-                    var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
-                    delProvider.Guarantee(this);
-                    var del = delProvider.CachedDelegate.Value;
-
-                    var val = cell.Value as object;
-                    if (!del(val, in ctx, Buffer))
-                    {
-                        return Throw.SerializationException<ValueTask>($"Could not write column {ci}, formatter {formatter} returned false");
-                    }
-
-                    var res = Buffer.Buffer;
-                    if (res.IsEmpty)
-                    {
-                        // nothing was written, so just move on
-                        goto end;
-                    }
-
-                    var writeValueTask = WriteValueAsync(res, cancel);
-                    if (!writeValueTask.IsCompletedSuccessfully(this))
-                    {
-                        disposeE = false;
-                        return WriteAsync_ContinueAfterWriteValueAsync(this, writeValueTask, valueSeparator, i, e, cancel);
-                    }
-                    Buffer.Reset();
-
-end:
-                    i++;
+                    return WriteAsync_ContinueAfterWriteHeadersAsync(this, writeHeadersTask, row, typeDescriber, valueSeparator, cancel);
                 }
-            }
-            finally
-            {
-                if (disposeE)
-                {
-                    e.Dispose();
-                }
-            }
 
-            RowNumber++;
-
-            return default;
-
-            // continue after WriteHeadersAndRowIfNeededAsync completes
-            static async ValueTask WriteAsync_ContinueAfterWriteHeadersAsync(AsyncDynamicWriter self, ValueTask waitFor, dynamic row, ITypeDescriber typeDescriber, char valueSeparator, CancellationToken cancel)
-            {
-                await waitFor;
-                cancel.ThrowIfCancellationRequested();
-
-                var wholeRowContext = WriteContext.DiscoveringCells(self.Configuration.Options, self.RowNumber, self.Context);
+                var wholeRowContext = WriteContext.DiscoveringCells(Configuration.Options, RowNumber, Context);
 
                 var cellValues = typeDescriber.GetCellsForDynamicRow(in wholeRowContext, row as object);
-                cellValues = self.ForceInOrder(cellValues);
+                cellValues = ForceInOrder(cellValues);
 
-                var selfColumnNamesValue = self.ColumnNames.Value;
+                var columnNamesValue = ColumnNames.Value;
 
                 var i = 0;
-                foreach (var cell in cellValues)
-                {
-                    var needsSeparator = i != 0;
-
-                    if (needsSeparator)
-                    {
-                        var placeTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
-                        await placeTask;
-                        cancel.ThrowIfCancellationRequested();
-                    }
-
-                    ColumnIdentifier ci;
-                    if (i < selfColumnNamesValue.Length)
-                    {
-                        ci = ColumnIdentifier.Create(i, selfColumnNamesValue[i].Name);
-                    }
-                    else
-                    {
-                        ci = ColumnIdentifier.Create(i);
-                    }
-
-                    var ctx = WriteContext.WritingColumn(self.Configuration.Options, self.RowNumber, ci, self.Context);
-
-                    var formatter = cell.Formatter;
-                    var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
-                    delProvider.Guarantee(self);
-                    var del = delProvider.CachedDelegate.Value;
-
-                    var val = cell.Value as object;
-                    if (!del(val, in ctx, self.Buffer))
-                    {
-                        Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
-                    }
-
-                    var res = self.Buffer.Buffer;
-                    if (res.IsEmpty)
-                    {
-                        // nothing was written, so just move on
-                        goto end;
-                    }
-
-                    var writeValueTask = self.WriteValueAsync(res, cancel);
-                    await writeValueTask;
-                    cancel.ThrowIfCancellationRequested();
-
-                    self.Buffer.Reset();
-
-end:
-                    i++;
-                }
-
-                self.RowNumber++;
-            }
-
-            // continue after PlaceCharInStagingAsync completes
-            static async ValueTask WriteAsync_ContinueAfterPlaceCharAsync(AsyncDynamicWriter self, ValueTask waitFor, char valueSeparator, DynamicCellValue cell, int i, IEnumerator<DynamicCellValue> e, CancellationToken cancel)
-            {
+                var e = cellValues.GetEnumerator();
+                bool disposeE = true;
                 try
                 {
-                    await waitFor;
-                    cancel.ThrowIfCancellationRequested();
-
-                    var selfColumnNamesValue = self.ColumnNames.Value;
-
-                    // finish the loop
+                    while (e.MoveNext())
                     {
-                        ColumnIdentifier ci;
-                        if (i < selfColumnNamesValue.Length)
+                        var cell = e.Current;
+                        var needsSeparator = i != 0;
+
+                        if (needsSeparator)
                         {
-                            ci = ColumnIdentifier.Create(i, selfColumnNamesValue[i].Name);
+                            var placeCharTask = PlaceCharInStagingAsync(valueSeparator, cancel);
+                            if (!placeCharTask.IsCompletedSuccessfully(this))
+                            {
+                                disposeE = false;
+                                return WriteAsync_ContinueAfterPlaceCharAsync(this, placeCharTask, valueSeparator, cell, i, e, cancel);
+                            }
+                        }
+
+                        ColumnIdentifier ci;
+                        if (i < columnNamesValue.Length)
+                        {
+                            ci = ColumnIdentifier.Create(i, columnNamesValue[i].Name);
                         }
                         else
                         {
                             ci = ColumnIdentifier.Create(i);
                         }
 
-                        var ctx = WriteContext.WritingColumn(self.Configuration.Options, self.RowNumber, ci, self.Context);
+                        var ctx = WriteContext.WritingColumn(Configuration.Options, RowNumber, ci, Context);
 
                         var formatter = cell.Formatter;
                         var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
-                        delProvider.Guarantee(self);
+                        delProvider.Guarantee(this);
                         var del = delProvider.CachedDelegate.Value;
 
                         var val = cell.Value as object;
-                        if (!del(val, in ctx, self.Buffer))
+                        if (!del(val, in ctx, Buffer))
                         {
-                            Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
+                            return Throw.SerializationException<ValueTask>($"Could not write column {ci}, formatter {formatter} returned false");
                         }
 
-                        var res = self.Buffer.Buffer;
+                        var res = Buffer.Buffer;
                         if (res.IsEmpty)
                         {
                             // nothing was written, so just move on
                             goto end;
                         }
 
-                        var writeValueTask = self.WriteValueAsync(res, cancel);
-                        await writeValueTask;
-                        cancel.ThrowIfCancellationRequested();
-
-                        self.Buffer.Reset();
+                        var writeValueTask = WriteValueAsync(res, cancel);
+                        if (!writeValueTask.IsCompletedSuccessfully(this))
+                        {
+                            disposeE = false;
+                            return WriteAsync_ContinueAfterWriteValueAsync(this, writeValueTask, valueSeparator, i, e, cancel);
+                        }
+                        Buffer.Reset();
 
 end:
                         i++;
                     }
-
-                    // resume
-                    while (e.MoveNext())
+                }
+                finally
+                {
+                    if (disposeE)
                     {
-                        cell = e.Current;
+                        e.Dispose();
+                    }
+                }
+
+                RowNumber++;
+
+                return default;
+            }
+            catch (Exception e)
+            {
+                return Throw.PoisonAndRethrow<ValueTask>(this, e);
+            }
+
+            // continue after WriteHeadersAndRowIfNeededAsync completes
+            static async ValueTask WriteAsync_ContinueAfterWriteHeadersAsync(AsyncDynamicWriter self, ValueTask waitFor, dynamic row, ITypeDescriber typeDescriber, char valueSeparator, CancellationToken cancel)
+            {
+                try
+                {
+                    await ConfigureCancellableAwait(self, waitFor, cancel);
+                    CheckCancellation(self, cancel);
+
+                    var wholeRowContext = WriteContext.DiscoveringCells(self.Configuration.Options, self.RowNumber, self.Context);
+
+                    var cellValues = typeDescriber.GetCellsForDynamicRow(in wholeRowContext, row as object);
+                    cellValues = self.ForceInOrder(cellValues);
+
+                    var selfColumnNamesValue = self.ColumnNames.Value;
+
+                    var i = 0;
+                    foreach (var cell in cellValues)
+                    {
                         var needsSeparator = i != 0;
 
                         if (needsSeparator)
                         {
                             var placeTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
-                            await placeTask;
-                            cancel.ThrowIfCancellationRequested();
+                            await ConfigureCancellableAwait(self, placeTask, cancel);
+                            CheckCancellation(self, cancel);
                         }
 
                         ColumnIdentifier ci;
@@ -314,8 +215,8 @@ end:
                         }
 
                         var writeValueTask = self.WriteValueAsync(res, cancel);
-                        await writeValueTask;
-                        cancel.ThrowIfCancellationRequested();
+                        await ConfigureCancellableAwait(self, writeValueTask, cancel);
+                        CheckCancellation(self, cancel);
 
                         self.Buffer.Reset();
 
@@ -325,9 +226,130 @@ end:
 
                     self.RowNumber++;
                 }
-                finally
+                catch (Exception e)
                 {
-                    e.Dispose();
+                    Throw.PoisonAndRethrow<object>(self, e);
+                }
+            }
+
+            // continue after PlaceCharInStagingAsync completes
+            static async ValueTask WriteAsync_ContinueAfterPlaceCharAsync(AsyncDynamicWriter self, ValueTask waitFor, char valueSeparator, DynamicCellValue cell, int i, IEnumerator<DynamicCellValue> e, CancellationToken cancel)
+            {
+                try
+                {
+
+                    try
+                    {
+                        await ConfigureCancellableAwait(self, waitFor, cancel);
+                        CheckCancellation(self, cancel);
+
+                        var selfColumnNamesValue = self.ColumnNames.Value;
+
+                        // finish the loop
+                        {
+                            ColumnIdentifier ci;
+                            if (i < selfColumnNamesValue.Length)
+                            {
+                                ci = ColumnIdentifier.Create(i, selfColumnNamesValue[i].Name);
+                            }
+                            else
+                            {
+                                ci = ColumnIdentifier.Create(i);
+                            }
+
+                            var ctx = WriteContext.WritingColumn(self.Configuration.Options, self.RowNumber, ci, self.Context);
+
+                            var formatter = cell.Formatter;
+                            var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
+                            delProvider.Guarantee(self);
+                            var del = delProvider.CachedDelegate.Value;
+
+                            var val = cell.Value as object;
+                            if (!del(val, in ctx, self.Buffer))
+                            {
+                                Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
+                            }
+
+                            var res = self.Buffer.Buffer;
+                            if (res.IsEmpty)
+                            {
+                                // nothing was written, so just move on
+                                goto end;
+                            }
+
+                            var writeValueTask = self.WriteValueAsync(res, cancel);
+                            await ConfigureCancellableAwait(self, writeValueTask, cancel);
+                            CheckCancellation(self, cancel);
+
+                            self.Buffer.Reset();
+
+end:
+                            i++;
+                        }
+
+                        // resume
+                        while (e.MoveNext())
+                        {
+                            cell = e.Current;
+                            var needsSeparator = i != 0;
+
+                            if (needsSeparator)
+                            {
+                                var placeTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
+                                await ConfigureCancellableAwait(self, placeTask, cancel);
+                                CheckCancellation(self, cancel);
+                            }
+
+                            ColumnIdentifier ci;
+                            if (i < selfColumnNamesValue.Length)
+                            {
+                                ci = ColumnIdentifier.Create(i, selfColumnNamesValue[i].Name);
+                            }
+                            else
+                            {
+                                ci = ColumnIdentifier.Create(i);
+                            }
+
+                            var ctx = WriteContext.WritingColumn(self.Configuration.Options, self.RowNumber, ci, self.Context);
+
+                            var formatter = cell.Formatter;
+                            var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
+                            delProvider.Guarantee(self);
+                            var del = delProvider.CachedDelegate.Value;
+
+                            var val = cell.Value as object;
+                            if (!del(val, in ctx, self.Buffer))
+                            {
+                                Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
+                            }
+
+                            var res = self.Buffer.Buffer;
+                            if (res.IsEmpty)
+                            {
+                                // nothing was written, so just move on
+                                goto end;
+                            }
+
+                            var writeValueTask = self.WriteValueAsync(res, cancel);
+                            await ConfigureCancellableAwait(self, writeValueTask, cancel);
+                            CheckCancellation(self, cancel);
+
+                            self.Buffer.Reset();
+
+end:
+                            i++;
+                        }
+
+                        self.RowNumber++;
+                    }
+                    finally
+                    {
+                        e.Dispose();
+                    }
+                }
+                catch (Exception exc)
+                {
+                    Throw.PoisonAndRethrow<object>(self, exc);
                 }
             }
 
@@ -336,76 +358,84 @@ end:
             {
                 try
                 {
-                    await waitFor;
-                    cancel.ThrowIfCancellationRequested();
 
-                    // finish loop
+                    try
                     {
-                        self.Buffer.Reset();
+                        await ConfigureCancellableAwait(self, waitFor, cancel);
+                        CheckCancellation(self, cancel);
 
-                        i++;
-                    }
-
-                    var selfColumnNamesValue = self.ColumnNames.Value;
-
-                    // resume
-                    while (e.MoveNext())
-                    {
-                        var cell = e.Current;
-                        var needsSeparator = i != 0;
-
-                        if (needsSeparator)
+                        // finish loop
                         {
-                            var placeTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
-                            await placeTask;
-                            cancel.ThrowIfCancellationRequested();
+                            self.Buffer.Reset();
+
+                            i++;
                         }
 
-                        ColumnIdentifier ci;
-                        if (i < selfColumnNamesValue.Length)
+                        var selfColumnNamesValue = self.ColumnNames.Value;
+
+                        // resume
+                        while (e.MoveNext())
                         {
-                            ci = ColumnIdentifier.Create(i, selfColumnNamesValue[i].Name);
-                        }
-                        else
-                        {
-                            ci = ColumnIdentifier.Create(i);
-                        }
+                            var cell = e.Current;
+                            var needsSeparator = i != 0;
 
-                        var ctx = WriteContext.WritingColumn(self.Configuration.Options, self.RowNumber, ci, self.Context);
+                            if (needsSeparator)
+                            {
+                                var placeTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
+                                await ConfigureCancellableAwait(self, placeTask, cancel);
+                                CheckCancellation(self, cancel);
+                            }
 
-                        var formatter = cell.Formatter;
-                        var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
-                        delProvider.Guarantee(self);
-                        var del = delProvider.CachedDelegate.Value;
+                            ColumnIdentifier ci;
+                            if (i < selfColumnNamesValue.Length)
+                            {
+                                ci = ColumnIdentifier.Create(i, selfColumnNamesValue[i].Name);
+                            }
+                            else
+                            {
+                                ci = ColumnIdentifier.Create(i);
+                            }
 
-                        var val = cell.Value as object;
-                        if (!del(val, in ctx, self.Buffer))
-                        {
-                            Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
-                        }
+                            var ctx = WriteContext.WritingColumn(self.Configuration.Options, self.RowNumber, ci, self.Context);
 
-                        var res = self.Buffer.Buffer;
-                        if (res.IsEmpty)
-                        {
-                            // nothing was written, so just move on
-                            goto end;
-                        }
+                            var formatter = cell.Formatter;
+                            var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
+                            delProvider.Guarantee(self);
+                            var del = delProvider.CachedDelegate.Value;
 
-                        var writeValueTask = self.WriteValueAsync(res, cancel);
-                        await writeValueTask;
-                        cancel.ThrowIfCancellationRequested();
+                            var val = cell.Value as object;
+                            if (!del(val, in ctx, self.Buffer))
+                            {
+                                Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
+                            }
 
-                        self.Buffer.Reset();
+                            var res = self.Buffer.Buffer;
+                            if (res.IsEmpty)
+                            {
+                                // nothing was written, so just move on
+                                goto end;
+                            }
+
+                            var writeValueTask = self.WriteValueAsync(res, cancel);
+                            await ConfigureCancellableAwait(self, writeValueTask, cancel);
+                            CheckCancellation(self, cancel);
+
+                            self.Buffer.Reset();
 
 end:
-                        i++;
-                    }
+                            i++;
+                        }
 
-                    self.RowNumber++;
+                        self.RowNumber++;
+                    }
+                    finally
+                    {
+                        e.Dispose();
+                    }
                 }
-                finally
+                catch (Exception exc)
                 {
-                    e.Dispose();
+                    Throw.PoisonAndRethrow<object>(self, exc);
                 }
             }
         }
@@ -413,155 +443,180 @@ end:
         public override ValueTask WriteCommentAsync(string comment, CancellationToken cancel = default)
         {
             AssertNotDisposed(this);
+            AssertNotPoisoned();
 
             Utils.CheckArgumentNull(comment, nameof(comment));
 
-            var shouldEndRecord = true;
-            if (IsFirstRow)
+            try
             {
-                if (Configuration.Options.WriteHeader == WriteHeader.Always)
-                {
-                    return Throw.InvalidOperationException<ValueTask>($"First operation on a dynamic writer cannot be {nameof(WriteCommentAsync)} if configured to write headers, headers cannot be inferred");
-                }
 
-                var checkHeaders = CheckHeadersAsync(null, cancel);
-                if (!checkHeaders.IsCompletedSuccessfully(this))
-                {
-                    return WriteCommentAsync_ContinueAfterCheckHeadersAsync(this, checkHeaders, comment, cancel);
-                }
-
-                if (!checkHeaders.Result)
-                {
-                    shouldEndRecord = false;
-                }
-            }
-
-            if (shouldEndRecord)
-            {
-                var endRecordTask = EndRecordAsync(cancel);
-                if (!endRecordTask.IsCompletedSuccessfully(this))
-                {
-                    return WriteCommentAsync_ContinueAfterEndRecordAsync(this, endRecordTask, comment, cancel);
-                }
-            }
-
-            var (commentChar, segments) = SplitCommentIntoLines(comment);
-
-            // we know we can write directly now
-            var isFirstRow = true;
-            var e = segments.GetEnumerator();
-            while (e.MoveNext())
-            {
-                var seg = e.Current;
-
-                if (!isFirstRow)
-                {
-                    var endRowTask = EndRecordAsync(cancel);
-                    if (!endRowTask.IsCompletedSuccessfully(this))
-                    {
-                        return WriteCommentAsync_ContinueAfterEndRowAsync(this, endRowTask, commentChar, seg, e, cancel);
-                    }
-                }
-
-                var placeCharTask = PlaceCharInStagingAsync(commentChar, cancel);
-                if (!placeCharTask.IsCompletedSuccessfully(this))
-                {
-                    return WriteCommentAsync_ContinueAfterPlaceCharAsync(this, placeCharTask, commentChar, seg, e, cancel);
-                }
-
-                if (seg.Length > 0)
-                {
-                    var placeTask = PlaceInStagingAsync(seg, cancel);
-                    if (!placeTask.IsCompletedSuccessfully(this))
-                    {
-                        return WriteCommentAsync_ContinueAfterPlaceSegementAsync(this, placeTask, commentChar, e, cancel);
-                    }
-                }
-
-                isFirstRow = false;
-            }
-
-            return default;
-
-            // continue after CheckHeadersAsync completes
-            static async ValueTask WriteCommentAsync_ContinueAfterCheckHeadersAsync(AsyncDynamicWriter self, ValueTask<bool> waitFor, string comment, CancellationToken cancel)
-            {
                 var shouldEndRecord = true;
-
-                var res = await waitFor;
-                cancel.ThrowIfCancellationRequested();
-
-                if (!res)
+                if (IsFirstRow)
                 {
-                    shouldEndRecord = false;
+                    if (Configuration.Options.WriteHeader == WriteHeader.Always)
+                    {
+                        return Throw.InvalidOperationException<ValueTask>($"First operation on a dynamic writer cannot be {nameof(WriteCommentAsync)} if configured to write headers, headers cannot be inferred");
+                    }
+
+                    var checkHeaders = CheckHeadersAsync(null, cancel);
+                    if (!checkHeaders.IsCompletedSuccessfully(this))
+                    {
+                        return WriteCommentAsync_ContinueAfterCheckHeadersAsync(this, checkHeaders, comment, cancel);
+                    }
+
+                    if (!checkHeaders.Result)
+                    {
+                        shouldEndRecord = false;
+                    }
                 }
 
                 if (shouldEndRecord)
                 {
-                    var endTask = self.EndRecordAsync(cancel);
-                    await endTask;
-                    cancel.ThrowIfCancellationRequested();
+                    var endRecordTask = EndRecordAsync(cancel);
+                    if (!endRecordTask.IsCompletedSuccessfully(this))
+                    {
+                        return WriteCommentAsync_ContinueAfterEndRecordAsync(this, endRecordTask, comment, cancel);
+                    }
                 }
 
-                var (commentChar, segments) = self.SplitCommentIntoLines(comment);
+                var (commentChar, segments) = SplitCommentIntoLines(comment);
 
                 // we know we can write directly now
                 var isFirstRow = true;
-                foreach (var seg in segments)
+                var e = segments.GetEnumerator();
+                while (e.MoveNext())
                 {
+                    var seg = e.Current;
+
                     if (!isFirstRow)
                     {
-                        var endTask = self.EndRecordAsync(cancel);
-                        await endTask;
-                        cancel.ThrowIfCancellationRequested();
+                        var endRowTask = EndRecordAsync(cancel);
+                        if (!endRowTask.IsCompletedSuccessfully(this))
+                        {
+                            return WriteCommentAsync_ContinueAfterEndRowAsync(this, endRowTask, commentChar, seg, e, cancel);
+                        }
                     }
 
-                    var placeTask = self.PlaceCharInStagingAsync(commentChar, cancel);
-                    await placeTask;
-                    cancel.ThrowIfCancellationRequested();
+                    var placeCharTask = PlaceCharInStagingAsync(commentChar, cancel);
+                    if (!placeCharTask.IsCompletedSuccessfully(this))
+                    {
+                        return WriteCommentAsync_ContinueAfterPlaceCharAsync(this, placeCharTask, commentChar, seg, e, cancel);
+                    }
 
                     if (seg.Length > 0)
                     {
-                        var secondPlaceTask = self.PlaceInStagingAsync(seg, cancel);
-                        await secondPlaceTask;
-                        cancel.ThrowIfCancellationRequested();
+                        var placeTask = PlaceInStagingAsync(seg, cancel);
+                        if (!placeTask.IsCompletedSuccessfully(this))
+                        {
+                            return WriteCommentAsync_ContinueAfterPlaceSegementAsync(this, placeTask, commentChar, e, cancel);
+                        }
                     }
 
                     isFirstRow = false;
+                }
+
+                return default;
+            }
+            catch (Exception e)
+            {
+                return Throw.PoisonAndRethrow<ValueTask>(this, e);
+            }
+
+            // continue after CheckHeadersAsync completes
+            static async ValueTask WriteCommentAsync_ContinueAfterCheckHeadersAsync(AsyncDynamicWriter self, ValueTask<bool> waitFor, string comment, CancellationToken cancel)
+            {
+                try
+                {
+
+                    var shouldEndRecord = true;
+
+                    var res = await ConfigureCancellableAwait(self, waitFor, cancel);
+                    CheckCancellation(self, cancel);
+
+                    if (!res)
+                    {
+                        shouldEndRecord = false;
+                    }
+
+                    if (shouldEndRecord)
+                    {
+                        var endTask = self.EndRecordAsync(cancel);
+                        await ConfigureCancellableAwait(self, endTask, cancel);
+                        CheckCancellation(self, cancel);
+                    }
+
+                    var (commentChar, segments) = self.SplitCommentIntoLines(comment);
+
+                    // we know we can write directly now
+                    var isFirstRow = true;
+                    foreach (var seg in segments)
+                    {
+                        if (!isFirstRow)
+                        {
+                            var endTask = self.EndRecordAsync(cancel);
+                            await ConfigureCancellableAwait(self, endTask, cancel);
+                            CheckCancellation(self, cancel);
+                        }
+
+                        var placeTask = self.PlaceCharInStagingAsync(commentChar, cancel);
+                        await ConfigureCancellableAwait(self, placeTask, cancel);
+                        CheckCancellation(self, cancel);
+
+                        if (seg.Length > 0)
+                        {
+                            var secondPlaceTask = self.PlaceInStagingAsync(seg, cancel);
+                            await ConfigureCancellableAwait(self, secondPlaceTask, cancel);
+                            CheckCancellation(self, cancel);
+                        }
+
+                        isFirstRow = false;
+                    }
+                }
+                catch (Exception e)
+                {
+                    Throw.PoisonAndRethrow<object>(self, e);
                 }
             }
 
             // continue after EndRecordAsync completes
             static async ValueTask WriteCommentAsync_ContinueAfterEndRecordAsync(AsyncDynamicWriter self, ValueTask waitFor, string comment, CancellationToken cancel)
             {
-                await waitFor;
-                cancel.ThrowIfCancellationRequested();
-
-                var (commentChar, segments) = self.SplitCommentIntoLines(comment);
-
-                // we know we can write directly now
-                var isFirstRow = true;
-                foreach (var seg in segments)
+                try
                 {
-                    if (!isFirstRow)
+
+                    await ConfigureCancellableAwait(self, waitFor, cancel);
+                    CheckCancellation(self, cancel);
+
+                    var (commentChar, segments) = self.SplitCommentIntoLines(comment);
+
+                    // we know we can write directly now
+                    var isFirstRow = true;
+                    foreach (var seg in segments)
                     {
-                        var endTask = self.EndRecordAsync(cancel);
-                        await endTask;
-                        cancel.ThrowIfCancellationRequested();
+                        if (!isFirstRow)
+                        {
+                            var endTask = self.EndRecordAsync(cancel);
+                            await ConfigureCancellableAwait(self, endTask, cancel);
+                            CheckCancellation(self, cancel);
+                        }
+
+                        var placeTask = self.PlaceCharInStagingAsync(commentChar, cancel);
+                        await ConfigureCancellableAwait(self, placeTask, cancel);
+                        CheckCancellation(self, cancel);
+
+                        if (seg.Length > 0)
+                        {
+                            var secondPlaceTask = self.PlaceInStagingAsync(seg, cancel);
+                            await ConfigureCancellableAwait(self, secondPlaceTask, cancel);
+                            CheckCancellation(self, cancel);
+                        }
+
+                        isFirstRow = false;
                     }
-
-                    var placeTask = self.PlaceCharInStagingAsync(commentChar, cancel);
-                    await placeTask;
-                    cancel.ThrowIfCancellationRequested();
-
-                    if (seg.Length > 0)
-                    {
-                        var secondPlaceTask = self.PlaceInStagingAsync(seg, cancel);
-                        await secondPlaceTask;
-                        cancel.ThrowIfCancellationRequested();
-                    }
-
-                    isFirstRow = false;
+                }
+                catch (Exception e)
+                {
+                    Throw.PoisonAndRethrow<object>(self, e);
                 }
             }
 
@@ -574,43 +629,51 @@ end:
                 CancellationToken cancel
             )
             {
-                await waitFor;
-                cancel.ThrowIfCancellationRequested();
-
-                // finish loop
+                try
                 {
-                    var placeTask = self.PlaceCharInStagingAsync(commentChar, cancel);
-                    await placeTask;
-                    cancel.ThrowIfCancellationRequested();
 
-                    if (seg.Length > 0)
+                    await ConfigureCancellableAwait(self, waitFor, cancel);
+                    CheckCancellation(self, cancel);
+
+                    // finish loop
                     {
-                        var secondPlaceTask = self.PlaceInStagingAsync(seg, cancel);
-                        await secondPlaceTask;
-                        cancel.ThrowIfCancellationRequested();
+                        var placeTask = self.PlaceCharInStagingAsync(commentChar, cancel);
+                        await ConfigureCancellableAwait(self, placeTask, cancel);
+                        CheckCancellation(self, cancel);
+
+                        if (seg.Length > 0)
+                        {
+                            var secondPlaceTask = self.PlaceInStagingAsync(seg, cancel);
+                            await ConfigureCancellableAwait(self, secondPlaceTask, cancel);
+                            CheckCancellation(self, cancel);
+                        }
+                    }
+
+                    // resume
+                    while (e.MoveNext())
+                    {
+                        seg = e.Current;
+
+                        // by definition, not in the first row so we can skip the if
+                        var endTask = self.EndRecordAsync(cancel);
+                        await ConfigureCancellableAwait(self, endTask, cancel);
+                        CheckCancellation(self, cancel);
+
+                        var thirdPlaceTask = self.PlaceCharInStagingAsync(commentChar, cancel);
+                        await ConfigureCancellableAwait(self, thirdPlaceTask, cancel);
+                        CheckCancellation(self, cancel);
+
+                        if (seg.Length > 0)
+                        {
+                            var fourthPlaceTask = self.PlaceInStagingAsync(seg, cancel);
+                            await ConfigureCancellableAwait(self, fourthPlaceTask, cancel);
+                            CheckCancellation(self, cancel);
+                        }
                     }
                 }
-
-                // resume
-                while (e.MoveNext())
+                catch (Exception exc)
                 {
-                    seg = e.Current;
-
-                    // by definition, not in the first row so we can skip the if
-                    var endTask = self.EndRecordAsync(cancel);
-                    await endTask;
-                    cancel.ThrowIfCancellationRequested();
-
-                    var thirdPlaceTask = self.PlaceCharInStagingAsync(commentChar, cancel);
-                    await thirdPlaceTask;
-                    cancel.ThrowIfCancellationRequested();
-
-                    if (seg.Length > 0)
-                    {
-                        var fourthPlaceTask = self.PlaceInStagingAsync(seg, cancel);
-                        await fourthPlaceTask;
-                        cancel.ThrowIfCancellationRequested();
-                    }
+                    Throw.PoisonAndRethrow<object>(self, exc);
                 }
             }
 
@@ -624,39 +687,46 @@ end:
                 CancellationToken cancel
             )
             {
-                await waitFor;
-                cancel.ThrowIfCancellationRequested();
-
-                // finish the loop
+                try
                 {
-                    if (seg.Length > 0)
+                    await ConfigureCancellableAwait(self, waitFor, cancel);
+                    CheckCancellation(self, cancel);
+
+                    // finish the loop
                     {
-                        var placeTask = self.PlaceInStagingAsync(seg, cancel);
-                        await placeTask;
-                        cancel.ThrowIfCancellationRequested();
+                        if (seg.Length > 0)
+                        {
+                            var placeTask = self.PlaceInStagingAsync(seg, cancel);
+                            await ConfigureCancellableAwait(self, placeTask, cancel);
+                            CheckCancellation(self, cancel);
+                        }
+                    }
+
+                    // resume
+                    while (e.MoveNext())
+                    {
+                        seg = e.Current;
+
+                        // by definition, not in the first row so we can skip the if
+                        var endTask = self.EndRecordAsync(cancel);
+                        await ConfigureCancellableAwait(self, endTask, cancel);
+                        CheckCancellation(self, cancel);
+
+                        var secondPlaceTask = self.PlaceCharInStagingAsync(commentChar, cancel);
+                        await ConfigureCancellableAwait(self, secondPlaceTask, cancel);
+                        CheckCancellation(self, cancel);
+
+                        if (seg.Length > 0)
+                        {
+                            var thirdPlaceTask = self.PlaceInStagingAsync(seg, cancel);
+                            await ConfigureCancellableAwait(self, thirdPlaceTask, cancel);
+                            CheckCancellation(self, cancel);
+                        }
                     }
                 }
-
-                // resume
-                while (e.MoveNext())
+                catch (Exception exc)
                 {
-                    seg = e.Current;
-
-                    // by definition, not in the first row so we can skip the if
-                    var endTask = self.EndRecordAsync(cancel);
-                    await endTask;
-                    cancel.ThrowIfCancellationRequested();
-
-                    var secondPlaceTask = self.PlaceCharInStagingAsync(commentChar, cancel);
-                    await secondPlaceTask;
-                    cancel.ThrowIfCancellationRequested();
-
-                    if (seg.Length > 0)
-                    {
-                        var thirdPlaceTask = self.PlaceInStagingAsync(seg, cancel);
-                        await thirdPlaceTask;
-                        cancel.ThrowIfCancellationRequested();
-                    }
+                    Throw.PoisonAndRethrow<object>(self, exc);
                 }
             }
 
@@ -669,28 +739,37 @@ end:
                 CancellationToken cancel
             )
             {
-                await waitFor;
-                cancel.ThrowIfCancellationRequested();
-
-                while (e.MoveNext())
+                try
                 {
-                    var seg = e.Current;
 
-                    // by definition, not in the first row so we can skip the if
-                    var endTask = self.EndRecordAsync(cancel);
-                    await endTask;
-                    cancel.ThrowIfCancellationRequested();
+                    await ConfigureCancellableAwait(self, waitFor, cancel);
+                    CheckCancellation(self, cancel);
 
-                    var placeTask = self.PlaceCharInStagingAsync(commentChar, cancel);
-                    await placeTask;
-                    cancel.ThrowIfCancellationRequested();
-
-                    if (seg.Length > 0)
+                    while (e.MoveNext())
                     {
-                        var secondPlaceTask = self.PlaceInStagingAsync(seg, cancel);
-                        await secondPlaceTask;
-                        cancel.ThrowIfCancellationRequested();
+                        var seg = e.Current;
+
+                        // by definition, not in the first row so we can skip the if
+                        var endTask = self.EndRecordAsync(cancel);
+                        await ConfigureCancellableAwait(self, endTask, cancel);
+                        CheckCancellation(self, cancel);
+
+                        var placeTask = self.PlaceCharInStagingAsync(commentChar, cancel);
+                        await ConfigureCancellableAwait(self, placeTask, cancel);
+                        CheckCancellation(self, cancel);
+
+                        if (seg.Length > 0)
+                        {
+                            var secondPlaceTask = self.PlaceInStagingAsync(seg, cancel);
+                            await ConfigureCancellableAwait(self, secondPlaceTask, cancel);
+                            CheckCancellation(self, cancel);
+                        }
                     }
+
+                }
+                catch (Exception exc)
+                {
+                    Throw.PoisonAndRethrow<object>(self, exc);
                 }
             }
         }
@@ -730,8 +809,8 @@ end:
             {
                 var shouldEndRecord = true;
 
-                var res = await waitFor;
-                cancel.ThrowIfCancellationRequested();
+                var res = await ConfigureCancellableAwait(self, waitFor, cancel);
+                CheckCancellation(self, cancel);
 
                 if (!res)
                 {
@@ -741,8 +820,8 @@ end:
                 if (shouldEndRecord)
                 {
                     var endTask = self.EndRecordAsync(cancel);
-                    await endTask;
-                    cancel.ThrowIfCancellationRequested();
+                    await ConfigureCancellableAwait(self, endTask, cancel);
+                    CheckCancellation(self, cancel);
                 }
             }
         }
@@ -801,16 +880,16 @@ end:
             var writeHeadersTask = WriteHeadersAsync(cancel);
             if (!writeHeadersTask.IsCompletedSuccessfully(this))
             {
-                return CheckHeadersAsync_ContinueAfterWriteHeadersAsync(writeHeadersTask, cancel);
+                return CheckHeadersAsync_ContinueAfterWriteHeadersAsync(this, writeHeadersTask, cancel);
             }
 
             return new ValueTask<bool>(true);
 
             // continue after WriteHeadersAsync() completes
-            static async ValueTask<bool> CheckHeadersAsync_ContinueAfterWriteHeadersAsync(ValueTask waitFor, CancellationToken cancel)
+            static async ValueTask<bool> CheckHeadersAsync_ContinueAfterWriteHeadersAsync(AsyncDynamicWriter self, ValueTask waitFor, CancellationToken cancel)
             {
-                await waitFor;
-                cancel.ThrowIfCancellationRequested();
+                await ConfigureCancellableAwait(self, waitFor, cancel);
+                CheckCancellation(self, cancel);
 
                 return true;
             }
@@ -906,8 +985,8 @@ end:
             // continue after a PlaceCharInStagingAsync call
             static async ValueTask WriteHeadersAsync_ContinueAfterPlaceCharAsync(AsyncDynamicWriter self, ValueTask waitFor, char valueSeparator, int i, CancellationToken cancel)
             {
-                await waitFor;
-                cancel.ThrowIfCancellationRequested();
+                await ConfigureCancellableAwait(self, waitFor, cancel);
+                CheckCancellation(self, cancel);
 
                 var selfColumnNamesValue = self.ColumnNames.Value;
 
@@ -918,8 +997,8 @@ end:
                     // can colName is always gonna be encoded correctly, because we just discovered them
                     //   (ie. they're always correct for this config)
                     var placeTask = self.PlaceInStagingAsync(colName.AsMemory(), cancel);
-                    await placeTask;
-                    cancel.ThrowIfCancellationRequested();
+                    await ConfigureCancellableAwait(self, placeTask, cancel);
+                    CheckCancellation(self, cancel);
 
                     i++;
                 }
@@ -928,23 +1007,23 @@ end:
                 {
                     // by defintion i != 0, so no need for the if
                     var secondPlaceTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
-                    await secondPlaceTask;
-                    cancel.ThrowIfCancellationRequested();
+                    await ConfigureCancellableAwait(self, secondPlaceTask, cancel);
+                    CheckCancellation(self, cancel);
 
                     var colName = selfColumnNamesValue[i].EncodedName;
 
                     // can colName is always gonna be encoded correctly, because we just discovered them
                     //   (ie. they're always correct for this config)
                     var thirdPlaceTask = self.PlaceInStagingAsync(colName.AsMemory(), cancel);
-                    await thirdPlaceTask;
-                    cancel.ThrowIfCancellationRequested();
+                    await ConfigureCancellableAwait(self, thirdPlaceTask, cancel);
+                    CheckCancellation(self, cancel);
                 }
             }
 
             static async ValueTask WriteHeadersAsync_ContinueAfterPlaceInStagingAsync(AsyncDynamicWriter self, ValueTask waitFor, char valueSeparator, int i, CancellationToken cancel)
             {
-                await waitFor;
-                cancel.ThrowIfCancellationRequested();
+                await ConfigureCancellableAwait(self, waitFor, cancel);
+                CheckCancellation(self, cancel);
 
                 var selfColumnNamesValue = self.ColumnNames.Value;
 
@@ -954,16 +1033,16 @@ end:
                 {
                     // by defintion i != 0, so no need for the if
                     var placeTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
-                    await placeTask;
-                    cancel.ThrowIfCancellationRequested();
+                    await ConfigureCancellableAwait(self, placeTask, cancel);
+                    CheckCancellation(self, cancel);
 
                     var colName = selfColumnNamesValue[i].EncodedName;
 
                     // can colName is always gonna be encoded correctly, because we just discovered them
                     //   (ie. they're always correct for this config)
                     var secondPlaceTask = self.PlaceInStagingAsync(colName.AsMemory(), cancel);
-                    await secondPlaceTask;
-                    cancel.ThrowIfCancellationRequested();
+                    await ConfigureCancellableAwait(self, secondPlaceTask, cancel);
+                    CheckCancellation(self, cancel);
                 }
             }
         }
@@ -972,52 +1051,76 @@ end:
         {
             if (!IsDisposed)
             {
-                var writeTrailingNewLine = Configuration.Options.WriteTrailingRowEnding;
+                IsDisposed = true;
 
-                if (IsFirstRow)
+                try
                 {
-                    var checkHeadersTask = CheckHeadersAsync(null, CancellationToken.None);
-                    if (!checkHeadersTask.IsCompletedSuccessfully(this))
-                    {
-                        return DisposeAsync_ContinueAfterCheckHeadersAsync(this, checkHeadersTask, writeTrailingNewLine);
-                    }
-                }
+                    var writeTrailingNewLine = Configuration.Options.WriteTrailingRowEnding;
 
-                if (writeTrailingNewLine == WriteTrailingRowEnding.Always)
-                {
-                    var endRecordTask = EndRecordAsync(CancellationToken.None);
-                    if (!endRecordTask.IsCompletedSuccessfully(this))
+                    if (IsFirstRow)
                     {
-                        return DisposeAsync_ContinueAfterEndRecordAsync(this, endRecordTask);
-                    }
-                }
-
-                if (Staging.HasValue)
-                {
-                    if (InStaging > 0)
-                    {
-                        var flushStagingTask = FlushStagingAsync(CancellationToken.None);
-                        if (!flushStagingTask.IsCompletedSuccessfully(this))
+                        var checkHeadersTask = CheckHeadersAsync(null, CancellationToken.None);
+                        if (!checkHeadersTask.IsCompletedSuccessfully(this))
                         {
-                            return DisposeAsync_ContinueAfterFlushStagingAsync(this, flushStagingTask);
+                            return DisposeAsync_ContinueAfterCheckHeadersAsync(this, checkHeadersTask, writeTrailingNewLine);
                         }
                     }
 
-                    Staging.Value.Dispose();
-                }
+                    if (writeTrailingNewLine == WriteTrailingRowEnding.Always)
+                    {
+                        var endRecordTask = EndRecordAsync(CancellationToken.None);
+                        if (!endRecordTask.IsCompletedSuccessfully(this))
+                        {
+                            return DisposeAsync_ContinueAfterEndRecordAsync(this, endRecordTask);
+                        }
+                    }
 
-                var innerDisposeTask = Inner.DisposeAsync();
-                if (!innerDisposeTask.IsCompletedSuccessfully(this))
-                {
-                    return DisposeAsync_ContinueAfterDisposeAsync(this, innerDisposeTask);
-                }
+                    if (Staging.HasValue)
+                    {
+                        if (InStaging > 0)
+                        {
+                            var flushStagingTask = FlushStagingAsync(CancellationToken.None);
+                            if (!flushStagingTask.IsCompletedSuccessfully(this))
+                            {
+                                return DisposeAsync_ContinueAfterFlushStagingAsync(this, flushStagingTask);
+                            }
+                        }
 
-                if (OneCharOwner.HasValue)
-                {
-                    OneCharOwner.Value.Dispose();
+                        Staging.Value.Dispose();
+                        Staging.Clear();
+                    }
+
+                    var innerDisposeTask = Inner.DisposeAsync();
+                    if (!innerDisposeTask.IsCompletedSuccessfully(this))
+                    {
+                        return DisposeAsync_ContinueAfterDisposeAsync(this, innerDisposeTask);
+                    }
+
+                    if (OneCharOwner.HasValue)
+                    {
+                        OneCharOwner.Value.Dispose();
+                        OneCharOwner.Clear();
+                    }
+                    Buffer.Dispose();
                 }
-                Buffer.Dispose();
-                IsDisposed = true;
+                catch (Exception e)
+                {
+                    if (Staging.HasValue)
+                    {
+                        Staging.Value.Dispose();
+                        Staging.Clear();
+                    }
+
+                    if (OneCharOwner.HasValue)
+                    {
+                        OneCharOwner.Value.Dispose();
+                        OneCharOwner.Clear();
+                    }
+
+                    Buffer.Dispose();
+
+                    return Throw.PoisonAndRethrow<ValueTask>(this, e);
+                }
             }
 
             return default;
@@ -1025,92 +1128,171 @@ end:
             // continue after CheckHeadersAsync completes
             static async ValueTask DisposeAsync_ContinueAfterCheckHeadersAsync(AsyncDynamicWriter self, ValueTask<bool> waitFor, WriteTrailingRowEnding writeTrailingNewLine)
             {
-                await waitFor;
-
-                if (writeTrailingNewLine == WriteTrailingRowEnding.Always)
+                try
                 {
-                    var endTask = self.EndRecordAsync(CancellationToken.None);
-                    await endTask;
-                }
+                    await ConfigureCancellableAwait(self, waitFor, CancellationToken.None);
 
-                if (self.Staging.HasValue)
-                {
-                    if (self.InStaging > 0)
+                    if (writeTrailingNewLine == WriteTrailingRowEnding.Always)
                     {
-                        var flushTask = self.FlushStagingAsync(CancellationToken.None);
-                        await flushTask;
+                        var endTask = self.EndRecordAsync(CancellationToken.None);
+                        await ConfigureCancellableAwait(self, endTask, CancellationToken.None);
                     }
 
-                    self.Staging.Value.Dispose();
+                    if (self.Staging.HasValue)
+                    {
+                        if (self.InStaging > 0)
+                        {
+                            var flushTask = self.FlushStagingAsync(CancellationToken.None);
+                            await ConfigureCancellableAwait(self, flushTask, CancellationToken.None);
+                        }
+
+                        self.Staging.Value.Dispose();
+                        self.Staging.Clear();
+                    }
+
+                    var disposeTask = self.Inner.DisposeAsync();
+                    await ConfigureCancellableAwait(self, disposeTask, CancellationToken.None);
+
+                    if (self.OneCharOwner.HasValue)
+                    {
+                        self.OneCharOwner.Value.Dispose();
+                        self.OneCharOwner.Clear();
+                    }
+                    self.Buffer.Dispose();
                 }
-
-                var disposeTask = self.Inner.DisposeAsync();
-                await disposeTask;
-
-                if (self.OneCharOwner.HasValue)
+                catch (Exception e)
                 {
-                    self.OneCharOwner.Value.Dispose();
+                    if (self.Staging.HasValue)
+                    {
+                        self.Staging.Value.Dispose();
+                        self.Staging.Clear();
+                    }
+
+                    if (self.OneCharOwner.HasValue)
+                    {
+                        self.OneCharOwner.Value.Dispose();
+                        self.OneCharOwner.Clear();
+                    }
+
+                    self.Buffer.Dispose();
+
+                    Throw.PoisonAndRethrow<object>(self, e);
                 }
-                self.Buffer.Dispose();
-                self.IsDisposed = true;
             }
 
             // continue after EndRecordAsync completes
             static async ValueTask DisposeAsync_ContinueAfterEndRecordAsync(AsyncDynamicWriter self, ValueTask waitFor)
             {
-                await waitFor;
-
-                if (self.Staging.HasValue)
+                try
                 {
-                    if (self.InStaging > 0)
+                    await ConfigureCancellableAwait(self, waitFor, CancellationToken.None);
+
+                    if (self.Staging.HasValue)
                     {
-                        var flushTask = self.FlushStagingAsync(CancellationToken.None);
-                        await flushTask;
+                        if (self.InStaging > 0)
+                        {
+                            var flushTask = self.FlushStagingAsync(CancellationToken.None);
+                            await ConfigureCancellableAwait(self, flushTask, CancellationToken.None);
+                        }
+
+                        self.Staging.Value.Dispose();
+                        self.Staging.Clear();
                     }
 
-                    self.Staging.Value.Dispose();
+                    var disposeTask = self.Inner.DisposeAsync();
+                    await ConfigureCancellableAwait(self, disposeTask, CancellationToken.None);
+
+                    if (self.OneCharOwner.HasValue)
+                    {
+                        self.OneCharOwner.Value.Dispose();
+                        self.OneCharOwner.Clear();
+                    }
+                    self.Buffer.Dispose();
                 }
-
-                var disposeTask = self.Inner.DisposeAsync();
-                await disposeTask;
-
-                if (self.OneCharOwner.HasValue)
+                catch (Exception e)
                 {
-                    self.OneCharOwner.Value.Dispose();
+                    if (self.Staging.HasValue)
+                    {
+                        self.Staging.Value.Dispose();
+                        self.Staging.Clear();
+                    }
+
+                    if (self.OneCharOwner.HasValue)
+                    {
+                        self.OneCharOwner.Value.Dispose();
+                        self.OneCharOwner.Clear();
+                    }
+
+                    self.Buffer.Dispose();
+
+                    Throw.PoisonAndRethrow<object>(self, e);
                 }
-                self.Buffer.Dispose();
-                self.IsDisposed = true;
             }
 
             // continue after FlushStagingAsync completes
             static async ValueTask DisposeAsync_ContinueAfterFlushStagingAsync(AsyncDynamicWriter self, ValueTask waitFor)
             {
-                await waitFor;
-
-                self.Staging.Value.Dispose();
-
-                var disposeTask = self.Inner.DisposeAsync();
-                await disposeTask;
-
-                if (self.OneCharOwner.HasValue)
+                try
                 {
-                    self.OneCharOwner.Value.Dispose();
+                    await ConfigureCancellableAwait(self, waitFor, CancellationToken.None);
+
+                    self.Staging.Value.Dispose();
+                    self.Staging.Clear();
+
+                    var disposeTask = self.Inner.DisposeAsync();
+                    await ConfigureCancellableAwait(self, disposeTask, CancellationToken.None);
+
+                    if (self.OneCharOwner.HasValue)
+                    {
+                        self.OneCharOwner.Value.Dispose();
+                    }
+                    self.Buffer.Dispose();
                 }
-                self.Buffer.Dispose();
-                self.IsDisposed = true;
+                catch (Exception e)
+                {
+                    if (self.Staging.HasValue)
+                    {
+                        self.Staging.Value.Dispose();
+                        self.Staging.Clear();
+                    }
+
+                    if (self.OneCharOwner.HasValue)
+                    {
+                        self.OneCharOwner.Value.Dispose();
+                        self.OneCharOwner.Clear();
+                    }
+
+                    self.Buffer.Dispose();
+
+                    Throw.PoisonAndRethrow<object>(self, e);
+                }
             }
 
             // continue after Inner.DisposeAsync() completes
             static async ValueTask DisposeAsync_ContinueAfterDisposeAsync(AsyncDynamicWriter self, ValueTask waitFor)
             {
-                await waitFor;
-
-                if (self.OneCharOwner.HasValue)
+                try
                 {
-                    self.OneCharOwner.Value.Dispose();
+                    await ConfigureCancellableAwait(self, waitFor, CancellationToken.None);
+
+                    if (self.OneCharOwner.HasValue)
+                    {
+                        self.OneCharOwner.Value.Dispose();
+                    }
+                    self.Buffer.Dispose();
                 }
-                self.Buffer.Dispose();
-                self.IsDisposed = true;
+                catch (Exception e)
+                {
+                    if (self.OneCharOwner.HasValue)
+                    {
+                        self.OneCharOwner.Value.Dispose();
+                        self.OneCharOwner.Clear();
+                    }
+
+                    self.Buffer.Dispose();
+
+                    Throw.PoisonAndRethrow<object>(self, e);
+                }
             }
         }
 

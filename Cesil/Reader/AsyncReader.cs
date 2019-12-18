@@ -2,6 +2,8 @@
 using System.Threading;
 using System.Threading.Tasks;
 
+using static Cesil.AwaitHelper;
+
 namespace Cesil
 {
     internal sealed class AsyncReader<T> :
@@ -31,13 +33,13 @@ namespace Cesil
             // continue after HandleLineEndingsAsync
             static async ValueTask HandleRowEndingsAndHeadersAsync_ContinueAfterRowEndingsAsync(AsyncReader<T> self, ValueTask waitFor, CancellationToken cancel)
             {
-                await waitFor;
-                cancel.ThrowIfCancellationRequested();
+                await ConfigureCancellableAwait(self, waitFor, cancel);
+                CheckCancellation(self, cancel);
 
                 if (self.ReadHeaders == null)
                 {
-                    await self.HandleHeadersAsync(cancel);
-                    cancel.ThrowIfCancellationRequested();
+                    await ConfigureCancellableAwait(self, self.HandleHeadersAsync(cancel), cancel);
+                    CheckCancellation(self, cancel);
                 }
             }
         }
@@ -105,8 +107,8 @@ namespace Cesil
                         int available;
                         using (self.StateMachine.ReleaseAndRePinForAsync(waitFor))
                         {
-                            available = await waitFor;
-                            cancel.ThrowIfCancellationRequested();
+                            available = await ConfigureCancellableAwait(self, waitFor, cancel);
+                            CheckCancellation(self, cancel);
                         }
                         if (available == 0)
                         {
@@ -137,8 +139,8 @@ namespace Cesil
                         int available;
                         using (self.StateMachine.ReleaseAndRePinForAsync(availableTask))
                         {
-                            available = await availableTask;
-                            cancel.ThrowIfCancellationRequested();
+                            available = await ConfigureCancellableAwait(self, availableTask, cancel);
+                            CheckCancellation(self, cancel);
                         }
                         if (available == 0)
                         {
@@ -204,8 +206,8 @@ namespace Cesil
             {
                 try
                 {
-                    var res = await waitFor;
-                    cancel.ThrowIfCancellationRequested();
+                    var res = await ConfigureCancellableAwait(self, waitFor, cancel);
+                    CheckCancellation(self, cancel);
 
                     self.HandleLineEndingsDetectionResult(res);
                 }
@@ -283,8 +285,8 @@ namespace Cesil
             {
                 try
                 {
-                    var res = await waitFor;
-                    cancel.ThrowIfCancellationRequested();
+                    var res = await ConfigureCancellableAwait(self, waitFor, cancel);
+                    CheckCancellation(self, cancel);
 
                     self.HandleHeadersReaderResult(res);
                 }
@@ -299,18 +301,30 @@ namespace Cesil
         {
             if (!IsDisposed)
             {
-                var disposeTask = Inner.DisposeAsync();
-                if (!disposeTask.IsCompletedSuccessfully(this))
+                IsDisposed = true;
+
+                try
                 {
-                    return DisposeAsync_ContinueAfterInnerDisposedAsync(this, disposeTask);
+                    var disposeTask = Inner.DisposeAsync();
+                    if (!disposeTask.IsCompletedSuccessfully(this))
+                    {
+                        return DisposeAsync_ContinueAfterInnerDisposedAsync(this, disposeTask);
+                    }
+                }
+                catch(Exception e)
+                {
+                    Buffer.Dispose();
+                    Partial.Dispose();
+                    StateMachine?.Dispose();
+                    SharedCharacterLookup.Dispose();
+
+                    return Throw.PoisonAndRethrow<ValueTask>(this, e);
                 }
 
                 Buffer.Dispose();
                 Partial.Dispose();
                 StateMachine?.Dispose();
                 SharedCharacterLookup.Dispose();
-
-                IsDisposed = true;
             }
 
             return default;
@@ -318,14 +332,26 @@ namespace Cesil
             // continue after Inner.DisposeAsync completes
             static async ValueTask DisposeAsync_ContinueAfterInnerDisposedAsync(AsyncReader<T> self, ValueTask waitFor)
             {
-                await waitFor;
+                try
+                {
+                    await ConfigureCancellableAwait(self, waitFor, CancellationToken.None);
+                }
+                catch (Exception e)
+                {
+                    self.Buffer.Dispose();
+                    self.Partial.Dispose();
+                    self.StateMachine?.Dispose();
+                    self.SharedCharacterLookup.Dispose();
+
+                    Throw.PoisonAndRethrow<object>(self, e);
+
+                    return;
+                }
 
                 self.Buffer.Dispose();
                 self.Partial.Dispose();
                 self.StateMachine?.Dispose();
                 self.SharedCharacterLookup.Dispose();
-
-                self.IsDisposed = true;
             }
         }
 

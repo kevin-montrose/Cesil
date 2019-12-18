@@ -50,113 +50,130 @@ namespace Cesil
         public override void Write(dynamic row)
         {
             AssertNotDisposed(this);
+            AssertNotPoisoned();
 
-            WriteHeadersAndEndRowIfNeeded(row);
-
-            var wholeRowContext = WriteContext.DiscoveringCells(Configuration.Options, RowNumber, Context);
-
-            var options = Configuration.Options;
-
-            var cellValues = options.TypeDescriber.GetCellsForDynamicRow(in wholeRowContext, row as object);
-            cellValues = ForceInOrder(cellValues);
-
-            var columnNamesValue = ColumnNames.Value;
-
-            var i = 0;
-            foreach (var cell in cellValues)
+            try
             {
-                var needsSeparator = i != 0;
+                WriteHeadersAndEndRowIfNeeded(row);
 
-                if (needsSeparator)
+                var wholeRowContext = WriteContext.DiscoveringCells(Configuration.Options, RowNumber, Context);
+
+                var options = Configuration.Options;
+
+                var cellValues = options.TypeDescriber.GetCellsForDynamicRow(in wholeRowContext, row as object);
+                cellValues = ForceInOrder(cellValues);
+
+                var columnNamesValue = ColumnNames.Value;
+
+                var i = 0;
+                foreach (var cell in cellValues)
                 {
-                    PlaceCharInStaging(options.ValueSeparator);
-                }
+                    var needsSeparator = i != 0;
 
-                ColumnIdentifier ci;
-                if (i < columnNamesValue.Length)
-                {
-                    ci = ColumnIdentifier.Create(i, columnNamesValue[i].Name);
-                }
-                else
-                {
-                    ci = ColumnIdentifier.Create(i);
-                }
+                    if (needsSeparator)
+                    {
+                        PlaceCharInStaging(options.ValueSeparator);
+                    }
 
-                var ctx = WriteContext.WritingColumn(Configuration.Options, RowNumber, ci, Context);
+                    ColumnIdentifier ci;
+                    if (i < columnNamesValue.Length)
+                    {
+                        ci = ColumnIdentifier.Create(i, columnNamesValue[i].Name);
+                    }
+                    else
+                    {
+                        ci = ColumnIdentifier.Create(i);
+                    }
 
-                var formatter = cell.Formatter;
-                var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
-                delProvider.Guarantee(this);
-                var del = delProvider.CachedDelegate.Value;
+                    var ctx = WriteContext.WritingColumn(Configuration.Options, RowNumber, ci, Context);
 
-                var val = cell.Value as object;
-                if (!del(val, in ctx, Buffer))
-                {
-                    Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
-                }
+                    var formatter = cell.Formatter;
+                    var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
+                    delProvider.Guarantee(this);
+                    var del = delProvider.CachedDelegate.Value;
 
-                var res = Buffer.Buffer;
-                if (res.IsEmpty)
-                {
-                    // nothing was written, so just move on
-                    goto end;
-                }
+                    var val = cell.Value as object;
+                    if (!del(val, in ctx, Buffer))
+                    {
+                        Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
+                    }
 
-                WriteValue(res);
-                Buffer.Reset();
+                    var res = Buffer.Buffer;
+                    if (res.IsEmpty)
+                    {
+                        // nothing was written, so just move on
+                        goto end;
+                    }
+
+                    WriteValue(res);
+                    Buffer.Reset();
 
 end:
-                i++;
-            }
+                    i++;
+                }
 
-            RowNumber++;
+                RowNumber++;
+            }
+            catch (Exception e)
+            {
+                Throw.PoisonAndRethrow<object>(this, e);
+            }
         }
 
         public override void WriteComment(string comment)
         {
             AssertNotDisposed(this);
+            AssertNotPoisoned();
 
             Utils.CheckArgumentNull(comment, nameof(comment));
 
-            var shouldEndRecord = true;
-            if (IsFirstRow)
+            try
             {
-                // todo: I feel like this can be made to work?
-                // it's basically just a write line
-                if (Configuration.Options.WriteHeader == WriteHeader.Always)
+
+                var shouldEndRecord = true;
+                if (IsFirstRow)
                 {
-                    Throw.InvalidOperationException<object>($"First operation on a dynamic writer cannot be {nameof(WriteComment)} if configured to write headers, headers cannot be inferred");
+                    // todo: I feel like this can be made to work?
+                    // it's basically just a write line
+                    if (Configuration.Options.WriteHeader == WriteHeader.Always)
+                    {
+                        Throw.InvalidOperationException<object>($"First operation on a dynamic writer cannot be {nameof(WriteComment)} if configured to write headers, headers cannot be inferred");
+                    }
+
+                    if (!CheckHeaders(null))
+                    {
+                        shouldEndRecord = false;
+                    }
                 }
 
-                if (!CheckHeaders(null))
-                {
-                    shouldEndRecord = false;
-                }
-            }
-
-            if (shouldEndRecord)
-            {
-                EndRecord();
-            }
-
-            var (commentChar, segments) = SplitCommentIntoLines(comment);
-
-            // we know we can write directly now
-            var isFirstRow = true;
-            foreach (var seg in segments)
-            {
-                if (!isFirstRow)
+                if (shouldEndRecord)
                 {
                     EndRecord();
                 }
 
-                PlaceCharInStaging(commentChar);
-                if (seg.Span.Length > 0)
-                {
-                    PlaceAllInStaging(seg.Span);
-                }
+                var (commentChar, segments) = SplitCommentIntoLines(comment);
 
-                isFirstRow = false;
+                // we know we can write directly now
+                var isFirstRow = true;
+                foreach (var seg in segments)
+                {
+                    if (!isFirstRow)
+                    {
+                        EndRecord();
+                    }
+
+                    PlaceCharInStaging(commentChar);
+                    if (seg.Span.Length > 0)
+                    {
+                        PlaceAllInStaging(seg.Span);
+                    }
+
+                    isFirstRow = false;
+                }
+            }
+            catch (Exception e)
+            {
+                Throw.PoisonAndRethrow<object>(this, e);
             }
         }
 
@@ -241,7 +258,7 @@ end:
             var ctx = WriteContext.DiscoveringColumns(Configuration.Options, Context);
 
             var options = Configuration.Options;
-            
+
             var colIx = 0;
             foreach (var c in options.TypeDescriber.GetCellsForDynamicRow(in ctx, o as object))
             {
@@ -315,29 +332,47 @@ end:
         {
             if (!IsDisposed)
             {
-                if (IsFirstRow)
-                {
-                    CheckHeaders(null);
-                }
+                IsDisposed = true;
 
-                if (Configuration.Options.WriteTrailingRowEnding == WriteTrailingRowEnding.Always)
+                try
                 {
-                    EndRecord();
-                }
 
-                if (Staging.HasValue)
-                {
-                    if (InStaging > 0)
+                    if (IsFirstRow)
                     {
-                        FlushStaging();
+                        CheckHeaders(null);
                     }
 
-                    Staging.Value.Dispose();
-                }
+                    if (Configuration.Options.WriteTrailingRowEnding == WriteTrailingRowEnding.Always)
+                    {
+                        EndRecord();
+                    }
 
-                Inner.Dispose();
-                Buffer.Dispose();
-                IsDisposed = true;
+                    if (Staging.HasValue)
+                    {
+                        if (InStaging > 0)
+                        {
+                            FlushStaging();
+                        }
+
+                        Staging.Value.Dispose();
+                        Staging.Clear();
+                    }
+
+                    Inner.Dispose();
+                    Buffer.Dispose();
+                }
+                catch (Exception e)
+                {
+                    if (Staging.HasValue)
+                    {
+                        Staging.Value.Dispose();
+                        Staging.Clear();
+                    }
+
+                    Buffer.Dispose();
+
+                    Throw.PoisonAndRethrow<object>(this, e);
+                }
             }
         }
 

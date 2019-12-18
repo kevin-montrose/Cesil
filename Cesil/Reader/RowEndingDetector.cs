@@ -3,6 +3,8 @@ using System.Buffers;
 using System.Threading;
 using System.Threading.Tasks;
 
+using static Cesil.AwaitHelper;
+
 namespace Cesil
 {
     internal sealed partial class RowEndingDetector : ITestableDisposable
@@ -161,7 +163,7 @@ namespace Cesil
                     int end;
                     using (self.State.ReleaseAndRePinForAsync(waitFor))
                     {
-                        end = await waitFor;
+                        end = await ConfigureCancellableAwait(self, waitFor, cancel);
                     }
 
                     // handle the results that were in flight
@@ -214,7 +216,7 @@ loopStart:
                         var readTask = self.InnerAsync.Value.ReadAsync(mem, cancel);
                         using (self.State.ReleaseAndRePinForAsync(readTask))
                         {
-                            end = await readTask;
+                            end = await ConfigureCancellableAwait(self, readTask, cancel);
                         }
 
                         if (end == 0)
@@ -428,6 +430,12 @@ end:
     }
 
 #if DEBUG
+    internal sealed partial class RowEndingDetector : ITestableCancellableProvider
+    {
+        int? ITestableCancellableProvider.CancelAfter { get; set; }
+        int ITestableCancellableProvider.CancelCounter { get; set; }
+    }
+
     // this is only implemented in DEBUG builds, so tests (and only tests) can force
     //    particular async paths
     internal sealed partial class RowEndingDetector : ITestableAsyncProvider

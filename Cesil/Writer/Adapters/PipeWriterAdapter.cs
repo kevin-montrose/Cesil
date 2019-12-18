@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using static Cesil.DisposableHelper;
+using static Cesil.AwaitHelper;
 
 namespace Cesil
 {
@@ -58,14 +59,14 @@ namespace Cesil
 
             if (!flushTask.IsCompletedSuccessfully(this))
             {
-                return WriteAsync_ContinueAfterFlushAsync(flushTask);
+                return WriteAsync_ContinueAfterFlushAsync(this, flushTask, cancel);
             }
 
             return default;
 
-            static async ValueTask WriteAsync_ContinueAfterFlushAsync(ValueTask<FlushResult> waitFor)
+            static async ValueTask WriteAsync_ContinueAfterFlushAsync(PipeWriterAdapter self, ValueTask<FlushResult> waitFor, CancellationToken cancel)
             {
-                await waitFor;
+                await ConfigureCancellableAwait(self, waitFor, cancel);
             }
         }
 
@@ -83,6 +84,14 @@ namespace Cesil
     }
 
 #if DEBUG
+    // only available in DEBUG for testing purposes
+    internal sealed partial class PipeWriterAdapter : ITestableCancellableProvider
+    {
+        int? ITestableCancellableProvider.CancelAfter { get; set; }
+        int ITestableCancellableProvider.CancelCounter { get; set; }
+    }
+
+    // only available in DEBUG for testing purposes
     internal sealed partial class PipeWriterAdapter : ITestableAsyncProvider
     {
         private int _GoAsyncAfter;

@@ -92,7 +92,8 @@ namespace Cesil.Tests
                     {
                         var configForced = config as AsyncCountingAndForcingConfig<_Test>;
                         var configUnpin = config as AsyncInstrumentedPinConfig<_Test>;
-                        var cInner = (ConcreteBoundConfiguration<_Test>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+                        var configCancel = config as AsyncCancelControlConfig<_Test>;
+                        var cInner = (ConcreteBoundConfiguration<_Test>)(configUnpin?.Inner ?? configForced?.Inner ?? configCancel?.Inner ?? config);
 
                         await using (var str = await getReader(csv))
                         await using (configUnpin?.CreateAsyncReader(str))
@@ -111,7 +112,8 @@ namespace Cesil.Tests
                                 Assert.Equal(expected, detect.Value.Ending);
                             }
                         }
-                    }
+                    },
+                    cancellable: false
              );
         }
     }

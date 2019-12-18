@@ -117,13 +117,27 @@ namespace Cesil
         {
             if (!IsDisposed)
             {
-                Inner.Dispose();
+                IsDisposed = true;
+
+                try
+                {
+                    Inner.Dispose();
+                }
+                catch(Exception e)
+                {
+                    Buffer.Dispose();
+                    Partial.Dispose();
+                    StateMachine?.Dispose();
+                    SharedCharacterLookup.Dispose();
+
+                    Throw.PoisonAndRethrow<object>(this, e);
+                    return;
+                }
+
                 Buffer.Dispose();
                 Partial.Dispose();
                 StateMachine?.Dispose();
                 SharedCharacterLookup.Dispose();
-
-                IsDisposed = true;
             }
         }
 

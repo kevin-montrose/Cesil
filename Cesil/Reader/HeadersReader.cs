@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using static Cesil.DisposableHelper;
+using static Cesil.AwaitHelper;
 
 namespace Cesil
 {
@@ -349,7 +350,7 @@ namespace Cesil
                     int available;
                     using (self.StateMachine.ReleaseAndRePinForAsync(waitFor))
                     {
-                        available = await waitFor;
+                        available = await ConfigureCancellableAwait(self, waitFor, cancel);
                     }
 
                     // handle the in flight task
@@ -379,7 +380,7 @@ namespace Cesil
                         var readTask = self.Buffer.ReadAsync(self.InnerAsync.Value, cancel);
                         using (self.StateMachine.ReleaseAndRePinForAsync(readTask))
                         {
-                            available = await readTask;
+                            available = await ConfigureCancellableAwait(self, readTask, cancel);
                         }
 
                         if (available == 0)
@@ -644,6 +645,13 @@ finish:
     }
 
 #if DEBUG
+    // only available in DEBUG for testing purposes
+    internal sealed partial class HeadersReader<T> : ITestableCancellableProvider
+    {
+        int? ITestableCancellableProvider.CancelAfter { get; set; }
+        int ITestableCancellableProvider.CancelCounter { get; set; }
+    }
+
     // this is only implemented in DEBUG builds, so tests (and only tests) can force
     //    particular async paths
     internal sealed partial class HeadersReader<T> : ITestableAsyncProvider

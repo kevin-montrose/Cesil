@@ -842,17 +842,9 @@ namespace Cesil.Tests
                 {
                     msg = InvokeToString_AsyncEnumerable().Result;
                 }
-                else if (t == typeof(AsyncEnumerator<>))
-                {
-                    msg = InvokeToString_AsyncEnumerator().Result;
-                }
                 else if (t == typeof(Enumerable<>))
                 {
                     msg = InvokeToString_Enumerable();
-                }
-                else if (t == typeof(Enumerator<>))
-                {
-                    msg = InvokeToString_Enumerator();
                 }
                 else if (t == typeof(DynamicCell))
                 {
@@ -1107,21 +1099,6 @@ namespace Cesil.Tests
                 }
             }
 
-            static string InvokeToString_Enumerator()
-            {
-                var config = Configuration.For<_HelpfulToString>();
-
-                using (var str = new StringReader("foo"))
-                using (var csv = config.CreateReader(str))
-                {
-                    var e = csv.EnumerateAll();
-                    using (var i = e.GetEnumerator())
-                    {
-                        return i.ToString();
-                    }
-                }
-            }
-
             static string InvokeToString_Enumerable()
             {
                 var config = Configuration.For<_HelpfulToString>();
@@ -1131,21 +1108,6 @@ namespace Cesil.Tests
                 {
                     var e = csv.EnumerateAll();
                     return e.ToString();
-                }
-            }
-
-            static async Task<string> InvokeToString_AsyncEnumerator()
-            {
-                var config = Configuration.For<_HelpfulToString>();
-
-                using (var str = new StringReader("foo"))
-                await using (var csv = config.CreateAsyncReader(str))
-                {
-                    var e = csv.EnumerateAllAsync();
-                    await using (var i = e.GetAsyncEnumerator())
-                    {
-                        return i.ToString();
-                    }
                 }
             }
 

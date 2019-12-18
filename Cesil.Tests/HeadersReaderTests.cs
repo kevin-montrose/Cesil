@@ -475,9 +475,8 @@ namespace Cesil.Tests
                     {
                         var configForced = config as AsyncCountingAndForcingConfig<_CommentBeforeHeader>;
                         var configUnpin = config as AsyncInstrumentedPinConfig<_CommentBeforeHeader>;
-                        var cInner = (ConcreteBoundConfiguration<_CommentBeforeHeader>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
-
-
+                        var configCancel = config as AsyncCancelControlConfig<_CommentBeforeHeader>;
+                        var cInner = (ConcreteBoundConfiguration<_CommentBeforeHeader>)(configUnpin?.Inner ?? configForced?.Inner ??  configCancel?.Inner ?? config);
 
                         await using (var str = await getReader("#hello\rfoo\nbar\r\nFoo,Bar"))
                         await using (configUnpin?.CreateAsyncReader(str))
@@ -501,7 +500,8 @@ namespace Cesil.Tests
                                 );
                             }
                         }
-                    }
+                    },
+                    cancellable: false
                 );
             }
 
@@ -519,7 +519,8 @@ namespace Cesil.Tests
                     {
                         var configForced = config as AsyncCountingAndForcingConfig<_CommentBeforeHeader>;
                         var configUnpin = config as AsyncInstrumentedPinConfig<_CommentBeforeHeader>;
-                        var cInner = (ConcreteBoundConfiguration<_CommentBeforeHeader>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+                        var configCancel = config as AsyncCancelControlConfig<_CommentBeforeHeader>;
+                        var cInner = (ConcreteBoundConfiguration<_CommentBeforeHeader>)(configUnpin?.Inner ?? configForced?.Inner ?? configCancel?.Inner ?? config);
 
                         await using (var str = await getReader("#hello\nfoo\n\rFoo,Bar"))
                         await using (configUnpin?.CreateAsyncReader(str))
@@ -543,7 +544,8 @@ namespace Cesil.Tests
                                 );
                             }
                         }
-                    }
+                    },
+                    cancellable: false
                 );
             }
 
@@ -561,7 +563,8 @@ namespace Cesil.Tests
                     {
                         var configForced = config as AsyncCountingAndForcingConfig<_CommentBeforeHeader>;
                         var configUnpin = config as AsyncInstrumentedPinConfig<_CommentBeforeHeader>;
-                        var cInner = (ConcreteBoundConfiguration<_CommentBeforeHeader>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+                        var configCancel = config as AsyncCancelControlConfig<_CommentBeforeHeader>;
+                        var cInner = (ConcreteBoundConfiguration<_CommentBeforeHeader>)(configUnpin?.Inner ?? configForced?.Inner ?? configCancel?.Inner ?? config);
 
                         await using (var str = await getReader("#hello\rfoo\r..\nFoo,Bar"))
                         await using (configUnpin?.CreateAsyncReader(str))
@@ -585,7 +588,8 @@ namespace Cesil.Tests
                                 );
                             }
                         }
-                    }
+                    },
+                    cancellable: false
                 );
             }
         }
@@ -601,7 +605,8 @@ namespace Cesil.Tests
                     {
                         var configForced = config as AsyncCountingAndForcingConfig<_JustHeaders>;
                         var configUnpin = config as AsyncInstrumentedPinConfig<_JustHeaders>;
-                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+                        var configCancel = config as AsyncCancelControlConfig<_JustHeaders>;
+                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? configCancel?.Inner ?? config);
 
                         await using (var str = await getReader("fizz"))
                         await using (configUnpin?.CreateAsyncReader(str))
@@ -619,7 +624,8 @@ namespace Cesil.Tests
                             Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("fizz", new string(i.Span)));
                             Assert.False(res.IsHeader);
                         }
-                    }
+                    },
+                    cancellable: false
                 );
             }
 
@@ -631,7 +637,8 @@ namespace Cesil.Tests
                     {
                         var configForced = config as AsyncCountingAndForcingConfig<_JustHeaders>;
                         var configUnpin = config as AsyncInstrumentedPinConfig<_JustHeaders>;
-                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+                        var configCancel = config as AsyncCancelControlConfig<_JustHeaders>;
+                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? configCancel?.Inner ?? config);
 
                         await using (var str = await getReader("Foo"))
                         await using (configUnpin?.CreateAsyncReader(str))
@@ -649,7 +656,8 @@ namespace Cesil.Tests
                             Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("Foo", new string(i.Span)));
                             Assert.True(res.IsHeader);
                         }
-                    }
+                    },
+                    cancellable: false
                 );
             }
 
@@ -661,7 +669,8 @@ namespace Cesil.Tests
                     {
                         var configForced = config as AsyncCountingAndForcingConfig<_JustHeaders>;
                         var configUnpin = config as AsyncInstrumentedPinConfig<_JustHeaders>;
-                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+                        var configCancel = config as AsyncCancelControlConfig<_JustHeaders>;
+                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? configCancel?.Inner ?? config);
 
                         await using (var str = await getReader("Foo,fizz"))
                         await using (configUnpin?.CreateAsyncReader(str))
@@ -683,7 +692,8 @@ namespace Cesil.Tests
                             );
                             Assert.True(res.IsHeader);
                         }
-                    }
+                    },
+                    cancellable: false
                 );
 
                 await RunAsyncReaderVariants<_JustHeaders>(
@@ -692,7 +702,8 @@ namespace Cesil.Tests
                     {
                         var configForced = config as AsyncCountingAndForcingConfig<_JustHeaders>;
                         var configUnpin = config as AsyncInstrumentedPinConfig<_JustHeaders>;
-                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+                        var configCancel = config as AsyncCancelControlConfig<_JustHeaders>;
+                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? configCancel?.Inner ?? config);
 
                         await using (var str = await getReader("fizz,Bar"))
                         await using (configUnpin?.CreateAsyncReader(str))
@@ -714,7 +725,8 @@ namespace Cesil.Tests
                             );
                             Assert.True(res.IsHeader);
                         }
-                    }
+                    },
+                    cancellable: false
                 );
             }
 
@@ -726,7 +738,8 @@ namespace Cesil.Tests
                     {
                         var configForced = config as AsyncCountingAndForcingConfig<_JustHeaders>;
                         var configUnpin = config as AsyncInstrumentedPinConfig<_JustHeaders>;
-                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+                        var configCancel = config as AsyncCancelControlConfig<_JustHeaders>;
+                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? configCancel?.Inner ?? config);
 
                         await using (var str = await getReader("Foo,Bar"))
                         await using (configUnpin?.CreateAsyncReader(str))
@@ -748,7 +761,8 @@ namespace Cesil.Tests
                             );
                             Assert.True(res.IsHeader);
                         }
-                    }
+                    },
+                    cancellable: false
                 );
 
                 await RunAsyncReaderVariants<_JustHeaders>(
@@ -757,7 +771,8 @@ namespace Cesil.Tests
                     {
                         var configForced = config as AsyncCountingAndForcingConfig<_JustHeaders>;
                         var configUnpin = config as AsyncInstrumentedPinConfig<_JustHeaders>;
-                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+                        var configCancel = config as AsyncCancelControlConfig<_JustHeaders>;
+                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? configCancel?.Inner ?? config);
 
                         await using (var str = await getReader("Bar,Foo"))
                         await using (configUnpin?.CreateAsyncReader(str))
@@ -779,7 +794,8 @@ namespace Cesil.Tests
                             );
                             Assert.True(res.IsHeader);
                         }
-                    }
+                    },
+                    cancellable: false
                 );
             }
 
@@ -791,7 +807,8 @@ namespace Cesil.Tests
                     {
                         var configForced = config as AsyncCountingAndForcingConfig<_JustHeaders>;
                         var configUnpin = config as AsyncInstrumentedPinConfig<_JustHeaders>;
-                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+                        var configCancel = config as AsyncCancelControlConfig<_JustHeaders>;
+                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? configCancel?.Inner ?? config);
 
                         await using (var str = await getReader("Foo,Bar,Fizz"))
                         await using (configUnpin?.CreateAsyncReader(str))
@@ -814,7 +831,8 @@ namespace Cesil.Tests
                             );
                             Assert.True(res.IsHeader);
                         }
-                    }
+                    },
+                    cancellable: false
                 );
 
                 await RunAsyncReaderVariants<_JustHeaders>(
@@ -823,7 +841,8 @@ namespace Cesil.Tests
                     {
                         var configForced = config as AsyncCountingAndForcingConfig<_JustHeaders>;
                         var configUnpin = config as AsyncInstrumentedPinConfig<_JustHeaders>;
-                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? config);
+                        var configCancel = config as AsyncCancelControlConfig<_JustHeaders>;
+                        var cInner = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? configForced?.Inner ?? configCancel?.Inner ?? config);
 
                         await using (var str = await getReader("Bar,Fizz,Foo"))
                         await using (configUnpin?.CreateAsyncReader(str))
@@ -846,7 +865,8 @@ namespace Cesil.Tests
                             );
                             Assert.True(res.IsHeader);
                         }
-                    }
+                    },
+                    cancellable: false
                 );
             }
         }
@@ -880,7 +900,8 @@ namespace Cesil.Tests
                 {
                     var forcedConfig = config as AsyncCountingAndForcingConfig<_ManyHeaders>;
                     var configUnpin = config as AsyncInstrumentedPinConfig<_ManyHeaders>;
-                    var c = (ConcreteBoundConfiguration<_ManyHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? config);
+                    var configCancel = config as AsyncCancelControlConfig<_ManyHeaders>;
+                    var c = (ConcreteBoundConfiguration<_ManyHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? configCancel?.Inner ?? config);
 
                     await using (var str = await makeReader(csv))
                     await using (configUnpin?.CreateAsyncReader(str))
@@ -910,7 +931,8 @@ namespace Cesil.Tests
                         );
                         Assert.True(res.IsHeader);
                     }
-                }
+                },
+                cancellable: false
             );
         }
 
@@ -932,7 +954,8 @@ namespace Cesil.Tests
                     {
                         var forcedConfig = c as AsyncCountingAndForcingConfig<_JustHeaders>;
                         var configUnpin = c as AsyncInstrumentedPinConfig<_JustHeaders>;
-                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? c);
+                        var configCancel = c as AsyncCancelControlConfig<_JustHeaders>;
+                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? configCancel?.Inner ?? c);
 
                         await using (var str = await getReader("fizz\r\n0\r\n"))
                         await using (configUnpin?.CreateAsyncReader(str))
@@ -950,7 +973,8 @@ namespace Cesil.Tests
                             Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("fizz", new string(i.Span)));
                             Assert.False(res.IsHeader);
                         }
-                    }
+                    },
+                    cancellable: false
                 );
             }
 
@@ -962,7 +986,8 @@ namespace Cesil.Tests
                     {
                         var forcedConfig = c as AsyncCountingAndForcingConfig<_JustHeaders>;
                         var configUnpin = c as AsyncInstrumentedPinConfig<_JustHeaders>;
-                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? c);
+                        var configCancel = c as AsyncCancelControlConfig<_JustHeaders>;
+                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? configCancel?.Inner ?? c);
 
                         await using (var str = await getReader("Foo\r\nfoo"))
                         await using (configUnpin?.CreateAsyncReader(str))
@@ -980,7 +1005,8 @@ namespace Cesil.Tests
                             Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("Foo", new string(i.Span)));
                             Assert.True(res.IsHeader);
                         }
-                    }
+                    },
+                    cancellable: false
                 );
             }
 
@@ -992,7 +1018,8 @@ namespace Cesil.Tests
                     {
                         var forcedConfig = c as AsyncCountingAndForcingConfig<_JustHeaders>;
                         var configUnpin = c as AsyncInstrumentedPinConfig<_JustHeaders>;
-                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? c);
+                        var configCancel = c as AsyncCancelControlConfig<_JustHeaders>;
+                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? configCancel?.Inner ?? c);
 
                         await using (var str = await getReader("Foo,fizz\r\n1,2"))
                         await using (configUnpin?.CreateAsyncReader(str))
@@ -1014,7 +1041,8 @@ namespace Cesil.Tests
                             );
                             Assert.True(res.IsHeader);
                         }
-                    }
+                    },
+                    cancellable: false
                 );
 
                 await RunAsyncReaderVariants<_JustHeaders>(
@@ -1023,7 +1051,8 @@ namespace Cesil.Tests
                     {
                         var forcedConfig = c as AsyncCountingAndForcingConfig<_JustHeaders>;
                         var configUnpin = c as AsyncInstrumentedPinConfig<_JustHeaders>;
-                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? c);
+                        var configCancel = c as AsyncCancelControlConfig<_JustHeaders>;
+                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? configCancel?.Inner ?? c);
 
                         await using (var str = await getReader("fizz,Bar\r\n2,blah\r\n"))
                         await using (configUnpin?.CreateAsyncReader(str))
@@ -1045,7 +1074,8 @@ namespace Cesil.Tests
                             );
                             Assert.True(res.IsHeader);
                         }
-                    }
+                    },
+                    cancellable: false
                 );
             }
 
@@ -1057,7 +1087,8 @@ namespace Cesil.Tests
                     {
                         var forcedConfig = c as AsyncCountingAndForcingConfig<_JustHeaders>;
                         var configUnpin = c as AsyncInstrumentedPinConfig<_JustHeaders>;
-                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? c);
+                        var configCancel = c as AsyncCancelControlConfig<_JustHeaders>;
+                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? configCancel?.Inner ?? c);
 
                         await using (var str = await getReader("Foo,Bar\r\nwhatever,something"))
                         await using (configUnpin?.CreateAsyncReader(str))
@@ -1079,7 +1110,8 @@ namespace Cesil.Tests
                             );
                             Assert.True(res.IsHeader);
                         }
-                    }
+                    },
+                    cancellable: false
                 );
 
                 await RunAsyncReaderVariants<_JustHeaders>(
@@ -1088,7 +1120,8 @@ namespace Cesil.Tests
                     {
                         var forcedConfig = c as AsyncCountingAndForcingConfig<_JustHeaders>;
                         var configUnpin = c as AsyncInstrumentedPinConfig<_JustHeaders>;
-                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? c);
+                        var configCancel = c as AsyncCancelControlConfig<_JustHeaders>;
+                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? configCancel?.Inner ?? c);
 
                         await using (var str = await getReader("Bar,Foo\r\n3,4"))
                         await using (configUnpin?.CreateAsyncReader(str))
@@ -1110,7 +1143,8 @@ namespace Cesil.Tests
                             );
                             Assert.True(res.IsHeader);
                         }
-                    }
+                    },
+                    cancellable: false
                );
             }
 
@@ -1122,7 +1156,8 @@ namespace Cesil.Tests
                     {
                         var forcedConfig = c as AsyncCountingAndForcingConfig<_JustHeaders>;
                         var configUnpin = c as AsyncInstrumentedPinConfig<_JustHeaders>;
-                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? c);
+                        var configCancel = c as AsyncCancelControlConfig<_JustHeaders>;
+                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? configCancel?.Inner ?? c);
 
                         await using (var str = await getReader("Foo,Bar,Fizz\r\na,b,c\r\n"))
                         await using (configUnpin?.CreateAsyncReader(str))
@@ -1145,7 +1180,8 @@ namespace Cesil.Tests
                             );
                             Assert.True(res.IsHeader);
                         }
-                    }
+                    },
+                    cancellable: false
                 );
 
                 await RunAsyncReaderVariants<_JustHeaders>(
@@ -1154,7 +1190,8 @@ namespace Cesil.Tests
                     {
                         var forcedConfig = c as AsyncCountingAndForcingConfig<_JustHeaders>;
                         var configUnpin = c as AsyncInstrumentedPinConfig<_JustHeaders>;
-                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? c);
+                        var configCancel = c as AsyncCancelControlConfig<_JustHeaders>;
+                        var config = (ConcreteBoundConfiguration<_JustHeaders>)(configUnpin?.Inner ?? forcedConfig?.Inner ?? configCancel?.Inner ?? c);
 
                         await using (var str = await getReader("Bar,Fizz,Foo\r\n1,2,3"))
                         await using (configUnpin?.CreateAsyncReader(str))
@@ -1177,7 +1214,8 @@ namespace Cesil.Tests
                             );
                             Assert.True(res.IsHeader);
                         }
-                    }
+                    },
+                    cancellable: false
                 );
             }
         }

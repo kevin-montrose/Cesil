@@ -613,8 +613,7 @@ namespace Cesil.Tests
                         {
                             Assert.ThrowsAny<Exception>(() => csv.TryRead(out _));
 
-                            var exc = Assert.Throws<InvalidOperationException>(() => csv.TryRead(out _));
-                            Assert.Equal("Internal state machine is in an invalid state due to a previous error", exc.Message);
+                            Assert.Throws<InvalidOperationException>(() => csv.TryRead(out _));
                         }
                     }
                 );
@@ -4354,7 +4353,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     {
                         await Assert.ThrowsAsync<ArgumentNullException>(async () => await csv.ReadAllAsync(default(List<_NullInto>)));
                     }
-                }
+                },
+                cancellable: false
             );
         }
 
@@ -4393,8 +4393,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                         {
                             await Assert.ThrowsAnyAsync<Exception>(async () => await csv.TryReadAsync());
 
-                            var exc = await UnwrapThrowsAsync<InvalidOperationException>(async () => await csv.TryReadAsync());
-                            Assert.Equal("Internal state machine is in an invalid state due to a previous error", exc.Message);
+                            await UnwrapThrowsAsync<InvalidOperationException>(async () => await csv.TryReadAsync());
                         }
                     }
                 );

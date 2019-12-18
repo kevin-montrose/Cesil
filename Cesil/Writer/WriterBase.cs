@@ -3,7 +3,7 @@ using System.Buffers;
 
 namespace Cesil
 {
-    internal abstract class WriterBase<T>
+    internal abstract class WriterBase<T> : PoisonableBase
     {
         internal readonly BoundConfigurationBase<T> Configuration;
 

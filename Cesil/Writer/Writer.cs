@@ -11,81 +11,99 @@ namespace Cesil
         public override void Write(T row)
         {
             AssertNotDisposed(this);
+            AssertNotPoisoned();
 
-            WriteHeadersAndEndRowIfNeeded();
-
-            var columnsValue = Columns.Value;
-
-            for (var i = 0; i < columnsValue.Length; i++)
+            try
             {
-                var needsSeparator = i != 0;
 
-                if (needsSeparator)
+                WriteHeadersAndEndRowIfNeeded();
+
+                var columnsValue = Columns.Value;
+
+                for (var i = 0; i < columnsValue.Length; i++)
                 {
-                    PlaceCharInStaging(Configuration.Options.ValueSeparator);
+                    var needsSeparator = i != 0;
+
+                    if (needsSeparator)
+                    {
+                        PlaceCharInStaging(Configuration.Options.ValueSeparator);
+                    }
+
+                    var col = columnsValue[i];
+
+                    var ctx = WriteContext.WritingColumn(Configuration.Options, RowNumber, ColumnIdentifier.Create(i, col.Name), Context);
+
+                    if (!col.Write.Value(row, ctx, Buffer))
+                    {
+                        Throw.SerializationException<object>($"Could not write column {col.Name}, formatter returned false");
+                    }
+
+                    var res = Buffer.Buffer;
+                    if (res.IsEmpty)
+                    {
+                        // nothing was written, so just move on
+                        continue;
+                    }
+
+                    WriteValue(res);
+                    Buffer.Reset();
                 }
 
-                var col = columnsValue[i];
-
-                var ctx = WriteContext.WritingColumn(Configuration.Options, RowNumber, ColumnIdentifier.Create(i, col.Name), Context);
-
-                if (!col.Write.Value(row, ctx, Buffer))
-                {
-                    Throw.SerializationException<object>($"Could not write column {col.Name}, formatter returned false");
-                }
-
-                var res = Buffer.Buffer;
-                if (res.IsEmpty)
-                {
-                    // nothing was written, so just move on
-                    continue;
-                }
-
-                WriteValue(res);
-                Buffer.Reset();
+                RowNumber++;
             }
-
-            RowNumber++;
+            catch (Exception e)
+            {
+                Throw.PoisonAndRethrow<object>(this, e);
+            }
         }
 
         public override void WriteComment(string comment)
         {
             AssertNotDisposed(this);
+            AssertNotPoisoned();
 
             Utils.CheckArgumentNull(comment, nameof(comment));
 
-            WriteHeadersAndEndRowIfNeeded();
-
-            var (commentChar, segments) = SplitCommentIntoLines(comment);
-
-            if (segments.IsSingleSegment)
+            try
             {
-                PlaceCharInStaging(commentChar);
-                var segSpan = segments.First.Span;
-                if (segSpan.Length > 0)
-                {
-                    PlaceAllInStaging(segSpan);
-                }
-            }
-            else
-            {
-                // we know we can write directly now
-                var isFirstRow = true;
-                foreach (var seg in segments)
-                {
-                    if (!isFirstRow)
-                    {
-                        EndRecord();
-                    }
 
+                WriteHeadersAndEndRowIfNeeded();
+
+                var (commentChar, segments) = SplitCommentIntoLines(comment);
+
+                if (segments.IsSingleSegment)
+                {
                     PlaceCharInStaging(commentChar);
-                    var segSpan = seg.Span;
+                    var segSpan = segments.First.Span;
                     if (segSpan.Length > 0)
                     {
                         PlaceAllInStaging(segSpan);
                     }
-                    isFirstRow = false;
                 }
+                else
+                {
+                    // we know we can write directly now
+                    var isFirstRow = true;
+                    foreach (var seg in segments)
+                    {
+                        if (!isFirstRow)
+                        {
+                            EndRecord();
+                        }
+
+                        PlaceCharInStaging(commentChar);
+                        var segSpan = seg.Span;
+                        if (segSpan.Length > 0)
+                        {
+                            PlaceAllInStaging(segSpan);
+                        }
+                        isFirstRow = false;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Throw.PoisonAndRethrow<object>(this, e);
             }
         }
 
@@ -196,29 +214,47 @@ namespace Cesil
         {
             if (!IsDisposed)
             {
-                if (IsFirstRow)
-                {
-                    CheckHeaders();
-                }
+                IsDisposed = true;
 
-                if (Configuration.Options.WriteTrailingRowEnding == WriteTrailingRowEnding.Always)
+                try
                 {
-                    EndRecord();
-                }
 
-                if (Staging.HasValue)
-                {
-                    if (InStaging > 0)
+                    if (IsFirstRow)
                     {
-                        FlushStaging();
+                        CheckHeaders();
                     }
 
-                    Staging.Value.Dispose();
-                }
+                    if (Configuration.Options.WriteTrailingRowEnding == WriteTrailingRowEnding.Always)
+                    {
+                        EndRecord();
+                    }
 
-                Inner.Dispose();
-                Buffer.Dispose();
-                IsDisposed = true;
+                    if (Staging.HasValue)
+                    {
+                        if (InStaging > 0)
+                        {
+                            FlushStaging();
+                        }
+
+                        Staging.Value.Dispose();
+                        Staging.Clear();
+                    }
+
+                    Inner.Dispose();
+                    Buffer.Dispose();
+                }
+                catch (Exception e)
+                {
+                    if(Staging.HasValue)
+                    {
+                        Staging.Value.Dispose();
+                        Staging.Clear();
+                    }
+
+                    Buffer.Dispose();
+
+                    Throw.PoisonAndRethrow<object>(this, e);
+                }
             }
         }
 

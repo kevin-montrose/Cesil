@@ -187,6 +187,8 @@ namespace Cesil
         {
             if (IsDisposed) return;
 
+            IsDisposed = true;
+
             // only need to do work if the reader is responsbile for implicitly disposing
             while (NotifyOnDisposeHead != null)
             {
@@ -194,13 +196,25 @@ namespace Cesil
                 NotifyOnDisposeHead.Remove(ref NotifyOnDisposeHead, NotifyOnDisposeHead);
             }
 
-            Inner.Dispose();
+            try
+            {
+                Inner.Dispose();
+            }
+            catch (Exception e)
+            {
+                Buffer.Dispose();
+                Partial.Dispose();
+                StateMachine.Dispose();
+                SharedCharacterLookup.Dispose();
+
+                Throw.PoisonAndRethrow<object>(this, e);
+                return;
+            }
+
             Buffer.Dispose();
             Partial.Dispose();
             StateMachine.Dispose();
             SharedCharacterLookup.Dispose();
-
-            IsDisposed = true;
         }
 
         public override string ToString()

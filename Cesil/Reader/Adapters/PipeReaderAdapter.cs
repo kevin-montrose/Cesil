@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using static Cesil.DisposableHelper;
+using static Cesil.AwaitHelper;
 
 namespace Cesil
 {
@@ -52,7 +53,7 @@ tryAgain:
             static async ValueTask<int> ReadAsync_ContinueAfterReadAsync(PipeReaderAdapter self, ValueTask<ReadResult> waitFor, Memory<char> into, CancellationToken cancel)
             {
 tryAgainAsync:
-                var res = await waitFor;
+                var res = await ConfigureCancellableAwait(self, waitFor, cancel);
 
                 var handled = self.MapByteSequenceToChar(res, into);
 
@@ -88,6 +89,14 @@ tryAgainAsync:
     }
 
 #if DEBUG
+    // only available in DEBUG for testing purposes
+    internal sealed partial class PipeReaderAdapter : ITestableCancellableProvider
+    {
+        int? ITestableCancellableProvider.CancelAfter { get; set; }
+        int ITestableCancellableProvider.CancelCounter { get; set; }
+    }
+
+    // only available in DEBUG for testing purposes
     internal sealed partial class PipeReaderAdapter : ITestableAsyncProvider
     {
         private int _GoAsyncAfter;

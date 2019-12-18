@@ -269,9 +269,10 @@ namespace Cesil
         {
             if (!IsDisposed)
             {
+                IsDisposed = true;
+
                 Reset();
                 FreeMemory?.Dispose();
-                IsDisposed = true;
             }
         }
 
