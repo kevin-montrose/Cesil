@@ -4,6 +4,8 @@ using System.Reflection;
 
 namespace Cesil
 {
+    // todo: chaining!
+
     /// <summary>
     /// Delegate type for parsers.
     /// </summary>

@@ -869,7 +869,8 @@ namespace Cesil.Tests
 
         internal static Task RunAsyncWriterVariants<T>(
             Options baseOptions,
-            Func<BoundConfigurationBase<T>, Func<IAsyncWriterAdapter>, Func<ValueTask<string>>, Task> run
+            Func<BoundConfigurationBase<T>, Func<IAsyncWriterAdapter>, Func<ValueTask<string>>, Task> run,
+            bool cancellable = true
         )
         => RunAsyncWriterVariantsInnerAsync(
                 (Options opts) =>
@@ -878,12 +879,13 @@ namespace Cesil.Tests
                 ,
                 baseOptions,
                 run,
-                true
+                cancellable
             );
 
         internal static Task RunAsyncDynamicWriterVariants(
             Options baseOptions,
-            Func<BoundConfigurationBase<dynamic>, Func<IAsyncWriterAdapter>, Func<ValueTask<string>>, Task> run
+            Func<BoundConfigurationBase<dynamic>, Func<IAsyncWriterAdapter>, Func<ValueTask<string>>, Task> run,
+            bool cancellable = true
         )
         => RunAsyncWriterVariantsInnerAsync(
             (Options opts) =>
@@ -891,7 +893,7 @@ namespace Cesil.Tests
                     Configuration.ForDynamic(opts),
                         baseOptions,
                         run,
-                        true
+                        cancellable
                     );
 
         private static readonly Func<(IAsyncWriterAdapter Adapter, Func<ValueTask<string>> Getter)>[] AsyncWriterAdapters =
@@ -952,30 +954,184 @@ namespace Cesil.Tests
             Func<Options, BoundConfigurationBase<T>> bindConfig,
             Options opts,
             Func<BoundConfigurationBase<T>, Func<IAsyncWriterAdapter>, Func<ValueTask<string>>, Task> run,
-            bool checkRunCounts
+            bool cancellable
         )
         {
             foreach (var maker in AsyncWriterAdapters)
             {
                 var smallBufferOpts = Options.CreateBuilder(opts).WithWriteBufferSizeHint(0).ToOptions();
 
-                await RunOnce(bindConfig, maker, opts, run, checkRunCounts);
-                await RunOnce(bindConfig, maker, smallBufferOpts, run, checkRunCounts);
+                await RunOnce(bindConfig, maker, opts, run);
+                await RunOnce(bindConfig, maker, smallBufferOpts, run);
 
                 // in DEBUG we have some special stuff built in so we can go ham on different async paths
 #if DEBUG
-                await RunForcedAsyncVariantsWithBaseConfig(bindConfig, maker, opts, run, checkRunCounts);
-                await RunForcedAsyncVariantsWithBaseConfig(bindConfig, maker, smallBufferOpts, run, checkRunCounts);
+                await RunForcedAsyncVariantsWithBaseConfig(bindConfig, maker, opts, run);
+                await RunForcedAsyncVariantsWithBaseConfig(bindConfig, maker, smallBufferOpts, run);
 #endif
-                // todo: cancellable?
+                // in DEBUG we have some special stuff built in so we can go ham on different cancellation points
+                if (cancellable)
+                {
+#if DEBUG
+                    await RunForcedCancelVariantsWithBaseConfig(bindConfig, maker, opts, run);
+                    await RunForcedCancelVariantsWithBaseConfig(bindConfig, maker, smallBufferOpts, run);
+#endif
+                }
+            }
+
+            static async Task RunForcedCancelVariantsWithBaseConfig(
+                Func<Options, BoundConfigurationBase<T>> bind,
+                Func<(IAsyncWriterAdapter Adapter, Func<ValueTask<string>> Getter)> maker,
+                Options baseOpts,
+                Func<BoundConfigurationBase<T>, Func<IAsyncWriterAdapter>, Func<ValueTask<string>>, Task> run
+            )
+            {
+                // defaults
+                {
+                    var config = bind(baseOpts);
+
+                    int cancelPoints;
+                    {
+                        var wrappedConfig = new AsyncCancelControlConfig<T>(config);
+                        var (adapter, getter) = maker();
+                        await using (adapter)
+                        {
+                            await run(wrappedConfig, () => { return adapter; }, () => { return getter(); });
+                        }
+                        cancelPoints = wrappedConfig.CancelCounter - 1;
+                    }
+
+                    // walk each cancellation point
+                    var forceUpTo = 0;
+                    while (true)
+                    {
+                        var wrappedConfig = new AsyncCancelControlConfig<T>(config);
+                        wrappedConfig.DoCancelAfter = forceUpTo;
+
+                        var (adapter, getter) = maker();
+
+                        await using (adapter)
+                        {
+                            try
+                            {
+                                await run(wrappedConfig, () => { return adapter; }, () => { return getter(); });
+                            }
+                            catch (Exception e)
+                            {
+                                if (e is AggregateException ae)
+                                {
+                                    OperationCanceledException x = null;
+
+                                    foreach (var i in ae.InnerExceptions)
+                                    {
+                                        if (i is OperationCanceledException oce)
+                                        {
+                                            x = oce;
+                                            break;
+                                        }
+                                    }
+
+                                    Assert.NotNull(x);
+                                }
+                                else
+                                {
+                                    Assert.IsType<OperationCanceledException>(e);
+                                }
+                            }
+                        }
+
+                        Assert.Equal(PoisonType.Cancelled, wrappedConfig.Poison);
+
+                        if (cancelPoints > forceUpTo)
+                        {
+                            forceUpTo++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                // leaks
+                {
+                    var leakDetector = new TrackedMemoryPool<char>();
+                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).ToOptions());
+
+                    int cancelPoints;
+                    {
+                        var wrappedConfig = new AsyncCancelControlConfig<T>(leakDetectorConfig);
+                        var (adapter, getter) = maker();
+                        await using (adapter)
+                        {
+                            await run(wrappedConfig, () => { return adapter; }, () => { return getter(); });
+                        }
+                        cancelPoints = wrappedConfig.CancelCounter - 1;
+                    }
+
+                    Assert.Equal(0, leakDetector.OutstandingRentals);
+
+                    // walk each cancellation point
+                    var forceUpTo = 0;
+                    while (true)
+                    {
+                        var wrappedConfig = new AsyncCancelControlConfig<T>(leakDetectorConfig);
+                        wrappedConfig.DoCancelAfter = forceUpTo;
+
+                        var (adapter, getter) = maker();
+
+                        await using (adapter)
+                        {
+                            try
+                            {
+                                await run(wrappedConfig, () => { return adapter; }, () => { return getter(); });
+                            }
+                            catch (Exception e)
+                            {
+                                if (e is AggregateException ae)
+                                {
+                                    OperationCanceledException x = null;
+
+                                    foreach (var i in ae.InnerExceptions)
+                                    {
+                                        if (i is OperationCanceledException oce)
+                                        {
+                                            x = oce;
+                                            break;
+                                        }
+                                    }
+
+                                    Assert.NotNull(x);
+                                }
+                                else
+                                {
+                                    Assert.IsType<OperationCanceledException>(e);
+                                }
+                            }
+
+                            Assert.Equal(0, leakDetector.OutstandingRentals);
+                        }
+
+                        Assert.Equal(PoisonType.Cancelled, wrappedConfig.Poison);
+
+                        if (cancelPoints > forceUpTo)
+                        {
+                            forceUpTo++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
             }
 
             static async Task RunOnce(
                 Func<Options, BoundConfigurationBase<T>> bind,
                 Func<(IAsyncWriterAdapter Adapter, Func<ValueTask<string>> Getter)> maker,
                 Options baseOpts,
-                Func<BoundConfigurationBase<T>, Func<IAsyncWriterAdapter>, Func<ValueTask<string>>, Task> run,
-                bool checkRunCounts)
+                Func<BoundConfigurationBase<T>, Func<IAsyncWriterAdapter>, Func<ValueTask<string>>, Task> run
+            )
             {
                 // run the test once
                 {
@@ -989,11 +1145,8 @@ namespace Cesil.Tests
                         await run(config, () => { writerCount++; return adapter; }, () => { stringCount++; return getter(); });
                     }
 
-                    if (checkRunCounts)
-                    {
-                        Assert.Equal(1, writerCount);
-                        Assert.Equal(1, stringCount);
-                    }
+                    Assert.Equal(1, writerCount);
+                    Assert.Equal(1, stringCount);
                 }
 
                 // run the test with a small buffer
@@ -1009,11 +1162,8 @@ namespace Cesil.Tests
                         await run(smallBufferConfig, () => { writerCount++; return adapter; }, () => { stringCount++; return getter(); });
                     }
 
-                    if (checkRunCounts)
-                    {
-                        Assert.Equal(1, writerCount);
-                        Assert.Equal(1, stringCount);
-                    }
+                    Assert.Equal(1, writerCount);
+                    Assert.Equal(1, stringCount);
                 }
 
                 // run the test once, but look for leaks
@@ -1029,11 +1179,8 @@ namespace Cesil.Tests
                         await run(leakDetectorConfig, () => { writerCount++; return adapter; }, () => { stringCount++; return getter(); });
                     }
 
-                    if (checkRunCounts)
-                    {
-                        Assert.Equal(1, writerCount);
-                        Assert.Equal(1, stringCount);
-                    }
+                    Assert.Equal(1, writerCount);
+                    Assert.Equal(1, stringCount);
 
                     Assert.Equal(0, leakDetector.OutstandingRentals);
                 }
@@ -1043,8 +1190,7 @@ namespace Cesil.Tests
                 Func<Options, BoundConfigurationBase<T>> bind,
                 Func<(IAsyncWriterAdapter Adapter, Func<ValueTask<string>> Getter)> maker,
                 Options baseOpts,
-                Func<BoundConfigurationBase<T>, Func<IAsyncWriterAdapter>, Func<ValueTask<string>>, Task> run,
-                bool checkRunCounts
+                Func<BoundConfigurationBase<T>, Func<IAsyncWriterAdapter>, Func<ValueTask<string>>, Task> run
             )
             {
                 var config = bind(baseOpts);
@@ -1064,11 +1210,8 @@ namespace Cesil.Tests
                         await run(wrappedConfig, () => { writerCount++; return adapter; }, () => { stringCount++; return getter(); });
                     }
 
-                    if (checkRunCounts)
-                    {
-                        Assert.Equal(1, writerCount);
-                        Assert.Equal(1, stringCount);
-                    }
+                    Assert.Equal(1, writerCount);
+                    Assert.Equal(1, stringCount);
 
                     if (wrappedConfig.AsyncCounter >= forceUpTo)
                     {
@@ -1098,11 +1241,8 @@ namespace Cesil.Tests
                         await run(wrappedConfig, () => { writerCount++; return adapter; }, () => { stringCount++; return getter(); });
                     }
 
-                    if (checkRunCounts)
-                    {
-                        Assert.Equal(1, writerCount);
-                        Assert.Equal(1, stringCount);
-                    }
+                    Assert.Equal(1, writerCount);
+                    Assert.Equal(1, stringCount);
 
                     Assert.Equal(0, leakDetector.OutstandingRentals);
 

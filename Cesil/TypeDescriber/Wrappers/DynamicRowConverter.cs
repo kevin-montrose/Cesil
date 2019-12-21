@@ -6,6 +6,8 @@ using System.Text;
 
 namespace Cesil
 {
+    // todo: chaining!
+
     /// <summary>
     /// Delegate type for DynamicRowConverters.
     /// </summary>

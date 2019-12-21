@@ -3,6 +3,8 @@ using System.Reflection;
 
 namespace Cesil
 {
+    // todo: chaining!
+
     /// <summary>
     /// Delegate used to create InstanceProviders.
     /// </summary>

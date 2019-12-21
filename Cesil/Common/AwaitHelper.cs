@@ -7,8 +7,6 @@ namespace Cesil
 {
     internal static class AwaitHelper
     {
-        // todo: add infrastucture for testing CancellationToken points
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CheckCancellation<T>(T provider, CancellationToken token)
         {
