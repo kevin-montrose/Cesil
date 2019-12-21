@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Cesil
 {
-    // todo: chaining!
-
     /// <summary>
     /// Delegate type for formatters.
     /// </summary>
@@ -18,7 +17,10 @@ namespace Cesil
     /// 
     /// Wraps either a MethodInfo or a FormatterDelegate.
     /// </summary>
-    public sealed class Formatter : IEquatable<Formatter>, ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>
+    public sealed class Formatter : 
+        IEquatable<Formatter>, 
+        ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>,
+        IElseSupporting<Formatter>
     {
         internal delegate bool DynamicFormatterDelegate(object? value, in WriteContext context, IBufferWriter<char> buffer);
 
@@ -60,66 +62,95 @@ namespace Cesil
         private NonNull<DynamicFormatterDelegate> _CachedDelegate;
         ref NonNull<DynamicFormatterDelegate> ICreatesCacheableDelegate<DynamicFormatterDelegate>.CachedDelegate => ref _CachedDelegate;
 
-        private Formatter(TypeInfo takes, MethodInfo method)
+        private readonly ImmutableArray<Formatter> _Fallbacks;
+        ImmutableArray<Formatter> IElseSupporting<Formatter>.Fallbacks => _Fallbacks;
+
+        private Formatter(TypeInfo takes, MethodInfo method, ImmutableArray<Formatter> fallbacks)
         {
             Takes = takes;
             Method.Value = method;
             Delegate.Clear();
+            _Fallbacks = fallbacks;
         }
 
-        private Formatter(TypeInfo takes, Delegate del)
+        private Formatter(TypeInfo takes, Delegate del, ImmutableArray<Formatter> fallbacks)
         {
             Takes = takes;
             Method.Clear();
             Delegate.Value = del;
+            _Fallbacks = fallbacks;
+        }
+
+        Formatter IElseSupporting<Formatter>.Clone(ImmutableArray<Formatter> newFallbacks)
+        {
+            switch(Mode)
+            {
+                case BackingMode.Delegate: return new Formatter(Takes, Delegate.Value, newFallbacks);
+                case BackingMode.Method: return new Formatter(Takes, Method.Value, newFallbacks);
+            }
+
+            return Throw.Exception<Formatter>($"Unexpected {nameof(BackingMode)}: {Mode}");
         }
 
         DynamicFormatterDelegate ICreatesCacheableDelegate<DynamicFormatterDelegate>.CreateDelegate()
         {
+            var p0 = Expressions.Parameter_Object;
+            var p1 = Expressions.Parameter_WriteContext_ByRef;
+            var p2 = Expressions.Parameter_IBufferWriterOfChar;
+
+            var block = Expression.Block(MakeExpression(p0, p1, p2));
+            
+            var lambda = Expression.Lambda<DynamicFormatterDelegate>(block, p0, p1, p2);
+            var del = lambda.Compile();
+
+            return del;
+        }
+
+        internal Expression MakeExpression(Expression objectParam, Expression writeContextParam, Expression bufferWriterParam)
+        {
+            Expression selfExp;
+
+            var asT = Expression.Convert(objectParam, Takes);
+
             switch (Mode)
             {
-                case BackingMode.Method:
-                    {
-                        var p0 = Expressions.Parameter_Object;
-                        var p1 = Expressions.Parameter_WriteContext_ByRef;
-                        var p2 = Expressions.Parameter_IBufferWriterOfChar;
-
-                        var asT = Expression.Convert(p0, Takes);
-                        var call = Expression.Call(Method.Value, asT, p1, p2);
-
-                        var block = Expression.Block(call);
-
-                        var lambda = Expression.Lambda<DynamicFormatterDelegate>(block, p0, p1, p2);
-                        var del = lambda.Compile();
-
-                        return del;
-                    }
                 case BackingMode.Delegate:
                     {
-                        var p0 = Expressions.Parameter_Object;
-                        var p1 = Expressions.Parameter_WriteContext_ByRef;
-                        var p2 = Expressions.Parameter_IBufferWriterOfChar;
-
-                        var asT = Expression.Convert(p0, Takes);
-
                         var delRef = Expression.Constant(Delegate.Value);
+                        selfExp = Expression.Invoke(delRef, asT, writeContextParam, bufferWriterParam);
 
-                        var call = Expression.Invoke(delRef, asT, p1, p2);
+                        break;
+                    }
+                case BackingMode.Method:
+                    {
+                        var call = Expression.Call(Method.Value, asT, writeContextParam, bufferWriterParam);
+                        selfExp = call;
 
-                        var block = Expression.Block(call);
-
-                        var lambda = Expression.Lambda<DynamicFormatterDelegate>(block, p0, p1, p2);
-                        var del = lambda.Compile();
-
-                        return del;
+                        break;
                     }
                 default:
-                    return Throw.InvalidOperationException<DynamicFormatterDelegate>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    return Throw.Exception<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
             }
+
+            var ret = selfExp;
+            foreach(var fallback in _Fallbacks)
+            {
+                var fallbackExp = fallback.MakeExpression(objectParam, writeContextParam, bufferWriterParam);
+                ret = Expression.OrElse(ret, fallbackExp);
+            }
+
+            return ret;
         }
 
         void ICreatesCacheableDelegate<DynamicFormatterDelegate>.Guarantee(IDelegateCache cache)
         => IDelegateCacheHelpers.GuaranteeImpl<Formatter, DynamicFormatterDelegate>(this, cache);
+
+        /// <summary>
+        /// Create a new formatter that will try this formatter, but if it returns false
+        ///   it will then try the given fallback Formatter.
+        /// </summary>
+        public Formatter Else(Formatter fallbackFormatter)
+        => this.DoElse(fallbackFormatter);
 
         /// <summary>
         /// Create a formatter from a method.
@@ -171,7 +202,7 @@ namespace Cesil
                 return Throw.ArgumentException<Formatter>($"The third paramater to {nameof(method)} must be a {nameof(IBufferWriter<char>)}", nameof(method));
             }
 
-            return new Formatter(takes, method);
+            return new Formatter(takes, method, ImmutableArray<Formatter>.Empty);
         }
 
         /// <summary>
@@ -181,7 +212,7 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(del, nameof(del));
 
-            return new Formatter(typeof(TValue).GetTypeInfo(), del);
+            return new Formatter(typeof(TValue).GetTypeInfo(), del, ImmutableArray<Formatter>.Empty);
         }
 
         /// <summary>
@@ -266,6 +297,16 @@ namespace Cesil
             var otherMode = formatter.Mode;
             if (otherMode != Mode) return false;
 
+            if (_Fallbacks.Length != formatter._Fallbacks.Length) return false;
+            
+            for(var i = 0; i < _Fallbacks.Length; i++)
+            {
+                var sf = _Fallbacks[i];
+                var of = formatter._Fallbacks[i];
+
+                if (sf != of) return false;
+            }
+
             switch (otherMode)
             {
                 case BackingMode.Method:
@@ -281,7 +322,7 @@ namespace Cesil
         /// Returns a hashcode for this Getter.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(Formatter), Takes, Mode, Delegate, Method);
+        => HashCode.Combine(nameof(Formatter), Takes, Mode, Delegate, Method, _Fallbacks.Length);
 
         /// <summary>
         /// Describes this Formatter.
@@ -293,9 +334,23 @@ namespace Cesil
             switch (Mode)
             {
                 case BackingMode.Method:
-                    return $"{nameof(Formatter)} for {Takes} backed by method {Method}";
+                    if (_Fallbacks.Length > 0)
+                    {
+                        return $"{nameof(Formatter)} for {Takes} backed by method {Method} with fallbacks {string.Join(", ", _Fallbacks)}";
+                    }
+                    else
+                    {
+                        return $"{nameof(Formatter)} for {Takes} backed by method {Method}";
+                    }
                 case BackingMode.Delegate:
-                    return $"{nameof(Formatter)} for {Takes} backed by delegate {Delegate}";
+                    if (_Fallbacks.Length > 0)
+                    {
+                        return $"{nameof(Formatter)} for {Takes} backed by delegate {Delegate} with fallbacks {string.Join(", ", _Fallbacks)}";
+                    }
+                    else
+                    {
+                        return $"{nameof(Formatter)} for {Takes} backed by delegate {Delegate}";
+                    }
                 default:
                     return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
             }
@@ -324,7 +379,7 @@ namespace Cesil
             {
                 var t = delType.GetGenericArguments()[0].GetTypeInfo();
 
-                return new Formatter(t, del);
+                return new Formatter(t, del, ImmutableArray<Formatter>.Empty);
             }
 
             var mtd = del.Method;
@@ -363,7 +418,7 @@ namespace Cesil
 
             var reboundDel = System.Delegate.CreateDelegate(formatterDel, del, invoke);
 
-            return new Formatter(takes, reboundDel);
+            return new Formatter(takes, reboundDel, ImmutableArray<Formatter>.Empty);
         }
 
         /// <summary>

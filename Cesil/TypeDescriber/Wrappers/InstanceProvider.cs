@@ -1,14 +1,14 @@
 ﻿using System;
+using System.Collections.Immutable;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Cesil
 {
-    // todo: chaining!
-
     /// <summary>
     /// Delegate used to create InstanceProviders.
     /// </summary>
-    public delegate bool InstanceProviderDelegate<TInstance>(out TInstance instance);
+    public delegate bool InstanceProviderDelegate<TInstance>(in ReadContext context, out TInstance instance);
 
     /// <summary>
     /// Represents a way to create new instances of a type.
@@ -16,7 +16,9 @@ namespace Cesil
     /// This can be backed by a zero-parameter constructor, a static 
     ///   method, or a delegate.
     /// </summary>
-    public sealed class InstanceProvider : IEquatable<InstanceProvider>
+    public sealed class InstanceProvider :
+        IEquatable<InstanceProvider>,
+        IElseSupporting<InstanceProvider>
     {
         internal BackingMode Mode
         {
@@ -38,22 +40,116 @@ namespace Cesil
 
         internal readonly NonNull<MethodInfo> Method;
 
-        internal InstanceProvider(ConstructorInfo cons)
+        internal bool HasFallbacks => _Fallbacks.Length > 0;
+
+        private readonly ImmutableArray<InstanceProvider> _Fallbacks;
+        ImmutableArray<InstanceProvider> IElseSupporting<InstanceProvider>.Fallbacks => _Fallbacks;
+
+        internal InstanceProvider(ConstructorInfo cons, ImmutableArray<InstanceProvider> fallbacks)
         {
             Constructor.Value = cons;
             ConstructsType = cons.DeclaringTypeNonNull();
+            _Fallbacks = fallbacks;
         }
 
-        internal InstanceProvider(Delegate del, TypeInfo forType)
+        internal InstanceProvider(Delegate del, TypeInfo forType, ImmutableArray<InstanceProvider> fallbacks)
         {
             Delegate.Value = del;
             ConstructsType = forType;
+            _Fallbacks = fallbacks;
         }
 
-        internal InstanceProvider(MethodInfo mtd, TypeInfo forType)
+        internal InstanceProvider(MethodInfo mtd, TypeInfo forType, ImmutableArray<InstanceProvider> fallbacks)
         {
             Method.Value = mtd;
             ConstructsType = forType;
+            _Fallbacks = fallbacks;
+        }
+
+        InstanceProvider IElseSupporting<InstanceProvider>.Clone(ImmutableArray<InstanceProvider> newFallbacks)
+        {
+            switch (Mode)
+            {
+                case BackingMode.Constructor: return new InstanceProvider(Constructor.Value, newFallbacks);
+                case BackingMode.Delegate: return new InstanceProvider(Delegate.Value, ConstructsType, newFallbacks);
+                case BackingMode.Method: return new InstanceProvider(Method.Value, ConstructsType, newFallbacks);
+            }
+
+            return Throw.Exception<InstanceProvider>($"Unexpected {nameof(BackingMode)}: {Mode}");
+        }
+
+        /// <summary>
+        /// Create a new instance provider that will try this instance provider, but if it returns false
+        ///   it will then try the given fallback InstanceProvider.
+        /// </summary>
+        public InstanceProvider Else(InstanceProvider fallbackProvider)
+        => this.DoElse(fallbackProvider);
+
+        internal Expression MakeExpression(TypeInfo resultType, Expression context, Expression outVar)
+        {
+            Expression selfExp;
+
+            switch (Mode)
+            {
+                case BackingMode.Delegate:
+                    {
+                        var del = Delegate.Value;
+
+                        var delConst = Expression.Constant(del, del.GetType());
+
+                        if (resultType == ConstructsType)
+                        {
+                            selfExp = Expression.Invoke(delConst, context, outVar);
+                        }
+                        else
+                        {
+                            var constructedVar = Expression.Variable(ConstructsType);
+                            var resVar = Expression.Variable(Types.BoolType);
+                            var invoke = Expression.Invoke(delConst, context, constructedVar);
+                            var assignRes = Expression.Assign(resVar, invoke);
+
+                            var convert = Expression.Convert(constructedVar, resultType);
+                            var assignOut = Expression.Assign(outVar, convert);
+                            var ifAssign = Expression.IfThen(resVar, assignOut);
+
+                            var block = Expression.Block(new[] { constructedVar, resVar }, new Expression[] { assignRes, ifAssign, resVar });
+
+                            selfExp = block;
+                        }
+                        break;
+                    }
+                case BackingMode.Constructor:
+                    {
+                        var cons = Constructor.Value;
+
+                        var assignTo = Expression.Assign(outVar, Expression.New(cons));
+
+                        var block = Expression.Block(new Expression[] { assignTo, Expressions.Constant_True });
+
+                        selfExp = block;
+                        break;
+                    }
+                case BackingMode.Method:
+                    {
+                        var mtd = Method.Value;
+
+                        var call = Expression.Call(mtd, context, outVar);
+
+                        selfExp = call;
+                        break;
+                    }
+                default:
+                    return Throw.Exception<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
+            }
+
+            var finalExp = selfExp;
+            foreach (var fallback in _Fallbacks)
+            {
+                var fallbackExp = fallback.MakeExpression(resultType, context, outVar);
+                finalExp = Expression.OrElse(finalExp, fallbackExp);
+            }
+
+            return finalExp;
         }
 
         /// <summary>
@@ -62,7 +158,9 @@ namespace Cesil
         /// The method must:
         ///   - be static
         ///   - return a bool
-        ///   - have a single out parameter of the constructed type
+        ///   - have two parameters
+        ///   - the first must be an in ReadContext
+        ///   - the second must be an out parameter of the constructed type
         /// </summary>
         public static InstanceProvider ForMethod(MethodInfo method)
         {
@@ -79,12 +177,24 @@ namespace Cesil
             }
 
             var ps = method.GetParameters();
-            if (ps.Length != 1)
+            if (ps.Length != 2)
             {
-                return Throw.ArgumentException<InstanceProvider>("Method must have a single out parameter", nameof(method));
+                return Throw.ArgumentException<InstanceProvider>("Method must have two parameters", nameof(method));
             }
 
-            var outP = ps[0].ParameterType.GetTypeInfo();
+            var contextP = ps[0].ParameterType.GetTypeInfo();
+            if (!contextP.IsByRef)
+            {
+                return Throw.ArgumentException<InstanceProvider>("Method's first parameter must be a by ref ReadContext, parameter was not by ref", nameof(method));
+            }
+
+            var contextType = contextP.GetElementTypeNonNull();
+            if (contextType != Types.ReadContextType)
+            {
+                return Throw.ArgumentException<InstanceProvider>("Method's first parameter must be a by ref ReadContext, parameter was a ReadContext", nameof(method));
+            }
+
+            var outP = ps[1].ParameterType.GetTypeInfo();
             if (!outP.IsByRef)
             {
                 return Throw.ArgumentException<InstanceProvider>("Method must have a single out parameter, parameter was not by ref", nameof(method));
@@ -92,7 +202,7 @@ namespace Cesil
 
             var constructs = outP.GetElementTypeNonNull();
 
-            return new InstanceProvider(method, constructs);
+            return new InstanceProvider(method, constructs, ImmutableArray<InstanceProvider>.Empty);
         }
 
         /// <summary>
@@ -135,7 +245,7 @@ namespace Cesil
                 return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found a generic type definition", nameof(constructor));
             }
 
-            return new InstanceProvider(constructor);
+            return new InstanceProvider(constructor, ImmutableArray<InstanceProvider>.Empty);
         }
 
         /// <summary>
@@ -148,7 +258,7 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(del, nameof(del));
 
-            return new InstanceProvider(del, typeof(TInstance).GetTypeInfo());
+            return new InstanceProvider(del, typeof(TInstance).GetTypeInfo(), ImmutableArray<InstanceProvider>.Empty);
         }
 
         /// <summary>
@@ -175,6 +285,16 @@ namespace Cesil
 
             if (ConstructsType != instanceProvider.ConstructsType) return false;
 
+            if (_Fallbacks.Length != instanceProvider._Fallbacks.Length) return false;
+
+            for (var i = 0; i < _Fallbacks.Length; i++)
+            {
+                var selfF = _Fallbacks[i];
+                var otherF = instanceProvider._Fallbacks[i];
+
+                if (selfF != otherF) return false;
+            }
+
             switch (Mode)
             {
                 case BackingMode.Constructor: return instanceProvider.Constructor.Value == Constructor.Value;
@@ -188,7 +308,7 @@ namespace Cesil
         /// Returns a stable hash for this InstanceProvider.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(InstanceProvider), Constructor, ConstructsType, Delegate, Method, Mode);
+        => HashCode.Combine(nameof(InstanceProvider), Constructor, ConstructsType, Delegate, Method, Mode, _Fallbacks.Length);
 
         /// <summary>
         /// Returns a representation of this InstanceProvider object.
@@ -244,7 +364,7 @@ namespace Cesil
                     var genArgs = delType.GetGenericArguments();
                     var makes = genArgs[0].GetTypeInfo();
 
-                    return new InstanceProvider(del, makes);
+                    return new InstanceProvider(del, makes, ImmutableArray<InstanceProvider>.Empty);
                 }
             }
 
@@ -256,15 +376,27 @@ namespace Cesil
             }
 
             var ps = mtd.GetParameters();
-            if (ps.Length != 1)
+            if (ps.Length != 2)
             {
-                return Throw.InvalidOperationException<InstanceProvider>($"Delegate must have a single out parameter");
+                return Throw.InvalidOperationException<InstanceProvider>("Method must have two parameters");
             }
 
-            var outP = ps[0].ParameterType.GetTypeInfo();
+            var contextP = ps[0].ParameterType.GetTypeInfo();
+            if (!contextP.IsByRef)
+            {
+                return Throw.InvalidOperationException<InstanceProvider>("Method's first parameter must be a by ref ReadContext, parameter was not by ref");
+            }
+
+            var contextType = contextP.GetElementTypeNonNull();
+            if (contextType != Types.ReadContextType)
+            {
+                return Throw.InvalidOperationException<InstanceProvider>("Method's first parameter must be a by ref ReadContext, parameter was a ReadContext");
+            }
+
+            var outP = ps[1].ParameterType.GetTypeInfo();
             if (!outP.IsByRef)
             {
-                return Throw.InvalidOperationException<InstanceProvider>("Delegate must have a single out parameter, parameter was not by ref");
+                return Throw.InvalidOperationException<InstanceProvider>("Method must have a single out parameter, parameter was not by ref");
             }
 
             var constructs = outP.GetElementTypeNonNull();
@@ -274,7 +406,7 @@ namespace Cesil
 
             var reboundDel = System.Delegate.CreateDelegate(instanceBuilderDel, del, invoke);
 
-            return new InstanceProvider(reboundDel, constructs);
+            return new InstanceProvider(reboundDel, constructs, ImmutableArray<InstanceProvider>.Empty);
         }
 
         /// <summary>

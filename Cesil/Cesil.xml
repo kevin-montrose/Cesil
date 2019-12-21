@@ -889,6 +889,12 @@
             A single column is being read.
             </summary>
         </member>
+        <member name="F:Cesil.ReadContextMode.ReadingRow">
+            <summary>
+            A row is being read, but a particular 
+            column hasn't been encountered yet.
+            </summary>
+        </member>
         <member name="F:Cesil.ReadContextMode.ConvertingColumn">
             <summary>
             A single column is being converted,
@@ -2651,6 +2657,12 @@
               or static methods.
             </summary>
         </member>
+        <member name="M:Cesil.DynamicRowConverter.Else(Cesil.DynamicRowConverter)">
+            <summary>
+            Create a new converter that will try this converter, but if it returns false
+              it will then try the given fallback DynamicRowConverter.
+            </summary>
+        </member>
         <member name="M:Cesil.DynamicRowConverter.ForDelegate``1(Cesil.DynamicRowConverterDelegate{``0})">
             <summary>
             Create a DynamicRowConverter from the given delegate.
@@ -2772,6 +2784,12 @@
             Represents code used to format a value into a IBufferWriter(char).
             
             Wraps either a MethodInfo or a FormatterDelegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Formatter.Else(Cesil.Formatter)">
+            <summary>
+            Create a new formatter that will try this formatter, but if it returns false
+              it will then try the given fallback Formatter.
             </summary>
         </member>
         <member name="M:Cesil.Formatter.ForMethod(System.Reflection.MethodInfo)">
@@ -2953,6 +2971,12 @@
               method, or a delegate.
             </summary>
         </member>
+        <member name="M:Cesil.InstanceProvider.Else(Cesil.InstanceProvider)">
+            <summary>
+            Create a new instance provider that will try this instance provider, but if it returns false
+              it will then try the given fallback InstanceProvider.
+            </summary>
+        </member>
         <member name="M:Cesil.InstanceProvider.ForMethod(System.Reflection.MethodInfo)">
             <summary>
             Creates a new InstanceProvider from a method.
@@ -2960,7 +2984,9 @@
             The method must:
               - be static
               - return a bool
-              - have a single out parameter of the constructed type
+              - have two parameters
+              - the first must be an in ReadContext
+              - the second must be an out parameter of the constructed type
             </summary>
         </member>
         <member name="M:Cesil.InstanceProvider.ForParameterlessConstructor(System.Reflection.ConstructorInfo)">
@@ -3047,6 +3073,12 @@
             Wraps either a MethodInfo, a ParserDelegate, or a ConstructorInfo.
             </summary>
         </member>
+        <member name="M:Cesil.Parser.Else(Cesil.Parser)">
+            <summary>
+            Create a new parser that will try this parser, but if it returns false
+              it will then try the given fallback Parser.
+            </summary>
+        </member>
         <member name="M:Cesil.Parser.ForMethod(System.Reflection.MethodInfo)">
             <summary>
             Create a Parser from the given method.
@@ -3054,7 +3086,7 @@
             The method must:
              - be static
              - return a bool
-             - have parameters
+             - have 3 parameters
                 * ReadOnlySpan(char)
                 * in ReadContext, 
                 * out assignable to outputType
@@ -3344,8 +3376,11 @@
             <summary>
             Create a ShouldSerialize from a method.
             
-            Method must be an argument-less method
-              that is either static, or on an instance of the same type as (or a baseclass of) setter.
+            Method must return bool.
+            
+            If method is an instance method, it must take zero parameters.
+            
+            If method is a static method, it may take zero parameters or one parameter of the type being serialized.
             </summary>
         </member>
         <member name="M:Cesil.ShouldSerialize.ForDelegate``1(Cesil.ShouldSerializeDelegate{``0})">

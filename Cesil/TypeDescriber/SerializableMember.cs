@@ -180,7 +180,7 @@ namespace Cesil
 
                 if (!isInstOrSubclass)
                 {
-                    Throw.ArgumentException<object>($"{nameof(shouldSerialize)} be either static method, an instance method on the type declaring the field or property, or a delegate taking the type declaring the field or property", nameof(shouldSerialize));
+                    Throw.ArgumentException<object>($"{nameof(shouldSerialize)} must be either static method taking no parameters, a static method taking the type being serialized, an instance method on the type being serialized, or a delegate taking the type being serialized", nameof(shouldSerialize));
                 }
             }
         }

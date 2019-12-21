@@ -46,7 +46,8 @@ namespace Cesil
                     {
                         if (record == null)
                         {
-                            if (!Configuration.NewCons.Value(out record))
+                            var ctx = ReadContext.ReadingRow(Configuration.Options, RowNumber, Context);
+                            if (!Configuration.NewCons.Value(in ctx, out record))
                             {
                                 return Throw.InvalidOperationException<ReadWithCommentResult<T>>($"Failed to construct new instance of {typeof(T)}");
                             }

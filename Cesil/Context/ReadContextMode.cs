@@ -13,15 +13,21 @@
         ReadingColumn = 1,
 
         /// <summary>
+        /// A row is being read, but a particular 
+        /// column hasn't been encountered yet.
+        /// </summary>
+        ReadingRow = 2,
+
+        /// <summary>
         /// A single column is being converted,
         /// occurs only during dynamic deserialization.
         /// </summary>
-        ConvertingColumn = 2,
+        ConvertingColumn = 3,
 
         /// <summary>
         /// A whole row is being converted,
         /// occurs only during dynamic deserialization.
         /// </summary>
-        ConvertingRow = 3
+        ConvertingRow = 4
     }
 }

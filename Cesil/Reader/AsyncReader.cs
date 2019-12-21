@@ -226,7 +226,8 @@ namespace Cesil
                 return preallocd;
             }
 
-            if (!Configuration.NewCons.Value(out preallocd))
+            var ctx = ReadContext.ReadingRow(Configuration.Options, RowNumber, Context);
+            if (!Configuration.NewCons.Value(in ctx, out preallocd))
             {
                 return Throw.InvalidOperationException<T>($"Failed to construct new instance of {typeof(T)}");
             }

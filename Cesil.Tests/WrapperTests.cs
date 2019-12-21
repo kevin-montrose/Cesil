@@ -252,6 +252,13 @@ namespace Cesil.Tests
                 ShouldSerializeStaticCalled = true;
                 return true;
             }
+
+            public static bool ShouldSerializeStaticWithParamCalled;
+            public static bool ShouldSerializeStaticWithParam(_ColumnWriters p)
+            {
+                ShouldSerializeStaticWithParamCalled = true;
+                return true;
+            }
         }
 
         private static bool _ColumnWriters_Val_Format_Called;
@@ -289,11 +296,12 @@ namespace Cesil.Tests
             // should serialize
             var methodShouldSerialize = ShouldSerialize.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.ShouldSerialize)));
             var staticMethodShouldSerialize = ShouldSerialize.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.ShouldSerializeStatic)));
+            var staticMethodShouldSerializeParam = ShouldSerialize.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.ShouldSerializeStaticWithParam)));
             var delShouldSerializeCalled = false;
             var delShouldSerialize = (ShouldSerialize)(ShouldSerializeDelegate<_ColumnWriters>)((_ColumnWriters _) => { delShouldSerializeCalled = true; return true; });
             var staticDelShouldSerializeCalled = false;
             var staticDelShouldSerialize = (ShouldSerialize)(StaticShouldSerializeDelegate)(() => { staticDelShouldSerializeCalled = true; return true; });
-            var shouldSerializes = new[] { methodShouldSerialize, staticMethodShouldSerialize, delShouldSerialize, staticDelShouldSerialize, null };
+            var shouldSerializes = new[] { methodShouldSerialize, staticMethodShouldSerialize, staticMethodShouldSerializeParam,  delShouldSerialize, staticDelShouldSerialize, null };
 
             // getter
             var methodGetter = Getter.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.Get)));
@@ -318,6 +326,7 @@ namespace Cesil.Tests
 
                             _ColumnWriters.StaticA = new _ColumnWriters_Val { Value = "static field" };
                             _ColumnWriters.ShouldSerializeStaticCalled = false;
+                            _ColumnWriters.ShouldSerializeStaticWithParamCalled = false;
                             _ColumnWriters_Val_Format_Called = false;
 
                             var inst = new _ColumnWriters { A = new _ColumnWriters_Val { Value = "bar" } };
@@ -359,6 +368,10 @@ namespace Cesil.Tests
                             else if (s == staticMethodShouldSerialize)
                             {
                                 Assert.True(_ColumnWriters.ShouldSerializeStaticCalled);
+                            }
+                            else if (s == staticMethodShouldSerializeParam)
+                            {
+                                Assert.True(_ColumnWriters.ShouldSerializeStaticWithParamCalled);
                             }
                             else if (s == delShouldSerialize)
                             {
@@ -1695,9 +1708,10 @@ namespace Cesil.Tests
             // should serialize
             var methodShouldSerialize = ShouldSerialize.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.ShouldSerialize)));
             var staticMethodShouldSerialize = ShouldSerialize.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.ShouldSerializeStatic)));
+            var staticMethodShouldSerializeParam = ShouldSerialize.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.ShouldSerializeStaticWithParam)));
             var delShouldSerialize = (ShouldSerialize)(ShouldSerializeDelegate<_ColumnWriters>)((_ColumnWriters _) => { return true; });
             var staticDelShouldSerialize = (ShouldSerialize)(StaticShouldSerializeDelegate)(() => { return true; });
-            var shouldSerializes = new[] { methodShouldSerialize, staticMethodShouldSerialize, delShouldSerialize, staticDelShouldSerialize };
+            var shouldSerializes = new[] { methodShouldSerialize, staticMethodShouldSerialize, staticMethodShouldSerializeParam, delShouldSerialize, staticDelShouldSerialize };
 
             var notShouldSerialize = "";
 
@@ -1710,22 +1724,36 @@ namespace Cesil.Tests
                 if (s1 == methodShouldSerialize)
                 {
                     Assert.Equal(BackingMode.Method, s1.Mode);
+                    Assert.Equal(typeof(_ColumnWriters).GetTypeInfo(), s1.Takes.Value);
                     Assert.False(s1.IsStatic);
                 }
-                else if (s1 == methodShouldSerialize)
+                else if (s1 == staticMethodShouldSerialize)
                 {
                     Assert.Equal(BackingMode.Method, s1.Mode);
+                    Assert.False(s1.Takes.HasValue);
+                    Assert.True(s1.IsStatic);
+                }
+                else if (s1 == staticMethodShouldSerializeParam)
+                {
+                    Assert.Equal(BackingMode.Method, s1.Mode);
+                    Assert.Equal(typeof(_ColumnWriters).GetTypeInfo(), s1.Takes.Value);
                     Assert.True(s1.IsStatic);
                 }
                 else if (s1 == delShouldSerialize)
                 {
                     Assert.Equal(BackingMode.Delegate, s1.Mode);
+                    Assert.Equal(typeof(_ColumnWriters).GetTypeInfo(), s1.Takes.Value);
                     Assert.False(s1.IsStatic);
                 }
                 else if (s1 == staticDelShouldSerialize)
                 {
                     Assert.Equal(BackingMode.Delegate, s1.Mode);
+                    Assert.False(s1.Takes.HasValue);
                     Assert.True(s1.IsStatic);
+                }
+                else
+                {
+                    throw new Exception();
                 }
 
                 for (var j = i; j < shouldSerializes.Length; j++)
@@ -1997,16 +2025,16 @@ namespace Cesil.Tests
             public int Foo { get; set; }
         }
 
-        private delegate bool InstanceBuilderConcreteEquivalentDelegate(out _InstanceBuilderCast res);
+        private delegate bool InstanceBuilderConcreteEquivalentDelegate(in ReadContext ctx, out _InstanceBuilderCast res);
 
-        private delegate bool InstanceBuilderGenericEquivalentDelegate<T>(out T res);
+        private delegate bool InstanceBuilderGenericEquivalentDelegate<T>(in ReadContext ctx, out T res);
 
         [Fact]
         public void InstanceBuilderCast()
         {
             var aCalled = 0;
             InstanceBuilderConcreteEquivalentDelegate a =
-                (out _InstanceBuilderCast res) =>
+                (in ReadContext _, out _InstanceBuilderCast res) =>
                 {
                     aCalled++;
 
@@ -2015,7 +2043,7 @@ namespace Cesil.Tests
                 };
             var bCalled = 0;
             InstanceBuilderGenericEquivalentDelegate<_InstanceBuilderCast> b =
-                (out _InstanceBuilderCast res) =>
+                (in ReadContext _, out _InstanceBuilderCast res) =>
                 {
                     bCalled++;
 
@@ -2024,7 +2052,7 @@ namespace Cesil.Tests
                 };
             var cCalled = 0;
             InstanceProviderDelegate<_InstanceBuilderCast> c =
-                (out _InstanceBuilderCast res) =>
+                (in ReadContext _, out _InstanceBuilderCast res) =>
                 {
                     cCalled++;
 
@@ -2033,19 +2061,19 @@ namespace Cesil.Tests
                 };
 
             var aWrapped = (InstanceProvider)a;
-            var aRes = ((InstanceProviderDelegate<_InstanceBuilderCast>)aWrapped.Delegate.Value)(out var aOut);
+            var aRes = ((InstanceProviderDelegate<_InstanceBuilderCast>)aWrapped.Delegate.Value)(default, out var aOut);
             Assert.True(aRes);
             Assert.NotNull(aOut);
             Assert.Equal(1, aCalled);
 
             var bWrapped = (InstanceProvider)b;
-            var bRes = ((InstanceProviderDelegate<_InstanceBuilderCast>)bWrapped.Delegate.Value)(out var bOut);
+            var bRes = ((InstanceProviderDelegate<_InstanceBuilderCast>)bWrapped.Delegate.Value)(default, out var bOut);
             Assert.True(bRes);
             Assert.NotNull(bOut);
             Assert.Equal(1, bCalled);
 
             var cWrapped = (InstanceProvider)c;
-            var cRes = ((InstanceProviderDelegate<_InstanceBuilderCast>)cWrapped.Delegate.Value)(out var cOut);
+            var cRes = ((InstanceProviderDelegate<_InstanceBuilderCast>)cWrapped.Delegate.Value)(default, out var cOut);
             Assert.True(cRes);
             Assert.NotNull(cOut);
             Assert.Same(c, cWrapped.Delegate.Value);
@@ -2059,9 +2087,9 @@ namespace Cesil.Tests
             public _InstanceBuilders(int a) { }
         }
 
-        private static bool _InstanceBuilderStaticMethod(out _InstanceBuilders val) { val = new _InstanceBuilders(); return true; }
+        private static bool _InstanceBuilderStaticMethod(in ReadContext _, out _InstanceBuilders val) { val = new _InstanceBuilders(); return true; }
 
-        private bool _NonStaticBuilder(out _InstanceBuilders val) { val = new _InstanceBuilders(); return true; }
+        private bool _NonStaticBuilder(in ReadContext _, out _InstanceBuilders val) { val = new _InstanceBuilders(); return true; }
         private static void _BadReturnBuilder(out _InstanceBuilders val) { val = new _InstanceBuilders(); }
         private static bool _BadArgs1Builder(int a, int b) { return true; }
         private static bool _BadArgs2Builder(_InstanceBuilders val) { return true; }
@@ -2081,7 +2109,7 @@ namespace Cesil.Tests
         {
             var methodBuilder = InstanceProvider.ForMethod(typeof(WrapperTests).GetMethod(nameof(_InstanceBuilderStaticMethod), BindingFlags.NonPublic | BindingFlags.Static));
             var constructorBuilder = InstanceProvider.ForParameterlessConstructor(typeof(_InstanceBuilders).GetConstructor(Type.EmptyTypes));
-            var delBuilder = InstanceProvider.ForDelegate<_InstanceBuilders>((out _InstanceBuilders a) => { a = new _InstanceBuilders(); return true; });
+            var delBuilder = InstanceProvider.ForDelegate<_InstanceBuilders>((in ReadContext _, out _InstanceBuilders a) => { a = new _InstanceBuilders(); return true; });
             var builders = new[] { methodBuilder, constructorBuilder, delBuilder };
 
             var notBuilder = "";
@@ -2188,7 +2216,7 @@ namespace Cesil.Tests
         }
 
         private static readonly MethodInfo _Equatable_InstanceBuilder_Mtd = typeof(WrapperTests).GetMethod(nameof(_Equatable_InstanceBuilder), BindingFlags.NonPublic | BindingFlags.Static);
-        private static bool _Equatable_InstanceBuilder(out _InstanceBuilderCast a)
+        private static bool _Equatable_InstanceBuilder(in ReadContext ctx, out _InstanceBuilderCast a)
         {
             a = new _InstanceBuilderCast();
             return true;
@@ -2289,7 +2317,7 @@ namespace Cesil.Tests
             // InstanceBuilder
             {
                 InstanceBuilderConcreteEquivalentDelegate aDel =
-                    (out _InstanceBuilderCast res) =>
+                    (in ReadContext _, out _InstanceBuilderCast res) =>
                     {
                         res = new _InstanceBuilderCast();
                         return true;

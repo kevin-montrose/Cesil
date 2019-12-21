@@ -288,6 +288,11 @@ namespace Cesil
                 var surrogateShouldSerializeWrapper = member.ShouldSerialize.Value;
                 if (surrogateShouldSerializeWrapper.Mode == BackingMode.Method)
                 {
+                    if(surrogateShouldSerializeWrapper.Takes.HasValue)
+                    {
+                        return Throw.InvalidOperationException<SerializableMember>($"Cannot map 'should serialize' {surrogateShouldSerializeWrapper} onto {ontoType}, it takes a parameter");
+                    }
+
                     var surrogateShouldSerialize = surrogateShouldSerializeWrapper.Method.Value;
                     var surrogateShouldSerializeBinding = GetEquivalentFlagsFor(surrogateShouldSerialize.IsPublic, surrogateShouldSerialize.IsStatic);
 
@@ -391,7 +396,22 @@ handleMethod:
                             return Throw.InvalidOperationException<InstanceProvider>($"No equivalent to {surrogateCons} found on {ontoType}");
                         }
 
-                        return new InstanceProvider(consOnType);
+                        var fallbacks = ImmutableArray<InstanceProvider>.Empty;
+
+                        if (builder.HasFallbacks)
+                        {
+                            var arrBuilder = ImmutableArray.CreateBuilder<InstanceProvider>();
+                            var elseProv = (IElseSupporting<InstanceProvider>)builder;
+                            foreach(var fallback in elseProv.Fallbacks)
+                            {
+                                var mapped = Map(ontoType, fallback);
+                                arrBuilder.Add(mapped);
+                            }
+
+                            fallbacks = arrBuilder.ToImmutable();
+                        }
+
+                        return new InstanceProvider(consOnType, fallbacks);
                     }
                 case BackingMode.Method:
                     return Throw.InvalidOperationException<InstanceProvider>($"Cannot map a method {nameof(InstanceProvider)} between types");

@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 
 namespace Cesil
 {
-    // todo: chaining!
-
     /// <summary>
     /// Delegate type for DynamicRowConverters.
     /// </summary>
@@ -22,7 +22,9 @@ namespace Cesil
     ///   empty constructor paired with setter methods,
     ///   or static methods.
     /// </summary>
-    public sealed class DynamicRowConverter : IEquatable<DynamicRowConverter>
+    public sealed class DynamicRowConverter : 
+        IElseSupporting<DynamicRowConverter>,
+        IEquatable<DynamicRowConverter>
     {
         internal BackingMode Mode
         {
@@ -58,38 +60,273 @@ namespace Cesil
 
         internal readonly TypeInfo TargetType;
 
-        private DynamicRowConverter(ConstructorInfo cons)
+        private readonly ImmutableArray<DynamicRowConverter> _Fallbacks;
+
+        ImmutableArray<DynamicRowConverter> IElseSupporting<DynamicRowConverter>.Fallbacks => _Fallbacks;
+
+        private DynamicRowConverter(ConstructorInfo cons, ImmutableArray<DynamicRowConverter> fallbacks)
         {
             ConstructorForObject.Value = cons;
             TargetType = cons.DeclaringTypeNonNull();
+            _Fallbacks = fallbacks;
         }
 
-        private DynamicRowConverter(TypeInfo target, MethodInfo del)
+        private DynamicRowConverter(TypeInfo target, MethodInfo del, ImmutableArray<DynamicRowConverter> fallbacks)
         {
             Method.Value = del;
             TargetType = target;
+            _Fallbacks = fallbacks;
         }
 
-        private DynamicRowConverter(ConstructorInfo cons, TypeInfo[] paramTypes, ColumnIdentifier[] colsForPs)
+        private DynamicRowConverter(ConstructorInfo cons, TypeInfo[] paramTypes, ColumnIdentifier[] colsForPs, ImmutableArray<DynamicRowConverter> fallbacks)
         {
             ConstructorTakingParams.Value = cons;
             ColumnsForParameters.Value = colsForPs;
             ParameterTypes.Value = paramTypes;
             TargetType = cons.DeclaringTypeNonNull();
+            _Fallbacks = fallbacks;
         }
 
-        private DynamicRowConverter(ConstructorInfo cons, Setter[] setters, ColumnIdentifier[] colsForSetters)
+        private DynamicRowConverter(ConstructorInfo cons, Setter[] setters, ColumnIdentifier[] colsForSetters, ImmutableArray<DynamicRowConverter> fallbacks)
         {
             EmptyConstructor.Value = cons;
             Setters.Value = setters;
             ColumnsForSetters.Value = colsForSetters;
             TargetType = cons.DeclaringTypeNonNull();
+            _Fallbacks = fallbacks;
         }
 
-        private DynamicRowConverter(TypeInfo target, Delegate del)
+        private DynamicRowConverter(TypeInfo target, Delegate del, ImmutableArray<DynamicRowConverter> fallbacks)
         {
             Delegate.Value = del;
             TargetType = target;
+            _Fallbacks = fallbacks;
+        }
+
+        /// <summary>
+        /// Create a new converter that will try this converter, but if it returns false
+        ///   it will then try the given fallback DynamicRowConverter.
+        /// </summary>
+        public DynamicRowConverter Else(DynamicRowConverter fallbackConverter)
+        => this.DoElse(fallbackConverter);
+
+        DynamicRowConverter IElseSupporting<DynamicRowConverter>.Clone(ImmutableArray<DynamicRowConverter> newFallbacks)
+        {
+            switch(Mode)
+            {
+                case BackingMode.Constructor:
+                    {
+                        if (ConstructorForObject.HasValue)
+                        {
+                            return new DynamicRowConverter(ConstructorForObject.Value, newFallbacks);
+
+                        }
+
+                        if (ConstructorTakingParams.HasValue)
+                        {
+                            return new DynamicRowConverter(ConstructorTakingParams.Value, ParameterTypes.Value, ColumnsForParameters.Value, newFallbacks);
+                        }
+
+                        if (EmptyConstructor.HasValue)
+                        {
+                            return new DynamicRowConverter(EmptyConstructor.Value, Setters.Value, ColumnsForSetters.Value, newFallbacks);
+                        }
+                    }
+                    break;
+                case BackingMode.Delegate: return new DynamicRowConverter(TargetType, Delegate.Value, newFallbacks);
+                case BackingMode.Method: return new DynamicRowConverter(TargetType, Method.Value, newFallbacks);
+            }
+
+            return Throw.Exception<DynamicRowConverter>($"Unexpected {nameof(BackingMode)}: {Mode}");
+        }
+
+        internal Expression MakeExpression(TypeInfo targetType, Expression rowVar, Expression contextVar, Expression outVar)
+        {
+            Expression selfExp;
+
+            switch (Mode)
+            {
+                case BackingMode.Constructor:
+                    {
+                        if (ConstructorForObject.HasValue)
+                        {
+                            var cons = ConstructorForObject.Value;
+                            var createType = Expression.New(cons, rowVar);
+                            var cast = Expression.Convert(createType, targetType);
+
+                            var assign = Expression.Assign(outVar, cast);
+
+                            selfExp = Expression.Block(assign, Expressions.Constant_True);
+                            break;
+                        }
+
+                        if (ConstructorTakingParams.HasValue)
+                        {
+                            var typedCons = ConstructorTakingParams.Value;
+
+                            var colsForPs = ColumnsForParameters.Value;
+                            var paramTypes = ParameterTypes.Value;
+
+                            var ps = new List<Expression>();
+                            for (var pIx = 0; pIx < colsForPs.Length; pIx++)
+                            {
+                                var colIx = colsForPs[pIx];
+                                var pType = paramTypes[pIx];
+                                var getter = Methods.DynamicRow.GetAtTyped.MakeGenericMethod(pType);
+
+                                var call = Expression.Call(rowVar, getter, Expression.Constant(colIx));
+
+                                ps.Add(call);
+                            }
+
+                            var createType = Expression.New(typedCons, ps);
+                            var cast = Expression.Convert(createType, targetType);
+
+                            var assign = Expression.Assign(outVar, cast);
+
+                            selfExp = Expression.Block(assign, Expressions.Constant_True);
+                            break;
+                        }
+
+                        if (EmptyConstructor.HasValue)
+                        {
+                            var zeroCons = EmptyConstructor.Value;
+                            var setters = Setters.Value;
+                            var setterCols = ColumnsForSetters.Value;
+
+                            var retVar = Expression.Variable(TargetType);
+
+                            var createType = Expression.New(zeroCons);
+                            var assignToVar = Expression.Assign(retVar, createType);
+
+                            var statements = new List<Expression>();
+                            statements.Add(assignToVar);
+
+                            for (var i = 0; i < setters.Length; i++)
+                            {
+                                var setter = setters[i];
+                                var setterColumn = setterCols[i];
+
+                                var getValueMtd = Methods.DynamicRow.GetAtTyped.MakeGenericMethod(setter.Takes);
+                                var getValueCall = Expression.Call(rowVar, getValueMtd, Expression.Constant(setterColumn));
+                                Expression callSetter;
+                                switch (setter.Mode)
+                                {
+                                    case BackingMode.Method:
+                                        {
+                                            Expression? setterTarget = setter.IsStatic ? null : retVar;
+
+                                            callSetter = Expression.Call(setterTarget, setter.Method.Value, getValueCall);
+                                        }
+                                        break;
+                                    case BackingMode.Field:
+                                        {
+                                            Expression? setterTarget = setter.IsStatic ? null : retVar;
+
+                                            callSetter = Expression.Assign(
+                                                Expression.Field(setterTarget, setter.Field.Value),
+                                                getValueCall
+                                            );
+                                        }
+                                        break;
+                                    case BackingMode.Delegate:
+                                        {
+                                            var setterDel = setter.Delegate.Value;
+                                            var delRef = Expression.Constant(setterDel);
+
+                                            if (setter.IsStatic)
+                                            {
+                                                callSetter = Expression.Invoke(delRef, getValueCall);
+                                            }
+                                            else
+                                            {
+                                                callSetter = Expression.Invoke(delRef, retVar, getValueCall);
+                                            }
+                                        }
+                                        break;
+                                    default:
+                                        return Throw.InvalidOperationException<Expression>($"Unexpected {nameof(BackingMode)}: {setter.Mode}");
+                                }
+                                statements.Add(callSetter);
+                            }
+
+                            var cast = Expression.Convert(retVar, targetType);
+                            var assign = Expression.Assign(outVar, cast);
+                            statements.Add(assign);
+                            statements.Add(Expressions.Constant_True);
+
+                            var block = Expression.Block(new[] { retVar }, statements);
+
+                            selfExp = block;
+                            break;
+                        }
+
+                        return Throw.Exception<Expression>($"Constructor converter couldn't be turned into an expression, shouldn't be possible");
+                    }
+                case BackingMode.Method:
+                    {
+                        var mtd = Method.Value;
+                        var statements = new List<Expression>();
+
+                        var tempVar = Expression.Parameter(TargetType);
+                        var resVar = Expressions.Variable_Bool;
+
+                        var callConvert = Expression.Call(mtd, rowVar, contextVar, tempVar);
+                        var assignRes = Expression.Assign(resVar, callConvert);
+
+                        statements.Add(assignRes);
+
+                        var castTemp = Expression.Convert(tempVar, targetType);
+                        var assignOut = Expression.Assign(outVar, castTemp);
+
+                        var ifAssign = Expression.IfThen(resVar, assignOut);
+                        statements.Add(ifAssign);
+
+                        statements.Add(resVar);
+
+                        selfExp = Expression.Block(new ParameterExpression[] { tempVar, resVar }, statements);
+
+                        break;
+                    }
+                case BackingMode.Delegate:
+                    {
+                        var del = Delegate.Value;
+                        var delRef = Expression.Constant(del);
+
+                        var statements = new List<Expression>();
+
+                        var tempVar = Expression.Parameter(TargetType);
+                        var resVar = Expressions.Variable_Bool;
+
+                        var callConvert = Expression.Invoke(delRef, rowVar, contextVar, tempVar);
+                        var assignRes = Expression.Assign(resVar, callConvert);
+
+                        statements.Add(assignRes);
+
+                        var castTemp = Expression.Convert(tempVar, targetType);
+                        var assignOut = Expression.Assign(outVar, castTemp);
+
+                        var ifAssign = Expression.IfThen(resVar, assignOut);
+                        statements.Add(ifAssign);
+
+                        statements.Add(resVar);
+
+                        selfExp = Expression.Block(new ParameterExpression[] { tempVar, resVar }, statements);
+
+                        break;
+                    }
+                default:
+                    return Throw.Exception<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
+            }
+
+            var finalExp = selfExp;
+            foreach(var fallback in _Fallbacks)
+            {
+                var fallbackExp = fallback.MakeExpression(targetType, rowVar, contextVar, outVar);
+                finalExp = Expression.OrElse(finalExp, fallbackExp);
+            }
+
+            return finalExp;
         }
 
         /// <summary>
@@ -99,7 +336,7 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(del, nameof(del));
 
-            return new DynamicRowConverter(typeof(TOutput).GetTypeInfo(), del);
+            return new DynamicRowConverter(typeof(TOutput).GetTypeInfo(), del, ImmutableArray<DynamicRowConverter>.Empty);
         }
 
         /// <summary>
@@ -123,7 +360,7 @@ namespace Cesil
                 return Throw.ArgumentException<DynamicRowConverter>($"Constructor {constructor} must take a object, found a {p}", nameof(constructor));
             }
 
-            return new DynamicRowConverter(constructor);
+            return new DynamicRowConverter(constructor, ImmutableArray<DynamicRowConverter>.Empty);
         }
 
         /// <summary>
@@ -165,7 +402,7 @@ namespace Cesil
                 psAsTypeInfo[i] = ps[i].ParameterType.GetTypeInfo();
             }
 
-            return new DynamicRowConverter(constructor, psAsTypeInfo, cifp);
+            return new DynamicRowConverter(constructor, psAsTypeInfo, cifp, ImmutableArray<DynamicRowConverter>.Empty);
         }
 
         /// <summary>
@@ -228,7 +465,7 @@ namespace Cesil
                 }
             }
 
-            return new DynamicRowConverter(constructor, s, cts);
+            return new DynamicRowConverter(constructor, s, cts, ImmutableArray<DynamicRowConverter>.Empty);
         }
 
         /// <summary>
@@ -284,7 +521,7 @@ namespace Cesil
 
             var targetType = p3.GetElementTypeNonNull();
 
-            return new DynamicRowConverter(targetType, method);
+            return new DynamicRowConverter(targetType, method, ImmutableArray<DynamicRowConverter>.Empty);
         }
 
         /// <summary>
@@ -396,6 +633,16 @@ namespace Cesil
                 return false;
             }
 
+            if (_Fallbacks.Length != rowConverter._Fallbacks.Length) return false;
+
+            for(var i = 0; i < _Fallbacks.Length; i++)
+            {
+                var selfF = _Fallbacks[i];
+                var otherF = rowConverter._Fallbacks[i];
+
+                if (selfF != otherF) return false;
+            }
+
             switch (thisMode)
             {
                 case BackingMode.Method: return Method.Value.Equals(rowConverter.Method.Value);
@@ -491,7 +738,8 @@ namespace Cesil
             ConstructorForObject,
             ConstructorTakingParams,
             EmptyConstructor,
-            Delegate
+            Delegate,
+            _Fallbacks.Length
         );
 
         /// <summary>
@@ -537,7 +785,7 @@ namespace Cesil
             {
                 var t = delType.GetGenericArguments()[0].GetTypeInfo();
 
-                return new DynamicRowConverter(t, del);
+                return new DynamicRowConverter(t, del, ImmutableArray<DynamicRowConverter>.Empty);
             }
 
             var mtd = del.Method;
@@ -583,7 +831,7 @@ namespace Cesil
 
             var reboundDel = System.Delegate.CreateDelegate(converterDel, del, invoke);
 
-            return new DynamicRowConverter(creates, reboundDel);
+            return new DynamicRowConverter(creates, reboundDel, ImmutableArray<DynamicRowConverter>.Empty);
         }
     }
 }

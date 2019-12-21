@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Cesil
 {
-    // todo: chaining!
-
     /// <summary>
     /// Delegate type for parsers.
     /// </summary>
@@ -16,7 +16,9 @@ namespace Cesil
     /// 
     /// Wraps either a MethodInfo, a ParserDelegate, or a ConstructorInfo.
     /// </summary>
-    public sealed class Parser : IEquatable<Parser>
+    public sealed class Parser : 
+        IElseSupporting<Parser>,
+        IEquatable<Parser>
     {
         // internal for testing purposes
         internal static readonly IReadOnlyDictionary<TypeInfo, Parser> TypeParsers;
@@ -58,28 +60,106 @@ namespace Cesil
 
         internal readonly TypeInfo Creates;
 
-        private Parser(MethodInfo method, TypeInfo creates)
+        private readonly ImmutableArray<Parser> _Fallbacks;
+        ImmutableArray<Parser> IElseSupporting<Parser>.Fallbacks => _Fallbacks;
+
+        private Parser(MethodInfo method, TypeInfo creates, ImmutableArray<Parser> fallbacks)
         {
             Method.Value = method;
             Delegate.Clear();
             Constructor.Clear();
             Creates = creates;
+            _Fallbacks = fallbacks;
         }
 
-        private Parser(Delegate del, TypeInfo creates)
+        private Parser(Delegate del, TypeInfo creates, ImmutableArray<Parser> fallbacks)
         {
             Delegate.Value = del;
             Method.Clear();
             Constructor.Clear();
             Creates = creates;
+            _Fallbacks = fallbacks;
         }
 
-        private Parser(ConstructorInfo cons)
+        private Parser(ConstructorInfo cons, ImmutableArray<Parser> fallbacks)
         {
             Delegate.Clear();
             Method.Clear();
             Constructor.Value = cons;
             Creates = cons.DeclaringTypeNonNull();
+            _Fallbacks = fallbacks;
+        }
+
+        Parser IElseSupporting<Parser>.Clone(ImmutableArray<Parser> newFallbacks)
+        {
+            switch (Mode)
+            {
+                case BackingMode.Method: return new Parser(Method.Value, Creates, newFallbacks);
+                case BackingMode.Delegate: return new Parser(Delegate.Value, Creates, newFallbacks);
+                case BackingMode.Constructor: return new Parser(Constructor.Value, newFallbacks);
+                default: return Throw.Exception<Parser>($"Unexpected {nameof(BackingMode)}: {Mode}");
+            }
+        }
+
+        /// <summary>
+        /// Create a new parser that will try this parser, but if it returns false
+        ///   it will then try the given fallback Parser.
+        /// </summary>
+        public Parser Else(Parser fallbackParser)
+        => this.DoElse(fallbackParser);
+
+        internal Expression MakeExpression(Expression dataVar, Expression contextVar, Expression outVar)
+        {
+            Expression selfExp;
+
+            switch (Mode)
+            {
+                case BackingMode.Method:
+                    {
+                        var parserMtd = Method.Value;
+
+                        selfExp = Expression.Call(parserMtd, dataVar, contextVar, outVar);
+                    }
+                    break;
+                case BackingMode.Delegate:
+                    {
+                        var parserDel = Delegate.Value;
+                        var delRef = Expression.Constant(parserDel);
+                        selfExp = Expression.Invoke(delRef, dataVar, contextVar, outVar);
+                    }
+                    break;
+                case BackingMode.Constructor:
+                    {
+                        var cons = Constructor.Value;
+                        var psCount = cons.GetParameters().Length;
+                        NewExpression callCons;
+
+                        if (psCount == 1)
+                        {
+                            callCons = Expression.New(cons, dataVar);
+                        }
+                        else
+                        {
+                            callCons = Expression.New(cons, dataVar, contextVar);
+                        }
+
+                        var assignToL2 = Expression.Assign(outVar, callCons);
+
+                        selfExp = Expression.Block(assignToL2, Expressions.Constant_True);
+                    }
+                    break;
+                default:
+                    return Throw.Exception<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
+            }
+
+            var finalExp = selfExp;
+            foreach(var fallback in _Fallbacks)
+            {
+                var fallbackExp = fallback.MakeExpression(dataVar, contextVar, outVar);
+                finalExp = Expression.OrElse(finalExp, fallbackExp);
+            }
+
+            return finalExp;
         }
 
         /// <summary>
@@ -88,7 +168,7 @@ namespace Cesil
         /// The method must:
         ///  - be static
         ///  - return a bool
-        ///  - have parameters
+        ///  - have 3 parameters
         ///     * ReadOnlySpan(char)
         ///     * in ReadContext, 
         ///     * out assignable to outputType
@@ -147,7 +227,7 @@ namespace Cesil
                 return Throw.ArgumentException<Parser>($"{nameof(method)} must must return a bool", nameof(method));
             }
 
-            return new Parser(method, underlying);
+            return new Parser(method, underlying, ImmutableArray<Parser>.Empty);
         }
 
         /// <summary>
@@ -200,7 +280,7 @@ namespace Cesil
                 return Throw.ArgumentException<Parser>($"{nameof(constructor)} must have one or two parameters", nameof(constructor));
             }
 
-            return new Parser(constructor);
+            return new Parser(constructor, ImmutableArray<Parser>.Empty);
         }
 
         /// <summary>
@@ -210,7 +290,7 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(del, nameof(del));
 
-            return new Parser(del, typeof(TOutput).GetTypeInfo());
+            return new Parser(del, typeof(TOutput).GetTypeInfo(), ImmutableArray<Parser>.Empty);
         }
 
         /// <summary>
@@ -377,7 +457,7 @@ namespace Cesil
             {
                 var t = delType.GetGenericArguments()[0].GetTypeInfo();
 
-                return new Parser(del, t);
+                return new Parser(del, t, ImmutableArray<Parser>.Empty);
             }
 
             var mtd = del.Method;
@@ -423,7 +503,7 @@ namespace Cesil
 
             var reboundDel = System.Delegate.CreateDelegate(parserDel, del, invoke);
 
-            return new Parser(reboundDel, creates);
+            return new Parser(reboundDel, creates, ImmutableArray<Parser>.Empty);
         }
     }
 }

@@ -43,46 +43,7 @@ namespace Cesil
             var l3 = Expressions.Variable_Bool;
 
             // call the parser and set l3 = success, and l2 = value
-            Expression callParser;
-            switch (parser.Mode)
-            {
-                case BackingMode.Method:
-                    {
-                        var parserMtd = parser.Method.Value;
-
-                        callParser = Expression.Call(parserMtd, p1, p2, l2);
-                    }
-                    break;
-                case BackingMode.Delegate:
-                    {
-                        var parserDel = parser.Delegate.Value;
-                        var delRef = Expression.Constant(parserDel);
-                        callParser = Expression.Invoke(delRef, p1, p2, l2);
-                    }
-                    break;
-                case BackingMode.Constructor:
-                    {
-                        var cons = parser.Constructor.Value;
-                        var psCount = cons.GetParameters().Length;
-                        NewExpression callCons;
-
-                        if (psCount == 1)
-                        {
-                            callCons = Expression.New(cons, p1);
-                        }
-                        else
-                        {
-                            callCons = Expression.New(cons, p1, p2);
-                        }
-
-                        var assignToL2 = Expression.Assign(l2, callCons);
-
-                        callParser = Expression.Block(assignToL2, Expressions.Constant_True);
-                    }
-                    break;
-                default:
-                    return Throw.InvalidOperationException<ColumnSetterDelegate>($"Unexpected {nameof(BackingMode)}: {parser.Mode}");
-            }
+            var callParser = parser.MakeExpression(p1, p2, l2);
 
             var assignToL3 = Expression.Assign(l3, callParser);
             statements.Add(assignToL3);

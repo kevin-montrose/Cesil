@@ -39,6 +39,7 @@ namespace Cesil
                     case ReadContextMode.ConvertingColumn:
                     case ReadContextMode.ReadingColumn:
                         return true;
+                    case ReadContextMode.ReadingRow:
                     case ReadContextMode.ConvertingRow:
                         return false;
                     default:
@@ -86,6 +87,9 @@ namespace Cesil
 
         internal static ReadContext ReadingColumn(Options opts, int r, ColumnIdentifier col, object? ctx)
         => new ReadContext(opts, ReadContextMode.ReadingColumn, r, col, ctx);
+
+        internal static ReadContext ReadingRow(Options opts, int r, object? ctx)
+        => new ReadContext(opts, ReadContextMode.ReadingRow, r, null, ctx);
 
         internal static ReadContext ConvertingColumn(Options opts, int r, ColumnIdentifier col, object? ctx)
         => new ReadContext(opts, ReadContextMode.ConvertingColumn, r, col, ctx);

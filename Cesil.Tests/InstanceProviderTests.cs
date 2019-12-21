@@ -43,7 +43,7 @@ namespace Cesil.Tests
 
             public InstanceProvider GetInstanceProvider(TypeInfo forType)
             {
-                InstanceProviderDelegate<_BridgeDelegate_Subclass> x = (out _BridgeDelegate_Subclass foo) =>
+                InstanceProviderDelegate<_BridgeDelegate_Subclass> x = (in ReadContext _, out _BridgeDelegate_Subclass foo) =>
                 {
                     foo = new _BridgeDelegate_Subclass(123); return true;
                 };
@@ -107,7 +107,7 @@ namespace Cesil.Tests
             }
         }
 
-        private static bool _MethodBacking_Method(out _MethodBacking_Type m)
+        private static bool _MethodBacking_Method(in ReadContext ctx, out _MethodBacking_Type m)
         {
             m = new _MethodBacking_Type(123);
             return true;

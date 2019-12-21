@@ -13,7 +13,7 @@ namespace Cesil.Tests
         {
             var behaviors = new[] { ManualTypeDescriberFallbackBehavior.Throw, ManualTypeDescriberFallbackBehavior.UseFallback };
             var fallbacks = new[] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() };
-            var providers = new[] { InstanceProvider.ForDelegate((out string x) => { x = ""; return true; }), InstanceProvider.ForDelegate((out object o) => { o = new object(); return true; }) };
+            var providers = new[] { InstanceProvider.ForDelegate((in ReadContext _, out string x) => { x = ""; return true; }), InstanceProvider.ForDelegate((in ReadContext _, out object o) => { o = new object(); return true; }) };
             var getters =
                 new[]
                 {
@@ -164,9 +164,9 @@ namespace Cesil.Tests
             // SetInstanceProvider, duplicate
             {
                 var m = ManualTypeDescriberBuilder.CreateBuilder();
-                m.WithInstanceProvider(InstanceProvider.ForDelegate((out string str) => { str = ""; return true; }));
+                m.WithInstanceProvider(InstanceProvider.ForDelegate((in ReadContext _, out string str) => { str = ""; return true; }));
 
-                Assert.Throws<InvalidOperationException>(() => m.WithInstanceProvider(InstanceProvider.ForDelegate((out string str) => { str = ""; return true; })));
+                Assert.Throws<InvalidOperationException>(() => m.WithInstanceProvider(InstanceProvider.ForDelegate((in ReadContext _, out string str) => { str = ""; return true; })));
             }
         }
 
@@ -187,7 +187,7 @@ namespace Cesil.Tests
                 {
                     var m = ManualTypeDescriber.CreateBuilder();
 
-                    m.WithInstanceProvider(InstanceProvider.ForDelegate((out _Serializing val) => { val = new _Serializing(); return true; }));
+                    m.WithInstanceProvider(InstanceProvider.ForDelegate((in ReadContext _, out _Serializing val) => { val = new _Serializing(); return true; }));
                 }
 
 
@@ -195,7 +195,7 @@ namespace Cesil.Tests
                 {
                     var m = ManualTypeDescriber.CreateBuilder();
 
-                    m.WithInstanceProvider(typeof(_Serializing).GetTypeInfo(), InstanceProvider.ForDelegate((out _Serializing val) => { val = new _Serializing(); return true; }));
+                    m.WithInstanceProvider(typeof(_Serializing).GetTypeInfo(), InstanceProvider.ForDelegate((in ReadContext _, out _Serializing val) => { val = new _Serializing(); return true; }));
                 }
             }
 
@@ -370,9 +370,9 @@ namespace Cesil.Tests
             {
                 var m = ManualTypeDescriber.CreateBuilder();
                 Assert.Throws<ArgumentNullException>(() => m.WithInstanceProvider(null));
-                Assert.Throws<ArgumentNullException>(() => m.WithInstanceProvider(null, InstanceProvider.ForDelegate((out string val) => { val = ""; return true; })));
+                Assert.Throws<ArgumentNullException>(() => m.WithInstanceProvider(null, InstanceProvider.ForDelegate((in ReadContext _, out string val) => { val = ""; return true; })));
                 Assert.Throws<ArgumentNullException>(() => m.WithInstanceProvider(typeof(string).GetTypeInfo(), null));
-                Assert.Throws<InvalidOperationException>(() => m.WithInstanceProvider(typeof(int).GetTypeInfo(), InstanceProvider.ForDelegate((out string val) => { val = ""; return true; })));
+                Assert.Throws<InvalidOperationException>(() => m.WithInstanceProvider(typeof(int).GetTypeInfo(), InstanceProvider.ForDelegate((in ReadContext _, out string val) => { val = ""; return true; })));
             }
 
             // EnumerateMembersToSerialize
@@ -768,8 +768,8 @@ namespace Cesil.Tests
             {
                 var m = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.Throw);
 
-                m.WithInstanceProvider(InstanceProvider.ForDelegate((out string foo) => { foo = ""; return true; }));
-                m.WithInstanceProvider(InstanceProvider.ForDelegate((out int foo) => { foo = 10; return true; }));
+                m.WithInstanceProvider(InstanceProvider.ForDelegate((in ReadContext _, out string foo) => { foo = ""; return true; }));
+                m.WithInstanceProvider(InstanceProvider.ForDelegate((in ReadContext _, out int foo) => { foo = 10; return true; }));
 
                 m.WithDeserializableField(typeof(_Errors).GetField(nameof(_Errors.Field)));
                 m.WithDeserializableProperty(typeof(_Errors).GetProperty(nameof(_Errors.Property)));
@@ -785,8 +785,8 @@ namespace Cesil.Tests
             {
                 var m = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback);
 
-                m.WithInstanceProvider(InstanceProvider.ForDelegate((out string foo) => { foo = ""; return true; }));
-                m.WithInstanceProvider(InstanceProvider.ForDelegate((out int foo) => { foo = 10; return true; }));
+                m.WithInstanceProvider(InstanceProvider.ForDelegate((in ReadContext _, out string foo) => { foo = ""; return true; }));
+                m.WithInstanceProvider(InstanceProvider.ForDelegate((in ReadContext _, out int foo) => { foo = 10; return true; }));
 
                 m.WithDeserializableField(typeof(_Errors).GetField(nameof(_Errors.Field)));
                 m.WithDeserializableProperty(typeof(_Errors).GetProperty(nameof(_Errors.Property)));

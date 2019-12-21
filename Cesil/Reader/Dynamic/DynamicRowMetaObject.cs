@@ -187,177 +187,20 @@ namespace Cesil
             }
 
             var selfAsRow = Expression.Convert(Expression, Types.DynamicRowType);
+            var outArg = Expression.Variable(binder.ReturnType);
 
-            switch (converter.Mode)
-            {
-                case BackingMode.Constructor:
-                    {
-                        if (converter.ConstructorForObject.HasValue)
-                        {
-                            var cons = converter.ConstructorForObject.Value;
-                            var createType = Expression.New(cons, selfAsRow);
-                            var cast = Expression.Convert(createType, binder.ReturnType);
+            var callGetContext = Expression.Call(selfAsRow, Methods.DynamicRow.GetReadContext);
 
-                            return new DynamicMetaObject(cast, restrictions);
-                        }
+            var convertExp = converter.MakeExpression(binder.ReturnType.GetTypeInfo(), selfAsRow, callGetContext, outArg);
 
-                        if (converter.ConstructorTakingParams.HasValue)
-                        {
-                            var typedCons = converter.ConstructorTakingParams.Value;
+            var errorMsg = Expression.Constant($"{nameof(DynamicRowConverter)} ({converter}) could not convert dynamic row to {binder.ReturnType}");
+            var throwInvalidOp = Expression.Call(Methods.Throw.InvalidOperationExceptionOfObject, errorMsg);
 
-                            var colsForPs = converter.ColumnsForParameters.Value;
-                            var paramTypes = converter.ParameterTypes.Value;
+            var ifFalseThrow = Expression.IfThen(Expression.Not(convertExp), throwInvalidOp);
 
-                            var ps = new List<Expression>();
-                            for (var pIx = 0; pIx < colsForPs.Length; pIx++)
-                            {
-                                var colIx = colsForPs[pIx];
-                                var pType = paramTypes[pIx];
-                                var getter = Methods.DynamicRow.GetAtTyped.MakeGenericMethod(pType);
+            var block = Expression.Block(new[] { outArg }, ifFalseThrow, outArg);
 
-                                var call = Expression.Call(selfAsRow, getter, Expression.Constant(colIx));
-
-                                ps.Add(call);
-                            }
-
-                            var createType = Expression.New(typedCons, ps);
-                            var cast = Expression.Convert(createType, binder.ReturnType);
-
-                            return new DynamicMetaObject(cast, restrictions);
-                        }
-
-                        if (converter.EmptyConstructor.HasValue)
-                        {
-                            var zeroCons = converter.EmptyConstructor.Value;
-                            var setters = converter.Setters.Value;
-                            var setterCols = converter.ColumnsForSetters.Value;
-
-                            var retVar = Expression.Variable(converter.TargetType);
-
-                            var createType = Expression.New(zeroCons);
-                            var assignToVar = Expression.Assign(retVar, createType);
-
-                            var statements = new List<Expression>();
-                            statements.Add(assignToVar);
-
-                            for (var i = 0; i < setters.Length; i++)
-                            {
-                                var setter = setters[i];
-                                var setterColumn = setterCols[i];
-
-                                var getValueMtd = Methods.DynamicRow.GetAtTyped.MakeGenericMethod(setter.Takes);
-                                var getValueCall = Expression.Call(selfAsRow, getValueMtd, Expression.Constant(setterColumn));
-                                Expression callSetter;
-                                switch (setter.Mode)
-                                {
-                                    case BackingMode.Method:
-                                        {
-                                            Expression? setterTarget = setter.IsStatic ? null : retVar;
-
-                                            callSetter = Expression.Call(setterTarget, setter.Method.Value, getValueCall);
-                                        }
-                                        break;
-                                    case BackingMode.Field:
-                                        {
-                                            Expression? setterTarget = setter.IsStatic ? null : retVar;
-
-                                            callSetter = Expression.Assign(
-                                                Expression.Field(setterTarget, setter.Field.Value),
-                                                getValueCall
-                                            );
-                                        }
-                                        break;
-                                    case BackingMode.Delegate:
-                                        {
-                                            var setterDel = setter.Delegate.Value;
-                                            var delRef = Expression.Constant(setterDel);
-
-                                            if (setter.IsStatic)
-                                            {
-                                                callSetter = Expression.Invoke(delRef, getValueCall);
-                                            }
-                                            else
-                                            {
-                                                callSetter = Expression.Invoke(delRef, retVar, getValueCall);
-                                            }
-                                        }
-                                        break;
-                                    default:
-                                        return Throw.InvalidOperationException<DynamicMetaObject>($"Unexpected {nameof(BackingMode)}: {setter.Mode}");
-                                }
-                                statements.Add(callSetter);
-                            }
-
-                            var cast = Expression.Convert(retVar, binder.ReturnType);
-                            statements.Add(cast);
-
-                            var block = Expression.Block(new[] { retVar }, statements);
-
-                            return new DynamicMetaObject(block, restrictions);
-                        }
-
-                        return Throw.Exception<DynamicMetaObject>($"Constructor converter couldn't be turned into an expression, shouldn't be possible");
-                    }
-                case BackingMode.Method:
-                    {
-                        var mtd = converter.Method.Value;
-                        var statements = new List<Expression>();
-
-                        var callGetContext = Expression.Call(selfAsRow, Methods.DynamicRow.GetReadContext);
-
-                        var outVar = Expression.Parameter(converter.TargetType);
-                        var resVar = Expressions.Variable_Bool;
-
-                        var callConvert = Expression.Call(mtd, selfAsRow, callGetContext, outVar);
-                        var assignRes = Expression.Assign(resVar, callConvert);
-
-                        statements.Add(assignRes);
-
-                        var invalidOpCall = Methods.Throw.InvalidOperationExceptionOfObject;
-                        var callThrow = Expression.Call(invalidOpCall, Expression.Constant($"{nameof(DynamicRowConverter)} returned false"));
-
-                        var ifNot = Expression.IfThen(Expression.Not(resVar), callThrow);
-                        statements.Add(ifNot);
-
-                        var convertOut = Expression.Convert(outVar, binder.ReturnType);
-                        statements.Add(convertOut);
-
-                        var block = Expression.Block(new ParameterExpression[] { outVar, resVar }, statements);
-
-                        return new DynamicMetaObject(block, restrictions);
-                    }
-                case BackingMode.Delegate:
-                    {
-                        var del = converter.Delegate.Value;
-                        var delRef = Expression.Constant(del);
-
-                        var statements = new List<Expression>();
-
-                        var callGetContext = Expression.Call(selfAsRow, Methods.DynamicRow.GetReadContext);
-                        var outVar = Expression.Parameter(converter.TargetType);
-                        var resVar = Expressions.Variable_Bool;
-
-                        var callConvert = Expression.Invoke(delRef, selfAsRow, callGetContext, outVar);
-                        var assignRes = Expression.Assign(resVar, callConvert);
-
-                        statements.Add(assignRes);
-
-                        var invalidOpCall = Methods.Throw.InvalidOperationExceptionOfObject;
-                        var callThrow = Expression.Call(invalidOpCall, Expression.Constant($"{nameof(DynamicRowConverter)} returned false"));
-
-                        var ifNot = Expression.IfThen(Expression.Not(resVar), callThrow);
-                        statements.Add(ifNot);
-
-                        var convertOut = Expression.Convert(outVar, binder.ReturnType);
-                        statements.Add(convertOut);
-
-                        var block = Expression.Block(new ParameterExpression[] { outVar, resVar }, statements);
-
-                        return new DynamicMetaObject(block, restrictions);
-                    }
-                default:
-                    return Throw.Exception<DynamicMetaObject>($"Unexpected {nameof(BackingMode)}: {converter.Mode}");
-            }
+            return new DynamicMetaObject(block, restrictions);
         }
     }
 }

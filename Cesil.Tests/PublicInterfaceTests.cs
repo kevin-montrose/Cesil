@@ -1226,8 +1226,8 @@ namespace Cesil.Tests
             static string InvokeToString_ManualTypeDescriber1()
             {
                 var m = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback);
-                var b1 = InstanceProvider.ForDelegate((out string x) => { x = ""; return true; });
-                var b2 = InstanceProvider.ForDelegate((out int x) => { x = 0; return true; });
+                var b1 = InstanceProvider.ForDelegate((in ReadContext _, out string x) => { x = ""; return true; });
+                var b2 = InstanceProvider.ForDelegate((in ReadContext _, out int x) => { x = 0; return true; });
 
                 var f1 = typeof(_HelpfulToString).GetField(nameof(_HelpfulToString.Bar1));
                 var f2 = typeof(_HelpfulToString).GetField(nameof(_HelpfulToString.Bar2));
@@ -1247,8 +1247,8 @@ namespace Cesil.Tests
             static string InvokeToString_ManualTypeDescriber2()
             {
                 var m = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.Throw);
-                var b1 = InstanceProvider.ForDelegate((out string x) => { x = ""; return true; });
-                var b2 = InstanceProvider.ForDelegate((out int x) => { x = 0; return true; });
+                var b1 = InstanceProvider.ForDelegate((in ReadContext _, out string x) => { x = ""; return true; });
+                var b2 = InstanceProvider.ForDelegate((in ReadContext _, out int x) => { x = 0; return true; });
 
                 var f1 = typeof(_HelpfulToString).GetField(nameof(_HelpfulToString.Bar1));
                 var f2 = typeof(_HelpfulToString).GetField(nameof(_HelpfulToString.Bar2));

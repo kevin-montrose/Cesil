@@ -52,10 +52,10 @@ namespace Cesil
 
             var ctx = ReadContext.ConvertingColumn(owner.Options, row.RowNumber, col, owner.Context);
 
-            var converter = converterInterface.GetDynamicCellParserFor(in ctx, retType);
-            var restrictions = MakeRestrictions(converter, retType);
+            var parser = converterInterface.GetDynamicCellParserFor(in ctx, retType);
+            var restrictions = MakeRestrictions(parser, retType);
 
-            if (converter == null)
+            if (parser == null)
             {
                 var invalidOpCall = Methods.Throw.InvalidOperationException.MakeGenericMethod(retType);
                 var throwMsg = Expression.Call(invalidOpCall, Expression.Constant($"No cell converter discovered for {binder.ReturnType}"));
@@ -63,10 +63,10 @@ namespace Cesil
                 return new DynamicMetaObject(throwMsg, restrictions);
             }
 
-            if (!binder.ReturnType.IsAssignableFrom(converter.Creates))
+            if (!binder.ReturnType.IsAssignableFrom(parser.Creates))
             {
                 var invalidOpCall = Methods.Throw.InvalidOperationException.MakeGenericMethod(retType);
-                var throwMsg = Expression.Call(invalidOpCall, Expression.Constant($"Cell converter {converter} does not create a type assignable to {binder.ReturnType}, returns {converter.Creates}"));
+                var throwMsg = Expression.Call(invalidOpCall, Expression.Constant($"Cell converter {parser} does not create a type assignable to {binder.ReturnType}, returns {parser.Creates}"));
 
                 return new DynamicMetaObject(throwMsg, restrictions);
             }
@@ -75,86 +75,28 @@ namespace Cesil
 
             var callGetSpan = Expression.Call(selfAsCell, Methods.DynamicCell.GetDataSpan);
 
-            switch (converter.Mode)
-            {
-                case BackingMode.Constructor:
-                    {
-                        var cons = converter.Constructor.Value;
-                        var consPCount = cons.GetParameters().Length;
+            var makeCtx = Expression.Call(selfAsCell, Methods.DynamicCell.GetReadContext);
 
-                        NewExpression createType;
-                        if (consPCount == 1)
-                        {
-                            createType = Expression.New(cons, callGetSpan);
-                        }
-                        else
-                        {
-                            var makeCtx = Expression.Call(selfAsCell, Methods.DynamicCell.GetReadContext);
-                            createType = Expression.New(cons, callGetSpan, makeCtx);
-                        }
-                        var cast = Expression.Convert(createType, binder.ReturnType);
+            var outVar = Expression.Parameter(parser.Creates);
+            var resVar = Expression.Parameter(Types.BoolType);
+            var parserExp = parser.MakeExpression(callGetSpan, makeCtx, outVar);
+            var assign = Expression.Assign(resVar, parserExp);
 
-                        return new DynamicMetaObject(cast, restrictions);
-                    }
-                case BackingMode.Method:
-                    {
-                        var statements = new List<Expression>();
+            var statements = new List<Expression>();
+            statements.Add(assign);
 
-                        var makeCtx = Expression.Call(selfAsCell, Methods.DynamicCell.GetReadContext);
-                        var outVar = Expression.Parameter(converter.Creates);
-                        var resVar = Expressions.Variable_Bool;
+            var invalidCallOp = Methods.Throw.InvalidOperationExceptionOfObject;
+            var callThrow = Expression.Call(invalidCallOp, Expression.Constant($"{nameof(Parser)} {parser} returned false"));
 
-                        var mtd = converter.Method.Value;
-                        var callConvert = Expression.Call(mtd, callGetSpan, makeCtx, outVar);
-                        var assignRes = Expression.Assign(resVar, callConvert);
+            var ifNot = Expression.IfThen(Expression.Not(resVar), callThrow);
+            statements.Add(ifNot);
 
-                        statements.Add(assignRes);
+            var convertOut = Expression.Convert(outVar, binder.ReturnType);
+            statements.Add(convertOut);
 
-                        var invalidCallOp = Methods.Throw.InvalidOperationExceptionOfObject;
-                        var callThrow = Expression.Call(invalidCallOp, Expression.Constant($"{nameof(Parser)} backing method {mtd} returned false"));
+            var block = Expression.Block(new ParameterExpression[] { outVar, resVar }, statements);
 
-                        var ifNot = Expression.IfThen(Expression.Not(resVar), callThrow);
-                        statements.Add(ifNot);
-
-                        var convertOut = Expression.Convert(outVar, binder.ReturnType);
-                        statements.Add(convertOut);
-
-                        var block = Expression.Block(new ParameterExpression[] { outVar, resVar }, statements);
-
-                        return new DynamicMetaObject(block, restrictions);
-                    }
-                case BackingMode.Delegate:
-                    {
-                        var statements = new List<Expression>();
-
-                        var del = converter.Delegate.Value;
-                        var delRef = Expression.Constant(del);
-
-                        var makeCtx = Expression.Call(selfAsCell, Methods.DynamicCell.GetReadContext);
-                        var outVar = Expression.Parameter(converter.Creates);
-                        var resVar = Expressions.Variable_Bool;
-
-                        var callParser = Expression.Invoke(delRef, callGetSpan, makeCtx, outVar);
-                        var assignRes = Expression.Assign(resVar, callParser);
-
-                        statements.Add(assignRes);
-
-                        var invalidOpCall = Methods.Throw.InvalidOperationExceptionOfObject;
-                        var callThrow = Expression.Call(invalidOpCall, Expression.Constant($"{nameof(Parser)} backing delegate {del} returned false"));
-                        var ifNot = Expression.IfThen(Expression.Not(resVar), callThrow);
-                        statements.Add(ifNot);
-
-                        var convertOut = Expression.Convert(outVar, binder.ReturnType);
-                        statements.Add(convertOut);
-
-                        var block = Expression.Block(new ParameterExpression[] { outVar, resVar }, statements);
-
-                        return new DynamicMetaObject(block, restrictions);
-                    }
-                default:
-                    return Throw.InvalidOperationException<DynamicMetaObject>($"Unexpected {nameof(BackingMode)}: {converter.Mode}");
-
-            }
+            return new DynamicMetaObject(block, restrictions);
         }
     }
 }

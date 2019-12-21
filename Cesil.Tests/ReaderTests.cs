@@ -16,6 +16,219 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ReaderTests
     {
+        private sealed class _ChainedParsers
+        {
+            public int Foo { get; set; }
+        }
+
+        private sealed class _ChainedParsers_Context
+        {
+            public int Num { get; set; }
+        }
+
+        [Fact]
+        public void ChainedParsers()
+        {
+            var p0 =
+                Parser.ForDelegate(
+                    (ReadOnlySpan<char> data, in ReadContext ctx, out int val) =>
+                    {
+                        var a = (_ChainedParsers_Context)ctx.Context;
+
+                        if (a.Num != 1)
+                        {
+                            val = default;
+                            return false;
+                        }
+
+                        val = int.Parse(data);
+                        val *= 2;
+
+                        return true;
+                    }
+                );
+
+            var p1 =
+                Parser.ForDelegate(
+                    (ReadOnlySpan<char> data, in ReadContext ctx, out int val) =>
+                    {
+                        var a = (_ChainedParsers_Context)ctx.Context;
+
+                        if (a.Num != 2)
+                        {
+                            val = default;
+                            return false;
+                        }
+
+                        val = int.Parse(data);
+                        val--;
+
+                        return true;
+                    }
+                );
+
+            var p2 =
+                Parser.ForDelegate(
+                    (ReadOnlySpan<char> data, in ReadContext ctx, out int val) =>
+                    {
+                        var a = (_ChainedParsers_Context)ctx.Context;
+
+                        if (a.Num != 3)
+                        {
+                            val = default;
+                            return false;
+                        }
+
+                        val = int.Parse(data);
+                        val = -(val << 3);
+
+                        return true;
+                    }
+                );
+
+            var p = p0.Else(p1).Else(p2);
+
+            var i = InstanceProvider.ForParameterlessConstructor(typeof(_ChainedParsers).GetConstructor(Type.EmptyTypes));
+
+            var m = ManualTypeDescriber.CreateBuilder();
+            m.WithInstanceProvider(i);
+            m.WithExplicitSetter(
+                typeof(_ChainedParsers).GetTypeInfo(),
+                nameof(_ChainedParsers.Foo),
+                Setter.ForMethod(typeof(_ChainedParsers).GetProperty(nameof(_ChainedParsers.Foo)).SetMethod),
+                p
+            );
+
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(m.ToManualTypeDescriber()).ToOptions();
+
+            RunSyncReaderVariants<_ChainedParsers>(
+                opts,
+                (config, getReader) =>
+                {
+                    var ctx = new _ChainedParsers_Context();
+
+                    using(var reader = getReader("Foo\r\n1\r\n2\r\n3\r\n4"))
+                    using (var csv = config.CreateReader(reader, ctx))
+                    {
+                        ctx.Num = 1;
+                        Assert.True(csv.TryRead(out var r1));
+                        Assert.Equal(2, r1.Foo);
+
+                        ctx.Num = 2;
+                        Assert.True(csv.TryRead(out var r2));
+                        Assert.Equal(1, r2.Foo);
+
+                        ctx.Num = 3;
+                        Assert.True(csv.TryRead(out var r3));
+                        Assert.Equal(-(3 << 3), r3.Foo);
+
+                        ctx.Num = 4;
+                        Assert.Throws<SerializationException>(() => csv.TryRead(out _));
+                    }
+                }
+            );
+        }
+
+        private sealed class _ChainedInstanceProviders
+        {
+            public int Cons { get; }
+            public string Foo { get; set; }
+
+            public _ChainedInstanceProviders(int v)
+            {
+                Cons = v;
+            }
+        }
+
+        [Fact]
+        public void ChainedInstanceProviders()
+        {
+            var num = 0;
+
+            var i1 = 
+                InstanceProvider.ForDelegate(
+                    (in ReadContext _, out _ChainedInstanceProviders res) =>
+                    {
+                        if(num == 1)
+                        {
+                            res = new _ChainedInstanceProviders(100);
+                            return true;
+                        }
+
+                        res = null;
+                        return false;
+                    }
+                );
+            var i2 =
+                InstanceProvider.ForDelegate(
+                    (in ReadContext _, out _ChainedInstanceProviders res) =>
+                    {
+                        if (num == 2)
+                        {
+                            res = new _ChainedInstanceProviders(123);
+                            return true;
+                        }
+
+                        res = null;
+                        return false;
+                    }
+                );
+            var i3 =
+                InstanceProvider.ForDelegate(
+                    (in ReadContext _, out _ChainedInstanceProviders res) =>
+                    {
+                        if (num == 3)
+                        {
+                            res = new _ChainedInstanceProviders(999);
+                            return true;
+                        }
+
+                        res = null;
+                        return false;
+                    }
+                );
+
+            var i = i1.Else(i2).Else(i3);
+
+            var m = ManualTypeDescriber.CreateBuilder();
+            m.WithInstanceProvider(i);
+            m.WithExplicitSetter(
+                typeof(_ChainedInstanceProviders).GetTypeInfo(),
+                nameof(_ChainedInstanceProviders.Foo),
+                Setter.ForMethod(typeof(_ChainedInstanceProviders).GetProperty(nameof(_ChainedInstanceProviders.Foo)).SetMethod)
+            );
+
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(m.ToManualTypeDescriber()).ToOptions();
+
+            RunSyncReaderVariants<_ChainedInstanceProviders>(
+                opts,
+                (config, getReader) =>
+                {
+                    using(var reader = getReader("Foo\r\nabc\r\n123\r\neasy\r\nhard"))
+                    using(var csv = config.CreateReader(reader))
+                    {
+                        num = 1;
+                        Assert.True(csv.TryRead(out var r1));
+                        Assert.Equal(100, r1.Cons);
+                        Assert.Equal("abc", r1.Foo);
+
+                        num = 3;
+                        Assert.True(csv.TryRead(out var r2));
+                        Assert.Equal(999, r2.Cons);
+                        Assert.Equal("123", r2.Foo);
+
+                        num = 2;
+                        Assert.True(csv.TryRead(out var r3));
+                        Assert.Equal(123, r3.Cons);
+                        Assert.Equal("easy", r3.Foo);
+
+                        num = -1;
+                        Assert.Throws<InvalidOperationException>(() => csv.TryRead(out _));
+                    }
+                }
+            );
+        }
+
         private sealed class _WhitespaceTrimming
         {
             public string Foo { get; set; }
@@ -758,7 +971,7 @@ namespace Cesil.Tests
         {
             var m = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback);
 
-            m.WithInstanceProvider(InstanceProvider.ForDelegate((out _FailingParser val) => { val = new _FailingParser(); return true; }));
+            m.WithInstanceProvider(InstanceProvider.ForDelegate((in ReadContext _, out _FailingParser val) => { val = new _FailingParser(); return true; }));
 
             var t = typeof(_FailingParser).GetTypeInfo();
             var s = Setter.ForMethod(t.GetProperty(nameof(_FailingParser.Foo)).SetMethod);
@@ -1206,7 +1419,7 @@ namespace Cesil.Tests
             int failAfter = 0;
             int calls = 0;
             InstanceProviderDelegate<_RowCreationFailure> builder =
-                (out _RowCreationFailure row) =>
+                (in ReadContext _, out _RowCreationFailure row) =>
                 {
                     if (calls >= failAfter)
                     {
@@ -1660,7 +1873,7 @@ namespace Cesil.Tests
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.WithExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, MemberRequired.No, reset);
-            InstanceProviderDelegate<_DelegateReset> del = (out _DelegateReset i) => { i = new _DelegateReset(); return true; };
+            InstanceProviderDelegate<_DelegateReset> del = (in ReadContext _, out _DelegateReset i) => { i = new _DelegateReset(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
@@ -1707,7 +1920,7 @@ namespace Cesil.Tests
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.WithExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, MemberRequired.No, reset);
-            InstanceProviderDelegate<_DelegateReset> del = (out _DelegateReset i) => { i = new _DelegateReset(); return true; };
+            InstanceProviderDelegate<_DelegateReset> del = (in ReadContext _, out _DelegateReset i) => { i = new _DelegateReset(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
@@ -1755,7 +1968,7 @@ namespace Cesil.Tests
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.WithExplicitSetter(typeof(_DelegateSetter).GetTypeInfo(), "Foo", Setter.ForDelegate(parser));
-            InstanceProviderDelegate<_DelegateSetter> del = (out _DelegateSetter i) => { i = new _DelegateSetter(); return true; };
+            InstanceProviderDelegate<_DelegateSetter> del = (in ReadContext _, out _DelegateSetter i) => { i = new _DelegateSetter(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
@@ -1800,7 +2013,7 @@ namespace Cesil.Tests
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.WithExplicitSetter(typeof(_DelegateSetter).GetTypeInfo(), "Foo", Setter.ForDelegate(parser));
-            InstanceProviderDelegate<_DelegateSetter> del = (out _DelegateSetter i) => { i = new _DelegateSetter(); return true; };
+            InstanceProviderDelegate<_DelegateSetter> del = (in ReadContext _, out _DelegateSetter i) => { i = new _DelegateSetter(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
@@ -1871,7 +2084,7 @@ namespace Cesil.Tests
                     Parser.ForConstructor(cons1)
                 );
 
-                InstanceProviderDelegate<_ConstructorParser_Outer> del = (out _ConstructorParser_Outer i) => { i = new _ConstructorParser_Outer(); return true; };
+                InstanceProviderDelegate<_ConstructorParser_Outer> del = (in ReadContext _, out _ConstructorParser_Outer i) => { i = new _ConstructorParser_Outer(); return true; };
                 describer.WithInstanceProvider((InstanceProvider)del);
 
                 var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
@@ -1909,7 +2122,7 @@ namespace Cesil.Tests
                     nameof(_ConstructorParser_Outer.Foo),
                     Parser.ForConstructor(cons2)
                 );
-                InstanceProviderDelegate<_ConstructorParser_Outer> del = (out _ConstructorParser_Outer i) => { i = new _ConstructorParser_Outer(); return true; };
+                InstanceProviderDelegate<_ConstructorParser_Outer> del = (in ReadContext _, out _ConstructorParser_Outer i) => { i = new _ConstructorParser_Outer(); return true; };
                 describer.WithInstanceProvider((InstanceProvider)del);
 
                 var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
@@ -1965,7 +2178,7 @@ namespace Cesil.Tests
                 nameof(_DelegateParser.Foo),
                 Parser.ForDelegate(parser)
             );
-            InstanceProviderDelegate<_DelegateParser> del = (out _DelegateParser i) => { i = new _DelegateParser(); return true; };
+            InstanceProviderDelegate<_DelegateParser> del = (in ReadContext _, out _DelegateParser i) => { i = new _DelegateParser(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
@@ -2005,7 +2218,7 @@ namespace Cesil.Tests
         {
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.WithDeserializableProperty(typeof(_StaticSetter).GetProperty(nameof(_StaticSetter.Foo), BindingFlags.Static | BindingFlags.Public));
-            InstanceProviderDelegate<_StaticSetter> del = (out _StaticSetter i) => { i = new _StaticSetter(); return true; };
+            InstanceProviderDelegate<_StaticSetter> del = (in ReadContext _, out _StaticSetter i) => { i = new _StaticSetter(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
@@ -3806,6 +4019,250 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         }
 
         [Fact]
+        public async Task ChainedParsersAsync()
+        {
+            var p0 =
+                Parser.ForDelegate(
+                    (ReadOnlySpan<char> data, in ReadContext ctx, out int val) =>
+                    {
+                        var a = (_ChainedParsers_Context)ctx.Context;
+
+                        if (a.Num != 1)
+                        {
+                            val = default;
+                            return false;
+                        }
+
+                        val = int.Parse(data);
+                        val *= 2;
+
+                        return true;
+                    }
+                );
+
+            var p1 =
+                Parser.ForDelegate(
+                    (ReadOnlySpan<char> data, in ReadContext ctx, out int val) =>
+                    {
+                        var a = (_ChainedParsers_Context)ctx.Context;
+
+                        if (a.Num != 2)
+                        {
+                            val = default;
+                            return false;
+                        }
+
+                        val = int.Parse(data);
+                        val--;
+
+                        return true;
+                    }
+                );
+
+            var p2 =
+                Parser.ForDelegate(
+                    (ReadOnlySpan<char> data, in ReadContext ctx, out int val) =>
+                    {
+                        var a = (_ChainedParsers_Context)ctx.Context;
+
+                        if (a.Num != 3)
+                        {
+                            val = default;
+                            return false;
+                        }
+
+                        val = int.Parse(data);
+                        val = -(val << 3);
+
+                        return true;
+                    }
+                );
+
+            var p = p0.Else(p1).Else(p2);
+
+            var i = InstanceProvider.ForParameterlessConstructor(typeof(_ChainedParsers).GetConstructor(Type.EmptyTypes));
+
+            var m = ManualTypeDescriber.CreateBuilder();
+            m.WithInstanceProvider(i);
+            m.WithExplicitSetter(
+                typeof(_ChainedParsers).GetTypeInfo(),
+                nameof(_ChainedParsers.Foo),
+                Setter.ForMethod(typeof(_ChainedParsers).GetProperty(nameof(_ChainedParsers.Foo)).SetMethod),
+                p
+            );
+
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(m.ToManualTypeDescriber()).ToOptions();
+
+            await RunAsyncReaderVariants<_ChainedParsers>(
+                opts,
+                async (config, getReader) =>
+                {
+                    var ctx = new _ChainedParsers_Context();
+
+                    await using (var reader = await getReader("Foo\r\n1\r\n2\r\n3\r\n4"))
+                    await using (var csv = config.CreateAsyncReader(reader, ctx))
+                    {
+                        ctx.Num = 1;
+                        var res1 = await csv.TryReadAsync();
+                        Assert.True(res1.HasValue);
+                        var r1 = res1.Value;
+                        Assert.Equal(2, r1.Foo);
+
+                        ctx.Num = 2;
+                        var res2 = await csv.TryReadAsync();
+                        Assert.True(res2.HasValue);
+                        var r2 = res2.Value;
+                        Assert.Equal(1, r2.Foo);
+
+                        ctx.Num = 3;
+                        var res3 = await csv.TryReadAsync();
+                        Assert.True(res3.HasValue);
+                        var r3 = res3.Value;
+                        Assert.Equal(-(3 << 3), r3.Foo);
+
+                        ctx.Num = 4;
+                        await AssertThrowsInnerAsync<SerializationException>(async () => await csv.TryReadAsync());
+                    }
+                }
+            );
+
+            static async ValueTask AssertThrowsInnerAsync<TException>(Func<ValueTask> func)
+                where TException : Exception
+            {
+                try
+                {
+                    await func();
+                }
+                catch (Exception e)
+                {
+                    if (e is AggregateException)
+                    {
+                        Assert.IsType<TException>(e.InnerException);
+                    }
+                    else
+                    {
+                        Assert.IsType<TException>(e);
+                    }
+                }
+            }
+        }
+
+        [Fact]
+        public async Task ChainedInstanceProvidersAsync()
+        {
+            var num = 0;
+
+            var i1 =
+                InstanceProvider.ForDelegate(
+                    (in ReadContext _, out _ChainedInstanceProviders res) =>
+                    {
+                        if (num == 1)
+                        {
+                            res = new _ChainedInstanceProviders(100);
+                            return true;
+                        }
+
+                        res = null;
+                        return false;
+                    }
+                );
+            var i2 =
+                InstanceProvider.ForDelegate(
+                    (in ReadContext _, out _ChainedInstanceProviders res) =>
+                    {
+                        if (num == 2)
+                        {
+                            res = new _ChainedInstanceProviders(123);
+                            return true;
+                        }
+
+                        res = null;
+                        return false;
+                    }
+                );
+            var i3 =
+                InstanceProvider.ForDelegate(
+                    (in ReadContext _, out _ChainedInstanceProviders res) =>
+                    {
+                        if (num == 3)
+                        {
+                            res = new _ChainedInstanceProviders(999);
+                            return true;
+                        }
+
+                        res = null;
+                        return false;
+                    }
+                );
+
+            var i = i1.Else(i2).Else(i3);
+
+            var m = ManualTypeDescriber.CreateBuilder();
+            m.WithInstanceProvider(i);
+            m.WithExplicitSetter(
+                typeof(_ChainedInstanceProviders).GetTypeInfo(),
+                nameof(_ChainedInstanceProviders.Foo),
+                Setter.ForMethod(typeof(_ChainedInstanceProviders).GetProperty(nameof(_ChainedInstanceProviders.Foo)).SetMethod)
+            );
+
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(m.ToManualTypeDescriber()).ToOptions();
+
+            await RunAsyncReaderVariants<_ChainedInstanceProviders>(
+                opts,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("Foo\r\nabc\r\n123\r\neasy\r\nhard"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        num = 1;
+                        var r1Res = await csv.TryReadAsync();
+                        Assert.True(r1Res.HasValue);
+                        var r1 = r1Res.Value;
+                        Assert.Equal(100, r1.Cons);
+                        Assert.Equal("abc", r1.Foo);
+
+                        num = 3;
+                        var r2Res = await csv.TryReadAsync();
+                        Assert.True(r2Res.HasValue);
+                        var r2 = r2Res.Value;
+                        Assert.Equal(999, r2.Cons);
+                        Assert.Equal("123", r2.Foo);
+
+                        num = 2;
+                        var r3Res = await csv.TryReadAsync();
+                        Assert.True(r3Res.HasValue);
+                        var r3 = r3Res.Value;
+                        Assert.Equal(123, r3.Cons);
+                        Assert.Equal("easy", r3.Foo);
+
+                        num = -1;
+                        await AssertThrowsInnerAsync<InvalidOperationException>(async () => await csv.TryReadAsync());
+                    }
+                }
+            );
+
+            static async ValueTask AssertThrowsInnerAsync<TException>(Func<ValueTask> func)
+                where TException : Exception
+            {
+                try
+                {
+                    await func();
+                }
+                catch (Exception e)
+                {
+                    if (e is AggregateException)
+                    {
+                        Assert.IsType<TException>(e.InnerException);
+                    }
+                    else
+                    {
+                        Assert.IsType<TException>(e);
+                    }
+                }
+            }
+        }
+
+        [Fact]
         public async Task WhitespaceTrimmingAsync()
         {
             // in values
@@ -4604,7 +5061,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         {
             var m = ManualTypeDescriberBuilder.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback);
 
-            m.WithInstanceProvider(InstanceProvider.ForDelegate((out _FailingParser val) => { val = new _FailingParser(); return true; }));
+            m.WithInstanceProvider(InstanceProvider.ForDelegate((in ReadContext _, out _FailingParser val) => { val = new _FailingParser(); return true; }));
 
             var t = typeof(_FailingParser).GetTypeInfo();
             var s = Setter.ForMethod(t.GetProperty(nameof(_FailingParser.Foo)).SetMethod);
@@ -4723,7 +5180,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             int failAfter = 0;
             int calls = 0;
             InstanceProviderDelegate<_RowCreationFailure> builder =
-                (out _RowCreationFailure row) =>
+                (in ReadContext _, out _RowCreationFailure row) =>
                 {
                     if (calls >= failAfter)
                     {
@@ -5258,7 +5715,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.WithExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, MemberRequired.No, reset);
-            InstanceProviderDelegate<_DelegateReset> del = (out _DelegateReset i) => { i = new _DelegateReset(); return true; };
+            InstanceProviderDelegate<_DelegateReset> del = (in ReadContext _, out _DelegateReset i) => { i = new _DelegateReset(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
@@ -5305,7 +5762,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.WithExplicitSetter(typeof(_DelegateReset).GetTypeInfo(), name, setter, parser, MemberRequired.No, reset);
-            InstanceProviderDelegate<_DelegateReset> del = (out _DelegateReset i) => { i = new _DelegateReset(); return true; };
+            InstanceProviderDelegate<_DelegateReset> del = (in ReadContext _, out _DelegateReset i) => { i = new _DelegateReset(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
@@ -5348,7 +5805,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.WithExplicitSetter(typeof(_DelegateSetter).GetTypeInfo(), "Foo", Setter.ForDelegate(parser));
-            InstanceProviderDelegate<_DelegateSetter> del = (out _DelegateSetter i) => { i = new _DelegateSetter(); return true; };
+            InstanceProviderDelegate<_DelegateSetter> del = (in ReadContext _, out _DelegateSetter i) => { i = new _DelegateSetter(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
@@ -5393,7 +5850,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.WithExplicitSetter(typeof(_DelegateSetter).GetTypeInfo(), "Foo", Setter.ForDelegate(parser));
-            InstanceProviderDelegate<_DelegateSetter> del = (out _DelegateSetter i) => { i = new _DelegateSetter(); return true; };
+            InstanceProviderDelegate<_DelegateSetter> del = (in ReadContext _, out _DelegateSetter i) => { i = new _DelegateSetter(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
@@ -5437,7 +5894,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     nameof(_ConstructorParser_Outer.Foo),
                     Parser.ForConstructor(cons1)
                 );
-                InstanceProviderDelegate<_ConstructorParser_Outer> del = (out _ConstructorParser_Outer i) => { i = new _ConstructorParser_Outer(); return true; };
+                InstanceProviderDelegate<_ConstructorParser_Outer> del = (in ReadContext _, out _ConstructorParser_Outer i) => { i = new _ConstructorParser_Outer(); return true; };
                 describer.WithInstanceProvider((InstanceProvider)del);
 
                 var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
@@ -5475,7 +5932,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     nameof(_ConstructorParser_Outer.Foo),
                     Parser.ForConstructor(cons2)
                 );
-                InstanceProviderDelegate<_ConstructorParser_Outer> del = (out _ConstructorParser_Outer i) => { i = new _ConstructorParser_Outer(); return true; };
+                InstanceProviderDelegate<_ConstructorParser_Outer> del = (in ReadContext _, out _ConstructorParser_Outer i) => { i = new _ConstructorParser_Outer(); return true; };
                 describer.WithInstanceProvider((InstanceProvider)del);
 
                 var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
@@ -5526,7 +5983,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                 nameof(_DelegateParser.Foo),
                 Parser.ForDelegate(parser)
             );
-            InstanceProviderDelegate<_DelegateParser> del = (out _DelegateParser i) => { i = new _DelegateParser(); return true; };
+            InstanceProviderDelegate<_DelegateParser> del = (in ReadContext _, out _DelegateParser i) => { i = new _DelegateParser(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();
@@ -7156,7 +7613,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         {
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.WithDeserializableProperty(typeof(_StaticSetter).GetProperty(nameof(_StaticSetter.Foo), BindingFlags.Static | BindingFlags.Public));
-            InstanceProviderDelegate<_StaticSetter> del = (out _StaticSetter i) => { i = new _StaticSetter(); return true; };
+            InstanceProviderDelegate<_StaticSetter> del = (in ReadContext _, out _StaticSetter i) => { i = new _StaticSetter(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).ToOptions();

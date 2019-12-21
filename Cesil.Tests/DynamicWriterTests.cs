@@ -33,6 +33,129 @@ namespace Cesil.Tests
             }
         }
 
+        private sealed class _ChainedFormatters_Context
+        {
+            public int F { get; set; }
+        }
+
+        private sealed class _ChainedFormatters_TypeDescriber: DefaultTypeDescriber
+        {
+            private readonly Formatter F;
+
+            public _ChainedFormatters_TypeDescriber(Formatter f)
+            {
+                F = f;
+            }
+
+            public override IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext context, dynamic row)
+            {
+                string val = row.Foo;
+
+                var ret = DynamicCellValue.Create("Foo", val, F);
+
+                return new[] { ret };
+            }
+        }
+
+        [Fact]
+        public void ChainedFormatters()
+        {
+            var f1 =
+                Formatter.ForDelegate<string>(
+                    (string data, in WriteContext ctx, IBufferWriter<char> writer) =>
+                    {
+                        var num = ((_ChainedFormatters_Context)ctx.Context).F;
+
+                        if (num != 1) return false;
+
+                        var span = writer.GetSpan(4);
+                        span[0] = '1';
+                        span[1] = '2';
+                        span[2] = '3';
+                        span[3] = '4';
+
+                        writer.Advance(4);
+
+                        return true;
+                    }
+                );
+            var f2 =
+                Formatter.ForDelegate<string>(
+                    (string data, in WriteContext ctx, IBufferWriter<char> writer) =>
+                    {
+                        var num = ((_ChainedFormatters_Context)ctx.Context).F;
+
+                        if (num != 2) return false;
+
+                        var span = writer.GetSpan(3);
+                        span[0] = 'a';
+                        span[1] = 'b';
+                        span[2] = 'c';
+
+                        writer.Advance(3);
+
+                        return true;
+                    }
+                );
+            var f3 =
+                Formatter.ForDelegate<string>(
+                    (string data, in WriteContext ctx, IBufferWriter<char> writer) =>
+                    {
+                        var num = ((_ChainedFormatters_Context)ctx.Context).F;
+
+                        if (num != 3) return false;
+
+                        var span = writer.GetSpan(2);
+                        span[0] = '0';
+                        span[1] = '0';
+
+                        writer.Advance(2);
+
+                        return true;
+                    }
+                );
+
+            var f = f1.Else(f2).Else(f3);
+
+            var td = new _ChainedFormatters_TypeDescriber(f);
+
+            var opts = OptionsBuilder.CreateBuilder(Options.DynamicDefault).WithTypeDescriber(td).ToOptions();
+
+
+
+            var row = MakeDynamicRow("Foo\r\nabc");
+            try 
+            {
+                RunSyncDynamicWriterVariants(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        var ctx = new _ChainedFormatters_Context();
+
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer, ctx))
+                        {
+                            ctx.F = 1;
+                            csv.Write(row);
+                            ctx.F = 2;
+                            csv.Write(row);
+                            ctx.F = 3;
+                            csv.Write(row);
+                            ctx.F = 1;
+                            csv.Write(row);
+                        }
+
+                        var str = getStr();
+                        Assert.Equal("Foo\r\n1234\r\nabc\r\n00\r\n1234", str);
+                    }
+                );
+            }
+            finally
+            {
+                row.Dispose();
+            }
+        }
+
         [Fact]
         public void NoEscapes()
         {
@@ -1544,6 +1667,103 @@ namespace Cesil.Tests
         }
 
         // async tests
+
+        [Fact]
+        public async Task ChainedFormattersAsync()
+        {
+            var f1 =
+                Formatter.ForDelegate<string>(
+                    (string data, in WriteContext ctx, IBufferWriter<char> writer) =>
+                    {
+                        var num = ((_ChainedFormatters_Context)ctx.Context).F;
+
+                        if (num != 1) return false;
+
+                        var span = writer.GetSpan(4);
+                        span[0] = '1';
+                        span[1] = '2';
+                        span[2] = '3';
+                        span[3] = '4';
+
+                        writer.Advance(4);
+
+                        return true;
+                    }
+                );
+            var f2 =
+                Formatter.ForDelegate<string>(
+                    (string data, in WriteContext ctx, IBufferWriter<char> writer) =>
+                    {
+                        var num = ((_ChainedFormatters_Context)ctx.Context).F;
+
+                        if (num != 2) return false;
+
+                        var span = writer.GetSpan(3);
+                        span[0] = 'a';
+                        span[1] = 'b';
+                        span[2] = 'c';
+
+                        writer.Advance(3);
+
+                        return true;
+                    }
+                );
+            var f3 =
+                Formatter.ForDelegate<string>(
+                    (string data, in WriteContext ctx, IBufferWriter<char> writer) =>
+                    {
+                        var num = ((_ChainedFormatters_Context)ctx.Context).F;
+
+                        if (num != 3) return false;
+
+                        var span = writer.GetSpan(2);
+                        span[0] = '0';
+                        span[1] = '0';
+
+                        writer.Advance(2);
+
+                        return true;
+                    }
+                );
+
+            var f = f1.Else(f2).Else(f3);
+
+            var td = new _ChainedFormatters_TypeDescriber(f);
+
+            var opts = OptionsBuilder.CreateBuilder(Options.DynamicDefault).WithTypeDescriber(td).ToOptions();
+
+            var row = MakeDynamicRow("Foo\r\nabc");
+            try
+            {
+                await RunAsyncDynamicWriterVariants(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        var ctx = new _ChainedFormatters_Context();
+
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer, ctx))
+                        {
+                            ctx.F = 1;
+                            await csv.WriteAsync(row);
+                            ctx.F = 2;
+                            await csv.WriteAsync(row);
+                            ctx.F = 3;
+                            await csv.WriteAsync(row);
+                            ctx.F = 1;
+                            await csv.WriteAsync(row);
+                        }
+
+                        var str = await getStr();
+                        Assert.Equal("Foo\r\n1234\r\nabc\r\n00\r\n1234", str);
+                    }
+                );
+            }
+            finally
+            {
+                row.Dispose();
+            }
+        }
 
         [Fact]
         public async Task NoEscapesAsync()

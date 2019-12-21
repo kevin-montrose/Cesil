@@ -66,18 +66,15 @@ namespace Cesil
         /// <summary>
         /// Create a ShouldSerialize from a method.
         /// 
-        /// Method must be an argument-less method
-        ///   that is either static, or on an instance of the same type as (or a baseclass of) setter.
+        /// Method must return bool.
+        /// 
+        /// If method is an instance method, it must take zero parameters.
+        /// 
+        /// If method is a static method, it may take zero parameters or one parameter of the type being serialized.
         /// </summary>
         public static ShouldSerialize ForMethod(MethodInfo method)
         {
             Utils.CheckArgumentNull(method, nameof(method));
-
-            var args = method.GetParameters();
-            if (args.Length > 0)
-            {
-                return Throw.ArgumentException<ShouldSerialize>($"{nameof(method)} cannot take parameters", nameof(method));
-            }
 
             var ret = method.ReturnType.GetTypeInfo();
             if (ret != Types.BoolType)
@@ -85,17 +82,35 @@ namespace Cesil
                 return Throw.ArgumentException<ShouldSerialize>($"{nameof(method)} must return a boolean", nameof(method));
             }
 
+            var args = method.GetParameters();
+
             TypeInfo? takes;
 
             if (!method.IsStatic)
             {
+                if (args.Length > 0)
+                {
+                    return Throw.ArgumentException<ShouldSerialize>($"{nameof(method)} cannot take parameters, it's an instance method", nameof(method));
+                }
+
                 var shouldSerializeInstType = method.DeclaringTypeNonNull();
 
                 takes = shouldSerializeInstType;
             }
             else
             {
-                takes = null;
+                if (args.Length > 1)
+                {
+                    return Throw.ArgumentException<ShouldSerialize>($"{nameof(method)} as a static method must take zero or one parameter", nameof(method));
+                }
+                else if (args.Length == 1)
+                {
+                    takes = args[0].ParameterType.GetTypeInfo();
+                }
+                else
+                {
+                    takes = null;
+                }
             }
 
             return new ShouldSerialize(takes, method);
@@ -188,7 +203,14 @@ namespace Cesil
                 case BackingMode.Method:
                     if (IsStatic)
                     {
-                        return $"{nameof(ShouldSerialize)} backed by method {Method}";
+                        if (Takes.HasValue)
+                        {
+                            return $"{nameof(ShouldSerialize)} backed by method {Method} taking {Takes}";
+                        }
+                        else
+                        {
+                            return $"{nameof(ShouldSerialize)} backed by method {Method}";
+                        }
                     }
                     else
                     {

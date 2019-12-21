@@ -31,8 +31,7 @@ namespace Cesil
                 return Throw.ArgumentException<IBoundConfiguration<dynamic>>($"Dynamic deserialization cannot detect the presense of headers, you must specify a {nameof(ReadHeader)} of {nameof(ReadHeader.Always)} or {nameof(ReadHeader.Never)}", nameof(options));
             }
 
-            return
-                new DynamicBoundConfiguration(options);
+            return new DynamicBoundConfiguration(options);
         }
 
         /// <summary>
@@ -128,81 +127,44 @@ namespace Cesil
                 return Throw.InvalidOperationException<InstanceProviderDelegate<T>>($"Returned {nameof(InstanceProvider)} ({builder}) cannot create instances assignable to {typeof(T)}");
             }
 
-            var resultType = typeof(T).GetTypeInfo();
-
-            var retTrue = Expressions.Constant_True;
-            var outVar = Expression.Parameter(resultType.MakeByRefType());
-
-            switch (builder.Mode)
+            // fast paths
+            if (!builder.HasFallbacks)
             {
-                case BackingMode.Delegate:
-                    {
-                        var del = builder.Delegate.Value;
-                        if (del is InstanceProviderDelegate<T> exactMatch)
+                switch (builder.Mode)
+                {
+                    case BackingMode.Delegate:
                         {
-                            return exactMatch;
+                            var del = builder.Delegate.Value;
+                            if (del is InstanceProviderDelegate<T> exactMatch)
+                            {
+                                return exactMatch;
+                            }
                         }
+                        break;
+                    case BackingMode.Method:
+                        {
+                            var mtd = builder.Method.Value;
 
-                        // handle the case where we have to _bridge_ between two assignable types
-                        //   we basically construct a delegate that takes an object that wraps up
-                        //   the original build delegate, which we then capture and use to construct
-                        //   the type to be bridged
+                            var delType = typeof(InstanceProviderDelegate<T>);
+                            var del = (InstanceProviderDelegate<T>)Delegate.CreateDelegate(delType, mtd);
 
-                        var innerDelType = Types.InstanceProviderDelegateType.MakeGenericType(constructedType).GetTypeInfo();
-
-                        var p1 = Expressions.Parameter_Object;
-                        var l1 = Expression.Variable(constructedType);
-                        var innerInstanceBuilderType = Expression.Convert(p1, innerDelType);
-
-                        var endLabel = Expression.Label(Types.BoolType, "end");
-
-                        var invokeInstanceBuilder = Expression.Invoke(innerInstanceBuilderType, l1);
-
-                        var convertAndAssign = Expression.Assign(outVar, Expression.Convert(l1, resultType));
-
-                        var ifTrueBlock = Expression.Block(convertAndAssign, Expression.Goto(endLabel, retTrue));
-
-                        var assignDefault = Expression.Assign(outVar, Expression.Default(resultType));
-                        var retFalse = Expressions.Constant_False;
-
-                        var ifFalseBlock = Expression.Block(assignDefault, Expression.Goto(endLabel, retFalse));
-
-                        var ifThenElse = Expression.IfThenElse(invokeInstanceBuilder, ifTrueBlock, ifFalseBlock);
-
-                        var markEndLabel = Expression.Label(endLabel, Expressions.Default_Bool);
-
-                        var delBody = Expression.Block(Types.BoolType, new[] { l1 }, ifThenElse, markEndLabel);
-
-                        var lambda = Expression.Lambda<Types.InstanceBuildThunkDelegate<T>>(delBody, p1, outVar);
-                        var compiled = lambda.Compile();
-
-                        return (out T res) => compiled(del, out res);
-                    }
-                case BackingMode.Constructor:
-                    {
-                        var cons = builder.Constructor.Value;
-
-                        var assignTo = Expression.Assign(outVar, Expression.New(cons));
-
-                        var block = Expression.Block(new Expression[] { assignTo, retTrue });
-
-                        var wrappingDel = Expression.Lambda<InstanceProviderDelegate<T>>(block, outVar);
-                        var ret = wrappingDel.Compile();
-
-                        return ret;
-                    }
-                case BackingMode.Method:
-                    {
-                        var mtd = builder.Method.Value;
-
-                        var delType = typeof(InstanceProviderDelegate<T>);
-                        var del = (InstanceProviderDelegate<T>)Delegate.CreateDelegate(delType, mtd);
-
-                        return del;
-                    }
-                default:
-                    return Throw.InvalidOperationException<InstanceProviderDelegate<T>>($"Unexpected {nameof(BackingMode)}: {builder.Mode}");
+                            return del;
+                        }
+                    // intentionally non-exhaustive
+                }
             }
+
+
+            var resultType = typeof(T).GetTypeInfo();
+            var outVar = Expression.Parameter(resultType.MakeByRefType());
+            var ctxVar = Expressions.Parameter_ReadContext_ByRef;
+
+            var exp = builder.MakeExpression(resultType, ctxVar, outVar);
+
+            var wrappingDel = Expression.Lambda<InstanceProviderDelegate<T>>(exp, ctxVar, outVar);
+            var ret = wrappingDel.Compile();
+
+            return ret;
         }
 
         private static Column[] DiscoverSerializeColumns(TypeInfo t, Options options)

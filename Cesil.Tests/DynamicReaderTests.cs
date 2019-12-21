@@ -13,6 +13,242 @@ namespace Cesil.Tests
 {
     public class DynamicReaderTests
     {
+        private sealed class _ChainedParsers_Context
+        {
+            public int Num { get; set; }
+        }
+
+        private sealed class _ChainedParsers_TypeDescriber : DefaultTypeDescriber
+        {
+            private readonly Parser P;
+
+            public _ChainedParsers_TypeDescriber(Parser p)
+            {
+                P = p;
+            }
+
+            public override Parser GetDynamicCellParserFor(in ReadContext context, TypeInfo targetType)
+            => P;
+        }
+
+        [Fact]
+        public void ChainedParsers()
+        {
+            var p0 =
+                Parser.ForDelegate(
+                    (ReadOnlySpan<char> data, in ReadContext ctx, out int val) =>
+                    {
+                        var a = (_ChainedParsers_Context)ctx.Context;
+
+                        if (a.Num != 1)
+                        {
+                            val = default;
+                            return false;
+                        }
+
+                        val = int.Parse(data);
+                        val *= 2;
+
+                        return true;
+                    }
+                );
+
+            var p1 =
+                Parser.ForDelegate(
+                    (ReadOnlySpan<char> data, in ReadContext ctx, out int val) =>
+                    {
+                        var a = (_ChainedParsers_Context)ctx.Context;
+
+                        if (a.Num != 2)
+                        {
+                            val = default;
+                            return false;
+                        }
+
+                        val = int.Parse(data);
+                        val--;
+
+                        return true;
+                    }
+                );
+
+            var p2 =
+                Parser.ForDelegate(
+                    (ReadOnlySpan<char> data, in ReadContext ctx, out int val) =>
+                    {
+                        var a = (_ChainedParsers_Context)ctx.Context;
+
+                        if (a.Num != 3)
+                        {
+                            val = default;
+                            return false;
+                        }
+
+                        val = int.Parse(data);
+                        val = -(val << 3);
+
+                        return true;
+                    }
+                );
+
+            var p = p0.Else(p1).Else(p2);
+
+            var td = new _ChainedParsers_TypeDescriber(p);
+
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithTypeDescriber(td).ToOptions();
+
+            RunSyncDynamicReaderVariants(
+                opts,
+                (config, getReader) =>
+                {
+                    var ctx = new _ChainedParsers_Context();
+
+                    using (var reader = getReader("Foo\r\n1\r\n2\r\n3\r\n4"))
+                    using (var csv = config.CreateReader(reader, ctx))
+                    {
+                        ctx.Num = 1;
+                        Assert.True(csv.TryRead(out var r1));
+                        var c1 = r1.Foo;
+                        Assert.Equal(2, (int)c1);
+
+                        ctx.Num = 2;
+                        Assert.True(csv.TryRead(out var r2));
+                        var c2 = r2.Foo;
+                        Assert.Equal(1, (int)c2);
+
+                        ctx.Num = 3;
+                        Assert.True(csv.TryRead(out var r3));
+                        var c3 = r3.Foo;
+                        Assert.Equal(-(3 << 3), (int)c3);
+
+                        ctx.Num = 4;
+                        Assert.True(csv.TryRead(out var r4));
+                        var c4 = r4.Foo;
+                        Assert.Throws<InvalidOperationException>(() => (int)c4);
+                    }
+                }
+            );
+        }
+
+        private sealed class _ChainedDynamicRowConverters
+        {
+            public readonly string Value;
+            public readonly int Number;
+
+            public _ChainedDynamicRowConverters(string val, int num)
+            {
+                Value = val;
+                Number = num;
+            }
+        }
+
+        private sealed class _ChainedDynamicRowConverters_Context
+        {
+            public int Num { get; set; }
+        }
+
+        private sealed class _ChainedDynamicRowConverters_TypeDescriber: DefaultTypeDescriber
+        {
+            private readonly DynamicRowConverter C;
+
+            public _ChainedDynamicRowConverters_TypeDescriber(DynamicRowConverter c)
+            {
+                C = c;
+            }
+
+            public override DynamicRowConverter GetDynamicRowConverter(in ReadContext context, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
+            => C;
+        }
+
+        [Fact]
+        public void ChainedDynamicRowConverters()
+        {
+            var c1 =
+                DynamicRowConverter.ForDelegate(
+                    (dynamic row, in ReadContext ctx, out _ChainedDynamicRowConverters res) =>
+                    {
+                        var c = (_ChainedDynamicRowConverters_Context)ctx.Context;
+                        if (c.Num != 1)
+                        {
+                            res = null;
+                            return false;
+                        }
+
+                        res = new _ChainedDynamicRowConverters((string)row[0], 1);
+                        return true;
+                    }
+                );
+            var c2 =
+                DynamicRowConverter.ForDelegate(
+                    (dynamic row, in ReadContext ctx, out _ChainedDynamicRowConverters res) =>
+                    {
+                        var c = (_ChainedDynamicRowConverters_Context)ctx.Context;
+                        if (c.Num != 2)
+                        {
+                            res = null;
+                            return false;
+                        }
+
+                        res = new _ChainedDynamicRowConverters((string)row[0], 2);
+                        return true;
+                    }
+                );
+            var c3 =
+                DynamicRowConverter.ForDelegate(
+                    (dynamic row, in ReadContext ctx, out _ChainedDynamicRowConverters res) =>
+                    {
+                        var c = (_ChainedDynamicRowConverters_Context)ctx.Context;
+                        if (c.Num != 3)
+                        {
+                            res = null;
+                            return false;
+                        }
+
+                        res = new _ChainedDynamicRowConverters((string)row[0], 3);
+                        return true;
+                    }
+                );
+
+            var c = c1.Else(c2).Else(c3);
+
+            var td = new _ChainedDynamicRowConverters_TypeDescriber(c);
+
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithTypeDescriber(td).ToOptions();
+
+            RunSyncDynamicReaderVariants(
+                opts,
+                (config, getReader) =>
+                {
+                    var ctx = new _ChainedDynamicRowConverters_Context();
+                    using(var reader = getReader("Foo\r\nabc\r\ndef\r\nghi\r\n123"))
+                    using (var csv = config.CreateReader(reader, ctx))
+                    {
+                        ctx.Num = 1;
+                        Assert.True(csv.TryRead(out var r1));
+                        _ChainedDynamicRowConverters s1 = r1;
+                        Assert.Equal("abc", s1.Value);
+                        Assert.Equal(1, s1.Number);
+
+                        ctx.Num = 2;
+                        Assert.True(csv.TryRead(out var r2));
+                        _ChainedDynamicRowConverters s2 = r2;
+                        Assert.Equal("def", s2.Value);
+                        Assert.Equal(2, s2.Number);
+
+                        ctx.Num = 3;
+                        Assert.True(csv.TryRead(out var r3));
+                        _ChainedDynamicRowConverters s3 = r3;
+                        Assert.Equal("ghi", s3.Value);
+                        Assert.Equal(3, s3.Number);
+
+                        ctx.Num = 4;
+                        Assert.True(csv.TryRead(out var r4));
+                        Assert.Throws<InvalidOperationException>(() => { _ChainedDynamicRowConverters s4 = r4; });
+                    }
+                }
+            );
+        }
+
         [Fact]
         public void WhitespaceTrimming()
         {
@@ -4155,6 +4391,210 @@ loop:
         }
 
         // async tests
+
+        [Fact]
+        public async Task ChainedParsersAsync()
+        {
+            var p0 =
+                Parser.ForDelegate(
+                    (ReadOnlySpan<char> data, in ReadContext ctx, out int val) =>
+                    {
+                        var a = (_ChainedParsers_Context)ctx.Context;
+
+                        if (a.Num != 1)
+                        {
+                            val = default;
+                            return false;
+                        }
+
+                        val = int.Parse(data);
+                        val *= 2;
+
+                        return true;
+                    }
+                );
+
+            var p1 =
+                Parser.ForDelegate(
+                    (ReadOnlySpan<char> data, in ReadContext ctx, out int val) =>
+                    {
+                        var a = (_ChainedParsers_Context)ctx.Context;
+
+                        if (a.Num != 2)
+                        {
+                            val = default;
+                            return false;
+                        }
+
+                        val = int.Parse(data);
+                        val--;
+
+                        return true;
+                    }
+                );
+
+            var p2 =
+                Parser.ForDelegate(
+                    (ReadOnlySpan<char> data, in ReadContext ctx, out int val) =>
+                    {
+                        var a = (_ChainedParsers_Context)ctx.Context;
+
+                        if (a.Num != 3)
+                        {
+                            val = default;
+                            return false;
+                        }
+
+                        val = int.Parse(data);
+                        val = -(val << 3);
+
+                        return true;
+                    }
+                );
+
+            var p = p0.Else(p1).Else(p2);
+
+            var td = new _ChainedParsers_TypeDescriber(p);
+
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithTypeDescriber(td).ToOptions();
+
+            await RunAsyncDynamicReaderVariants(
+                opts,
+                async (config, getReader) =>
+                {
+                    var ctx = new _ChainedParsers_Context();
+
+                    await using (var reader = await getReader("Foo\r\n1\r\n2\r\n3\r\n4"))
+                    await using (var csv = config.CreateAsyncReader(reader, ctx))
+                    {
+                        ctx.Num = 1;
+                        var res1 = await csv.TryReadAsync();
+                        Assert.True(res1.HasValue);
+                        var r1 = res1.Value;
+                        var c1 = r1.Foo;
+                        Assert.Equal(2, (int)c1);
+
+                        ctx.Num = 2;
+                        var res2 = await csv.TryReadAsync();
+                        Assert.True(res2.HasValue);
+                        var r2 = res2.Value;
+                        var c2 = r2.Foo;
+                        Assert.Equal(1, (int)c2);
+
+                        ctx.Num = 3;
+                        var res3 = await csv.TryReadAsync();
+                        Assert.True(res3.HasValue);
+                        var r3 = res3.Value;
+                        var c3 = r3.Foo;
+                        Assert.Equal(-(3 << 3), (int)c3);
+
+                        ctx.Num = 4;
+                        var res4 = await csv.TryReadAsync();
+                        Assert.True(res4.HasValue);
+                        var r4 = res4.Value;
+                        var c4 = r4.Foo;
+                        Assert.Throws<InvalidOperationException>(() => (int)c4);
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public async Task ChainedDynamicRowConvertersAsync()
+        {
+            var c1 =
+                DynamicRowConverter.ForDelegate(
+                    (dynamic row, in ReadContext ctx, out _ChainedDynamicRowConverters res) =>
+                    {
+                        var c = (_ChainedDynamicRowConverters_Context)ctx.Context;
+                        if (c.Num != 1)
+                        {
+                            res = null;
+                            return false;
+                        }
+
+                        res = new _ChainedDynamicRowConverters((string)row[0], 1);
+                        return true;
+                    }
+                );
+            var c2 =
+                DynamicRowConverter.ForDelegate(
+                    (dynamic row, in ReadContext ctx, out _ChainedDynamicRowConverters res) =>
+                    {
+                        var c = (_ChainedDynamicRowConverters_Context)ctx.Context;
+                        if (c.Num != 2)
+                        {
+                            res = null;
+                            return false;
+                        }
+
+                        res = new _ChainedDynamicRowConverters((string)row[0], 2);
+                        return true;
+                    }
+                );
+            var c3 =
+                DynamicRowConverter.ForDelegate(
+                    (dynamic row, in ReadContext ctx, out _ChainedDynamicRowConverters res) =>
+                    {
+                        var c = (_ChainedDynamicRowConverters_Context)ctx.Context;
+                        if (c.Num != 3)
+                        {
+                            res = null;
+                            return false;
+                        }
+
+                        res = new _ChainedDynamicRowConverters((string)row[0], 3);
+                        return true;
+                    }
+                );
+
+            var c = c1.Else(c2).Else(c3);
+
+            var td = new _ChainedDynamicRowConverters_TypeDescriber(c);
+
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithTypeDescriber(td).ToOptions();
+
+           await RunAsyncDynamicReaderVariants(
+                opts,
+                async (config, getReader) =>
+                {
+                    var ctx = new _ChainedDynamicRowConverters_Context();
+                    await using (var reader = await getReader("Foo\r\nabc\r\ndef\r\nghi\r\n123"))
+                    await using (var csv = config.CreateAsyncReader(reader, ctx))
+                    {
+                        ctx.Num = 1;
+                        var res1 = await csv.TryReadAsync();
+                        Assert.True(res1.HasValue);
+                        var r1 = res1.Value;
+                        _ChainedDynamicRowConverters s1 = r1;
+                        Assert.Equal("abc", s1.Value);
+                        Assert.Equal(1, s1.Number);
+
+                        ctx.Num = 2;
+                        var res2 = await csv.TryReadAsync();
+                        Assert.True(res2.HasValue);
+                        var r2 = res2.Value;
+                        _ChainedDynamicRowConverters s2 = r2;
+                        Assert.Equal("def", s2.Value);
+                        Assert.Equal(2, s2.Number);
+
+                        ctx.Num = 3;
+                        var res3 = await csv.TryReadAsync();
+                        Assert.True(res3.HasValue);
+                        var r3 = res3.Value;
+                        _ChainedDynamicRowConverters s3 = r3;
+                        Assert.Equal("ghi", s3.Value);
+                        Assert.Equal(3, s3.Number);
+
+                        ctx.Num = 4;
+                        var res4 = await csv.TryReadAsync();
+                        Assert.True(res4.HasValue);
+                        var r4 = res4.Value;
+                        Assert.Throws<InvalidOperationException>(() => { _ChainedDynamicRowConverters s4 = r4; });
+                    }
+                }
+            );
+        }
 
         [Fact]
         public async Task WhitespaceTrimmingAsync()

@@ -44,7 +44,14 @@ namespace Cesil
 
                             if (ss.IsStatic)
                             {
-                                callShouldSerialize = Expression.Call(mtd);
+                                if (ss.Takes.HasValue)
+                                {
+                                    callShouldSerialize = Expression.Call(mtd, l1);
+                                }
+                                else
+                                {
+                                    callShouldSerialize = Expression.Call(mtd);
+                                }
                             }
                             else
                             {
@@ -184,24 +191,7 @@ done:
                 statements.Add(ifIsDefaultReturnTrue);
             }
 
-            Expression callFormatter;
-            switch (formatter.Mode)
-            {
-                case BackingMode.Method:
-                    {
-                        callFormatter = Expression.Call(formatter.Method.Value, l2, p2, p3);
-                    }
-                    break;
-                case BackingMode.Delegate:
-                    {
-                        var formatterDel = formatter.Delegate.Value;
-                        var delRef = Expression.Constant(formatterDel);
-                        callFormatter = Expression.Invoke(delRef, l2, p2, p3);
-                    }
-                    break;
-                default:
-                    return Throw.InvalidOperationException<ColumnWriterDelegate>($"Unexpected {nameof(BackingMode)}: {formatter.Mode}");
-            }
+            var callFormatter = formatter.MakeExpression(l2, p2, p3);
 
             statements.Add(Expression.Goto(end, callFormatter));
 

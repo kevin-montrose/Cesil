@@ -494,7 +494,7 @@ namespace Cesil.Tests
             public _InstanceBuilders_Surrogate() { }
         }
 
-        private static bool _InstanceBuilders_Mtd(out _InstanceBuilders_Surrogate val)
+        private static bool _InstanceBuilders_Mtd(in ReadContext ctx, out _InstanceBuilders_Surrogate val)
         {
             val = new _InstanceBuilders_Surrogate();
             return true;
@@ -526,7 +526,7 @@ namespace Cesil.Tests
             // cannot be backed by delegate
             {
                 var manual = ManualTypeDescriberBuilder.CreateBuilder();
-                manual.WithInstanceProvider(InstanceProvider.ForDelegate((out _InstanceBuilders_Surrogate val) => { val = new _InstanceBuilders_Surrogate(); return true; }));
+                manual.WithInstanceProvider(InstanceProvider.ForDelegate((in ReadContext _, out _InstanceBuilders_Surrogate val) => { val = new _InstanceBuilders_Surrogate(); return true; }));
 
                 var badSurrogate = SurrogateTypeDescriberBuilder.CreateBuilder(SurrogateTypeDescriberFallbackBehavior.UseFallback, manual.ToManualTypeDescriber());
                 badSurrogate.WithSurrogateType(typeof(_InstanceBuilders_Real).GetTypeInfo(), typeof(_InstanceBuilders_Surrogate).GetTypeInfo());

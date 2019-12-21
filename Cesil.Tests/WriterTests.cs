@@ -16,6 +16,117 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class WriterTests
     {
+        private sealed class _ChainedFormatters
+        {
+            public string Foo { get; set; }
+            public string Bar { get; set; }
+            public string Fizz { get; set; }
+            public string Buzz { get; set; }
+        }
+
+        private sealed class _ChainedFormatters_Context
+        {
+            public int F { get; set; }
+            public int B { get; set; }
+            public int Fi { get; set; }
+            public int Bu { get; set; }
+        }
+
+        [Fact]
+        public void ChainedFormatters()
+        {
+            var ip = InstanceProvider.ForDelegate<_ChainedFormatters>((in ReadContext _, out _ChainedFormatters x) => { x = new _ChainedFormatters(); return true; });
+            var f1 =
+                Formatter.ForDelegate<string>(
+                    (string data, in WriteContext ctx, IBufferWriter<char> writer) =>
+                    {
+                        var num = ((_ChainedFormatters_Context)ctx.Context).F;
+
+                        if (num != 1) return false;
+
+                        var span = writer.GetSpan(4);
+                        span[0] = '1';
+                        span[1] = '2';
+                        span[2] = '3';
+                        span[3] = '4';
+
+                        writer.Advance(4);
+
+                        return true;
+                    }
+                );
+            var f2 =
+                Formatter.ForDelegate<string>(
+                    (string data, in WriteContext ctx, IBufferWriter<char> writer) =>
+                    {
+                        var num = ((_ChainedFormatters_Context)ctx.Context).F;
+
+                        if (num != 2) return false;
+
+                        var span = writer.GetSpan(3);
+                        span[0] = 'a';
+                        span[1] = 'b';
+                        span[2] = 'c';
+
+                        writer.Advance(3);
+
+                        return true;
+                    }
+                );
+            var f3 =
+                Formatter.ForDelegate<string>(
+                    (string data, in WriteContext ctx, IBufferWriter<char> writer) =>
+                    {
+                        var num = ((_ChainedFormatters_Context)ctx.Context).F;
+
+                        if (num != 3) return false;
+
+                        var span = writer.GetSpan(2);
+                        span[0] = '0';
+                        span[1] = '0';
+
+                        writer.Advance(2);
+
+                        return true;
+                    }
+                );
+
+            var f = f1.Else(f2).Else(f3);
+
+            var m =
+                ManualTypeDescriberBuilder
+                    .CreateBuilder()
+                    .WithInstanceProvider(ip)
+                    .WithSerializableProperty(typeof(_ChainedFormatters).GetProperty(nameof(_ChainedFormatters.Foo)), "Foo", f)
+                    .ToManualTypeDescriber();
+
+            var opts = OptionsBuilder.CreateBuilder(Options.Default).WithTypeDescriber(m).ToOptions();
+
+            RunSyncWriterVariants<_ChainedFormatters>(
+                opts,
+                (config, getWriter, getStr) =>
+                {
+                    var ctx = new _ChainedFormatters_Context();
+
+                    using(var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer, ctx))
+                    {
+                        ctx.F = 1;
+                        csv.Write(new _ChainedFormatters { });
+                        ctx.F = 2;
+                        csv.Write(new _ChainedFormatters { });
+                        ctx.F = 3;
+                        csv.Write(new _ChainedFormatters { });
+                        ctx.F = 1;
+                        csv.Write(new _ChainedFormatters { });
+                    }
+
+                    var str = getStr();
+                    Assert.Equal("Foo\r\n1234\r\nabc\r\n00\r\n1234", str);
+                }
+            );
+        }
+
         [Fact]
         public void CheckCanEncode()
         {
@@ -350,7 +461,7 @@ namespace Cesil.Tests
             var g = Getter.ForMethod(t.GetProperty(nameof(_FailingGetter.Foo)).GetMethod);
             var f = Formatter.ForDelegate((int value, in WriteContext context, IBufferWriter<char> buffer) => false);
 
-            m.WithInstanceProvider(InstanceProvider.ForDelegate((out _FailingGetter val) => { val = new _FailingGetter(); return true; }));
+            m.WithInstanceProvider(InstanceProvider.ForDelegate((in ReadContext _, out _FailingGetter val) => { val = new _FailingGetter(); return true; }));
             m.WithExplicitGetter(t, "bar", g, f);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(m.ToManualTypeDescriber()).ToOptions();
@@ -1459,7 +1570,7 @@ namespace Cesil.Tests
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.WithExplicitGetter(typeof(_DelegateShouldSerialize).GetTypeInfo(), name, getter, formatter, shouldSerialize);
-            InstanceProviderDelegate<_DelegateShouldSerialize> del = (out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
+            InstanceProviderDelegate<_DelegateShouldSerialize> del = (in ReadContext _, out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).WithWriteHeader(WriteHeader.Always).ToOptions();
@@ -1505,7 +1616,7 @@ namespace Cesil.Tests
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.WithExplicitGetter(typeof(_DelegateShouldSerialize).GetTypeInfo(), name, getter, formatter, shouldSerialize);
-            InstanceProviderDelegate<_DelegateShouldSerialize> del = (out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
+            InstanceProviderDelegate<_DelegateShouldSerialize> del = (in ReadContext _, out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).WithWriteHeader(WriteHeader.Always).ToOptions();
@@ -1560,7 +1671,7 @@ namespace Cesil.Tests
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.WithExplicitGetter(typeof(_DelegateFormatter).GetTypeInfo(), name, getter, formatter);
-            InstanceProviderDelegate<_DelegateFormatter> del = (out _DelegateFormatter i) => { i = new _DelegateFormatter(); return true; };
+            InstanceProviderDelegate<_DelegateFormatter> del = (in ReadContext _, out _DelegateFormatter i) => { i = new _DelegateFormatter(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).WithWriteHeader(WriteHeader.Always).ToOptions();
@@ -1609,7 +1720,7 @@ namespace Cesil.Tests
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.WithExplicitGetter(typeof(_DelegateGetter).GetTypeInfo(), name, getter);
-            InstanceProviderDelegate<_DelegateGetter> del = (out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
+            InstanceProviderDelegate<_DelegateGetter> del = (in ReadContext _, out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).WithWriteHeader(WriteHeader.Always).ToOptions();
@@ -1653,7 +1764,7 @@ namespace Cesil.Tests
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.WithExplicitGetter(typeof(_DelegateGetter).GetTypeInfo(), name, getter);
-            InstanceProviderDelegate<_DelegateGetter> del = (out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
+            InstanceProviderDelegate<_DelegateGetter> del = (in ReadContext _, out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).WithWriteHeader(WriteHeader.Always).ToOptions();
@@ -2941,6 +3052,101 @@ namespace Cesil.Tests
         }
 
         [Fact]
+        public async Task ChainedFormattersAsync()
+        {
+            var ip = InstanceProvider.ForDelegate<_ChainedFormatters>((in ReadContext _, out _ChainedFormatters x) => { x = new _ChainedFormatters(); return true; });
+            var f1 =
+                Formatter.ForDelegate<string>(
+                    (string data, in WriteContext ctx, IBufferWriter<char> writer) =>
+                    {
+                        var num = ((_ChainedFormatters_Context)ctx.Context).F;
+
+                        if (num != 1) return false;
+
+                        var span = writer.GetSpan(4);
+                        span[0] = '1';
+                        span[1] = '2';
+                        span[2] = '3';
+                        span[3] = '4';
+
+                        writer.Advance(4);
+
+                        return true;
+                    }
+                );
+            var f2 =
+                Formatter.ForDelegate<string>(
+                    (string data, in WriteContext ctx, IBufferWriter<char> writer) =>
+                    {
+                        var num = ((_ChainedFormatters_Context)ctx.Context).F;
+
+                        if (num != 2) return false;
+
+                        var span = writer.GetSpan(3);
+                        span[0] = 'a';
+                        span[1] = 'b';
+                        span[2] = 'c';
+
+                        writer.Advance(3);
+
+                        return true;
+                    }
+                );
+            var f3 =
+                Formatter.ForDelegate<string>(
+                    (string data, in WriteContext ctx, IBufferWriter<char> writer) =>
+                    {
+                        var num = ((_ChainedFormatters_Context)ctx.Context).F;
+
+                        if (num != 3) return false;
+
+                        var span = writer.GetSpan(2);
+                        span[0] = '0';
+                        span[1] = '0';
+
+                        writer.Advance(2);
+
+                        return true;
+                    }
+                );
+
+            var f = f1.Else(f2).Else(f3);
+
+            var m =
+                ManualTypeDescriberBuilder
+                    .CreateBuilder()
+                    .WithInstanceProvider(ip)
+                    .WithSerializableProperty(typeof(_ChainedFormatters).GetProperty(nameof(_ChainedFormatters.Foo)), "Foo", f)
+                    .ToManualTypeDescriber();
+
+            var opts = OptionsBuilder.CreateBuilder(Options.Default).WithTypeDescriber(m).ToOptions();
+
+            await RunAsyncWriterVariants<_ChainedFormatters>(
+                opts,
+                async (config, getWriter, getStr) =>
+                {
+                    var ctx = new _ChainedFormatters_Context();
+
+                    await using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer, ctx))
+                    {
+                        ctx.F = 1;
+                        await csv.WriteAsync(new _ChainedFormatters { });
+                        ctx.F = 2;
+                        await csv.WriteAsync(new _ChainedFormatters { });
+                        ctx.F = 3;
+                        await csv.WriteAsync(new _ChainedFormatters { });
+                        ctx.F = 1;
+                        await csv.WriteAsync(new _ChainedFormatters { });
+                    }
+
+                    var str = await getStr();
+                    Assert.Equal("Foo\r\n1234\r\nabc\r\n00\r\n1234", str);
+                }
+            );
+        }
+
+        [Fact]
         public async Task NoEscapesAsync()
         {
             // no escapes at all (TSV)
@@ -3148,7 +3354,7 @@ namespace Cesil.Tests
             var g = Getter.ForMethod(t.GetProperty(nameof(_FailingGetter.Foo)).GetMethod);
             var f = Formatter.ForDelegate((int value, in WriteContext context, IBufferWriter<char> buffer) => false);
 
-            m.WithInstanceProvider(InstanceProvider.ForDelegate((out _FailingGetter val) => { val = new _FailingGetter(); return true; }));
+            m.WithInstanceProvider(InstanceProvider.ForDelegate((in ReadContext _, out _FailingGetter val) => { val = new _FailingGetter(); return true; }));
             m.WithExplicitGetter(t, "bar", g, f);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(m.ToManualTypeDescriber()).ToOptions();
@@ -3893,7 +4099,7 @@ namespace Cesil.Tests
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.WithExplicitGetter(typeof(_DelegateShouldSerialize).GetTypeInfo(), name, getter, formatter, shouldSerialize);
-            InstanceProviderDelegate<_DelegateShouldSerialize> del = (out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
+            InstanceProviderDelegate<_DelegateShouldSerialize> del = (in ReadContext _, out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).WithWriteHeader(WriteHeader.Always).ToOptions();
@@ -3939,7 +4145,7 @@ namespace Cesil.Tests
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.WithExplicitGetter(typeof(_DelegateShouldSerialize).GetTypeInfo(), name, getter, formatter, shouldSerialize);
-            InstanceProviderDelegate<_DelegateShouldSerialize> del = (out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
+            InstanceProviderDelegate<_DelegateShouldSerialize> del = (in ReadContext _, out _DelegateShouldSerialize i) => { i = new _DelegateShouldSerialize(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).WithWriteHeader(WriteHeader.Always).ToOptions();
@@ -4012,7 +4218,7 @@ namespace Cesil.Tests
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.WithExplicitGetter(typeof(_DelegateFormatter).GetTypeInfo(), name, getter, formatter);
-            InstanceProviderDelegate<_DelegateFormatter> del = (out _DelegateFormatter i) => { i = new _DelegateFormatter(); return true; };
+            InstanceProviderDelegate<_DelegateFormatter> del = (in ReadContext _, out _DelegateFormatter i) => { i = new _DelegateFormatter(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).WithWriteHeader(WriteHeader.Always).ToOptions();
@@ -4056,7 +4262,7 @@ namespace Cesil.Tests
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.WithExplicitGetter(typeof(_DelegateGetter).GetTypeInfo(), name, getter);
-            InstanceProviderDelegate<_DelegateGetter> del = (out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
+            InstanceProviderDelegate<_DelegateGetter> del = (in ReadContext _, out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).WithWriteHeader(WriteHeader.Always).ToOptions();
@@ -4100,7 +4306,7 @@ namespace Cesil.Tests
 
             var describer = ManualTypeDescriberBuilder.CreateBuilder();
             describer.WithExplicitGetter(typeof(_DelegateGetter).GetTypeInfo(), name, getter);
-            InstanceProviderDelegate<_DelegateGetter> del = (out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
+            InstanceProviderDelegate<_DelegateGetter> del = (in ReadContext _, out _DelegateGetter i) => { i = new _DelegateGetter(); return true; };
             describer.WithInstanceProvider((InstanceProvider)del);
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)describer.ToManualTypeDescriber()).WithWriteHeader(WriteHeader.Always).ToOptions();
