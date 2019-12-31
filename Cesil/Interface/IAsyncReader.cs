@@ -16,6 +16,8 @@ namespace Cesil
         /// 
         /// The enumerable will attempt to complete synchronously,
         /// but will not block if results are not available.
+        /// 
+        /// The returned IAsyncEnumerable(TRow) may only be enumerated once.
         /// </summary>
         IAsyncEnumerable<TRow> EnumerateAllAsync();
 

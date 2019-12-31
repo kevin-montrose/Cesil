@@ -6,6 +6,60 @@ namespace Cesil.Tests
 {
     public class MaxSizedBufferWriterTests
     {
+        private sealed class FixSizeMemoryPool : MemoryPool<char>
+        {
+            private sealed class Owner : IMemoryOwner<char>
+            {
+                public Memory<char> Memory { get; }
+
+                public Owner(Memory<char> mem)
+                {
+                    Memory = mem;
+                }
+
+                public void Dispose() { }
+            }
+
+            private readonly char[] Buffer;
+
+            public override int MaxBufferSize { get; }
+
+            public FixSizeMemoryPool(int size)
+            {
+                MaxBufferSize = size;
+                Buffer = new char[MaxBufferSize];
+            }
+
+            public override IMemoryOwner<char> Rent(int minBufferSize = -1)
+            {
+                return new Owner(Buffer.AsMemory());
+            }
+
+            protected override void Dispose(bool disposing) { }
+        }
+
+        [Fact]
+        public void Errors()
+        {
+            // out of range
+            {
+                var writer = new MaxSizedBufferWriter(MemoryPool<char>.Shared, null);
+
+                // advance
+                Assert.Throws<ArgumentException>(() => writer.Advance(-1));
+
+                // get memory
+                Assert.Throws<ArgumentException>(() => writer.GetMemory(-1));
+            }
+
+            // too large request
+            {
+                var writer = new MaxSizedBufferWriter(new FixSizeMemoryPool(16), null);
+
+                Assert.Throws<InvalidOperationException>(() => writer.GetMemory(17));
+            }
+        }
+
         [Fact]
         public void Empty()
         {

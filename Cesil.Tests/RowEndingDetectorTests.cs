@@ -19,6 +19,8 @@ namespace Cesil.Tests
         }
 
         [Theory]
+        [InlineData("foo", RowEnding.CarriageReturnLineFeed)]
+
         [InlineData("foo\r\n", RowEnding.CarriageReturnLineFeed)]
         [InlineData("foo,bar\r\n", RowEnding.CarriageReturnLineFeed)]
         [InlineData("foo,bar\r\nfizz,buzz", RowEnding.CarriageReturnLineFeed)]
@@ -59,6 +61,8 @@ namespace Cesil.Tests
         }
 
         [Theory]
+        [InlineData("foo", RowEnding.CarriageReturnLineFeed)]
+
         [InlineData("foo\r\n", RowEnding.CarriageReturnLineFeed)]
         [InlineData("foo,bar\r\n", RowEnding.CarriageReturnLineFeed)]
         [InlineData("foo,bar\r\nfizz,buzz", RowEnding.CarriageReturnLineFeed)]

@@ -41,13 +41,20 @@ namespace Cesil
             // continue after waiting for HandleLineEndings to finish
             static async ValueTask HandleRowEndingsAndHeadersAsync_ContinueAFterHandleLineEndingsAsync(AsyncDynamicReader self, ValueTask waitFor, CancellationToken cancel)
             {
-                await ConfigureCancellableAwait(self, waitFor, cancel);
-                CheckCancellation(self, cancel);
-
-                if (self.ReadHeaders == null)
+                try
                 {
-                    await ConfigureCancellableAwait(self, self.HandleHeadersAsync(cancel), cancel);
+                    await ConfigureCancellableAwait(self, waitFor, cancel);
                     CheckCancellation(self, cancel);
+
+                    if (self.ReadHeaders == null)
+                    {
+                        await ConfigureCancellableAwait(self, self.HandleHeadersAsync(cancel), cancel);
+                        CheckCancellation(self, cancel);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Throw.PoisonAndRethrow<object>(self, e);
                 }
             }
         }
@@ -125,76 +132,83 @@ namespace Cesil
             // continue after we read a chunk into a buffer
             static async ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync_ContinueAfterReadAsync(AsyncDynamicReader self, ValueTask<int> waitFor, ReaderStateMachine.PinHandle handle, bool returnComments, DynamicRow record, bool needsInit, CancellationToken cancel)
             {
-                using (handle)
+                try
                 {
-                    // finish this loop up
+                    using (handle)
                     {
-                        int available;
-                        using (self.StateMachine.ReleaseAndRePinForAsync(waitFor))
+                        // finish this loop up
                         {
-                            available = await ConfigureCancellableAwait(self, waitFor, cancel);
-                            CheckCancellation(self, cancel);
-                        }
-                        if (available == 0)
-                        {
-                            var endRes = self.EndOfData();
-
-                            return self.HandleAdvanceResult(endRes, returnComments);
-                        }
-
-                        if (!self.Partial.HasPending)
-                        {
-                            if (needsInit)
+                            int available;
+                            using (self.StateMachine.ReleaseAndRePinForAsync(waitFor))
                             {
-                                GuaranteeInitializedRow(self, record);
-                                needsInit = false;
+                                available = await ConfigureCancellableAwait(self, waitFor, cancel);
+                                CheckCancellation(self, cancel);
                             }
-                            self.SetValueToPopulate(record);
+                            if (available == 0)
+                            {
+                                var endRes = self.EndOfData();
+
+                                return self.HandleAdvanceResult(endRes, returnComments);
+                            }
+
+                            if (!self.Partial.HasPending)
+                            {
+                                if (needsInit)
+                                {
+                                    GuaranteeInitializedRow(self, record);
+                                    needsInit = false;
+                                }
+                                self.SetValueToPopulate(record);
+                            }
+
+                            var res = self.AdvanceWork(available);
+                            var possibleReturn = self.HandleAdvanceResult(res, returnComments);
+                            if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
+                            {
+                                return possibleReturn;
+                            }
                         }
 
-                        var res = self.AdvanceWork(available);
-                        var possibleReturn = self.HandleAdvanceResult(res, returnComments);
-                        if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
+                        // back into the loop
+                        while (true)
                         {
-                            return possibleReturn;
+                            self.PreparingToWriteToBuffer();
+                            var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
+                            int available;
+                            using (self.StateMachine.ReleaseAndRePinForAsync(availableTask))
+                            {
+                                available = await ConfigureCancellableAwait(self, availableTask, cancel);
+                                CheckCancellation(self, cancel);
+                            }
+                            if (available == 0)
+                            {
+                                var endRes = self.EndOfData();
+
+                                return self.HandleAdvanceResult(endRes, returnComments);
+                            }
+
+                            if (!self.Partial.HasPending)
+                            {
+                                if (needsInit)
+                                {
+                                    GuaranteeInitializedRow(self, record);
+                                    needsInit = false;
+                                }
+                                self.SetValueToPopulate(record);
+                            }
+
+                            var res = self.AdvanceWork(available);
+                            var possibleReturn = self.HandleAdvanceResult(res, returnComments);
+                            if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
+                            {
+                                return possibleReturn;
+                            }
                         }
                     }
-
-                    // back into the loop
-                    while (true)
-                    {
-                        self.PreparingToWriteToBuffer();
-                        var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
-                        int available;
-                        using (self.StateMachine.ReleaseAndRePinForAsync(availableTask))
-                        {
-                            available = await ConfigureCancellableAwait(self, availableTask, cancel);
-                            CheckCancellation(self, cancel);
-                        }
-                        if (available == 0)
-                        {
-                            var endRes = self.EndOfData();
-
-                            return self.HandleAdvanceResult(endRes, returnComments);
-                        }
-
-                        if (!self.Partial.HasPending)
-                        {
-                            if (needsInit)
-                            {
-                                GuaranteeInitializedRow(self, record);
-                                needsInit = false;
-                            }
-                            self.SetValueToPopulate(record);
-                        }
-
-                        var res = self.AdvanceWork(available);
-                        var possibleReturn = self.HandleAdvanceResult(res, returnComments);
-                        if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
-                        {
-                            return possibleReturn;
-                        }
-                    }
+                }
+                catch (Exception e)
+                {
+                    return Throw.PoisonAndRethrow<ReadWithCommentResult<dynamic>>(self, e);
                 }
             }
         }
@@ -360,6 +374,10 @@ namespace Cesil
                     self.Buffer.PushBackFromOutsideBuffer(res.PushBack);
                     self.TryMakeStateMachine();
                 }
+                catch(Exception e)
+                {
+                    Throw.PoisonAndRethrow<object>(self, e);
+                }
                 finally
                 {
                     reader.Dispose();
@@ -410,6 +428,10 @@ namespace Cesil
 
                     self.HandleLineEndingsDetectionResult(res);
                 }
+                catch(Exception e)
+                {
+                    Throw.PoisonAndRethrow<object>(self, e);
+                }
                 finally
                 {
                     detector.Dispose();
@@ -444,20 +466,23 @@ namespace Cesil
             }
             catch (Exception e)
             {
-                Buffer.Dispose();
-                Partial.Dispose();
-                StateMachine?.Dispose();
-                SharedCharacterLookup.Dispose();
+                Cleanup(this);
 
                 return Throw.PoisonAndRethrow<ValueTask>(this, e);
             }
 
-            Buffer.Dispose();
-            Partial.Dispose();
-            StateMachine?.Dispose();
-            SharedCharacterLookup.Dispose();
+            Cleanup(this);
 
             return default;
+
+            // handle actual cleanup, a method to DRY things up
+            static void Cleanup(AsyncDynamicReader self)
+            {
+                self.Buffer.Dispose();
+                self.Partial.Dispose();
+                self.StateMachine?.Dispose();
+                self.SharedCharacterLookup.Dispose();
+            }
 
             // wait for Inner's DisposeAsync call to finish, then finish disposing self
             static async ValueTask DisposeAsync_WaitForInnerDispose(AsyncDynamicReader self, ValueTask toAwait)
@@ -468,19 +493,13 @@ namespace Cesil
                 }
                 catch (Exception e)
                 {
-                    self.Buffer.Dispose();
-                    self.Partial.Dispose();
-                    self.StateMachine?.Dispose();
-                    self.SharedCharacterLookup.Dispose();
+                    Cleanup(self);
 
                     Throw.PoisonAndRethrow<object>(self, e);
                     return;
                 }
 
-                self.Buffer.Dispose();
-                self.Partial.Dispose();
-                self.StateMachine?.Dispose();
-                self.SharedCharacterLookup.Dispose();
+                Cleanup(self);
 
                 return;
             }

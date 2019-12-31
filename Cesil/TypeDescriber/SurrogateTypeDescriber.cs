@@ -288,7 +288,7 @@ namespace Cesil
                 var surrogateShouldSerializeWrapper = member.ShouldSerialize.Value;
                 if (surrogateShouldSerializeWrapper.Mode == BackingMode.Method)
                 {
-                    if(surrogateShouldSerializeWrapper.Takes.HasValue)
+                    if(surrogateShouldSerializeWrapper.Takes.HasValue && surrogateShouldSerializeWrapper.IsStatic)
                     {
                         return Throw.InvalidOperationException<SerializableMember>($"Cannot map 'should serialize' {surrogateShouldSerializeWrapper} onto {ontoType}, it takes a parameter");
                     }

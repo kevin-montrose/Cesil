@@ -162,6 +162,8 @@ namespace Cesil
 
             if (mode != otherMode) return false;
 
+            if (IsStatic != reset.IsStatic) return false;
+
             if (RowType.HasValue)
             {
                 if (!reset.RowType.HasValue) return false;
@@ -176,9 +178,9 @@ namespace Cesil
             switch (mode)
             {
                 case BackingMode.Delegate:
-                    return reset.Delegate.Value == Delegate.Value && reset.IsStatic == IsStatic;
+                    return reset.Delegate.Value == Delegate.Value;
                 case BackingMode.Method:
-                    return reset.Method.Value == Method.Value && reset.IsStatic == IsStatic;
+                    return reset.Method.Value == Method.Value;
 
                 default:
                     return Throw.Exception<bool>($"Unexpected {nameof(BackingMode)}: {mode}");

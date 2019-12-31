@@ -16,7 +16,7 @@ namespace Cesil
     /// 
     /// Wraps either a MethodInfo, a ParserDelegate, or a ConstructorInfo.
     /// </summary>
-    public sealed class Parser : 
+    public sealed class Parser :
         IElseSupporting<Parser>,
         IEquatable<Parser>
     {
@@ -106,7 +106,16 @@ namespace Cesil
         ///   it will then try the given fallback Parser.
         /// </summary>
         public Parser Else(Parser fallbackParser)
-        => this.DoElse(fallbackParser);
+        {
+            Utils.CheckArgumentNull(fallbackParser, nameof(fallbackParser));
+
+            if (!Creates.IsAssignableFrom(fallbackParser.Creates))
+            {
+                return Throw.ArgumentException<Parser>($"{fallbackParser} does not provide a value assignable to {Creates}, and cannot be used as a falllback for this {nameof(Parser)}", nameof(fallbackParser));
+            }
+
+            return this.DoElse(fallbackParser);
+        }
 
         internal Expression MakeExpression(Expression dataVar, Expression contextVar, Expression outVar)
         {
@@ -153,7 +162,7 @@ namespace Cesil
             }
 
             var finalExp = selfExp;
-            foreach(var fallback in _Fallbacks)
+            foreach (var fallback in _Fallbacks)
             {
                 var fallbackExp = fallback.MakeExpression(dataVar, contextVar, outVar);
                 finalExp = Expression.OrElse(finalExp, fallbackExp);

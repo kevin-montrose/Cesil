@@ -245,6 +245,8 @@ namespace Cesil
                 }
                 catch (Exception e)
                 {
+                    // todo: find a way to test this, presumably with an explicit exception point above?
+
                     if(Staging.HasValue)
                     {
                         Staging.Value.Dispose();

@@ -16,6 +16,47 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ReaderTests
     {
+        private sealed class _PoisedTryReadWithCommentReuse
+        {
+            public string Foo { get; set; }
+        }
+
+        [Fact]
+        public void PoisedTryReadWithCommentReuse()
+        {
+            var setter = Setter.ForDelegate((_PoisedTryReadWithCommentReuse row, string val) => throw new Exception());
+
+            var type = typeof(_PoisedTryReadWithCommentReuse).GetTypeInfo();
+            var cons = type.GetConstructor(Type.EmptyTypes);
+            var provider = InstanceProvider.ForParameterlessConstructor(cons);
+
+            var m = ManualTypeDescriberBuilder.CreateBuilder().WithInstanceProvider(provider).WithExplicitSetter(type, "Foo", setter).ToManualTypeDescriber();
+
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(m).ToOptions();
+
+            RunSyncReaderVariants<_PoisedTryReadWithCommentReuse>(
+                opts,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader("Foo\r\nbar"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        Assert.Throws<Exception>(
+                            () =>
+                            {
+                                _PoisedTryReadWithCommentReuse row = null;
+                                csv.TryReadWithCommentReuse(ref row);
+                            }
+                        );
+
+                        var poisonable = csv as PoisonableBase;
+
+                        Assert.Equal(PoisonType.Exception, poisonable.Poison.Value);
+                    }
+                }
+            );
+        }
+
         private sealed class _ChainedParsers
         {
             public int Foo { get; set; }
@@ -1324,6 +1365,8 @@ namespace Cesil.Tests
 
             var badReset = Reset.ForDelegate<string>((_) => { });
             Assert.Throws<ArgumentException>(() => DeserializableMember.Create(type, name, setter, parser, MemberRequired.Yes, badReset));
+
+            Assert.Throws<ArgumentException>(() => DeserializableMember.Create(type, "", setter, parser, MemberRequired.Yes, null));
         }
 
         [Fact]
@@ -2809,8 +2852,19 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                         using (var csv = config.CreateReader(reader))
                         {
                             var read = csv.EnumerateAll();
+
+                            var rows = new List<_ReadAll>();
+                            foreach(var r in read)
+                            {
+                                rows.Add(r);
+
+                                // can't double enumerate
+                                //   happens here because `foreach` implicitly disposes `read`
+                                Assert.Throws<InvalidOperationException>(() => read.GetEnumerator());
+                            }
+
                             Assert.Collection(
-                                read,
+                                rows,
                                 r1 =>
                                 {
 
@@ -4016,6 +4070,42 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     }
                 );
             }
+        }
+
+        [Fact]
+        public async Task PoisedTryReadWithCommentReuseAsync()
+        {
+            var setter = Setter.ForDelegate((_PoisedTryReadWithCommentReuse row, string val) => throw new Exception());
+
+            var type = typeof(_PoisedTryReadWithCommentReuse).GetTypeInfo();
+            var cons = type.GetConstructor(Type.EmptyTypes);
+            var provider = InstanceProvider.ForParameterlessConstructor(cons);
+
+            var m = ManualTypeDescriberBuilder.CreateBuilder().WithInstanceProvider(provider).WithExplicitSetter(type, "Foo", setter).ToManualTypeDescriber();
+
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(m).ToOptions();
+
+            await RunAsyncReaderVariants<_PoisedTryReadWithCommentReuse>(
+                opts,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("Foo\r\nbar"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        await Assert.ThrowsAnyAsync<Exception>(
+                            async () =>
+                            {
+                                _PoisedTryReadWithCommentReuse row = null;
+                                await csv.TryReadWithCommentReuseAsync(ref row);
+                            }
+                        );
+
+                        var poisonable = csv as PoisonableBase;
+
+                        Assert.Equal(PoisonType.Exception, poisonable.Poison.Value);
+                    }
+                }
+            );
         }
 
         [Fact]
@@ -6331,6 +6421,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             }
 
                             Assert.False(await enumerator.MoveNextAsync());
+
+                            // double enumeration fails
+                            Assert.Throws<InvalidOperationException>(() => enumerable.GetAsyncEnumerator());
                         }
                         finally
                         {
@@ -6349,9 +6442,14 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     {
                         var rows = new List<_ReadAll>();
 
-                        await foreach (var row in csv.EnumerateAllAsync())
+                        var enumerable = csv.EnumerateAllAsync();
+                        await foreach (var row in enumerable)
                         {
                             rows.Add(row);
+
+                            // double enumeration fails
+                            //   check happens here because `await foreach` implicitly disposes `enumerable`
+                            Assert.Throws<InvalidOperationException>(() => enumerable.GetAsyncEnumerator());
                         }
 
                         Assert.Collection(

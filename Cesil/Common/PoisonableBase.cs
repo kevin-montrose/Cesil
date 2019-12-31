@@ -10,18 +10,12 @@ namespace Cesil
         [MethodImpl(MethodImplOptions.NoInlining)]
         internal void SetPoison(Exception e)
         {
-            if(e is AggregateException ae)
+            if (e is AggregateException ae)
             {
                 var inner = ae.InnerException;
-                if(inner != null)
+                if (inner != null)
                 {
                     SetPoison(inner);
-                    return;
-                }
-
-                if(ae.InnerExceptions.Count > 0)
-                {
-                    SetPoison(ae.InnerExceptions[0]);
                     return;
                 }
 
@@ -29,7 +23,7 @@ namespace Cesil
                 return;
             }
 
-            if(e is OperationCanceledException)
+            if (e is OperationCanceledException)
             {
                 Poison = PoisonType.Cancelled;
                 return;

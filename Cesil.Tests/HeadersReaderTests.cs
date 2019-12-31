@@ -21,6 +21,80 @@ namespace Cesil.Tests
                 );
         }
 
+        [Fact]
+        public void Reset()
+        {
+            var config =
+                    (ConcreteBoundConfiguration<_Foo>)
+                        Configuration.For<_Foo>(
+                            Options.CreateBuilder(Options.Default)
+                                .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                                .ToOptions()
+                        );
+
+            using (var str = new StringReader("A\r\nfoo"))
+            {
+                using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, out _);
+                using var reader =
+                    new HeadersReader<_Foo>(
+                        new ReaderStateMachine(),
+                        config,
+                        charLookup,
+                        new TextReaderAdapter(str),
+                        MakeBuffer(),
+                        config.Options.RowEnding
+                    );
+                var res = reader.Read();
+                Assert.True(res.IsHeader);
+
+                var h = res.Headers;
+
+                // first pass
+                {
+                    var ix = 0;
+                    while (h.MoveNext())
+                    {
+                        if (ix != 0) throw new Exception();
+
+                        Assert.Equal("A", new string(h.Current.Span));
+                        ix++;
+                    }
+                }
+
+                h.Reset();
+
+                // second pass
+                {
+                    var ix = 0;
+                    while (h.MoveNext())
+                    {
+                        if (ix != 0) throw new Exception();
+
+                        Assert.Equal("A", new string(h.Current.Span));
+                        ix++;
+                    }
+                }
+
+                h.Reset();
+
+                // third pass, non generic
+                {
+                    System.Collections.IEnumerator e = h;
+
+                    var ix = 0;
+                    while (e.MoveNext())
+                    {
+                        if (ix != 0) throw new Exception();
+
+                        var mem = (ReadOnlyMemory<char>)e.Current;
+
+                        Assert.Equal("A", new string(mem.Span));
+                        ix++;
+                    }
+                }
+            }
+        }
+
         // just a stub for helper purposes
         private class _Foo { public string A { get; set; } }
 
@@ -454,6 +528,80 @@ namespace Cesil.Tests
                         i => Assert.Equal("Foo", new string(i.Span))
                     );
                     Assert.True(res.IsHeader);
+                }
+            }
+        }
+
+        [Fact]
+        public async Task ResetAsync()
+        {
+            var config =
+                    (ConcreteBoundConfiguration<_Foo>)
+                        Configuration.For<_Foo>(
+                            Options.CreateBuilder(Options.Default)
+                                .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                                .ToOptions()
+                        );
+
+            using (var str = new StringReader("A\r\nfoo"))
+            {
+                using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, out _);
+                using var reader =
+                    new HeadersReader<_Foo>(
+                        new ReaderStateMachine(),
+                        config,
+                        charLookup,
+                        new AsyncTextReaderAdapter(str),
+                        MakeBuffer(),
+                        config.Options.RowEnding
+                    );
+                var res = await reader.ReadAsync(default);
+                Assert.True(res.IsHeader);
+
+                var h = res.Headers;
+
+                // first pass
+                {
+                    var ix = 0;
+                    while (h.MoveNext())
+                    {
+                        if (ix != 0) throw new Exception();
+
+                        Assert.Equal("A", new string(h.Current.Span));
+                        ix++;
+                    }
+                }
+
+                h.Reset();
+
+                // second pass
+                {
+                    var ix = 0;
+                    while (h.MoveNext())
+                    {
+                        if (ix != 0) throw new Exception();
+
+                        Assert.Equal("A", new string(h.Current.Span));
+                        ix++;
+                    }
+                }
+
+                h.Reset();
+
+                // third pass, non generic
+                {
+                    System.Collections.IEnumerator e = h;
+
+                    var ix = 0;
+                    while (e.MoveNext())
+                    {
+                        if (ix != 0) throw new Exception();
+
+                        var mem = (ReadOnlyMemory<char>)e.Current;
+
+                        Assert.Equal("A", new string(mem.Span));
+                        ix++;
+                    }
                 }
             }
         }

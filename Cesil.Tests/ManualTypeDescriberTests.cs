@@ -120,6 +120,12 @@ namespace Cesil.Tests
             var g = Getter.ForMethod(t.GetProperty(nameof(_Copy.Foo)).GetMethod);
             m1.WithExplicitGetter(t, "Nope", g);
 
+            var ip = InstanceProvider.ForParameterlessConstructor(t.GetConstructor(Type.EmptyTypes));
+            m1.WithInstanceProvider(ip);
+
+            var s = Setter.ForMethod(t.GetProperty(nameof(_Copy.Foo)).SetMethod);
+            m1.WithExplicitSetter(t, "Nope", s);
+
             var t1 = m1.ToManualTypeDescriber();
 
             var m2 = ManualTypeDescriberBuilder.CreateBuilder(t1);

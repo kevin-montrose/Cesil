@@ -25,6 +25,8 @@ namespace Cesil
         /// <summary>
         /// Returns an enumerable that will read and yield
         /// one row at a time.
+        /// 
+        /// The returned IEnumerable(TRow) may only be enumerated once.
         /// </summary>
         IEnumerable<TRow> EnumerateAll();
 

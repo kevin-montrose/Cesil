@@ -57,7 +57,7 @@ namespace Cesil
 
             if (sizeHint == null || sizeHint == 0)
             {
-                SizeHint = DEFAULT_STAGING_SIZE;
+                SizeHint = Math.Min(DEFAULT_STAGING_SIZE, memoryPool.MaxBufferSize);
             }
         }
 

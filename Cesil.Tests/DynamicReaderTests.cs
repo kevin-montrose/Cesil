@@ -13,6 +13,44 @@ namespace Cesil.Tests
 {
     public class DynamicReaderTests
     {
+        [Fact]
+        public void NonGenericRowEnumerable()
+        {
+            RunSyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader("Hello,World\r\nFoo,Bar"))
+                    using(var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+
+                        Assert.Collection(
+                            rows,
+                            row =>
+                            {
+                                System.Collections.IEnumerable e = row;
+                                var i = e.GetEnumerator();
+
+                                var ix = 0;
+                                while (i.MoveNext())
+                                {
+                                    switch (ix)
+                                    {
+                                        case 0: Assert.Equal("Foo", (string)(dynamic)i.Current); break;
+                                        case 1: Assert.Equal("Bar", (string)(dynamic)i.Current); break;
+                                        default: throw new Exception();
+                                    }
+
+                                    ix++;
+                                }
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
         private sealed class _ChainedParsers_Context
         {
             public int Num { get; set; }
@@ -693,98 +731,236 @@ namespace Cesil.Tests
         [Fact]
         public void DynamicRowMemberNameEnumerators()
         {
-            // with headers
+            // generic
             {
-                var config = Configuration.ForDynamic();
-                using (var txt = new StringReader("foo,bar\r\n1,2"))
-                using (var csv = config.CreateReader(txt))
+
+                // with headers
                 {
-                    Assert.True(csv.TryRead(out var row));
-
-                    Assert.Equal(1, (int)row[0]);
-                    Assert.Equal(2, (int)row[1]);
-
-                    var dynRow = row as DynamicRow;
-                    var e = new DynamicRowMemberNameEnumerable(dynRow);
-                    using (var i = e.GetEnumerator())
+                    var config = Configuration.ForDynamic();
+                    using (var txt = new StringReader("foo,bar\r\n1,2"))
+                    using (var csv = config.CreateReader(txt))
                     {
-                        // iter 1
+                        Assert.True(csv.TryRead(out var row));
+
+                        Assert.Equal(1, (int)row[0]);
+                        Assert.Equal(2, (int)row[1]);
+
+                        var dynRow = row as DynamicRow;
+                        var e = new DynamicRowMemberNameEnumerable(dynRow);
+                        
+                        // generic
+                        using (var i = e.GetEnumerator())
                         {
-                            var ix = 0;
-                            while (i.MoveNext())
+                            // iter 1
                             {
-                                ix++;
+                                var ix = 0;
+                                while (i.MoveNext())
+                                {
+                                    switch (ix)
+                                    {
+                                        case 0: Assert.Equal("foo", i.Current); break;
+                                        case 1: Assert.Equal("bar", i.Current); break;
+                                        default: throw new Exception();
+                                    }
+
+                                    ix++;
+                                }
+
+                                Assert.Equal(2, ix);
+
+                                // too far
+                                Assert.False(i.MoveNext());
                             }
 
-                            Assert.Equal(2, ix);
+                            i.Reset();
 
-                            // too far
-                            Assert.False(i.MoveNext());
+                            // iter 2
+                            {
+                                var ix = 0;
+                                while (i.MoveNext())
+                                {
+                                    switch (ix)
+                                    {
+                                        case 0: Assert.Equal("foo", i.Current); break;
+                                        case 1: Assert.Equal("bar", i.Current); break;
+                                        default: throw new Exception();
+                                    }
+
+                                    ix++;
+                                }
+
+                                Assert.Equal(2, ix);
+
+                                // too far
+                                Assert.False(i.MoveNext());
+                            }
                         }
+                    }
+                }
 
-                        i.Reset();
+                // without headers
+                {
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions();
+                    var config = Configuration.ForDynamic(opts);
+                    using (var txt = new StringReader("1,2"))
+                    using (var csv = config.CreateReader(txt))
+                    {
+                        Assert.True(csv.TryRead(out var row));
 
-                        // iter 2
+                        Assert.Equal(1, (int)row[0]);
+                        Assert.Equal(2, (int)row[1]);
+
+                        var dynRow = row as DynamicRow;
+                        var e = new DynamicRowMemberNameEnumerable(dynRow);
+                        using (var i = e.GetEnumerator())
                         {
-                            var ix = 0;
-                            while (i.MoveNext())
+                            // iter 1
                             {
-                                ix++;
+                                var ix = 0;
+                                while (i.MoveNext())
+                                {
+                                    ix++;
+                                }
+
+                                Assert.Equal(0, ix);
+
+                                // too far
+                                Assert.False(i.MoveNext());
                             }
 
-                            Assert.Equal(2, ix);
+                            i.Reset();
 
-                            // too far
-                            Assert.False(i.MoveNext());
+                            // iter 2
+                            {
+                                var ix = 0;
+                                while (i.MoveNext())
+                                {
+                                    ix++;
+                                }
+
+                                Assert.Equal(0, ix);
+
+                                // too far
+                                Assert.False(i.MoveNext());
+                            }
                         }
                     }
                 }
             }
 
-            // without headers
+            // non-generic
             {
-                var opts = Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions();
-                var config = Configuration.ForDynamic(opts);
-                using (var txt = new StringReader("1,2"))
-                using (var csv = config.CreateReader(txt))
+
+                // with headers
                 {
-                    Assert.True(csv.TryRead(out var row));
-
-                    Assert.Equal(1, (int)row[0]);
-                    Assert.Equal(2, (int)row[1]);
-
-                    var dynRow = row as DynamicRow;
-                    var e = new DynamicRowMemberNameEnumerable(dynRow);
-                    using (var i = e.GetEnumerator())
+                    var config = Configuration.ForDynamic();
+                    using (var txt = new StringReader("foo,bar\r\n1,2"))
+                    using (var csv = config.CreateReader(txt))
                     {
-                        // iter 1
+                        Assert.True(csv.TryRead(out var row));
+
+                        Assert.Equal(1, (int)row[0]);
+                        Assert.Equal(2, (int)row[1]);
+
+                        var dynRow = row as DynamicRow;
+                        System.Collections.IEnumerable e = new DynamicRowMemberNameEnumerable(dynRow);
+                        
                         {
-                            var ix = 0;
-                            while (i.MoveNext())
+                            var i = e.GetEnumerator();
+
+                            // iter 1
                             {
-                                ix++;
+                                var ix = 0;
+                                while (i.MoveNext())
+                                {
+                                    switch (ix)
+                                    {
+                                        case 0: Assert.Equal("foo", (string)i.Current); break;
+                                        case 1: Assert.Equal("bar", (string)i.Current); break;
+                                        default: throw new Exception();
+                                    }
+
+                                    ix++;
+                                }
+
+                                Assert.Equal(2, ix);
+
+                                // too far
+                                Assert.False(i.MoveNext());
                             }
 
-                            Assert.Equal(0, ix);
+                            i.Reset();
 
-                            // too far
-                            Assert.False(i.MoveNext());
+                            // iter 2
+                            {
+                                var ix = 0;
+                                while (i.MoveNext())
+                                {
+                                    switch (ix)
+                                    {
+                                        case 0: Assert.Equal("foo", (string)i.Current); break;
+                                        case 1: Assert.Equal("bar", (string)i.Current); break;
+                                        default: throw new Exception();
+                                    }
+
+                                    ix++;
+                                }
+
+                                Assert.Equal(2, ix);
+
+                                // too far
+                                Assert.False(i.MoveNext());
+                            }
                         }
+                    }
+                }
 
-                        i.Reset();
+                // without headers
+                {
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions();
+                    var config = Configuration.ForDynamic(opts);
+                    using (var txt = new StringReader("1,2"))
+                    using (var csv = config.CreateReader(txt))
+                    {
+                        Assert.True(csv.TryRead(out var row));
 
-                        // iter 2
+                        Assert.Equal(1, (int)row[0]);
+                        Assert.Equal(2, (int)row[1]);
+
+                        var dynRow = row as DynamicRow;
+                        System.Collections.IEnumerable e = new DynamicRowMemberNameEnumerable(dynRow);
                         {
-                            var ix = 0;
-                            while (i.MoveNext())
+                            var i = e.GetEnumerator();
+
+                            // iter 1
                             {
-                                ix++;
+                                var ix = 0;
+                                while (i.MoveNext())
+                                {
+                                    ix++;
+                                }
+
+                                Assert.Equal(0, ix);
+
+                                // too far
+                                Assert.False(i.MoveNext());
                             }
 
-                            Assert.Equal(0, ix);
+                            i.Reset();
 
-                            // too far
-                            Assert.False(i.MoveNext());
+                            // iter 2
+                            {
+                                var ix = 0;
+                                while (i.MoveNext())
+                                {
+                                    ix++;
+                                }
+
+                                Assert.Equal(0, ix);
+
+                                // too far
+                                Assert.False(i.MoveNext());
+                            }
                         }
                     }
                 }

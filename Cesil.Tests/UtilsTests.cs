@@ -9,6 +9,63 @@ namespace Cesil.Tests
 {
     public class UtilsTests
     {
+        private sealed class _RentMustIncrease : MemoryPool<char>
+        {
+            private sealed class MemoryOwner : IMemoryOwner<char>
+            {
+                public Memory<char> Memory { get; }
+
+                public MemoryOwner(int size)
+                {
+                    Memory = new char[size].AsMemory();
+                }
+
+                public void Dispose() { }
+            }
+
+            private readonly int DefaultSize;
+            public override int MaxBufferSize { get; }
+
+            public _RentMustIncrease(int defaultSize, int maxSize)
+            {
+                DefaultSize = defaultSize;
+                MaxBufferSize = maxSize;
+            }
+
+            protected override void Dispose(bool disposing) { }
+
+            public override IMemoryOwner<char> Rent(int minBufferSize = -1)
+            {
+                int size;
+
+                if (minBufferSize == -1)
+                {
+                    size = DefaultSize;
+                }
+                else
+                {
+                    size = minBufferSize;
+                }
+
+                if (size > MaxBufferSize)
+                {
+                    size = MaxBufferSize;
+                }
+
+                return new MemoryOwner(size);
+            }
+        }
+
+        [Fact]
+        public void RentMustIncrease()
+        {
+            var pool = new _RentMustIncrease(50, 1000);
+
+            Utils.RentMustIncrease(pool, 0, 10);
+
+            Assert.Throws<InvalidOperationException>(() => Utils.RentMustIncrease(pool, 1200, 1000));
+        }
+
         private sealed class _ReflectionHelpers
         {
             public string Foo { set { } }
@@ -36,12 +93,12 @@ namespace Cesil.Tests
         [Fact]
         public void CharacterLookupWhitespace()
         {
-            foreach(var c in CharacterLookup.WhitespaceCharacters)
+            foreach (var c in CharacterLookup.WhitespaceCharacters)
             {
                 Assert.True(char.IsWhiteSpace(c));
             }
 
-            for(int i = char.MinValue; i <= char.MaxValue; i++)
+            for (int i = char.MinValue; i <= char.MaxValue; i++)
             {
                 var c = (char)i;
                 if (!char.IsWhiteSpace(c)) continue;
@@ -117,15 +174,80 @@ namespace Cesil.Tests
             public string Foo { get; set; }
         }
 
+        private sealed class _Encode_MemoryPool : MemoryPool<char>
+        {
+            private sealed class Owner: IMemoryOwner<char>
+            {
+                public Memory<char> Memory { get; }
+
+                public Owner(int size)
+                {
+                    Memory = new char[size].AsMemory();
+                }
+
+                public void Dispose() { }
+            }
+
+            public _Encode_MemoryPool() { }
+
+            public override int MaxBufferSize => throw new NotImplementedException();
+
+            public override IMemoryOwner<char> Rent(int minBufferSize = -1)
+            {
+                int size;
+
+                if(minBufferSize == -1)
+                {
+                    size = 1;
+                }
+                else
+                {
+                    size = minBufferSize;
+                }
+
+                return new Owner(size);
+            }
+
+            protected override void Dispose(bool disposing) { }
+        }
+
         [Theory]
         [InlineData("\"", "\"\"\"\"")]
         [InlineData(" \"\"\"\"\"\"\"\" ", "\" \"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\" \"")]
         public void Encode(string input, string expected)
         {
-            var res = Utils.Encode(input, Options.Default);
+            // defaults
+            {
+                var res = Utils.Encode(input, Options.Default);
 
-            Assert.Equal(expected, res);
+                Assert.Equal(expected, res);
+            }
+
+            // exact buffer
+
+            {
+                var opts = Options.CreateBuilder(Options.Default).WithMemoryPool(new _Encode_MemoryPool()).ToOptions();
+
+                var res = Utils.Encode(input, opts);
+
+                Assert.Equal(expected, res);
+            }
         }
+
+        [Fact]
+        public void EncodeErrors()
+        {
+            // no escapes at all
+            var opts1 = Options.CreateBuilder(Options.Default).WithEscapedValueEscapeCharacter(null).WithEscapedValueStartAndEnd(null).ToOptions();
+
+            Assert.Throws<Exception>(() => Utils.Encode("", opts1));
+
+            // no escape char
+            var opts2 = Options.CreateBuilder(opts1).WithEscapedValueEscapeCharacter(null).ToOptions();
+
+            Assert.Throws<Exception>(() => Utils.Encode("", opts2));
+        }
+
 
         [Theory]
         // 0 chars
@@ -298,6 +420,10 @@ namespace Cesil.Tests
         }
 
         [Theory]
+        // single-segment
+        [InlineData(new[] { "abc" }, 1, 'c', 2)]
+
+        // multi-segment
         [InlineData(new[] { "ab\n", "cdef" }, 0, '\n', 2)]
         [InlineData(new[] { "ab\n", "cdef" }, 1, '\n', 2)]
         [InlineData(new[] { "ab\n", "cdef" }, 4, '\n', -1)]
@@ -392,6 +518,10 @@ namespace Cesil.Tests
         }
 
         [Theory]
+        // single-segment
+        [InlineData(new[] { "ab\ncdef" }, 0, 2)]
+
+        // multi-segment
         [InlineData(new[] { "ab\n", "cdef" }, 0, 2)]
         [InlineData(new[] { "ab\n", "cdef" }, 1, 2)]
         [InlineData(new[] { "ab\n", "cdef" }, 4, -1)]

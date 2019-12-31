@@ -389,6 +389,47 @@ namespace Cesil.Tests
             Assert.Throws<ArgumentException>(() => Options.CreateBuilder(Options.Default).WithReadBufferSizeHint(-12));
 
             Assert.Throws<ArgumentException>(() => Options.CreateBuilder(Options.Default).WithDynamicRowDisposal(default));
+
+            Assert.Throws<ArgumentException>(() => Options.CreateBuilder(Options.Default).WithWhitespaceTreatment((WhitespaceTreatments)255));
+
+            Assert.Throws<InvalidOperationException>(
+                () =>
+                    Options.CreateBuilder(Options.Default)
+                        .WithWhitespaceTreatmentInternal((WhitespaceTreatments)255)
+                        .ToOptions()
+            );
+
+            Assert.Throws<InvalidOperationException>(
+                () =>
+                    Options.CreateBuilder(Options.Default)
+                        .WithWhitespaceTreatmentInternal(WhitespaceTreatments.Trim)
+                        .WithCommentCharacter(' ')
+                        .ToOptions()
+            );
+
+            Assert.Throws<InvalidOperationException>(
+                () =>
+                    Options.CreateBuilder(Options.Default)
+                        .WithWhitespaceTreatmentInternal(WhitespaceTreatments.Trim)
+                        .WithEscapedValueStartAndEnd(' ')
+                        .ToOptions()
+            );
+
+            Assert.Throws<InvalidOperationException>(
+               () =>
+                   Options.CreateBuilder(Options.Default)
+                       .WithWhitespaceTreatmentInternal(WhitespaceTreatments.Trim)
+                       .WithEscapedValueEscapeCharacter(' ')
+                       .ToOptions()
+           );
+
+            Assert.Throws<InvalidOperationException>(
+               () =>
+                   Options.CreateBuilder(Options.Default)
+                       .WithWhitespaceTreatmentInternal(WhitespaceTreatments.Trim)
+                       .WithValueSeparator(' ')
+                       .ToOptions()
+           );
         }
 
         private class _BadCreateCalls

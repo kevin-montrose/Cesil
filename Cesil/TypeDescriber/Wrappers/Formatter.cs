@@ -17,8 +17,8 @@ namespace Cesil
     /// 
     /// Wraps either a MethodInfo or a FormatterDelegate.
     /// </summary>
-    public sealed class Formatter : 
-        IEquatable<Formatter>, 
+    public sealed class Formatter :
+        IEquatable<Formatter>,
         ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>,
         IElseSupporting<Formatter>
     {
@@ -83,7 +83,7 @@ namespace Cesil
 
         Formatter IElseSupporting<Formatter>.Clone(ImmutableArray<Formatter> newFallbacks)
         {
-            switch(Mode)
+            switch (Mode)
             {
                 case BackingMode.Delegate: return new Formatter(Takes, Delegate.Value, newFallbacks);
                 case BackingMode.Method: return new Formatter(Takes, Method.Value, newFallbacks);
@@ -99,7 +99,7 @@ namespace Cesil
             var p2 = Expressions.Parameter_IBufferWriterOfChar;
 
             var block = Expression.Block(MakeExpression(p0, p1, p2));
-            
+
             var lambda = Expression.Lambda<DynamicFormatterDelegate>(block, p0, p1, p2);
             var del = lambda.Compile();
 
@@ -133,7 +133,7 @@ namespace Cesil
             }
 
             var ret = selfExp;
-            foreach(var fallback in _Fallbacks)
+            foreach (var fallback in _Fallbacks)
             {
                 var fallbackExp = fallback.MakeExpression(objectParam, writeContextParam, bufferWriterParam);
                 ret = Expression.OrElse(ret, fallbackExp);
@@ -150,7 +150,16 @@ namespace Cesil
         ///   it will then try the given fallback Formatter.
         /// </summary>
         public Formatter Else(Formatter fallbackFormatter)
-        => this.DoElse(fallbackFormatter);
+        {
+            Utils.CheckArgumentNull(fallbackFormatter, nameof(fallbackFormatter));
+
+            if (!fallbackFormatter.Takes.IsAssignableFrom(Takes))
+            {
+                return Throw.ArgumentException<Formatter>($"{fallbackFormatter} does not take a value assignable from {Takes}, and cannot be used as a falllback for this {nameof(Formatter)}", nameof(fallbackFormatter));
+            }
+
+            return this.DoElse(fallbackFormatter);
+        }
 
         /// <summary>
         /// Create a formatter from a method.
@@ -298,8 +307,8 @@ namespace Cesil
             if (otherMode != Mode) return false;
 
             if (_Fallbacks.Length != formatter._Fallbacks.Length) return false;
-            
-            for(var i = 0; i < _Fallbacks.Length; i++)
+
+            for (var i = 0; i < _Fallbacks.Length; i++)
             {
                 var sf = _Fallbacks[i];
                 var of = formatter._Fallbacks[i];

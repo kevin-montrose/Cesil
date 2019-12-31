@@ -39,10 +39,6 @@ namespace Cesil
                     AssertNotDisposed(this);
                     return _Current;
                 }
-                private set
-                {
-                    _Current = value;
-                }
             }
 
             object IEnumerator.Current => Current;
@@ -51,11 +47,12 @@ namespace Cesil
             {
                 IsDisposed = false;
                 Count = count;
+                Buffer = buffer;
+                WhitespaceTreatment = whitespaceTreatment;
+
                 _Current = default;
                 NextHeaderIndex = 0;
                 CurrentBufferIndex = 0;
-                Buffer = buffer;
-                WhitespaceTreatment = whitespaceTreatment;
             }
 
             public bool MoveNext()
@@ -103,7 +100,7 @@ namespace Cesil
                     rawHeader = Utils.TrimTrailingWhitespace(rawHeader);
                 }
 
-                Current = rawHeader;
+                _Current = rawHeader;
 
                 CurrentBufferIndex = endIx;
                 NextHeaderIndex++;
@@ -115,7 +112,7 @@ namespace Cesil
             {
                 AssertNotDisposed(this);
 
-                Current = default;
+                _Current = default;
                 NextHeaderIndex = 0;
                 CurrentBufferIndex = 0;
             }

@@ -1026,6 +1026,8 @@
             
             The enumerable will attempt to complete synchronously,
             but will not block if results are not available.
+            
+            The returned IAsyncEnumerable(TRow) may only be enumerated once.
             </summary>
         </member>
         <member name="M:Cesil.IAsyncReader`1.ReadAllAsync``1(``0,System.Threading.CancellationToken)">
@@ -1165,6 +1167,8 @@
             <summary>
             Returns an enumerable that will read and yield
             one row at a time.
+            
+            The returned IEnumerable(TRow) may only be enumerated once.
             </summary>
         </member>
         <member name="M:Cesil.IReader`1.TryRead(`0@)">

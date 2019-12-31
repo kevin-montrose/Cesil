@@ -99,7 +99,7 @@ namespace Cesil
             }
             else
             {
-                if (!value.HasName) return false;
+                if (value.HasName) return false;
             }
 
             var selfAsObj = Value as object;
@@ -117,7 +117,7 @@ namespace Cesil
         /// Returns a stable hash for this DynamicCellValue.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(DynamicCellValue), Formatter, Name, Value as object);
+        => HashCode.Combine(nameof(DynamicCellValue), Formatter, _Name, Value as object);
 
         /// <summary>
         /// Returns a representation of this DynamicCellValue struct.

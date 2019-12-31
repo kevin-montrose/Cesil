@@ -316,12 +316,28 @@ namespace Cesil.Tests
 
         private sealed class _FailingDynamicCellFormatter : DefaultTypeDescriber
         {
+            private readonly int CellNum;
+            private readonly int FailOn;
+
+            public _FailingDynamicCellFormatter(int cellNum, int failOn)
+            {
+                CellNum = cellNum;
+                FailOn = failOn;
+            }
+
             public override IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in Cesil.WriteContext ctx, dynamic row)
             {
-                var ret = new[]
+                var ret = new List<DynamicCellValue>();
+
+                for(var i = 0; i < CellNum; i++)
                 {
-                    DynamicCellValue.Create("bar", "foo", Formatter.ForDelegate((string value, in WriteContext context, IBufferWriter<char> buffer) => false))
-                };
+                    var f =
+                        i == FailOn ?
+                            Formatter.ForDelegate((string value, in WriteContext context, IBufferWriter<char> buffer) => false) :
+                            Formatter.ForDelegate((string value, in WriteContext context, IBufferWriter<char> buffer) => true);
+
+                    ret.Add(DynamicCellValue.Create("Bar" + i, "foo" + i, f));
+                }
 
                 return ret;
             }
@@ -330,22 +346,26 @@ namespace Cesil.Tests
         [Fact]
         public void FailingDynamicCellFormatter()
         {
-            var opts = Options.CreateBuilder(Options.DynamicDefault).WithTypeDescriber(new _FailingDynamicCellFormatter()).ToOptions();
+            const int MAX_CELLS = 20;
 
-            RunSyncDynamicWriterVariants(
-                opts,
-                (config, getWriter, getStr) =>
-                {
-                    using (var w = getWriter())
-                    using (var csv = config.CreateWriter(w))
+            for (var i = 0; i < MAX_CELLS; i++)
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithTypeDescriber(new _FailingDynamicCellFormatter(MAX_CELLS, i)).ToOptions();
+
+                RunSyncDynamicWriterVariants(
+                    opts,
+                    (config, getWriter, getStr) =>
                     {
-                        Assert.Throws<SerializationException>(() => csv.Write(new _FailingDynamicCellFormatter()));
-                    }
+                        using (var w = getWriter())
+                        using (var csv = config.CreateWriter(w))
+                        {
+                            Assert.Throws<SerializationException>(() => csv.Write(new object()));
+                        }
 
-                    var res = getStr();
-                    Assert.Equal("bar\r\n", res);
-                }
-            );
+                        getStr();
+                    }
+                );
+            }
         }
 
         [Fact]
@@ -1926,22 +1946,25 @@ namespace Cesil.Tests
         [Fact]
         public async Task FailingDynamicCellFormatterAsync()
         {
-            var opts = Options.CreateBuilder(Options.DynamicDefault).WithTypeDescriber(new _FailingDynamicCellFormatter()).ToOptions();
+            const int MAX_CELLS = 20;
+            for (var i = 0; i < MAX_CELLS; i++)
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithTypeDescriber(new _FailingDynamicCellFormatter(MAX_CELLS, i)).ToOptions();
 
-            await RunAsyncDynamicWriterVariants(
-                opts,
-                async (config, getWriter, getStr) =>
-                {
-                    await using (var w = getWriter())
-                    await using (var csv = config.CreateAsyncWriter(w))
+                await RunAsyncDynamicWriterVariants(
+                    opts,
+                    async (config, getWriter, getStr) =>
                     {
-                        await Assert.ThrowsAsync<SerializationException>(async () => await csv.WriteAsync(new _FailingDynamicCellFormatter()));
-                    }
+                        await using (var w = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(w))
+                        {
+                            await Assert.ThrowsAsync<SerializationException>(async () => await csv.WriteAsync(new object()));
+                        }
 
-                    var res = await getStr();
-                    Assert.Equal("bar\r\n", res);
-                }
-            );
+                        await getStr();
+                    }
+                );
+            }
         }
 
         [Fact]

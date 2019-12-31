@@ -83,7 +83,16 @@ namespace Cesil
         ///   it will then try the given fallback InstanceProvider.
         /// </summary>
         public InstanceProvider Else(InstanceProvider fallbackProvider)
-        => this.DoElse(fallbackProvider);
+        {
+            Utils.CheckArgumentNull(fallbackProvider, nameof(fallbackProvider));
+
+            if(!ConstructsType.IsAssignableFrom(fallbackProvider.ConstructsType))
+            {
+                return Throw.ArgumentException<InstanceProvider>($"{fallbackProvider} does not provide a value assignable to {ConstructsType}, and cannot be used as a falllback for this {nameof(InstanceProvider)}", nameof(fallbackProvider));
+            }
+
+            return this.DoElse(fallbackProvider);
+        }
 
         internal Expression MakeExpression(TypeInfo resultType, Expression context, Expression outVar)
         {
@@ -227,6 +236,7 @@ namespace Cesil
             var t = constructor.DeclaringTypeNonNull();
             if (t.IsInterface)
             {
+                // todo: is this possible?  if so, can we test it?
                 return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found an interface", nameof(constructor));
             }
 
@@ -237,6 +247,7 @@ namespace Cesil
 
             if (t.IsGenericTypeParameter)
             {
+                // todo: is this possible?  if so, can we test it?
                 return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found a generic parameter", nameof(constructor));
             }
 

@@ -202,19 +202,22 @@ namespace Cesil
             }
             catch (Exception e)
             {
-                Buffer.Dispose();
-                Partial.Dispose();
-                StateMachine.Dispose();
-                SharedCharacterLookup.Dispose();
+                Cleanup(this);
 
                 Throw.PoisonAndRethrow<object>(this, e);
                 return;
             }
 
-            Buffer.Dispose();
-            Partial.Dispose();
-            StateMachine.Dispose();
-            SharedCharacterLookup.Dispose();
+            Cleanup(this);
+            
+            // handle actual cleanup, a method to DRY things up
+            static void Cleanup(DynamicReader self)
+            {
+                self.Buffer.Dispose();
+                self.Partial.Dispose();
+                self.StateMachine.Dispose();
+                self.SharedCharacterLookup.Dispose();
+            }
         }
 
         public override string ToString()

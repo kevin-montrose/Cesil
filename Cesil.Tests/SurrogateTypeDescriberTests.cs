@@ -501,7 +501,7 @@ namespace Cesil.Tests
         }
 
         [Fact]
-        public void InstanceBuilders()
+        public void InstanceProviders()
         {
             var surrogate = SurrogateTypeDescriberBuilder.CreateBuilder(SurrogateTypeDescriberFallbackBehavior.Throw);
             surrogate.WithSurrogateType(typeof(_InstanceBuilders_Real).GetTypeInfo(), typeof(_InstanceBuilders_Surrogate).GetTypeInfo());

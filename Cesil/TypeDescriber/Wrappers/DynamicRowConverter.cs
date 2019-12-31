@@ -22,7 +22,7 @@ namespace Cesil
     ///   empty constructor paired with setter methods,
     ///   or static methods.
     /// </summary>
-    public sealed class DynamicRowConverter : 
+    public sealed class DynamicRowConverter :
         IElseSupporting<DynamicRowConverter>,
         IEquatable<DynamicRowConverter>
     {
@@ -108,11 +108,20 @@ namespace Cesil
         ///   it will then try the given fallback DynamicRowConverter.
         /// </summary>
         public DynamicRowConverter Else(DynamicRowConverter fallbackConverter)
-        => this.DoElse(fallbackConverter);
+        {
+            Utils.CheckArgumentNull(fallbackConverter, nameof(fallbackConverter));
+
+            if (!TargetType.IsAssignableFrom(fallbackConverter.TargetType))
+            {
+                return Throw.ArgumentException<DynamicRowConverter>($"{fallbackConverter} does not produce a value assignable to {TargetType}, and cannot be used as a falllback for this {nameof(DynamicRowConverter)}", nameof(fallbackConverter));
+            }
+
+            return this.DoElse(fallbackConverter);
+        }
 
         DynamicRowConverter IElseSupporting<DynamicRowConverter>.Clone(ImmutableArray<DynamicRowConverter> newFallbacks)
         {
-            switch(Mode)
+            switch (Mode)
             {
                 case BackingMode.Constructor:
                     {
@@ -320,7 +329,7 @@ namespace Cesil
             }
 
             var finalExp = selfExp;
-            foreach(var fallback in _Fallbacks)
+            foreach (var fallback in _Fallbacks)
             {
                 var fallbackExp = fallback.MakeExpression(targetType, rowVar, contextVar, outVar);
                 finalExp = Expression.OrElse(finalExp, fallbackExp);
@@ -635,7 +644,7 @@ namespace Cesil
 
             if (_Fallbacks.Length != rowConverter._Fallbacks.Length) return false;
 
-            for(var i = 0; i < _Fallbacks.Length; i++)
+            for (var i = 0; i < _Fallbacks.Length; i++)
             {
                 var selfF = _Fallbacks[i];
                 var otherF = rowConverter._Fallbacks[i];

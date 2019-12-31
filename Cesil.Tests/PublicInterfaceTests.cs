@@ -1754,15 +1754,15 @@ namespace Cesil.Tests
 
                     // wrapper types
                     [typeof(DynamicCellValue).GetTypeInfo()] = new[] { "value" },
-                    [typeof(Formatter).GetTypeInfo()] = new[] { "formatter" },
+                    [typeof(Formatter).GetTypeInfo()] = new[] { "formatter", "fallbackFormatter" },
                     [typeof(Getter).GetTypeInfo()] = new[] { "getter" },
                     [typeof(Setter).GetTypeInfo()] = new[] { "setter" },
                     [typeof(IEnumerable<Setter>).GetTypeInfo()] = new[] { "setters" },
-                    [typeof(Parser).GetTypeInfo()] = new[] { "parser" },
+                    [typeof(Parser).GetTypeInfo()] = new[] { "parser", "fallbackParser" },
                     [typeof(Reset).GetTypeInfo()] = new[] { "reset" },
                     [typeof(ShouldSerialize).GetTypeInfo()] = new[] { "shouldSerialize" },
-                    [typeof(InstanceProvider).GetTypeInfo()] = new[] { "instanceProvider" },
-                    [typeof(DynamicRowConverter).GetTypeInfo()] = new[] { "rowConverter" },
+                    [typeof(InstanceProvider).GetTypeInfo()] = new[] { "instanceProvider", "fallbackProvider" },
+                    [typeof(DynamicRowConverter).GetTypeInfo()] = new[] { "rowConverter", "fallbackConverter" },
                     [typeof(SerializableMember).GetTypeInfo()] = new[] { "serializableMember" },
                     [typeof(DeserializableMember).GetTypeInfo()] = new[] { "deserializableMember" },
 

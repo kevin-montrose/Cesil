@@ -449,10 +449,10 @@ end:
 
             try
             {
-
                 var shouldEndRecord = true;
                 if (IsFirstRow)
                 {
+                    // todo: I feel like this can be made to work?
                     if (Configuration.Options.WriteHeader == WriteHeader.Always)
                     {
                         return Throw.InvalidOperationException<ValueTask>($"First operation on a dynamic writer cannot be {nameof(WriteCommentAsync)} if configured to write headers, headers cannot be inferred");

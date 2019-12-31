@@ -222,7 +222,7 @@ namespace Cesil
 
             if (mode != otherMode) return false;
             if (Takes != setter.Takes) return false;
-            if (IsStatic != IsStatic) return false;
+            if (IsStatic != setter.IsStatic) return false;
 
             if (RowType.HasValue)
             {

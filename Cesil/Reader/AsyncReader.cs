@@ -33,13 +33,20 @@ namespace Cesil
             // continue after HandleLineEndingsAsync
             static async ValueTask HandleRowEndingsAndHeadersAsync_ContinueAfterRowEndingsAsync(AsyncReader<T> self, ValueTask waitFor, CancellationToken cancel)
             {
-                await ConfigureCancellableAwait(self, waitFor, cancel);
-                CheckCancellation(self, cancel);
-
-                if (self.ReadHeaders == null)
+                try
                 {
-                    await ConfigureCancellableAwait(self, self.HandleHeadersAsync(cancel), cancel);
+                    await ConfigureCancellableAwait(self, waitFor, cancel);
                     CheckCancellation(self, cancel);
+
+                    if (self.ReadHeaders == null)
+                    {
+                        await ConfigureCancellableAwait(self, self.HandleHeadersAsync(cancel), cancel);
+                        CheckCancellation(self, cancel);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Throw.PoisonAndRethrow<object>(self, e);
                 }
             }
         }
@@ -100,67 +107,74 @@ namespace Cesil
             // continue after we read a chunk into a buffer
             static async ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync_ContinueAfterReadAsync(AsyncReader<T> self, ValueTask<int> waitFor, ReaderStateMachine.PinHandle handle, bool returnComments, T record, CancellationToken cancel)
             {
-                using (handle)
+                try
                 {
-                    // finish this loop up
+                    using (handle)
                     {
-                        int available;
-                        using (self.StateMachine.ReleaseAndRePinForAsync(waitFor))
+                        // finish this loop up
                         {
-                            available = await ConfigureCancellableAwait(self, waitFor, cancel);
-                            CheckCancellation(self, cancel);
-                        }
-                        if (available == 0)
-                        {
-                            var endRes = self.EndOfData();
+                            int available;
+                            using (self.StateMachine.ReleaseAndRePinForAsync(waitFor))
+                            {
+                                available = await ConfigureCancellableAwait(self, waitFor, cancel);
+                                CheckCancellation(self, cancel);
+                            }
+                            if (available == 0)
+                            {
+                                var endRes = self.EndOfData();
 
-                            return self.HandleAdvanceResult(endRes, returnComments);
+                                return self.HandleAdvanceResult(endRes, returnComments);
+                            }
+
+                            if (!self.Partial.HasPending)
+                            {
+                                record = self.GuaranteeRow(ref record);
+                                self.SetValueToPopulate(record);
+                            }
+
+                            var res = self.AdvanceWork(available);
+                            var possibleReturn = self.HandleAdvanceResult(res, returnComments);
+                            if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
+                            {
+                                return possibleReturn;
+                            }
                         }
 
-                        if (!self.Partial.HasPending)
+                        // back into the loop
+                        while (true)
                         {
-                            record = self.GuaranteeRow(ref record);
-                            self.SetValueToPopulate(record);
-                        }
+                            self.PreparingToWriteToBuffer();
+                            var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
+                            int available;
+                            using (self.StateMachine.ReleaseAndRePinForAsync(availableTask))
+                            {
+                                available = await ConfigureCancellableAwait(self, availableTask, cancel);
+                                CheckCancellation(self, cancel);
+                            }
+                            if (available == 0)
+                            {
+                                var endRes = self.EndOfData();
 
-                        var res = self.AdvanceWork(available);
-                        var possibleReturn = self.HandleAdvanceResult(res, returnComments);
-                        if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
-                        {
-                            return possibleReturn;
+                                return self.HandleAdvanceResult(endRes, returnComments);
+                            }
+
+                            if (!self.Partial.HasPending)
+                            {
+                                self.SetValueToPopulate(record);
+                            }
+
+                            var res = self.AdvanceWork(available);
+                            var possibleReturn = self.HandleAdvanceResult(res, returnComments);
+                            if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
+                            {
+                                return possibleReturn;
+                            }
                         }
                     }
-
-                    // back into the loop
-                    while (true)
-                    {
-                        self.PreparingToWriteToBuffer();
-                        var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
-                        int available;
-                        using (self.StateMachine.ReleaseAndRePinForAsync(availableTask))
-                        {
-                            available = await ConfigureCancellableAwait(self, availableTask, cancel);
-                            CheckCancellation(self, cancel);
-                        }
-                        if (available == 0)
-                        {
-                            var endRes = self.EndOfData();
-
-                            return self.HandleAdvanceResult(endRes, returnComments);
-                        }
-
-                        if (!self.Partial.HasPending)
-                        {
-                            self.SetValueToPopulate(record);
-                        }
-
-                        var res = self.AdvanceWork(available);
-                        var possibleReturn = self.HandleAdvanceResult(res, returnComments);
-                        if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
-                        {
-                            return possibleReturn;
-                        }
-                    }
+                }
+                catch (Exception e)
+                {
+                    return Throw.PoisonAndRethrow<ReadWithCommentResult<T>>(self, e);
                 }
             }
         }
@@ -211,6 +225,10 @@ namespace Cesil
 
                     self.HandleLineEndingsDetectionResult(res);
                 }
+                catch (Exception e)
+                {
+                    Throw.PoisonAndRethrow<object>(self, e);
+                }
                 finally
                 {
                     needsDispose.Dispose();
@@ -256,7 +274,7 @@ namespace Cesil
                     Configuration,
                     SharedCharacterLookup,
                     Inner,
-                    Buffer, 
+                    Buffer,
                     RowEndings!.Value
                 );
             try
@@ -291,6 +309,10 @@ namespace Cesil
 
                     self.HandleHeadersReaderResult(res);
                 }
+                catch (Exception e)
+                {
+                    Throw.PoisonAndRethrow<object>(self, e);
+                }
                 finally
                 {
                     needsDispose.Dispose();
@@ -312,23 +334,26 @@ namespace Cesil
                         return DisposeAsync_ContinueAfterInnerDisposedAsync(this, disposeTask);
                     }
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
-                    Buffer.Dispose();
-                    Partial.Dispose();
-                    StateMachine?.Dispose();
-                    SharedCharacterLookup.Dispose();
+                    Cleanup(this);
 
                     return Throw.PoisonAndRethrow<ValueTask>(this, e);
                 }
 
-                Buffer.Dispose();
-                Partial.Dispose();
-                StateMachine?.Dispose();
-                SharedCharacterLookup.Dispose();
+                Cleanup(this);
             }
 
             return default;
+
+            // handle actual cleanup, a method to DRY things up
+            static void Cleanup(AsyncReader<T> self)
+            {
+                self.Buffer.Dispose();
+                self.Partial.Dispose();
+                self.StateMachine?.Dispose();
+                self.SharedCharacterLookup.Dispose();
+            }
 
             // continue after Inner.DisposeAsync completes
             static async ValueTask DisposeAsync_ContinueAfterInnerDisposedAsync(AsyncReader<T> self, ValueTask waitFor)
@@ -339,20 +364,14 @@ namespace Cesil
                 }
                 catch (Exception e)
                 {
-                    self.Buffer.Dispose();
-                    self.Partial.Dispose();
-                    self.StateMachine?.Dispose();
-                    self.SharedCharacterLookup.Dispose();
+                    Cleanup(self);
 
                     Throw.PoisonAndRethrow<object>(self, e);
 
                     return;
                 }
 
-                self.Buffer.Dispose();
-                self.Partial.Dispose();
-                self.StateMachine?.Dispose();
-                self.SharedCharacterLookup.Dispose();
+                Cleanup(self);
             }
         }
 
