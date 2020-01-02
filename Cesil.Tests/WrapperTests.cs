@@ -86,18 +86,46 @@ namespace Cesil.Tests
         private class _ColumnSetters
         {
             public static bool StaticResetCalled;
+            public static bool StaticResetCtxCalled;
             public static bool StaticResetXXXParamCalled;
+            public static bool StaticResetXXXParamCtxCalled;
             public static _ColumnSetters_Val StaticField;
             public static _ColumnSetters_Val _Set;
 
             public bool ResetCalled;
+            public bool ResetCtxCalled;
 
             public _ColumnSetters_Val Prop { get; set; }
 #pragma warning disable CS0649
             public _ColumnSetters_Val Field;
 #pragma warning restore CS0649
 
-            public static void Set(_ColumnSetters_Val c)
+            public void Set(_ColumnSetters_Val c)
+            {
+                Prop = c;
+            }
+
+            public void SetCtx(_ColumnSetters_Val c, in ReadContext ctx)
+            {
+                Prop = c;
+            }
+
+            public static void StaticSet(_ColumnSetters_Val c)
+            {
+                _Set = c;
+            }
+
+            public static void StaticSetParam(_ColumnSetters row, _ColumnSetters_Val c)
+            {
+                _Set = c;
+            }
+
+            public static void StaticSetCtx(_ColumnSetters_Val c, in ReadContext ctx)
+            {
+                _Set = c;
+            }
+
+            public static void StaticSetParamCtx(_ColumnSetters row, _ColumnSetters_Val c, in ReadContext ctx)
             {
                 _Set = c;
             }
@@ -107,14 +135,29 @@ namespace Cesil.Tests
                 ResetCalled = true;
             }
 
+            public void ResetXXXCtx(in ReadContext _)
+            {
+                ResetCtxCalled = true;
+            }
+
             public static void StaticResetXXX()
             {
                 StaticResetCalled = true;
             }
 
+            public static void StaticResetXXXCtx(in ReadContext _)
+            {
+                StaticResetCtxCalled = true;
+            }
+
             public static void StaticResetXXXParam(_ColumnSetters s)
             {
                 StaticResetXXXParamCalled = true;
+            }
+
+            public static void StaticResetXXXParamCtx(_ColumnSetters s, in ReadContext _)
+            {
+                StaticResetXXXParamCtxCalled = true;
             }
         }
 
@@ -135,22 +178,26 @@ namespace Cesil.Tests
             var parsers = new[] { methodParser, delParser, consOneParser, consTwoParser };
 
             // setters
-            var methodSetter = Setter.ForMethod(typeof(_ColumnSetters).GetProperty(nameof(_ColumnSetters.Prop)).SetMethod);
-            var staticMethodSetter = Setter.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.Set)));
+            var methodSetter = Setter.ForProperty(typeof(_ColumnSetters).GetProperty(nameof(_ColumnSetters.Prop)));
+            var methodSetterCtx = Setter.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.SetCtx)));
+            var staticMethodSet = Setter.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticSet)));
+            var staticMethodSetCtx = Setter.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticSetCtx)));
+            var staticMethodSetParam = Setter.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticSetParam)));
+            var staticMethodSetParamCtx = Setter.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticSetParamCtx)));
             var fieldSetter = Setter.ForField(typeof(_ColumnSetters).GetField(nameof(_ColumnSetters.Field)));
             var delSetterCalled = false;
-            var delSetter = (Setter)(SetterDelegate<_ColumnSetters, _ColumnSetters_Val>)((_ColumnSetters a, _ColumnSetters_Val v) => { delSetterCalled = true; a.Prop = v; });
+            var delSetter = (Setter)(SetterDelegate<_ColumnSetters, _ColumnSetters_Val>)((_ColumnSetters a, _ColumnSetters_Val v, in ReadContext _) => { delSetterCalled = true; a.Prop = v; });
             var staticDelSetterCalled = false;
-            var staticDelSetter = (Setter)(StaticSetterDelegate<_ColumnSetters_Val>)((_ColumnSetters_Val f) => { staticDelSetterCalled = true; _ColumnSetters.StaticField = f; });
-            var setters = new[] { methodSetter, staticMethodSetter, fieldSetter, delSetter, staticDelSetter };
+            var staticDelSetter = (Setter)(StaticSetterDelegate<_ColumnSetters_Val>)((_ColumnSetters_Val f, in ReadContext _) => { staticDelSetterCalled = true; _ColumnSetters.StaticField = f; });
+            var setters = new[] { methodSetter, methodSetterCtx, staticMethodSet, staticMethodSetCtx, staticMethodSetParam, staticMethodSetParamCtx, fieldSetter, delSetter, staticDelSetter };
 
             // resets
             var methodReset = Reset.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.ResetXXX)));
             var staticMethodReset = Reset.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticResetXXX)));
             var delResetCalled = false;
-            var delReset = (Reset)(ResetDelegate<_ColumnSetters>)((_ColumnSetters a) => { delResetCalled = true; });
+            var delReset = (Reset)(ResetDelegate<_ColumnSetters>)((_ColumnSetters a, in ReadContext ctx) => { delResetCalled = true; });
             var staticDelResetCalled = false;
-            var staticDelReset = (Reset)(StaticResetDelegate)(() => { staticDelResetCalled = true; });
+            var staticDelReset = (Reset)(StaticResetDelegate)((in ReadContext ctx) => { staticDelResetCalled = true; });
             var resets = new[] { methodReset, staticMethodReset, delReset, staticDelReset, null };
 
             foreach (var p in parsers)
@@ -178,8 +225,23 @@ namespace Cesil.Tests
                         if (s == methodSetter)
                         {
                             Assert.Equal("hello", inst.Prop.Value);
+                        } else if (s == methodSetterCtx)
+                        {
+                            Assert.Equal("hello", inst.Prop.Value);
                         }
-                        else if (s == staticMethodSetter)
+                        else if (s == staticMethodSet)
+                        {
+                            Assert.Equal("hello", _ColumnSetters._Set.Value);
+                        }
+                        else if (s == staticMethodSetCtx)
+                        {
+                            Assert.Equal("hello", _ColumnSetters._Set.Value);
+                        }
+                        else if (s == staticMethodSetParam)
+                        {
+                            Assert.Equal("hello", _ColumnSetters._Set.Value);
+                        }
+                        else if (s == staticMethodSetParamCtx)
                         {
                             Assert.Equal("hello", _ColumnSetters._Set.Value);
                         }
@@ -242,13 +304,24 @@ namespace Cesil.Tests
             public _ColumnWriters_Val A;
 
             public _ColumnWriters_Val Get() => new _ColumnWriters_Val { Value = "A" };
+            public _ColumnWriters_Val GetCtx(in WriteContext ctx) => new _ColumnWriters_Val { Value = "A" };
 
             public static _ColumnWriters_Val GetStatic() => new _ColumnWriters_Val { Value = "static" };
+            public static _ColumnWriters_Val GetStaticCtx(in WriteContext ctx) => new _ColumnWriters_Val { Value = "static" };
+            public static _ColumnWriters_Val GetStaticRow(_ColumnWriters row) => new _ColumnWriters_Val { Value = "static" };
+            public static _ColumnWriters_Val GetStaticRowCtx(_ColumnWriters row, in WriteContext ctx) => new _ColumnWriters_Val { Value = "static" };
 
             public bool ShouldSerializeCalled;
             public bool ShouldSerialize()
             {
                 ShouldSerializeCalled = true;
+                return true;
+            }
+
+            public bool ShouldSerializeCtxCalled;
+            public bool ShouldSerializeCtx(in WriteContext _)
+            {
+                ShouldSerializeCtxCalled = true;
                 return true;
             }
 
@@ -259,10 +332,24 @@ namespace Cesil.Tests
                 return true;
             }
 
+            public static bool ShouldSerializeStaticCtxCalled;
+            public static bool ShouldSerializeStaticCtx(in WriteContext _)
+            {
+                ShouldSerializeStaticCtxCalled = true;
+                return true;
+            }
+
             public static bool ShouldSerializeStaticWithParamCalled;
             public static bool ShouldSerializeStaticWithParam(_ColumnWriters p)
             {
                 ShouldSerializeStaticWithParamCalled = true;
+                return true;
+            }
+
+            public static bool ShouldSerializeStaticWithParamCtxCalled;
+            public static bool ShouldSerializeStaticWithParamCtx(_ColumnWriters p, in WriteContext _)
+            {
+                ShouldSerializeStaticWithParamCtxCalled = true;
                 return true;
             }
         }
@@ -304,10 +391,10 @@ namespace Cesil.Tests
             var staticMethodShouldSerialize = ShouldSerialize.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.ShouldSerializeStatic)));
             var staticMethodShouldSerializeParam = ShouldSerialize.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.ShouldSerializeStaticWithParam)));
             var delShouldSerializeCalled = false;
-            var delShouldSerialize = (ShouldSerialize)(ShouldSerializeDelegate<_ColumnWriters>)((_ColumnWriters _) => { delShouldSerializeCalled = true; return true; });
+            var delShouldSerialize = (ShouldSerialize)(ShouldSerializeDelegate<_ColumnWriters>)((_ColumnWriters _, in WriteContext __) => { delShouldSerializeCalled = true; return true; });
             var staticDelShouldSerializeCalled = false;
-            var staticDelShouldSerialize = (ShouldSerialize)(StaticShouldSerializeDelegate)(() => { staticDelShouldSerializeCalled = true; return true; });
-            var shouldSerializes = new[] { methodShouldSerialize, staticMethodShouldSerialize, staticMethodShouldSerializeParam,  delShouldSerialize, staticDelShouldSerialize, null };
+            var staticDelShouldSerialize = (ShouldSerialize)(StaticShouldSerializeDelegate)((in WriteContext _) => { staticDelShouldSerializeCalled = true; return true; });
+            var shouldSerializes = new[] { methodShouldSerialize, staticMethodShouldSerialize, staticMethodShouldSerializeParam, delShouldSerialize, staticDelShouldSerialize, null };
 
             // getter
             var methodGetter = Getter.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.Get)));
@@ -315,9 +402,9 @@ namespace Cesil.Tests
             var fieldGetter = Getter.ForField(typeof(_ColumnWriters).GetField(nameof(_ColumnWriters.A)));
             var staticFieldGetter = Getter.ForField(typeof(_ColumnWriters).GetField(nameof(_ColumnWriters.StaticA)));
             var delGetterCalled = false;
-            var delGetter = (Getter)(GetterDelegate<_ColumnWriters, _ColumnWriters_Val>)((_ColumnWriters row) => { delGetterCalled = true; return row.A; });
+            var delGetter = (Getter)(GetterDelegate<_ColumnWriters, _ColumnWriters_Val>)((_ColumnWriters row, in WriteContext _) => { delGetterCalled = true; return row.A; });
             var staticDelGetterCalled = false;
-            var staticDelGetter = (Getter)(StaticGetterDelegate<_ColumnWriters_Val>)(() => { staticDelGetterCalled = true; return new _ColumnWriters_Val { Value = "foo" }; });
+            var staticDelGetter = (Getter)(StaticGetterDelegate<_ColumnWriters_Val>)((in WriteContext _) => { staticDelGetterCalled = true; return new _ColumnWriters_Val { Value = "foo" }; });
             var getters = new[] { methodGetter, staticMethodGetter, fieldGetter, staticFieldGetter, delGetter, staticDelGetter };
 
             foreach (var f in formatters)
@@ -666,34 +753,34 @@ namespace Cesil.Tests
             public string Foo { get; set; }
         }
 
-        private delegate int GetterIntEquivDelegate(_GetterCast row);
+        private delegate int GetterIntEquivDelegate(_GetterCast row, in WriteContext _);
 
-        private delegate int StaticGetterIntEquivDelegate();
+        private delegate int StaticGetterIntEquivDelegate(in WriteContext _);
 
-        private delegate V GetterEquivDelegate<T, V>(T row);
+        private delegate V GetterEquivDelegate<T, V>(T row, in WriteContext _);
 
-        private delegate V StaticGetterEquivDelegate<V>();
+        private delegate V StaticGetterEquivDelegate<V>(in WriteContext _);
 
         [Fact]
         public void GetterCast()
         {
             var aCalled = 0;
             GetterIntEquivDelegate a =
-                (row) =>
+                (_GetterCast row, in WriteContext _) =>
                 {
                     aCalled++;
                     return row.Foo.Length;
                 };
             var bCalled = 0;
             StaticGetterIntEquivDelegate b =
-                () =>
+                (in WriteContext _) =>
                 {
                     bCalled++;
                     return 3;
                 };
             var cCalled = 0;
             GetterEquivDelegate<_GetterCast, double> c =
-                (row) =>
+                (_GetterCast row, in WriteContext _) =>
                 {
                     cCalled++;
 
@@ -702,102 +789,72 @@ namespace Cesil.Tests
             var dRet = Guid.NewGuid();
             var dCalled = 0;
             StaticGetterEquivDelegate<Guid> d =
-                () =>
+                (in WriteContext _) =>
                 {
                     dCalled++;
                     return dRet;
                 };
-            var eCalled = 0;
-            Func<_GetterCast, char> e =
-                row =>
-                {
-                    eCalled++;
-                    return row.Foo[0];
-                };
-            var fCalled = 0;
-            Func<sbyte> f =
-                () =>
-                {
-                    fCalled++;
-                    return -127;
-                };
             var gCalled = 0;
             GetterDelegate<_GetterCast, int> g =
-                row =>
+                (_GetterCast row, in WriteContext ctx) =>
                 {
                     gCalled++;
                     return row.Foo.Length + 1;
                 };
             var hCalled = 0;
             StaticGetterDelegate<int> h =
-                () =>
+                (in WriteContext ctx) =>
                 {
                     hCalled++;
                     return 456;
                 };
 
             var aWrapped = (Getter)a;
-            var aRes1 = (int)aWrapped.Delegate.Value.DynamicInvoke(new _GetterCast { Foo = "yo" });
+            var aRes1 = (int)aWrapped.Delegate.Value.DynamicInvoke(new _GetterCast { Foo = "yo" }, default(WriteContext));
             Assert.Equal(2, aRes1);
             Assert.Equal(1, aCalled);
-            var aRes2 = ((GetterDelegate<_GetterCast, int>)aWrapped.Delegate.Value)(new _GetterCast { Foo = "yolo" });
+            var aRes2 = ((GetterDelegate<_GetterCast, int>)aWrapped.Delegate.Value)(new _GetterCast { Foo = "yolo" }, default);
             Assert.Equal(4, aRes2);
             Assert.Equal(2, aCalled);
 
             var bWrapped = (Getter)b;
-            var bRes1 = (int)bWrapped.Delegate.Value.DynamicInvoke();
+            var bRes1 = (int)bWrapped.Delegate.Value.DynamicInvoke(default(WriteContext));
             Assert.Equal(3, bRes1);
             Assert.Equal(1, bCalled);
-            var bRes2 = ((StaticGetterDelegate<int>)bWrapped.Delegate.Value)();
+            var bRes2 = ((StaticGetterDelegate<int>)bWrapped.Delegate.Value)(default);
             Assert.Equal(3, bRes2);
             Assert.Equal(2, bCalled);
 
             var cWrapped = (Getter)c;
-            var cRes1 = (double)cWrapped.Delegate.Value.DynamicInvoke(new _GetterCast { Foo = "yo" });
+            var cRes1 = (double)cWrapped.Delegate.Value.DynamicInvoke(new _GetterCast { Foo = "yo" }, default(WriteContext));
             Assert.Equal(4.0, cRes1);
             Assert.Equal(1, cCalled);
-            var cRes2 = ((GetterDelegate<_GetterCast, double>)cWrapped.Delegate.Value)(new _GetterCast { Foo = "yolo" });
+            var cRes2 = ((GetterDelegate<_GetterCast, double>)cWrapped.Delegate.Value)(new _GetterCast { Foo = "yolo" }, default);
             Assert.Equal(8.0, cRes2);
             Assert.Equal(2, cCalled);
 
             var dWrapped = (Getter)d;
-            var dRes1 = (Guid)dWrapped.Delegate.Value.DynamicInvoke();
+            var dRes1 = (Guid)dWrapped.Delegate.Value.DynamicInvoke(default(WriteContext));
             Assert.Equal(dRet, dRes1);
             Assert.Equal(1, dCalled);
-            var dRes2 = ((StaticGetterDelegate<Guid>)dWrapped.Delegate.Value)();
+            var dRes2 = ((StaticGetterDelegate<Guid>)dWrapped.Delegate.Value)(default);
             Assert.Equal(dRet, dRes2);
             Assert.Equal(2, dCalled);
 
-            var eWrapped = (Getter)e;
-            var eRes1 = (char)eWrapped.Delegate.Value.DynamicInvoke(new _GetterCast { Foo = "yo" });
-            Assert.Equal('y', eRes1);
-            Assert.Equal(1, eCalled);
-            var eRes2 = ((GetterDelegate<_GetterCast, char>)eWrapped.Delegate.Value)(new _GetterCast { Foo = "hello" });
-            Assert.Equal('h', eRes2);
-            Assert.Equal(2, eCalled);
-
-            var fWrapped = (Getter)f;
-            var fRes1 = (sbyte)fWrapped.Delegate.Value.DynamicInvoke();
-            Assert.Equal(-127, fRes1);
-            Assert.Equal(1, fCalled);
-            var fRes2 = ((StaticGetterDelegate<sbyte>)fWrapped.Delegate.Value)();
-            Assert.Equal(-127, fRes2);
-            Assert.Equal(2, fCalled);
-
             var gWrapped = (Getter)g;
-            var gRes1 = (int)gWrapped.Delegate.Value.DynamicInvoke(new _GetterCast { Foo = "yo" });
+            var gRes1 = (int)gWrapped.Delegate.Value.DynamicInvoke(new _GetterCast { Foo = "yo" }, default(WriteContext));
             Assert.Equal(3, gRes1);
             Assert.Equal(1, gCalled);
-            var gRes2 = ((GetterDelegate<_GetterCast, int>)gWrapped.Delegate.Value)(new _GetterCast { Foo = "yolo" });
+            var gRes2 = ((GetterDelegate<_GetterCast, int>)gWrapped.Delegate.Value)(new _GetterCast { Foo = "yolo" }, default);
             Assert.Equal(5, gRes2);
             Assert.Same(g, gWrapped.Delegate.Value);
             Assert.Equal(2, gCalled);
 
             var hWrapped = (Getter)h;
-            var hRes1 = (int)hWrapped.Delegate.Value.DynamicInvoke();
+            var hRes1 = (int)hWrapped.Delegate.Value.DynamicInvoke(default(WriteContext));
             Assert.Equal(456, hRes1);
             Assert.Equal(1, hCalled);
-            var hRes2 = ((StaticGetterDelegate<int>)hWrapped.Delegate.Value)();
+            var hRes2 = ((StaticGetterDelegate<int>)hWrapped.Delegate.Value)(default);
             Assert.Equal(456, hRes2);
             Assert.Same(h, hWrapped.Delegate.Value);
             Assert.Equal(2, hCalled);
@@ -812,12 +869,16 @@ namespace Cesil.Tests
         {
             // getter
             var methodGetter = Getter.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.Get)));
+            var methodGetterCtx = Getter.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.GetCtx)));
             var staticMethodGetter = Getter.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.GetStatic)));
+            var staticMethodGetterCtx = Getter.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.GetStaticCtx)));
+            var staticMethodGetterRow = Getter.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.GetStaticRow)));
+            var staticMethodGetterRowCtx = Getter.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.GetStaticRowCtx)));
             var fieldGetter = Getter.ForField(typeof(_ColumnWriters).GetField(nameof(_ColumnWriters.A)));
             var staticFieldGetter = Getter.ForField(typeof(_ColumnWriters).GetField(nameof(_ColumnWriters.StaticA)));
-            var delGetter = (Getter)(GetterDelegate<_ColumnWriters, _ColumnWriters_Val>)((_ColumnWriters row) => { return row.A; });
-            var staticDelGetter = (Getter)(StaticGetterDelegate<_ColumnWriters_Val>)(() => { return new _ColumnWriters_Val { Value = "foo" }; });
-            var getters = new[] { methodGetter, staticMethodGetter, fieldGetter, staticFieldGetter, delGetter, staticDelGetter };
+            var delGetter = (Getter)(GetterDelegate<_ColumnWriters, _ColumnWriters_Val>)((_ColumnWriters row, in WriteContext _) => { return row.A; });
+            var staticDelGetter = (Getter)(StaticGetterDelegate<_ColumnWriters_Val>)((in WriteContext _) => { return new _ColumnWriters_Val { Value = "foo" }; });
+            var getters = new[] { methodGetter, methodGetterCtx, staticMethodGetter, staticMethodGetterCtx, staticMethodGetterRow, staticMethodGetterRowCtx, fieldGetter, staticFieldGetter, delGetter, staticDelGetter };
 
             var notGetter = "";
 
@@ -831,31 +892,65 @@ namespace Cesil.Tests
                 {
                     Assert.Equal(BackingMode.Method, g1.Mode);
                     Assert.False(g1.IsStatic);
+                    Assert.False(g1.TakesContext);
+                }
+                else if (g1 == methodGetterCtx)
+                {
+                    Assert.Equal(BackingMode.Method, g1.Mode);
+                    Assert.True(g1.TakesContext);
+                    Assert.False(g1.IsStatic);
                 }
                 else if (g1 == staticMethodGetter)
                 {
                     Assert.Equal(BackingMode.Method, g1.Mode);
+                    Assert.False(g1.TakesContext);
+                    Assert.True(g1.IsStatic);
+                }
+                else if (g1 == staticMethodGetterCtx)
+                {
+                    Assert.Equal(BackingMode.Method, g1.Mode);
+                    Assert.True(g1.TakesContext);
+                    Assert.True(g1.IsStatic);
+                }
+                else if (g1 == staticMethodGetterRow)
+                {
+                    Assert.Equal(BackingMode.Method, g1.Mode);
+                    Assert.False(g1.TakesContext);
+                    Assert.True(g1.IsStatic);
+                }
+                else if (g1 == staticMethodGetterRowCtx)
+                {
+                    Assert.Equal(BackingMode.Method, g1.Mode);
+                    Assert.True(g1.TakesContext);
                     Assert.True(g1.IsStatic);
                 }
                 else if (g1 == fieldGetter)
                 {
                     Assert.Equal(BackingMode.Field, g1.Mode);
+                    Assert.False(g1.TakesContext);
                     Assert.False(g1.IsStatic);
                 }
                 else if (g1 == staticFieldGetter)
                 {
                     Assert.Equal(BackingMode.Field, g1.Mode);
+                    Assert.False(g1.TakesContext);
                     Assert.True(g1.IsStatic);
                 }
                 else if (g1 == delGetter)
                 {
                     Assert.Equal(BackingMode.Delegate, g1.Mode);
+                    Assert.True(g1.TakesContext);
                     Assert.False(g1.IsStatic);
                 }
                 else if (g1 == staticDelGetter)
                 {
                     Assert.Equal(BackingMode.Delegate, g1.Mode);
+                    Assert.True(g1.TakesContext);
                     Assert.True(g1.IsStatic);
+                }
+                else
+                {
+                    throw new Exception();
                 }
 
                 for (var j = i; j < getters.Length; j++)
@@ -893,7 +988,7 @@ namespace Cesil.Tests
                 var b = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)methodGetter).CachedDelegate.Value;
                 Assert.Equal(a, b);
 
-                var aRes = (_ColumnWriters_Val)a(new _ColumnWriters());
+                var aRes = (_ColumnWriters_Val)a(new _ColumnWriters(), default);
                 Assert.Equal("A", aRes.Value);
 
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticMethodGetter).Guarantee(cache);
@@ -904,7 +999,7 @@ namespace Cesil.Tests
                 var d = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticMethodGetter).CachedDelegate.Value;
                 Assert.Equal(c, d);
 
-                var cRes = (_ColumnWriters_Val)c(new _ColumnWriters());
+                var cRes = (_ColumnWriters_Val)c(new _ColumnWriters(), default);
                 Assert.Equal("static", cRes.Value);
 
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)fieldGetter).Guarantee(cache);
@@ -916,7 +1011,7 @@ namespace Cesil.Tests
                 var f = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)fieldGetter).CachedDelegate.Value;
                 Assert.Equal(e, f);
 
-                var eRes = (_ColumnWriters_Val)e(new _ColumnWriters { A = new _ColumnWriters_Val { Value = "asdf" } });
+                var eRes = (_ColumnWriters_Val)e(new _ColumnWriters { A = new _ColumnWriters_Val { Value = "asdf" } }, default);
                 Assert.Equal("asdf", eRes.Value);
 
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticFieldGetter).Guarantee(cache);
@@ -930,7 +1025,7 @@ namespace Cesil.Tests
                 Assert.Equal(g, h);
 
                 _ColumnWriters.StaticA = new _ColumnWriters_Val { Value = "qwerty" };
-                var gRes = (_ColumnWriters_Val)g(new _ColumnWriters());
+                var gRes = (_ColumnWriters_Val)g(new _ColumnWriters(), default);
                 Assert.Equal("qwerty", gRes.Value);
 
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter).Guarantee(cache);
@@ -944,7 +1039,7 @@ namespace Cesil.Tests
                 var j = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter).CachedDelegate.Value;
                 Assert.Equal(i, j);
 
-                var iRes = (_ColumnWriters_Val)i(new _ColumnWriters { A = new _ColumnWriters_Val { Value = "xxxxx" } });
+                var iRes = (_ColumnWriters_Val)i(new _ColumnWriters { A = new _ColumnWriters_Val { Value = "xxxxx" } }, default);
                 Assert.Equal("xxxxx", iRes.Value);
 
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticDelGetter).Guarantee(cache);
@@ -959,7 +1054,7 @@ namespace Cesil.Tests
                 var l = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticDelGetter).CachedDelegate.Value;
                 Assert.Equal(k, l);
 
-                var lRes = (_ColumnWriters_Val)l(new _ColumnWriters());
+                var lRes = (_ColumnWriters_Val)l(new _ColumnWriters(), default);
                 Assert.Equal("foo", lRes.Value);
             }
 
@@ -1003,11 +1098,14 @@ namespace Cesil.Tests
         {
             // resets
             var methodReset = Reset.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.ResetXXX)));
+            var methodResetCtx = Reset.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.ResetXXXCtx)));
             var staticMethodReset = Reset.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticResetXXX)));
             var staticMethodResetParam = Reset.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticResetXXXParam)));
-            var delReset = (Reset)(ResetDelegate<_ColumnSetters>)((_ColumnSetters a) => { });
-            var staticDelReset = (Reset)(StaticResetDelegate)(() => { });
-            var resets = new[] { methodReset, staticMethodReset, staticMethodResetParam, delReset, staticDelReset };
+            var staticMethodResetCtx = Reset.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticResetXXXCtx)));
+            var staticMethodResetParamCtx = Reset.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticResetXXXParamCtx)));
+            var delReset = (Reset)(ResetDelegate<_ColumnSetters>)((_ColumnSetters a, in ReadContext _) => { });
+            var staticDelReset = (Reset)(StaticResetDelegate)((in ReadContext _) => { });
+            var resets = new[] { methodReset, methodResetCtx, staticMethodReset, staticMethodResetParam, staticMethodResetCtx, staticMethodResetParamCtx, delReset, staticDelReset };
 
             var notReset = "";
 
@@ -1022,18 +1120,42 @@ namespace Cesil.Tests
                     Assert.Equal(BackingMode.Method, r1.Mode);
                     Assert.Equal(typeof(_ColumnSetters), r1.RowType.Value);
                     Assert.False(r1.IsStatic);
+                    Assert.False(r1.TakesContext);
+                }
+                else if (r1 == methodResetCtx)
+                {
+                    Assert.Equal(BackingMode.Method, r1.Mode);
+                    Assert.Equal(typeof(_ColumnSetters), r1.RowType.Value);
+                    Assert.False(r1.IsStatic);
+                    Assert.True(r1.TakesContext);
                 }
                 else if (r1 == staticMethodReset)
                 {
                     Assert.Equal(BackingMode.Method, r1.Mode);
                     Assert.False(r1.RowType.HasValue);
                     Assert.True(r1.IsStatic);
-                } 
+                    Assert.False(r1.TakesContext);
+                }
                 else if (r1 == staticMethodResetParam)
                 {
                     Assert.Equal(BackingMode.Method, r1.Mode);
                     Assert.Equal(typeof(_ColumnSetters), r1.RowType.Value);
                     Assert.True(r1.IsStatic);
+                    Assert.False(r1.TakesContext);
+                }
+                else if (r1 == staticMethodResetCtx)
+                {
+                    Assert.Equal(BackingMode.Method, r1.Mode);
+                    Assert.False(r1.RowType.HasValue);
+                    Assert.True(r1.IsStatic);
+                    Assert.True(r1.TakesContext);
+                }
+                else if (r1 == staticMethodResetParamCtx)
+                {
+                    Assert.Equal(BackingMode.Method, r1.Mode);
+                    Assert.Equal(typeof(_ColumnSetters), r1.RowType.Value);
+                    Assert.True(r1.IsStatic);
+                    Assert.True(r1.TakesContext);
                 }
                 else if (r1 == delReset)
                 {
@@ -1284,100 +1406,76 @@ namespace Cesil.Tests
             public int Foo { get; set; }
         }
 
-        private delegate void ResetConcreteEquivDelegate(_ResetCast row);
+        private delegate void ResetConcreteEquivDelegate(_ResetCast row, in ReadContext _);
 
-        private delegate void ResetEquivDelegate<T>(T row);
+        private delegate void ResetEquivDelegate<T>(T row, in ReadContext _);
 
-        private delegate void StaticResetEquivDelegate();
+        private delegate void StaticResetEquivDelegate(in ReadContext _);
 
         [Fact]
         public void ResetCast()
         {
             var aCalled = 0;
             ResetConcreteEquivDelegate a =
-                row =>
+                (_ResetCast row, in ReadContext _) =>
                 {
                     aCalled++;
                 };
             var bCalled = 0;
             ResetEquivDelegate<_ResetCast> b =
-                row =>
+                (_ResetCast row, in ReadContext _) =>
                 {
                     bCalled++;
                 };
             var cCalled = 0;
             StaticResetEquivDelegate c =
-                () =>
+                (in ReadContext _) =>
                 {
                     cCalled++;
                 };
-            var dCalled = 0;
-            Action<_ResetCast> d =
-                row =>
-                {
-                    dCalled++;
-                };
-            var eCalled = 0;
-            Action e =
-                () =>
-                {
-                    eCalled++;
-                };
             var fCalled = 0;
             ResetDelegate<_ResetCast> f =
-                row =>
+                (_ResetCast row, in ReadContext _) =>
                 {
                     fCalled++;
                 };
             var gCalled = 0;
             StaticResetDelegate g =
-                () =>
+                (in ReadContext _) =>
                 {
                     gCalled++;
                 };
 
             var aWrapped = (Reset)a;
-            aWrapped.Delegate.Value.DynamicInvoke(new _ResetCast());
+            aWrapped.Delegate.Value.DynamicInvoke(new _ResetCast(), default(ReadContext));
             Assert.Equal(1, aCalled);
-            ((ResetDelegate<_ResetCast>)aWrapped.Delegate.Value)(new _ResetCast());
+            ((ResetDelegate<_ResetCast>)aWrapped.Delegate.Value)(new _ResetCast(), default);
             Assert.Equal(2, aCalled);
 
             var bWrapped = (Reset)b;
-            bWrapped.Delegate.Value.DynamicInvoke(new _ResetCast());
+            bWrapped.Delegate.Value.DynamicInvoke(new _ResetCast(), default(ReadContext));
             Assert.Equal(1, bCalled);
-            ((ResetDelegate<_ResetCast>)bWrapped.Delegate.Value)(new _ResetCast());
+            ((ResetDelegate<_ResetCast>)bWrapped.Delegate.Value)(new _ResetCast(), default);
             Assert.Equal(2, bCalled);
 
             var cWrapped = (Reset)c;
-            cWrapped.Delegate.Value.DynamicInvoke();
+            cWrapped.Delegate.Value.DynamicInvoke(default(ReadContext));
             Assert.Equal(1, cCalled);
-            ((StaticResetDelegate)cWrapped.Delegate.Value)();
+            ((StaticResetDelegate)cWrapped.Delegate.Value)(default);
             Assert.Equal(2, cCalled);
 
-            var dWrapped = (Reset)d;
-            dWrapped.Delegate.Value.DynamicInvoke(new _ResetCast());
-            Assert.Equal(1, dCalled);
-            ((ResetDelegate<_ResetCast>)dWrapped.Delegate.Value)(new _ResetCast());
-            Assert.Equal(2, dCalled);
-
-            var eWrapped = (Reset)e;
-            eWrapped.Delegate.Value.DynamicInvoke();
-            Assert.Equal(1, eCalled);
-            ((StaticResetDelegate)eWrapped.Delegate.Value)();
-            Assert.Equal(2, eCalled);
-
             var fWrapped = (Reset)f;
-            fWrapped.Delegate.Value.DynamicInvoke(new _ResetCast());
+            fWrapped.Delegate.Value.DynamicInvoke(new _ResetCast(), default(ReadContext));
             Assert.Equal(1, fCalled);
             Assert.Same(f, fWrapped.Delegate.Value);
-            ((ResetDelegate<_ResetCast>)fWrapped.Delegate.Value)(new _ResetCast());
+            ((ResetDelegate<_ResetCast>)fWrapped.Delegate.Value)(new _ResetCast(), default);
             Assert.Equal(2, fCalled);
 
             var gWrapped = (Reset)g;
-            gWrapped.Delegate.Value.DynamicInvoke();
+            gWrapped.Delegate.Value.DynamicInvoke(default(ReadContext));
             Assert.Equal(1, gCalled);
             Assert.Same(g, gWrapped.Delegate.Value);
-            ((StaticResetDelegate)gWrapped.Delegate.Value)();
+            ((StaticResetDelegate)gWrapped.Delegate.Value)(default);
             Assert.Equal(2, gCalled);
         }
 
@@ -1386,117 +1484,92 @@ namespace Cesil.Tests
             public string Foo { get; set; }
         }
 
-        private delegate void SetterConcreteEquivDelegate(_SetterCast row, int val);
+        private delegate void SetterConcreteEquivDelegate(_SetterCast row, int val, in ReadContext ctx);
 
-        private delegate void StaticSetterConcreteEquivDelegate(int val);
+        private delegate void StaticSetterConcreteEquivDelegate(int val, in ReadContext ctx);
 
-        private delegate void SetterGenEquivDelegate<T, V>(T row, V val);
+        private delegate void SetterGenEquivDelegate<T, V>(T row, V val, in ReadContext ctx);
 
-        private delegate void StaticSetterGenEquivDelegate<V>(V val);
+        private delegate void StaticSetterGenEquivDelegate<V>(V val, in ReadContext ctx);
 
         [Fact]
         public void SetterCast()
         {
             var aCalled = 0;
             SetterConcreteEquivDelegate a =
-                (row, val) =>
+                (_SetterCast row, int val, in ReadContext _) =>
                 {
                     aCalled++;
                     row.Foo = val.ToString();
                 };
             var bCalled = 0;
             StaticSetterConcreteEquivDelegate b =
-                val =>
+                (int val, in ReadContext _) =>
                 {
                     bCalled++;
                 };
             var cCalled = 0;
             SetterGenEquivDelegate<_SetterCast, string> c =
-                (row, val) =>
+                (_SetterCast row, string val, in ReadContext _) =>
                 {
                     cCalled++;
                     row.Foo = val;
                 };
             var dCalled = 0;
             StaticSetterGenEquivDelegate<string> d =
-                val =>
+                (string val, in ReadContext _) =>
                 {
                     dCalled++;
                 };
-            var eCalled = 0;
-            Action<_SetterCast, Guid> e =
-                (row, val) =>
-                {
-                    eCalled++;
-                    row.Foo = val.ToString();
-                };
-            var fCalled = 0;
-            Action<Guid> f =
-                (val) =>
-                {
-                    fCalled++;
-                };
             var gCalled = 0;
             SetterDelegate<_SetterCast, TimeSpan> g =
-                (row, val) =>
+                (_SetterCast row, TimeSpan val, in ReadContext _) =>
                 {
                     gCalled++;
                     row.Foo = val.ToString();
                 };
             var hCalled = 0;
             StaticSetterDelegate<TimeSpan> h =
-                (val) =>
+                (TimeSpan val, in ReadContext _) =>
                 {
                     hCalled++;
                 };
 
             var aWrapped = (Setter)a;
-            aWrapped.Delegate.Value.DynamicInvoke(new _SetterCast(), 123);
+            aWrapped.Delegate.Value.DynamicInvoke(new _SetterCast(), 123, default(ReadContext));
             Assert.Equal(1, aCalled);
-            ((SetterDelegate<_SetterCast, int>)aWrapped.Delegate.Value)(new _SetterCast(), 123);
+            ((SetterDelegate<_SetterCast, int>)aWrapped.Delegate.Value)(new _SetterCast(), 123, default);
             Assert.Equal(2, aCalled);
 
             var bWrapped = (Setter)b;
-            bWrapped.Delegate.Value.DynamicInvoke(123);
+            bWrapped.Delegate.Value.DynamicInvoke(123, default(ReadContext));
             Assert.Equal(1, bCalled);
-            ((StaticSetterDelegate<int>)bWrapped.Delegate.Value)(123);
+            ((StaticSetterDelegate<int>)bWrapped.Delegate.Value)(123, default);
             Assert.Equal(2, bCalled);
 
             var cWrapped = (Setter)c;
-            cWrapped.Delegate.Value.DynamicInvoke(new _SetterCast(), "123");
+            cWrapped.Delegate.Value.DynamicInvoke(new _SetterCast(), "123", default(ReadContext));
             Assert.Equal(1, cCalled);
-            ((SetterDelegate<_SetterCast, string>)cWrapped.Delegate.Value)(new _SetterCast(), "123");
+            ((SetterDelegate<_SetterCast, string>)cWrapped.Delegate.Value)(new _SetterCast(), "123", default);
             Assert.Equal(2, cCalled);
 
             var dWrapped = (Setter)d;
-            dWrapped.Delegate.Value.DynamicInvoke("123");
+            dWrapped.Delegate.Value.DynamicInvoke("123", default(ReadContext));
             Assert.Equal(1, dCalled);
-            ((StaticSetterDelegate<string>)dWrapped.Delegate.Value)("123");
+            ((StaticSetterDelegate<string>)dWrapped.Delegate.Value)("123", default);
             Assert.Equal(2, dCalled);
 
-            var eWrapped = (Setter)e;
-            eWrapped.Delegate.Value.DynamicInvoke(new _SetterCast(), Guid.NewGuid());
-            Assert.Equal(1, eCalled);
-            ((SetterDelegate<_SetterCast, Guid>)eWrapped.Delegate.Value)(new _SetterCast(), Guid.NewGuid());
-            Assert.Equal(2, eCalled);
-
-            var fWrapped = (Setter)f;
-            fWrapped.Delegate.Value.DynamicInvoke(Guid.NewGuid());
-            Assert.Equal(1, fCalled);
-            ((StaticSetterDelegate<Guid>)fWrapped.Delegate.Value)(Guid.NewGuid());
-            Assert.Equal(2, fCalled);
-
             var gWrapped = (Setter)g;
-            gWrapped.Delegate.Value.DynamicInvoke(new _SetterCast(), TimeSpan.FromMinutes(1));
+            gWrapped.Delegate.Value.DynamicInvoke(new _SetterCast(), TimeSpan.FromMinutes(1), default(ReadContext));
             Assert.Equal(1, gCalled);
-            ((SetterDelegate<_SetterCast, TimeSpan>)gWrapped.Delegate.Value)(new _SetterCast(), TimeSpan.FromMinutes(1));
+            ((SetterDelegate<_SetterCast, TimeSpan>)gWrapped.Delegate.Value)(new _SetterCast(), TimeSpan.FromMinutes(1), default);
             Assert.Same(g, gWrapped.Delegate.Value);
             Assert.Equal(2, gCalled);
 
             var hWrapped = (Setter)h;
-            hWrapped.Delegate.Value.DynamicInvoke(TimeSpan.FromMinutes(1));
+            hWrapped.Delegate.Value.DynamicInvoke(TimeSpan.FromMinutes(1), default(ReadContext));
             Assert.Equal(1, hCalled);
-            ((StaticSetterDelegate<TimeSpan>)hWrapped.Delegate.Value)(TimeSpan.FromMinutes(1));
+            ((StaticSetterDelegate<TimeSpan>)hWrapped.Delegate.Value)(TimeSpan.FromMinutes(1), default);
             Assert.Same(h, hWrapped.Delegate.Value);
             Assert.Equal(2, hCalled);
         }
@@ -1509,19 +1582,23 @@ namespace Cesil.Tests
         public void Setters()
         {
             // setters
-            var methodSetter = Setter.ForMethod(typeof(_ColumnSetters).GetProperty(nameof(_ColumnSetters.Prop)).SetMethod);
-            var staticMethodSetter = Setter.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.Set)));
+            var methodSetter = Setter.ForProperty(typeof(_ColumnSetters).GetProperty(nameof(_ColumnSetters.Prop)));
+            var methodSetterCtx = Setter.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.SetCtx)));
+            var staticMethodSet = Setter.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticSet)));
+            var staticMethodSetCtx = Setter.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticSetCtx)));
+            var staticMethodSetParam = Setter.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticSetParam)));
+            var staticMethodSetParamCtx = Setter.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticSetParamCtx)));
             var fieldSetter = Setter.ForField(typeof(_ColumnSetters).GetField(nameof(_ColumnSetters.Field)));
             var staticFieldSetter = Setter.ForField(typeof(_ColumnSetters).GetField(nameof(_ColumnSetters.StaticField)));
-            
-            var delSetter1 = (Setter)(SetterDelegate<_ColumnSetters, _ColumnSetters_Val>)((_ColumnSetters a, _ColumnSetters_Val v) => { a.Prop = v; });
-            var delSetter2 = (Setter)(SetterDelegate<_ColumnSetters, _ColumnWriters_Val>)((_ColumnSetters a, _ColumnWriters_Val v) => { /* intentionally empty */ });
-            var delSetter3 = (Setter)(SetterDelegate<_ColumnWriters, _ColumnSetters_Val>)((_ColumnWriters a, _ColumnSetters_Val v) => { /* intentionally empty */ });
-            var delSetter4 = (Setter)(SetterDelegate<_ColumnWriters, _ColumnWriters_Val>)((_ColumnWriters a, _ColumnWriters_Val v) => { a.A = v; });
-            
 
-            var staticDelSetter = (Setter)(StaticSetterDelegate<_ColumnSetters_Val>)((_ColumnSetters_Val f) => { _ColumnSetters.StaticField = f; });
-            var setters = new[] { methodSetter, staticMethodSetter, fieldSetter, delSetter1, delSetter2, delSetter3, delSetter4, staticDelSetter };
+            var delSetter1 = (Setter)(SetterDelegate<_ColumnSetters, _ColumnSetters_Val>)((_ColumnSetters a, _ColumnSetters_Val v, in ReadContext _) => { a.Prop = v; });
+            var delSetter2 = (Setter)(SetterDelegate<_ColumnSetters, _ColumnWriters_Val>)((_ColumnSetters a, _ColumnWriters_Val v, in ReadContext _) => { /* intentionally empty */ });
+            var delSetter3 = (Setter)(SetterDelegate<_ColumnWriters, _ColumnSetters_Val>)((_ColumnWriters a, _ColumnSetters_Val v, in ReadContext _) => { /* intentionally empty */ });
+            var delSetter4 = (Setter)(SetterDelegate<_ColumnWriters, _ColumnWriters_Val>)((_ColumnWriters a, _ColumnWriters_Val v, in ReadContext _) => { a.A = v; });
+
+
+            var staticDelSetter = (Setter)(StaticSetterDelegate<_ColumnSetters_Val>)((_ColumnSetters_Val f, in ReadContext _) => { _ColumnSetters.StaticField = f; });
+            var setters = new[] { methodSetter, methodSetterCtx, staticMethodSet, staticMethodSetCtx, staticMethodSetParam, staticMethodSetParamCtx, fieldSetter, delSetter1, delSetter2, delSetter3, delSetter4, staticDelSetter };
 
             var notSetter = "";
 
@@ -1535,8 +1612,27 @@ namespace Cesil.Tests
                 {
                     Assert.Equal(BackingMode.Method, s1.Mode);
                     Assert.False(s1.IsStatic);
+                } else if (s1 == methodSetterCtx)
+                {
+                    Assert.Equal(BackingMode.Method, s1.Mode);
+                    Assert.False(s1.IsStatic);
                 }
-                else if (s1 == staticMethodSetter)
+                else if (s1 == staticMethodSet)
+                {
+                    Assert.Equal(BackingMode.Method, s1.Mode);
+                    Assert.True(s1.IsStatic);
+                }
+                else if (s1 == staticMethodSetCtx)
+                {
+                    Assert.Equal(BackingMode.Method, s1.Mode);
+                    Assert.True(s1.IsStatic);
+                }
+                else if (s1 == staticMethodSetParam)
+                {
+                    Assert.Equal(BackingMode.Method, s1.Mode);
+                    Assert.True(s1.IsStatic);
+                }
+                else if (s1 == staticMethodSetParamCtx)
                 {
                     Assert.Equal(BackingMode.Method, s1.Mode);
                     Assert.True(s1.IsStatic);
@@ -1560,6 +1656,11 @@ namespace Cesil.Tests
                 {
                     Assert.Equal(BackingMode.Delegate, s1.Mode);
                     Assert.True(s1.IsStatic);
+                }
+                else
+                {
+
+                    throw new Exception();
                 }
 
                 for (var j = i; j < setters.Length; j++)
@@ -1617,18 +1718,18 @@ namespace Cesil.Tests
             public int Foo { get; set; }
         }
 
-        private delegate bool ShouldSerializeConcreteEquivDelegate(_ShouldSerializeCast row);
+        private delegate bool ShouldSerializeConcreteEquivDelegate(_ShouldSerializeCast row, in WriteContext _);
 
-        private delegate bool ShouldSerializeGenEquivDelegate<T>(T row);
+        private delegate bool ShouldSerializeGenEquivDelegate<T>(T row, in WriteContext _);
 
-        private delegate bool StaticShouldSerializeEquivDelegate();
+        private delegate bool StaticShouldSerializeEquivDelegate(in WriteContext _);
 
         [Fact]
         public void ShouldSerializeCast()
         {
             var aCalled = 0;
             ShouldSerializeConcreteEquivDelegate a =
-                row =>
+                (_ShouldSerializeCast row, in WriteContext _) =>
                 {
                     aCalled++;
 
@@ -1636,7 +1737,7 @@ namespace Cesil.Tests
                 };
             var bCalled = 0;
             ShouldSerializeGenEquivDelegate<_ShouldSerializeCast> b =
-                row =>
+                (_ShouldSerializeCast row, in WriteContext _) =>
                 {
                     bCalled++;
 
@@ -1644,29 +1745,15 @@ namespace Cesil.Tests
                 };
             var cCalled = 0;
             StaticShouldSerializeDelegate c =
-                () =>
+                (in WriteContext _) =>
                 {
                     cCalled++;
 
                     return true;
                 };
-            var dCalled = 0;
-            Func<_ShouldSerializeCast, bool> d =
-                row =>
-                {
-                    dCalled++;
-                    return true;
-                };
-            var eCalled = 0;
-            Func<bool> e =
-                () =>
-                {
-                    eCalled++;
-                    return true;
-                };
             var fCalled = 0;
             ShouldSerializeDelegate<_ShouldSerializeCast> f =
-                row =>
+                (_ShouldSerializeCast row, in WriteContext _) =>
                 {
                     fCalled++;
 
@@ -1674,67 +1761,51 @@ namespace Cesil.Tests
                 };
             var gCalled = 0;
             StaticShouldSerializeDelegate g =
-                () =>
+                (in WriteContext _) =>
                 {
                     gCalled++;
                     return true;
                 };
 
             var aWrapped = (ShouldSerialize)a;
-            var aRes1 = (bool)aWrapped.Delegate.Value.DynamicInvoke(new _ShouldSerializeCast());
+            var aRes1 = (bool)aWrapped.Delegate.Value.DynamicInvoke(new _ShouldSerializeCast(), default(WriteContext));
             Assert.True(aRes1);
             Assert.Equal(1, aCalled);
-            var aRes2 = ((ShouldSerializeDelegate<_ShouldSerializeCast>)aWrapped.Delegate.Value)(new _ShouldSerializeCast());
+            var aRes2 = ((ShouldSerializeDelegate<_ShouldSerializeCast>)aWrapped.Delegate.Value)(new _ShouldSerializeCast(), default);
             Assert.Equal(2, aCalled);
             Assert.True(aRes2);
 
             var bWrapped = (ShouldSerialize)b;
-            var bRes1 = (bool)bWrapped.Delegate.Value.DynamicInvoke(new _ShouldSerializeCast());
+            var bRes1 = (bool)bWrapped.Delegate.Value.DynamicInvoke(new _ShouldSerializeCast(), default(WriteContext));
             Assert.True(bRes1);
             Assert.Equal(1, bCalled);
-            var bRes2 = ((ShouldSerializeDelegate<_ShouldSerializeCast>)bWrapped.Delegate.Value)(new _ShouldSerializeCast());
+            var bRes2 = ((ShouldSerializeDelegate<_ShouldSerializeCast>)bWrapped.Delegate.Value)(new _ShouldSerializeCast(), default);
             Assert.Equal(2, bCalled);
             Assert.True(bRes2);
 
             var cWrapped = (ShouldSerialize)c;
-            var cRes1 = (bool)cWrapped.Delegate.Value.DynamicInvoke();
+            var cRes1 = (bool)cWrapped.Delegate.Value.DynamicInvoke(default(WriteContext));
             Assert.True(cRes1);
             Assert.Equal(1, cCalled);
-            var cRes2 = ((StaticShouldSerializeDelegate)cWrapped.Delegate.Value)();
+            var cRes2 = ((StaticShouldSerializeDelegate)cWrapped.Delegate.Value)(default);
             Assert.Equal(2, cCalled);
             Assert.True(cRes2);
 
-            var dWrapped = (ShouldSerialize)d;
-            var dRes1 = (bool)dWrapped.Delegate.Value.DynamicInvoke(new _ShouldSerializeCast());
-            Assert.True(dRes1);
-            Assert.Equal(1, dCalled);
-            var dRes2 = ((ShouldSerializeDelegate<_ShouldSerializeCast>)dWrapped.Delegate.Value)(new _ShouldSerializeCast());
-            Assert.Equal(2, dCalled);
-            Assert.True(dRes2);
-
-            var eWrapped = (ShouldSerialize)e;
-            var eRes1 = (bool)eWrapped.Delegate.Value.DynamicInvoke();
-            Assert.True(eRes1);
-            Assert.Equal(1, eCalled);
-            var eRes2 = ((StaticShouldSerializeDelegate)eWrapped.Delegate.Value)();
-            Assert.Equal(2, eCalled);
-            Assert.True(eRes2);
-
             var fWrapped = (ShouldSerialize)f;
             Assert.Same(f, fWrapped.Delegate.Value);
-            var fRes1 = (bool)fWrapped.Delegate.Value.DynamicInvoke(new _ShouldSerializeCast());
+            var fRes1 = (bool)fWrapped.Delegate.Value.DynamicInvoke(new _ShouldSerializeCast(), default(WriteContext));
             Assert.True(fRes1);
             Assert.Equal(1, fCalled);
-            var fRes2 = ((ShouldSerializeDelegate<_ShouldSerializeCast>)fWrapped.Delegate.Value)(new _ShouldSerializeCast());
+            var fRes2 = ((ShouldSerializeDelegate<_ShouldSerializeCast>)fWrapped.Delegate.Value)(new _ShouldSerializeCast(), default);
             Assert.Equal(2, fCalled);
             Assert.True(fRes2);
 
             var gWrapped = (ShouldSerialize)g;
             Assert.Same(g, gWrapped.Delegate.Value);
-            var gRes1 = (bool)gWrapped.Delegate.Value.DynamicInvoke();
+            var gRes1 = (bool)gWrapped.Delegate.Value.DynamicInvoke(default(WriteContext));
             Assert.True(gRes1);
             Assert.Equal(1, gCalled);
-            var gRes2 = ((StaticShouldSerializeDelegate)gWrapped.Delegate.Value)();
+            var gRes2 = ((StaticShouldSerializeDelegate)gWrapped.Delegate.Value)(default);
             Assert.Equal(2, gCalled);
             Assert.True(gRes2);
         }
@@ -1748,11 +1819,14 @@ namespace Cesil.Tests
         {
             // should serialize
             var methodShouldSerialize = ShouldSerialize.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.ShouldSerialize)));
+            var methodShouldSerializeCtx = ShouldSerialize.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.ShouldSerializeCtx)));
             var staticMethodShouldSerialize = ShouldSerialize.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.ShouldSerializeStatic)));
+            var staticMethodShouldSerializeCtx = ShouldSerialize.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.ShouldSerializeStaticCtx)));
             var staticMethodShouldSerializeParam = ShouldSerialize.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.ShouldSerializeStaticWithParam)));
-            var delShouldSerialize = (ShouldSerialize)(ShouldSerializeDelegate<_ColumnWriters>)((_ColumnWriters _) => { return true; });
-            var staticDelShouldSerialize = (ShouldSerialize)(StaticShouldSerializeDelegate)(() => { return true; });
-            var shouldSerializes = new[] { methodShouldSerialize, staticMethodShouldSerialize, staticMethodShouldSerializeParam, delShouldSerialize, staticDelShouldSerialize };
+            var staticMethodShouldSerializeParamCtx = ShouldSerialize.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.ShouldSerializeStaticWithParamCtx)));
+            var delShouldSerialize = (ShouldSerialize)(ShouldSerializeDelegate<_ColumnWriters>)((_ColumnWriters _, in WriteContext __) => { return true; });
+            var staticDelShouldSerialize = (ShouldSerialize)(StaticShouldSerializeDelegate)((in WriteContext __) => { return true; });
+            var shouldSerializes = new[] { methodShouldSerialize, methodShouldSerializeCtx, staticMethodShouldSerialize, staticMethodShouldSerializeCtx, staticMethodShouldSerializeParam, staticMethodShouldSerializeParamCtx, delShouldSerialize, staticDelShouldSerialize };
 
             var notShouldSerialize = "";
 
@@ -1767,30 +1841,56 @@ namespace Cesil.Tests
                     Assert.Equal(BackingMode.Method, s1.Mode);
                     Assert.Equal(typeof(_ColumnWriters).GetTypeInfo(), s1.Takes.Value);
                     Assert.False(s1.IsStatic);
+                    Assert.False(s1.TakesContext);
+                }
+                else if (s1 == methodShouldSerializeCtx)
+                {
+                    Assert.Equal(BackingMode.Method, s1.Mode);
+                    Assert.Equal(typeof(_ColumnWriters).GetTypeInfo(), s1.Takes.Value);
+                    Assert.False(s1.IsStatic);
+                    Assert.True(s1.TakesContext);
                 }
                 else if (s1 == staticMethodShouldSerialize)
                 {
                     Assert.Equal(BackingMode.Method, s1.Mode);
                     Assert.False(s1.Takes.HasValue);
                     Assert.True(s1.IsStatic);
+                    Assert.False(s1.TakesContext);
                 }
                 else if (s1 == staticMethodShouldSerializeParam)
                 {
                     Assert.Equal(BackingMode.Method, s1.Mode);
                     Assert.Equal(typeof(_ColumnWriters).GetTypeInfo(), s1.Takes.Value);
                     Assert.True(s1.IsStatic);
+                    Assert.False(s1.TakesContext);
+                }
+                else if (s1 == staticMethodShouldSerializeCtx)
+                {
+                    Assert.Equal(BackingMode.Method, s1.Mode);
+                    Assert.False(s1.Takes.HasValue);
+                    Assert.True(s1.IsStatic);
+                    Assert.True(s1.TakesContext);
+                }
+                else if (s1 == staticMethodShouldSerializeParamCtx)
+                {
+                    Assert.Equal(BackingMode.Method, s1.Mode);
+                    Assert.Equal(typeof(_ColumnWriters).GetTypeInfo(), s1.Takes.Value);
+                    Assert.True(s1.IsStatic);
+                    Assert.True(s1.TakesContext);
                 }
                 else if (s1 == delShouldSerialize)
                 {
                     Assert.Equal(BackingMode.Delegate, s1.Mode);
                     Assert.Equal(typeof(_ColumnWriters).GetTypeInfo(), s1.Takes.Value);
                     Assert.False(s1.IsStatic);
+                    Assert.True(s1.TakesContext);
                 }
                 else if (s1 == staticDelShouldSerialize)
                 {
                     Assert.Equal(BackingMode.Delegate, s1.Mode);
                     Assert.False(s1.Takes.HasValue);
                     Assert.True(s1.IsStatic);
+                    Assert.True(s1.TakesContext);
                 }
                 else
                 {
@@ -1853,7 +1953,7 @@ namespace Cesil.Tests
             public _DynamicRowConverters(int foo) { }
 
             public _DynamicRowConverters(object obj) { }
-            
+
         }
 
         private bool _InstanceDynamicRowConverter(object row, in ReadContext ctx, out string result) { result = ""; return true; }
@@ -1975,7 +2075,7 @@ namespace Cesil.Tests
                 Assert.Throws<ArgumentException>(() => DynamicRowConverter.ForEmptyConstructorAndSetters(emptyCons, new[] { badSetter }, ixs));
 
                 var badIxs = new[] { Cesil.ColumnIdentifier.CreateInner(-1, "foo") };
-                var goodSetter = Setter.ForDelegate<_DynamicRowConverters, int>((r, v) => r.Foo = v);
+                var goodSetter = Setter.ForDelegate<_DynamicRowConverters, int>((_DynamicRowConverters r, int v, in ReadContext _) => r.Foo = v);
                 Assert.Throws<ArgumentException>(() => DynamicRowConverter.ForEmptyConstructorAndSetters(emptyCons, new[] { goodSetter }, badIxs));
             }
 
@@ -2283,10 +2383,9 @@ namespace Cesil.Tests
         }
 
         private static readonly MethodInfo _Equatable_Getter_Mtd = typeof(WrapperTests).GetMethod(nameof(_Equatable_Getter), BindingFlags.NonPublic | BindingFlags.Static);
-        private static bool _Equatable_Getter(out int b)
+        private static int _Equatable_Getter(in WriteContext _)
         {
-            b = 123;
-            return true;
+            return 123;
         }
 
         private static readonly MethodInfo _Equatable_InstanceBuilder_Mtd = typeof(WrapperTests).GetMethod(nameof(_Equatable_InstanceBuilder), BindingFlags.NonPublic | BindingFlags.Static);
@@ -2367,7 +2466,7 @@ namespace Cesil.Tests
             // Getter
             {
                 GetterIntEquivDelegate aDel =
-                    (row) =>
+                    (_GetterCast row, in WriteContext ctx) =>
                     {
                         return row.Foo.Length;
                     };
@@ -2441,7 +2540,7 @@ namespace Cesil.Tests
             // Reset
             {
                 ResetConcreteEquivDelegate aDel =
-                   row =>
+                   (_ResetCast row, in ReadContext _) =>
                    {
                    };
                 var a = (Reset)aDel;
@@ -2464,7 +2563,7 @@ namespace Cesil.Tests
             // Setter
             {
                 SetterConcreteEquivDelegate aDel =
-                    (row, val) =>
+                    (_SetterCast row, int val, in ReadContext _) =>
                     {
                         row.Foo = val.ToString();
                     };
@@ -2488,7 +2587,7 @@ namespace Cesil.Tests
             // ShouldSerialize
             {
                 ShouldSerializeConcreteEquivDelegate aDel =
-                   row =>
+                   (_ShouldSerializeCast row, in WriteContext _) =>
                    {
                        return true;
                    };
@@ -2533,13 +2632,13 @@ namespace Cesil.Tests
 
             var notCi = "";
 
-            for(var i = 0; i < cis.Length; i++)
+            for (var i = 0; i < cis.Length; i++)
             {
                 var a = cis[i];
 
                 Assert.False(a.Equals(notCi));
 
-                for(var j= i; j < cis.Length; j++)
+                for (var j = i; j < cis.Length; j++)
                 {
                     var b = cis[j];
 
@@ -2547,7 +2646,7 @@ namespace Cesil.Tests
                     var neq = a != b;
                     var hashEq = CompareHash(a, b);
 
-                    if(i == j)
+                    if (i == j)
                     {
                         Assert.True(eq);
                         Assert.False(neq);
@@ -2560,7 +2659,7 @@ namespace Cesil.Tests
                     }
                 }
             }
-            
+
             Assert.Equal(0, (int)ci1);
 
             Assert.Throws<InvalidOperationException>(() => ci1.Name);

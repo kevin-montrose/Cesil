@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Cesil
@@ -6,12 +7,12 @@ namespace Cesil
     /// <summary>
     /// Delegate type for resets that don't take an instance of the row.
     /// </summary>
-    public delegate void StaticResetDelegate();
+    public delegate void StaticResetDelegate(in ReadContext context);
 
     /// <summary>
     /// Delegate type for resets.
     /// </summary>
-    public delegate void ResetDelegate<TRow>(TRow onType);
+    public delegate void ResetDelegate<TRow>(TRow onType, in ReadContext context);
 
     /// <summary>
     /// Represents code called before a setter is called or a field
@@ -53,26 +54,106 @@ namespace Cesil
 
         internal readonly NonNull<TypeInfo> RowType;
 
-        private Reset(TypeInfo? rowType, MethodInfo mtd)
+        internal readonly bool TakesContext;
+
+        private Reset(TypeInfo? rowType, MethodInfo mtd, bool takesContext)
         {
             RowType.SetAllowNull(rowType);
             Method.Value = mtd;
+            TakesContext = takesContext;
         }
 
         private Reset(TypeInfo? rowType, Delegate del)
         {
             RowType.SetAllowNull(rowType);
             Delegate.Value = del;
+            TakesContext = true;
+        }
+
+        internal Expression MakeExpression(Expression rowVar, Expression contextVar)
+        {
+            // todo: no reason not to support chaining?
+
+            Expression selfExp;
+            switch (Mode)
+            {
+                case BackingMode.Method:
+                    {
+                        var resetMtd = Method.Value;
+                        if (IsStatic)
+                        {
+                            if(RowType.HasValue)
+                            {
+                                if (TakesContext)
+                                {
+                                    selfExp = Expression.Call(resetMtd, rowVar, contextVar);
+                                }
+                                else
+                                {
+                                    selfExp = Expression.Call(resetMtd, rowVar);
+                                }
+                            }
+                            else
+                            {
+                                if (TakesContext)
+                                {
+                                    selfExp = Expression.Call(resetMtd, contextVar);
+                                }
+                                else
+                                {
+                                    selfExp = Expression.Call(resetMtd);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if(TakesContext)
+                            {
+                                selfExp = Expression.Call(rowVar, resetMtd, contextVar);
+                            }
+                            else
+                            {
+                                selfExp = Expression.Call(rowVar, resetMtd);
+                            }
+                        }
+                    }
+                    break;
+                case BackingMode.Delegate:
+                    {
+                        var resetDel = Delegate.Value;
+                        var delRef = Expression.Constant(resetDel);
+
+                        if (IsStatic)
+                        {
+                            selfExp = Expression.Invoke(delRef, contextVar);
+                        }
+                        else
+                        {
+                            selfExp = Expression.Invoke(delRef, rowVar, contextVar);
+                        }
+                    }
+                    break;
+                default:
+                    return Throw.InvalidOperationException<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
+            }
+
+            return selfExp;
         }
 
         /// <summary>
         /// Create a reset from a method.
         /// 
-        /// If method is an instance, it can take no parameters.
+        /// If method is an instance, it can take:
+        ///  - zero parameters or 
+        ///  - a single `in ReadContext` parameter.
         /// 
-        /// If a method is static, it can take one or zero parameters.
+        /// If a method is static, it can take:
+        ///  - zero parameters or
+        ///  - a single parameter of the row type or
+        ///  - a single parameter of `in ReadContext` or
+        ///  - two parameters, the first of the row type and the second of `in ReadContext`
         /// 
-        /// If the reset is instance or takes a parameter, the instance or parameter
+        /// If the reset is instance or takes a of the row type parameter, the instance or parameter
         ///   type must be assignable from the type being deserialized.
         /// </summary>
         public static Reset ForMethod(MethodInfo method)
@@ -86,6 +167,7 @@ namespace Cesil
 
             TypeInfo? rowType;
 
+            bool takesContext;
             var args = method.GetParameters();
             if (method.IsStatic)
             {
@@ -93,27 +175,86 @@ namespace Cesil
                 {
                     // we're fine
                     rowType = null;
+                    takesContext = false;
                 }
                 else if (args.Length == 1)
                 {
+                    var p0 = args[0].ParameterType.GetTypeInfo();
+
+                    if (p0.IsByRef)
+                    {
+                        var p0Elem = p0.GetElementTypeNonNull();
+                        if (p0Elem != Types.ReadContextType)
+                        {
+                            return Throw.ArgumentException<Reset>($"A {nameof(Reset)} backed by a static method with a single by ref parameter must take `in ReadContext`, was not `ReadContext`", nameof(method));
+                        }
+
+                        rowType = null;
+                        takesContext = true;
+                    }
+                    else
+                    {
+                        rowType = p0;
+                        takesContext = false;
+                    }
+                }
+                else if (args.Length == 2)
+                {
                     rowType = args[0].ParameterType.GetTypeInfo();
+
+                    var p1 = args[1].ParameterType.GetTypeInfo();
+                    if (!p1.IsByRef)
+                    {
+                        return Throw.ArgumentException<Reset>($"A {nameof(Reset)} backed by a static method taking 2 parameters must take `in ReadContext` as it's second parameter, was not by ref", nameof(method));
+                    }
+
+                    var p1Elem = p1.GetElementTypeNonNull();
+                    if (p1Elem != Types.ReadContextType)
+                    {
+                        return Throw.ArgumentException<Reset>($"A {nameof(Reset)} backed by a static method taking 2 parameters must take `in ReadContext` as it's second parameter, was not `ReadContext`", nameof(method));
+                    }
+
+                    takesContext = true;
                 }
                 else
                 {
-                    return Throw.ArgumentException<Reset>($"{method} is static, it must take 0 or 1 parameters", nameof(method));
+                    return Throw.ArgumentException<Reset>($"{method} is static, it must take 0, 1, or 2 parameters", nameof(method));
                 }
             }
             else
             {
-                if (args.Length != 0)
+                if (args.Length == 0)
                 {
-                    return Throw.ArgumentException<Reset>($"{method} is an instance method, it must take 0 parameters", nameof(method));
+                    rowType = method.DeclaringTypeNonNull();
+                    takesContext = false;
+                }
+                else if (args.Length == 1)
+                {
+                    rowType = method.DeclaringTypeNonNull();
+
+                    var p0 = args[0].ParameterType.GetTypeInfo();
+                    if (!p0.IsByRef)
+                    {
+                        return Throw.ArgumentException<Reset>($"A {nameof(Reset)} backed by a instance method taking a single parameter must take `in ReadContext`, was not by ref", nameof(method));
+                    }
+
+                    var p0Elem = p0.GetElementTypeNonNull();
+                    if (p0Elem != Types.ReadContextType)
+                    {
+                        return Throw.ArgumentException<Reset>($"A {nameof(Reset)} backed by a instance method taking a single parameter must take `in ReadContext`, was not `ReadContext`", nameof(method));
+                    }
+
+                    takesContext = true;
+                }
+                else
+                {
+                    return Throw.ArgumentException<Reset>($"{method} is an instance method, it must take 0 or 1 parameters", nameof(method));
                 }
 
                 rowType = method.DeclaringTypeNonNull();
             }
 
-            return new Reset(rowType, method);
+            return new Reset(rowType, method, takesContext);
         }
 
 
@@ -267,15 +408,41 @@ namespace Cesil
             var invoke = delType.GetMethodNonNull("Invoke");
 
             var args = mtd.GetParameters();
-            if (args.Length == 0)
+            if (args.Length == 1)
             {
+                var p0 = args[0].ParameterType.GetTypeInfo();
+                if (!p0.IsByRef)
+                {
+                    return Throw.InvalidOperationException<Reset>($"Delegate of one parameter must take an `in ReadContext`, was not by ref");
+                }
+
+                var p0Elem = p0.GetElementTypeNonNull();
+                if(p0Elem != Types.ReadContextType)
+                {
+                    return Throw.InvalidOperationException<Reset>($"Delegate of one parameter must take an `in ReadContext`, was not `ReadContext`");
+                }
+
                 var reboundDel = System.Delegate.CreateDelegate(Types.StaticResetDelegateType, del, invoke);
 
                 return new Reset(null, reboundDel);
             }
-            else if (args.Length == 1)
+            else if (args.Length == 2)
             {
                 var rowType = args[0].ParameterType.GetTypeInfo();
+
+                var p1 = args[1].ParameterType.GetTypeInfo();
+
+                if (!p1.IsByRef)
+                {
+                    return Throw.InvalidOperationException<Reset>($"Delegate of two parameters must take an `in ReadContext` as it's second parameter, was not by ref");
+                }
+
+                var p1Elem = p1.GetElementTypeNonNull();
+                if (p1Elem != Types.ReadContextType)
+                {
+                    return Throw.InvalidOperationException<Reset>($"Delegate of two parameters must take an `in ReadContext` as it's second parameter, was not `ReadContext`");
+                }
+
                 var getterDelType = Types.ResetDelegateType.MakeGenericType(rowType);
 
                 var reboundDel = System.Delegate.CreateDelegate(getterDelType, del, invoke);
@@ -284,7 +451,7 @@ namespace Cesil
             }
             else
             {
-                return Throw.InvalidOperationException<Reset>("Delegate must take 0 or 1 parameters");
+                return Throw.InvalidOperationException<Reset>("Delegate must take 1 or 2 parameters");
             }
         }
 

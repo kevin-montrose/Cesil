@@ -204,8 +204,18 @@ namespace Cesil
 
                 var surrogateResetBinding = GetEquivalentFlagsFor(surrogateReset.IsPublic, surrogateReset.IsStatic);
 
+                Type[] resetTakesTypes;
+                if(surrogateResetWrapper.TakesContext)
+                {
+                    resetTakesTypes = new[] { Types.ReadContextType };
+                }
+                else
+                {
+                    resetTakesTypes = Type.EmptyTypes;
+                }
+                
                 // intentionally letting this be null
-                resetOnType = ontoType.GetMethod(surrogateReset.Name, surrogateResetBinding);
+                resetOnType = ontoType.GetMethod(surrogateReset.Name, surrogateResetBinding, null, resetTakesTypes, null);
                 if (resetOnType == null)
                 {
                     return Throw.InvalidOperationException<DeserializableMember>($"No equivalent to {resetOnType} found on {ontoType}");

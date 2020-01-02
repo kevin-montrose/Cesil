@@ -56,96 +56,12 @@ namespace Cesil
             {
                 var r = reset.Value;
 
-                Expression callReset;
-                switch (r.Mode)
-                {
-                    case BackingMode.Method:
-                        {
-                            var resetMtd = r.Method.Value;
-                            if (r.IsStatic)
-                            {
-                                var resetPs = resetMtd.GetParameters();
-                                if (resetPs.Length == 1)
-                                {
-                                    callReset = Expression.Call(resetMtd, l1);
-                                }
-                                else
-                                {
-                                    callReset = Expression.Call(resetMtd);
-                                }
-                            }
-                            else
-                            {
-                                callReset = Expression.Call(l1, resetMtd);
-                            }
-                        }
-                        break;
-                    case BackingMode.Delegate:
-                        {
-                            var resetDel = r.Delegate.Value;
-                            var delRef = Expression.Constant(resetDel);
-
-                            if (r.IsStatic)
-                            {
-                                callReset = Expression.Invoke(delRef);
-                            }
-                            else
-                            {
-                                callReset = Expression.Invoke(delRef, l1);
-                            }
-                        }
-                        break;
-                    default:
-                        return Throw.InvalidOperationException<ColumnSetterDelegate>($"Unexpected {nameof(BackingMode)}: {r.Mode}");
-                }
+                var callReset = r.MakeExpression(l1, p2);
 
                 statements.Add(callReset);
             }
 
-            // call the setter (or set the field)
-
-            Expression assignResult;
-            switch (setter.Mode)
-            {
-                case BackingMode.Method:
-                    {
-                        var setterMtd = setter.Method.Value;
-
-                        if (setter.IsStatic)
-                        {
-                            assignResult = Expression.Call(setterMtd, l2);
-                        }
-                        else
-                        {
-                            assignResult = Expression.Call(l1, setterMtd, l2);
-                        }
-                    }
-                    break;
-                case BackingMode.Field:
-                    {
-                        var fieldExp = Expression.Field(l1, setter.Field.Value);
-                        assignResult = Expression.Assign(fieldExp, l2);
-                    }
-                    break;
-                case BackingMode.Delegate:
-                    {
-                        var setterDel = setter.Delegate.Value;
-                        var delRef = Expression.Constant(setterDel);
-
-                        if (setter.IsStatic)
-                        {
-                            assignResult = Expression.Invoke(delRef, l2);
-                        }
-                        else
-                        {
-                            assignResult = Expression.Invoke(delRef, l1, l2);
-                        }
-                    }
-                    break;
-                default:
-                    return Throw.InvalidOperationException<ColumnSetterDelegate>($"Unexpected {nameof(BackingMode)}: {setter.Mode}");
-            }
-
+            var assignResult = setter.MakeExpression(l1, l2, p2);
             statements.Add(assignResult);
 
             var returnTrue = Expression.Return(end, Expressions.Constant_True);

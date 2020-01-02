@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Cesil
@@ -6,12 +7,12 @@ namespace Cesil
     /// <summary>
     /// Delegate type for 'should serialize' that don't take a row.
     /// </summary>
-    public delegate bool StaticShouldSerializeDelegate();
+    public delegate bool StaticShouldSerializeDelegate(in WriteContext context);
 
     /// <summary>
     /// Delegate type for 'should serialize'.
     /// </summary>
-    public delegate bool ShouldSerializeDelegate<TRow>(TRow instance);
+    public delegate bool ShouldSerializeDelegate<TRow>(TRow instance, in WriteContext context);
 
     /// <summary>
     /// Represents code used to determine whether or not to write a value.
@@ -48,12 +49,14 @@ namespace Cesil
         internal readonly NonNull<MethodInfo> Method;
         internal readonly NonNull<Delegate> Delegate;
         internal readonly NonNull<TypeInfo> Takes;
+        internal readonly bool TakesContext;
 
-        private ShouldSerialize(TypeInfo? takes, MethodInfo method)
+        private ShouldSerialize(TypeInfo? takes, MethodInfo method, bool takesContext)
         {
             Takes.SetAllowNull(takes);
             Method.Value = method;
             Delegate.Clear();
+            TakesContext = takesContext;
         }
 
         private ShouldSerialize(TypeInfo? takes, Delegate del)
@@ -61,6 +64,79 @@ namespace Cesil
             Takes.SetAllowNull(takes);
             Method.Clear();
             Delegate.Value = del;
+            TakesContext = true;
+        }
+
+        internal Expression MakeExpression(Expression rowVar, Expression ctxVar)
+        {
+            // todo: would require some work to make this chainable... but doable?
+
+            Expression selfExp;
+
+            switch (Mode)
+            {
+                case BackingMode.Method:
+                    {
+                        var mtd = Method.Value;
+
+                        if (IsStatic)
+                        {
+                            if (Takes.HasValue)
+                            {
+                                if (TakesContext)
+                                {
+                                    selfExp = Expression.Call(mtd, rowVar, ctxVar);
+                                }
+                                else
+                                {
+                                    selfExp = Expression.Call(mtd, rowVar);
+                                }
+                            }
+                            else
+                            {
+                                if (TakesContext)
+                                {
+                                    selfExp = Expression.Call(mtd, ctxVar);
+                                }
+                                else
+                                {
+                                    selfExp = Expression.Call(mtd);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (TakesContext)
+                            {
+                                selfExp = Expression.Call(rowVar, mtd, ctxVar);
+                            }
+                            else
+                            {
+                                selfExp = Expression.Call(rowVar, mtd);
+                            }
+                        }
+                    }
+                    break;
+                case BackingMode.Delegate:
+                    {
+                        var shouldSerializeDel = Delegate.Value;
+                        var delRef = Expression.Constant(shouldSerializeDel);
+
+                        if (IsStatic)
+                        {
+                            selfExp = Expression.Invoke(delRef, ctxVar);
+                        }
+                        else
+                        {
+                            selfExp = Expression.Invoke(delRef, rowVar, ctxVar);
+                        }
+                    }
+                    break;
+                default:
+                    return Throw.InvalidOperationException<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
+            }
+
+            return selfExp;
         }
 
         /// <summary>
@@ -68,9 +144,14 @@ namespace Cesil
         /// 
         /// Method must return bool.
         /// 
-        /// If method is an instance method, it must take zero parameters.
+        /// If method is an instance method it must:
+        ///   - take zero parameters or
+        ///   - take one parameter, of type `in WriteContext`
         /// 
-        /// If method is a static method, it may take zero parameters or one parameter of the type being serialized.
+        /// If method is a static method, it must:
+        ///   - take zero parameters or 
+        ///   - take one parameter of the type being serialized or
+        ///   - take two parameters, the first being the type being serialized and the second being `in WriteContext`
         /// </summary>
         public static ShouldSerialize ForMethod(MethodInfo method)
         {
@@ -85,35 +166,90 @@ namespace Cesil
             var args = method.GetParameters();
 
             TypeInfo? takes;
+            bool takesContext;
 
             if (!method.IsStatic)
             {
-                if (args.Length > 0)
-                {
-                    return Throw.ArgumentException<ShouldSerialize>($"{nameof(method)} cannot take parameters, it's an instance method", nameof(method));
-                }
+                takes = method.DeclaringTypeNonNull();
 
-                var shouldSerializeInstType = method.DeclaringTypeNonNull();
-
-                takes = shouldSerializeInstType;
-            }
-            else
-            {
-                if (args.Length > 1)
+                if (args.Length == 0)
                 {
-                    return Throw.ArgumentException<ShouldSerialize>($"{nameof(method)} as a static method must take zero or one parameter", nameof(method));
+                    takesContext = false;
                 }
-                else if (args.Length == 1)
+                else if(args.Length == 1)
                 {
-                    takes = args[0].ParameterType.GetTypeInfo();
+                    var p0 = args[0].ParameterType.GetTypeInfo();
+                    if(!p0.IsByRef)
+                    {
+                        return Throw.ArgumentException<ShouldSerialize>($"If an instance method takes a parameter it must be a `in WriteContext`, wasn't by ref", nameof(method));
+                    }
+
+                    var p0Elem = p0.GetElementTypeNonNull();
+                    if(p0Elem != Types.WriteContextType)
+                    {
+                        return Throw.ArgumentException<ShouldSerialize>($"If an instance method takes a parameter it must be a `in WriteContext`, wasn't `WriteContext`", nameof(method));
+                    }
+
+                    takesContext = true;
                 }
                 else
                 {
+                    return Throw.ArgumentException<ShouldSerialize>($"{nameof(method)} cannot take parameters, it's an instance method", nameof(method));
+                }
+            }
+            else
+            {
+                if (args.Length == 0)
+                {
                     takes = null;
+                    takesContext = false;
+                }
+                else if (args.Length == 1)
+                {
+                    var p0 = args[0].ParameterType.GetTypeInfo();
+
+                    if (p0.IsByRef)
+                    {
+                        var p0Elem = p0.GetElementTypeNonNull();
+                        if (p0Elem != Types.WriteContextType)
+                        {
+                            return Throw.ArgumentException<ShouldSerialize>($"If an static method takes one parameter and it is by ref it must be a `in WriteContext`, wasn't `WriteContext`", nameof(method));
+                        }
+
+                        takes = null;
+                        takesContext = true;
+                    }
+                    else
+                    {
+                        takes = p0;
+                        takesContext = false;
+                    }
+                } 
+                else if(args.Length == 2)
+                {
+                    takes = args[0].ParameterType.GetTypeInfo();
+
+                    var p1 = args[1].ParameterType.GetTypeInfo();
+                    if (!p1.IsByRef)
+                    {
+                        return Throw.ArgumentException<ShouldSerialize>($"If an static method takes two parameters the second must be a `in WriteContext`, wasn't by ref", nameof(method));
+                    }
+
+                    var p1Elem = p1.GetElementTypeNonNull();
+                    if (p1Elem != Types.WriteContextType)
+                    {
+                        return Throw.ArgumentException<ShouldSerialize>($"If an static method takes two parameters the second must be a `in WriteContext`, wasn't `WriteContext`", nameof(method));
+                    }
+
+                    takesContext = true;
+                }
+                else
+                {
+                    return Throw.ArgumentException<ShouldSerialize>($"{nameof(method)} as a static method must take zero or one parameter", nameof(method));
                 }
             }
 
-            return new ShouldSerialize(takes, method);
+            return new ShouldSerialize(takes, method, takesContext);
         }
 
         /// <summary>
@@ -271,15 +407,42 @@ namespace Cesil
             var invoke = delType.GetMethodNonNull("Invoke");
 
             var ps = mtd.GetParameters();
-            if (ps.Length == 0)
+            if (ps.Length == 1)
             {
+                var p0 = ps[0].ParameterType.GetTypeInfo();
+
+                if (!p0.IsByRef)
+                {
+                    return Throw.InvalidOperationException<ShouldSerialize>($"If an delegate takes a single parameter it must be a `in WriteContext`, wasn't by ref");
+                }
+
+                var p0Elem = p0.GetElementTypeNonNull();
+                if (p0Elem != Types.WriteContextType)
+                {
+                    return Throw.InvalidOperationException<ShouldSerialize>($"If an delegate takes a single parameter it must be a `in WriteContext`, wasn't `WriteContext`");
+                }
+
                 var reboundDel = System.Delegate.CreateDelegate(Types.StaticShouldSerializeDelegateType, del, invoke);
 
                 return new ShouldSerialize(null, reboundDel);
             }
-            else if (ps.Length == 1)
+            else if (ps.Length == 2)
             {
                 var takesType = ps[0].ParameterType.GetTypeInfo();
+
+                var p1 = ps[1].ParameterType.GetTypeInfo();
+
+                if (!p1.IsByRef)
+                {
+                    return Throw.InvalidOperationException<ShouldSerialize>($"If an delegate takes two parameters the second must be an `in WriteContext`, wasn't by ref");
+                }
+
+                var p1Elem = p1.GetElementTypeNonNull();
+                if (p1Elem != Types.WriteContextType)
+                {
+                    return Throw.InvalidOperationException<ShouldSerialize>($"If an delegate takes two parameters the second must be an `in WriteContext`, wasn't `WriteContext`");
+                }
+
                 var shouldSerializeDelType = Types.ShouldSerializeDelegateType.MakeGenericType(takesType);
                 var reboundDel = System.Delegate.CreateDelegate(shouldSerializeDelType, del, invoke);
 
@@ -287,7 +450,7 @@ namespace Cesil
             }
             else
             {
-                return Throw.InvalidOperationException<ShouldSerialize>($"Delegate must take 0 or 1 paramters");
+                return Throw.InvalidOperationException<ShouldSerialize>($"Delegate must take 1or 2 parameters");
             }
         }
 

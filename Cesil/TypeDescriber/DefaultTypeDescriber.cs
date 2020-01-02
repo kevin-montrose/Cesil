@@ -856,7 +856,7 @@ namespace Cesil
 
                     var delProvider = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)getter);
                     delProvider.Guarantee(DefaultTypeDescriberDelegateCache.Instance);
-                    var value = delProvider.CachedDelegate.Value(rowObj);
+                    var value = delProvider.CachedDelegate.Value(rowObj, in context);
 
                     ret.Add(DynamicCellValue.Create(name, value, formatter));
                 }

@@ -1034,8 +1034,8 @@ namespace Cesil.Tests
             var staticField = Setter.ForField(t.GetField(nameof(_CustomRowConverters.StaticField)));
             var method = Setter.ForMethod(t.GetMethod(nameof(_CustomRowConverters.Method)));
             var staticMethod = Setter.ForMethod(t.GetMethod(nameof(_CustomRowConverters.StaticMethod)));
-            var del = Setter.ForDelegate((_CustomRowConverters row, int v) => row.Delegate = v);
-            var staticDel = Setter.ForDelegate((int v) => _CustomRowConverters.StaticDelegate = v);
+            var del = Setter.ForDelegate((_CustomRowConverters row, int v, in ReadContext _) => row.Delegate = v);
+            var staticDel = Setter.ForDelegate((int v, in ReadContext _) => _CustomRowConverters.StaticDelegate = v);
 
             var setters = new[] { field, staticField, method, staticMethod, del, staticDel };
 
@@ -4105,8 +4105,8 @@ loop:
                     t.GetConstructor(Type.EmptyTypes),
                     new[]
                     {
-                        Setter.ForDelegate<_POCO_Delegates_Obj, int>((row, val) => {row.A = val; row.B = val+" "+val; }),
-                        Setter.ForDelegate<_POCO_Delegates_Obj, string>((row, val) => {row.C = Guid.Parse("5CEAD5D9-142B-4971-8211-3E2D497BE8BB"); row.D = 3.14159; })
+                        Setter.ForDelegate<_POCO_Delegates_Obj, int>((_POCO_Delegates_Obj row, int val, in ReadContext _) => {row.A = val; row.B = val+" "+val; }),
+                        Setter.ForDelegate<_POCO_Delegates_Obj, string>((_POCO_Delegates_Obj row, string val, in ReadContext _) => {row.C = Guid.Parse("5CEAD5D9-142B-4971-8211-3E2D497BE8BB"); row.D = 3.14159; })
                     },
                     new[]
                     {
@@ -5285,8 +5285,8 @@ loop:
                     t.GetConstructor(Type.EmptyTypes),
                     new[]
                     {
-                        Setter.ForDelegate<_POCO_Delegates_Obj, int>((row, val) => {row.A = val; row.B = val+" "+val; }),
-                        Setter.ForDelegate<_POCO_Delegates_Obj, string>((row, val) => {row.C = Guid.Parse("5CEAD5D9-142B-4971-8211-3E2D497BE8BB"); row.D = 3.14159; })
+                        Setter.ForDelegate<_POCO_Delegates_Obj, int>((_POCO_Delegates_Obj row, int val, in ReadContext _) => {row.A = val; row.B = val+" "+val; }),
+                        Setter.ForDelegate<_POCO_Delegates_Obj, string>((_POCO_Delegates_Obj row, string val, in ReadContext _) => {row.C = Guid.Parse("5CEAD5D9-142B-4971-8211-3E2D497BE8BB"); row.D = 3.14159; })
                     },
                     new[]
                     {

@@ -552,7 +552,7 @@ namespace Cesil.Tests
 
                 var shouldSerialize =
                     Cesil.ShouldSerialize.ForDelegate(
-                        () => true
+                        (in WriteContext _) => true
                     );
 
                 // 4
@@ -640,7 +640,7 @@ namespace Cesil.Tests
 
                 var shouldSerialize =
                     Cesil.ShouldSerialize.ForDelegate(
-                        () => true
+                        (in WriteContext _) => true
                     );
 
                 // 4
@@ -691,16 +691,16 @@ namespace Cesil.Tests
             }
             IEnumerable<Getter> getters;
             {
-                var a = (Getter)(StaticGetterDelegate<int>)(() => 1);
-                var b = (Getter)(StaticGetterDelegate<int>)(() => 2);
+                var a = (Getter)(StaticGetterDelegate<int>)((in WriteContext _) => 1);
+                var b = (Getter)(StaticGetterDelegate<int>)((in WriteContext _) => 2);
 
                 getters = new[] { a, b };
             }
             var names = new[] { "foo", "bar" };
             IEnumerable<Cesil.ShouldSerialize> shouldSerializes;
             {
-                var a = (Cesil.ShouldSerialize)(StaticShouldSerializeDelegate)(() => true);
-                var b = (Cesil.ShouldSerialize)(StaticShouldSerializeDelegate)(() => false);
+                var a = (Cesil.ShouldSerialize)(StaticShouldSerializeDelegate)((in WriteContext _) => true);
+                var b = (Cesil.ShouldSerialize)(StaticShouldSerializeDelegate)((in WriteContext _) => false);
                 shouldSerializes = new[] { a, b, null };
             }
 
@@ -1562,7 +1562,7 @@ namespace Cesil.Tests
         {
             var shouldSerializeCalled = 0;
             StaticShouldSerializeDelegate shouldSerializeDel =
-                () =>
+                (in WriteContext _) =>
                 {
                     shouldSerializeCalled++;
 
@@ -1608,7 +1608,7 @@ namespace Cesil.Tests
         {
             var shouldSerializeCalled = 0;
             ShouldSerializeDelegate<_DelegateShouldSerialize> shouldSerializeDel =
-                row =>
+                (_DelegateShouldSerialize row, in WriteContext _) =>
                 {
                     shouldSerializeCalled++;
 
@@ -1714,7 +1714,7 @@ namespace Cesil.Tests
         {
             var getterCalled = 0;
             StaticGetterDelegate<int> getDel =
-                () =>
+                (in WriteContext _) =>
                 {
                     getterCalled++;
 
@@ -1758,7 +1758,7 @@ namespace Cesil.Tests
         {
             var getterCalled = 0;
             GetterDelegate<_DelegateGetter, int> getDel =
-                (_DelegateGetter row) =>
+                (_DelegateGetter row, in WriteContext _) =>
                 {
                     getterCalled++;
 
@@ -4091,7 +4091,7 @@ namespace Cesil.Tests
         {
             var shouldSerializeCalled = 0;
             StaticShouldSerializeDelegate shouldSerializeDel =
-                () =>
+                (in WriteContext _) =>
                 {
                     shouldSerializeCalled++;
 
@@ -4137,7 +4137,7 @@ namespace Cesil.Tests
         {
             var shouldSerializeCalled = 0;
             ShouldSerializeDelegate<_DelegateShouldSerialize> shouldSerializeDel =
-                row =>
+                (_DelegateShouldSerialize row, in WriteContext _) =>
                 {
                     shouldSerializeCalled++;
 
@@ -4256,7 +4256,7 @@ namespace Cesil.Tests
         {
             var getterCalled = 0;
             StaticGetterDelegate<int> getDel =
-                () =>
+                (in WriteContext _) =>
                 {
                     getterCalled++;
 
@@ -4300,7 +4300,7 @@ namespace Cesil.Tests
         {
             var getterCalled = 0;
             GetterDelegate<_DelegateGetter, int> getDel =
-                (_DelegateGetter row) =>
+                (_DelegateGetter row, in WriteContext _) =>
                 {
                     getterCalled++;
 

@@ -563,7 +563,7 @@ namespace Cesil.Tests
                 }
                 else if (t == typeof(Reset))
                 {
-                    var ex = Reset.ForDelegate(() => { });
+                    var ex = Reset.ForDelegate((in ReadContext _) => { });
                     var exNull1 = default(Reset);
                     var exNull2 = default(Reset);
                     CommonNonOperatorChecks(ex, exNull1, exNull2);
@@ -575,7 +575,7 @@ namespace Cesil.Tests
                 {
                     var ex =
                         Setter.ForDelegate(
-                            (int _) => { }
+                            (int _, in ReadContext __) => { }
                         );
                     var exNull1 = default(Setter);
                     var exNull2 = default(Setter);
@@ -588,7 +588,7 @@ namespace Cesil.Tests
                 {
                     var ex =
                         ShouldSerialize.ForDelegate(
-                            () => true
+                            (in WriteContext _) => true
                         );
                     var exNull1 = default(ShouldSerialize);
                     var exNull2 = default(ShouldSerialize);
@@ -1125,7 +1125,7 @@ namespace Cesil.Tests
 
             static string InvokeToString_ShouldSerialize()
             {
-                var ss = ShouldSerialize.ForDelegate(() => true);
+                var ss = ShouldSerialize.ForDelegate((in WriteContext _) => true);
 
                 return ss.ToString();
             }
@@ -1139,7 +1139,7 @@ namespace Cesil.Tests
 
             static string InvokeToString_Reset()
             {
-                var r = Reset.ForDelegate(() => { });
+                var r = Reset.ForDelegate((in ReadContext _) => { });
 
                 return r.ToString();
             }

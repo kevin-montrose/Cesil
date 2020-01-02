@@ -2882,14 +2882,23 @@
             Wraps either a MethodInfo, a FieldInfo, a GetterDelegate, or a StaticGetterDelegate.
             </summary>
         </member>
+        <member name="M:Cesil.Getter.ForProperty(System.Reflection.PropertyInfo)">
+            <summary>
+            Create a getter from a PropertyInfo.
+            
+            Throws if the property does not have a getter.
+            </summary>
+        </member>
         <member name="M:Cesil.Getter.ForMethod(System.Reflection.MethodInfo)">
             <summary>
             Create a getter from a method.
             
             getter can be an instance method or a static method
-              if it's a static method, it can take 0 or 1 parameters
-                 the 1 parameter must be the type to be serialized, or something it is assignable to
-              if it's an instance method, it can only take 0 parameters
+              if it's a static method, it can take 0, 1, or 2 parameters
+                 - if there is 1 parameter, it may be an `in WriteContext` or the row type
+                 - if there are 2 parameters, the first must be the row type, and the second must be `in WriteContext`
+              if it's an instance method, it can only take 0 or 1 parameters
+                 - if it takes a parameter, it must be an `in WriteContext`
             </summary>
         </member>
         <member name="M:Cesil.Getter.ForField(System.Reflection.FieldInfo)">
@@ -3193,11 +3202,17 @@
             <summary>
             Create a reset from a method.
             
-            If method is an instance, it can take no parameters.
+            If method is an instance, it can take:
+             - zero parameters or 
+             - a single `in ReadContext` parameter.
             
-            If a method is static, it can take one or zero parameters.
+            If a method is static, it can take:
+             - zero parameters or
+             - a single parameter of the row type or
+             - a single parameter of `in ReadContext` or
+             - two parameters, the first of the row type and the second of `in ReadContext`
             
-            If the reset is instance or takes a parameter, the instance or parameter
+            If the reset is instance or takes a of the row type parameter, the instance or parameter
               type must be assignable from the type being deserialized.
             </summary>
         </member>
@@ -3274,19 +3289,28 @@
             Wraps either a MethodInfo, a FieldInfo, a SetterDelegate, or a StaticSetterDelegate.
             </summary>
         </member>
+        <member name="M:Cesil.Setter.ForProperty(System.Reflection.PropertyInfo)">
+            <summary>
+            Create a setter from a PropertyInfo.
+            
+            Throws if the property does not have a setter.
+            </summary>
+        </member>
         <member name="M:Cesil.Setter.ForMethod(System.Reflection.MethodInfo)">
             <summary>
             Create a setter from a method.
             
-            setter must take single parameter (the result of parser)
-              can be instance or static
-              and cannot return a value
-            -- OR --
-            setter must take two parameters, 
-               the first is the record value
-               the second is the value (the result of parser)
-               cannot return a value
-               and must be static
+            The method must return void.
+            
+            If the method is a static method it may:
+             - take 1 parameter (the result of the parser) or
+             - take 2 parameters, the result of the parser and an `in ReadContext` or
+             - take 2 parameters, the row type and the result of the parser or
+             - take 3 parameters, the row type, the result of the parser, and `in ReadContext`
+            
+            If the method is an instance method:
+             - it must be on the row type, and take 1 parameter (the result of the parser) or
+             - it must be on the row type, and take 2 parameters, the result of the parser and an `in ReadContext`
             </summary>
         </member>
         <member name="M:Cesil.Setter.ForField(System.Reflection.FieldInfo)">
@@ -3382,9 +3406,14 @@
             
             Method must return bool.
             
-            If method is an instance method, it must take zero parameters.
+            If method is an instance method it must:
+              - take zero parameters or
+              - take one parameter, of type `in WriteContext`
             
-            If method is a static method, it may take zero parameters or one parameter of the type being serialized.
+            If method is a static method, it must:
+              - take zero parameters or 
+              - take one parameter of the type being serialized or
+              - take two parameters, the first being the type being serialized and the second being `in WriteContext`
             </summary>
         </member>
         <member name="M:Cesil.ShouldSerialize.ForDelegate``1(Cesil.ShouldSerializeDelegate{``0})">

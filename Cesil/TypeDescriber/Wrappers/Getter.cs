@@ -7,12 +7,12 @@ namespace Cesil
     /// <summary>
     /// Delegate type for getters that doesn't take a row.
     /// </summary>
-    public delegate TValue StaticGetterDelegate<TValue>();
+    public delegate TValue StaticGetterDelegate<TValue>(in WriteContext context);
 
     /// <summary>
     /// Delegate type for getters.
     /// </summary>
-    public delegate TValue GetterDelegate<TRow, TValue>(TRow instance);
+    public delegate TValue GetterDelegate<TRow, TValue>(TRow instance, in WriteContext context);
 
     /// <summary>
     /// Represents code used to get a value from a type.
@@ -21,7 +21,7 @@ namespace Cesil
     /// </summary>
     public sealed class Getter : IEquatable<Getter>, ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>
     {
-        internal delegate object DynamicGetterDelegate(object row);
+        internal delegate object DynamicGetterDelegate(object row, in WriteContext ctx);
 
         internal BackingMode Mode
         {
@@ -71,14 +71,17 @@ namespace Cesil
 
         internal readonly TypeInfo Returns;
 
+        internal readonly bool TakesContext;
+
         private NonNull<DynamicGetterDelegate> _CachedDelegate;
         ref NonNull<DynamicGetterDelegate> ICreatesCacheableDelegate<DynamicGetterDelegate>.CachedDelegate => ref _CachedDelegate;
 
-        private Getter(TypeInfo? rowType, TypeInfo returns, MethodInfo method)
+        private Getter(TypeInfo? rowType, TypeInfo returns, MethodInfo method, bool takesContext)
         {
             RowType.SetAllowNull(rowType);
             Returns = returns;
             Method.Value = method;
+            TakesContext = takesContext;
             Delegate.Clear();
             Field.Clear();
         }
@@ -90,6 +93,7 @@ namespace Cesil
             Method.Clear();
             Delegate.Value = del;
             Field.Clear();
+            TakesContext = true;
         }
 
         private Getter(TypeInfo? rowType, TypeInfo returns, FieldInfo field)
@@ -99,101 +103,147 @@ namespace Cesil
             Method.Clear();
             Delegate.Clear();
             Field.Value = field;
+            TakesContext = false;
         }
 
         DynamicGetterDelegate ICreatesCacheableDelegate<DynamicGetterDelegate>.CreateDelegate()
         {
             var row = Expressions.Parameter_Object;
+            var ctx = Expressions.Parameter_WriteContext_ByRef;
 
-            switch (Mode)
+            Expression onType;
+            if (IsStatic)
             {
-                case BackingMode.Field:
-                    {
-                        Expression? fieldOnExp;
-
-                        if (IsStatic)
-                        {
-                            fieldOnExp = null;
-                        }
-                        else
-                        {
-                            fieldOnExp = Expression.Convert(row, RowType.Value);
-                        }
-
-                        var getField = Expression.Field(fieldOnExp, Field.Value);
-                        var convertToObject = Expression.Convert(getField, Types.ObjectType);
-                        var lambda = Expression.Lambda<DynamicGetterDelegate>(convertToObject, row);
-                        var del = lambda.Compile();
-
-                        return del;
-                    }
-                case BackingMode.Method:
-                    {
-                        MethodCallExpression callMtd;
-
-                        var mtd = Method.Value;
-
-                        if (IsStatic)
-                        {
-                            if (!RowType.HasValue)
-                            {
-                                callMtd = Expression.Call(null, mtd);
-                            }
-                            else
-                            {
-                                var rowAsType = Expression.Convert(row, RowType.Value);
-                                callMtd = Expression.Call(null, mtd, rowAsType);
-                            }
-                        }
-                        else
-                        {
-                            var rowAsType = Expression.Convert(row, RowType.Value);
-                            callMtd = Expression.Call(rowAsType, mtd);
-                        }
-
-                        var convertToObject = Expression.Convert(callMtd, Types.ObjectType);
-                        var lambda = Expression.Lambda<DynamicGetterDelegate>(convertToObject, row);
-                        var del = lambda.Compile();
-
-                        return del;
-                    }
-                case BackingMode.Delegate:
-                    {
-                        var delInst = Expression.Constant(Delegate.Value);
-
-                        InvocationExpression callDel;
-
-                        if (IsStatic)
-                        {
-                            callDel = Expression.Invoke(delInst);
-                        }
-                        else
-                        {
-                            var rowAsType = Expression.Convert(row, RowType.Value);
-                            callDel = Expression.Invoke(delInst, rowAsType);
-                        }
-
-                        var convertToObject = Expression.Convert(callDel, Types.ObjectType);
-                        var lambda = Expression.Lambda<DynamicGetterDelegate>(convertToObject, row);
-                        var del = lambda.Compile();
-
-                        return del;
-                    }
-                default:
-                    return Throw.InvalidOperationException<DynamicGetterDelegate>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                onType = Expressions.Constant_Null;
             }
+            else
+            {
+                onType = Expression.Convert(row, RowType.Value);
+            }
+
+            var body = MakeExpression(onType, ctx);
+            var convertToObject = Expression.Convert(body, Types.ObjectType);
+
+            var lambda = Expression.Lambda<DynamicGetterDelegate>(convertToObject, row, ctx);
+            var del = lambda.Compile();
+
+            return del;
         }
 
         void ICreatesCacheableDelegate<DynamicGetterDelegate>.Guarantee(IDelegateCache cache)
         => IDelegateCacheHelpers.GuaranteeImpl<Getter, DynamicGetterDelegate>(this, cache);
 
+        internal Expression MakeExpression(Expression rowVar, Expression ctxVar)
+        {
+            // todo: there's no particular reason this couldn't be chainable?
+
+            Expression selfExp;
+            
+            switch (Mode)
+            {
+                case BackingMode.Method:
+                    {
+                        var mtd = Method.Value;
+                        if (mtd.IsStatic)
+                        {
+                            var ps = mtd.GetParameters();
+
+                            if (ps.Length == 0)
+                            {
+                                selfExp = Expression.Call(mtd);
+                            }
+                            else if(ps.Length == 1)
+                            {
+                                if (TakesContext)
+                                {
+                                    selfExp = Expression.Call(mtd, ctxVar);
+                                }
+                                else
+                                {
+                                    selfExp = Expression.Call(mtd, rowVar);
+                                }
+                            }
+                            else
+                            {
+                                selfExp = Expression.Call(mtd, rowVar, ctxVar);
+                            }
+                        }
+                        else
+                        {
+                            if (TakesContext)
+                            {
+                                selfExp = Expression.Call(rowVar, mtd, ctxVar);
+                            }
+                            else
+                            {
+                                selfExp = Expression.Call(rowVar, mtd);
+                            }
+                        }
+                    };
+                    break;
+                case BackingMode.Field:
+                    {
+                        var field = Field.Value;
+                        if (field.IsStatic)
+                        {
+                            selfExp = Expression.Field(null, field);
+                        }
+                        else
+                        {
+                            selfExp = Expression.Field(rowVar, field);
+                        }
+                    }
+                    break;
+                case BackingMode.Delegate:
+                    {
+                        var getterDel = Delegate.Value;
+                        var delRef = Expression.Constant(getterDel);
+
+                        if (IsStatic)
+                        {
+                            selfExp = Expression.Invoke(delRef, ctxVar);
+                        }
+                        else
+                        {
+                            selfExp = Expression.Invoke(delRef, rowVar, ctxVar);
+                        }
+                    }
+                    break;
+                default:
+                    return Throw.InvalidOperationException<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
+            }
+
+            return selfExp;
+        }
+
+        /// <summary>
+        /// Create a getter from a PropertyInfo.
+        /// 
+        /// Throws if the property does not have a getter.
+        /// </summary>
+        public static Getter ForProperty(PropertyInfo property)
+        {
+            Utils.CheckArgumentNull(property, nameof(property));
+
+            var get = property.GetMethod;
+
+            if (get == null)
+            {
+                return Throw.ArgumentException<Getter>("Property does not have a getter", nameof(property));
+            }
+
+            return ForMethod(get);
+        }
+
         /// <summary>
         /// Create a getter from a method.
         /// 
         /// getter can be an instance method or a static method
-        ///   if it's a static method, it can take 0 or 1 parameters
-        ///      the 1 parameter must be the type to be serialized, or something it is assignable to
-        ///   if it's an instance method, it can only take 0 parameters
+        ///   if it's a static method, it can take 0, 1, or 2 parameters
+        ///      - if there is 1 parameter, it may be an `in WriteContext` or the row type
+        ///      - if there are 2 parameters, the first must be the row type, and the second must be `in WriteContext`
+        ///   if it's an instance method, it can only take 0 or 1 parameters
+        ///      - if it takes a parameter, it must be an `in WriteContext`
         /// </summary>
         public static Getter ForMethod(MethodInfo method)
         {
@@ -207,35 +257,98 @@ namespace Cesil
             var getterParams = method.GetParameters();
 
             TypeInfo? rowType;
+            bool takesContext;
             if (method.IsStatic)
             {
                 if (getterParams.Length == 0)
                 {
                     /* that's fine */
                     rowType = null;
+                    takesContext = false;
                 }
                 else if (getterParams.Length == 1)
                 {
-                    rowType = getterParams[0].ParameterType.GetTypeInfo();
+                    var p0 = getterParams[0].ParameterType.GetTypeInfo();
+                    if (p0.IsByRef)
+                    {
+                        var p0Elem = p0.GetElementTypeNonNull();
+                        if (p0Elem != Types.WriteContextType)
+                        {
+                            return Throw.ArgumentException<Getter>($"If the first parameter to a {nameof(Getter)} method is by ref, it must be an `in WriteContext`", nameof(method));
+                        }
+
+                        rowType = null;
+                        takesContext = true;
+                    }
+                    else
+                    {
+                        rowType = p0;
+                        takesContext = false;
+                    }
+                }
+                else if(getterParams.Length == 2)
+                {
+                    var p0 = getterParams[0].ParameterType.GetTypeInfo();
+                    var p1 = getterParams[1].ParameterType.GetTypeInfo();
+
+                    if (p0.IsByRef)
+                    {
+                        return Throw.ArgumentException<Getter>($"If the first parameter to a static {nameof(Getter)} method with two parameters cannot be by ref", nameof(method));
+                    }
+
+                    if (!p1.IsByRef)
+                    {
+                        return Throw.ArgumentException<Getter>($"If the second parameter to a static {nameof(Getter)} method with two parameters must be `in WriteContext`, was not by ref", nameof(method));
+                    }
+
+                    var p1Elem = p1.GetElementTypeNonNull();
+                    if(p1Elem != Types.WriteContextType)
+                    {
+                        return Throw.ArgumentException<Getter>($"If the second parameter to a static {nameof(Getter)} method with two parameters must be `in WriteContext`, was not `WriteContext`", nameof(method));
+                    }
+
+                    rowType = p0;
+                    takesContext = true;
                 }
                 else
                 {
-                    return Throw.ArgumentException<Getter>($"Since {method} is a static method, it cannot take more than 1 parameter", nameof(method));
+                    return Throw.ArgumentException<Getter>($"Since {method} is a static method, it cannot take more than 2 parameters", nameof(method));
                 }
             }
             else
             {
                 rowType = method.DeclaringTypeNonNull();
 
-                if (getterParams.Length > 0)
+                if(getterParams.Length == 0)
                 {
-                    return Throw.ArgumentException<Getter>($"Since {method} is an instance method, it cannot take any parameters", nameof(method));
+                    takesContext = false;
+                }
+                else if(getterParams.Length == 1)
+                {
+                    var p0 = getterParams[0].ParameterType.GetTypeInfo();
+
+                    if (!p0.IsByRef)
+                    {
+                        return Throw.ArgumentException<Getter>($"If the first parameter to an instance {nameof(Getter)} method with one parameter must be `in WriteContext`, was not by ref", nameof(method));
+                    }
+
+                    var p0Elem = p0.GetElementTypeNonNull();
+                    if (p0Elem != Types.WriteContextType)
+                    {
+                        return Throw.ArgumentException<Getter>($"If the first parameter to an instance {nameof(Getter)} method with one parameter must be `in WriteContext`, was not `WriteContext`", nameof(method));
+                    }
+
+                    takesContext = true;
+                }
+                else
+                {
+                    return Throw.ArgumentException<Getter>($"Since {method} is an instance method, it cannot take 1 parameter", nameof(method));
                 }
             }
 
             var returns = method.ReturnType.GetTypeInfo();
 
-            return new Getter(rowType, returns, method);
+            return new Getter(rowType, returns, method, takesContext);
         }
 
         /// <summary>
@@ -434,9 +547,21 @@ namespace Cesil
             }
 
             var args = mtd.GetParameters();
-            if (args.Length == 1)
+            if (args.Length == 2)
             {
                 var takes = args[0].ParameterType.GetTypeInfo();
+                var ctx = args[1].ParameterType.GetTypeInfo();
+
+                if (!ctx.IsByRef)
+                {
+                    return Throw.InvalidOperationException<Getter>($"Delegate's second parameter must be a `in WriteContext`, was not by ref");
+                }
+
+                var ctxElem = ctx.GetElementTypeNonNull();
+                if(ctxElem != Types.WriteContextType)
+                {
+                    return Throw.InvalidOperationException<Getter>($"Delegate's second parameter must be a `in WriteContext`, was not `WriteContext`");
+                }
 
                 var formatterDel = Types.GetterDelegateType.MakeGenericType(takes, ret);
                 var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
@@ -445,8 +570,21 @@ namespace Cesil
 
                 return new Getter(takes, ret, reboundDel);
             }
-            else if (args.Length == 0)
+            else if (args.Length == 1)
             {
+                var ctx = args[0].ParameterType.GetTypeInfo();
+
+                if (!ctx.IsByRef)
+                {
+                    return Throw.InvalidOperationException<Getter>($"Delegate's first parameter must be a `in WriteContext`, was not by ref");
+                }
+
+                var ctxElem = ctx.GetElementTypeNonNull();
+                if (ctxElem != Types.WriteContextType)
+                {
+                    return Throw.InvalidOperationException<Getter>($"Delegate's first parameter must be a `in WriteContext`, was not `WriteContext`");
+                }
+
                 var formatterDel = Types.StaticGetterDelegateType.MakeGenericType(ret);
                 var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
@@ -456,7 +594,7 @@ namespace Cesil
             }
             else
             {
-                return Throw.InvalidOperationException<Getter>("Delegate must take 0 or 1 parameters");
+                return Throw.InvalidOperationException<Getter>("Delegate must take 1 or 2 parameters");
             }
         }
 

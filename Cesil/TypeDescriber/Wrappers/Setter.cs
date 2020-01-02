@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Cesil
@@ -6,12 +7,12 @@ namespace Cesil
     /// <summary>
     /// Delegate type for setters that don't take an instance.
     /// </summary>
-    public delegate void StaticSetterDelegate<TValue>(TValue value);
+    public delegate void StaticSetterDelegate<TValue>(TValue value, in ReadContext context);
 
     /// <summary>
     /// Delegate type for setters.
     /// </summary>
-    public delegate void SetterDelegate<TRow, TValue>(TRow instance, TValue value);
+    public delegate void SetterDelegate<TRow, TValue>(TRow instance, TValue value, in ReadContext context);
 
     /// <summary>
     /// Represents code used to set parsed values onto types.
@@ -68,11 +69,14 @@ namespace Cesil
 
         internal readonly TypeInfo Takes;
 
-        private Setter(TypeInfo? rowType, TypeInfo takes, MethodInfo method)
+        internal readonly bool TakesContext;
+
+        private Setter(TypeInfo? rowType, TypeInfo takes, MethodInfo method, bool takesContext)
         {
             RowType.SetAllowNull(rowType);
             Takes = takes;
             Method.Value = method;
+            TakesContext = takesContext;
         }
 
         private Setter(TypeInfo? rowType, TypeInfo takes, Delegate del)
@@ -80,6 +84,7 @@ namespace Cesil
             RowType.SetAllowNull(rowType);
             Takes = takes;
             Delegate.Value = del;
+            TakesContext = true;
         }
 
         private Setter(TypeInfo? rowType, TypeInfo takes, FieldInfo field)
@@ -87,20 +92,130 @@ namespace Cesil
             RowType.SetAllowNull(rowType);
             Takes = takes;
             Field.Value = field;
+            TakesContext = false;
+        }
+
+        internal Expression MakeExpression(Expression rowVar, Expression valVar, Expression ctxVar)
+        {
+            // todo: no reason this can't be chainable?
+
+            Expression selfExp;
+
+            switch (Mode)
+            {
+                case BackingMode.Method:
+                    {
+                        var setterMtd = Method.Value;
+
+                        if (IsStatic)
+                        {
+                            if (RowType.HasValue)
+                            {
+                                if (TakesContext)
+                                {
+                                    selfExp = Expression.Call(setterMtd, rowVar, valVar, ctxVar);
+                                }
+                                else
+                                {
+                                    selfExp = Expression.Call(setterMtd, rowVar, valVar);
+                                }
+                            }
+                            else
+                            {
+                                if (TakesContext)
+                                {
+                                    selfExp = Expression.Call(setterMtd, valVar, ctxVar);
+                                }
+                                else
+                                {
+                                    selfExp = Expression.Call(setterMtd, valVar);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (TakesContext)
+                            {
+                                selfExp = Expression.Call(rowVar, setterMtd, valVar, ctxVar);
+                            }
+                            else
+                            {
+                                selfExp = Expression.Call(rowVar, setterMtd, valVar);
+                            }
+                        }
+                    }
+                    break;
+                case BackingMode.Field:
+                    {
+                        MemberExpression fieldExp;
+
+                        if (IsStatic)
+                        {
+                            fieldExp = Expression.Field(null, Field.Value);
+                        }
+                        else
+                        {
+                            fieldExp = Expression.Field(rowVar, Field.Value);
+                        }
+
+                        selfExp = Expression.Assign(fieldExp, valVar);
+                    }
+                    break;
+                case BackingMode.Delegate:
+                    {
+                        var setterDel = Delegate.Value;
+                        var delRef = Expression.Constant(setterDel);
+
+                        if (IsStatic)
+                        {
+                            selfExp = Expression.Invoke(delRef, valVar, ctxVar);
+                        }
+                        else
+                        {
+                            selfExp = Expression.Invoke(delRef, rowVar, valVar, ctxVar);
+                        }
+                    }
+                    break;
+                default:
+                    return Throw.InvalidOperationException<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
+            }
+
+            return selfExp;
+        }
+
+        /// <summary>
+        /// Create a setter from a PropertyInfo.
+        /// 
+        /// Throws if the property does not have a setter.
+        /// </summary>
+        public static Setter ForProperty(PropertyInfo property)
+        {
+            Utils.CheckArgumentNull(property, nameof(property));
+
+            var set = property.SetMethod;
+
+            if (set == null)
+            {
+                return Throw.ArgumentException<Setter>("Property does not have a setter", nameof(property));
+            }
+
+            return ForMethod(set);
         }
 
         /// <summary>
         /// Create a setter from a method.
         /// 
-        /// setter must take single parameter (the result of parser)
-        ///   can be instance or static
-        ///   and cannot return a value
-        /// -- OR --
-        /// setter must take two parameters, 
-        ///    the first is the record value
-        ///    the second is the value (the result of parser)
-        ///    cannot return a value
-        ///    and must be static
+        /// The method must return void.
+        /// 
+        /// If the method is a static method it may:
+        ///  - take 1 parameter (the result of the parser) or
+        ///  - take 2 parameters, the result of the parser and an `in ReadContext` or
+        ///  - take 2 parameters, the row type and the result of the parser or
+        ///  - take 3 parameters, the row type, the result of the parser, and `in ReadContext`
+        /// 
+        /// If the method is an instance method:
+        ///  - it must be on the row type, and take 1 parameter (the result of the parser) or
+        ///  - it must be on the row type, and take 2 parameters, the result of the parser and an `in ReadContext`
         /// </summary>
         public static Setter ForMethod(MethodInfo method)
         {
@@ -113,39 +228,101 @@ namespace Cesil
                 return Throw.ArgumentException<Setter>($"{nameof(method)} must not return a value", nameof(method));
             }
 
-            TypeInfo? setOnType;
+            TypeInfo? onType;
             TypeInfo takesType;
+            bool takesContext;
 
             var args = method.GetParameters();
-            if (args.Length == 1)
-            {
-                takesType = args[0].ParameterType.GetTypeInfo();
 
-                if (method.IsStatic)
+            if (method.IsStatic)
+            {
+                onType = null;
+
+                if (args.Length == 1)
                 {
-                    setOnType = null;
+                    takesType = args[0].ParameterType.GetTypeInfo();
+                    takesContext = false;
+                }
+                else if (args.Length == 2)
+                {
+                    var p0 = args[0].ParameterType.GetTypeInfo();
+
+                    var p1 = args[1].ParameterType.GetTypeInfo();
+                    if (!p1.IsByRef)
+                    {
+                        onType = p0;
+                        takesType = p1;
+                        takesContext = false;
+                    }
+                    else
+                    {
+                        var p1Elem = p1.GetElementTypeNonNull();
+                        if (p1Elem != Types.ReadContextType)
+                        {
+                            return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by a static method taking 2 parameters where the second paramter is by ref must have a second parameter of `in ReadContext`, was not `ReadContext`", nameof(method));
+                        }
+
+                        onType = null;
+                        takesType = p0;
+                        takesContext = true;
+                    }
+                }
+                else if (args.Length == 3)
+                {
+                    onType = args[0].ParameterType.GetTypeInfo();
+                    takesType = args[1].ParameterType.GetTypeInfo();
+
+                    var p2 = args[2].ParameterType.GetTypeInfo();
+                    if (!p2.IsByRef)
+                    {
+                        return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by an static method taking 3 parameters must have a third parameter of `in ReadContext`, was not by ref", nameof(method));
+                    }
+                    var p2Elem = p2.GetElementTypeNonNull();
+                    if (p2Elem != Types.ReadContextType)
+                    {
+                        return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by an static method taking 3 parameters must have a third parameter of `in ReadContext`, was not `ReadContext`", nameof(method));
+                    }
+
+                    takesContext = true;
                 }
                 else
                 {
-                    setOnType = method.DeclaringTypeNonNull();
-                }
-            }
-            else if (args.Length == 2)
-            {
-                setOnType = args[0].ParameterType.GetTypeInfo();
-                takesType = args[1].ParameterType.GetTypeInfo();
-
-                if (!method.IsStatic)
-                {
-                    return Throw.ArgumentException<Setter>($"{nameof(method)} taking two parameters must be static", nameof(method));
+                    return Throw.ArgumentException<Setter>($"A static method backing a {nameof(Setter)} must take 1, 2, or 3 parameters", nameof(method));
                 }
             }
             else
             {
-                return Throw.ArgumentException<Setter>($"{nameof(method)} must take one or two parameters", nameof(method));
+                onType = method.DeclaringTypeNonNull();
+
+                if (args.Length == 1)
+                {
+                    takesType = args[0].ParameterType.GetTypeInfo();
+                    takesContext = false;
+                }
+                else if (args.Length == 2)
+                {
+                    takesType = args[0].ParameterType.GetTypeInfo();
+
+                    var p1 = args[1].ParameterType.GetTypeInfo();
+                    if (!p1.IsByRef)
+                    {
+                        return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by an instance method taking 2 parameters must have a second parameter of `in ReadContext`, was not by ref", nameof(method));
+                    }
+                    var p1Elem = p1.GetElementTypeNonNull();
+                    if (p1Elem != Types.ReadContextType)
+                    {
+                        return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by an instance method taking 2 parameters must have a second parameter of `in ReadContext`, was not `ReadContext`", nameof(method));
+                    }
+
+                    takesContext = true;
+                }
+                else
+                {
+                    return Throw.ArgumentException<Setter>($"An instance method backing a {nameof(Setter)} must take 1, or 2 parameters", nameof(method));
+                }
             }
 
-            return new Setter(setOnType, takesType, method);
+            return new Setter(onType, takesType, method, takesContext);
         }
 
         /// <summary>
@@ -348,10 +525,21 @@ namespace Cesil
 
             var ps = mtd.GetParameters();
             var invoke = delType.GetMethodNonNull("Invoke");
-            if (ps.Length == 2)
+            if (ps.Length == 3)
             {
                 var rowType = ps[0].ParameterType.GetTypeInfo();
                 var takesType = ps[1].ParameterType.GetTypeInfo();
+                var ctxType = ps[2].ParameterType.GetTypeInfo();
+
+                if (!ctxType.IsByRef)
+                {
+                    return Throw.InvalidOperationException<Setter>("Delegate taking 3 parameters must have a third parameter of `in ReadContext`, wasn't by ref");
+                }
+
+                if (ctxType.GetElementTypeNonNull() != Types.ReadContextType)
+                {
+                    return Throw.InvalidOperationException<Setter>("Delegate taking 3 parameters must have a third parameter of `in ReadContext`, wasn't `ReadContext`");
+                }
 
                 var setterDelType = Types.SetterDelegateType.MakeGenericType(rowType, takesType);
 
@@ -359,9 +547,21 @@ namespace Cesil
 
                 return new Setter(rowType, takesType, reboundDel);
             }
-            else if (ps.Length == 1)
+            else if (ps.Length == 2)
             {
                 var takesType = ps[0].ParameterType.GetTypeInfo();
+                var ctxType = ps[1].ParameterType.GetTypeInfo();
+
+                if (!ctxType.IsByRef)
+                {
+                    return Throw.InvalidOperationException<Setter>("Delegate taking 2 parameters must have a second parameter of `in ReadContext`, wasn't by ref");
+                }
+
+                if (ctxType.GetElementTypeNonNull() != Types.ReadContextType)
+                {
+                    return Throw.InvalidOperationException<Setter>("Delegate taking 2 parameters must have a second parameter of `in ReadContext`, wasn't `ReadContext`");
+                }
+
                 var setterDelType = Types.StaticSetterDelegateType.MakeGenericType(takesType);
 
                 var reboundDel = System.Delegate.CreateDelegate(setterDelType, del, invoke);
@@ -370,7 +570,7 @@ namespace Cesil
             }
             else
             {
-                return Throw.InvalidOperationException<Setter>("Delegate must take 1 or 2 parameters");
+                return Throw.InvalidOperationException<Setter>("Delegate must take 2 or 3 parameters");
             }
         }
 

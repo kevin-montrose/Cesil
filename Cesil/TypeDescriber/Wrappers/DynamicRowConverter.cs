@@ -218,44 +218,8 @@ namespace Cesil
 
                                 var getValueMtd = Methods.DynamicRow.GetAtTyped.MakeGenericMethod(setter.Takes);
                                 var getValueCall = Expression.Call(rowVar, getValueMtd, Expression.Constant(setterColumn));
-                                Expression callSetter;
-                                switch (setter.Mode)
-                                {
-                                    case BackingMode.Method:
-                                        {
-                                            Expression? setterTarget = setter.IsStatic ? null : retVar;
-
-                                            callSetter = Expression.Call(setterTarget, setter.Method.Value, getValueCall);
-                                        }
-                                        break;
-                                    case BackingMode.Field:
-                                        {
-                                            Expression? setterTarget = setter.IsStatic ? null : retVar;
-
-                                            callSetter = Expression.Assign(
-                                                Expression.Field(setterTarget, setter.Field.Value),
-                                                getValueCall
-                                            );
-                                        }
-                                        break;
-                                    case BackingMode.Delegate:
-                                        {
-                                            var setterDel = setter.Delegate.Value;
-                                            var delRef = Expression.Constant(setterDel);
-
-                                            if (setter.IsStatic)
-                                            {
-                                                callSetter = Expression.Invoke(delRef, getValueCall);
-                                            }
-                                            else
-                                            {
-                                                callSetter = Expression.Invoke(delRef, retVar, getValueCall);
-                                            }
-                                        }
-                                        break;
-                                    default:
-                                        return Throw.InvalidOperationException<Expression>($"Unexpected {nameof(BackingMode)}: {setter.Mode}");
-                                }
+                                var callSetter = setter.MakeExpression(retVar, getValueCall, contextVar);
+                                
                                 statements.Add(callSetter);
                             }
 

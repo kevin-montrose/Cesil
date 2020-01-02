@@ -182,7 +182,7 @@ namespace Cesil.Tests
                     Setter.ForMethod(typeof(_Resets_Surrogate).GetProperty(nameof(_Resets_Surrogate.Foo)).SetMethod),
                     Parser.GetDefault(typeof(string).GetTypeInfo()),
                     MemberRequired.No,
-                    Reset.ForDelegate(() => { })
+                    Reset.ForDelegate((in ReadContext _) => { })
                 );
                 manual.WithInstanceProvider(InstanceProvider.ForParameterlessConstructor(typeof(_Resets_Surrogate).GetConstructor(Type.EmptyTypes)));
 
@@ -249,7 +249,7 @@ namespace Cesil.Tests
                 manual.WithExplicitSetter(
                     typeof(_Setters_Surrogate).GetTypeInfo(),
                     nameof(_Setters_Surrogate.Foo),
-                    Setter.ForDelegate<string>(_ => { }),
+                    Setter.ForDelegate<string>((string _, in ReadContext __) => { }),
                     Parser.GetDefault(typeof(string).GetTypeInfo()),
                     MemberRequired.No
                 );
@@ -323,7 +323,7 @@ namespace Cesil.Tests
                     nameof(_ShouldSerializes_Surrogate.Foo),
                     Getter.ForMethod(typeof(_ShouldSerializes_Surrogate).GetProperty(nameof(_ShouldSerializes_Surrogate.Foo)).GetMethod),
                     Formatter.GetDefault(typeof(string).GetTypeInfo()),
-                    ShouldSerialize.ForDelegate(() => true)
+                    ShouldSerialize.ForDelegate((in WriteContext _) => true)
                 );
 
                 var badSurrogate = SurrogateTypeDescriberBuilder.CreateBuilder(SurrogateTypeDescriberFallbackBehavior.UseFallback, manual.ToManualTypeDescriber());
@@ -430,7 +430,7 @@ namespace Cesil.Tests
                 manual.WithExplicitGetter(
                     typeof(_Getters_Surrogate).GetTypeInfo(),
                     nameof(_Getters_Surrogate.Foo),
-                    Getter.ForDelegate(() => ""),
+                    Getter.ForDelegate((in WriteContext _) => ""),
                     Formatter.GetDefault(typeof(string).GetTypeInfo())
                 );
 

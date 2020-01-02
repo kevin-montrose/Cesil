@@ -24,7 +24,7 @@ namespace Cesil.Tests
         [Fact]
         public void PoisedTryReadWithCommentReuse()
         {
-            var setter = Setter.ForDelegate((_PoisedTryReadWithCommentReuse row, string val) => throw new Exception());
+            var setter = Setter.ForDelegate((_PoisedTryReadWithCommentReuse row, string val, in ReadContext _) => throw new Exception());
 
             var type = typeof(_PoisedTryReadWithCommentReuse).GetTypeInfo();
             var cons = type.GetConstructor(Type.EmptyTypes);
@@ -1163,7 +1163,7 @@ namespace Cesil.Tests
                     Assert.Equal(Setter.ForField(f), d1.Setter);
                 }
 
-                var reset = Reset.ForDelegate(() => { });
+                var reset = Reset.ForDelegate((in ReadContext _) => { });
 
                 // 5
                 {
@@ -1242,7 +1242,7 @@ namespace Cesil.Tests
                     Assert.Equal(Setter.ForMethod(p.SetMethod), d1.Setter);
                 }
 
-                var reset = Reset.ForDelegate(() => { });
+                var reset = Reset.ForDelegate((in ReadContext _) => { });
 
                 // 5
                 {
@@ -1283,8 +1283,8 @@ namespace Cesil.Tests
             var isMemberRequireds = new[] { MemberRequired.Yes, MemberRequired.No };
             IEnumerable<Reset> resets;
             {
-                var a = Reset.ForDelegate(() => { });
-                var b = Reset.ForDelegate<_DeserializableMemberEquality>(_ => { });
+                var a = Reset.ForDelegate((in ReadContext _) => { });
+                var b = Reset.ForDelegate((_DeserializableMemberEquality _, in ReadContext __) => { });
                 resets = new[] { a, b, null };
             }
 
@@ -1363,7 +1363,7 @@ namespace Cesil.Tests
             var badParser = Parser.GetDefault(typeof(int).GetTypeInfo());
             Assert.Throws<ArgumentException>(() => DeserializableMember.Create(type, name, setter, badParser, MemberRequired.Yes, null));
 
-            var badReset = Reset.ForDelegate<string>((_) => { });
+            var badReset = Reset.ForDelegate<string>((string _, in ReadContext __) => { });
             Assert.Throws<ArgumentException>(() => DeserializableMember.Create(type, name, setter, parser, MemberRequired.Yes, badReset));
 
             Assert.Throws<ArgumentException>(() => DeserializableMember.Create(type, "", setter, parser, MemberRequired.Yes, null));
@@ -1904,7 +1904,7 @@ namespace Cesil.Tests
         {
             var resetCalled = 0;
             StaticResetDelegate resetDel =
-                () =>
+                (in ReadContext _) =>
                 {
                     resetCalled++;
                 };
@@ -1951,7 +1951,7 @@ namespace Cesil.Tests
         {
             var resetCalled = 0;
             ResetDelegate<_DelegateReset> resetDel =
-                (_DelegateReset row) =>
+                (_DelegateReset row, in ReadContext _) =>
                 {
                     resetCalled++;
                 };
@@ -2004,7 +2004,7 @@ namespace Cesil.Tests
             var setterCalled = 0;
 
             StaticSetterDelegate<int> parser =
-                (int value) =>
+                (int value, in ReadContext _) =>
                 {
                     setterCalled++;
                 };
@@ -2047,7 +2047,7 @@ namespace Cesil.Tests
             var setterCalled = 0;
 
             SetterDelegate<_DelegateSetter, int> parser =
-                (_DelegateSetter row, int value) =>
+                (_DelegateSetter row, int value, in ReadContext _) =>
                 {
                     setterCalled++;
 
@@ -4075,7 +4075,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public async Task PoisedTryReadWithCommentReuseAsync()
         {
-            var setter = Setter.ForDelegate((_PoisedTryReadWithCommentReuse row, string val) => throw new Exception());
+            var setter = Setter.ForDelegate((_PoisedTryReadWithCommentReuse row, string val, in ReadContext _) => throw new Exception());
 
             var type = typeof(_PoisedTryReadWithCommentReuse).GetTypeInfo();
             var cons = type.GetConstructor(Type.EmptyTypes);
@@ -5793,7 +5793,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         {
             var resetCalled = 0;
             StaticResetDelegate resetDel =
-                () =>
+                (in ReadContext _) =>
                 {
                     resetCalled++;
                 };
@@ -5840,7 +5840,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         {
             var resetCalled = 0;
             ResetDelegate<_DelegateReset> resetDel =
-                (_DelegateReset row) =>
+                (_DelegateReset row, in ReadContext _) =>
                 {
                     resetCalled++;
                 };
@@ -5888,7 +5888,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             var setterCalled = 0;
 
             StaticSetterDelegate<int> parser =
-                (int value) =>
+                (int value, in ReadContext _) =>
                 {
                     setterCalled++;
                 };
@@ -5931,7 +5931,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             var setterCalled = 0;
 
             SetterDelegate<_DelegateSetter, int> parser =
-                (_DelegateSetter row, int value) =>
+                (_DelegateSetter row, int value, in ReadContext _) =>
                 {
                     setterCalled++;
 
