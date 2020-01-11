@@ -1547,9 +1547,74 @@ namespace Cesil.Tests
                 {
                     await IAsyncDisposable_PipeWriterAdapter();
                 }
+                else if (t == typeof(AsyncEnumerableAdapter<>))
+                {
+                    await IAsyncDisposable_AsyncEnumerableAdapter();
+                }
                 else
                 {
                     throw new XunitException($"No test configured for .DisposeAsync() on {t.Name}");
+                }
+            }
+
+            // test AsyncEnumerableAdapter
+            async Task IAsyncDisposable_AsyncEnumerableAdapter()
+            {
+                // double dispose does not error
+                {
+                    var w = MakeAsyncEnumerableAdapter();
+                    await w.DisposeAsync();
+                    await w.DisposeAsync();
+                }
+
+                // assert throws after dispose
+                {
+                    var w = MakeAsyncEnumerableAdapter();
+                    await w.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => ((ITestableAsyncDisposable)w).AssertNotDisposed());
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    await using (var w = MakeAsyncEnumerableAdapter())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(w);
+                    }
+                }
+
+                // Current
+                {
+                    var r = MakeAsyncEnumerableAdapter();
+                    await r.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => r.Current);
+                    testCases++;
+                }
+
+                // GetAsyncEnumerator
+                {
+                    var r = MakeAsyncEnumerableAdapter();
+                    await r.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => r.GetAsyncEnumerator());
+                    testCases++;
+                }
+
+                // MoveNextAsync
+                {
+                    var r = MakeAsyncEnumerableAdapter();
+                    await r.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => r.MoveNextAsync());
+                    testCases++;
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make a writer that's "good to go"
+                AsyncEnumerableAdapter<_IDisposable> MakeAsyncEnumerableAdapter()
+                {
+                    return new AsyncEnumerableAdapter<_IDisposable>(new _IDisposable[0]);
                 }
             }
 

@@ -159,10 +159,20 @@ namespace Cesil
 
         public override DynamicMetaObject BindConvert(ConvertBinder binder)
         {
+            var retType = binder.ReturnType.GetTypeInfo();
+
+            // special case, converting to IDisposable will ALWAYS succeed
+            //   because every dynamic row supports disposal
+            if(retType == Types.IDisposableType)
+            {
+                var alwaysRestrictions = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRowType);
+                var cast = Expression.Convert(Expression, Types.IDisposableType);
+
+                return new DynamicMetaObject(cast, alwaysRestrictions);
+            }
+
             var converterInterface = Row.Converter.Value;
             var index = Row.RowNumber;
-
-            var retType = binder.ReturnType.GetTypeInfo();
 
             var ctx = ReadContext.ConvertingRow(Row.Owner.Value.Options, index, Row.Context);
 

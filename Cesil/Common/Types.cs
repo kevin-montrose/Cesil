@@ -64,6 +64,7 @@ namespace Cesil
         internal static readonly TypeInfo IEnumerableType = typeof(System.Collections.IEnumerable).GetTypeInfo();
         internal static readonly TypeInfo IEnumerableOfTType = typeof(IEnumerable<>).GetTypeInfo();
         internal static readonly TypeInfo IEquatableType = typeof(IEquatable<>).GetTypeInfo();
+        internal static readonly TypeInfo IDisposableType = typeof(IDisposable).GetTypeInfo();
 
         internal static readonly TypeInfo[] ParserConstructorOneParameterTypes_Array = new[] { typeof(ReadOnlySpan<char>).GetTypeInfo() };
 

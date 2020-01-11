@@ -5,195 +5,169 @@ Modern CSV (De)Serializer
 
 This code isn't well tested yet, **YOU PROBABLY DON'T WANT TO USE IT!!!**
 
-# Configuration
+# Documentation
 
-Before (de)serializing, you must configure a `IBoundConfiguration<T>` with some options.
+Consult [The Wiki™](https://github.com/kevin-montrose/Cesil/wiki) for documentation.
 
-Default options will be used if you just use `Configuration.For<T>()` or `Configuration.ForDynamic()`.
+You may be interested in:
 
-Custom options can be built with an `OptionsBuilder`, to base on existing `Options` call `Options.NewBuilder()` 
-(ie. `Options.Default.NewBuilder()` will create an `OptionsBuilder` with default options pre-populated).  Call
-`.Build()` on an `OptionsBuilder` to create an `Options` to pass to `Configuration.For(<T> | Dynamic)`.
+ - [Configuration](https://github.com/kevin-montrose/Cesil/wiki/Configuration)
+ - [Reading](https://github.com/kevin-montrose/Cesil/wiki/Reading)
+ - [Writing](https://github.com/kevin-montrose/Cesil/wiki/Writing)
+ - [Convenience Utilities](https://github.com/kevin-montrose/Cesil/wiki/Convenience-Utilities)
+ - [Default Type Describer](https://github.com/kevin-montrose/Cesil/wiki/Default-Type-Describer)
 
-You can configure:
+# Quick Start
 
- - Value separator character (typically `,`)
- - Escaped value start/end character (typically `"`)
- - Escape start character (used in escaped values, typically also `"`)
- - Row ending character sequence (typically `\r\n`)
- - Whether to expect headers
- - Whether to write headers
- - Whether to write a trailing new line after the last row
- - Comment start character, if any (typically not set, but if set typically `#`)
- - `MemoryPool<char>` to use for allocations
- - A buffer size hint for writing
- - A buffer size hint for reading
- - A custom `ITypeDescriber` for determining columns to read and write
- - A custom `IDynamicTypeConverter` for determining how to convert dynamic values to concrete types
- 
-## Buffer Size Hints
+ 1. Install the latest Cesil off of [Nuget](https://www.nuget.org/packages/Cesil/).
+ 2. Add `using Cesil;` to your C# file
+ 3. Create a configuration (with default Options) with either `Configuration.For<TYourType>()` or `Configuration.ForDynamic()`, as appropriate for your use case
+ 4. Create a reader or writer using one of the `CreateReader`, `CreateAsyncReader`, `CreateWriter`, or `CreateAsyncWriter` methods on the configuration.
+    * Each of these methods has a number of overloads, supporting using `TextReaders`, `Pipes`, and so on.
+ 5. Use the methods on the `IReader<TRow>`, `IAsyncReader<TRow>`, `IWriter<TRow>`, or `IAsyncWriter<TRow>` interface to read or write your data.
 
-Buffer size hints are only taken as guidance, allocations in excess of the hints may still occur.
+## Example: Reading Synchronously
 
-If `WriteBufferSizeHint` is set to `0`, writes will be written directly to the provided `TextWriter` - this typically slows performance, 
-but may reduce overall allocations.
+Using a [[convient method|Convenience Utilities#reading]]:
 
-If `ReadBufferSizeHint` is set to `0`, Cesil will try to use a single-page of buffer for reading.
+```csharp
+using Cesil;
 
-## ITypeDescriber
+// ...
 
-The two methods on `ITypeDescriber` (`EnumerateMembersToSerialize` and `EnumerateMembersToDeserialize`) are used to discover which members
-to de(serialize) on a type.  The method `GetInstanceProvider(TypeInfo)` is used to control how instances of a type are acquired during
-deserialization.
+using(TextReader reader = /* some TextReader */)
+{
+	IEnumerable<MyType> rows = CesilUtils.Enumerate<MyType>(reader);
+}
+```
 
-The default type describer (de)serializes public properties, honors `[DataMember]`, and looks for `ShouldSerializeXXX()` and `ResetXXX()` methods.
-It requires deserialized types have a parameterless constructor, which is used to create new instances.
+In a more explicit, and configurable, way using [[explicit configuration|Configurations]] and [[options|Options]].
 
-`ManualTypeDescriber` and `SurrogateTypeDescriber` are provided for the cases where you want to explicitly add each member to be
-(de)serialized or when you want to act as if the type being serialized was in fact another (surrogate) type.
+```csharp
+using Cesil;
 
-### Serializing
+// ...
 
-`SerializableMember`s have a name (which is the column name), a getter or a field, a formatter, an optional "should serialize" method, and
-whether or not to emit a default value.
+Options myOptions = /* ... */
+IBoundConfiguration<MyType> myConfig = Configuration.For<MyType>(myOptions);
 
-#### Getters
+using(TextReader reader = /* ... */)
+using(IReader<MyType> csv = myConfig.CreateReader(reader))
+{
+	IEnumerable<MyType> rows = csv.EnumerateAll();
+}
+```
 
-Getters must be either instance methods on the serialized type (or a type it can be assigned to), or a static method.  If a static method
-a getter can take a single parameter, which is of the type being serialized (or a type it can be assigned to).
+For more detail, see [[Reading|Reading]].
 
-Getters must return a type that can be passed to it's paired formatter.
+## Example: Reading Asynchronously
 
-#### Formatters
+Using a [[convient method|Convenience Utilities#reading]]:
 
-Formatters must be static methods that take a type to be serialized, an `in WriteContext`, an `IBufferWriter<char>`, and return a bool.
+```csharp
+using Cesil;
 
-A formatter should return false if it cannot format the given value into the given `IBufferWriter<char>`.
+// ...
 
-#### Should Serialize
+using(TextReader reader = /* some TextReader */)
+{
+	IAsyncEnumerable<MyType> rows = CesilUtils.EnumerateAsync<MyType>(reader);
+}
+```
 
-Should serialize methods are optional.  If present, they can be instance methods or static methods.  They must return a boolean.
+In a more explicit, and configurable, way using [[explicit configuration|Configurations]] and [[options|Options]].
 
-If instance methods, they must be on the type being serialized or on a type it can be assigned to.
+```csharp
+using Cesil;
 
-If a should serialize method is configured, and it returns false at serialization time, the value will not be emitted.
+// ...
 
-### Deserializing
+Options myOptions = /* ... */
+IBoundConfiguration<MyType> myConfig = Configuration.For<MyType>(myOptions);
 
-`DeserializableMember`s have a name (which is the column name), a setter or a field, a parser, whether or not the column is required, and a reset method.
+using(TextReader reader = /* ... */)
+await using(IAsyncReader<MyType> csv = myConfig.CreateAsyncReader(reader))
+{
+	IAsyncReader<MyType> rows = csv.EnumerateAllAsync();
+}
+```
 
-#### Setters
+For more detail, see [[Reading|Reading]].
 
-A setter can be either an instance method or a static method.  It may not return a value.
+## Example: Writing Synchronously
 
-If a setter is an instance method, it must take a single value of the type returned by the paired parser.
+Using a [[convient method|Convenience Utilities#writing]]:
 
-If a static method, it can take one or two values.  If it takes values, the first value must be of the type being deserialized (or one it
-is assignable to) and the second value must be the type returned by the paired parser.
+```csharp
+using Cesil;
 
-#### Parsers
+// ...
 
-Parsers must be a static method, and must have three parameters - the first being a `ReadOnlySpan<char>`, the second being an `in ReadContext`, and the third being an `out T` where
-T is the type of the paired field or a value passed to the paired setter.
+IEnumerable<MyType> myRows = /* ... */
 
-#### Reset
+using(TextWriter writer = /* .. */)
+{
+	CesilUtilities.Write(myRows, writer);
+}
+```
 
-Reset methods are optional.  If present, they can be instance methods or static methods.
+In a more explicit, and configurable, way using [[explicit configuration|Configurations]] and [[options|Options]].
 
-If an instance method, cannot take any parameters and must be on the serialized type or a type it is assignable to.
+```csharp
+using Cesil;
 
-If a static method can take 0 or 1 parameters, and if it takes a parameter it must be of the type being serialized or a type it can be assigned to.
+// ...
 
-A member's reset method is called before it's setter.
+IEnumerable<MyType> myRows = /* ... */
 
-# Dynamic Support
+Options myOptions = /* ... */
+IBoundConfiguration<MyType> myConfig = Configuration.For<MyType>(myOptions);
 
-`Configuration.ForDynamic(Options)` returns a `BoundConfiguration<dynamic>` that can be used to read and write dynamic rows of data.
+using(TextWriter writer = /* ... */)
+using(IWriter<MyType> csv = myConfig.CreateWriter(writer))
+{
+	csv.WriteAll(myRows);
+}
+```
 
-Cesil assumes that rows have a consistent number of cells, but otherwise imposes no constraints on the data in cells during dynamic operations.
+For more detail, see [[Writing|Writing]].
 
-Cells in returned rows may be accessed by index (base 0) or (if headers were present) by name.
+## Example: Writing Asynchronously
 
-## Casting `dynamic`
+Using a [[convient method|Convenience Utilities#writing]]:
 
-The `IDynamicTypeConverter` configured when reading is used to implement casting individual rows and cells to concrete types - `DefaultDynamicTypeConverter` is used by default and
-supports casting cells to any type which has a default parser, rows to POCOs initialized with either constructors or properties, rows to `ValueTuple`s, or rows to `Tuple`s.
+```csharp
+using Cesil;
 
-### `IDynamicTypeConverter`
+// ...
 
-`IDynamicTypeConverter` exposes two methods `GetCellConverter` and `GetRowConverter` for supporting the two cases for casting, either whole rows or individual cell values.
+// IAsyncEnumerable<MyType> will also work
+IEnumerable<MyType> myRows = /* ... */
 
-`GetCellConverter` returns a `DynamicCellConverter` which can wrap either:
+using(TextWriter writer = /* .. */)
+{
+	await CesilUtilities.WriteAsync(myRows, writer);
+}
+```
 
- - a constructor taking a single `object` (or, equivalently, `dynamic`) parameter 
- - a method with `ReadOnlySpan<char>`, `in ReadContext`, and an `out` parameters which returns a `bool`
+In a more explicit, and configurable, way using [[explicit configuration|Configurations]] and [[options|Options]].
 
-`GetRowConverter` returns a `DynamicRowConverter` which can wrap one of:
- 
- - a constructor taking a single `object` (or, equivalently, `dynamic`) parameter 
- - a constructor taking some number of parameters, and a map of each parameter to a column index (base 0)
- - a constructor taking no parameters, a collection of setter methods on the constructed type, and a map of each setter to a column index (base 0)
-   * setter methods must take a single parameter and return void, ie. behave like auto property setters
- - a method with `ReadOnlySpan<char>`, `in ReadContext`, and an `out` parameters which returns a `bool`
+```csharp
+using Cesil;
 
-# Using `IBoundConfiguration<T>`
- 
-A `IBoundConfiguration<T>` instance expose 4 methods: `CreateReader`, `CreateAsyncReader`, `CreateWriter`, and `CreateAsyncWriter`.  These return `IReader<T>`, `IAsyncReader<T>`, `IWriter<T>` and `IAsyncWriter<T>` instances respectively.
+// ...
 
-## Disposing
+// IAsyncEnumerable<MyType> will also work
+IEnumerable<MyType> myRows = /* ... */
 
-The synchronous interfaces implement `IDisposable` and are meant to be used with `using` statements.
+Options myOptions = /* ... */
+IBoundConfiguration<MyType> myConfig = Configuration.For<MyType>(myOptions);
 
-The asynchronous interfaces implement `IAsyncDisposable` and are meant to be used with the `await using` statements added in C# 8.0.
+using(TextWriter writer = /* ... */)
+await using(IWriter<MyType> csv = myConfig.CreateAsyncWriter(writer))
+{
+	await csv.WriteAllAsync(myRows);
+}
+```
 
-## IReader
-
-`IReader<T>` exposes the following methods in addition to `Dispose()`:
-
- - `ReadAll()` - reads all rows into a new `List<T>` and returns it
- - `ReadAll(List<T>)` - reads all rows and adds them to the provided `List<T>`, which must not be `null`
- - `EnumerateAll()` - lazily reads each row as the returned enumerable is enumerated.
- - `TryRead(out T)` - reads a single row into the out parameter, returning true if a row was available and false otherwise
- - `TryReadWithReuse(ref T)` - reads a single row setting values on the given ref parameter, allocates a new `T` if needed.  Returns true if a row was available, and false otherwise.
- 
-## IAsyncReader
- 
-`IAsyncReader<T>` exposes the following methods in addition to `DisposeAsync()`:
-
- - `ReadAllAsync(CancellationToken = default)` - reads all rows into a new `List<T>` and returns it.
- - `ReadAllAsync(List<T>, CancellationToken = default)` - reads all rows into the given `List<T>`, which must not be `null`.
- - `EnumerateAllAsync()` - lazily reads each row as the returned async enumerable is enumerated.  Intended to be used with `await foreach` statements added in C# 8.0.
- - `TryReadAsync(CancellationToken = default)` - reads a single row, returning a `ReadResult<T>` that indicates if a row was available and, if so, the `T` read.
- - `TryReadAsync(ref T, CancellationToken = default)` - reads a single row setting values on the given ref parameter, allocating a new `T` if needed.  Returns a `ReadResult<T>` that indicates if a row was available and, if so, the `T` read.
- 
-All methods return `ValueTask`s, and will complete synchronously if possible - only invoking async machinery if needed to avoid blocking.
-
-## IWriter
-
-`IWriter<T>` exposes the following methods in addition to `Dispose()`:
-
- - `Write(T)` - writes a single row.
- - `WriteAll(IEnumerable<T>)` - writes all rows in the enumerable.
-
-## IAsyncWriter
-
-`IAsyncWriter<T>` exposes the following methods in addition to `DisposeAsync()`:
-
- - `WriteAsync(T, CancellationToken = default)` - writes a single row.
- - `WriteAllAsync(IEnumerable<T>, CancellationToken = default)` - writes all rows in the enumerable.
- - `WriteAllAsync(IAsyncEnumerable<T>, CancellationToken = default)` - writes all rows in the async enumerable.
- 
- 
-All methods return `ValueTask`s, and will complete synchronously if possible - only invoking async machinery if needed to avoid blocking.
-
-## ReadContext and WriteContext
-
-Parser and formatter methods are called with readonly instances of `ReadContext` and `WriteContext` structs.  These structs expose the following
-
- - `RowNumber` - the (base 0) index of the row being read or written
- - `ColumnNumber` - the (base 0) index of the column being read or written
- - `ColumnName` - the name of the column being written, if the name is known (which is not the case if reading without headers)
- - `Context` - the object passed to a method on `IBoundConfiguration<T>` when creating a reader or writer, if any
-
-For cases where type describers are not sufficiently flexible, the user specified context item on `ReadContext` and `WriteContext` can be used to pass state 
-that is reader or writer specific to parsers and formatters.
+For more detail, see [[Writing|Writing]].

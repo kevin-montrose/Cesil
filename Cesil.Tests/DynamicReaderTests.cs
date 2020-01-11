@@ -14,6 +14,36 @@ namespace Cesil.Tests
     public class DynamicReaderTests
     {
         [Fact]
+        public void UsingWithDynamicRow()
+        {
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).ToOptions();
+
+            RunSyncDynamicReaderVariants(
+                opts,
+                (config, getReader) =>
+                {
+                    using(var reader = getReader("Hello,World\r\nNope,Yes"))
+                    using(var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+
+                        Assert.Collection(
+                            rows,
+                            row =>
+                            {
+                                using (row)
+                                {
+                                    Assert.Equal("Nope", (string)row.Hello);
+                                    Assert.Equal("Yes", (string)row.World);
+                                }
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
+        [Fact]
         public void NonGenericRowEnumerable()
         {
             RunSyncDynamicReaderVariants(

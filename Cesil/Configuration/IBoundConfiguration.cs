@@ -32,7 +32,7 @@ namespace Cesil
             [IntentionallyExposedPrimitive("Bytes are the whole point here")]
             ReadOnlySequence<byte> sequence,
             Encoding encoding,
-            [NullableExposed("context is truly options")]
+            [NullableExposed("context is truly optional")]
             object? context = null
         );
 
@@ -44,7 +44,7 @@ namespace Cesil
         /// </summary>
         IReader<TRow> CreateReader(
             ReadOnlySequence<char> sequence,
-            [NullableExposed("context is truly options")]
+            [NullableExposed("context is truly optional")]
             object? context = null
         );
 
@@ -56,7 +56,7 @@ namespace Cesil
         /// </summary>
         IReader<TRow> CreateReader(
             TextReader reader,
-            [NullableExposed("context is truly options")]
+            [NullableExposed("context is truly optional")]
             object? context = null
         );
 
@@ -72,7 +72,7 @@ namespace Cesil
         IAsyncReader<TRow> CreateAsyncReader(
             PipeReader reader,
             Encoding encoding,
-            [NullableExposed("context is truly options")]
+            [NullableExposed("context is truly optional")]
             object? context = null
         );
 
@@ -84,7 +84,7 @@ namespace Cesil
         /// </summary>
         IAsyncReader<TRow> CreateAsyncReader(
             TextReader reader,
-            [NullableExposed("context is truly options")]
+            [NullableExposed("context is truly optional")]
             object? context = null
         );
 
@@ -98,7 +98,7 @@ namespace Cesil
             [IntentionallyExposedPrimitive("Bytes are the whole point here")]
             IBufferWriter<byte> writer,
             Encoding encoding,
-            [NullableExposed("context is truly options")]
+            [NullableExposed("context is truly optional")]
             object? context = null
         );
 
@@ -110,7 +110,7 @@ namespace Cesil
         /// </summary>
         IWriter<TRow> CreateWriter(
             IBufferWriter<char> writer,
-            [NullableExposed("context is truly options")]
+            [NullableExposed("context is truly optional")]
             object? context = null
         );
 
@@ -122,7 +122,7 @@ namespace Cesil
         /// </summary>
         IWriter<TRow> CreateWriter(
             TextWriter writer,
-            [NullableExposed("context is truly options")]
+            [NullableExposed("context is truly optional")]
             object? context = null
         );
 
@@ -138,7 +138,7 @@ namespace Cesil
         IAsyncWriter<TRow> CreateAsyncWriter(
             PipeWriter writer,
             Encoding encoding,
-            [NullableExposed("context is truly options")]
+            [NullableExposed("context is truly optional")]
             object? context = null
         );
 
@@ -150,7 +150,7 @@ namespace Cesil
         /// </summary>
         IAsyncWriter<TRow> CreateAsyncWriter(
             TextWriter writer,
-            [NullableExposed("context is truly options")]
+            [NullableExposed("context is truly optional")]
             object? context = null
         );
     }

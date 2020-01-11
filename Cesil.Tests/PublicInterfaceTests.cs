@@ -894,6 +894,10 @@ namespace Cesil.Tests
                 {
                     msg = InvokeToString_DynamicRowMemberNameEnumerator();
                 }
+                else if (t == typeof(AsyncEnumerableAdapter<>))
+                {
+                    msg = InvokeToString_AsyncEnumerableAdapter();
+                }
                 else
                 {
                     Assert.True(false, $"No test for ToString() on {t}");
@@ -918,6 +922,12 @@ namespace Cesil.Tests
                 {
                     Assert.StartsWith(shouldStartWith, msg2);
                 }
+            }
+
+            static string InvokeToString_AsyncEnumerableAdapter()
+            {
+                var e = new AsyncEnumerableAdapter<string>(new string[0]);
+                return e.ToString();
             }
 
             static string InvokeToString_DynamicRowMemberNameEnumerator()
@@ -1707,7 +1717,7 @@ namespace Cesil.Tests
                     [typeof(object).GetTypeInfo()] = new[] { "obj", "context", "row", "value" },
                     [typeof(int).GetTypeInfo()] = new[] { "index", "sizeHint" },
                     [typeof(int?).GetTypeInfo()] = new[] { "sizeHint" },
-                    [typeof(string).GetTypeInfo()] = new[] { "name", "comment" },
+                    [typeof(string).GetTypeInfo()] = new[] { "name", "comment", "path" },
                     [typeof(char).GetTypeInfo()] = new[] { "valueSeparator" },
                     [typeof(char?).GetTypeInfo()] = new[] { "commentStart", "escapeStart", "escape" },
 
@@ -1724,6 +1734,8 @@ namespace Cesil.Tests
                     [typeof(PipeReader).GetTypeInfo()] = new[] { "reader" },
                     [typeof(MemoryPool<char>).GetTypeInfo()] = new[] { "memoryPool" },
                     [typeof(ReadOnlySpan<char>).GetTypeInfo()] = new[] { "data" },
+                    [typeof(IEnumerable<dynamic>).GetTypeInfo()] = new[] { "rows" },
+                    [typeof(IAsyncEnumerable<dynamic>).GetTypeInfo()] = new[] { "rows" },
 
                     // reflection types
                     [typeof(TypeInfo).GetTypeInfo()] = new[] { "forType", "targetType", "surrogateType" },

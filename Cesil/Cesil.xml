@@ -1014,6 +1014,277 @@
             Both a row and a column are specified during this operation.
             </summary>
         </member>
+        <member name="T:Cesil.CesilUtils">
+            <summary>
+            A collection of convenience methods for reading and writing using streams or files.
+            
+            These methods are less flexible than directly using Configuration and are not as efficient
+            as using IReader(T), IAsyncReader(T), IWriter(T) and IAsyncWriter(T), but they involve much
+            less code.
+            
+            Prefer them when the tradeoff for simplicity at the expense speed and flexibility makes sense.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.Enumerate``1(System.IO.TextReader,Cesil.Options,System.Object)">
+            <summary>
+            Lazily enumerate rows of type TRow from the given TextReader.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on ReadContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.EnumerateDynamic(System.IO.TextReader,Cesil.Options,System.Object)">
+            <summary>
+            Lazily enumerate dynamic rows from the given TextReader.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on ReadContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.EnumerateFromFile``1(System.String,Cesil.Options,System.Object)">
+            <summary>
+            Lazily enumerate rows of type TRow from the given file.  If the file as a byte-order-marker (BOM) the indicated encoding will be used,
+              otherwise utf-8 will be assumed.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on ReadContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.EnumerateDynamicFromFile(System.String,Cesil.Options,System.Object)">
+            <summary>
+            Lazily enumerate dynamic rows from the given file.  If the file as a byte-order-marker (BOM) the indicated encoding will be used,
+              otherwise utf-8 will be assumed.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on ReadContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.EnumerateAsync``1(System.IO.TextReader,Cesil.Options,System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Lazily and asynchronously enumerate rows of type TRow from the given TextReader.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on ReadContext.
+              
+            A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.EnumerateDynamicAsync(System.IO.TextReader,Cesil.Options,System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Lazily and asynchronously enumerate dynamic rows from the given TextReader.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on ReadContext.
+              
+            A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.EnumerateFromFileAsync``1(System.String,Cesil.Options,System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Lazily and asynchronously enumerate rows of type TRow from the given file.  If the file as a byte-order-marker (BOM) the indicated encoding will be used,
+              otherwise utf-8 will be assumed.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on ReadContext.
+              
+            A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.EnumerateDynamicFromFileAsync(System.String,Cesil.Options,System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Lazily and asynchronously enumerate dynamic rows from the given file.  If the file as a byte-order-marker (BOM) the indicated encoding will be used,
+              otherwise utf-8 will be assumed.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on ReadContext.
+              
+            A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.Write``1(System.Collections.Generic.IEnumerable{``0},System.IO.TextWriter,Cesil.Options,System.Object)">
+            <summary>
+            Write a collection of rows of TRow to the given TextWriter.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.WriteDynamic(System.Collections.Generic.IEnumerable{System.Object},System.IO.TextWriter,Cesil.Options,System.Object)">
+            <summary>
+            Write a collection of dynamic rows to the given TextWriter.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.WriteToFile``1(System.Collections.Generic.IEnumerable{``0},System.String,Cesil.Options,System.Object)">
+            <summary>
+            Write a collection of rows of TRow to the given path.
+            
+            The file be created if it does not existing, overwritten if it does, and the encoding used will be utf-8.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.WriteDynamicToFile(System.Collections.Generic.IEnumerable{System.Object},System.String,Cesil.Options,System.Object)">
+            <summary>
+            Write a collection of dynamic rows to the given path.
+            
+            The file be created if it does not existing, overwritten if it does, and the encoding used will be utf-8.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.WriteAsync``1(System.Collections.Generic.IEnumerable{``0},System.IO.TextWriter,Cesil.Options,System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Write a collection of rows of TRow to the given TextWriter asynchronously.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
+              
+            A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.WriteDynamicAsync(System.Collections.Generic.IEnumerable{System.Object},System.IO.TextWriter,Cesil.Options,System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Write a collection of dynamic rows to the given TextWriter asynchronously.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
+              
+            A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.WriteAsync``1(System.Collections.Generic.IAsyncEnumerable{``0},System.IO.TextWriter,Cesil.Options,System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Write a collection of rows of TRow to the given TextWriter asynchronously.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
+              
+            A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.WriteDynamicAsync(System.Collections.Generic.IAsyncEnumerable{System.Object},System.IO.TextWriter,Cesil.Options,System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Write a collection of dynamics rows to the given TextWriter asynchronously.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
+              
+            A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.WriteToFileAsync``1(System.Collections.Generic.IEnumerable{``0},System.String,Cesil.Options,System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Write a collection of rows of TRow to the given path asynchronously.
+            
+            The file be created if it does not existing, overwritten if it does, and the encoding used will be utf-8.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
+              
+            A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.WriteDynamicToFileAsync(System.Collections.Generic.IEnumerable{System.Object},System.String,Cesil.Options,System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Write a collection of dynamic rows to the given path asynchronously.
+            
+            The file be created if it does not existing, overwritten if it does, and the encoding used will be utf-8.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
+              
+            A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.WriteToFileAsync``1(System.Collections.Generic.IAsyncEnumerable{``0},System.String,Cesil.Options,System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Write a collection of rows of TRow to the given path asynchronously.
+            
+            The file be created if it does not existing, overwritten if it does, and the encoding used will be utf-8.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
+              
+            A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.WriteDynamicToFileAsync(System.Collections.Generic.IAsyncEnumerable{System.Object},System.String,Cesil.Options,System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Write a collection of dynamic rows to the given path asynchronously.
+            
+            The file be created if it does not existing, overwritten if it does, and the encoding used will be utf-8.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
+              
+            A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+            </summary>
+        </member>
         <member name="T:Cesil.IAsyncReader`1">
             <summary>
             Interface for an asynchronous reader.
