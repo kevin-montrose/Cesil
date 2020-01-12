@@ -7,7 +7,7 @@ This code isn't well tested yet, **YOU PROBABLY DON'T WANT TO USE IT!!!**
 
 # Documentation
 
-Consult [The Wiki™](https://github.com/kevin-montrose/Cesil/wiki) for documentation.
+Consult [The Wikiâ„¢](https://github.com/kevin-montrose/Cesil/wiki) for documentation, and [Cesil's Github Pages for references](https://kevin-montrose.github.io/Cesil/api/Cesil.html).
 
 You may be interested in:
 
