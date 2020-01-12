@@ -6,6 +6,8 @@
 
 # Docs file
 Cesil.xml
+api/
+obj/
 
 # Code Coverage
 TestCoverageResults/
