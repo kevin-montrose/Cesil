@@ -1,0 +1,437 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Interface ITypeDescriber
+   </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Interface ITypeDescriber
+   ">
+    <meta name="generator" content="docfx 2.48.1.0">
+    
+    <link rel="shortcut icon" href="../favicon.ico">
+    <link rel="stylesheet" href="../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../styles/docfx.css">
+    <link rel="stylesheet" href="../styles/main.css">
+    <meta property="docfx:navrel" content="">
+    <meta property="docfx:tocrel" content="toc.html">
+    
+    
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div role="main" class="container body-content hide-when-search">
+        <div class="article row grid">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="Cesil.ITypeDescriber">
+  
+  
+  <h1 id="Cesil_ITypeDescriber" data-uid="Cesil.ITypeDescriber" class="text-break">Interface ITypeDescriber
+  </h1>
+  <div class="markdown level0 summary"><p>The interface used to discover the members to (de)serialize for a type.</p>
+<p>DefaultTypeDescriber, ManualTypeDescriber, and SurrogateTypeDescriber all implement
+this interface and handle the most common desired configurations.</p>
+<p>Note to implementors: All ITypeDescriber methods must be thread safe, as they are invoked
+as needed during operation with no guarantee about the calling thread(s).</p>
+</div>
+  <div class="markdown level0 conceptual"></div>
+  <h6><strong>Namespace</strong>: <a class="xref" href="Cesil.html">Cesil</a></h6>
+  <h6><strong>Assembly</strong>: Cesil.dll</h6>
+  <h5 id="Cesil_ITypeDescriber_syntax">Syntax</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public interface ITypeDescriber</code></pre>
+  </div>
+  <h3 id="methods">Methods
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_ITypeDescriber_EnumerateMembersToDeserialize_TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.ITypeDescriber.EnumerateMembersToDeserialize(TypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/ITypeDescriber.cs/#L33">View Source</a>
+  </span>
+  <a id="Cesil_ITypeDescriber_EnumerateMembersToDeserialize_" data-uid="Cesil.ITypeDescriber.EnumerateMembersToDeserialize*"></a>
+  <h4 id="Cesil_ITypeDescriber_EnumerateMembersToDeserialize_TypeInfo_" data-uid="Cesil.ITypeDescriber.EnumerateMembersToDeserialize(TypeInfo)">EnumerateMembersToDeserialize(TypeInfo)</h4>
+  <div class="markdown level1 summary"><p>Enumerate all the members on forType to deserialize.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">IEnumerable&lt;DeserializableMember&gt; EnumerateMembersToDeserialize(TypeInfo forType)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Collections.Generic.IEnumerable</span>&lt;<a class="xref" href="Cesil.DeserializableMember.html">DeserializableMember</a>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_ITypeDescriber_EnumerateMembersToSerialize_TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.ITypeDescriber.EnumerateMembersToSerialize(TypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/ITypeDescriber.cs/#L29">View Source</a>
+  </span>
+  <a id="Cesil_ITypeDescriber_EnumerateMembersToSerialize_" data-uid="Cesil.ITypeDescriber.EnumerateMembersToSerialize*"></a>
+  <h4 id="Cesil_ITypeDescriber_EnumerateMembersToSerialize_TypeInfo_" data-uid="Cesil.ITypeDescriber.EnumerateMembersToSerialize(TypeInfo)">EnumerateMembersToSerialize(TypeInfo)</h4>
+  <div class="markdown level1 summary"><p>Enumerate all the members on forType to serialize.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">IEnumerable&lt;SerializableMember&gt; EnumerateMembersToSerialize(TypeInfo forType)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Collections.Generic.IEnumerable</span>&lt;<a class="xref" href="Cesil.SerializableMember.html">SerializableMember</a>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_ITypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_.md&amp;value=---%0Auid%3A%20Cesil.ITypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext%40%2CSystem.Object)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/ITypeDescriber.cs/#L58">View Source</a>
+  </span>
+  <a id="Cesil_ITypeDescriber_GetCellsForDynamicRow_" data-uid="Cesil.ITypeDescriber.GetCellsForDynamicRow*"></a>
+  <h4 id="Cesil_ITypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_" data-uid="Cesil.ITypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)">GetCellsForDynamicRow(WriteContext, Object)</h4>
+  <div class="markdown level1 summary"><p>Called to determine the cells that make up the given dynamic row.</p>
+<p>Used to enumerate cells when serializing dynamically.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">IEnumerable&lt;DynamicCellValue&gt; GetCellsForDynamicRow(in WriteContext context, object row)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.WriteContext.html">WriteContext</a></td>
+        <td><span class="parametername">context</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Object</span></td>
+        <td><span class="parametername">row</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Collections.Generic.IEnumerable</span>&lt;<a class="xref" href="Cesil.DynamicCellValue.html">DynamicCellValue</a>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_ITypeDescriber_GetDynamicCellParserFor_Cesil_ReadContext__TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.ITypeDescriber.GetDynamicCellParserFor(Cesil.ReadContext%40%2CTypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/ITypeDescriber.cs/#L42">View Source</a>
+  </span>
+  <a id="Cesil_ITypeDescriber_GetDynamicCellParserFor_" data-uid="Cesil.ITypeDescriber.GetDynamicCellParserFor*"></a>
+  <h4 id="Cesil_ITypeDescriber_GetDynamicCellParserFor_Cesil_ReadContext__TypeInfo_" data-uid="Cesil.ITypeDescriber.GetDynamicCellParserFor(Cesil.ReadContext@,TypeInfo)">GetDynamicCellParserFor(ReadContext, TypeInfo)</h4>
+  <div class="markdown level1 summary"><p>Called to determine how to convert a dynamic cell.</p>
+<p>Returns null if no Parser could be found.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">Parser GetDynamicCellParserFor(in ReadContext context, TypeInfo targetType)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.ReadContext.html">ReadContext</a></td>
+        <td><span class="parametername">context</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">targetType</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.Parser.html">Parser</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_ITypeDescriber_GetDynamicRowConverter_Cesil_ReadContext__System_Collections_Generic_IEnumerable_Cesil_ColumnIdentifier__TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.ITypeDescriber.GetDynamicRowConverter(Cesil.ReadContext%40%2CSystem.Collections.Generic.IEnumerable%7BCesil.ColumnIdentifier%7D%2CTypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/ITypeDescriber.cs/#L50">View Source</a>
+  </span>
+  <a id="Cesil_ITypeDescriber_GetDynamicRowConverter_" data-uid="Cesil.ITypeDescriber.GetDynamicRowConverter*"></a>
+  <h4 id="Cesil_ITypeDescriber_GetDynamicRowConverter_Cesil_ReadContext__System_Collections_Generic_IEnumerable_Cesil_ColumnIdentifier__TypeInfo_" data-uid="Cesil.ITypeDescriber.GetDynamicRowConverter(Cesil.ReadContext@,System.Collections.Generic.IEnumerable{Cesil.ColumnIdentifier},TypeInfo)">GetDynamicRowConverter(ReadContext, IEnumerable&lt;ColumnIdentifier&gt;, TypeInfo)</h4>
+  <div class="markdown level1 summary"><p>Called to determine how to convert an entire dynamic row into the given type.</p>
+<p>Returns null if no DynamicRowConverter could be found.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">DynamicRowConverter GetDynamicRowConverter(in ReadContext context, IEnumerable&lt;ColumnIdentifier&gt; columns, TypeInfo targetType)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.ReadContext.html">ReadContext</a></td>
+        <td><span class="parametername">context</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Collections.Generic.IEnumerable</span>&lt;<a class="xref" href="Cesil.ColumnIdentifier.html">ColumnIdentifier</a>&gt;</td>
+        <td><span class="parametername">columns</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">targetType</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.DynamicRowConverter.html">DynamicRowConverter</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_ITypeDescriber_GetInstanceProvider_TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.ITypeDescriber.GetInstanceProvider(TypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/ITypeDescriber.cs/#L24">View Source</a>
+  </span>
+  <a id="Cesil_ITypeDescriber_GetInstanceProvider_" data-uid="Cesil.ITypeDescriber.GetInstanceProvider*"></a>
+  <h4 id="Cesil_ITypeDescriber_GetInstanceProvider_TypeInfo_" data-uid="Cesil.ITypeDescriber.GetInstanceProvider(TypeInfo)">GetInstanceProvider(TypeInfo)</h4>
+  <div class="markdown level1 summary"><p>Get the provider for instances of forType.</p>
+<p>Returns null if no InstanceProvider could be found.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">InstanceProvider GetInstanceProvider(TypeInfo forType)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.InstanceProvider.html">InstanceProvider</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_ITypeDescriber.md&amp;value=---%0Auid%3A%20Cesil.ITypeDescriber%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
+                  </li>
+                  <li>
+                    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/ITypeDescriber.cs/#L15" class="contribution-link">View Source</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            
+            <span>Generated by <strong>DocFX</strong></span>
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

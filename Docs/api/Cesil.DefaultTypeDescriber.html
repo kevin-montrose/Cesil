@@ -1,0 +1,2027 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Class DefaultTypeDescriber
+   </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Class DefaultTypeDescriber
+   ">
+    <meta name="generator" content="docfx 2.48.1.0">
+    
+    <link rel="shortcut icon" href="../favicon.ico">
+    <link rel="stylesheet" href="../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../styles/docfx.css">
+    <link rel="stylesheet" href="../styles/main.css">
+    <meta property="docfx:navrel" content="">
+    <meta property="docfx:tocrel" content="toc.html">
+    
+    
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div role="main" class="container body-content hide-when-search">
+        <div class="article row grid">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="Cesil.DefaultTypeDescriber">
+  
+  
+  <h1 id="Cesil_DefaultTypeDescriber" data-uid="Cesil.DefaultTypeDescriber" class="text-break">Class DefaultTypeDescriber
+  </h1>
+  <div class="markdown level0 summary"><p>The default implementation of ITypeDescriber used to
+determine how to (de)serialize types and how to convert
+dynamic cells and rows.</p>
+<p>It will serialize all public properties, any fields
+with a [DataMember], and will respect ShouldSerialize()
+methods.</p>
+<p>It will deserialize all public properties, any fields
+with a [DataMember], and will call Reset() methods.  Expects
+a public parameterless constructor for any deserialized types.</p>
+<p>It will convert cells to most built-in types, and map rows to
+POCOs, ValueTuples, Tuples, and IEnumerables.</p>
+<p>This type is unsealed to allow for easy extension of it's behavior.</p>
+</div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="inheritance">
+    <h5>Inheritance</h5>
+    <div class="level0"><span class="xref">System.Object</span></div>
+    <div class="level1"><span class="xref">DefaultTypeDescriber</span></div>
+  </div>
+  <div classs="implements">
+    <h5>Implements</h5>
+    <div><a class="xref" href="Cesil.ITypeDescriber.html">ITypeDescriber</a></div>
+  </div>
+  <div class="inheritedMembers">
+    <h5>Inherited Members</h5>
+    <div>
+      <span class="xref">System.Object.Equals(System.Object)</span>
+    </div>
+    <div>
+      <span class="xref">System.Object.Equals(System.Object, System.Object)</span>
+    </div>
+    <div>
+      <span class="xref">System.Object.GetHashCode()</span>
+    </div>
+    <div>
+      <span class="xref">System.Object.GetType()</span>
+    </div>
+    <div>
+      <span class="xref">System.Object.MemberwiseClone()</span>
+    </div>
+    <div>
+      <span class="xref">System.Object.ReferenceEquals(System.Object, System.Object)</span>
+    </div>
+  </div>
+  <h6><strong>Namespace</strong>: <a class="xref" href="Cesil.html">Cesil</a></h6>
+  <h6><strong>Assembly</strong>: Cesil.dll</h6>
+  <h5 id="Cesil_DefaultTypeDescriber_syntax">Syntax</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public class DefaultTypeDescriber : ITypeDescriber</code></pre>
+  </div>
+  <h3 id="constructors">Constructors
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber__ctor.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.%23ctor%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L37">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber__ctor_" data-uid="Cesil.DefaultTypeDescriber.#ctor*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber__ctor" data-uid="Cesil.DefaultTypeDescriber.#ctor">DefaultTypeDescriber()</h4>
+  <div class="markdown level1 summary"><p>Construct a new DefaultTypeDesciber.</p>
+<p>A pre-allocated instance is available on TypeDescribers.Default.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public DefaultTypeDescriber()</code></pre>
+  </div>
+  <h3 id="methods">Methods
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_EnumerateMembersToDeserialize_TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.EnumerateMembersToDeserialize(TypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L62">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_EnumerateMembersToDeserialize_" data-uid="Cesil.DefaultTypeDescriber.EnumerateMembersToDeserialize*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_EnumerateMembersToDeserialize_TypeInfo_" data-uid="Cesil.DefaultTypeDescriber.EnumerateMembersToDeserialize(TypeInfo)">EnumerateMembersToDeserialize(TypeInfo)</h4>
+  <div class="markdown level1 summary"><p>Enumerate all columns to deserialize.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public virtual IEnumerable&lt;DeserializableMember&gt; EnumerateMembersToDeserialize(TypeInfo forType)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Collections.Generic.IEnumerable</span>&lt;<a class="xref" href="Cesil.DeserializableMember.html">DeserializableMember</a>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_EnumerateMembersToSerialize_TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.EnumerateMembersToSerialize(TypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L376">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_EnumerateMembersToSerialize_" data-uid="Cesil.DefaultTypeDescriber.EnumerateMembersToSerialize*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_EnumerateMembersToSerialize_TypeInfo_" data-uid="Cesil.DefaultTypeDescriber.EnumerateMembersToSerialize(TypeInfo)">EnumerateMembersToSerialize(TypeInfo)</h4>
+  <div class="markdown level1 summary"><p>Enumerate all columns to deserialize.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public virtual IEnumerable&lt;SerializableMember&gt; EnumerateMembersToSerialize(TypeInfo forType)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Collections.Generic.IEnumerable</span>&lt;<a class="xref" href="Cesil.SerializableMember.html">SerializableMember</a>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext%40%2CSystem.Object)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L684">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetCellsForDynamicRow_" data-uid="Cesil.DefaultTypeDescriber.GetCellsForDynamicRow*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_" data-uid="Cesil.DefaultTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)">GetCellsForDynamicRow(WriteContext, Object)</h4>
+  <div class="markdown level1 summary"><p>Enumerates cells on the given dynamic row.</p>
+<p>Null rows have no cells, but are legal.</p>
+<p>Rows created by Cesil have their cells enumerated as strings.</p>
+<p>Other dynamic types will have each member enumerated as either their
+actual type (if a formatter is available) or as a string.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public virtual IEnumerable&lt;DynamicCellValue&gt; GetCellsForDynamicRow(in WriteContext context, dynamic row)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.WriteContext.html">WriteContext</a></td>
+        <td><span class="parametername">context</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Object</span></td>
+        <td><span class="parametername">row</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Collections.Generic.IEnumerable</span>&lt;<a class="xref" href="Cesil.DynamicCellValue.html">DynamicCellValue</a>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetDeserializationName_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetDeserializationName(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L281">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetDeserializationName_" data-uid="Cesil.DefaultTypeDescriber.GetDeserializationName*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetDeserializationName_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.GetDeserializationName(TypeInfo,FieldInfo)">GetDeserializationName(TypeInfo, FieldInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns the name of the column that should map to the given field when deserialized.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual string GetDeserializationName(TypeInfo forType, FieldInfo field)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">FieldInfo</span></td>
+        <td><span class="parametername">field</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetDeserializationName_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetDeserializationName(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L147">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetDeserializationName_" data-uid="Cesil.DefaultTypeDescriber.GetDeserializationName*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetDeserializationName_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetDeserializationName(TypeInfo,PropertyInfo)">GetDeserializationName(TypeInfo, PropertyInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns the name of the column that should map to the given property when deserialized.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual string GetDeserializationName(TypeInfo forType, PropertyInfo property)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">PropertyInfo</span></td>
+        <td><span class="parametername">property</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetDynamicCellParserFor_Cesil_ReadContext__TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetDynamicCellParserFor(Cesil.ReadContext%40%2CTypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L890">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetDynamicCellParserFor_" data-uid="Cesil.DefaultTypeDescriber.GetDynamicCellParserFor*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetDynamicCellParserFor_Cesil_ReadContext__TypeInfo_" data-uid="Cesil.DefaultTypeDescriber.GetDynamicCellParserFor(Cesil.ReadContext@,TypeInfo)">GetDynamicCellParserFor(ReadContext, TypeInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns a Parser that can be used to parse the targetType.</p>
+<p>Override to customize behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public virtual Parser GetDynamicCellParserFor(in ReadContext context, TypeInfo targetType)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.ReadContext.html">ReadContext</a></td>
+        <td><span class="parametername">context</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">targetType</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.Parser.html">Parser</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetDynamicRowConverter_Cesil_ReadContext__System_Collections_Generic_IEnumerable_Cesil_ColumnIdentifier__TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetDynamicRowConverter(Cesil.ReadContext%40%2CSystem.Collections.Generic.IEnumerable%7BCesil.ColumnIdentifier%7D%2CTypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L916">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetDynamicRowConverter_" data-uid="Cesil.DefaultTypeDescriber.GetDynamicRowConverter*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetDynamicRowConverter_Cesil_ReadContext__System_Collections_Generic_IEnumerable_Cesil_ColumnIdentifier__TypeInfo_" data-uid="Cesil.DefaultTypeDescriber.GetDynamicRowConverter(Cesil.ReadContext@,System.Collections.Generic.IEnumerable{Cesil.ColumnIdentifier},TypeInfo)">GetDynamicRowConverter(ReadContext, IEnumerable&lt;ColumnIdentifier&gt;, TypeInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns a DynamicRowConverter that can be used to parse the targetType,
+if a default parser for the type exists or a constructor accepting
+the appropriate number of objects (can be dynamic in source) is on
+the the type.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public virtual DynamicRowConverter GetDynamicRowConverter(in ReadContext context, IEnumerable&lt;ColumnIdentifier&gt; columns, TypeInfo targetType)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.ReadContext.html">ReadContext</a></td>
+        <td><span class="parametername">context</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Collections.Generic.IEnumerable</span>&lt;<a class="xref" href="Cesil.ColumnIdentifier.html">ColumnIdentifier</a>&gt;</td>
+        <td><span class="parametername">columns</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">targetType</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.DynamicRowConverter.html">DynamicRowConverter</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetEmitDefaultValue_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetEmitDefaultValue(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L631">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetEmitDefaultValue_" data-uid="Cesil.DefaultTypeDescriber.GetEmitDefaultValue*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetEmitDefaultValue_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.GetEmitDefaultValue(TypeInfo,FieldInfo)">GetEmitDefaultValue(TypeInfo, FieldInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns whether or not the default value should be serialized for the given property.</p>
+<p>For reference types, the default value is <code>null</code>.  For ValueTypes the default value
+is either 0 or the equivalent of initializing all of it's fields with their default
+values.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual EmitDefaultValue GetEmitDefaultValue(TypeInfo forType, FieldInfo field)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">FieldInfo</span></td>
+        <td><span class="parametername">field</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.EmitDefaultValue.html">EmitDefaultValue</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetEmitDefaultValue_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetEmitDefaultValue(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L534">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetEmitDefaultValue_" data-uid="Cesil.DefaultTypeDescriber.GetEmitDefaultValue*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetEmitDefaultValue_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetEmitDefaultValue(TypeInfo,PropertyInfo)">GetEmitDefaultValue(TypeInfo, PropertyInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns whether or not the default value should be serialized for the given property.</p>
+<p>For reference types, the default value is <code>null</code>.  For ValueTypes the default value
+is either 0 or the equivalent of initializing all of it's fields with their default
+values.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual EmitDefaultValue GetEmitDefaultValue(TypeInfo forType, PropertyInfo property)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">PropertyInfo</span></td>
+        <td><span class="parametername">property</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.EmitDefaultValue.html">EmitDefaultValue</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetFormatter_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetFormatter(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L613">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetFormatter_" data-uid="Cesil.DefaultTypeDescriber.GetFormatter*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetFormatter_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.GetFormatter(TypeInfo,FieldInfo)">GetFormatter(TypeInfo, FieldInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns the formatter to use for the column that maps to the given field when serialized.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual Formatter GetFormatter(TypeInfo forType, FieldInfo field)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">FieldInfo</span></td>
+        <td><span class="parametername">field</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.Formatter.html">Formatter</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetFormatter_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetFormatter(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L516">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetFormatter_" data-uid="Cesil.DefaultTypeDescriber.GetFormatter*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetFormatter_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetFormatter(TypeInfo,PropertyInfo)">GetFormatter(TypeInfo, PropertyInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns the formatter to use for the column that maps to the given property when serialized.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual Formatter GetFormatter(TypeInfo forType, PropertyInfo property)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">PropertyInfo</span></td>
+        <td><span class="parametername">property</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.Formatter.html">Formatter</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetFormatter_TypeInfo_System_String_Cesil_WriteContext__System_Object_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetFormatter(TypeInfo%2CSystem.String%2CCesil.WriteContext%40%2CSystem.Object)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L881">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetFormatter_" data-uid="Cesil.DefaultTypeDescriber.GetFormatter*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetFormatter_TypeInfo_System_String_Cesil_WriteContext__System_Object_" data-uid="Cesil.DefaultTypeDescriber.GetFormatter(TypeInfo,System.String,Cesil.WriteContext@,System.Object)">GetFormatter(TypeInfo, String, WriteContext, Object)</h4>
+  <div class="markdown level1 summary"><p>Called in GetCellsForDynamicRow to determine the formatter that should be used for a cell.</p>
+<p>Override to customize behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected Formatter GetFormatter(TypeInfo forType, string name, in WriteContext context, dynamic row)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><span class="parametername">name</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="Cesil.WriteContext.html">WriteContext</a></td>
+        <td><span class="parametername">context</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Object</span></td>
+        <td><span class="parametername">row</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.Formatter.html">Formatter</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetGetter_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetGetter(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L568">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetGetter_" data-uid="Cesil.DefaultTypeDescriber.GetGetter*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetGetter_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.GetGetter(TypeInfo,FieldInfo)">GetGetter(TypeInfo, FieldInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns the getter to use for the given field when serialized.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual Getter GetGetter(TypeInfo forType, FieldInfo field)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">FieldInfo</span></td>
+        <td><span class="parametername">field</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.Getter.html">Getter</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetGetter_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetGetter(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L469">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetGetter_" data-uid="Cesil.DefaultTypeDescriber.GetGetter*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetGetter_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetGetter(TypeInfo,PropertyInfo)">GetGetter(TypeInfo, PropertyInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns the getter to use for the given property when serialized.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual Getter GetGetter(TypeInfo forType, PropertyInfo property)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">PropertyInfo</span></td>
+        <td><span class="parametername">property</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.Getter.html">Getter</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetInstanceProvider_TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetInstanceProvider(TypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L45">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetInstanceProvider_" data-uid="Cesil.DefaultTypeDescriber.GetInstanceProvider*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetInstanceProvider_TypeInfo_" data-uid="Cesil.DefaultTypeDescriber.GetInstanceProvider(TypeInfo)">GetInstanceProvider(TypeInfo)</h4>
+  <div class="markdown level1 summary"><p>Gets an InstanceProvider that wraps the parameterless constructor
+for the given type.</p>
+<p>Throws if there is no parameterless constructor.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public virtual InstanceProvider GetInstanceProvider(TypeInfo forType)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.InstanceProvider.html">InstanceProvider</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetIsRequired_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetIsRequired(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L324">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetIsRequired_" data-uid="Cesil.DefaultTypeDescriber.GetIsRequired*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetIsRequired_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.GetIsRequired(TypeInfo,FieldInfo)">GetIsRequired(TypeInfo, FieldInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns whether or not the given field is required during deserialization.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual MemberRequired GetIsRequired(TypeInfo forType, FieldInfo field)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">FieldInfo</span></td>
+        <td><span class="parametername">field</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.MemberRequired.html">MemberRequired</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetIsRequired_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetIsRequired(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L219">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetIsRequired_" data-uid="Cesil.DefaultTypeDescriber.GetIsRequired*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetIsRequired_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetIsRequired(TypeInfo,PropertyInfo)">GetIsRequired(TypeInfo, PropertyInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns whether or not the given property is required during deserialization.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual MemberRequired GetIsRequired(TypeInfo forType, PropertyInfo property)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">PropertyInfo</span></td>
+        <td><span class="parametername">property</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.MemberRequired.html">MemberRequired</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetOrder_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetOrder(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L311">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetOrder_" data-uid="Cesil.DefaultTypeDescriber.GetOrder*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetOrder_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.GetOrder(TypeInfo,FieldInfo)">GetOrder(TypeInfo, FieldInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns the index of the column that should map to the given field.  Headers
+can change this during deserialization.</p>
+<p>Return null to leave order unspecified.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual int? GetOrder(TypeInfo forType, FieldInfo field)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">FieldInfo</span></td>
+        <td><span class="parametername">field</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Nullable</span>&lt;<span class="xref">System.Int32</span>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetOrder_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetOrder(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L206">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetOrder_" data-uid="Cesil.DefaultTypeDescriber.GetOrder*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetOrder_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetOrder(TypeInfo,PropertyInfo)">GetOrder(TypeInfo, PropertyInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns the index of the column that should map to the given property.  Headers
+can change this during deserialization.</p>
+<p>Return null to leave order unspecified.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual int? GetOrder(TypeInfo forType, PropertyInfo property)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">PropertyInfo</span></td>
+        <td><span class="parametername">property</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Nullable</span>&lt;<span class="xref">System.Int32</span>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetParser_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetParser(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L294">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetParser_" data-uid="Cesil.DefaultTypeDescriber.GetParser*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetParser_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.GetParser(TypeInfo,FieldInfo)">GetParser(TypeInfo, FieldInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns the parser to use for the column that maps to the given property when deserialized.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual Parser GetParser(TypeInfo forType, FieldInfo field)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">FieldInfo</span></td>
+        <td><span class="parametername">field</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.Parser.html">Parser</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetParser_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetParser(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L174">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetParser_" data-uid="Cesil.DefaultTypeDescriber.GetParser*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetParser_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetParser(TypeInfo,PropertyInfo)">GetParser(TypeInfo, PropertyInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns the parser to use for the column that maps to the given property when deserialized.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual Parser GetParser(TypeInfo forType, PropertyInfo property)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">PropertyInfo</span></td>
+        <td><span class="parametername">property</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.Parser.html">Parser</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetReset_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetReset(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L337">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetReset_" data-uid="Cesil.DefaultTypeDescriber.GetReset*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetReset_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.GetReset(TypeInfo,FieldInfo)">GetReset(TypeInfo, FieldInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns the reset method, if any, to call prior to deserializing the given field.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual Reset GetReset(TypeInfo forType, FieldInfo field)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">FieldInfo</span></td>
+        <td><span class="parametername">field</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.Reset.html">Reset</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetReset_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetReset(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L232">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetReset_" data-uid="Cesil.DefaultTypeDescriber.GetReset*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetReset_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetReset(TypeInfo,PropertyInfo)">GetReset(TypeInfo, PropertyInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns the reset method, if any, to call prior to deserializing the given property.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual Reset GetReset(TypeInfo forType, PropertyInfo property)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">PropertyInfo</span></td>
+        <td><span class="parametername">property</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.Reset.html">Reset</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetSerializationName_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetSerializationName(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L582">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetSerializationName_" data-uid="Cesil.DefaultTypeDescriber.GetSerializationName*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetSerializationName_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.GetSerializationName(TypeInfo,FieldInfo)">GetSerializationName(TypeInfo, FieldInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns the name of the column that should map to the given field when serialized.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual string GetSerializationName(TypeInfo forType, FieldInfo field)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">FieldInfo</span></td>
+        <td><span class="parametername">field</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetSerializationName_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetSerializationName(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L456">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetSerializationName_" data-uid="Cesil.DefaultTypeDescriber.GetSerializationName*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetSerializationName_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetSerializationName(TypeInfo,PropertyInfo)">GetSerializationName(TypeInfo, PropertyInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns the name of the column that should map to the given property when serialized.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual string GetSerializationName(TypeInfo forType, PropertyInfo property)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">PropertyInfo</span></td>
+        <td><span class="parametername">property</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetSetter_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetSetter(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L160">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetSetter_" data-uid="Cesil.DefaultTypeDescriber.GetSetter*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetSetter_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetSetter(TypeInfo,PropertyInfo)">GetSetter(TypeInfo, PropertyInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns the setter to use for the given property when deserialized.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual Setter GetSetter(TypeInfo forType, PropertyInfo property)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">PropertyInfo</span></td>
+        <td><span class="parametername">property</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.Setter.html">Setter</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetShouldSerialize_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetShouldSerialize(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L599">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetShouldSerialize_" data-uid="Cesil.DefaultTypeDescriber.GetShouldSerialize*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetShouldSerialize_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.GetShouldSerialize(TypeInfo,FieldInfo)">GetShouldSerialize(TypeInfo, FieldInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns the ShouldSerializeXXX()-style method to use for the given field when serializing, if
+any. By default, always returns null.</p>
+<p>If specified, the method will be invoked for each record to determine whether to write
+the field.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual ShouldSerialize GetShouldSerialize(TypeInfo forType, FieldInfo field)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">FieldInfo</span></td>
+        <td><span class="parametername">field</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.ShouldSerialize.html">ShouldSerialize</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetShouldSerialize_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetShouldSerialize(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L487">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_GetShouldSerialize_" data-uid="Cesil.DefaultTypeDescriber.GetShouldSerialize*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_GetShouldSerialize_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetShouldSerialize(TypeInfo,PropertyInfo)">GetShouldSerialize(TypeInfo, PropertyInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns the ShouldSerializeXXX()-style method to use for the given property when serializing, if
+any.</p>
+<p>If specified, the method will be invoked for each record to determine whether to write
+the property.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual ShouldSerialize GetShouldSerialize(TypeInfo forType, PropertyInfo property)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">PropertyInfo</span></td>
+        <td><span class="parametername">property</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.ShouldSerialize.html">ShouldSerialize</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_ShouldDeserialize_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.ShouldDeserialize(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L262">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_ShouldDeserialize_" data-uid="Cesil.DefaultTypeDescriber.ShouldDeserialize*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_ShouldDeserialize_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.ShouldDeserialize(TypeInfo,FieldInfo)">ShouldDeserialize(TypeInfo, FieldInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns true if the given field should be deserialized.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual bool ShouldDeserialize(TypeInfo forType, FieldInfo field)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">FieldInfo</span></td>
+        <td><span class="parametername">field</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_ShouldDeserialize_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.ShouldDeserialize(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L115">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_ShouldDeserialize_" data-uid="Cesil.DefaultTypeDescriber.ShouldDeserialize*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_ShouldDeserialize_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.ShouldDeserialize(TypeInfo,PropertyInfo)">ShouldDeserialize(TypeInfo, PropertyInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns true if the given property should be deserialized.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual bool ShouldDeserialize(TypeInfo forType, PropertyInfo property)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">PropertyInfo</span></td>
+        <td><span class="parametername">property</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_ShouldIncludeCell_System_String_Cesil_WriteContext__System_Object_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.ShouldIncludeCell(System.String%2CCesil.WriteContext%40%2CSystem.Object)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L873">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_ShouldIncludeCell_" data-uid="Cesil.DefaultTypeDescriber.ShouldIncludeCell*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_ShouldIncludeCell_System_String_Cesil_WriteContext__System_Object_" data-uid="Cesil.DefaultTypeDescriber.ShouldIncludeCell(System.String,Cesil.WriteContext@,System.Object)">ShouldIncludeCell(String, WriteContext, Object)</h4>
+  <div class="markdown level1 summary"><p>Called in GetCellsForDynamicRow to determine whether a cell should be included.</p>
+<p>Override to customize behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected bool ShouldIncludeCell(string name, in WriteContext context, dynamic row)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><span class="parametername">name</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="Cesil.WriteContext.html">WriteContext</a></td>
+        <td><span class="parametername">context</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Object</span></td>
+        <td><span class="parametername">row</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_ShouldSerialize_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.ShouldSerialize(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L549">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_ShouldSerialize_" data-uid="Cesil.DefaultTypeDescriber.ShouldSerialize*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_ShouldSerialize_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.ShouldSerialize(TypeInfo,FieldInfo)">ShouldSerialize(TypeInfo, FieldInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns true if the given field should be serialized.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual bool ShouldSerialize(TypeInfo forType, FieldInfo field)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">FieldInfo</span></td>
+        <td><span class="parametername">field</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_ShouldSerialize_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.ShouldSerialize(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L424">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_ShouldSerialize_" data-uid="Cesil.DefaultTypeDescriber.ShouldSerialize*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_ShouldSerialize_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.ShouldSerialize(TypeInfo,PropertyInfo)">ShouldSerialize(TypeInfo, PropertyInfo)</h4>
+  <div class="markdown level1 summary"><p>Returns true if the given property should be serialized.</p>
+<p>Override to tweak behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected virtual bool ShouldSerialize(TypeInfo forType, PropertyInfo property)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="parametername">forType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">PropertyInfo</span></td>
+        <td><span class="parametername">property</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_ToString.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.ToString%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L1087">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_ToString_" data-uid="Cesil.DefaultTypeDescriber.ToString*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_ToString" data-uid="Cesil.DefaultTypeDescriber.ToString">ToString()</h4>
+  <div class="markdown level1 summary"><p>Returns a representation of this DefaultTypeDescriber object.</p>
+<p>Only for debugging, this value is not guaranteed to be stable.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public override string ToString()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="overrides">Overrides</h5>
+  <div><span class="xref">System.Object.ToString()</span></div>
+  <h3 id="implements">Implements</h3>
+  <div>
+      <a class="xref" href="Cesil.ITypeDescriber.html">ITypeDescriber</a>
+  </div>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
+                  </li>
+                  <li>
+                    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L29" class="contribution-link">View Source</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            
+            <span>Generated by <strong>DocFX</strong></span>
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

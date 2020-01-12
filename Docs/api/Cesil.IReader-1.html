@@ -1,0 +1,462 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Interface IReader&lt;TRow&gt;
+   </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Interface IReader&lt;TRow&gt;
+   ">
+    <meta name="generator" content="docfx 2.48.1.0">
+    
+    <link rel="shortcut icon" href="../favicon.ico">
+    <link rel="stylesheet" href="../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../styles/docfx.css">
+    <link rel="stylesheet" href="../styles/main.css">
+    <meta property="docfx:navrel" content="">
+    <meta property="docfx:tocrel" content="toc.html">
+    
+    
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div role="main" class="container body-content hide-when-search">
+        <div class="article row grid">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="Cesil.IReader`1">
+  
+  
+  <h1 id="Cesil_IReader_1" data-uid="Cesil.IReader`1" class="text-break">Interface IReader&lt;TRow&gt;
+  </h1>
+  <div class="markdown level0 summary"><p>Interface for a synchronous reader.</p>
+</div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="inheritedMembers">
+    <h5>Inherited Members</h5>
+    <div>
+      <span class="xref">System.IDisposable.Dispose()</span>
+    </div>
+  </div>
+  <h6><strong>Namespace</strong>: <a class="xref" href="Cesil.html">Cesil</a></h6>
+  <h6><strong>Assembly</strong>: Cesil.dll</h6>
+  <h5 id="Cesil_IReader_1_syntax">Syntax</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public interface IReader&lt;TRow&gt; : IDisposable</code></pre>
+  </div>
+  <h5 class="typeParameters">Type Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="parametername">TRow</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="methods">Methods
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_IReader_1_EnumerateAll.md&amp;value=---%0Auid%3A%20Cesil.IReader%601.EnumerateAll%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IReader.cs/#L31">View Source</a>
+  </span>
+  <a id="Cesil_IReader_1_EnumerateAll_" data-uid="Cesil.IReader`1.EnumerateAll*"></a>
+  <h4 id="Cesil_IReader_1_EnumerateAll" data-uid="Cesil.IReader`1.EnumerateAll">EnumerateAll()</h4>
+  <div class="markdown level1 summary"><p>Returns an enumerable that will read and yield
+one row at a time.</p>
+<p>The returned IEnumerable(TRow) may only be enumerated once.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">IEnumerable&lt;TRow&gt; EnumerateAll()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Collections.Generic.IEnumerable</span>&lt;TRow&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_IReader_1_ReadAll.md&amp;value=---%0Auid%3A%20Cesil.IReader%601.ReadAll%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IReader.cs/#L23">View Source</a>
+  </span>
+  <a id="Cesil_IReader_1_ReadAll_" data-uid="Cesil.IReader`1.ReadAll*"></a>
+  <h4 id="Cesil_IReader_1_ReadAll" data-uid="Cesil.IReader`1.ReadAll">ReadAll()</h4>
+  <div class="markdown level1 summary"><p>Reads all rows, returning the entire set at once.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">List&lt;TRow&gt; ReadAll()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">List</span>&lt;TRow&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_IReader_1_ReadAll__1___0_.md&amp;value=---%0Auid%3A%20Cesil.IReader%601.ReadAll%60%601(%60%600)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IReader.cs/#L17">View Source</a>
+  </span>
+  <a id="Cesil_IReader_1_ReadAll_" data-uid="Cesil.IReader`1.ReadAll*"></a>
+  <h4 id="Cesil_IReader_1_ReadAll__1___0_" data-uid="Cesil.IReader`1.ReadAll``1(``0)">ReadAll&lt;TCollection&gt;(TCollection)</h4>
+  <div class="markdown level1 summary"><p>Reads all rows into the provided collection, returning the entire set at once.</p>
+<p>into must be non-null.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">TCollection ReadAll&lt;TCollection&gt;(TCollection into)
+
+    where TCollection : class, ICollection&lt;TRow&gt;</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TCollection</span></td>
+        <td><span class="parametername">into</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TCollection</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="typeParameters">Type Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="parametername">TCollection</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_IReader_1_TryRead__0__.md&amp;value=---%0Auid%3A%20Cesil.IReader%601.TryRead(%600%40)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IReader.cs/#L37">View Source</a>
+  </span>
+  <a id="Cesil_IReader_1_TryRead_" data-uid="Cesil.IReader`1.TryRead*"></a>
+  <h4 id="Cesil_IReader_1_TryRead__0__" data-uid="Cesil.IReader`1.TryRead(`0@)">TryRead(out TRow)</h4>
+  <div class="markdown level1 summary"><p>Reads a single row, populating row and returning true
+if a row was available and false otherwise.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">bool TryRead(out TRow row)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TRow</span></td>
+        <td><span class="parametername">row</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_IReader_1_TryReadWithComment.md&amp;value=---%0Auid%3A%20Cesil.IReader%601.TryReadWithComment%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IReader.cs/#L64">View Source</a>
+  </span>
+  <a id="Cesil_IReader_1_TryReadWithComment_" data-uid="Cesil.IReader`1.TryReadWithComment*"></a>
+  <h4 id="Cesil_IReader_1_TryReadWithComment" data-uid="Cesil.IReader`1.TryReadWithComment">TryReadWithComment()</h4>
+  <div class="markdown level1 summary"><p>Reads a single row or comment.</p>
+<p>Distinguish between a row, comment, or nothing by inspecting
+ReadWithCommentResult(T).ResultType.</p>
+<p>Note, it is possible for row to be initialized BUT for this method
+to return a comment or no value.  In that case row should be ignored.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">ReadWithCommentResult&lt;TRow&gt; TryReadWithComment()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.ReadWithCommentResult-1.html">ReadWithCommentResult</a>&lt;TRow&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_IReader_1_TryReadWithCommentReuse__0__.md&amp;value=---%0Auid%3A%20Cesil.IReader%601.TryReadWithCommentReuse(%600%40)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IReader.cs/#L78">View Source</a>
+  </span>
+  <a id="Cesil_IReader_1_TryReadWithCommentReuse_" data-uid="Cesil.IReader`1.TryReadWithCommentReuse*"></a>
+  <h4 id="Cesil_IReader_1_TryReadWithCommentReuse__0__" data-uid="Cesil.IReader`1.TryReadWithCommentReuse(`0@)">TryReadWithCommentReuse(ref TRow)</h4>
+  <div class="markdown level1 summary"><p>Reads a single row (storing into an existing instance of a row
+if provided) or comment.</p>
+<p>Distinguish between a row, comment, or nothing by inspecting
+ReadWithCommentResult(T).ResultType.</p>
+<p>Row will be initialized if need be.</p>
+<p>Note, it is possible for row to be initialized BUT for this method
+to return a comment or no value.  In that case row should be ignored.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">ReadWithCommentResult&lt;TRow&gt; TryReadWithCommentReuse(ref TRow row)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TRow</span></td>
+        <td><span class="parametername">row</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.ReadWithCommentResult-1.html">ReadWithCommentResult</a>&lt;TRow&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_IReader_1_TryReadWithReuse__0__.md&amp;value=---%0Auid%3A%20Cesil.IReader%601.TryReadWithReuse(%600%40)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IReader.cs/#L52">View Source</a>
+  </span>
+  <a id="Cesil_IReader_1_TryReadWithReuse_" data-uid="Cesil.IReader`1.TryReadWithReuse*"></a>
+  <h4 id="Cesil_IReader_1_TryReadWithReuse__0__" data-uid="Cesil.IReader`1.TryReadWithReuse(`0@)">TryReadWithReuse(ref TRow)</h4>
+  <div class="markdown level1 summary"><p>Reads a single row into the existing instance of row,
+returning true if a row was available and false otherwise.</p>
+<p>Row will be initialized if need be.</p>
+<p>Note, it is possible for row to be initialized BUT for this method
+to return false.  In that case row should be ignored&gt;</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">bool TryReadWithReuse(ref TRow row)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TRow</span></td>
+        <td><span class="parametername">row</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_IReader_1.md&amp;value=---%0Auid%3A%20Cesil.IReader%601%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
+                  </li>
+                  <li>
+                    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IReader.cs/#L10" class="contribution-link">View Source</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            
+            <span>Generated by <strong>DocFX</strong></span>
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>
