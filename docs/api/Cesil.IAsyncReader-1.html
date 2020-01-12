@@ -1,0 +1,520 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Interface IAsyncReader&lt;TRow&gt;
+   </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Interface IAsyncReader&lt;TRow&gt;
+   ">
+    <meta name="generator" content="docfx 2.48.1.0">
+    
+    <link rel="shortcut icon" href="../favicon.ico">
+    <link rel="stylesheet" href="../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../styles/docfx.css">
+    <link rel="stylesheet" href="../styles/main.css">
+    <meta property="docfx:navrel" content="">
+    <meta property="docfx:tocrel" content="toc.html">
+    
+    
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div role="main" class="container body-content hide-when-search">
+        <div class="article row grid">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="Cesil.IAsyncReader`1">
+  
+  
+  <h1 id="Cesil_IAsyncReader_1" data-uid="Cesil.IAsyncReader`1" class="text-break">Interface IAsyncReader&lt;TRow&gt;
+  </h1>
+  <div class="markdown level0 summary"><p>Interface for an asynchronous reader.</p>
+</div>
+  <div class="markdown level0 conceptual"></div>
+  <h6><strong>Namespace</strong>: <a class="xref" href="Cesil.html">Cesil</a></h6>
+  <h6><strong>Assembly</strong>: Cesil.dll</h6>
+  <h5 id="Cesil_IAsyncReader_1_syntax">Syntax</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public interface IAsyncReader&lt;TRow&gt; : IAsyncDisposable</code></pre>
+  </div>
+  <h5 class="typeParameters">Type Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="parametername">TRow</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="methods">Methods
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_IAsyncReader_1_EnumerateAllAsync.md&amp;value=---%0Auid%3A%20Cesil.IAsyncReader%601.EnumerateAllAsync%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IAsyncReader.cs/#L22">View Source</a>
+  </span>
+  <a id="Cesil_IAsyncReader_1_EnumerateAllAsync_" data-uid="Cesil.IAsyncReader`1.EnumerateAllAsync*"></a>
+  <h4 id="Cesil_IAsyncReader_1_EnumerateAllAsync" data-uid="Cesil.IAsyncReader`1.EnumerateAllAsync">EnumerateAllAsync()</h4>
+  <div class="markdown level1 summary"><p>Returns an async enumerable that will read and yield
+one row at a time.</p>
+<p>The enumerable will attempt to complete synchronously,
+but will not block if results are not available.</p>
+<p>The returned IAsyncEnumerable(TRow) may only be enumerated once.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">IAsyncEnumerable&lt;TRow&gt; EnumerateAllAsync()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">IAsyncEnumerable</span>&lt;TRow&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_IAsyncReader_1_ReadAllAsync_CancellationToken_.md&amp;value=---%0Auid%3A%20Cesil.IAsyncReader%601.ReadAllAsync(CancellationToken)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IAsyncReader.cs/#L41">View Source</a>
+  </span>
+  <a id="Cesil_IAsyncReader_1_ReadAllAsync_" data-uid="Cesil.IAsyncReader`1.ReadAllAsync*"></a>
+  <h4 id="Cesil_IAsyncReader_1_ReadAllAsync_CancellationToken_" data-uid="Cesil.IAsyncReader`1.ReadAllAsync(CancellationToken)">ReadAllAsync(CancellationToken)</h4>
+  <div class="markdown level1 summary"><p>Asynchronously reads all rows into a list, returning the entire set at once.</p>
+<p>The task will attempt to complete synchronously,
+but will not block if results are not available.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">ValueTask&lt;List&lt;TRow&gt;&gt; ReadAllAsync(CancellationToken cancel = null)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">CancellationToken</span></td>
+        <td><span class="parametername">cancel</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">ValueTask</span>&lt;<span class="xref">List</span>&lt;TRow&gt;&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_IAsyncReader_1_ReadAllAsync__1___0_CancellationToken_.md&amp;value=---%0Auid%3A%20Cesil.IAsyncReader%601.ReadAllAsync%60%601(%60%600%2CCancellationToken)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IAsyncReader.cs/#L32">View Source</a>
+  </span>
+  <a id="Cesil_IAsyncReader_1_ReadAllAsync_" data-uid="Cesil.IAsyncReader`1.ReadAllAsync*"></a>
+  <h4 id="Cesil_IAsyncReader_1_ReadAllAsync__1___0_CancellationToken_" data-uid="Cesil.IAsyncReader`1.ReadAllAsync``1(``0,CancellationToken)">ReadAllAsync&lt;TCollection&gt;(TCollection, CancellationToken)</h4>
+  <div class="markdown level1 summary"><p>Asynchronously reads all rows, storing into the provided collection.</p>
+<p>into must be non-null, and will be returned wrapped in a ValueTask.</p>
+<p>The task will attempt to complete synchronously,
+but will not block if results are not available.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">ValueTask&lt;TCollection&gt; ReadAllAsync&lt;TCollection&gt;(TCollection into, CancellationToken cancel = null)
+
+    where TCollection : class, ICollection&lt;TRow&gt;</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TCollection</span></td>
+        <td><span class="parametername">into</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">CancellationToken</span></td>
+        <td><span class="parametername">cancel</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">ValueTask</span>&lt;TCollection&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="typeParameters">Type Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="parametername">TCollection</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_IAsyncReader_1_TryReadAsync_CancellationToken_.md&amp;value=---%0Auid%3A%20Cesil.IAsyncReader%601.TryReadAsync(CancellationToken)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IAsyncReader.cs/#L50">View Source</a>
+  </span>
+  <a id="Cesil_IAsyncReader_1_TryReadAsync_" data-uid="Cesil.IAsyncReader`1.TryReadAsync*"></a>
+  <h4 id="Cesil_IAsyncReader_1_TryReadAsync_CancellationToken_" data-uid="Cesil.IAsyncReader`1.TryReadAsync(CancellationToken)">TryReadAsync(CancellationToken)</h4>
+  <div class="markdown level1 summary"><p>Try to read a single row asynchronously, returning a ReadResult that
+indicates success or failure.</p>
+<p>The task will attempt to complete synchronously,
+but will not block if results are not available.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">ValueTask&lt;ReadResult&lt;TRow&gt;&gt; TryReadAsync(CancellationToken cancel = null)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">CancellationToken</span></td>
+        <td><span class="parametername">cancel</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">ValueTask</span>&lt;<a class="xref" href="Cesil.ReadResult-1.html">ReadResult</a>&lt;TRow&gt;&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_IAsyncReader_1_TryReadWithCommentAsync_CancellationToken_.md&amp;value=---%0Auid%3A%20Cesil.IAsyncReader%601.TryReadWithCommentAsync(CancellationToken)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IAsyncReader.cs/#L79">View Source</a>
+  </span>
+  <a id="Cesil_IAsyncReader_1_TryReadWithCommentAsync_" data-uid="Cesil.IAsyncReader`1.TryReadWithCommentAsync*"></a>
+  <h4 id="Cesil_IAsyncReader_1_TryReadWithCommentAsync_CancellationToken_" data-uid="Cesil.IAsyncReader`1.TryReadWithCommentAsync(CancellationToken)">TryReadWithCommentAsync(CancellationToken)</h4>
+  <div class="markdown level1 summary"><p>Reads a single row or comment.</p>
+<p>Distinguish between a row, comment, or nothing by inspecting
+ReadWithCommentResult(T).ResultType.</p>
+<p>Note, it is possible for row to be initialized BUT for this method
+to return a comment or no value.  In that case row should be ignored.</p>
+<p>The task will attempt to complete synchronously,
+but will not block if results are not available.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">ValueTask&lt;ReadWithCommentResult&lt;TRow&gt;&gt; TryReadWithCommentAsync(CancellationToken cancel = null)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">CancellationToken</span></td>
+        <td><span class="parametername">cancel</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">ValueTask</span>&lt;<a class="xref" href="Cesil.ReadWithCommentResult-1.html">ReadWithCommentResult</a>&lt;TRow&gt;&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_IAsyncReader_1_TryReadWithCommentReuseAsync__0__CancellationToken_.md&amp;value=---%0Auid%3A%20Cesil.IAsyncReader%601.TryReadWithCommentReuseAsync(%600%40%2CCancellationToken)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IAsyncReader.cs/#L96">View Source</a>
+  </span>
+  <a id="Cesil_IAsyncReader_1_TryReadWithCommentReuseAsync_" data-uid="Cesil.IAsyncReader`1.TryReadWithCommentReuseAsync*"></a>
+  <h4 id="Cesil_IAsyncReader_1_TryReadWithCommentReuseAsync__0__CancellationToken_" data-uid="Cesil.IAsyncReader`1.TryReadWithCommentReuseAsync(`0@,CancellationToken)">TryReadWithCommentReuseAsync(ref TRow, CancellationToken)</h4>
+  <div class="markdown level1 summary"><p>Reads a single row (storing into an existing instance of a row
+if provided) or comment.</p>
+<p>Distinguish between a row, comment, or nothing by inspecting
+ReadWithCommentResult(T).ResultType.</p>
+<p>Row will be initialized if need be.</p>
+<p>Note, it is possible for row to be initialized BUT for this method
+to return a comment or no value.  In that case row should be ignored.</p>
+<p>The task will attempt to complete synchronously,
+but will not block if results are not available.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">ValueTask&lt;ReadWithCommentResult&lt;TRow&gt;&gt; TryReadWithCommentReuseAsync(ref TRow row, CancellationToken cancel = null)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TRow</span></td>
+        <td><span class="parametername">row</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">CancellationToken</span></td>
+        <td><span class="parametername">cancel</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">ValueTask</span>&lt;<a class="xref" href="Cesil.ReadWithCommentResult-1.html">ReadWithCommentResult</a>&lt;TRow&gt;&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_IAsyncReader_1_TryReadWithReuseAsync__0__CancellationToken_.md&amp;value=---%0Auid%3A%20Cesil.IAsyncReader%601.TryReadWithReuseAsync(%600%40%2CCancellationToken)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IAsyncReader.cs/#L65">View Source</a>
+  </span>
+  <a id="Cesil_IAsyncReader_1_TryReadWithReuseAsync_" data-uid="Cesil.IAsyncReader`1.TryReadWithReuseAsync*"></a>
+  <h4 id="Cesil_IAsyncReader_1_TryReadWithReuseAsync__0__CancellationToken_" data-uid="Cesil.IAsyncReader`1.TryReadWithReuseAsync(`0@,CancellationToken)">TryReadWithReuseAsync(ref TRow, CancellationToken)</h4>
+  <div class="markdown level1 summary"><p>Reads a single row into the existing instance of row,
+returning a ReadResult that indicates success or failure.</p>
+<p>If need be, row will be initialized before this method returns -
+it will remain in use until the returned ValueTask completes.</p>
+<p>Note, it is possible for row to be initialized BUT for the ReadResult
+to indicate failure.  In that case row should be ignored / discarded.</p>
+<p>The task will attempt to complete synchronously,
+but will not block if results are not available.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">ValueTask&lt;ReadResult&lt;TRow&gt;&gt; TryReadWithReuseAsync(ref TRow row, CancellationToken cancel = null)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">TRow</span></td>
+        <td><span class="parametername">row</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">CancellationToken</span></td>
+        <td><span class="parametername">cancel</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">ValueTask</span>&lt;<a class="xref" href="Cesil.ReadResult-1.html">ReadResult</a>&lt;TRow&gt;&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_IAsyncReader_1.md&amp;value=---%0Auid%3A%20Cesil.IAsyncReader%601%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
+                  </li>
+                  <li>
+                    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IAsyncReader.cs/#L11" class="contribution-link">View Source</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            
+            <span>Generated by <strong>DocFX</strong></span>
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>
