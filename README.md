@@ -11,7 +11,7 @@ Consult [The Wiki™](https://github.com/kevin-montrose/Cesil/wiki) for documentat
 
 You may be interested in:
 
- - [Configuration](https://github.com/kevin-montrose/Cesil/wiki/Configuration)
+ - [Configurations](https://github.com/kevin-montrose/Cesil/wiki/Configurations)
  - [Reading](https://github.com/kevin-montrose/Cesil/wiki/Reading)
  - [Writing](https://github.com/kevin-montrose/Cesil/wiki/Writing)
  - [Convenience Utilities](https://github.com/kevin-montrose/Cesil/wiki/Convenience-Utilities)
