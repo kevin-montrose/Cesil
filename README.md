@@ -28,7 +28,7 @@ You may be interested in:
 
 ## Example: Reading Synchronously
 
-Using a [[convient method|Convenience Utilities#reading]]:
+Using a [convient method](https://github.com/kevin-montrose/Cesil/wiki/Convenience-Utilities#reading):
 
 ```csharp
 using Cesil;
@@ -41,7 +41,7 @@ using(TextReader reader = /* some TextReader */)
 }
 ```
 
-In a more explicit, and configurable, way using [[explicit configuration|Configurations]] and [[options|Options]].
+In a more explicit, and configurable, way using [explicit configuration](https://github.com/kevin-montrose/Cesil/wiki/Configurations) and [options](https://github.com/kevin-montrose/Cesil/wiki/Options).
 
 ```csharp
 using Cesil;
@@ -58,11 +58,11 @@ using(IReader<MyType> csv = myConfig.CreateReader(reader))
 }
 ```
 
-For more detail, see [[Reading|Reading]].
+For more detail, see [Reading](https://github.com/kevin-montrose/Cesil/wiki/Reading).
 
 ## Example: Reading Asynchronously
 
-Using a [[convient method|Convenience Utilities#reading]]:
+Using a [convient method](https://github.com/kevin-montrose/Cesil/wiki/Convenience-Utilities#reading):
 
 ```csharp
 using Cesil;
@@ -75,7 +75,7 @@ using(TextReader reader = /* some TextReader */)
 }
 ```
 
-In a more explicit, and configurable, way using [[explicit configuration|Configurations]] and [[options|Options]].
+In a more explicit, and configurable, way using [explicit configuration](https://github.com/kevin-montrose/Cesil/wiki/Configurations) and [options](https://github.com/kevin-montrose/Cesil/wiki/Options).
 
 ```csharp
 using Cesil;
@@ -92,11 +92,11 @@ await using(IAsyncReader<MyType> csv = myConfig.CreateAsyncReader(reader))
 }
 ```
 
-For more detail, see [[Reading|Reading]].
+For more detail, see [Reading](https://github.com/kevin-montrose/Cesil/wiki/Reading).
 
 ## Example: Writing Synchronously
 
-Using a [[convient method|Convenience Utilities#writing]]:
+Using a [convient method](https://github.com/kevin-montrose/Cesil/wiki/Convenience-Utilities#writing):
 
 ```csharp
 using Cesil;
@@ -111,7 +111,7 @@ using(TextWriter writer = /* .. */)
 }
 ```
 
-In a more explicit, and configurable, way using [[explicit configuration|Configurations]] and [[options|Options]].
+In a more explicit, and configurable, way using [explicit configuration](https://github.com/kevin-montrose/Cesil/wiki/Configurations) and [options](https://github.com/kevin-montrose/Cesil/wiki/Options).
 
 ```csharp
 using Cesil;
@@ -130,11 +130,11 @@ using(IWriter<MyType> csv = myConfig.CreateWriter(writer))
 }
 ```
 
-For more detail, see [[Writing|Writing]].
+For more detail, see [Writing](https://github.com/kevin-montrose/Cesil/wiki/Writing).
 
 ## Example: Writing Asynchronously
 
-Using a [[convient method|Convenience Utilities#writing]]:
+Using a [convient method](https://github.com/kevin-montrose/Cesil/wiki/Convenience-Utilities#writing):
 
 ```csharp
 using Cesil;
@@ -150,7 +150,7 @@ using(TextWriter writer = /* .. */)
 }
 ```
 
-In a more explicit, and configurable, way using [[explicit configuration|Configurations]] and [[options|Options]].
+In a more explicit, and configurable, way using [explicit configuration](https://github.com/kevin-montrose/Cesil/wiki/Configurations) and [options](https://github.com/kevin-montrose/Cesil/wiki/Options).
 
 ```csharp
 using Cesil;
@@ -170,4 +170,4 @@ await using(IWriter<MyType> csv = myConfig.CreateAsyncWriter(writer))
 }
 ```
 
-For more detail, see [[Writing|Writing]].
+For more detail, see [Writing](https://github.com/kevin-montrose/Cesil/wiki/Writing).
