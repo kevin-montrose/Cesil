@@ -84,12 +84,13 @@ namespace Cesil
                 if (!ShouldDeserialize(forType, f)) continue;
 
                 var name = GetDeserializationName(forType, f);
+                var setter = GetSetter(forType, f);
                 var parser = GetParser(forType, f);
                 var order = GetOrder(forType, f);
                 var isRequired = GetIsRequired(forType, f);
                 var reset = GetReset(forType, f);
 
-                buffer.Add((DeserializableMember.CreateInner(forType, name, (Setter?)f, parser, isRequired, reset), order));
+                buffer.Add((DeserializableMember.CreateInner(forType, name, setter, parser, isRequired, reset), order));
             }
 
             buffer.Sort(TypeDescribers.DeserializableComparer);
@@ -284,6 +285,20 @@ namespace Cesil
             Utils.CheckArgumentNull(field, nameof(field));
 
             return GetName(field);
+        }
+
+        /// <summary>
+        /// Returns the setter to use for the given field when deserialized.
+        /// 
+        /// Override to tweak behavior.
+        /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
+        protected virtual Setter? GetSetter(TypeInfo forType, FieldInfo field)
+        {
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(field, nameof(field));
+
+            return Setter.ForField(field);
         }
 
         /// <summary>

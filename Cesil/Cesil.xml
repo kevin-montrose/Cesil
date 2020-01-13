@@ -1712,6 +1712,13 @@
             Override to tweak behavior.
             </summary>
         </member>
+        <member name="M:Cesil.DefaultTypeDescriber.GetSetter(System.Reflection.TypeInfo,System.Reflection.FieldInfo)">
+            <summary>
+            Returns the setter to use for the given field when deserialized.
+            
+            Override to tweak behavior.
+            </summary>
+        </member>
         <member name="M:Cesil.DefaultTypeDescriber.GetParser(System.Reflection.TypeInfo,System.Reflection.FieldInfo)">
             <summary>
             Returns the parser to use for the column that maps to the given property when deserialized.
