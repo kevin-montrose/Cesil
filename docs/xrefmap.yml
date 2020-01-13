@@ -792,6 +792,12 @@ references:
   isSpec: "True"
   fullName: Cesil.DefaultTypeDescriber.GetSerializationName
   nameWithType: DefaultTypeDescriber.GetSerializationName
+- uid: Cesil.DefaultTypeDescriber.GetSetter(TypeInfo,FieldInfo)
+  name: GetSetter(TypeInfo, FieldInfo)
+  href: api/Cesil.DefaultTypeDescriber.html#Cesil_DefaultTypeDescriber_GetSetter_TypeInfo_FieldInfo_
+  commentId: M:Cesil.DefaultTypeDescriber.GetSetter(TypeInfo,FieldInfo)
+  fullName: Cesil.DefaultTypeDescriber.GetSetter(TypeInfo, FieldInfo)
+  nameWithType: DefaultTypeDescriber.GetSetter(TypeInfo, FieldInfo)
 - uid: Cesil.DefaultTypeDescriber.GetSetter(TypeInfo,PropertyInfo)
   name: GetSetter(TypeInfo, PropertyInfo)
   href: api/Cesil.DefaultTypeDescriber.html#Cesil_DefaultTypeDescriber_GetSetter_TypeInfo_PropertyInfo_
