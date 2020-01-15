@@ -552,12 +552,12 @@
   <a id="Cesil_ShouldSerialize_op_Explicit_" data-uid="Cesil.ShouldSerialize.op_Explicit*"></a>
   <h4 id="Cesil_ShouldSerialize_op_Explicit_System_Nullable_MethodInfo___Cesil_ShouldSerialize" data-uid="Cesil.ShouldSerialize.op_Explicit(System.Nullable{MethodInfo})~Cesil.ShouldSerialize">Explicit(Nullable&lt;MethodInfo&gt; to ShouldSerialize)</h4>
   <div class="markdown level1 summary"><p>Convenience operator, equivalent to calling ShouldSerialize.ForMethod if non-null.</p>
-<p>Returns null if mtd is null.</p>
+<p>Returns null if method is null.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
   <h5 class="decalaration">Declaration</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public static explicit operator ShouldSerialize(MethodInfo? mtd)</code></pre>
+    <pre><code class="lang-csharp hljs">public static explicit operator ShouldSerialize(MethodInfo? method)</code></pre>
   </div>
   <h5 class="parameters">Parameters</h5>
   <table class="table table-bordered table-striped table-condensed">
@@ -571,7 +571,7 @@
     <tbody>
       <tr>
         <td><span class="xref">System.Nullable</span>&lt;<span class="xref">MethodInfo</span>&gt;</td>
-        <td><span class="parametername">mtd</span></td>
+        <td><span class="parametername">method</span></td>
         <td></td>
       </tr>
     </tbody>
