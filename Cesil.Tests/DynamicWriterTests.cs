@@ -38,7 +38,7 @@ namespace Cesil.Tests
             public int F { get; set; }
         }
 
-        private sealed class _ChainedFormatters_TypeDescriber: DefaultTypeDescriber
+        private sealed class _ChainedFormatters_TypeDescriber : DefaultTypeDescriber
         {
             private readonly Formatter F;
 
@@ -124,7 +124,7 @@ namespace Cesil.Tests
 
 
             var row = MakeDynamicRow("Foo\r\nabc");
-            try 
+            try
             {
                 RunSyncDynamicWriterVariants(
                     opts,
@@ -329,7 +329,7 @@ namespace Cesil.Tests
             {
                 var ret = new List<DynamicCellValue>();
 
-                for(var i = 0; i < CellNum; i++)
+                for (var i = 0; i < CellNum; i++)
                 {
                     var f =
                         i == FailOn ?

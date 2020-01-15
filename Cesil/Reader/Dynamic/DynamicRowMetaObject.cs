@@ -163,7 +163,7 @@ namespace Cesil
 
             // special case, converting to IDisposable will ALWAYS succeed
             //   because every dynamic row supports disposal
-            if(retType == Types.IDisposableType)
+            if (retType == Types.IDisposableType)
             {
                 var alwaysRestrictions = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRowType);
                 var cast = Expression.Convert(Expression, Types.IDisposableType);

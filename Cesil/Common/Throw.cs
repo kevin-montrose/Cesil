@@ -66,7 +66,7 @@ namespace Cesil
             // automating poisoning is a nice bonus
             var wrapped = ExceptionDispatchInfo.Capture(e);
             wrapped.Throw();
-            
+
             return default;
         }
     }

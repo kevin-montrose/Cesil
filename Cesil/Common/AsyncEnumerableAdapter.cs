@@ -7,7 +7,7 @@ using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
-    internal sealed partial class AsyncEnumerableAdapter<T>: 
+    internal sealed partial class AsyncEnumerableAdapter<T> :
         IAsyncEnumerable<T>,
         IAsyncEnumerator<T>,
         ITestableAsyncDisposable

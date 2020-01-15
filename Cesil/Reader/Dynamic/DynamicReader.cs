@@ -209,7 +209,7 @@ namespace Cesil
             }
 
             Cleanup(this);
-            
+
             // handle actual cleanup, a method to DRY things up
             static void Cleanup(DynamicReader self)
             {

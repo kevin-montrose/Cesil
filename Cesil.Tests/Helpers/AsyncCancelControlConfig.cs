@@ -61,11 +61,11 @@ namespace Cesil.Tests
                 SingleAsync = providerAsync;
                 SingleAsync.GoAsyncAfter = 0;
             }
-            
+
             if (providerObj is ITestableCancellableProvider providerCancel)
             {
                 SingleCancel = providerCancel;
-                if(DoCancelAfter >= 0)
+                if (DoCancelAfter >= 0)
                 {
                     SingleCancel.CancelAfter = DoCancelAfter;
                 }

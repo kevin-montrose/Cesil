@@ -147,7 +147,7 @@ namespace Cesil
             [NullableExposed("options will default to Options.Default")]
             Options? options = null,
             [NullableExposed("context is truly optional")]
-            object? context = null, 
+            object? context = null,
             CancellationToken cancel = default
         )
         {
@@ -267,7 +267,7 @@ namespace Cesil
         ///   during certain operations as a member on WriteContext.
         /// </summary>
         public static void Write<TRow>(
-            IEnumerable<TRow> rows, 
+            IEnumerable<TRow> rows,
             TextWriter writer,
             [NullableExposed("options will default to Options.Default")]
             Options? options = null,
@@ -327,7 +327,7 @@ namespace Cesil
         ///   during certain operations as a member on WriteContext.
         /// </summary>
         public static void WriteToFile<TRow>(
-            IEnumerable<TRow> rows, 
+            IEnumerable<TRow> rows,
             string path,
             [NullableExposed("options will default to Options.Default")]
             Options? options = null,
@@ -443,12 +443,12 @@ namespace Cesil
         /// A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
         /// </summary>
         public static ValueTask WriteAsync<TRow>(
-            IAsyncEnumerable<TRow> rows, 
+            IAsyncEnumerable<TRow> rows,
             TextWriter writer,
             [NullableExposed("options will default to Options.Default")]
             Options? options = null,
             [NullableExposed("context is truly optional")]
-            object? context = null, 
+            object? context = null,
             CancellationToken cancel = default
         )
         {
@@ -511,12 +511,12 @@ namespace Cesil
         /// A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
         /// </summary>
         public static ValueTask WriteToFileAsync<TRow>(
-            IEnumerable<TRow> rows, 
+            IEnumerable<TRow> rows,
             string path,
             [NullableExposed("options will default to Options.Default")]
             Options? options = null,
             [NullableExposed("context is truly optional")]
-            object? context = null, 
+            object? context = null,
             CancellationToken cancel = default
         )
         {
@@ -569,12 +569,12 @@ namespace Cesil
         /// A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
         /// </summary>
         public static ValueTask WriteToFileAsync<TRow>(
-            IAsyncEnumerable<TRow> rows, 
+            IAsyncEnumerable<TRow> rows,
             string path,
             [NullableExposed("options will default to Options.Default")]
             Options? options = null,
             [NullableExposed("context is truly optional")]
-            object? context = null, 
+            object? context = null,
             CancellationToken cancel = default
         )
         {

@@ -5,9 +5,8 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-
-using static Cesil.DisposableHelper;
 using static Cesil.AwaitHelper;
+using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
@@ -502,7 +501,7 @@ finish:
                     case ReaderStateMachine.AdvanceResult.Finished_Escaped_Value:
                         PushPendingCharactersToValue(true);
                         break;
-                    
+
                     case ReaderStateMachine.AdvanceResult.Finished_LastValueUnescaped_Record:
                         if (CurrentBuilderLength > 0)
                         {

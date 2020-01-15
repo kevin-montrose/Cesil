@@ -205,7 +205,7 @@ namespace Cesil
                 var surrogateResetBinding = GetEquivalentFlagsFor(surrogateReset.IsPublic, surrogateReset.IsStatic);
 
                 Type[] resetTakesTypes;
-                if(surrogateResetWrapper.TakesContext)
+                if (surrogateResetWrapper.TakesContext)
                 {
                     resetTakesTypes = new[] { Types.ReadContextType };
                 }
@@ -213,7 +213,7 @@ namespace Cesil
                 {
                     resetTakesTypes = Type.EmptyTypes;
                 }
-                
+
                 // intentionally letting this be null
                 resetOnType = ontoType.GetMethod(surrogateReset.Name, surrogateResetBinding, null, resetTakesTypes, null);
                 if (resetOnType == null)
@@ -298,7 +298,7 @@ namespace Cesil
                 var surrogateShouldSerializeWrapper = member.ShouldSerialize.Value;
                 if (surrogateShouldSerializeWrapper.Mode == BackingMode.Method)
                 {
-                    if(surrogateShouldSerializeWrapper.Takes.HasValue && surrogateShouldSerializeWrapper.IsStatic)
+                    if (surrogateShouldSerializeWrapper.Takes.HasValue && surrogateShouldSerializeWrapper.IsStatic)
                     {
                         return Throw.InvalidOperationException<SerializableMember>($"Cannot map 'should serialize' {surrogateShouldSerializeWrapper} onto {ontoType}, it takes a parameter");
                     }
@@ -412,7 +412,7 @@ handleMethod:
                         {
                             var arrBuilder = ImmutableArray.CreateBuilder<InstanceProvider>();
                             var elseProv = (IElseSupporting<InstanceProvider>)builder;
-                            foreach(var fallback in elseProv.Fallbacks)
+                            foreach (var fallback in elseProv.Fallbacks)
                             {
                                 var mapped = Map(ontoType, fallback);
                                 arrBuilder.Add(mapped);

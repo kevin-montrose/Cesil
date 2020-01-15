@@ -150,7 +150,7 @@ namespace Cesil
 
                             return del;
                         }
-                    // intentionally non-exhaustive
+                        // intentionally non-exhaustive
                 }
             }
 

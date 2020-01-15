@@ -15,7 +15,7 @@ namespace Cesil
             c.CancelCounter++;
 
             if (c.CancelAfter != null)
-            {    
+            {
                 if (c.CancelCounter >= c.CancelAfter)
                 {
                     throw new OperationCanceledException();

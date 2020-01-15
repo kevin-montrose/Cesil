@@ -138,7 +138,7 @@ namespace Cesil
             // todo: there's no particular reason this couldn't be chain-able?
 
             Expression selfExp;
-            
+
             switch (Mode)
             {
                 case BackingMode.Method:
@@ -152,7 +152,7 @@ namespace Cesil
                             {
                                 selfExp = Expression.Call(mtd);
                             }
-                            else if(ps.Length == 1)
+                            else if (ps.Length == 1)
                             {
                                 if (TakesContext)
                                 {
@@ -286,7 +286,7 @@ namespace Cesil
                         takesContext = false;
                     }
                 }
-                else if(getterParams.Length == 2)
+                else if (getterParams.Length == 2)
                 {
                     var p0 = getterParams[0].ParameterType.GetTypeInfo();
                     var p1 = getterParams[1].ParameterType.GetTypeInfo();
@@ -302,7 +302,7 @@ namespace Cesil
                     }
 
                     var p1Elem = p1.GetElementTypeNonNull();
-                    if(p1Elem != Types.WriteContextType)
+                    if (p1Elem != Types.WriteContextType)
                     {
                         return Throw.ArgumentException<Getter>($"If the second parameter to a static {nameof(Getter)} method with two parameters must be `in WriteContext`, was not `WriteContext`", nameof(method));
                     }
@@ -319,11 +319,11 @@ namespace Cesil
             {
                 rowType = method.DeclaringTypeNonNull();
 
-                if(getterParams.Length == 0)
+                if (getterParams.Length == 0)
                 {
                     takesContext = false;
                 }
-                else if(getterParams.Length == 1)
+                else if (getterParams.Length == 1)
                 {
                     var p0 = getterParams[0].ParameterType.GetTypeInfo();
 
@@ -558,7 +558,7 @@ namespace Cesil
                 }
 
                 var ctxElem = ctx.GetElementTypeNonNull();
-                if(ctxElem != Types.WriteContextType)
+                if (ctxElem != Types.WriteContextType)
                 {
                     return Throw.InvalidOperationException<Getter>($"Delegate's second parameter must be a `in WriteContext`, was not `WriteContext`");
                 }

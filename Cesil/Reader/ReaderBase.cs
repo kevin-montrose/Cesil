@@ -2,7 +2,7 @@
 
 namespace Cesil
 {
-    internal abstract class ReaderBase<T>: PoisonableBase
+    internal abstract class ReaderBase<T> : PoisonableBase
     {
         internal readonly BufferWithPushback Buffer;
         internal readonly Partial<T> Partial;

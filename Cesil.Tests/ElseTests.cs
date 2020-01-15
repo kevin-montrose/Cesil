@@ -48,14 +48,14 @@ namespace Cesil.Tests
             var d5 = DynamicRowConverter.ForMethod(m1);
 
             var chainable = new[] { d1, d2, d3, d4, d5 };
-            
-            for(var i = 0; i < chainable.Length; i++)
+
+            for (var i = 0; i < chainable.Length; i++)
             {
                 var root = chainable[i];
 
                 var chained = root;
 
-                for(var j = 0; j < chainable.Length; j++)
+                for (var j = 0; j < chainable.Length; j++)
                 {
                     chained = chained.Else(chainable[j]);
                 }
@@ -68,7 +68,7 @@ namespace Cesil.Tests
 
                 var body = chained.MakeExpression(t, asRow, ctx, outVar);
 
-                var lambda = Expression.Lambda< _DynamicRowConverters_Delegate>(body, new[] { p, ctx, outVar });
+                var lambda = Expression.Lambda<_DynamicRowConverters_Delegate>(body, new[] { p, ctx, outVar });
                 var del = lambda.Compile();
             }
 

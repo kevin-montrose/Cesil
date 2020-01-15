@@ -148,7 +148,7 @@ namespace Cesil.Tests
                 {
                     var ctx = new _ChainedParsers_Context();
 
-                    using(var reader = getReader("Foo\r\n1\r\n2\r\n3\r\n4"))
+                    using (var reader = getReader("Foo\r\n1\r\n2\r\n3\r\n4"))
                     using (var csv = config.CreateReader(reader, ctx))
                     {
                         ctx.Num = 1;
@@ -186,11 +186,11 @@ namespace Cesil.Tests
         {
             var num = 0;
 
-            var i1 = 
+            var i1 =
                 InstanceProvider.ForDelegate(
                     (in ReadContext _, out _ChainedInstanceProviders res) =>
                     {
-                        if(num == 1)
+                        if (num == 1)
                         {
                             res = new _ChainedInstanceProviders(100);
                             return true;
@@ -245,8 +245,8 @@ namespace Cesil.Tests
                 opts,
                 (config, getReader) =>
                 {
-                    using(var reader = getReader("Foo\r\nabc\r\n123\r\neasy\r\nhard"))
-                    using(var csv = config.CreateReader(reader))
+                    using (var reader = getReader("Foo\r\nabc\r\n123\r\neasy\r\nhard"))
+                    using (var csv = config.CreateReader(reader))
                     {
                         num = 1;
                         Assert.True(csv.TryRead(out var r1));
@@ -2854,7 +2854,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                             var read = csv.EnumerateAll();
 
                             var rows = new List<_ReadAll>();
-                            foreach(var r in read)
+                            foreach (var r in read)
                             {
                                 rows.Add(r);
 

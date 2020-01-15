@@ -427,7 +427,7 @@ namespace Cesil
 
             var written = 0;
 
-            if(i.IsFromEnd)
+            if (i.IsFromEnd)
             {
                 if (charSpan.Length == 0) return false;
 
@@ -486,7 +486,7 @@ namespace Cesil
 
             var end = r.End;
 
-            if(end.IsFromEnd)
+            if (end.IsFromEnd)
             {
                 if (charSpan.Length == 0) return false;
 

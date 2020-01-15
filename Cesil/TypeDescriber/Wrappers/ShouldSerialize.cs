@@ -176,16 +176,16 @@ namespace Cesil
                 {
                     takesContext = false;
                 }
-                else if(args.Length == 1)
+                else if (args.Length == 1)
                 {
                     var p0 = args[0].ParameterType.GetTypeInfo();
-                    if(!p0.IsByRef)
+                    if (!p0.IsByRef)
                     {
                         return Throw.ArgumentException<ShouldSerialize>($"If an instance method takes a parameter it must be a `in WriteContext`, wasn't by ref", nameof(method));
                     }
 
                     var p0Elem = p0.GetElementTypeNonNull();
-                    if(p0Elem != Types.WriteContextType)
+                    if (p0Elem != Types.WriteContextType)
                     {
                         return Throw.ArgumentException<ShouldSerialize>($"If an instance method takes a parameter it must be a `in WriteContext`, wasn't `WriteContext`", nameof(method));
                     }
@@ -224,8 +224,8 @@ namespace Cesil
                         takes = p0;
                         takesContext = false;
                     }
-                } 
-                else if(args.Length == 2)
+                }
+                else if (args.Length == 2)
                 {
                     takes = args[0].ParameterType.GetTypeInfo();
 

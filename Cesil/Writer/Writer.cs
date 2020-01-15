@@ -247,7 +247,7 @@ namespace Cesil
                 {
                     // todo: find a way to test this, presumably with an explicit exception point above?
 
-                    if(Staging.HasValue)
+                    if (Staging.HasValue)
                     {
                         Staging.Value.Dispose();
                         Staging.Clear();

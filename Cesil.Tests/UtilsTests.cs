@@ -176,7 +176,7 @@ namespace Cesil.Tests
 
         private sealed class _Encode_MemoryPool : MemoryPool<char>
         {
-            private sealed class Owner: IMemoryOwner<char>
+            private sealed class Owner : IMemoryOwner<char>
             {
                 public Memory<char> Memory { get; }
 
@@ -196,7 +196,7 @@ namespace Cesil.Tests
             {
                 int size;
 
-                if(minBufferSize == -1)
+                if (minBufferSize == -1)
                 {
                     size = 1;
                 }

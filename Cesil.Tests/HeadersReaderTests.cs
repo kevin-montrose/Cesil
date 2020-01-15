@@ -624,7 +624,7 @@ namespace Cesil.Tests
                         var configForced = config as AsyncCountingAndForcingConfig<_CommentBeforeHeader>;
                         var configUnpin = config as AsyncInstrumentedPinConfig<_CommentBeforeHeader>;
                         var configCancel = config as AsyncCancelControlConfig<_CommentBeforeHeader>;
-                        var cInner = (ConcreteBoundConfiguration<_CommentBeforeHeader>)(configUnpin?.Inner ?? configForced?.Inner ??  configCancel?.Inner ?? config);
+                        var cInner = (ConcreteBoundConfiguration<_CommentBeforeHeader>)(configUnpin?.Inner ?? configForced?.Inner ?? configCancel?.Inner ?? config);
 
                         await using (var str = await getReader("#hello\rfoo\nbar\r\nFoo,Bar"))
                         await using (configUnpin?.CreateAsyncReader(str))

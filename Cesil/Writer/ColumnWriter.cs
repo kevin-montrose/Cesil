@@ -48,7 +48,7 @@ namespace Cesil
             var l2 = Expression.Variable(columnType, "l2");
 
             var getExp = getter.MakeExpression(l1, p2);
-            
+
             var assignToL2 = Expression.Assign(l2, getExp);
             statements.Add(assignToL2);
 

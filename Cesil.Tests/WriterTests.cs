@@ -108,7 +108,7 @@ namespace Cesil.Tests
                 {
                     var ctx = new _ChainedFormatters_Context();
 
-                    using(var writer = getWriter())
+                    using (var writer = getWriter())
                     using (var csv = config.CreateWriter(writer, ctx))
                     {
                         ctx.F = 1;

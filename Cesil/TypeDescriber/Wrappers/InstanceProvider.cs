@@ -86,7 +86,7 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(fallbackProvider, nameof(fallbackProvider));
 
-            if(!ConstructsType.IsAssignableFrom(fallbackProvider.ConstructsType))
+            if (!ConstructsType.IsAssignableFrom(fallbackProvider.ConstructsType))
             {
                 return Throw.ArgumentException<InstanceProvider>($"{fallbackProvider} does not provide a value assignable to {ConstructsType}, and cannot be used as a fallback for this {nameof(InstanceProvider)}", nameof(fallbackProvider));
             }

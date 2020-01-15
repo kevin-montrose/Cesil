@@ -82,7 +82,7 @@ namespace Cesil
                         var resetMtd = Method.Value;
                         if (IsStatic)
                         {
-                            if(RowType.HasValue)
+                            if (RowType.HasValue)
                             {
                                 if (TakesContext)
                                 {
@@ -107,7 +107,7 @@ namespace Cesil
                         }
                         else
                         {
-                            if(TakesContext)
+                            if (TakesContext)
                             {
                                 selfExp = Expression.Call(rowVar, resetMtd, contextVar);
                             }
@@ -417,7 +417,7 @@ namespace Cesil
                 }
 
                 var p0Elem = p0.GetElementTypeNonNull();
-                if(p0Elem != Types.ReadContextType)
+                if (p0Elem != Types.ReadContextType)
                 {
                     return Throw.InvalidOperationException<Reset>($"Delegate of one parameter must take an `in ReadContext`, was not `ReadContext`");
                 }

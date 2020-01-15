@@ -12,7 +12,7 @@ namespace Cesil
         internal const int DEFAULT_BUFFER_SIZE = (PAGE_SIZE_BYTES / sizeof(char)) - OVERHEAD_BYTES;
 
         private static class LegalFlagEnum<T>
-            where T: unmanaged, Enum
+            where T : unmanaged, Enum
         {
             // has all the bits set that are present in 
             public static readonly byte Mask;
@@ -22,10 +22,10 @@ namespace Cesil
             {
                 var values = Enum.GetValues(typeof(T));
                 byte ret = 0;
-                for(var i = 0; i < values.Length; i++)
+                for (var i = 0; i < values.Length; i++)
                 {
                     var o = values.GetValue(i);
-                    if(o == null)
+                    if (o == null)
                     {
                         Throw.Exception<object>("Shouldn't be possible");
                         return;
@@ -45,7 +45,7 @@ namespace Cesil
             var span = mem.Span;
             var len = span.Length;
 
-            while(skip < len)
+            while (skip < len)
             {
                 var c = span[skip];
                 if (!char.IsWhiteSpace(c)) break;
@@ -76,13 +76,13 @@ namespace Cesil
 
             if (skip == start) return mem;
             if (skip == -1) return ReadOnlyMemory<char>.Empty;
-            
+
 
             return mem.Slice(0, skip + 1);
         }
 
         internal static bool IsLegalFlagEnum<T>(T e)
-            where T: unmanaged, Enum
+            where T : unmanaged, Enum
         {
             byte eAsByte;
 
@@ -537,9 +537,9 @@ tryAgain:
 
             int ret;
 
-            switch(config.NeedsEncodeMode)
+            switch (config.NeedsEncodeMode)
             {
-                case NeedsEncodeMode.SeparatorAndLineEndings: ret = FindsNeedsEncodeSingle(subset, options.ValueSeparator);break;
+                case NeedsEncodeMode.SeparatorAndLineEndings: ret = FindsNeedsEncodeSingle(subset, options.ValueSeparator); break;
                 case NeedsEncodeMode.SeparatorLineEndingsComment: ret = FindNeedsEncodeDouble(subset, options.ValueSeparator, options.CommentCharacter!.Value); break;
                 case NeedsEncodeMode.SeparatorLineEndingsEscapeStart: ret = FindNeedsEncodeDouble(subset, options.ValueSeparator, options.EscapedValueStartAndEnd!.Value); break;
                 case NeedsEncodeMode.SeparatorLineEndingsEscapeStartComment: ret = FindNeedsEncodeTriple(subset, options.ValueSeparator, options.EscapedValueStartAndEnd!.Value, options.CommentCharacter!.Value); break;

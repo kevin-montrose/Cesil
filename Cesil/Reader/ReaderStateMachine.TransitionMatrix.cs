@@ -16,7 +16,7 @@ namespace Cesil
 
             Finished_Unescaped_Value,
             Finished_Escaped_Value,
-            
+
             Finished_LastValueUnescaped_Record,
             Finished_LastValueEscaped_Record,
 
@@ -135,11 +135,11 @@ namespace Cesil
             for (var i = 0; i < RuleCacheRowEndingCount; i++)
             {
                 var rowEnding = (RowEnding)i;
-                foreach(var escapeStartEqualsEscape in trueFalse)
+                foreach (var escapeStartEqualsEscape in trueFalse)
                 {
-                    foreach(var readComments in trueFalse)
+                    foreach (var readComments in trueFalse)
                     {
-                        foreach(var trimLeading in trueFalse)
+                        foreach (var trimLeading in trueFalse)
                         {
                             foreach (var trimTrailing in trueFalse)
                             {
@@ -266,8 +266,8 @@ namespace Cesil
         }
 
         private static Span<TransitionRule> GetTransitionRulesSpan(
-            State state, 
-            RowEnding rowEndings, 
+            State state,
+            RowEnding rowEndings,
             bool escapeStartEqualsEscape,
             bool readComments,
             bool skipLeadingWhitespace,
@@ -856,7 +856,7 @@ namespace Cesil
 
             // \t
             TransitionRule whitespaceRule;
-            if(skipTrailingWhitespace)
+            if (skipTrailingWhitespace)
             {
                 whitespaceRule = Record_InEscapedValue_ExpectingEndOfValueOrRecord_Skip_Character;
             }
@@ -1027,7 +1027,7 @@ namespace Cesil
             {
 
                 // EXPLOSION (assuming escape = ")
-                 whitespaceRule = Invalid_Exception_UnexpectedCharacterInEscapeSequence;
+                whitespaceRule = Invalid_Exception_UnexpectedCharacterInEscapeSequence;
             }
             innerRet[(int)CharacterType.Whitespace] = whitespaceRule;
 

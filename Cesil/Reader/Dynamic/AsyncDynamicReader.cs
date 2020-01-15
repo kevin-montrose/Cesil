@@ -374,7 +374,7 @@ namespace Cesil
                     self.Buffer.PushBackFromOutsideBuffer(res.PushBack);
                     self.TryMakeStateMachine();
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     Throw.PoisonAndRethrow<object>(self, e);
                 }
@@ -428,7 +428,7 @@ namespace Cesil
 
                     self.HandleLineEndingsDetectionResult(res);
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     Throw.PoisonAndRethrow<object>(self, e);
                 }

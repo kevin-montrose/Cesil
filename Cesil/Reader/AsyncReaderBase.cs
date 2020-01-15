@@ -1,10 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-
-using static Cesil.DisposableHelper;
 using static Cesil.AwaitHelper;
-using System;
+using static Cesil.DisposableHelper;
 
 namespace Cesil
 {

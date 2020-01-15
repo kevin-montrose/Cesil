@@ -918,7 +918,7 @@ namespace Cesil.Tests
 
                 Assert.StartsWith(shouldStartWith, msg);
 
-                if(msg2 != null)
+                if (msg2 != null)
                 {
                     Assert.StartsWith(shouldStartWith, msg2);
                 }

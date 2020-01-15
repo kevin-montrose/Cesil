@@ -1,17 +1,15 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-
-using static Cesil.DisposableHelper;
 using static Cesil.AwaitHelper;
-using System;
+using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
     // this can only be enumerated once, so implementing both interfaces on a single class
-    internal sealed partial class AsyncEnumerable<T> : 
+    internal sealed partial class AsyncEnumerable<T> :
         IAsyncEnumerable<T>,
-        IAsyncEnumerator<T>, 
+        IAsyncEnumerator<T>,
         ITestableAsyncDisposable
     {
         private readonly IAsyncReader<T> Reader;
@@ -44,7 +42,7 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
-            if(Enumerated)
+            if (Enumerated)
             {
                 return Throw.InvalidOperationException<IAsyncEnumerator<T>>("Cannot enumerate this enumerable multiple times");
             }

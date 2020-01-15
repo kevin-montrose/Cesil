@@ -41,7 +41,7 @@ namespace Cesil
         public static TypeInfo DeclaringTypeNonNull(this ConstructorInfo cons)
         {
             var declNull = cons.DeclaringType;
-            
+
             // technically possible, but fantastically hard to do in C#
             // todo: find a way to test this?
             if (declNull == null)

@@ -22,8 +22,8 @@ namespace Cesil.Tests
                 opts,
                 (config, getReader) =>
                 {
-                    using(var reader = getReader("Hello,World\r\nNope,Yes"))
-                    using(var csv = config.CreateReader(reader))
+                    using (var reader = getReader("Hello,World\r\nNope,Yes"))
+                    using (var csv = config.CreateReader(reader))
                     {
                         var rows = csv.ReadAll();
 
@@ -51,7 +51,7 @@ namespace Cesil.Tests
                 (config, getReader) =>
                 {
                     using (var reader = getReader("Hello,World\r\nFoo,Bar"))
-                    using(var csv = config.CreateReader(reader))
+                    using (var csv = config.CreateReader(reader))
                     {
                         var rows = csv.ReadAll();
 
@@ -215,7 +215,7 @@ namespace Cesil.Tests
             public int Num { get; set; }
         }
 
-        private sealed class _ChainedDynamicRowConverters_TypeDescriber: DefaultTypeDescriber
+        private sealed class _ChainedDynamicRowConverters_TypeDescriber : DefaultTypeDescriber
         {
             private readonly DynamicRowConverter C;
 
@@ -288,7 +288,7 @@ namespace Cesil.Tests
                 (config, getReader) =>
                 {
                     var ctx = new _ChainedDynamicRowConverters_Context();
-                    using(var reader = getReader("Foo\r\nabc\r\ndef\r\nghi\r\n123"))
+                    using (var reader = getReader("Foo\r\nabc\r\ndef\r\nghi\r\n123"))
                     using (var csv = config.CreateReader(reader, ctx))
                     {
                         ctx.Num = 1;
@@ -777,7 +777,7 @@ namespace Cesil.Tests
 
                         var dynRow = row as DynamicRow;
                         var e = new DynamicRowMemberNameEnumerable(dynRow);
-                        
+
                         // generic
                         using (var i = e.GetEnumerator())
                         {
@@ -894,7 +894,7 @@ namespace Cesil.Tests
 
                         var dynRow = row as DynamicRow;
                         System.Collections.IEnumerable e = new DynamicRowMemberNameEnumerable(dynRow);
-                        
+
                         {
                             var i = e.GetEnumerator();
 
@@ -4760,46 +4760,46 @@ loop:
 
             var opts = Options.CreateBuilder(Options.DynamicDefault).WithTypeDescriber(td).ToOptions();
 
-           await RunAsyncDynamicReaderVariants(
-                opts,
-                async (config, getReader) =>
-                {
-                    var ctx = new _ChainedDynamicRowConverters_Context();
-                    await using (var reader = await getReader("Foo\r\nabc\r\ndef\r\nghi\r\n123"))
-                    await using (var csv = config.CreateAsyncReader(reader, ctx))
-                    {
-                        ctx.Num = 1;
-                        var res1 = await csv.TryReadAsync();
-                        Assert.True(res1.HasValue);
-                        var r1 = res1.Value;
-                        _ChainedDynamicRowConverters s1 = r1;
-                        Assert.Equal("abc", s1.Value);
-                        Assert.Equal(1, s1.Number);
+            await RunAsyncDynamicReaderVariants(
+                 opts,
+                 async (config, getReader) =>
+                 {
+                     var ctx = new _ChainedDynamicRowConverters_Context();
+                     await using (var reader = await getReader("Foo\r\nabc\r\ndef\r\nghi\r\n123"))
+                     await using (var csv = config.CreateAsyncReader(reader, ctx))
+                     {
+                         ctx.Num = 1;
+                         var res1 = await csv.TryReadAsync();
+                         Assert.True(res1.HasValue);
+                         var r1 = res1.Value;
+                         _ChainedDynamicRowConverters s1 = r1;
+                         Assert.Equal("abc", s1.Value);
+                         Assert.Equal(1, s1.Number);
 
-                        ctx.Num = 2;
-                        var res2 = await csv.TryReadAsync();
-                        Assert.True(res2.HasValue);
-                        var r2 = res2.Value;
-                        _ChainedDynamicRowConverters s2 = r2;
-                        Assert.Equal("def", s2.Value);
-                        Assert.Equal(2, s2.Number);
+                         ctx.Num = 2;
+                         var res2 = await csv.TryReadAsync();
+                         Assert.True(res2.HasValue);
+                         var r2 = res2.Value;
+                         _ChainedDynamicRowConverters s2 = r2;
+                         Assert.Equal("def", s2.Value);
+                         Assert.Equal(2, s2.Number);
 
-                        ctx.Num = 3;
-                        var res3 = await csv.TryReadAsync();
-                        Assert.True(res3.HasValue);
-                        var r3 = res3.Value;
-                        _ChainedDynamicRowConverters s3 = r3;
-                        Assert.Equal("ghi", s3.Value);
-                        Assert.Equal(3, s3.Number);
+                         ctx.Num = 3;
+                         var res3 = await csv.TryReadAsync();
+                         Assert.True(res3.HasValue);
+                         var r3 = res3.Value;
+                         _ChainedDynamicRowConverters s3 = r3;
+                         Assert.Equal("ghi", s3.Value);
+                         Assert.Equal(3, s3.Number);
 
-                        ctx.Num = 4;
-                        var res4 = await csv.TryReadAsync();
-                        Assert.True(res4.HasValue);
-                        var r4 = res4.Value;
-                        Assert.Throws<InvalidOperationException>(() => { _ChainedDynamicRowConverters s4 = r4; });
-                    }
-                }
-            );
+                         ctx.Num = 4;
+                         var res4 = await csv.TryReadAsync();
+                         Assert.True(res4.HasValue);
+                         var r4 = res4.Value;
+                         Assert.Throws<InvalidOperationException>(() => { _ChainedDynamicRowConverters s4 = r4; });
+                     }
+                 }
+             );
         }
 
         [Fact]

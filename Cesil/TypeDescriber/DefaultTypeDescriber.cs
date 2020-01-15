@@ -960,14 +960,14 @@ namespace Cesil
             }
 
             int width;
-            if(columns is ICollection<ColumnIdentifier> c)
+            if (columns is ICollection<ColumnIdentifier> c)
             {
                 width = c.Count;
             }
             else
             {
                 width = 0;
-                foreach(var _ in columns)
+                foreach (var _ in columns)
                 {
                     width++;
                 }

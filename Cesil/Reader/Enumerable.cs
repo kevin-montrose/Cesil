@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 
 using static Cesil.DisposableHelper;
@@ -7,9 +6,9 @@ using static Cesil.DisposableHelper;
 namespace Cesil
 {
     // this can only be enumerated once, so implementing both interfaces on a single class
-    internal sealed class Enumerable<T> : 
+    internal sealed class Enumerable<T> :
         IEnumerable<T>,
-        IEnumerator<T>, 
+        IEnumerator<T>,
         ITestableDisposable
     {
         private readonly IReader<T> Reader;
@@ -32,7 +31,7 @@ namespace Cesil
 
         object? IEnumerator.Current
         {
-            get 
+            get
             {
                 AssertNotDisposed(this);
 

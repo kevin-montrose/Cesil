@@ -2,7 +2,6 @@
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Text;
@@ -202,7 +201,7 @@ namespace Cesil.Tests
             threads.ForEach(t => t.Start());
 
             await Task.WhenAll(tasks);
-            
+
             static async Task TryAllStringsForEncoding(Encoding encoding)
             {
                 var mostBytesPerChar = encoding.GetMaxByteCount(1);

@@ -219,7 +219,7 @@ namespace Cesil
                                 var getValueMtd = Methods.DynamicRow.GetAtTyped.MakeGenericMethod(setter.Takes);
                                 var getValueCall = Expression.Call(rowVar, getValueMtd, Expression.Constant(setterColumn));
                                 var callSetter = setter.MakeExpression(retVar, getValueCall, contextVar);
-                                
+
                                 statements.Add(callSetter);
                             }
 

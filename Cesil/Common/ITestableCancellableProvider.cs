@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Cesil
+﻿namespace Cesil
 {
     internal interface ITestableCancellableProvider
     {

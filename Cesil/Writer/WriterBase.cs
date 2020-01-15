@@ -162,7 +162,7 @@ namespace Cesil
                 var offendingIx = Math.Min(carriageReturnIx, Math.Min(newLineIx, Math.Min(separatorIx, commentIx)));
 
                 var offendingChar = chars.Slice(offendingIx).First.Span[0];
-                
+
                 Throw.InvalidOperationException<object>($"Tried to write a value contain '{offendingChar}' which requires escaping a value, but no way to escape a value is configured");
                 return;
             }

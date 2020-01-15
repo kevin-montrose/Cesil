@@ -124,7 +124,7 @@ namespace Cesil
                 {
                     Inner.Dispose();
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     Cleanup(this);
 

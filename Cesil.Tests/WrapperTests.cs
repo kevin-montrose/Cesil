@@ -225,7 +225,8 @@ namespace Cesil.Tests
                         if (s == methodSetter)
                         {
                             Assert.Equal("hello", inst.Prop.Value);
-                        } else if (s == methodSetterCtx)
+                        }
+                        else if (s == methodSetterCtx)
                         {
                             Assert.Equal("hello", inst.Prop.Value);
                         }
@@ -1612,7 +1613,8 @@ namespace Cesil.Tests
                 {
                     Assert.Equal(BackingMode.Method, s1.Mode);
                     Assert.False(s1.IsStatic);
-                } else if (s1 == methodSetterCtx)
+                }
+                else if (s1 == methodSetterCtx)
                 {
                     Assert.Equal(BackingMode.Method, s1.Mode);
                     Assert.False(s1.IsStatic);

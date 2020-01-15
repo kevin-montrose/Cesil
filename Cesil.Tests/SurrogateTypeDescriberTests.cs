@@ -20,9 +20,9 @@ namespace Cesil.Tests
 
             var surrogates = new List<SurrogateTypeDescriber>();
 
-            foreach(var a in behaviors)
+            foreach (var a in behaviors)
             {
-                foreach(var b in types)
+                foreach (var b in types)
                 {
                     foreach (var c in describers)
                     {
@@ -39,10 +39,10 @@ namespace Cesil.Tests
                 }
             }
 
-            for(var i = 0; i < surrogates.Count; i++)
+            for (var i = 0; i < surrogates.Count; i++)
             {
                 var s1 = surrogates[i];
-                for(var j = i; j < surrogates.Count; j++)
+                for (var j = i; j < surrogates.Count; j++)
                 {
                     var s2 = surrogates[j];
 
@@ -51,7 +51,7 @@ namespace Cesil.Tests
                     var neq = s1 != s2;
                     var hashEqual = s1.GetHashCode() == s2.GetHashCode();
 
-                    if(i == j)
+                    if (i == j)
                     {
                         Assert.True(eq);
                         Assert.True(eqObj);

@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.Text;
+﻿using System.Text;
 
 namespace Cesil
 {
@@ -11,7 +10,7 @@ namespace Cesil
             Column[] serializeColumns,
             bool[] serializeColumnsNeedEscape,
             Options options
-        ) : 
+        ) :
             base(
                 newCons,
                 deserializeColumns,

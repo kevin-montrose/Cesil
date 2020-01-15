@@ -32,7 +32,7 @@ namespace Cesil
         internal ReaderStateMachine() { }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool IsInEscapedValue(State state) 
+        internal static bool IsInEscapedValue(State state)
         => (((byte)state) & IN_ESCAPED_VALUE_MASK) == IN_ESCAPED_VALUE_MASK;
 
         internal void Initialize(
@@ -161,7 +161,7 @@ namespace Cesil
             {
                 var ret = new System.Text.StringBuilder();
                 ret.AppendLine($"Offset = {TransitionMatrixMemoryOffset}");
-                
+
                 foreach (State? sNull in Enum.GetValues(typeof(State)))
                 {
                     var s = sNull!.Value;

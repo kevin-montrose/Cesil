@@ -41,7 +41,7 @@ namespace Cesil.Tests
             {
                 var e = CesilUtils.EnumerateDynamic(reader);
                 var ix = 0;
-                foreach(var row in e)
+                foreach (var row in e)
                 {
                     switch (ix)
                     {
@@ -250,7 +250,8 @@ namespace Cesil.Tests
         [Fact]
         public void Write()
         {
-            using (var writer = new StringWriter()) {
+            using (var writer = new StringWriter())
+            {
 
                 CesilUtils.Write(new[] { new _Write { Foo = "hello", Bar = "world" } }, writer);
 
@@ -332,7 +333,7 @@ namespace Cesil.Tests
 
         private static async IAsyncEnumerable<T> MakeAsync<T>(IEnumerable<T> rows)
         {
-            foreach(var r in rows)
+            foreach (var r in rows)
             {
                 await Task.Yield();
                 yield return r;
