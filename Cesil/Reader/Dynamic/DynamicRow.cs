@@ -181,7 +181,7 @@ namespace Cesil
         {
             if (!IsDisposed)
             {
-                Throw.InvalidOperationException<object>("DynamicRow not in an uninitializable state");
+                Throw.InvalidOperationException<object>("DynamicRow not in an uninitialized state");
             }
 
             // keep a single one of these around, but initialize it lazily for consistency

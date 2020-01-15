@@ -35,7 +35,7 @@ namespace Cesil
 
         internal ReadOnlySequence<char> Buffer => MakeSequence();
 
-        // we can allocate a whooooole bunch of these in a row when
+        // we can allocate a whole bunch of these in a row when
         //    serializing...
         // so keep one around to optimize the IsSingleSegment case
         private Node? FreeNode;
@@ -226,7 +226,7 @@ namespace Cesil
 
             var headValue = Head.Value;
 
-            // single segement case
+            // single segment case
             if (IsSingleSegment)
             {
                 return new ReadOnlySequence<char>(headValue.Allocation.Slice(0, headValue.BytesUsed));
@@ -234,7 +234,7 @@ namespace Cesil
 
             // multi segment series
             //   we need this mapping because the 
-            //   Node represention isn't "finished"
+            //   Node representation isn't "finished"
             //   and still has extra space floating around
             //   between each node
             var headSeg = new ReadOnlyCharSegment(headValue.Allocation, headValue.BytesUsed);

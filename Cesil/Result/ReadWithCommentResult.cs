@@ -3,7 +3,7 @@
     /// <summary>
     /// Represents the result of an attempted read operation which supports comments.
     /// </summary>
-    [NotEquatable("Value is open, hashcode and equality may not be sensible")]
+    [NotEquatable("Value is open, hash code and equality may not be sensible")]
     public readonly struct ReadWithCommentResult<TRow>
     {
         internal static readonly ReadWithCommentResult<TRow> Empty = new ReadWithCommentResult<TRow>(ReadWithCommentResultType.NoValue);
@@ -18,13 +18,13 @@
         /// <summary>
         /// Convenience method for checking ResultType == HasValue
         /// </summary>
-        [IntentionallyExposedPrimitive("Best way to expose a presense, it's fine")]
+        [IntentionallyExposedPrimitive("Best way to expose a presence, it's fine")]
         public bool HasValue => ResultType == ReadWithCommentResultType.HasValue;
 
         /// <summary>
         /// Convenience method for checking ResultType == HasComment
         /// </summary>
-        [IntentionallyExposedPrimitive("Best way to expose a presense, it's fine")]
+        [IntentionallyExposedPrimitive("Best way to expose a presence, it's fine")]
         public bool HasComment => ResultType == ReadWithCommentResultType.HasComment;
 
         private readonly TRow _Value;

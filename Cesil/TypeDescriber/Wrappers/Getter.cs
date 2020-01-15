@@ -135,7 +135,7 @@ namespace Cesil
 
         internal Expression MakeExpression(Expression rowVar, Expression ctxVar)
         {
-            // todo: there's no particular reason this couldn't be chainable?
+            // todo: there's no particular reason this couldn't be chain-able?
 
             Expression selfExp;
             
@@ -447,7 +447,7 @@ namespace Cesil
         }
 
         /// <summary>
-        /// Returns a hashcode for this Getter.
+        /// Returns a hash code for this Getter.
         /// </summary>
         public override int GetHashCode()
         => HashCode.Combine(nameof(Getter), Mode, Returns, Delegate, Method, Field);
@@ -496,10 +496,10 @@ namespace Cesil
         /// <summary>
         /// Convenience operator, equivalent to calling Getter.ForMethod if non-null.
         /// 
-        /// Returns null if mtd is null.
+        /// Returns null if method is null.
         /// </summary>
-        public static explicit operator Getter?(MethodInfo? mtd)
-        => mtd == null ? null : ForMethod(mtd);
+        public static explicit operator Getter?(MethodInfo? method)
+        => method == null ? null : ForMethod(method);
 
         /// <summary>
         /// Convenience operator, equivalent to calling Getter.ForField if non-null.

@@ -89,7 +89,7 @@ namespace Cesil
         );
 
         /// <summary>
-        /// Create a synchronous writer for the given writer, convering chars to bytes using the given encoding.
+        /// Create a synchronous writer for the given writer, converting chars to bytes using the given encoding.
         /// 
         /// Takes an optional context object which is made available
         ///   during certain operations as a member on WriteContext.
@@ -129,7 +129,7 @@ namespace Cesil
         /// <summary>
         /// Create an asynchronous writer for the given writer.
         /// 
-        /// The provided encoding is used to convert characers into 
+        /// The provided encoding is used to convert characters into 
         ///   bytes.
         /// 
         /// Takes an optional context object which is made available

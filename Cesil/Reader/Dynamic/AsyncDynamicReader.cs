@@ -448,7 +448,7 @@ namespace Cesil
 
             IsDisposed = true;
 
-            // only need to do work if the reader is responsbile for implicitly disposing
+            // only need to do work if the reader is responsible for implicitly disposing
             while (NotifyOnDisposeHead != null)
             {
                 NotifyOnDisposeHead.Dispose();

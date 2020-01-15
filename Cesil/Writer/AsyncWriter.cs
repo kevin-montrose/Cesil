@@ -85,7 +85,7 @@ namespace Cesil
                     await ConfigureCancellableAwait(self, waitFor, cancel);
                     CheckCancellation(self, cancel);
 
-                    // the implict increment at the end of the loop
+                    // the implicit increment at the end of the loop
                     i++;
 
                     var selfColumnsValue = self.Columns.Value;
@@ -312,7 +312,7 @@ namespace Cesil
                 }
             }
 
-            // continue aftering writing a # (or whatever) in the multi-segment case
+            // continue after writing a # (or whatever) in the multi-segment case
             static async ValueTask WriteCommentAsync_ContinueAfterPlaceCharMultiSegmentAsync(AsyncWriter<T> self, ValueTask waitFor, char commentChar, ReadOnlyMemory<char> seg, ReadOnlySequence<char>.Enumerator e, CancellationToken cancel)
             {
                 try

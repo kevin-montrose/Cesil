@@ -68,7 +68,7 @@ namespace Cesil
         /// Which character, if any, is used to indicate the start
         /// of a comment.
         /// 
-        /// Typically not set, but when set often the octothorpe.
+        /// Typically not set, but when set often '#'.
         /// </summary>
         public char? CommentCharacter { get; private set; }
         /// <summary>
@@ -397,7 +397,7 @@ namespace Cesil
         /// Setting it to 0 will disable buffering.
         /// 
         /// All values are treated as hints, it's up to
-        ///   the configured MemoryPool to satsify the request.
+        ///   the configured MemoryPool to satisfy the request.
         /// </summary>
         public OptionsBuilder WithWriteBufferSizeHint([IntentionallyExposedPrimitive("Best way to indicate a size")]int? sizeHint)
         {
@@ -423,7 +423,7 @@ namespace Cesil
         ///   from the configured MemoryPool.
         ///   
         /// All values are treated as hints, it's up to
-        ///   the configured MemoryPool to satsify the request.
+        ///   the configured MemoryPool to satisfy the request.
         /// </summary>
         public OptionsBuilder WithReadBufferSizeHint([IntentionallyExposedPrimitive("Best way to indicate a size")]int sizeHint)
         {

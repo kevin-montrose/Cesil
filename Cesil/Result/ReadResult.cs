@@ -3,7 +3,7 @@
     /// <summary>
     /// Represents the result of an attempted read operation.
     /// </summary>
-    [NotEquatable("Value is open, hashcode and equality may not be sensible")]
+    [NotEquatable("Value is open, hash code and equality may not be sensible")]
     public readonly struct ReadResult<TRow>
     {
         internal static readonly ReadResult<TRow> Empty = new ReadResult<TRow>(false);
@@ -13,7 +13,7 @@
         /// 
         /// If false, there are no more rows to be read.
         /// </summary>
-        [IntentionallyExposedPrimitive("Best way to expose a presense, it's fine")]
+        [IntentionallyExposedPrimitive("Best way to expose a presence, it's fine")]
         public bool HasValue { get; }
 
         private readonly TRow _Value;

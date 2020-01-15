@@ -1005,7 +1005,7 @@ end:
 
                 for (; i < selfColumnNamesValue.Length; i++)
                 {
-                    // by defintion i != 0, so no need for the if
+                    // by definition i != 0, so no need for the if
                     var secondPlaceTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
                     await ConfigureCancellableAwait(self, secondPlaceTask, cancel);
                     CheckCancellation(self, cancel);
@@ -1031,7 +1031,7 @@ end:
 
                 for (; i < selfColumnNamesValue.Length; i++)
                 {
-                    // by defintion i != 0, so no need for the if
+                    // by definition i != 0, so no need for the if
                     var placeTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
                     await ConfigureCancellableAwait(self, placeTask, cancel);
                     CheckCancellation(self, cancel);

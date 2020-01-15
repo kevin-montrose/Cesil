@@ -371,10 +371,10 @@ namespace Cesil
         /// <summary>
         /// Convenience operator, equivalent to calling Reset.ForMethod if non-null.
         /// 
-        /// Returns null if mtd is null.
+        /// Returns null if method is null.
         /// </summary>
-        public static explicit operator Reset?(MethodInfo? mtd)
-        => mtd == null ? null : ForMethod(mtd);
+        public static explicit operator Reset?(MethodInfo? method)
+        => method == null ? null : ForMethod(method);
 
         /// <summary>
         /// Convenience operator, equivalent to calling Reset.ForDelegate if non-null.

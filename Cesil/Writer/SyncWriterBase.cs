@@ -122,7 +122,7 @@ namespace Cesil
         {
             var escapedValueStartAndStop = Configuration.Options.EscapedValueStartAndEnd!.Value;
 
-            // try and blit things in in big chunks
+            // try and blit things in big chunks
             var start = 0;
             var end = Utils.FindChar(charSpan, start, escapedValueStartAndStop);
 
@@ -180,7 +180,7 @@ namespace Cesil
             }
         }
 
-        // returns true if we need to flush stating, sets remaing to what wasn't placed in staging
+        // returns true if we need to flush stating, sets remaining to what wasn't placed in staging
         internal bool PlaceInStaging(ReadOnlySpan<char> c, out ReadOnlySpan<char> remaining)
         {
             var stagingSpan = Staging.Value.Memory.Span;

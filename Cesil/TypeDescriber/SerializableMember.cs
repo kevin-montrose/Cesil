@@ -158,7 +158,7 @@ namespace Cesil
 
             if (!formatter.Takes.IsAssignableFrom(toSerializeType))
             {
-                return Throw.ArgumentException<SerializableMember>($"The first paramater to {nameof(formatter)} must be accept a {toSerializeType}", nameof(formatter));
+                return Throw.ArgumentException<SerializableMember>($"The first parameter to {nameof(formatter)} must be accept a {toSerializeType}", nameof(formatter));
             }
 
             CheckShouldSerializeMethod(shouldSerialize, getter.RowType);

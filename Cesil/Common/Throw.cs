@@ -60,7 +60,7 @@ namespace Cesil
 
             // this preserves stack traces in a way `throw e` doesn't.
             //
-            // in "normal" code we'd just rethrow with a naked `throw`, but
+            // in "normal" code we'd just re-throw with a naked `throw`, but
             //   we don't want any throws outside of this class for other reasons.
             //
             // automating poisoning is a nice bonus

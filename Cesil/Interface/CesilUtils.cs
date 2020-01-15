@@ -14,7 +14,7 @@ namespace Cesil
     /// as using IReader(T), IAsyncReader(T), IWriter(T) and IAsyncWriter(T), but they involve much
     /// less code.
     /// 
-    /// Prefer them when the tradeoff for simplicity at the expense speed and flexibility makes sense.
+    /// Prefer them when the trade off for simplicity at the expense speed and flexibility makes sense.
     /// </summary>
     public static class CesilUtils
     {

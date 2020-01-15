@@ -26,7 +26,7 @@ namespace Cesil
     /// 
     /// This type is unsealed to allow for easy extension of it's behavior.
     /// </summary>
-    [IntentionallyExtensible("Does 'what is expected' so minor tweaks can be handled with inheritence.")]
+    [IntentionallyExtensible("Does 'what is expected' so minor tweaks can be handled with inheritance.")]
     public class DefaultTypeDescriber : ITypeDescriber
     {
         /// <summary>
@@ -926,7 +926,7 @@ namespace Cesil
         /// Returns a DynamicRowConverter that can be used to parse the targetType,
         ///    if a default parser for the type exists or a constructor accepting
         ///    the appropriate number of objects (can be dynamic in source) is on 
-        ///    the the type.
+        ///    the type.
         /// </summary>
         [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         public virtual DynamicRowConverter? GetDynamicRowConverter(in ReadContext context, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)

@@ -50,7 +50,7 @@ namespace Cesil
             return new PinHandle(this);
         }
 
-        // it's actually kind of expensive to pin, so we don't want to unpin and repin before
+        // it's actually kind of expensive to pin, so we don't want to unpin and re-pin before
         //   every await IF the await isn't actually going to do anything
         internal RePin? ReleaseAndRePinForAsync<T>(ValueTask<T> task)
         {

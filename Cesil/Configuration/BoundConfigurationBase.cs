@@ -222,7 +222,7 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(reader, nameof(reader));
 
-            // context is legeally null
+            // context is legally null
 
             var wrapper = new TextReaderAdapter(reader);
 

@@ -88,7 +88,7 @@ namespace Cesil
 
             if(!ConstructsType.IsAssignableFrom(fallbackProvider.ConstructsType))
             {
-                return Throw.ArgumentException<InstanceProvider>($"{fallbackProvider} does not provide a value assignable to {ConstructsType}, and cannot be used as a falllback for this {nameof(InstanceProvider)}", nameof(fallbackProvider));
+                return Throw.ArgumentException<InstanceProvider>($"{fallbackProvider} does not provide a value assignable to {ConstructsType}, and cannot be used as a fallback for this {nameof(InstanceProvider)}", nameof(fallbackProvider));
             }
 
             return this.DoElse(fallbackProvider);
@@ -344,10 +344,10 @@ namespace Cesil
         /// <summary>
         /// Convenience operator, equivalent to calling ForMethod if non-null.
         /// 
-        /// Returns null if mtd is null.
+        /// Returns null if method is null.
         /// </summary>
-        public static explicit operator InstanceProvider?(MethodInfo? mtd)
-        => mtd == null ? null : ForMethod(mtd);
+        public static explicit operator InstanceProvider?(MethodInfo? method)
+        => method == null ? null : ForMethod(method);
 
         /// <summary>
         /// Convenience operator, equivalent to calling ForParameterlessConstructor if non-null.

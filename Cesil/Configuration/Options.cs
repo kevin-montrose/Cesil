@@ -134,7 +134,7 @@ namespace Cesil
         /// Which character, if any, is used to indicate the start
         /// of a comment.
         /// 
-        /// Typically not set, but when set often the octothorpe.
+        /// Typically not set, but when set often '#'.
         /// </summary>
         public char? CommentCharacter { get; }
         /// <summary>

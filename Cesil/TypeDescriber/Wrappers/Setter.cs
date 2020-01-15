@@ -259,7 +259,7 @@ namespace Cesil
                         var p1Elem = p1.GetElementTypeNonNull();
                         if (p1Elem != Types.ReadContextType)
                         {
-                            return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by a static method taking 2 parameters where the second paramter is by ref must have a second parameter of `in ReadContext`, was not `ReadContext`", nameof(method));
+                            return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by a static method taking 2 parameters where the second parameter is by ref must have a second parameter of `in ReadContext`, was not `ReadContext`", nameof(method));
                         }
 
                         onType = null;
@@ -473,10 +473,10 @@ namespace Cesil
         /// <summary>
         /// Convenience operator, equivalent to calling Setter.ForMethod if non-null.
         /// 
-        /// Returns null if mtd is null.
+        /// Returns null if method is null.
         /// </summary>
-        public static explicit operator Setter?(MethodInfo? mtd)
-        => mtd == null ? null : ForMethod(mtd);
+        public static explicit operator Setter?(MethodInfo? method)
+        => method == null ? null : ForMethod(method);
 
         /// <summary>
         /// Convenience operator, equivalent to calling Setter.ForField if non-null.

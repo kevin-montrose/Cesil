@@ -65,7 +65,7 @@ namespace Cesil
             Header_InEscapedValueWithPendingEscape = 0b0001_0011,
             Record_InEscapedValue = 0b0001_0110,
 
-            // belongs to both preceeding and following group
+            // belongs to both preceding and following group
             // so has both 0b0001_0010 & 0b0010_0100 set
             Record_InEscapedValueWithPendingEscape = 0b0011_0110,
 
@@ -118,7 +118,7 @@ namespace Cesil
         internal const int RuleCacheCharacterCount = 10;        // count of CharacterType enum
         internal const int RuleCacheRowEndingCount = 5;         // max VALUE of RowEndings enum + 1
 
-        internal const int RuleCacheConfigCount = RuleCacheRowEndingCount * 2 * 2 * 2 * 2;              // # line endings, escape char == escape start, reading or not reading comments, triming / not trimming leading whitespace, triming / not trimming trailing whitespace
+        internal const int RuleCacheConfigCount = RuleCacheRowEndingCount * 2 * 2 * 2 * 2;              // # line endings, escape char == escape start, reading or not reading comments, trimming / not trimming leading whitespace, trimming / not trimming trailing whitespace
         internal const int RuleCacheConfigSize = RuleCacheStateCount * RuleCacheCharacterCount;
 
         private static readonly TransitionRule[] RuleCache;
@@ -131,7 +131,7 @@ namespace Cesil
 
             RuleCache = new TransitionRule[CACHE_SIZE];
 
-            // init all the transition matrixes
+            // init all the transition matrices
             for (var i = 0; i < RuleCacheRowEndingCount; i++)
             {
                 var rowEnding = (RowEnding)i;
@@ -873,7 +873,7 @@ namespace Cesil
         // moving from Header_InEscapedValue
         private static void InitTransitionMatrix_Header_InEscapedValue(bool escapeStartEqualsEscape, Span<TransitionRule> innerRet)
         {
-            // Looks like (assuming escape is ", sep is ,)
+            // Looks like (assuming escape is ", separator is ,)
             //  - "
             //  - "df
 
@@ -1047,7 +1047,7 @@ namespace Cesil
         // moving from Header_Unescaped_NoValue
         private static void InitTransitionMatrix_Header_Unescaped_NoValue(RowEnding rowEndings, bool escapeStartCharEqualsEscapeChar, Span<TransitionRule> innerRet, bool skipLeadingWhitespace)
         {
-            // Looks like (assuming escape is ", sep is ,)
+            // Looks like (assuming escape is ", separator is ,)
             // - <EMPTY>
 
             if (escapeStartCharEqualsEscapeChar)
@@ -1137,7 +1137,7 @@ namespace Cesil
         // moving from Header_Unescaped_WithValue
         private static void InitTransitionMatrix_Header_Unescaped_WithValue(RowEnding rowEndings, bool escapeStartCharEqualsEscapeChar, Span<TransitionRule> innerRet)
         {
-            // Looks like (assuming escape is ", sep is ,)
+            // Looks like (assuming escape is ", separator is ,)
             // - df
 
             if (escapeStartCharEqualsEscapeChar)
@@ -1418,7 +1418,7 @@ namespace Cesil
         // moving from Record_Unescaped_NoValue
         private static void InitTransitionMatrix_Record_Unescaped_NoValue(RowEnding rowEndings, Span<TransitionRule> innerRet, bool skipLeadingWhitespace)
         {
-            // Looks like (assuming escape is ", sep is ,)
+            // Looks like (assuming escape is ", separator is ,)
             // - <EMPTY>
 
             // \

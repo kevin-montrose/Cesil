@@ -111,7 +111,7 @@ namespace Cesil
 
             if (!Creates.IsAssignableFrom(fallbackParser.Creates))
             {
-                return Throw.ArgumentException<Parser>($"{fallbackParser} does not provide a value assignable to {Creates}, and cannot be used as a falllback for this {nameof(Parser)}", nameof(fallbackParser));
+                return Throw.ArgumentException<Parser>($"{fallbackParser} does not provide a value assignable to {Creates}, and cannot be used as a fallback for this {nameof(Parser)}", nameof(fallbackParser));
             }
 
             return this.DoElse(fallbackParser);
@@ -233,7 +233,7 @@ namespace Cesil
             var parserRetType = method.ReturnType.GetTypeInfo();
             if (parserRetType != Types.BoolType)
             {
-                return Throw.ArgumentException<Parser>($"{nameof(method)} must must return a bool", nameof(method));
+                return Throw.ArgumentException<Parser>($"{nameof(method)} must return a bool", nameof(method));
             }
 
             return new Parser(method, underlying, ImmutableArray<Parser>.Empty);
@@ -438,10 +438,10 @@ namespace Cesil
         /// <summary>
         /// Convenience operator, equivalent to calling Parser.ForMethod if non-null.
         /// 
-        /// Returns null if mtd is null.
+        /// Returns null if method is null.
         /// </summary>
-        public static explicit operator Parser?(MethodInfo? mtd)
-        => mtd == null ? null : ForMethod(mtd);
+        public static explicit operator Parser?(MethodInfo? method)
+        => method == null ? null : ForMethod(method);
 
         /// <summary>
         /// Convenience operator, equivalent to calling Parser.ForConstructor if non-null.
@@ -485,24 +485,24 @@ namespace Cesil
             var p1 = args[0].ParameterType.GetTypeInfo();
             if (p1 != Types.ReadOnlySpanOfCharType)
             {
-                return Throw.InvalidOperationException<Parser>($"The first paramater to the delegate must be a {nameof(ReadOnlySpan<char>)}");
+                return Throw.InvalidOperationException<Parser>($"The first parameter to the delegate must be a {nameof(ReadOnlySpan<char>)}");
             }
 
             var p2 = args[1].ParameterType.GetTypeInfo();
             if (!p2.IsByRef)
             {
-                return Throw.InvalidOperationException<Parser>($"The second paramater to the delegate must be an in {nameof(ReadContext)}, was not by ref");
+                return Throw.InvalidOperationException<Parser>($"The second parameter to the delegate must be an in {nameof(ReadContext)}, was not by ref");
             }
 
             if (p2.GetElementTypeNonNull() != Types.ReadContextType)
             {
-                return Throw.InvalidOperationException<Parser>($"The second paramater to the delegate must be an in {nameof(ReadContext)}");
+                return Throw.InvalidOperationException<Parser>($"The second parameter to the delegate must be an in {nameof(ReadContext)}");
             }
 
             var createsRef = args[2].ParameterType.GetTypeInfo();
             if (!createsRef.IsByRef)
             {
-                return Throw.InvalidOperationException<Parser>($"The third paramater to the delegate must be an out type, was not by ref");
+                return Throw.InvalidOperationException<Parser>($"The third parameter to the delegate must be an out type, was not by ref");
             }
 
             var creates = createsRef.GetElementTypeNonNull();

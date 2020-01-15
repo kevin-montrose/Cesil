@@ -12,7 +12,7 @@ namespace Cesil
         /// <summary>
         /// Returns true if Name is set.
         /// </summary>
-        [IntentionallyExposedPrimitive("Indicating presense, it's fine")]
+        [IntentionallyExposedPrimitive("Indicating presence, it's fine")]
         public bool HasName => _Name.HasValue;
 
         private readonly NonNull<string> _Name;
@@ -45,7 +45,7 @@ namespace Cesil
         /// <summary>
         /// Create a DynamicCellValue to format the given value of the given column.
         /// 
-        /// It's permissable for both name and val to be null.
+        /// It's permissible for both name and val to be null.
         /// </summary>
         public static DynamicCellValue Create(
             [NullableExposed("May be purely positional, in which case it has no name")]

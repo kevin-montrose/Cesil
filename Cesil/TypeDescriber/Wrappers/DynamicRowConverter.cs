@@ -113,7 +113,7 @@ namespace Cesil
 
             if (!TargetType.IsAssignableFrom(fallbackConverter.TargetType))
             {
-                return Throw.ArgumentException<DynamicRowConverter>($"{fallbackConverter} does not produce a value assignable to {TargetType}, and cannot be used as a falllback for this {nameof(DynamicRowConverter)}", nameof(fallbackConverter));
+                return Throw.ArgumentException<DynamicRowConverter>($"{fallbackConverter} does not produce a value assignable to {TargetType}, and cannot be used as a fallback for this {nameof(DynamicRowConverter)}", nameof(fallbackConverter));
             }
 
             return this.DoElse(fallbackConverter);
@@ -445,7 +445,7 @@ namespace Cesil
         /// Create a DynamicRowConverter from the given method.
         /// 
         /// Method must be static, return a bool, take an object (which can be dynamic in source)
-        ///   as it's first parameter, a ReadContext as it's second paramter, and have a third parameter that is an out 
+        ///   as it's first parameter, a ReadContext as it's second parameter, and have a third parameter that is an out 
         ///   for the result value.
         /// </summary>
         public static DynamicRowConverter ForMethod(MethodInfo method)
@@ -730,10 +730,10 @@ namespace Cesil
         /// <summary>
         /// Convenience operator, equivalent to calling DynamicRowConverter.ForMethod if non-null.
         /// 
-        /// Returns null if mtd is null.
+        /// Returns null if method is null.
         /// </summary>
-        public static explicit operator DynamicRowConverter?(MethodInfo? mtd)
-        => mtd == null ? null : ForMethod(mtd);
+        public static explicit operator DynamicRowConverter?(MethodInfo? method)
+        => method == null ? null : ForMethod(method);
 
         /// <summary>
         /// Convenience operator, equivalent to calling DynamicRowConverter.ForConstructorTakingDynamic if non-null.
@@ -783,18 +783,18 @@ namespace Cesil
             var p2 = args[1].ParameterType.GetTypeInfo();
             if (!p2.IsByRef)
             {
-                return Throw.InvalidOperationException<DynamicRowConverter>($"The second paramater to the delegate must be an in {nameof(ReadContext)}, was not by ref");
+                return Throw.InvalidOperationException<DynamicRowConverter>($"The second parameter to the delegate must be an in {nameof(ReadContext)}, was not by ref");
             }
 
             if (p2.GetElementTypeNonNull() != Types.ReadContextType)
             {
-                return Throw.InvalidOperationException<DynamicRowConverter>($"The second paramater to the delegate must be an in {nameof(ReadContext)}");
+                return Throw.InvalidOperationException<DynamicRowConverter>($"The second parameter to the delegate must be an in {nameof(ReadContext)}");
             }
 
             var createsRef = args[2].ParameterType.GetTypeInfo();
             if (!createsRef.IsByRef)
             {
-                return Throw.InvalidOperationException<DynamicRowConverter>($"The third paramater to the delegate must be an out type, was not by ref");
+                return Throw.InvalidOperationException<DynamicRowConverter>($"The third parameter to the delegate must be an out type, was not by ref");
             }
 
             var creates = createsRef.GetElementTypeNonNull();

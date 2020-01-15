@@ -23,7 +23,7 @@ namespace Cesil
         /// <summary>
         /// Whether or not RowNumber is available.
         /// </summary>
-        [IntentionallyExposedPrimitive("Best way to expose a presense, it's fine")]
+        [IntentionallyExposedPrimitive("Best way to expose a presence, it's fine")]
         public bool HasRowNumber
         {
             get
@@ -68,7 +68,7 @@ namespace Cesil
         /// <summary>
         /// Whether or not Column is available.
         /// </summary>
-        [IntentionallyExposedPrimitive("Best way to expose an presense, it's fine")]
+        [IntentionallyExposedPrimitive("Best way to expose an presence, it's fine")]
         public bool HasColumn => Mode == WriteContextMode.WritingColumn;
 
         /// <summary>

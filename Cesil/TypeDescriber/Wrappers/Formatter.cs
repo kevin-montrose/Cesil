@@ -155,7 +155,7 @@ namespace Cesil
 
             if (!fallbackFormatter.Takes.IsAssignableFrom(Takes))
             {
-                return Throw.ArgumentException<Formatter>($"{fallbackFormatter} does not take a value assignable from {Takes}, and cannot be used as a falllback for this {nameof(Formatter)}", nameof(fallbackFormatter));
+                return Throw.ArgumentException<Formatter>($"{fallbackFormatter} does not take a value assignable from {Takes}, and cannot be used as a fallback for this {nameof(Formatter)}", nameof(fallbackFormatter));
             }
 
             return this.DoElse(fallbackFormatter);
@@ -198,17 +198,17 @@ namespace Cesil
             var p2 = args[1].ParameterType.GetTypeInfo();
             if (!p2.IsByRef)
             {
-                return Throw.ArgumentException<Formatter>($"The second paramater to {nameof(method)} must be an in {nameof(WriteContext)}, was not by ref", nameof(method));
+                return Throw.ArgumentException<Formatter>($"The second parameter to {nameof(method)} must be an in {nameof(WriteContext)}, was not by ref", nameof(method));
             }
 
             if (p2.GetElementTypeNonNull() != Types.WriteContextType)
             {
-                return Throw.ArgumentException<Formatter>($"The second paramater to {nameof(method)} must be an in {nameof(WriteContext)}", nameof(method));
+                return Throw.ArgumentException<Formatter>($"The second parameter to {nameof(method)} must be an in {nameof(WriteContext)}", nameof(method));
             }
 
             if (args[2].ParameterType.GetTypeInfo() != Types.IBufferWriterOfCharType)
             {
-                return Throw.ArgumentException<Formatter>($"The third paramater to {nameof(method)} must be a {nameof(IBufferWriter<char>)}", nameof(method));
+                return Throw.ArgumentException<Formatter>($"The third parameter to {nameof(method)} must be a {nameof(IBufferWriter<char>)}", nameof(method));
             }
 
             return new Formatter(takes, method, ImmutableArray<Formatter>.Empty);
@@ -328,7 +328,7 @@ namespace Cesil
         }
 
         /// <summary>
-        /// Returns a hashcode for this Getter.
+        /// Returns a hash code for this Getter.
         /// </summary>
         public override int GetHashCode()
         => HashCode.Combine(nameof(Formatter), Takes, Mode, Delegate, Method, _Fallbacks.Length);
@@ -368,10 +368,10 @@ namespace Cesil
         /// <summary>
         /// Convenience operator, equivalent to calling Formatter.ForMethod if non-null.
         /// 
-        /// Returns null if mtd is null.
+        /// Returns null if method is null.
         /// </summary>
-        public static explicit operator Formatter?(MethodInfo? mtd)
-        => mtd == null ? null : ForMethod(mtd);
+        public static explicit operator Formatter?(MethodInfo? method)
+        => method == null ? null : ForMethod(method);
 
         /// <summary>
         /// Convenience operator, equivalent to calling Formatter.ForDelegate if non-null.
@@ -409,17 +409,17 @@ namespace Cesil
             var p2 = args[1].ParameterType.GetTypeInfo();
             if (!p2.IsByRef)
             {
-                return Throw.InvalidOperationException<Formatter>($"The second paramater to the delegate must be an in {nameof(WriteContext)}, was not by ref");
+                return Throw.InvalidOperationException<Formatter>($"The second parameter to the delegate must be an in {nameof(WriteContext)}, was not by ref");
             }
 
             if (p2.GetElementTypeNonNull() != Types.WriteContextType)
             {
-                return Throw.InvalidOperationException<Formatter>($"The second paramater to the delegate must be an in {nameof(WriteContext)}");
+                return Throw.InvalidOperationException<Formatter>($"The second parameter to the delegate must be an in {nameof(WriteContext)}");
             }
 
             if (args[2].ParameterType.GetTypeInfo() != Types.IBufferWriterOfCharType)
             {
-                return Throw.InvalidOperationException<Formatter>($"The third paramater to the delegate must be a {nameof(IBufferWriter<char>)}");
+                return Throw.InvalidOperationException<Formatter>($"The third parameter to the delegate must be a {nameof(IBufferWriter<char>)}");
             }
 
             var formatterDel = Types.FormatterDelegateType.MakeGenericType(takes);

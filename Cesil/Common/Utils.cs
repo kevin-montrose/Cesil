@@ -553,7 +553,7 @@ tryAgain:
 
         private static unsafe int FindsNeedsEncodeSingle(ReadOnlySpan<char> span, char c1)
         {
-            // allocate and initalize with \r and \n
+            // allocate and initialize with \r and \n
             short* probMap = stackalloc short[PROBABILITY_MAP_SIZE];
             probMap[0] = 9216;
             AddCharacterToProbMap(probMap, c1);
@@ -586,7 +586,7 @@ tryAgain:
 
         private static unsafe int FindNeedsEncodeDouble(ReadOnlySpan<char> span, char c1, char c2)
         {
-            // allocate and initalize with \r and \n
+            // allocate and initialize with \r and \n
             short* probMap = stackalloc short[PROBABILITY_MAP_SIZE];
             probMap[0] = 9216;
             AddCharacterToProbMap(probMap, c1);
@@ -620,7 +620,7 @@ tryAgain:
 
         private static unsafe int FindNeedsEncodeTriple(ReadOnlySpan<char> span, char c1, char c2, char c3)
         {
-            // allocate and initalize with \r and \n
+            // allocate and initialize with \r and \n
             short* probMap = stackalloc short[PROBABILITY_MAP_SIZE];
             probMap[0] = 9216;
             AddCharacterToProbMap(probMap, c1);

@@ -171,7 +171,7 @@ namespace Cesil
 
             if (!valueType.IsAssignableFrom(parser.Creates))
             {
-                return Throw.ArgumentException<DeserializableMember>($"Provided {nameof(Parser)} creates a {parser.Creates}, which cannot be passed to {setter} which expectes a {valueType}", nameof(setter));
+                return Throw.ArgumentException<DeserializableMember>($"Provided {nameof(Parser)} creates a {parser.Creates}, which cannot be passed to {setter} which expects a {valueType}", nameof(setter));
             }
 
             if (reset != null && reset.RowType.HasValue)

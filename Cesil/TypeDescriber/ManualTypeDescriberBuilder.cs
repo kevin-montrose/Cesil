@@ -162,7 +162,7 @@ namespace Cesil
 
         /// <summary>
         /// Sets the ITypeDescriber to fallback to, provided that FallbackBehavior allows falling back, 
-        ///   when a method has no regisrations to return.
+        ///   when a method has no registrations to return.
         /// </summary>
         public ManualTypeDescriberBuilder WithFallbackTypeDescriber(ITypeDescriber typeDescriber)
         {

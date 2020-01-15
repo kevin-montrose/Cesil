@@ -222,7 +222,7 @@ namespace Cesil
 
             return default;
 
-            // Finish TryPlaceInStagingSync asynchrounsly
+            // Finish TryPlaceInStagingSync asynchronously
             static async ValueTask PlaceInStagingAsync_FinishAsync(AsyncWriterBase<T> self, ValueTask waitFor, ReadOnlyMemory<char> remainingWork, CancellationToken cancel)
             {
                 await ConfigureCancellableAwait(self, waitFor, cancel);
@@ -363,7 +363,7 @@ namespace Cesil
                 return WriteEncodedAsync(head, cancel);
             }
 
-            // waits for the flush task, then continues placing everythign into staging
+            // waits for the flush task, then continues placing everything into staging
             static async ValueTask WriteMultiSegmentAsync_CompleteAsync(AsyncWriterBase<T> self, ValueTask waitFor, ReadOnlySequence<char>.Enumerator e, CancellationToken cancel)
             {
                 await ConfigureCancellableAwait(self, waitFor, cancel);
@@ -455,7 +455,7 @@ namespace Cesil
             var escapedValueStartAndStop = Configuration.Options.EscapedValueStartAndEnd!.Value;
 
 
-            // try and blit things in in big chunks
+            // try and blit things in big chunks
             var start = 0;
             var end = Utils.FindChar(charMem, start, escapedValueStartAndStop);
 
@@ -568,7 +568,7 @@ namespace Cesil
             }
         }
 
-        // returns true if we need to flush stating, sets remaing to what wasn't placed in staging
+        // returns true if we need to flush stating, sets remaining to what wasn't placed in staging
         internal bool PlaceInStaging(ReadOnlyMemory<char> c, out ReadOnlyMemory<char> remaining)
         {
             var stagingMem = Staging.Value.Memory;
