@@ -131,7 +131,7 @@
         </member>
         <member name="M:Cesil.IBoundConfiguration`1.CreateWriter(System.Buffers.IBufferWriter{System.Byte},System.Text.Encoding,System.Object)">
             <summary>
-            Create a synchronous writer for the given writer, convering chars to bytes using the given encoding.
+            Create a synchronous writer for the given writer, converting chars to bytes using the given encoding.
             
             Takes an optional context object which is made available
               during certain operations as a member on WriteContext.
@@ -157,7 +157,7 @@
             <summary>
             Create an asynchronous writer for the given writer.
             
-            The provided encoding is used to convert characers into 
+            The provided encoding is used to convert characters into 
               bytes.
             
             Takes an optional context object which is made available
@@ -280,7 +280,7 @@
             Which character, if any, is used to indicate the start
             of a comment.
             
-            Typically not set, but when set often the octothorpe.
+            Typically not set, but when set often '#'.
             </summary>
         </member>
         <member name="P:Cesil.Options.WriteBufferSizeHint">
@@ -423,7 +423,7 @@
             Which character, if any, is used to indicate the start
             of a comment.
             
-            Typically not set, but when set often the octothorpe.
+            Typically not set, but when set often '#'.
             </summary>
         </member>
         <member name="P:Cesil.OptionsBuilder.WriteBufferSizeHint">
@@ -538,7 +538,7 @@
             Setting it to 0 will disable buffering.
             
             All values are treated as hints, it's up to
-              the configured MemoryPool to satsify the request.
+              the configured MemoryPool to satisfy the request.
             </summary>
         </member>
         <member name="M:Cesil.OptionsBuilder.WithReadBufferSizeHint(System.Int32)">
@@ -549,7 +549,7 @@
               from the configured MemoryPool.
               
             All values are treated as hints, it's up to
-              the configured MemoryPool to satsify the request.
+              the configured MemoryPool to satisfy the request.
             </summary>
         </member>
         <member name="M:Cesil.OptionsBuilder.WithDynamicRowDisposal(Cesil.DynamicRowDisposal)">
@@ -1022,7 +1022,7 @@
             as using IReader(T), IAsyncReader(T), IWriter(T) and IAsyncWriter(T), but they involve much
             less code.
             
-            Prefer them when the tradeoff for simplicity at the expense speed and flexibility makes sense.
+            Prefer them when the trade off for simplicity at the expense speed and flexibility makes sense.
             </summary>
         </member>
         <member name="M:Cesil.CesilUtils.Enumerate``1(System.IO.TextReader,Cesil.Options,System.Object)">
@@ -1895,7 +1895,7 @@
             Returns a DynamicRowConverter that can be used to parse the targetType,
                if a default parser for the type exists or a constructor accepting
                the appropriate number of objects (can be dynamic in source) is on 
-               the the type.
+               the type.
             </summary>
         </member>
         <member name="M:Cesil.DefaultTypeDescriber.ToString">
@@ -2033,7 +2033,7 @@
             <summary>
             Create a DynamicCellValue to format the given value of the given column.
             
-            It's permissable for both name and val to be null.
+            It's permissible for both name and val to be null.
             </summary>
         </member>
         <member name="M:Cesil.DynamicCellValue.Equals(System.Object)">
@@ -2270,7 +2270,7 @@
         <member name="M:Cesil.ManualTypeDescriberBuilder.WithFallbackTypeDescriber(Cesil.ITypeDescriber)">
             <summary>
             Sets the ITypeDescriber to fallback to, provided that FallbackBehavior allows falling back, 
-              when a method has no regisrations to return.
+              when a method has no registrations to return.
             </summary>
         </member>
         <member name="M:Cesil.ManualTypeDescriberBuilder.WithInstanceProvider(Cesil.InstanceProvider)">
@@ -2982,7 +2982,7 @@
             Create a DynamicRowConverter from the given method.
             
             Method must be static, return a bool, take an object (which can be dynamic in source)
-              as it's first parameter, a ReadContext as it's second paramter, and have a third parameter that is an out 
+              as it's first parameter, a ReadContext as it's second parameter, and have a third parameter that is an out 
               for the result value.
             </summary>
         </member>
@@ -3022,7 +3022,7 @@
             <summary>
             Convenience operator, equivalent to calling DynamicRowConverter.ForMethod if non-null.
             
-            Returns null if mtd is null.
+            Returns null if method is null.
             </summary>
         </member>
         <member name="M:Cesil.DynamicRowConverter.op_Explicit(System.Reflection.ConstructorInfo)~Cesil.DynamicRowConverter">
@@ -3109,7 +3109,7 @@
         </member>
         <member name="M:Cesil.Formatter.GetHashCode">
             <summary>
-            Returns a hashcode for this Getter.
+            Returns a hash code for this Getter.
             </summary>
         </member>
         <member name="M:Cesil.Formatter.ToString">
@@ -3123,7 +3123,7 @@
             <summary>
             Convenience operator, equivalent to calling Formatter.ForMethod if non-null.
             
-            Returns null if mtd is null.
+            Returns null if method is null.
             </summary>
         </member>
         <member name="M:Cesil.Formatter.op_Explicit(System.Delegate)~Cesil.Formatter">
@@ -3208,7 +3208,7 @@
         </member>
         <member name="M:Cesil.Getter.GetHashCode">
             <summary>
-            Returns a hashcode for this Getter.
+            Returns a hash code for this Getter.
             </summary>
         </member>
         <member name="M:Cesil.Getter.ToString">
@@ -3222,7 +3222,7 @@
             <summary>
             Convenience operator, equivalent to calling Getter.ForMethod if non-null.
             
-            Returns null if mtd is null.
+            Returns null if method is null.
             </summary>
         </member>
         <member name="M:Cesil.Getter.op_Explicit(System.Reflection.FieldInfo)~Cesil.Getter">
@@ -3325,7 +3325,7 @@
             <summary>
             Convenience operator, equivalent to calling ForMethod if non-null.
             
-            Returns null if mtd is null.
+            Returns null if method is null.
             </summary>
         </member>
         <member name="M:Cesil.InstanceProvider.op_Explicit(System.Reflection.ConstructorInfo)~Cesil.InstanceProvider">
@@ -3441,7 +3441,7 @@
             <summary>
             Convenience operator, equivalent to calling Parser.ForMethod if non-null.
             
-            Returns null if mtd is null.
+            Returns null if method is null.
             </summary>
         </member>
         <member name="M:Cesil.Parser.op_Explicit(System.Reflection.ConstructorInfo)~Cesil.Parser">
@@ -3530,7 +3530,7 @@
             <summary>
             Convenience operator, equivalent to calling Reset.ForMethod if non-null.
             
-            Returns null if mtd is null.
+            Returns null if method is null.
             </summary>
         </member>
         <member name="M:Cesil.Reset.op_Explicit(System.Delegate)~Cesil.Reset">
@@ -3634,7 +3634,7 @@
             <summary>
             Convenience operator, equivalent to calling Setter.ForMethod if non-null.
             
-            Returns null if mtd is null.
+            Returns null if method is null.
             </summary>
         </member>
         <member name="M:Cesil.Setter.op_Explicit(System.Reflection.FieldInfo)~Cesil.Setter">
@@ -3730,7 +3730,7 @@
             <summary>
             Convenience operator, equivalent to calling ShouldSerialize.ForMethod if non-null.
             
-            Returns null if mtd is null.
+            Returns null if method is null.
             </summary>
         </member>
         <member name="M:Cesil.ShouldSerialize.op_Explicit(System.Delegate)~Cesil.ShouldSerialize">

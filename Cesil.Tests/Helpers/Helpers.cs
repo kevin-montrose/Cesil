@@ -377,6 +377,7 @@ namespace Cesil.Tests
                 }
             }
 
+#if DEBUG
             static async Task RunForcedCancelVariantsWithBaseConfig(
                 Func<Options, BoundConfigurationBase<T>> bind,
                 Func<string, ValueTask<IAsyncReaderAdapter>> readerMaker,
@@ -507,6 +508,7 @@ namespace Cesil.Tests
                     }
                 }
             }
+#endif
 
             static async Task RunCheckPins(
                     Func<Options, BoundConfigurationBase<T>> bind,
@@ -624,6 +626,7 @@ namespace Cesil.Tests
                 }
             }
 
+#if DEBUG
             static async Task RunForcedAsyncVariantsWithBaseConfig(
                 Func<Options, BoundConfigurationBase<T>> bind,
                 Func<string, ValueTask<IAsyncReaderAdapter>> readerMaker,
@@ -687,6 +690,7 @@ namespace Cesil.Tests
                     }
                 }
             }
+#endif
         }
 
         internal static void RunSyncWriterVariants<T>(
@@ -979,6 +983,7 @@ namespace Cesil.Tests
                 }
             }
 
+#if DEBUG
             static async Task RunForcedCancelVariantsWithBaseConfig(
                 Func<Options, BoundConfigurationBase<T>> bind,
                 Func<(IAsyncWriterAdapter Adapter, Func<ValueTask<string>> Getter)> maker,
@@ -1125,6 +1130,7 @@ namespace Cesil.Tests
                     }
                 }
             }
+#endif
 
             static async Task RunOnce(
                 Func<Options, BoundConfigurationBase<T>> bind,
@@ -1186,6 +1192,7 @@ namespace Cesil.Tests
                 }
             }
 
+#if DEBUG
             static async Task RunForcedAsyncVariantsWithBaseConfig(
                 Func<Options, BoundConfigurationBase<T>> bind,
                 Func<(IAsyncWriterAdapter Adapter, Func<ValueTask<string>> Getter)> maker,
@@ -1256,6 +1263,7 @@ namespace Cesil.Tests
                     }
                 }
             }
+#endif
         }
     }
 }
