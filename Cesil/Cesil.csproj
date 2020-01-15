@@ -5,10 +5,10 @@
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <LangVersion>preview</LangVersion>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Authors>Kevin Montrose</Authors>
     <Description>Modern CSV (De)Serializer</Description>
-    <Copyright>2019</Copyright>
+    <Copyright>2020</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/kevin-montrose/Cesil</PackageProjectUrl>
     <RepositoryUrl>https://github.com/kevin-montrose/Cesil</RepositoryUrl>
