@@ -5,6 +5,48 @@ namespace Cesil
 {
     internal static class ReflectionExtensionMethods
     {
+        public static bool IsReadContextByRef(this ParameterInfo p, out string error)
+        {
+            var pType = p.ParameterType.GetTypeInfo();
+
+            if (!pType.IsByRef)
+            {
+                error = "was not by ref";
+                return false;
+            }
+
+            var pElem = pType.GetElementTypeNonNull();
+            if (pElem != Types.ReadContextType)
+            {
+                error = $"was not {nameof(ReadContext)}";
+                return false;
+            }
+
+            error = "";
+            return true;
+        }
+
+        public static bool IsWriteContextByRef(this ParameterInfo p, out string error)
+        {
+            var pType = p.ParameterType.GetTypeInfo();
+
+            if (!pType.IsByRef)
+            {
+                error = "was not by ref";
+                return false;
+            }
+
+            var pElem = pType.GetElementTypeNonNull();
+            if (pElem != Types.WriteContextType)
+            {
+                error = $"was not {nameof(WriteContext)}";
+                return false;
+            }
+
+            error = "";
+            return true;
+        }
+
         public static ConstructorInfo GetConstructorNonNull(this TypeInfo type, BindingFlags bindingAttr, Binder? binder, TypeInfo[] types, ParameterModifier[]? modifiers)
         {
             var consNull = type.GetConstructor(bindingAttr, binder, types, modifiers);

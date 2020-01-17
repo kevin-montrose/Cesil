@@ -274,7 +274,7 @@ namespace Cesil
                         var p0Elem = p0.GetElementTypeNonNull();
                         if (p0Elem != Types.WriteContextType)
                         {
-                            return Throw.ArgumentException<Getter>($"If the first parameter to a {nameof(Getter)} method is by ref, it must be an `in WriteContext`", nameof(method));
+                            return Throw.ArgumentException<Getter>($"If the first parameter to a {nameof(Getter)} method is by ref, it must be an `in {nameof(WriteContext)}`", nameof(method));
                         }
 
                         rowType = null;
@@ -289,22 +289,15 @@ namespace Cesil
                 else if (getterParams.Length == 2)
                 {
                     var p0 = getterParams[0].ParameterType.GetTypeInfo();
-                    var p1 = getterParams[1].ParameterType.GetTypeInfo();
 
                     if (p0.IsByRef)
                     {
                         return Throw.ArgumentException<Getter>($"If the first parameter to a static {nameof(Getter)} method with two parameters cannot be by ref", nameof(method));
                     }
 
-                    if (!p1.IsByRef)
+                    if (!getterParams[1].IsWriteContextByRef(out var msg))
                     {
-                        return Throw.ArgumentException<Getter>($"If the second parameter to a static {nameof(Getter)} method with two parameters must be `in WriteContext`, was not by ref", nameof(method));
-                    }
-
-                    var p1Elem = p1.GetElementTypeNonNull();
-                    if (p1Elem != Types.WriteContextType)
-                    {
-                        return Throw.ArgumentException<Getter>($"If the second parameter to a static {nameof(Getter)} method with two parameters must be `in WriteContext`, was not `WriteContext`", nameof(method));
+                        return Throw.ArgumentException<Getter>($"If the second parameter to a static {nameof(Getter)} method with two parameters must be `in {nameof(WriteContext)}`; {msg}", nameof(method));
                     }
 
                     rowType = p0;
@@ -325,17 +318,9 @@ namespace Cesil
                 }
                 else if (getterParams.Length == 1)
                 {
-                    var p0 = getterParams[0].ParameterType.GetTypeInfo();
-
-                    if (!p0.IsByRef)
+                    if (!getterParams[0].IsWriteContextByRef(out var msg))
                     {
-                        return Throw.ArgumentException<Getter>($"If the first parameter to an instance {nameof(Getter)} method with one parameter must be `in WriteContext`, was not by ref", nameof(method));
-                    }
-
-                    var p0Elem = p0.GetElementTypeNonNull();
-                    if (p0Elem != Types.WriteContextType)
-                    {
-                        return Throw.ArgumentException<Getter>($"If the first parameter to an instance {nameof(Getter)} method with one parameter must be `in WriteContext`, was not `WriteContext`", nameof(method));
+                        return Throw.ArgumentException<Getter>($"If the first parameter to an instance {nameof(Getter)} method with one parameter must be `in {nameof(WriteContext)}`; {msg}", nameof(method));
                     }
 
                     takesContext = true;
@@ -550,17 +535,10 @@ namespace Cesil
             if (args.Length == 2)
             {
                 var takes = args[0].ParameterType.GetTypeInfo();
-                var ctx = args[1].ParameterType.GetTypeInfo();
 
-                if (!ctx.IsByRef)
+                if (!args[1].IsWriteContextByRef(out var msg))
                 {
-                    return Throw.InvalidOperationException<Getter>($"Delegate's second parameter must be a `in WriteContext`, was not by ref");
-                }
-
-                var ctxElem = ctx.GetElementTypeNonNull();
-                if (ctxElem != Types.WriteContextType)
-                {
-                    return Throw.InvalidOperationException<Getter>($"Delegate's second parameter must be a `in WriteContext`, was not `WriteContext`");
+                    return Throw.InvalidOperationException<Getter>($"Delegate's second parameter must be a `in {nameof(WriteContext)}`; {msg}");
                 }
 
                 var formatterDel = Types.GetterDelegateType.MakeGenericType(takes, ret);
@@ -572,17 +550,9 @@ namespace Cesil
             }
             else if (args.Length == 1)
             {
-                var ctx = args[0].ParameterType.GetTypeInfo();
-
-                if (!ctx.IsByRef)
+                if (!args[0].IsWriteContextByRef(out var msg))
                 {
-                    return Throw.InvalidOperationException<Getter>($"Delegate's first parameter must be a `in WriteContext`, was not by ref");
-                }
-
-                var ctxElem = ctx.GetElementTypeNonNull();
-                if (ctxElem != Types.WriteContextType)
-                {
-                    return Throw.InvalidOperationException<Getter>($"Delegate's first parameter must be a `in WriteContext`, was not `WriteContext`");
+                    return Throw.InvalidOperationException<Getter>($"Delegate's first parameter must be a `in {nameof(WriteContext)}`; {msg}");
                 }
 
                 var formatterDel = Types.StaticGetterDelegateType.MakeGenericType(ret);

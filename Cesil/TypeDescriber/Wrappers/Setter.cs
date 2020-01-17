@@ -259,7 +259,7 @@ namespace Cesil
                         var p1Elem = p1.GetElementTypeNonNull();
                         if (p1Elem != Types.ReadContextType)
                         {
-                            return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by a static method taking 2 parameters where the second parameter is by ref must have a second parameter of `in ReadContext`, was not `ReadContext`", nameof(method));
+                            return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by a static method taking 2 parameters where the second parameter is by ref must have a second parameter of `in {nameof(ReadContext)}`, was not `{nameof(ReadContext)}`", nameof(method));
                         }
 
                         onType = null;
@@ -273,14 +273,9 @@ namespace Cesil
                     takesType = args[1].ParameterType.GetTypeInfo();
 
                     var p2 = args[2].ParameterType.GetTypeInfo();
-                    if (!p2.IsByRef)
+                    if (!args[2].IsReadContextByRef(out var msg))
                     {
-                        return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by an static method taking 3 parameters must have a third parameter of `in ReadContext`, was not by ref", nameof(method));
-                    }
-                    var p2Elem = p2.GetElementTypeNonNull();
-                    if (p2Elem != Types.ReadContextType)
-                    {
-                        return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by an static method taking 3 parameters must have a third parameter of `in ReadContext`, was not `ReadContext`", nameof(method));
+                        return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by an static method taking 3 parameters must have a third parameter of `in {nameof(ReadContext)}`; {msg}", nameof(method));
                     }
 
                     takesContext = true;
@@ -303,15 +298,9 @@ namespace Cesil
                 {
                     takesType = args[0].ParameterType.GetTypeInfo();
 
-                    var p1 = args[1].ParameterType.GetTypeInfo();
-                    if (!p1.IsByRef)
+                    if (!args[1].IsReadContextByRef(out var msg))
                     {
-                        return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by an instance method taking 2 parameters must have a second parameter of `in ReadContext`, was not by ref", nameof(method));
-                    }
-                    var p1Elem = p1.GetElementTypeNonNull();
-                    if (p1Elem != Types.ReadContextType)
-                    {
-                        return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by an instance method taking 2 parameters must have a second parameter of `in ReadContext`, was not `ReadContext`", nameof(method));
+                        return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by an instance method taking 2 parameters must have a second parameter of `in {nameof(ReadContext)}`; {msg}", nameof(method));
                     }
 
                     takesContext = true;
@@ -529,16 +518,10 @@ namespace Cesil
             {
                 var rowType = ps[0].ParameterType.GetTypeInfo();
                 var takesType = ps[1].ParameterType.GetTypeInfo();
-                var ctxType = ps[2].ParameterType.GetTypeInfo();
 
-                if (!ctxType.IsByRef)
+                if (!ps[2].IsReadContextByRef(out var msg))
                 {
-                    return Throw.InvalidOperationException<Setter>("Delegate taking 3 parameters must have a third parameter of `in ReadContext`, wasn't by ref");
-                }
-
-                if (ctxType.GetElementTypeNonNull() != Types.ReadContextType)
-                {
-                    return Throw.InvalidOperationException<Setter>("Delegate taking 3 parameters must have a third parameter of `in ReadContext`, wasn't `ReadContext`");
+                    return Throw.InvalidOperationException<Setter>($"Delegate taking 3 parameters must have a third parameter of `in {nameof(ReadContext)}`; {msg}");
                 }
 
                 var setterDelType = Types.SetterDelegateType.MakeGenericType(rowType, takesType);
@@ -550,16 +533,10 @@ namespace Cesil
             else if (ps.Length == 2)
             {
                 var takesType = ps[0].ParameterType.GetTypeInfo();
-                var ctxType = ps[1].ParameterType.GetTypeInfo();
 
-                if (!ctxType.IsByRef)
+                if (!ps[1].IsReadContextByRef(out var msg))
                 {
-                    return Throw.InvalidOperationException<Setter>("Delegate taking 2 parameters must have a second parameter of `in ReadContext`, wasn't by ref");
-                }
-
-                if (ctxType.GetElementTypeNonNull() != Types.ReadContextType)
-                {
-                    return Throw.InvalidOperationException<Setter>("Delegate taking 2 parameters must have a second parameter of `in ReadContext`, wasn't `ReadContext`");
+                    return Throw.InvalidOperationException<Setter>($"Delegate taking 2 parameters must have a second parameter of `in {nameof(ReadContext)}`; {msg}");
                 }
 
                 var setterDelType = Types.StaticSetterDelegateType.MakeGenericType(takesType);

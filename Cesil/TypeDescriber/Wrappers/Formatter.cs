@@ -195,15 +195,9 @@ namespace Cesil
 
             var takes = args[0].ParameterType.GetTypeInfo();
 
-            var p2 = args[1].ParameterType.GetTypeInfo();
-            if (!p2.IsByRef)
+            if (!args[1].IsWriteContextByRef(out var msg))
             {
-                return Throw.ArgumentException<Formatter>($"The second parameter to {nameof(method)} must be an in {nameof(WriteContext)}, was not by ref", nameof(method));
-            }
-
-            if (p2.GetElementTypeNonNull() != Types.WriteContextType)
-            {
-                return Throw.ArgumentException<Formatter>($"The second parameter to {nameof(method)} must be an in {nameof(WriteContext)}", nameof(method));
+                return Throw.ArgumentException<Formatter>($"The second parameter to {nameof(method)} must be an `in {nameof(WriteContext)}`; {msg}", nameof(method));
             }
 
             if (args[2].ParameterType.GetTypeInfo() != Types.IBufferWriterOfCharType)
@@ -406,15 +400,9 @@ namespace Cesil
 
             var takes = args[0].ParameterType.GetTypeInfo();
 
-            var p2 = args[1].ParameterType.GetTypeInfo();
-            if (!p2.IsByRef)
+            if (!args[1].IsWriteContextByRef(out var msg))
             {
-                return Throw.InvalidOperationException<Formatter>($"The second parameter to the delegate must be an in {nameof(WriteContext)}, was not by ref");
-            }
-
-            if (p2.GetElementTypeNonNull() != Types.WriteContextType)
-            {
-                return Throw.InvalidOperationException<Formatter>($"The second parameter to the delegate must be an in {nameof(WriteContext)}");
+                return Throw.InvalidOperationException<Formatter>($"The second parameter to the delegate must be an `in {nameof(WriteContext)}`; {msg}");
             }
 
             if (args[2].ParameterType.GetTypeInfo() != Types.IBufferWriterOfCharType)

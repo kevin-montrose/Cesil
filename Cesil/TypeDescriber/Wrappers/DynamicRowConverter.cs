@@ -474,16 +474,9 @@ namespace Cesil
                 return Throw.ArgumentException<DynamicRowConverter>($"Method {method}'s first parameter must be an object", nameof(method));
             }
 
-            var p2 = ps[1].ParameterType.GetTypeInfo();
-            if (!p2.IsByRef)
+            if (!ps[1].IsReadContextByRef(out string? msg))
             {
-                return Throw.ArgumentException<DynamicRowConverter>($"Method {method}'s second parameter must be an in {nameof(ReadContext)}, was not passed by reference", nameof(method));
-            }
-
-            var p2Elem = p2.GetElementTypeNonNull();
-            if (p2Elem != Types.ReadContextType)
-            {
-                return Throw.ArgumentException<DynamicRowConverter>($"Method {method}'s second parameter must be a {nameof(ReadContext)}", nameof(method));
+                return Throw.ArgumentException<DynamicRowConverter>($"Method {method}'s second parameter must be an `in {nameof(ReadContext)}`; {msg}", nameof(method));
             }
 
             var p3 = ps[2].ParameterType.GetTypeInfo();
@@ -780,15 +773,9 @@ namespace Cesil
                 return Throw.InvalidOperationException<DynamicRowConverter>($"The first parameter to the delegate must be an object (can be dynamic in source)");
             }
 
-            var p2 = args[1].ParameterType.GetTypeInfo();
-            if (!p2.IsByRef)
+            if (!args[1].IsReadContextByRef(out var msg))
             {
-                return Throw.InvalidOperationException<DynamicRowConverter>($"The second parameter to the delegate must be an in {nameof(ReadContext)}, was not by ref");
-            }
-
-            if (p2.GetElementTypeNonNull() != Types.ReadContextType)
-            {
-                return Throw.InvalidOperationException<DynamicRowConverter>($"The second parameter to the delegate must be an in {nameof(ReadContext)}");
+                return Throw.InvalidOperationException<DynamicRowConverter>($"The second parameter to the delegate must be an `in {nameof(ReadContext)}`; {msg}");
             }
 
             var createsRef = args[2].ParameterType.GetTypeInfo();

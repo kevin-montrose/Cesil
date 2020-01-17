@@ -178,16 +178,9 @@ namespace Cesil
                 }
                 else if (args.Length == 1)
                 {
-                    var p0 = args[0].ParameterType.GetTypeInfo();
-                    if (!p0.IsByRef)
+                    if (!args[0].IsWriteContextByRef(out var msg))
                     {
-                        return Throw.ArgumentException<ShouldSerialize>($"If an instance method takes a parameter it must be a `in WriteContext`, wasn't by ref", nameof(method));
-                    }
-
-                    var p0Elem = p0.GetElementTypeNonNull();
-                    if (p0Elem != Types.WriteContextType)
-                    {
-                        return Throw.ArgumentException<ShouldSerialize>($"If an instance method takes a parameter it must be a `in WriteContext`, wasn't `WriteContext`", nameof(method));
+                        return Throw.ArgumentException<ShouldSerialize>($"If an instance method takes a parameter it must be a `in {nameof(WriteContext)}`; {msg}", nameof(method));
                     }
 
                     takesContext = true;
@@ -213,7 +206,7 @@ namespace Cesil
                         var p0Elem = p0.GetElementTypeNonNull();
                         if (p0Elem != Types.WriteContextType)
                         {
-                            return Throw.ArgumentException<ShouldSerialize>($"If an static method takes one parameter and it is by ref it must be a `in WriteContext`, wasn't `WriteContext`", nameof(method));
+                            return Throw.ArgumentException<ShouldSerialize>($"If an static method takes one parameter and it is by ref it must be a `in {nameof(WriteContext)}`, wasn't `{nameof(WriteContext)}`", nameof(method));
                         }
 
                         takes = null;
@@ -229,16 +222,9 @@ namespace Cesil
                 {
                     takes = args[0].ParameterType.GetTypeInfo();
 
-                    var p1 = args[1].ParameterType.GetTypeInfo();
-                    if (!p1.IsByRef)
+                    if (!args[1].IsWriteContextByRef(out var msg))
                     {
-                        return Throw.ArgumentException<ShouldSerialize>($"If an static method takes two parameters the second must be a `in WriteContext`, wasn't by ref", nameof(method));
-                    }
-
-                    var p1Elem = p1.GetElementTypeNonNull();
-                    if (p1Elem != Types.WriteContextType)
-                    {
-                        return Throw.ArgumentException<ShouldSerialize>($"If an static method takes two parameters the second must be a `in WriteContext`, wasn't `WriteContext`", nameof(method));
+                        return Throw.ArgumentException<ShouldSerialize>($"If an static method takes two parameters the second must be a `in {nameof(WriteContext)}`; {msg}", nameof(method));
                     }
 
                     takesContext = true;
@@ -409,17 +395,9 @@ namespace Cesil
             var ps = mtd.GetParameters();
             if (ps.Length == 1)
             {
-                var p0 = ps[0].ParameterType.GetTypeInfo();
-
-                if (!p0.IsByRef)
+                if (!ps[0].IsWriteContextByRef(out var msg))
                 {
-                    return Throw.InvalidOperationException<ShouldSerialize>($"If an delegate takes a single parameter it must be a `in WriteContext`, wasn't by ref");
-                }
-
-                var p0Elem = p0.GetElementTypeNonNull();
-                if (p0Elem != Types.WriteContextType)
-                {
-                    return Throw.InvalidOperationException<ShouldSerialize>($"If an delegate takes a single parameter it must be a `in WriteContext`, wasn't `WriteContext`");
+                    return Throw.InvalidOperationException<ShouldSerialize>($"If an delegate takes a single parameter it must be a `in {nameof(WriteContext)}`; {msg}");
                 }
 
                 var reboundDel = System.Delegate.CreateDelegate(Types.StaticShouldSerializeDelegateType, del, invoke);
@@ -430,17 +408,9 @@ namespace Cesil
             {
                 var takesType = ps[0].ParameterType.GetTypeInfo();
 
-                var p1 = ps[1].ParameterType.GetTypeInfo();
-
-                if (!p1.IsByRef)
+                if (!ps[1].IsWriteContextByRef(out var msg))
                 {
-                    return Throw.InvalidOperationException<ShouldSerialize>($"If an delegate takes two parameters the second must be an `in WriteContext`, wasn't by ref");
-                }
-
-                var p1Elem = p1.GetElementTypeNonNull();
-                if (p1Elem != Types.WriteContextType)
-                {
-                    return Throw.InvalidOperationException<ShouldSerialize>($"If an delegate takes two parameters the second must be an `in WriteContext`, wasn't `WriteContext`");
+                    return Throw.InvalidOperationException<ShouldSerialize>($"If an delegate takes two parameters the second must be an `in {nameof(WriteContext)}`; {msg}");
                 }
 
                 var shouldSerializeDelType = Types.ShouldSerializeDelegateType.MakeGenericType(takesType);

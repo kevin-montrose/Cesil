@@ -191,16 +191,9 @@ namespace Cesil
                 return Throw.ArgumentException<InstanceProvider>("Method must have two parameters", nameof(method));
             }
 
-            var contextP = ps[0].ParameterType.GetTypeInfo();
-            if (!contextP.IsByRef)
+            if (!ps[0].IsReadContextByRef(out var msg))
             {
-                return Throw.ArgumentException<InstanceProvider>("Method's first parameter must be a by ref ReadContext, parameter was not by ref", nameof(method));
-            }
-
-            var contextType = contextP.GetElementTypeNonNull();
-            if (contextType != Types.ReadContextType)
-            {
-                return Throw.ArgumentException<InstanceProvider>("Method's first parameter must be a by ref ReadContext, parameter was a ReadContext", nameof(method));
+                return Throw.ArgumentException<InstanceProvider>($"Method's first parameter must be a `in {nameof(ReadContext)}`; {msg}", nameof(method));
             }
 
             var outP = ps[1].ParameterType.GetTypeInfo();
@@ -392,16 +385,9 @@ namespace Cesil
                 return Throw.InvalidOperationException<InstanceProvider>("Method must have two parameters");
             }
 
-            var contextP = ps[0].ParameterType.GetTypeInfo();
-            if (!contextP.IsByRef)
+            if (!ps[0].IsReadContextByRef(out var msg))
             {
-                return Throw.InvalidOperationException<InstanceProvider>("Method's first parameter must be a by ref ReadContext, parameter was not by ref");
-            }
-
-            var contextType = contextP.GetElementTypeNonNull();
-            if (contextType != Types.ReadContextType)
-            {
-                return Throw.InvalidOperationException<InstanceProvider>("Method's first parameter must be a by ref ReadContext, parameter was a ReadContext");
+                return Throw.InvalidOperationException<InstanceProvider>($"Method's first parameter must be a `in {nameof(ReadContext)}`; {msg}");
             }
 
             var outP = ps[1].ParameterType.GetTypeInfo();

@@ -204,24 +204,18 @@ namespace Cesil
             }
 
             var p1 = args[0].ParameterType.GetTypeInfo();
-            var p2 = args[1].ParameterType.GetTypeInfo();
-            var p3 = args[2].ParameterType.GetTypeInfo();
 
             if (p1 != Types.ReadOnlySpanOfCharType)
             {
                 return Throw.ArgumentException<Parser>($"The first parameter of {nameof(method)} must be a {nameof(ReadOnlySpan<char>)}", nameof(method));
             }
 
-            if (!p2.IsByRef)
+            if (!args[1].IsReadContextByRef(out var msg))
             {
-                return Throw.ArgumentException<Parser>($"The second parameter of {nameof(method)} must be an in", nameof(method));
+                return Throw.ArgumentException<Parser>($"The second parameter of {nameof(method)} must be an `in {nameof(ReadContext)}`; {msg}", nameof(method));
             }
 
-            var p2Elem = p2.GetElementTypeNonNull();
-            if (p2Elem != Types.ReadContextType)
-            {
-                return Throw.ArgumentException<Parser>($"The second parameter of {nameof(method)} must be a {nameof(ReadContext)}", nameof(method));
-            }
+            var p3 = args[2].ParameterType.GetTypeInfo();
 
             if (!p3.IsByRef)
             {
@@ -272,16 +266,9 @@ namespace Cesil
                     return Throw.ArgumentException<Parser>($"{nameof(constructor)} first parameter must be a ReadOnlySpan<char>", nameof(constructor));
                 }
 
-                var secondP = ps[1].ParameterType.GetTypeInfo();
-                if (!secondP.IsByRef)
+                if (!ps[1].IsReadContextByRef(out var msg))
                 {
-                    return Throw.ArgumentException<Parser>($"{nameof(constructor)} second parameter must be an in ReadContext, was not by ref", nameof(constructor));
-                }
-
-                var secondPElem = secondP.GetElementTypeNonNull();
-                if (secondPElem != Types.ReadContextType)
-                {
-                    return Throw.ArgumentException<Parser>($"{nameof(constructor)} second parameter must be an in ReadContext, found {secondPElem}", nameof(constructor));
+                    return Throw.ArgumentException<Parser>($"{nameof(constructor)} second parameter must be an `in {nameof(ReadContext)}`; {msg}", nameof(constructor));
                 }
             }
             else
@@ -488,15 +475,9 @@ namespace Cesil
                 return Throw.InvalidOperationException<Parser>($"The first parameter to the delegate must be a {nameof(ReadOnlySpan<char>)}");
             }
 
-            var p2 = args[1].ParameterType.GetTypeInfo();
-            if (!p2.IsByRef)
+            if (!args[1].IsReadContextByRef(out var msg))
             {
-                return Throw.InvalidOperationException<Parser>($"The second parameter to the delegate must be an in {nameof(ReadContext)}, was not by ref");
-            }
-
-            if (p2.GetElementTypeNonNull() != Types.ReadContextType)
-            {
-                return Throw.InvalidOperationException<Parser>($"The second parameter to the delegate must be an in {nameof(ReadContext)}");
+                return Throw.InvalidOperationException<Parser>($"The second parameter to the delegate must be an `in {nameof(ReadContext)}`; {msg}");
             }
 
             var createsRef = args[2].ParameterType.GetTypeInfo();

@@ -186,7 +186,7 @@ namespace Cesil
                         var p0Elem = p0.GetElementTypeNonNull();
                         if (p0Elem != Types.ReadContextType)
                         {
-                            return Throw.ArgumentException<Reset>($"A {nameof(Reset)} backed by a static method with a single by ref parameter must take `in ReadContext`, was not `ReadContext`", nameof(method));
+                            return Throw.ArgumentException<Reset>($"A {nameof(Reset)} backed by a static method with a single by ref parameter must take `in {nameof(ReadContext)}`, was not `{nameof(ReadContext)}`", nameof(method));
                         }
 
                         rowType = null;
@@ -203,15 +203,9 @@ namespace Cesil
                     rowType = args[0].ParameterType.GetTypeInfo();
 
                     var p1 = args[1].ParameterType.GetTypeInfo();
-                    if (!p1.IsByRef)
+                    if (!args[1].IsReadContextByRef(out var msg))
                     {
-                        return Throw.ArgumentException<Reset>($"A {nameof(Reset)} backed by a static method taking 2 parameters must take `in ReadContext` as it's second parameter, was not by ref", nameof(method));
-                    }
-
-                    var p1Elem = p1.GetElementTypeNonNull();
-                    if (p1Elem != Types.ReadContextType)
-                    {
-                        return Throw.ArgumentException<Reset>($"A {nameof(Reset)} backed by a static method taking 2 parameters must take `in ReadContext` as it's second parameter, was not `ReadContext`", nameof(method));
+                        return Throw.ArgumentException<Reset>($"A {nameof(Reset)} backed by a static method taking 2 parameters must take `in {nameof(ReadContext)}` as it's second parameter; {msg}", nameof(method));
                     }
 
                     takesContext = true;
@@ -232,16 +226,9 @@ namespace Cesil
                 {
                     rowType = method.DeclaringTypeNonNull();
 
-                    var p0 = args[0].ParameterType.GetTypeInfo();
-                    if (!p0.IsByRef)
+                    if (!args[0].IsReadContextByRef(out var msg))
                     {
-                        return Throw.ArgumentException<Reset>($"A {nameof(Reset)} backed by a instance method taking a single parameter must take `in ReadContext`, was not by ref", nameof(method));
-                    }
-
-                    var p0Elem = p0.GetElementTypeNonNull();
-                    if (p0Elem != Types.ReadContextType)
-                    {
-                        return Throw.ArgumentException<Reset>($"A {nameof(Reset)} backed by a instance method taking a single parameter must take `in ReadContext`, was not `ReadContext`", nameof(method));
+                        return Throw.ArgumentException<Reset>($"A {nameof(Reset)} backed by a instance method taking a single parameter must take `in {nameof(ReadContext)}`; {msg}", nameof(method));
                     }
 
                     takesContext = true;
@@ -410,16 +397,9 @@ namespace Cesil
             var args = mtd.GetParameters();
             if (args.Length == 1)
             {
-                var p0 = args[0].ParameterType.GetTypeInfo();
-                if (!p0.IsByRef)
+                if (!args[0].IsReadContextByRef(out var msg))
                 {
-                    return Throw.InvalidOperationException<Reset>($"Delegate of one parameter must take an `in ReadContext`, was not by ref");
-                }
-
-                var p0Elem = p0.GetElementTypeNonNull();
-                if (p0Elem != Types.ReadContextType)
-                {
-                    return Throw.InvalidOperationException<Reset>($"Delegate of one parameter must take an `in ReadContext`, was not `ReadContext`");
+                    return Throw.InvalidOperationException<Reset>($"Delegate of one parameter must take an `in {nameof(ReadContext)}`; {msg}");
                 }
 
                 var reboundDel = System.Delegate.CreateDelegate(Types.StaticResetDelegateType, del, invoke);
@@ -430,17 +410,9 @@ namespace Cesil
             {
                 var rowType = args[0].ParameterType.GetTypeInfo();
 
-                var p1 = args[1].ParameterType.GetTypeInfo();
-
-                if (!p1.IsByRef)
+                if (!args[1].IsReadContextByRef(out var msg))
                 {
-                    return Throw.InvalidOperationException<Reset>($"Delegate of two parameters must take an `in ReadContext` as it's second parameter, was not by ref");
-                }
-
-                var p1Elem = p1.GetElementTypeNonNull();
-                if (p1Elem != Types.ReadContextType)
-                {
-                    return Throw.InvalidOperationException<Reset>($"Delegate of two parameters must take an `in ReadContext` as it's second parameter, was not `ReadContext`");
+                    return Throw.InvalidOperationException<Reset>($"Delegate of two parameters must take an `in {nameof(ReadContext)}` as it's second parameter; {msg}");
                 }
 
                 var getterDelType = Types.ResetDelegateType.MakeGenericType(rowType);
