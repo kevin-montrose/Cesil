@@ -1090,8 +1090,8 @@ namespace Cesil.Tests
             var columns =
                 new[]
                 {
-                    new Column(nameof(_JustHeaders.Foo), null, null, false),
-                    new Column(nameof(_JustHeaders.Bar), null, null, false),
+                    new Column(nameof(_JustHeaders.Foo), null, false),
+                    new Column(nameof(_JustHeaders.Bar), null, false),
                 };
 
             // none

@@ -6,6 +6,7 @@ namespace Cesil
         SyncReaderBase<dynamic>,
         IDynamicRowOwner
     {
+        private int ColumnCount;
         private NonNull<string[]> ColumnNames;
 
         private DynamicRow? NotifyOnDisposeHead;
@@ -14,7 +15,7 @@ namespace Cesil
 
         object? IDynamicRowOwner.Context => Context;
 
-        internal DynamicReader(IReaderAdapter reader, DynamicBoundConfiguration config, object? context) : base(reader, config, context) { }
+        internal DynamicReader(IReaderAdapter reader, DynamicBoundConfiguration config, object? context) : base(reader, config, context, new DynamicRowConstructor()) { }
 
         internal override void HandleRowEndingsAndHeaders()
         {
@@ -38,6 +39,8 @@ namespace Cesil
                 handle = StateMachine.Pin();
             }
 
+            TryAllocateAndTrack(ref row);
+
             using (handle)
             {
 
@@ -52,37 +55,9 @@ namespace Cesil
                         return HandleAdvanceResult(endRes, returnComments);
                     }
 
-                    if (!Partial.HasPending)
+                    if (!RowBuilder.RowStarted)
                     {
-                        DynamicRow dynRow;
-
-                        var rowAsObj = row as object;
-
-                        var options = Configuration.Options;
-
-                        if (rowAsObj == null || !(row is DynamicRow))
-                        {
-                            row = dynRow = MakeRow();
-                        }
-                        else
-                        {
-                            // clear it, if we're reusing
-                            dynRow = Utils.NonNull(row as DynamicRow);
-                            dynRow.Dispose();
-
-                            if (dynRow.Owner.HasValue && dynRow.Owner.Value != this)
-                            {
-                                dynRow.Owner.Value.Remove(dynRow);
-                                if (options.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose)
-                                {
-                                    NotifyOnDisposeHead.AddHead(ref NotifyOnDisposeHead, dynRow);
-                                }
-                            }
-                        }
-
-                        dynRow.Init(this, RowNumber, Columns.Value.Length, Context, options.TypeDescriber, ColumnNames, options.MemoryPool);
-
-                        SetValueToPopulate(row);
+                        StartRow();
                     }
 
                     var res = AdvanceWork(available);
@@ -95,15 +70,40 @@ namespace Cesil
             }
         }
 
-        private DynamicRow MakeRow()
+        private void TryAllocateAndTrack(ref dynamic row)
         {
-            var ret = new DynamicRow();
-            if (Configuration.Options.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose)
+            // after this call row _WILL_ be a disposed non-null DynamicRow
+            TryPreAllocateRow(ref row);
+
+            var dynRow = Utils.NonNull(row as DynamicRow);
+
+            var options = Configuration.Options;
+            var needsTracking = options.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose;
+            var isAttached = dynRow.Owner.HasValue;
+            var isAttachedToSelf = isAttached && dynRow.Owner.Value == this;
+
+            // possible states
+            // ---------------
+            // !needsTracking, !isAttached => do nothing
+            // !needsTracking, isAttached => detach
+            // needsTracking, !isAttached => attach
+            // needsTracking, isAttached, !isAttachedToSelf => detach, attach
+            // needsTracking, isAttached, isAttachedToSelf => do nothing
+
+            var doDetach = (!needsTracking && isAttached) || (needsTracking && isAttached && !isAttachedToSelf);
+            var doAttach = (needsTracking && !isAttached) || (needsTracking && isAttached && !isAttachedToSelf);
+
+            if (doDetach)
             {
-                NotifyOnDisposeHead.AddHead(ref NotifyOnDisposeHead, ret);
+                dynRow.Owner.Value.Remove(dynRow);
             }
 
-            return ret;
+            if (doAttach)
+            {
+                NotifyOnDisposeHead.AddHead(ref NotifyOnDisposeHead, dynRow);
+            }
+
+            dynRow.Init(this, RowNumber, ColumnCount, Context, options.TypeDescriber, ColumnNames, options.MemoryPool);
         }
 
         public void Remove(DynamicRow row)
@@ -122,22 +122,19 @@ namespace Cesil
             using (var reader = new HeadersReader<object>(StateMachine, Configuration, SharedCharacterLookup, Inner, Buffer, RowEndings!.Value))
             {
                 var res = reader.Read();
-                var foundHeaders = res.Headers.Count;
-                if (foundHeaders == 0)
+                ColumnCount = res.Headers.Count;
+
+                if (ColumnCount == 0)
                 {
                     // rare, but possible if the file is empty or all comments or something like that
-                    Columns.Value = Array.Empty<Column>();
                     ColumnNames.Value = Array.Empty<string>();
                 }
                 else
                 {
-                    var columnsValue = new Column[foundHeaders];
-                    Columns.Value = columnsValue;
-
                     string[] columnNamesValue = Array.Empty<string>();
                     if (allowColumnsByName)
                     {
-                        columnNamesValue = new string[foundHeaders];
+                        columnNamesValue = new string[ColumnCount];
                         ColumnNames.Value = columnNamesValue;
                     }
 
@@ -151,12 +148,12 @@ namespace Cesil
                             {
                                 columnNamesValue[ix] = name;
                             }
-                            var col = new Column(name, ColumnSetter.CreateDynamic(name, ix), null, false);
-                            columnsValue[ix] = col;
 
                             ix++;
                         }
                     }
+
+                    RowBuilder.SetColumnOrder(res.Headers);
                 }
 
                 Buffer.PushBackFromOutsideBuffer(res.PushBack);
@@ -213,6 +210,7 @@ namespace Cesil
             // handle actual cleanup, a method to DRY things up
             static void Cleanup(DynamicReader self)
             {
+                self.RowBuilder.Dispose();
                 self.Buffer.Dispose();
                 self.Partial.Dispose();
                 self.StateMachine.Dispose();

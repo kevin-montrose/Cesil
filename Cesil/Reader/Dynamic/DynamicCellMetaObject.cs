@@ -71,19 +71,27 @@ namespace Cesil
                 return new DynamicMetaObject(throwMsg, restrictions);
             }
 
+            var statements = new List<Expression>();
+
             var selfAsCell = Expression.Convert(Expression, Types.DynamicCellType);
 
             var callGetSpan = Expression.Call(selfAsCell, Methods.DynamicCell.GetDataSpan);
+            var dataSpanVar = Expressions.Variable_ReadOnlySpanOfChar;
+            var assignDataSpan = Expression.Assign(dataSpanVar, callGetSpan);
+            statements.Add(assignDataSpan);
 
-            var makeCtx = Expression.Call(selfAsCell, Methods.DynamicCell.GetReadContext);
+            var callMakeCtx = Expression.Call(selfAsCell, Methods.DynamicCell.GetReadContext);
+            var readCtxVar = Expressions.Variable_ReadContext;
+            var assignReadCtx = Expression.Assign(readCtxVar, callMakeCtx);
+            statements.Add(assignReadCtx);
 
             var outVar = Expression.Parameter(parser.Creates);
-            var resVar = Expression.Parameter(Types.BoolType);
-            var parserExp = parser.MakeExpression(callGetSpan, makeCtx, outVar);
-            var assign = Expression.Assign(resVar, parserExp);
+            var resVar = Expressions.Variable_Bool;
+            var parserExp = parser.MakeExpression(dataSpanVar, readCtxVar, outVar);
+            var assignRes = Expression.Assign(resVar, parserExp);
 
-            var statements = new List<Expression>();
-            statements.Add(assign);
+
+            statements.Add(assignRes);
 
             var invalidCallOp = Methods.Throw.InvalidOperationExceptionOfObject;
             var callThrow = Expression.Call(invalidCallOp, Expression.Constant($"{nameof(Parser)} {parser} returned false"));
@@ -94,7 +102,7 @@ namespace Cesil
             var convertOut = Expression.Convert(outVar, binder.ReturnType);
             statements.Add(convertOut);
 
-            var block = Expression.Block(new ParameterExpression[] { outVar, resVar }, statements);
+            var block = Expression.Block(new ParameterExpression[] { outVar, dataSpanVar, readCtxVar, resVar }, statements);
 
             return new DynamicMetaObject(block, restrictions);
         }

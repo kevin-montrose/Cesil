@@ -108,7 +108,7 @@ method, or a delegate.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_InstanceProvider_Else_Cesil_InstanceProvider_.md&amp;value=---%0Auid%3A%20Cesil.InstanceProvider.Else(Cesil.InstanceProvider)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L85">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L95">View Source</a>
   </span>
   <a id="Cesil_InstanceProvider_Else_" data-uid="Cesil.InstanceProvider.Else*"></a>
   <h4 id="Cesil_InstanceProvider_Else_Cesil_InstanceProvider_" data-uid="Cesil.InstanceProvider.Else(Cesil.InstanceProvider)">Else(InstanceProvider)</h4>
@@ -157,7 +157,7 @@ it will then try the given fallback InstanceProvider.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_InstanceProvider_Equals_Cesil_InstanceProvider_.md&amp;value=---%0Auid%3A%20Cesil.InstanceProvider.Equals(Cesil.InstanceProvider)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L291">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L342">View Source</a>
   </span>
   <a id="Cesil_InstanceProvider_Equals_" data-uid="Cesil.InstanceProvider.Equals*"></a>
   <h4 id="Cesil_InstanceProvider_Equals_Cesil_InstanceProvider_" data-uid="Cesil.InstanceProvider.Equals(Cesil.InstanceProvider)">Equals(InstanceProvider)</h4>
@@ -205,7 +205,7 @@ it will then try the given fallback InstanceProvider.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_InstanceProvider_Equals_System_Object_.md&amp;value=---%0Auid%3A%20Cesil.InstanceProvider.Equals(System.Object)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L278">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L329">View Source</a>
   </span>
   <a id="Cesil_InstanceProvider_Equals_" data-uid="Cesil.InstanceProvider.Equals*"></a>
   <h4 id="Cesil_InstanceProvider_Equals_System_Object_" data-uid="Cesil.InstanceProvider.Equals(System.Object)">Equals(Object)</h4>
@@ -252,10 +252,67 @@ it will then try the given fallback InstanceProvider.</p>
   <div><span class="xref">System.Object.Equals(System.Object)</span></div>
   <span class="small pull-right mobile-hide">
     <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_InstanceProvider_ForConstructorWithParameters_ConstructorInfo_.md&amp;value=---%0Auid%3A%20Cesil.InstanceProvider.ForConstructorWithParameters(ConstructorInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L277">View Source</a>
+  </span>
+  <a id="Cesil_InstanceProvider_ForConstructorWithParameters_" data-uid="Cesil.InstanceProvider.ForConstructorWithParameters*"></a>
+  <h4 id="Cesil_InstanceProvider_ForConstructorWithParameters_ConstructorInfo_" data-uid="Cesil.InstanceProvider.ForConstructorWithParameters(ConstructorInfo)">ForConstructorWithParameters(ConstructorInfo)</h4>
+  <div class="markdown level1 summary"><p>Create a new InstanceProvider from a constructor that takes parameters.</p>
+<p>An InstanceProvider of this type must be paired with Setters that map to the parameters
+on this constructor.</p>
+<p>The constructed type must be concrete, that is:</p>
+<ul>
+<li>not an interface</li>
+<li>not an abstract class</li>
+<li>not a generic parameter</li>
+<li>not an unbound generic type (ie. a generic type definition)</li>
+</ul>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static InstanceProvider ForConstructorWithParameters(ConstructorInfo constructor)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">ConstructorInfo</span></td>
+        <td><span class="parametername">constructor</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.InstanceProvider.html">InstanceProvider</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_InstanceProvider_ForDelegate__1_Cesil_InstanceProviderDelegate___0__.md&amp;value=---%0Auid%3A%20Cesil.InstanceProvider.ForDelegate%60%601(Cesil.InstanceProviderDelegate%7B%60%600%7D)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L268">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L319">View Source</a>
   </span>
   <a id="Cesil_InstanceProvider_ForDelegate_" data-uid="Cesil.InstanceProvider.ForDelegate*"></a>
   <h4 id="Cesil_InstanceProvider_ForDelegate__1_Cesil_InstanceProviderDelegate___0__" data-uid="Cesil.InstanceProvider.ForDelegate``1(Cesil.InstanceProviderDelegate{``0})">ForDelegate&lt;TInstance&gt;(InstanceProviderDelegate&lt;TInstance&gt;)</h4>
@@ -320,7 +377,7 @@ but be aware that it may be called from many different contexts.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_InstanceProvider_ForMethod_MethodInfo_.md&amp;value=---%0Auid%3A%20Cesil.InstanceProvider.ForMethod(MethodInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L174">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L184">View Source</a>
   </span>
   <a id="Cesil_InstanceProvider_ForMethod_" data-uid="Cesil.InstanceProvider.ForMethod*"></a>
   <h4 id="Cesil_InstanceProvider_ForMethod_MethodInfo_" data-uid="Cesil.InstanceProvider.ForMethod(MethodInfo)">ForMethod(MethodInfo)</h4>
@@ -376,7 +433,7 @@ but be aware that it may be called from many different contexts.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_InstanceProvider_ForParameterlessConstructor_ConstructorInfo_.md&amp;value=---%0Auid%3A%20Cesil.InstanceProvider.ForParameterlessConstructor(ConstructorInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L226">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L229">View Source</a>
   </span>
   <a id="Cesil_InstanceProvider_ForParameterlessConstructor_" data-uid="Cesil.InstanceProvider.ForParameterlessConstructor*"></a>
   <h4 id="Cesil_InstanceProvider_ForParameterlessConstructor_ConstructorInfo_" data-uid="Cesil.InstanceProvider.ForParameterlessConstructor(ConstructorInfo)">ForParameterlessConstructor(ConstructorInfo)</h4>
@@ -431,7 +488,7 @@ but be aware that it may be called from many different contexts.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_InstanceProvider_GetHashCode.md&amp;value=---%0Auid%3A%20Cesil.InstanceProvider.GetHashCode%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L321">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L372">View Source</a>
   </span>
   <a id="Cesil_InstanceProvider_GetHashCode_" data-uid="Cesil.InstanceProvider.GetHashCode*"></a>
   <h4 id="Cesil_InstanceProvider_GetHashCode" data-uid="Cesil.InstanceProvider.GetHashCode">GetHashCode()</h4>
@@ -464,7 +521,7 @@ but be aware that it may be called from many different contexts.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_InstanceProvider_ToString.md&amp;value=---%0Auid%3A%20Cesil.InstanceProvider.ToString%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L329">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L380">View Source</a>
   </span>
   <a id="Cesil_InstanceProvider_ToString_" data-uid="Cesil.InstanceProvider.ToString*"></a>
   <h4 id="Cesil_InstanceProvider_ToString" data-uid="Cesil.InstanceProvider.ToString">ToString()</h4>
@@ -500,7 +557,7 @@ but be aware that it may be called from many different contexts.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_InstanceProvider_op_Equality_Cesil_InstanceProvider_Cesil_InstanceProvider_.md&amp;value=---%0Auid%3A%20Cesil.InstanceProvider.op_Equality(Cesil.InstanceProvider%2CCesil.InstanceProvider)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L426">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L478">View Source</a>
   </span>
   <a id="Cesil_InstanceProvider_op_Equality_" data-uid="Cesil.InstanceProvider.op_Equality*"></a>
   <h4 id="Cesil_InstanceProvider_op_Equality_Cesil_InstanceProvider_Cesil_InstanceProvider_" data-uid="Cesil.InstanceProvider.op_Equality(Cesil.InstanceProvider,Cesil.InstanceProvider)">Equality(InstanceProvider, InstanceProvider)</h4>
@@ -553,7 +610,7 @@ but be aware that it may be called from many different contexts.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_InstanceProvider_op_Explicit_System_Delegate__Cesil_InstanceProvider.md&amp;value=---%0Auid%3A%20Cesil.InstanceProvider.op_Explicit(System.Delegate)~Cesil.InstanceProvider%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L365">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L424">View Source</a>
   </span>
   <a id="Cesil_InstanceProvider_op_Explicit_" data-uid="Cesil.InstanceProvider.op_Explicit*"></a>
   <h4 id="Cesil_InstanceProvider_op_Explicit_System_Delegate__Cesil_InstanceProvider" data-uid="Cesil.InstanceProvider.op_Explicit(System.Delegate)~Cesil.InstanceProvider">Explicit(Delegate to InstanceProvider)</h4>
@@ -602,11 +659,11 @@ but be aware that it may be called from many different contexts.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_InstanceProvider_op_Explicit_System_Nullable_ConstructorInfo___Cesil_InstanceProvider.md&amp;value=---%0Auid%3A%20Cesil.InstanceProvider.op_Explicit(System.Nullable%7BConstructorInfo%7D)~Cesil.InstanceProvider%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L357">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L408">View Source</a>
   </span>
   <a id="Cesil_InstanceProvider_op_Explicit_" data-uid="Cesil.InstanceProvider.op_Explicit*"></a>
   <h4 id="Cesil_InstanceProvider_op_Explicit_System_Nullable_ConstructorInfo___Cesil_InstanceProvider" data-uid="Cesil.InstanceProvider.op_Explicit(System.Nullable{ConstructorInfo})~Cesil.InstanceProvider">Explicit(Nullable&lt;ConstructorInfo&gt; to InstanceProvider)</h4>
-  <div class="markdown level1 summary"><p>Convenience operator, equivalent to calling ForParameterlessConstructor if non-null.</p>
+  <div class="markdown level1 summary"><p>Convenience operator, equivalent to calling ForParameterlessConstructor or ForConstructorWithParameters if non-null.</p>
 <p>Returns null if field is null.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
@@ -651,7 +708,7 @@ but be aware that it may be called from many different contexts.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_InstanceProvider_op_Explicit_System_Nullable_MethodInfo___Cesil_InstanceProvider.md&amp;value=---%0Auid%3A%20Cesil.InstanceProvider.op_Explicit(System.Nullable%7BMethodInfo%7D)~Cesil.InstanceProvider%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L349">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L400">View Source</a>
   </span>
   <a id="Cesil_InstanceProvider_op_Explicit_" data-uid="Cesil.InstanceProvider.op_Explicit*"></a>
   <h4 id="Cesil_InstanceProvider_op_Explicit_System_Nullable_MethodInfo___Cesil_InstanceProvider" data-uid="Cesil.InstanceProvider.op_Explicit(System.Nullable{MethodInfo})~Cesil.InstanceProvider">Explicit(Nullable&lt;MethodInfo&gt; to InstanceProvider)</h4>
@@ -700,7 +757,7 @@ but be aware that it may be called from many different contexts.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_InstanceProvider_op_Inequality_Cesil_InstanceProvider_Cesil_InstanceProvider_.md&amp;value=---%0Auid%3A%20Cesil.InstanceProvider.op_Inequality(Cesil.InstanceProvider%2CCesil.InstanceProvider)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L432">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L484">View Source</a>
   </span>
   <a id="Cesil_InstanceProvider_op_Inequality_" data-uid="Cesil.InstanceProvider.op_Inequality*"></a>
   <h4 id="Cesil_InstanceProvider_op_Inequality_Cesil_InstanceProvider_Cesil_InstanceProvider_" data-uid="Cesil.InstanceProvider.op_Inequality(Cesil.InstanceProvider,Cesil.InstanceProvider)">Inequality(InstanceProvider, InstanceProvider)</h4>

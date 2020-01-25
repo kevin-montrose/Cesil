@@ -106,7 +106,7 @@ namespace Cesil
             return del;
         }
 
-        internal Expression MakeExpression(Expression objectParam, Expression writeContextParam, Expression bufferWriterParam)
+        internal Expression MakeExpression(ParameterExpression objectParam, ParameterExpression writeContextParam, ParameterExpression bufferWriterParam)
         {
             Expression selfExp;
 

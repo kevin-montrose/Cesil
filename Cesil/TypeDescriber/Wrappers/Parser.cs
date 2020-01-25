@@ -117,7 +117,7 @@ namespace Cesil
             return this.DoElse(fallbackParser);
         }
 
-        internal Expression MakeExpression(Expression dataVar, Expression contextVar, Expression outVar)
+        internal Expression MakeExpression(ParameterExpression dataVar, ParameterExpression contextVar, ParameterExpression outVar)
         {
             Expression selfExp;
 

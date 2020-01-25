@@ -149,7 +149,7 @@ namespace Cesil
             return Throw.Exception<DynamicRowConverter>($"Unexpected {nameof(BackingMode)}: {Mode}");
         }
 
-        internal Expression MakeExpression(TypeInfo targetType, Expression rowVar, Expression contextVar, Expression outVar)
+        internal Expression MakeExpression(TypeInfo targetType, ParameterExpression rowVar, ParameterExpression contextVar, ParameterExpression outVar)
         {
             Expression selfExp;
 
@@ -211,14 +211,23 @@ namespace Cesil
                             var statements = new List<Expression>();
                             statements.Add(assignToVar);
 
+                            var locals = new List<ParameterExpression>();
+                            locals.Add(retVar);
+
                             for (var i = 0; i < setters.Length; i++)
                             {
                                 var setter = setters[i];
                                 var setterColumn = setterCols[i];
 
                                 var getValueMtd = Methods.DynamicRow.GetAtTyped.MakeGenericMethod(setter.Takes);
+
                                 var getValueCall = Expression.Call(rowVar, getValueMtd, Expression.Constant(setterColumn));
-                                var callSetter = setter.MakeExpression(retVar, getValueCall, contextVar);
+                                var valueVar = Expression.Parameter(setter.Takes);
+                                var assignValueVar = Expression.Assign(valueVar, getValueCall);
+                                locals.Add(valueVar);
+                                statements.Add(assignValueVar);
+
+                                var callSetter = setter.MakeExpression(retVar, valueVar, contextVar);
 
                                 statements.Add(callSetter);
                             }
@@ -228,7 +237,7 @@ namespace Cesil
                             statements.Add(assign);
                             statements.Add(Expressions.Constant_True);
 
-                            var block = Expression.Block(new[] { retVar }, statements);
+                            var block = Expression.Block(locals, statements);
 
                             selfExp = block;
                             break;

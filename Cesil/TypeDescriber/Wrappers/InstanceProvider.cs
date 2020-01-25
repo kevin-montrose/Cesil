@@ -34,6 +34,16 @@ namespace Cesil
 
         internal readonly TypeInfo ConstructsType;
 
+        internal bool ConstructorTakesParameters
+        {
+            get
+            {
+                if (Mode != BackingMode.Constructor) return false;
+
+                return Constructor.Value.GetParameters().Length > 0;
+            }
+        }
+
         internal readonly NonNull<ConstructorInfo> Constructor;
 
         internal readonly NonNull<Delegate> Delegate;
@@ -94,7 +104,7 @@ namespace Cesil
             return this.DoElse(fallbackProvider);
         }
 
-        internal Expression MakeExpression(TypeInfo resultType, Expression context, Expression outVar)
+        internal Expression MakeExpression(TypeInfo resultType, ParameterExpression context, ParameterExpression outVar)
         {
             Expression selfExp;
 
@@ -253,6 +263,54 @@ namespace Cesil
         }
 
         /// <summary>
+        /// Create a new InstanceProvider from a constructor that takes parameters.
+        /// 
+        /// An InstanceProvider of this type must be paired with Setters that map to the parameters
+        ///   on this constructor.
+        /// 
+        /// The constructed type must be concrete, that is:
+        ///   - not an interface
+        ///   - not an abstract class
+        ///   - not a generic parameter
+        ///   - not an unbound generic type (ie. a generic type definition)
+        /// </summary>
+        public static InstanceProvider ForConstructorWithParameters(ConstructorInfo constructor)
+        {
+            Utils.CheckArgumentNull(constructor, nameof(constructor));
+
+            var ps = constructor.GetParameters();
+            if (ps.Length == 0)
+            {
+                return Throw.ArgumentException<InstanceProvider>("Constructor must take at least one parameter", nameof(constructor));
+            }
+
+            var t = constructor.DeclaringTypeNonNull();
+            if (t.IsInterface)
+            {
+                // todo: is this possible?  if so, can we test it?
+                return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found an interface", nameof(constructor));
+            }
+
+            if (t.IsAbstract)
+            {
+                return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found an abstract class", nameof(constructor));
+            }
+
+            if (t.IsGenericTypeParameter)
+            {
+                // todo: is this possible?  if so, can we test it?
+                return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found a generic parameter", nameof(constructor));
+            }
+
+            if (t.IsGenericTypeDefinition)
+            {
+                return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found a generic type definition", nameof(constructor));
+            }
+
+            return new InstanceProvider(constructor, ImmutableArray<InstanceProvider>.Empty);
+        }
+
+        /// <summary>
         /// Create a new InstanceProvider from delegate.
         /// 
         /// There are no restrictions on what the give delegate may do,
@@ -343,12 +401,20 @@ namespace Cesil
         => method == null ? null : ForMethod(method);
 
         /// <summary>
-        /// Convenience operator, equivalent to calling ForParameterlessConstructor if non-null.
+        /// Convenience operator, equivalent to calling ForParameterlessConstructor or ForConstructorWithParameters if non-null.
         /// 
         /// Returns null if field is null.
         /// </summary>
         public static explicit operator InstanceProvider?(ConstructorInfo? cons)
-        => cons == null ? null : ForParameterlessConstructor(cons);
+        {
+            if (cons == null) return null;
+
+            var ps = cons.GetParameters();
+
+            if (ps.Length == 0) return ForParameterlessConstructor(cons);
+
+            return ForConstructorWithParameters(cons);
+        }
 
         /// <summary>
         /// Convenience operator, equivalent to calling ForDelegate if non-null.

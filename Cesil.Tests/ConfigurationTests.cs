@@ -26,7 +26,6 @@ namespace Cesil.Tests
                     Assert.True(ix < ReaderStateMachine.RuleCacheConfigSize);
                 }
             }
-
         }
 
         [Fact]
@@ -301,13 +300,13 @@ namespace Cesil.Tests
         private static void _SingleColumn<T>(string n)
         {
             var config = (ConcreteBoundConfiguration<T>)Configuration.For<T>();
-            Assert.True(config.NewCons.HasValue);
+            Assert.True(config.InstanceProvider.HasValue);
 
             Assert.Collection(
                 config.DeserializeColumns,
                 c =>
                 {
-                    Assert.Equal(n, c.Name.Value);
+                    Assert.Equal(n, c.Name);
                 }
             );
         }

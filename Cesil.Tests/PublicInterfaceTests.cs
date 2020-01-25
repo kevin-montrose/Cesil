@@ -1743,6 +1743,7 @@ namespace Cesil.Tests
                     [typeof(PropertyInfo).GetTypeInfo()] = new[] { "property" },
                     [typeof(FieldInfo).GetTypeInfo()] = new[] { "field" },
                     [typeof(ConstructorInfo).GetTypeInfo()] = new[] { "constructor" },
+                    [typeof(ParameterInfo).GetTypeInfo()] = new[] { "parameter" },
 
                     // custom types
                     [typeof(Options).GetTypeInfo()] = new[] { "options" },

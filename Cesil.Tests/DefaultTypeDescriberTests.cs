@@ -15,24 +15,6 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class DefaultTypeDescriberTests
     {
-        private sealed class _Errors
-        {
-            public int OnlyGetter { get; }
-
-            public _Errors(string foo) { }
-        }
-
-        [Fact]
-        public void Errors()
-        {
-            var describer = TypeDescribers.Default;
-            var t = typeof(_Errors).GetTypeInfo();
-            var g = t.GetProperty(nameof(_Errors.OnlyGetter));
-
-            // no zero-param constructor
-            Assert.Throws<ArgumentException>(() => describer.GetInstanceProvider(t));
-        }
-
         [Fact]
         public void DefaultParserFormatterSymmetry()
         {

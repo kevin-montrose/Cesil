@@ -69,5 +69,21 @@ namespace Cesil
 
             return default;
         }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        internal static void ParseFailed(Parser parser, in ReadContext ctx, ReadOnlySpan<char> data)
+        {
+            string msg;
+            if (ctx.HasColumn)
+            {
+                msg = $"Failed to parse \"{new string(data)}\" for column index={ctx.Column} using {parser}";
+            }
+            else
+            {
+                msg = $"Failed to parse \"{new string(data)}\"using {parser}";
+            }
+
+            throw new SerializationException(msg);
+        }
     }
 }

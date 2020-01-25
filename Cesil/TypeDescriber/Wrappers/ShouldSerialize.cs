@@ -67,7 +67,7 @@ namespace Cesil
             TakesContext = true;
         }
 
-        internal Expression MakeExpression(Expression rowVar, Expression ctxVar)
+        internal Expression MakeExpression(ParameterExpression rowVar, ParameterExpression ctxVar)
         {
             // todo: would require some work to make this chainable... but doable?
 

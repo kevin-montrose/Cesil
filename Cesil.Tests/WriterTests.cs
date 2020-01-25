@@ -16,6 +16,79 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class WriterTests
     {
+        [Fact]
+        public void Tuples()
+        {
+            // Tuple
+            RunSyncWriterVariants<Tuple<int, string, Guid>>(
+                Options.Default,
+                (config, getWriter, getStr) =>
+                {
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
+                    {
+                        csv.Write(Tuple.Create(123, "hello", Guid.Parse("6ECB2B6D-D392-4222-B7F1-07E66A9A4259")));
+                        csv.Write(Tuple.Create(456, "world", Guid.Parse("7ECB2B6D-D492-4223-B7F2-7E66A9B42590")));
+                    }
+
+                    var str = getStr();
+                    Assert.Equal("Item1,Item2,Item3\r\n123,hello,6ecb2b6d-d392-4222-b7f1-07e66a9a4259\r\n456,world,7ecb2b6d-d492-4223-b7f2-7e66a9b42590", str);
+                }
+            );
+
+            // Big Tuple
+            Assert.Throws<InvalidOperationException>(() => Configuration.For<Tuple<int, int, int, int, int, int, int, Tuple<int, int>>>());
+
+            // ValueTuple
+            RunSyncWriterVariants<ValueTuple<int, string, Guid>>(
+                Options.Default,
+                (config, getWriter, getStr) =>
+                {
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
+                    {
+                        csv.Write(ValueTuple.Create(123, "hello", Guid.Parse("6ECB2B6D-D392-4222-B7F1-07E66A9A4259")));
+                        csv.Write(ValueTuple.Create(456, "world", Guid.Parse("7ECB2B6D-D492-4223-B7F2-7E66A9B42590")));
+                    }
+
+                    var str = getStr();
+                    Assert.Equal("Item1,Item2,Item3\r\n123,hello,6ecb2b6d-d392-4222-b7f1-07e66a9a4259\r\n456,world,7ecb2b6d-d492-4223-b7f2-7e66a9b42590", str);
+                }
+            );
+
+            // Big ValueTuple
+            Assert.Throws<InvalidOperationException>(() => Configuration.For<ValueTuple<int, int, int, int, int, int, int, ValueTuple<int, int>>>());
+        }
+
+        [Fact]
+        public void AnonymousType()
+        {
+            Thunk(
+                new { Foo = "hello world", Bar = 123 },
+                "Foo,Bar\r\nhello world,123"
+            );
+
+            // to provide a way to get an anonymous generic type for the helpers
+            static void Thunk<T>(T ex, string expect)
+            {
+                // Tuple
+                RunSyncWriterVariants<T>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.Write(ex);
+                        }
+
+                        var str = getStr();
+                        Assert.Equal(expect, str);
+                    }
+                );
+            }
+        }
+
         private sealed class _ChainedFormatters
         {
             public string Foo { get; set; }
@@ -3055,6 +3128,79 @@ namespace Cesil.Tests
                     Assert.Equal("1,,None,1970-01-01 00:00:00Z\r\n,Fizz,,", txt);
                 }
             );
+        }
+
+        [Fact]
+        public async Task TuplesAsync()
+        {
+            // Tuple
+            await RunAsyncWriterVariants<Tuple<int, string, Guid>>(
+                Options.Default,
+                async (config, getWriter, getStr) =>
+                {
+                    await using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        await csv.WriteAsync(Tuple.Create(123, "hello", Guid.Parse("6ECB2B6D-D392-4222-B7F1-07E66A9A4259")));
+                        await csv.WriteAsync(Tuple.Create(456, "world", Guid.Parse("7ECB2B6D-D492-4223-B7F2-7E66A9B42590")));
+                    }
+
+                    var str = await getStr();
+                    Assert.Equal("Item1,Item2,Item3\r\n123,hello,6ecb2b6d-d392-4222-b7f1-07e66a9a4259\r\n456,world,7ecb2b6d-d492-4223-b7f2-7e66a9b42590", str);
+                }
+            );
+
+            // Big Tuple
+            Assert.Throws<InvalidOperationException>(() => Configuration.For<Tuple<int, int, int, int, int, int, int, Tuple<int, int>>>());
+
+            // ValueTuple
+            await RunAsyncWriterVariants<ValueTuple<int, string, Guid>>(
+                Options.Default,
+                async (config, getWriter, getStr) =>
+                {
+                    await using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        await csv.WriteAsync(ValueTuple.Create(123, "hello", Guid.Parse("6ECB2B6D-D392-4222-B7F1-07E66A9A4259")));
+                        await csv.WriteAsync(ValueTuple.Create(456, "world", Guid.Parse("7ECB2B6D-D492-4223-B7F2-7E66A9B42590")));
+                    }
+
+                    var str = await getStr();
+                    Assert.Equal("Item1,Item2,Item3\r\n123,hello,6ecb2b6d-d392-4222-b7f1-07e66a9a4259\r\n456,world,7ecb2b6d-d492-4223-b7f2-7e66a9b42590", str);
+                }
+            );
+
+            // Big ValueTuple
+            Assert.Throws<InvalidOperationException>(() => Configuration.For<ValueTuple<int, int, int, int, int, int, int, ValueTuple<int, int>>>());
+        }
+
+        [Fact]
+        public async Task AnonymousTypeAsync()
+        {
+            await ThunkAsync(
+                new { Foo = "hello world", Bar = 123 },
+                "Foo,Bar\r\nhello world,123"
+            );
+
+            // to provide a way to get an anonymous generic type for the helpers
+            static async Task ThunkAsync<T>(T ex, string expect)
+            {
+                // Tuple
+                await RunAsyncWriterVariants<T>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAsync(ex);
+                        }
+
+                        var str = await getStr();
+                        Assert.Equal(expect, str);
+                    }
+                );
+            }
         }
 
         [Fact]

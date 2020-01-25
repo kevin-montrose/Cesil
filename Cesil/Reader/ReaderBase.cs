@@ -4,8 +4,9 @@ namespace Cesil
 {
     internal abstract class ReaderBase<T> : PoisonableBase
     {
+        internal readonly IRowConstructor<T> RowBuilder;
         internal readonly BufferWithPushback Buffer;
-        internal readonly Partial<T> Partial;
+        internal readonly Partial Partial;
 
         internal readonly CharacterLookup SharedCharacterLookup;
 
@@ -16,14 +17,12 @@ namespace Cesil
 
         internal BoundConfigurationBase<T> Configuration { get; }
 
-        internal NonNull<Column[]> Columns;
-
         internal RowEnding? RowEndings { get; set; }
         internal ReadHeader? ReadHeaders { get; set; }
 
         internal int RowNumber;
 
-        protected ReaderBase(BoundConfigurationBase<T> config, object? context)
+        protected ReaderBase(BoundConfigurationBase<T> config, object? context, IRowConstructor<T> rowBuilder)
         {
             RowNumber = 0;
             Configuration = config;
@@ -44,10 +43,11 @@ namespace Cesil
                     memPool,
                     bufferSize
                 );
-            Partial = new Partial<T>(memPool);
+            Partial = new Partial(memPool);
 
             SharedCharacterLookup = CharacterLookup.MakeCharacterLookup(options, out _);
             StateMachine = new ReaderStateMachine();
+            RowBuilder = rowBuilder;
         }
 
         protected internal ReadWithCommentResultType AdvanceWork(int numInBuffer)
@@ -70,11 +70,9 @@ namespace Cesil
                     if (returnComments)
                     {
                         var comment = Partial.PendingAsString(Buffer.Buffer);
-                        Partial.ClearValue();
                         Partial.ClearBuffer();
                         return new ReadWithCommentResult<T>(comment);
                     }
-                    Partial.ClearValue();
                     Partial.ClearBuffer();
                     return ReadWithCommentResult<T>.Empty;
                 case ReadWithCommentResultType.HasValue:
@@ -314,45 +312,36 @@ namespace Cesil
             }
         }
 
+        protected internal void PreparingToWriteToBuffer()
+        {
+            Partial.BufferToBeReused(Buffer.Buffer.Span);
+        }
+
         protected internal T GetValueForReturn()
         {
-            var columnsValue = Columns.Value;
-
-            for (var i = Partial.CurrentColumnIndex; i < columnsValue.Length; i++)
-            {
-                var col = columnsValue[i];
-                if (col.IsRequired)
-                {
-                    return Throw.SerializationException<T>($"Column [{col.Name}] is required, but was not found in row");
-                }
-            }
-
-            var ret = Partial.Value;
-            Partial.ClearValue();
+            var ret = RowBuilder.FinishRow();
 
             RowNumber++;
 
             return ret;
         }
 
-        protected void SetValueToPopulate(T val)
+        protected void TryPreAllocateRow(ref T val)
         {
-            Partial.SetValueAndResetColumn(val);
+            var ctx = ReadContext.ReadingRow(Configuration.Options, RowNumber, Context);
+
+            RowBuilder.TryPreAllocate(in ctx, ref val);
         }
 
-        protected internal void PreparingToWriteToBuffer()
+        protected void StartRow()
         {
-            Partial.BufferToBeReused(Buffer.Buffer.Span);
+            var ctx = ReadContext.ReadingRow(Configuration.Options, RowNumber, Context);
+            RowBuilder.StartRow(ctx);
+            Partial.ResetColumn(false);
         }
 
         private void PushPendingCharactersToValue(bool wasEscaped)
         {
-            var columnsValue = Columns.Value;
-            if (Partial.CurrentColumnIndex >= columnsValue.Length)
-            {
-                Throw.InvalidOperationException<object>($"Unexpected column (Index={Partial.CurrentColumnIndex})");
-            }
-
             var dataSpan = Partial.PendingAsMemory(Buffer.Buffer);
 
             var whitespace = Configuration.Options.WhitespaceTreatment;
@@ -381,20 +370,7 @@ namespace Cesil
                 dataSpan = Utils.TrimTrailingWhitespace(dataSpan);
             }
 
-            var colIx = Partial.CurrentColumnIndex;
-            var column = columnsValue[colIx];
-
-            if (column.IsRequired && dataSpan.Length == 0)
-            {
-                Throw.SerializationException<object>($"Column [{column.Name}] is required, but was not found in row");
-            }
-
-            var ctx = ReadContext.ReadingColumn(Configuration.Options, RowNumber, ColumnIdentifier.Create(colIx, column.Name), Context);
-
-            if (!column.Set.Value(dataSpan.Span, in ctx, Partial.Value))
-            {
-                Throw.SerializationException<object>($"Could not assign value \"{Partial.PendingAsString(Buffer.Buffer)}\" to column \"{column.Name}\" (Index={Partial.CurrentColumnIndex})");
-            }
+            RowBuilder.ColumnAvailable(Configuration.Options, RowNumber, Partial.CurrentColumnIndex, Context, dataSpan.Span);
 
             Partial.ClearBufferAndAdvanceColumnIndex();
         }
@@ -403,61 +379,19 @@ namespace Cesil
         {
             if (!headers.IsHeader)
             {
-                if (Configuration.Options.ReadHeader == Cesil.ReadHeader.Always)
+                if (Configuration.Options.ReadHeader == ReadHeader.Always)
                 {
                     Throw.InvalidOperationException<object>("First row of input was not a row of headers");
                 }
             }
 
             // what are we _actually_ doing?
-            this.ReadHeaders = headers.IsHeader ? Cesil.ReadHeader.Always : Cesil.ReadHeader.Never;
+            this.ReadHeaders = headers.IsHeader ? ReadHeader.Always : ReadHeader.Never;
             TryMakeStateMachine();
 
-            if (this.ReadHeaders == Cesil.ReadHeader.Always)
+            if (this.ReadHeaders == ReadHeader.Always)
             {
-                var columnsInDiscoveredOrder = new Column[headers.Headers.Count];
-                foreach (var col in Configuration.DeserializeColumns)
-                {
-                    var isRequired = col.IsRequired;
-                    var found = false;
-
-                    using (var e = headers.Headers)
-                    {
-                        var i = 0;
-                        while (e.MoveNext())
-                        {
-                            var header = e.Current;
-                            var colNameMem = col.Name.Value.AsMemory();
-                            if (Utils.AreEqual(colNameMem, header))
-                            {
-                                columnsInDiscoveredOrder[i] = col;
-                                found = true;
-                                break;
-                            }
-
-                            i++;
-                        }
-                    }
-
-                    if (isRequired && !found)
-                    {
-                        Throw.SerializationException<object>($"Column [{col.Name}] is required, but was not found in the header");
-                    }
-                }
-
-                for (var i = 0; i < columnsInDiscoveredOrder.Length; i++)
-                {
-                    if (columnsInDiscoveredOrder[i] == null)
-                    {
-                        columnsInDiscoveredOrder[i] = Column.Ignored;
-                    }
-                }
-
-                Columns.Value = columnsInDiscoveredOrder;
-            }
-            else
-            {
-                Columns.Value = Configuration.DeserializeColumns;
+                RowBuilder.SetColumnOrder(headers.Headers);
             }
 
             Buffer.PushBackFromOutsideBuffer(headers.PushBack);

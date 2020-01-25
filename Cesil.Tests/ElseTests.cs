@@ -9,8 +9,6 @@ namespace Cesil.Tests
 {
     public class ElseTests
     {
-        // todo: tests trying all the different kinds of chaining on IElseSupporting<T> types
-
         private sealed class _DynamicRowConverters
         {
             public string Foo { get; set; }
@@ -65,8 +63,10 @@ namespace Cesil.Tests
                 var outVar = Expression.Parameter(t.MakeByRefType());
 
                 var asRow = Expression.Convert(p, Types.DynamicRowType);
+                var rowVar = Expressions.Variable_DynamicRow;
+                var assignRowVar = Expression.Assign(rowVar, asRow);
 
-                var body = chained.MakeExpression(t, asRow, ctx, outVar);
+                var body = Expression.Block(new[] { rowVar }, assignRowVar, chained.MakeExpression(t, rowVar, ctx, outVar));
 
                 var lambda = Expression.Lambda<_DynamicRowConverters_Delegate>(body, new[] { p, ctx, outVar });
                 var del = lambda.Compile();
@@ -159,7 +159,7 @@ namespace Cesil.Tests
 
                 var t = typeof(_InstanceProviders1).GetTypeInfo();
 
-                var ctx = Expression.Parameter(Types.ReadContextType.MakeByRefType());
+                var ctx = Expressions.Parameter_ReadContext_ByRef;
                 var outVar = Expression.Parameter(t.MakeByRefType());
 
                 var body = chained.MakeExpression(t, ctx, outVar);

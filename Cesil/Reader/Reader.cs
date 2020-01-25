@@ -4,7 +4,7 @@ namespace Cesil
 {
     internal sealed class Reader<T> : SyncReaderBase<T>
     {
-        internal Reader(IReaderAdapter inner, ConcreteBoundConfiguration<T> config, object? context) : base(inner, config, context) { }
+        internal Reader(IReaderAdapter inner, ConcreteBoundConfiguration<T> config, object? context, IRowConstructor<T> rowBuilder) : base(inner, config, context, rowBuilder) { }
 
         internal override void HandleRowEndingsAndHeaders()
         {
@@ -28,6 +28,8 @@ namespace Cesil
                 handle = StateMachine.Pin();
             }
 
+            TryPreAllocateRow(ref record);
+
             using (handle)
             {
 
@@ -42,17 +44,9 @@ namespace Cesil
                         return HandleAdvanceResult(endRes, returnComments);
                     }
 
-                    if (!Partial.HasPending)
+                    if (!RowBuilder.RowStarted)
                     {
-                        if (record == null)
-                        {
-                            var ctx = ReadContext.ReadingRow(Configuration.Options, RowNumber, Context);
-                            if (!Configuration.NewCons.Value(in ctx, out record))
-                            {
-                                return Throw.InvalidOperationException<ReadWithCommentResult<T>>($"Failed to construct new instance of {typeof(T)}");
-                            }
-                        }
-                        SetValueToPopulate(record);
+                        StartRow();
                     }
 
                     var res = AdvanceWork(available);
@@ -74,7 +68,6 @@ namespace Cesil
                 // can just use the discovered copy from source
                 ReadHeaders = ReadHeader.Never;
                 TryMakeStateMachine();
-                Columns.Value = Configuration.DeserializeColumns;
 
                 return;
             }
@@ -138,6 +131,7 @@ namespace Cesil
             // handle actual cleanup, a method to DRY things up
             static void Cleanup(Reader<T> self)
             {
+                self.RowBuilder.Dispose();
                 self.Buffer.Dispose();
                 self.Partial.Dispose();
                 self.StateMachine?.Dispose();

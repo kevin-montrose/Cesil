@@ -112,19 +112,27 @@ namespace Cesil
             var ctx = Expressions.Parameter_WriteContext_ByRef;
 
             Expression onType;
+            TypeInfo rowTypeVar;
             if (IsStatic)
             {
+                rowTypeVar = Types.ObjectType;
                 onType = Expressions.Constant_Null;
             }
             else
             {
+                rowTypeVar = RowType.Value;
                 onType = Expression.Convert(row, RowType.Value);
             }
 
-            var body = MakeExpression(onType, ctx);
+            var rowAsTypeVar = Expression.Variable(rowTypeVar);
+            var assignRowVar = Expression.Assign(rowAsTypeVar, onType);
+
+            var body = MakeExpression(rowAsTypeVar, ctx);
             var convertToObject = Expression.Convert(body, Types.ObjectType);
 
-            var lambda = Expression.Lambda<DynamicGetterDelegate>(convertToObject, row, ctx);
+            var block = Expression.Block(new[] { rowAsTypeVar }, assignRowVar, convertToObject);
+
+            var lambda = Expression.Lambda<DynamicGetterDelegate>(block, row, ctx);
             var del = lambda.Compile();
 
             return del;
@@ -133,7 +141,7 @@ namespace Cesil
         void ICreatesCacheableDelegate<DynamicGetterDelegate>.Guarantee(IDelegateCache cache)
         => IDelegateCacheHelpers.GuaranteeImpl<Getter, DynamicGetterDelegate>(this, cache);
 
-        internal Expression MakeExpression(Expression rowVar, Expression ctxVar)
+        internal Expression MakeExpression(ParameterExpression rowVar, ParameterExpression ctxVar)
         {
             // todo: there's no particular reason this couldn't be chain-able?
 

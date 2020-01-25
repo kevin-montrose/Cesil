@@ -3,34 +3,8 @@ using System.Buffers;
 
 namespace Cesil
 {
-    internal sealed class Partial<T> : ITestableDisposable
+    internal sealed class Partial : ITestableDisposable
     {
-        private T _Value;
-        internal T Value
-        {
-            get
-            {
-                return _Value;
-            }
-            private set
-            {
-                _Value = value;
-            }
-        }
-
-        private bool _HasPending;
-        internal bool HasPending
-        {
-            get
-            {
-                return _HasPending;
-            }
-            private set
-            {
-                _HasPending = value;
-            }
-        }
-
         private int _CurrentColumnIndex;
         internal int CurrentColumnIndex
         {
@@ -57,23 +31,13 @@ namespace Cesil
 
         internal Partial(MemoryPool<char> memoryPool)
         {
-            _Value = default!;
-            HasPending = false;
             CurrentColumnIndex = 0;
             PendingCharacters = new MaybeInPlaceBuffer<char>(memoryPool);
         }
 
-        internal void SetValueAndResetColumn(T v)
+        internal void ResetColumn(bool setHasPending)
         {
-            Value = v;
-            HasPending = true;
             CurrentColumnIndex = 0;
-        }
-
-        internal void ClearValue()
-        {
-            Value = default!;
-            HasPending = false;
         }
 
         internal void AppendCarriageReturn(ReadOnlySpan<char> from)
@@ -124,6 +88,7 @@ namespace Cesil
             if (!IsDisposed)
             {
                 PendingCharacters.Dispose();
+
                 IsDisposed = true;
             }
         }

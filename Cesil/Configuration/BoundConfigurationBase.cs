@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipelines;
+using System.Linq;
 using System.Text;
 
 namespace Cesil
@@ -16,8 +18,8 @@ namespace Cesil
 
         internal readonly ReadOnlyMemory<char> RowEndingMemory;
 
-        internal readonly NonNull<InstanceProviderDelegate<T>> NewCons;
-        internal readonly Column[] DeserializeColumns;
+        internal readonly NonNull<InstanceProvider> InstanceProvider;
+        internal readonly IEnumerable<DeserializableMember> DeserializeColumns;
 
         internal readonly Column[] SerializeColumns;
         internal readonly bool[] SerializeColumnsNeedEscape;
@@ -43,8 +45,8 @@ namespace Cesil
             Options options
         )
         {
-            NewCons.Clear();
-            DeserializeColumns = Array.Empty<Column>();
+            InstanceProvider.Clear();
+            DeserializeColumns = Enumerable.Empty<DeserializableMember>();
             SerializeColumns = Array.Empty<Column>();
             SerializeColumnsNeedEscape = Array.Empty<bool>();
 
@@ -96,14 +98,21 @@ namespace Cesil
         /// For working with concrete types.
         /// </summary>
         protected BoundConfigurationBase(
-            InstanceProviderDelegate<T> newCons,
-            Column[] deserializeColumns,
+            InstanceProvider? instanceProvider,
+            IEnumerable<DeserializableMember> deserializeColumns,
             Column[] serializeColumns,
             bool[] serializeColumnsNeedEscape,
             Options options
         )
         {
-            NewCons.Value = newCons;
+            if (instanceProvider != null)
+            {
+                InstanceProvider.Value = instanceProvider;
+            }
+            else
+            {
+                InstanceProvider.Clear();
+            }
             DeserializeColumns = deserializeColumns;
             SerializeColumns = serializeColumns;
             SerializeColumnsNeedEscape = serializeColumnsNeedEscape;

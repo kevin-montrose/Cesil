@@ -9,7 +9,7 @@ namespace Cesil
     internal sealed class AsyncReader<T> :
         AsyncReaderBase<T>
     {
-        internal AsyncReader(IAsyncReaderAdapter inner, ConcreteBoundConfiguration<T> config, object? context) : base(inner, config, context) { }
+        internal AsyncReader(IAsyncReaderAdapter inner, ConcreteBoundConfiguration<T> config, object? context, IRowConstructor<T> rowBuilder) : base(inner, config, context, rowBuilder) { }
 
         internal override ValueTask HandleRowEndingsAndHeadersAsync(CancellationToken cancel)
         {
@@ -61,6 +61,8 @@ namespace Cesil
                 handle = StateMachine.Pin();
             }
 
+            TryPreAllocateRow(ref record);
+
             try
             {
                 while (true)
@@ -69,9 +71,9 @@ namespace Cesil
                     var availableTask = Buffer.ReadAsync(Inner, cancel);
                     if (!availableTask.IsCompletedSuccessfully(this))
                     {
-                        var row = GuaranteeRow(ref record);
+
                         disposeHandle = false;
-                        return TryReadInnerAsync_ContinueAfterReadAsync(this, availableTask, handle, returnComments, row, cancel);
+                        return TryReadInnerAsync_ContinueAfterReadAsync(this, availableTask, handle, returnComments, cancel);
                     }
 
                     var available = availableTask.Result;
@@ -82,10 +84,9 @@ namespace Cesil
                         return new ValueTask<ReadWithCommentResult<T>>(HandleAdvanceResult(endRes, returnComments));
                     }
 
-                    if (!Partial.HasPending)
+                    if (!RowBuilder.RowStarted)
                     {
-                        record = GuaranteeRow(ref record);
-                        SetValueToPopulate(record);
+                        StartRow();
                     }
 
                     var res = AdvanceWork(available);
@@ -105,7 +106,7 @@ namespace Cesil
             }
 
             // continue after we read a chunk into a buffer
-            static async ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync_ContinueAfterReadAsync(AsyncReader<T> self, ValueTask<int> waitFor, ReaderStateMachine.PinHandle handle, bool returnComments, T record, CancellationToken cancel)
+            static async ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync_ContinueAfterReadAsync(AsyncReader<T> self, ValueTask<int> waitFor, ReaderStateMachine.PinHandle handle, bool returnComments, CancellationToken cancel)
             {
                 try
                 {
@@ -126,10 +127,9 @@ namespace Cesil
                                 return self.HandleAdvanceResult(endRes, returnComments);
                             }
 
-                            if (!self.Partial.HasPending)
+                            if (!self.RowBuilder.RowStarted)
                             {
-                                record = self.GuaranteeRow(ref record);
-                                self.SetValueToPopulate(record);
+                                self.StartRow();
                             }
 
                             var res = self.AdvanceWork(available);
@@ -158,9 +158,9 @@ namespace Cesil
                                 return self.HandleAdvanceResult(endRes, returnComments);
                             }
 
-                            if (!self.Partial.HasPending)
+                            if (!self.RowBuilder.RowStarted)
                             {
-                                self.SetValueToPopulate(record);
+                                self.StartRow();
                             }
 
                             var res = self.AdvanceWork(available);
@@ -236,23 +236,6 @@ namespace Cesil
             }
         }
 
-        // make sure we've got a row to work with
-        internal override T GuaranteeRow(ref T preallocd)
-        {
-            if (preallocd != null)
-            {
-                return preallocd;
-            }
-
-            var ctx = ReadContext.ReadingRow(Configuration.Options, RowNumber, Context);
-            if (!Configuration.NewCons.Value(in ctx, out preallocd))
-            {
-                return Throw.InvalidOperationException<T>($"Failed to construct new instance of {typeof(T)}");
-            }
-
-            return preallocd;
-        }
-
         private ValueTask HandleHeadersAsync(CancellationToken cancel)
         {
             var options = Configuration.Options;
@@ -262,7 +245,6 @@ namespace Cesil
                 // can just use the discovered copy from source
                 ReadHeaders = ReadHeader.Never;
                 TryMakeStateMachine();
-                Columns.Value = Configuration.DeserializeColumns;
 
                 return default;
             }
@@ -349,6 +331,8 @@ namespace Cesil
             // handle actual cleanup, a method to DRY things up
             static void Cleanup(AsyncReader<T> self)
             {
+                self.RowBuilder.Dispose();
+
                 self.Buffer.Dispose();
                 self.Partial.Dispose();
                 self.StateMachine?.Dispose();

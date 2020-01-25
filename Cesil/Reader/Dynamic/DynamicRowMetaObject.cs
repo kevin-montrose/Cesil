@@ -196,19 +196,30 @@ namespace Cesil
                 return new DynamicMetaObject(throwMsg, restrictions);
             }
 
+            var statements = new List<Expression>();
+
             var selfAsRow = Expression.Convert(Expression, Types.DynamicRowType);
+            var dynRowVar = Expressions.Variable_DynamicRow;
+            var assignDynRow = Expression.Assign(dynRowVar, selfAsRow);
+            statements.Add(assignDynRow);
+
             var outArg = Expression.Variable(binder.ReturnType);
 
-            var callGetContext = Expression.Call(selfAsRow, Methods.DynamicRow.GetReadContext);
+            var callGetContext = Expression.Call(dynRowVar, Methods.DynamicRow.GetReadContext);
+            var readCtxVar = Expressions.Variable_ReadContext;
+            var assignReadCtx = Expression.Assign(readCtxVar, callGetContext);
+            statements.Add(assignReadCtx);
 
-            var convertExp = converter.MakeExpression(binder.ReturnType.GetTypeInfo(), selfAsRow, callGetContext, outArg);
+            var convertExp = converter.MakeExpression(binder.ReturnType.GetTypeInfo(), dynRowVar, readCtxVar, outArg);
 
             var errorMsg = Expression.Constant($"{nameof(DynamicRowConverter)} ({converter}) could not convert dynamic row to {binder.ReturnType}");
             var throwInvalidOp = Expression.Call(Methods.Throw.InvalidOperationExceptionOfObject, errorMsg);
 
             var ifFalseThrow = Expression.IfThen(Expression.Not(convertExp), throwInvalidOp);
+            statements.Add(ifFalseThrow);
+            statements.Add(outArg);
 
-            var block = Expression.Block(new[] { outArg }, ifFalseThrow, outArg);
+            var block = Expression.Block(new[] { outArg, dynRowVar, readCtxVar }, statements);
 
             return new DynamicMetaObject(block, restrictions);
         }

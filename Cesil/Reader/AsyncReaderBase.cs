@@ -16,7 +16,7 @@ namespace Cesil
 
         internal readonly IAsyncReaderAdapter Inner;
 
-        internal AsyncReaderBase(IAsyncReaderAdapter reader, BoundConfigurationBase<T> config, object? context) : base(config, context)
+        internal AsyncReaderBase(IAsyncReaderAdapter reader, BoundConfigurationBase<T> config, object? context, IRowConstructor<T> rowBuilder) : base(config, context, rowBuilder)
         {
             Inner = reader;
         }
@@ -187,7 +187,7 @@ namespace Cesil
                 var handleRowEndingsAndHeadersTask = HandleRowEndingsAndHeadersAsync(cancel);
                 if (!handleRowEndingsAndHeadersTask.IsCompletedSuccessfully(this))
                 {
-                    row = GuaranteeRow(ref row);
+                    TryPreAllocateRow(ref row);
                     return TryReadWithReuseAsync_ContinueAfterHandleRowEndingsAndHeadersAsync(this, handleRowEndingsAndHeadersTask, row, cancel);
                 }
 
@@ -326,7 +326,6 @@ namespace Cesil
         internal abstract ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync(bool returnComments, bool pinAcquired, ref T record, CancellationToken cancel);
 
         internal abstract ValueTask HandleRowEndingsAndHeadersAsync(CancellationToken cancel);
-        internal abstract T GuaranteeRow(ref T prealloced);
 
         public abstract ValueTask DisposeAsync();
     }

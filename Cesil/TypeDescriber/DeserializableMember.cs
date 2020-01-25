@@ -182,6 +182,11 @@ namespace Cesil
                 }
             }
 
+            if (setter.Mode == BackingMode.ConstructorParameter && !isRequiredBool)
+            {
+                return Throw.InvalidOperationException<DeserializableMember>($"{nameof(Setter)} that is backed by a constructor parameter can only be used with {nameof(MemberRequired)}.{nameof(MemberRequired.Yes)}; {nameof(setter)} was {setter}");
+            }
+
             return new DeserializableMember(name, setter, parser, isRequiredBool, reset);
         }
 

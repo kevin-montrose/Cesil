@@ -17,7 +17,7 @@ namespace Cesil
     /// <summary>
     /// Represents code used to set parsed values onto types.
     /// 
-    /// Wraps either a MethodInfo, a FieldInfo, a SetterDelegate, or a StaticSetterDelegate.
+    /// Wraps either a MethodInfo, a FieldInfo, a SetterDelegate, a StaticSetterDelegate, or a constructor parameter.
     /// </summary>
     public sealed class Setter : IEquatable<Setter>
     {
@@ -40,6 +40,11 @@ namespace Cesil
                     return BackingMode.Delegate;
                 }
 
+                if (ConstructorParameter.HasValue)
+                {
+                    return BackingMode.ConstructorParameter;
+                }
+
                 return BackingMode.None;
             }
         }
@@ -53,11 +58,14 @@ namespace Cesil
                     case BackingMode.Field: return Field.Value.IsStatic;
                     case BackingMode.Method: return Method.Value.IsStatic;
                     case BackingMode.Delegate: return !RowType.HasValue;
+                    case BackingMode.ConstructorParameter: return false;
                     default:
                         return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}");
                 }
             }
         }
+
+        internal readonly NonNull<ParameterInfo> ConstructorParameter;
 
         internal readonly NonNull<MethodInfo> Method;
 
@@ -70,6 +78,14 @@ namespace Cesil
         internal readonly TypeInfo Takes;
 
         internal readonly bool TakesContext;
+
+        private Setter(TypeInfo rowType, TypeInfo takes, ParameterInfo param)
+        {
+            RowType.Value = rowType;
+            Takes = takes;
+            ConstructorParameter.Value = param;
+            TakesContext = false;
+        }
 
         private Setter(TypeInfo? rowType, TypeInfo takes, MethodInfo method, bool takesContext)
         {
@@ -95,7 +111,7 @@ namespace Cesil
             TakesContext = false;
         }
 
-        internal Expression MakeExpression(Expression rowVar, Expression valVar, Expression ctxVar)
+        internal Expression MakeExpression(ParameterExpression rowVar, ParameterExpression valVar, ParameterExpression ctxVar)
         {
             // todo: no reason this can't be chainable?
 
@@ -364,6 +380,24 @@ namespace Cesil
         }
 
         /// <summary>
+        /// Create a Setter from the given constructor parameter.
+        /// </summary>
+        public static Setter ForConstructorParameter(ParameterInfo parameter)
+        {
+            Utils.CheckArgumentNull(parameter, nameof(parameter));
+
+            var mem = parameter.Member;
+            if (mem is ConstructorInfo cons)
+            {
+                return new Setter(cons.DeclaringType!.GetTypeInfo(), parameter.ParameterType.GetTypeInfo(), parameter);
+            }
+            else
+            {
+                return Throw.ArgumentException<Setter>($"Expected parameter to be on a constructor; found {mem}", nameof(parameter));
+            }
+        }
+
+        /// <summary>
         /// Returns true if this object equals the given Setter.
         /// </summary>
         public override bool Equals(object? obj)
@@ -406,6 +440,7 @@ namespace Cesil
                 case BackingMode.Delegate: return Delegate.Value == setter.Delegate.Value;
                 case BackingMode.Field: return Field.Value == setter.Field.Value;
                 case BackingMode.Method: return Method.Value == setter.Method.Value;
+                case BackingMode.ConstructorParameter: return ConstructorParameter.Value == setter.ConstructorParameter.Value;
 
                 default:
                     return Throw.Exception<bool>($"Unexpected {nameof(BackingMode)}: {mode}");
@@ -416,7 +451,7 @@ namespace Cesil
         /// Returns a stable hash for this Setter.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(Setter), Delegate, Field, IsStatic, Method, Mode, RowType, Takes);
+        => HashCode.Combine(nameof(Setter), Delegate, Field, IsStatic, Method, Mode, RowType, HashCode.Combine(Takes, ConstructorParameter));
 
         /// <summary>
         /// Describes this Setter.
@@ -454,6 +489,8 @@ namespace Cesil
                     {
                         return $"{nameof(Setter)} on {RowType} backed by field {Field} of {Takes}";
                     }
+                case BackingMode.ConstructorParameter:
+                    return $"{nameof(Setter)} on {RowType} backed by the constructor parameter {ConstructorParameter}";
                 default:
                     return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
             }
@@ -474,6 +511,14 @@ namespace Cesil
         /// </summary>
         public static explicit operator Setter?(FieldInfo? field)
         => field == null ? null : ForField(field);
+
+        /// <summary>
+        /// Convenience operator, equivalent to calling Setter.ForConstructorParameter if non-null.
+        /// 
+        /// Returns null if field is null.
+        /// </summary>
+        public static explicit operator Setter?(ParameterInfo? parameter)
+        => parameter == null ? null : ForConstructorParameter(parameter);
 
         /// <summary>
         /// Convenience operator, equivalent to calling Setter.ForDelegate if non-null.

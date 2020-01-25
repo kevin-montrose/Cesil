@@ -1,18 +1,21 @@
-﻿using System.Text;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace Cesil
 {
     internal sealed class ConcreteBoundConfiguration<T> : BoundConfigurationBase<T>
     {
         internal ConcreteBoundConfiguration(
-            InstanceProviderDelegate<T> newCons,
-            Column[] deserializeColumns,
+            InstanceProvider? instanceProvider,
+            IEnumerable<DeserializableMember> deserializeColumns,
             Column[] serializeColumns,
             bool[] serializeColumnsNeedEscape,
             Options options
         ) :
             base(
-                newCons,
+                instanceProvider,
                 deserializeColumns,
                 serializeColumns,
                 serializeColumnsNeedEscape,
@@ -20,24 +23,33 @@ namespace Cesil
             )
         { }
 
-        internal override IReader<T> CreateReader(IReaderAdapter inner, object? context = null)
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void AssertCanMakeReader()
         {
-            if (DeserializeColumns.Length == 0)
+            if (!InstanceProvider.HasValue)
             {
-                return Throw.InvalidOperationException<IReader<T>>($"No columns configured to read for {typeof(T).FullName}");
+                Throw.InvalidOperationException<object>($"Cannot make a reader for {typeof(T).Name}, no {nameof(InstanceProvider)} was discovered using {nameof(Options)} provided to {nameof(Configuration)}.");
             }
 
-            return new Reader<T>(inner, this, context);
+            if (!DeserializeColumns.Any())
+            {
+                Throw.InvalidOperationException<IReader<T>>($"No columns configured to read for {typeof(T).FullName}");
+            }
+        }
+
+        internal override IReader<T> CreateReader(IReaderAdapter inner, object? context = null)
+        {
+            AssertCanMakeReader();
+
+            return new Reader<T>(inner, this, context, CreateRowConstructor());
         }
 
         internal override IAsyncReader<T> CreateAsyncReader(IAsyncReaderAdapter inner, object? context = null)
         {
-            if (DeserializeColumns.Length == 0)
-            {
-                return Throw.InvalidOperationException<IAsyncReader<T>>($"No columns configured to read for {typeof(T).FullName}");
-            }
+            AssertCanMakeReader();
 
-            return new AsyncReader<T>(inner, this, context);
+            return new AsyncReader<T>(inner, this, context, CreateRowConstructor());
         }
 
         internal override IWriter<T> CreateWriter(IWriterAdapter inner, object? context = null)
@@ -59,6 +71,9 @@ namespace Cesil
 
             return new AsyncWriter<T>(this, inner, context);
         }
+
+        private IRowConstructor<T> CreateRowConstructor()
+        => RowConstructor.Create<T>(Options.MemoryPool, InstanceProvider.Value, DeserializeColumns);
 
         public override string ToString()
         {

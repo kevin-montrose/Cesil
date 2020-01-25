@@ -2194,6 +2194,19 @@ references:
   isSpec: "True"
   fullName: Cesil.InstanceProvider.Equals
   nameWithType: InstanceProvider.Equals
+- uid: Cesil.InstanceProvider.ForConstructorWithParameters(ConstructorInfo)
+  name: ForConstructorWithParameters(ConstructorInfo)
+  href: api/Cesil.InstanceProvider.html#Cesil_InstanceProvider_ForConstructorWithParameters_ConstructorInfo_
+  commentId: M:Cesil.InstanceProvider.ForConstructorWithParameters(ConstructorInfo)
+  fullName: Cesil.InstanceProvider.ForConstructorWithParameters(ConstructorInfo)
+  nameWithType: InstanceProvider.ForConstructorWithParameters(ConstructorInfo)
+- uid: Cesil.InstanceProvider.ForConstructorWithParameters*
+  name: ForConstructorWithParameters
+  href: api/Cesil.InstanceProvider.html#Cesil_InstanceProvider_ForConstructorWithParameters_
+  commentId: Overload:Cesil.InstanceProvider.ForConstructorWithParameters
+  isSpec: "True"
+  fullName: Cesil.InstanceProvider.ForConstructorWithParameters
+  nameWithType: InstanceProvider.ForConstructorWithParameters
 - uid: Cesil.InstanceProvider.ForDelegate*
   name: ForDelegate
   href: api/Cesil.InstanceProvider.html#Cesil_InstanceProvider_ForDelegate_
@@ -5002,6 +5015,19 @@ references:
   isSpec: "True"
   fullName: Cesil.Setter.Equals
   nameWithType: Setter.Equals
+- uid: Cesil.Setter.ForConstructorParameter(ParameterInfo)
+  name: ForConstructorParameter(ParameterInfo)
+  href: api/Cesil.Setter.html#Cesil_Setter_ForConstructorParameter_ParameterInfo_
+  commentId: M:Cesil.Setter.ForConstructorParameter(ParameterInfo)
+  fullName: Cesil.Setter.ForConstructorParameter(ParameterInfo)
+  nameWithType: Setter.ForConstructorParameter(ParameterInfo)
+- uid: Cesil.Setter.ForConstructorParameter*
+  name: ForConstructorParameter
+  href: api/Cesil.Setter.html#Cesil_Setter_ForConstructorParameter_
+  commentId: Overload:Cesil.Setter.ForConstructorParameter
+  isSpec: "True"
+  fullName: Cesil.Setter.ForConstructorParameter
+  nameWithType: Setter.ForConstructorParameter
 - uid: Cesil.Setter.ForDelegate*
   name: ForDelegate
   href: api/Cesil.Setter.html#Cesil_Setter_ForDelegate_
@@ -5119,6 +5145,15 @@ references:
   fullName.vb: Cesil.Setter.Narrowing(System.Nullable(Of MethodInfo) to Cesil.Setter)
   nameWithType: Setter.Explicit(Nullable<MethodInfo> to Setter)
   nameWithType.vb: Setter.Narrowing(Nullable(Of MethodInfo) to Setter)
+- uid: Cesil.Setter.op_Explicit(System.Nullable{ParameterInfo})~Cesil.Setter
+  name: Explicit(Nullable<ParameterInfo> to Setter)
+  href: api/Cesil.Setter.html#Cesil_Setter_op_Explicit_System_Nullable_ParameterInfo___Cesil_Setter
+  commentId: M:Cesil.Setter.op_Explicit(System.Nullable{ParameterInfo})~Cesil.Setter
+  name.vb: Narrowing(Nullable(Of ParameterInfo) to Setter)
+  fullName: Cesil.Setter.Explicit(System.Nullable<ParameterInfo> to Cesil.Setter)
+  fullName.vb: Cesil.Setter.Narrowing(System.Nullable(Of ParameterInfo) to Cesil.Setter)
+  nameWithType: Setter.Explicit(Nullable<ParameterInfo> to Setter)
+  nameWithType.vb: Setter.Narrowing(Nullable(Of ParameterInfo) to Setter)
 - uid: Cesil.Setter.op_Explicit*
   name: Explicit
   href: api/Cesil.Setter.html#Cesil_Setter_op_Explicit_

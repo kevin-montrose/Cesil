@@ -1,6 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq.Expressions;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace Cesil
@@ -56,11 +55,11 @@ namespace Cesil
                 return Throw.InvalidOperationException<IBoundConfiguration<TRow>>($"Use {nameof(ForDynamic)} when creating configurations for dynamic types");
             }
 
-            var deserializeColumns = DiscoverDeserializeColumns(forType, options);
+            var deserializeColumns = options.TypeDescriber.EnumerateMembersToDeserialize(forType);
             var serializeColumns = DiscoverSerializeColumns(forType, options);
-            var cons = DiscoverInstanceProvider<TRow>(forType, options);
+            var provider = options.TypeDescriber.GetInstanceProvider(forType);
 
-            if (deserializeColumns.Length == 0 && serializeColumns.Length == 0)
+            if (!deserializeColumns.Any() && serializeColumns.Length == 0)
             {
                 return Throw.InvalidOperationException<IBoundConfiguration<TRow>>($"No columns found to read or write for {typeof(TRow).FullName}");
             }
@@ -87,84 +86,12 @@ namespace Cesil
 
             return
                 new ConcreteBoundConfiguration<TRow>(
-                    cons,
+                    provider,
                     deserializeColumns,
                     serializeColumns,
                     needsEscape,
                     options
                 );
-        }
-
-        private static Column[] DiscoverDeserializeColumns(TypeInfo t, Options options)
-        {
-            var ret = new List<Column>();
-
-            var cols = options.TypeDescriber.EnumerateMembersToDeserialize(t.GetTypeInfo());
-
-            foreach (var col in cols)
-            {
-                var setter = ColumnSetter.Create(t, col.Parser, col.Setter, col.Reset);
-
-                ret.Add(new Column(col.Name, setter, null, col.IsRequired));
-            }
-
-            return ret.ToArray();
-        }
-
-        private static InstanceProviderDelegate<T> DiscoverInstanceProvider<T>(TypeInfo forType, Options opts)
-        {
-            var neededType = typeof(T).GetTypeInfo();
-
-            var builder = opts.TypeDescriber.GetInstanceProvider(forType);
-            if (builder == null)
-            {
-                return Throw.InvalidOperationException<InstanceProviderDelegate<T>>($"No {nameof(InstanceProvider)} returned for {typeof(T)}");
-            }
-
-            var constructedType = builder.ConstructsType;
-            if (!neededType.IsAssignableFrom(constructedType))
-            {
-                return Throw.InvalidOperationException<InstanceProviderDelegate<T>>($"Returned {nameof(InstanceProvider)} ({builder}) cannot create instances assignable to {typeof(T)}");
-            }
-
-            // fast paths
-            if (!builder.HasFallbacks)
-            {
-                switch (builder.Mode)
-                {
-                    case BackingMode.Delegate:
-                        {
-                            var del = builder.Delegate.Value;
-                            if (del is InstanceProviderDelegate<T> exactMatch)
-                            {
-                                return exactMatch;
-                            }
-                        }
-                        break;
-                    case BackingMode.Method:
-                        {
-                            var mtd = builder.Method.Value;
-
-                            var delType = typeof(InstanceProviderDelegate<T>);
-                            var del = (InstanceProviderDelegate<T>)Delegate.CreateDelegate(delType, mtd);
-
-                            return del;
-                        }
-                        // intentionally non-exhaustive
-                }
-            }
-
-
-            var resultType = typeof(T).GetTypeInfo();
-            var outVar = Expression.Parameter(resultType.MakeByRefType());
-            var ctxVar = Expressions.Parameter_ReadContext_ByRef;
-
-            var exp = builder.MakeExpression(resultType, ctxVar, outVar);
-
-            var wrappingDel = Expression.Lambda<InstanceProviderDelegate<T>>(exp, ctxVar, outVar);
-            var ret = wrappingDel.Compile();
-
-            return ret;
         }
 
         private static Column[] DiscoverSerializeColumns(TypeInfo t, Options options)
@@ -177,7 +104,7 @@ namespace Cesil
             {
                 var writer = ColumnWriter.Create(t, col.Formatter, col.ShouldSerialize, col.Getter, col.EmitDefaultValue);
 
-                ret.Add(new Column(col.Name, null, writer, false));
+                ret.Add(new Column(col.Name, writer, false));
             }
 
             return ret.ToArray();

@@ -9,7 +9,7 @@ namespace Cesil.Tests
         [Fact]
         public void Empty()
         {
-            var partial = new Partial<object>(MemoryPool<char>.Shared);
+            var partial = new Partial(MemoryPool<char>.Shared);
 
             var s = partial.PendingAsString(ReadOnlyMemory<char>.Empty);
 

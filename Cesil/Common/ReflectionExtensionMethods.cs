@@ -1,10 +1,48 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
+using System.Reflection.Emit;
 
 namespace Cesil
 {
     internal static class ReflectionExtensionMethods
     {
+        public static bool IsBigTuple(this TypeInfo type)
+        {
+            if (!type.IsGenericType) return false;
+
+            if (!type.IsGenericTypeDefinition)
+            {
+                type = type.GetGenericTypeDefinition().GetTypeInfo();
+            }
+
+            return type == Types.TupleTypes[Types.TupleTypes.Length - 1];
+        }
+
+        public static bool IsBigValueTuple(this TypeInfo type)
+        {
+            if (!type.IsGenericType) return false;
+
+            if (!type.IsGenericTypeDefinition)
+            {
+                type = type.GetGenericTypeDefinition().GetTypeInfo();
+            }
+
+            return type == Types.ValueTupleTypes[Types.ValueTupleTypes.Length - 1];
+        }
+
+        public static bool IsValueTuple(this TypeInfo type)
+        {
+            if (!type.IsGenericType) return false;
+
+            if (!type.IsGenericTypeDefinition)
+            {
+                type = type.GetGenericTypeDefinition().GetTypeInfo();
+            }
+
+            return Array.IndexOf(Types.ValueTupleTypes, type) != -1;
+        }
+
         public static bool IsReadContextByRef(this ParameterInfo p, out string error)
         {
             var pType = p.ParameterType.GetTypeInfo();
@@ -175,6 +213,17 @@ namespace Cesil
             }
 
             return getNull;
+        }
+
+        public static TypeInfo CreateTypeNonNull(this TypeBuilder builder)
+        {
+            var type = builder.CreateTypeInfo();
+            if (type == null)
+            {
+                return Throw.InvalidOperationException<TypeInfo>($"Created type was null");
+            }
+
+            return type;
         }
     }
 }

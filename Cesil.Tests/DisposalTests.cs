@@ -62,7 +62,7 @@ namespace Cesil.Tests
                 {
                     IDisposable_MaybeInPlaceBuffer();
                 }
-                else if (t == typeof(Partial<>))
+                else if (t == typeof(Partial))
                 {
                     IDisposable_Partial();
                 }
@@ -148,6 +148,10 @@ namespace Cesil.Tests
                 {
                     // intentionally NOT testing, this is plain as hell wrapper
                     //   that is for making things exception safe
+                }
+                else if (t == typeof(RequiredSet) || t == typeof(DynamicRowConstructor) || t == typeof(NeedsHoldRowConstructor<,>) || t == typeof(SimpleRowConstructor<>))
+                {
+                    // intentionally NOT testing, these are all just proxies for RequireSet and aren't really disposable
                 }
                 else
                 {
@@ -838,9 +842,9 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a partial that's "good to go"
-                Partial<_IDisposable> MakePartial()
+                Partial MakePartial()
                 {
-                    return new Partial<_IDisposable>(MemoryPool<char>.Shared);
+                    return new Partial(MemoryPool<char>.Shared);
                 }
             }
 

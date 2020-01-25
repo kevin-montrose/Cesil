@@ -18,5 +18,8 @@ namespace Cesil
         internal static readonly DefaultExpression Default_Object = Expression.Default(Types.ObjectType);
 
         internal static readonly ParameterExpression Variable_Bool = Expression.Variable(Types.BoolType);
+        internal static readonly ParameterExpression Variable_ReadOnlySpanOfChar = Expression.Variable(Types.ReadOnlySpanOfCharType);
+        internal static readonly ParameterExpression Variable_ReadContext = Expression.Variable(Types.ReadContextType);
+        internal static readonly ParameterExpression Variable_DynamicRow = Expression.Variable(Types.DynamicRowType);
     }
 }

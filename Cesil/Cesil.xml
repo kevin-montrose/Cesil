@@ -16,7 +16,7 @@
             For working with dynamic.
             </summary>
         </member>
-        <member name="M:Cesil.BoundConfigurationBase`1.#ctor(Cesil.InstanceProviderDelegate{`0},Cesil.Column[],Cesil.Column[],System.Boolean[],Cesil.Options)">
+        <member name="M:Cesil.BoundConfigurationBase`1.#ctor(Cesil.InstanceProvider,System.Collections.Generic.IEnumerable{Cesil.DeserializableMember},Cesil.Column[],System.Boolean[],Cesil.Options)">
             <summary>
             For working with concrete types.
             </summary>
@@ -1509,6 +1509,22 @@
             comment lines.
             </summary>
         </member>
+        <member name="T:Cesil.RowConstructor">
+            <summary>
+            Handles gluing InstanceProviders and Setters together for constructing an object.
+            
+            This is complicated by some providers being backed by a constructor that takes parameters,
+               which means we may need to do considerable work before we could actually get a hold of
+               a row instance.
+               
+            For extra fun, we allow mixing different kinds of setters and instance providers so we might 
+               need to "hold" some values before an instance is available even if those values have simple
+               setters.
+               
+            And then on top of that, the column order can vary per reader which means what needs to be "held"
+               varies even then.
+            </summary>
+        </member>
         <member name="T:Cesil.ReadResult`1">
             <summary>
             Represents the result of an attempted read operation.
@@ -1638,7 +1654,7 @@
             Gets an InstanceProvider that wraps the parameterless constructor
               for the given type.
               
-            Throws if there is no parameterless constructor.
+            Returns null if no parameterless constructor is found.
             </summary>
         </member>
         <member name="M:Cesil.DefaultTypeDescriber.EnumerateMembersToDeserialize(System.Reflection.TypeInfo)">
@@ -3291,6 +3307,20 @@
               - not an unbound generic type (ie. a generic type definition)
             </summary>
         </member>
+        <member name="M:Cesil.InstanceProvider.ForConstructorWithParameters(System.Reflection.ConstructorInfo)">
+            <summary>
+            Create a new InstanceProvider from a constructor that takes parameters.
+            
+            An InstanceProvider of this type must be paired with Setters that map to the parameters
+              on this constructor.
+            
+            The constructed type must be concrete, that is:
+              - not an interface
+              - not an abstract class
+              - not a generic parameter
+              - not an unbound generic type (ie. a generic type definition)
+            </summary>
+        </member>
         <member name="M:Cesil.InstanceProvider.ForDelegate``1(Cesil.InstanceProviderDelegate{``0})">
             <summary>
             Create a new InstanceProvider from delegate.
@@ -3330,7 +3360,7 @@
         </member>
         <member name="M:Cesil.InstanceProvider.op_Explicit(System.Reflection.ConstructorInfo)~Cesil.InstanceProvider">
             <summary>
-            Convenience operator, equivalent to calling ForParameterlessConstructor if non-null.
+            Convenience operator, equivalent to calling ForParameterlessConstructor or ForConstructorWithParameters if non-null.
             
             Returns null if field is null.
             </summary>
@@ -3564,7 +3594,7 @@
             <summary>
             Represents code used to set parsed values onto types.
             
-            Wraps either a MethodInfo, a FieldInfo, a SetterDelegate, or a StaticSetterDelegate.
+            Wraps either a MethodInfo, a FieldInfo, a SetterDelegate, a StaticSetterDelegate, or a constructor parameter.
             </summary>
         </member>
         <member name="M:Cesil.Setter.ForProperty(System.Reflection.PropertyInfo)">
@@ -3608,6 +3638,11 @@
             Create a Setter from the given delegate.
             </summary>
         </member>
+        <member name="M:Cesil.Setter.ForConstructorParameter(System.Reflection.ParameterInfo)">
+            <summary>
+            Create a Setter from the given constructor parameter.
+            </summary>
+        </member>
         <member name="M:Cesil.Setter.Equals(System.Object)">
             <summary>
             Returns true if this object equals the given Setter.
@@ -3640,6 +3675,13 @@
         <member name="M:Cesil.Setter.op_Explicit(System.Reflection.FieldInfo)~Cesil.Setter">
             <summary>
             Convenience operator, equivalent to calling Setter.ForField if non-null.
+            
+            Returns null if field is null.
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.op_Explicit(System.Reflection.ParameterInfo)~Cesil.Setter">
+            <summary>
+            Convenience operator, equivalent to calling Setter.ForConstructorParameter if non-null.
             
             Returns null if field is null.
             </summary>

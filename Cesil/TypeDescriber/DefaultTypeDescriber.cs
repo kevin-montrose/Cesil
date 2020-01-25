@@ -40,7 +40,7 @@ namespace Cesil
         /// Gets an InstanceProvider that wraps the parameterless constructor
         ///   for the given type.
         ///   
-        /// Throws if there is no parameterless constructor.
+        /// Returns null if no parameterless constructor is found.
         /// </summary>
         [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         public virtual InstanceProvider? GetInstanceProvider(TypeInfo forType)
@@ -50,7 +50,7 @@ namespace Cesil
             var cons = forType.GetConstructor(TypeInfo.EmptyTypes);
             if (cons == null)
             {
-                return Throw.ArgumentException<InstanceProvider>($"No parameterless constructor found for {forType}", nameof(forType));
+                return null;
             }
 
             return InstanceProvider.ForParameterlessConstructor(cons);
@@ -390,41 +390,52 @@ namespace Cesil
         /// </summary>
         public virtual IEnumerable<SerializableMember> EnumerateMembersToSerialize(TypeInfo forType)
         {
-            var buffer = new List<(SerializableMember Member, int? Position)>();
-
-            foreach (var p in forType.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance))
+            if (forType.IsBigTuple() || forType.IsBigValueTuple())
             {
-                if (!ShouldSerialize(forType, p)) continue;
-
-                var name = GetSerializationName(forType, p);
-                var getter = GetGetter(forType, p);
-                var shouldSerialize = GetShouldSerialize(forType, p);
-                var formatter = GetFormatter(forType, p);
-                var order = GetOrder(forType, p);
-                var emitDefault = GetEmitDefaultValue(forType, p);
-
-                buffer.Add((SerializableMember.CreateInner(forType, name, getter, formatter, shouldSerialize, emitDefault), order));
+                return Throw.InvalidOperationException<IEnumerable<SerializableMember>>($"{forType.Name} is a tuple with a Rest property, the {nameof(DefaultTypeDescriber)} cannot serialize this unambiguously.");
             }
 
-            foreach (var f in forType.GetFields())
+            return EnumerateMembersToSerializeImpl(this, forType);
+
+            static IEnumerable<SerializableMember> EnumerateMembersToSerializeImpl(DefaultTypeDescriber self, TypeInfo forType)
             {
-                if (!ShouldSerialize(forType, f)) continue;
+                var buffer = new List<(SerializableMember Member, int? Position)>();
 
-                var name = GetSerializationName(forType, f);
-                var getter = GetGetter(forType, f);
-                var shouldSerialize = GetShouldSerialize(forType, f);
-                var formatter = GetFormatter(forType, f);
-                var order = GetOrder(forType, f);
-                var emitDefault = GetEmitDefaultValue(forType, f);
 
-                buffer.Add((SerializableMember.CreateInner(forType, name, getter, formatter, shouldSerialize, emitDefault), order));
-            }
+                foreach (var p in forType.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance))
+                {
+                    if (!self.ShouldSerialize(forType, p)) continue;
 
-            buffer.Sort(TypeDescribers.SerializableComparer);
+                    var name = self.GetSerializationName(forType, p);
+                    var getter = self.GetGetter(forType, p);
+                    var shouldSerialize = self.GetShouldSerialize(forType, p);
+                    var formatter = self.GetFormatter(forType, p);
+                    var order = self.GetOrder(forType, p);
+                    var emitDefault = self.GetEmitDefaultValue(forType, p);
 
-            foreach (var (member, _) in buffer)
-            {
-                yield return member;
+                    buffer.Add((SerializableMember.CreateInner(forType, name, getter, formatter, shouldSerialize, emitDefault), order));
+                }
+
+                foreach (var f in forType.GetFields())
+                {
+                    if (!self.ShouldSerialize(forType, f)) continue;
+
+                    var name = self.GetSerializationName(forType, f);
+                    var getter = self.GetGetter(forType, f);
+                    var shouldSerialize = self.GetShouldSerialize(forType, f);
+                    var formatter = self.GetFormatter(forType, f);
+                    var order = self.GetOrder(forType, f);
+                    var emitDefault = self.GetEmitDefaultValue(forType, f);
+
+                    buffer.Add((SerializableMember.CreateInner(forType, name, getter, formatter, shouldSerialize, emitDefault), order));
+                }
+
+                buffer.Sort(TypeDescribers.SerializableComparer);
+
+                foreach (var (member, _) in buffer)
+                {
+                    yield return member;
+                }
             }
         }
 
@@ -441,7 +452,8 @@ namespace Cesil
             Utils.CheckArgumentNull(forType, nameof(forType));
             Utils.CheckArgumentNull(property, nameof(property));
 
-            if (property.GetMethod == null) return false;
+            var getMtd = property.GetMethod;
+            if (getMtd == null) return false;
 
             var ignoreDataMember = property.GetCustomAttribute<IgnoreDataMemberAttribute>();
             if (ignoreDataMember != null)
@@ -455,12 +467,15 @@ namespace Cesil
                 return true;
             }
 
-            return
-                property.GetMethod.IsPublic &&
-                !property.GetMethod.IsStatic &&
-                property.GetMethod.GetParameters().Length == 0 &&
-                property.GetMethod.ReturnType != Types.VoidType &&
-                Formatter.GetDefault(property.GetMethod.ReturnType.GetTypeInfo()) != null;
+            if (!getMtd.IsPublic || getMtd.IsStatic) return false;
+            if (getMtd.GetParameters().Length != 0) return false;
+
+            var propType = getMtd.ReturnType.GetTypeInfo();
+            if (propType == Types.VoidType) return false;
+
+            if (Formatter.GetDefault(propType) == null) return false;
+
+            return true;
         }
 
         /// <summary>
@@ -570,6 +585,15 @@ namespace Cesil
             if (dataMember != null)
             {
                 return true;
+            }
+
+            if (forType.IsValueTuple())
+            {
+                var fieldType = field.FieldType.GetTypeInfo();
+
+                return
+                    fieldType != Types.VoidType &&
+                    Formatter.GetDefault(fieldType) != null;
             }
 
             return false;

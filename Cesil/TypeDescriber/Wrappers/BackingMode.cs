@@ -7,6 +7,7 @@
         Method,
         Field,
         Delegate,
-        Constructor
+        Constructor,
+        ConstructorParameter
     }
 }

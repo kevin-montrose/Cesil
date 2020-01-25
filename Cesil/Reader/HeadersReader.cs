@@ -131,7 +131,7 @@ namespace Cesil
         private NonNull<IReaderAdapter> Inner;
         private NonNull<IAsyncReaderAdapter> InnerAsync;
 
-        private readonly Column[] Columns;
+        private readonly IEnumerable<DeserializableMember> Columns;
         private readonly ReaderStateMachine StateMachine;
         private readonly BufferWithPushback Buffer;
         private readonly int BufferSizeHint;
@@ -416,7 +416,7 @@ namespace Cesil
 
                     foreach (var col in Columns)
                     {
-                        var colNameMem = col.Name.Value.AsMemory();
+                        var colNameMem = col.Name.AsMemory();
                         if (Utils.AreEqual(colNameMem, val))
                         {
                             isHeader = true;

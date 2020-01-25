@@ -10,6 +10,7 @@ namespace Cesil
         AsyncReaderBase<dynamic>,
         IDynamicRowOwner
     {
+        private int ColumnCount;
         private NonNull<string[]> ColumnNames;
 
         private DynamicRow? NotifyOnDisposeHead;
@@ -18,7 +19,7 @@ namespace Cesil
 
         object? IDynamicRowOwner.Context => Context;
 
-        internal AsyncDynamicReader(IAsyncReaderAdapter reader, DynamicBoundConfiguration config, object? context) : base(reader, config, context) { }
+        internal AsyncDynamicReader(IAsyncReaderAdapter reader, DynamicBoundConfiguration config, object? context) : base(reader, config, context, new DynamicRowConstructor()) { }
 
         internal override ValueTask HandleRowEndingsAndHeadersAsync(CancellationToken cancel)
         {
@@ -61,8 +62,7 @@ namespace Cesil
 
         internal override ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync(bool returnComments, bool pinAcquired, ref dynamic record, CancellationToken cancel)
         {
-            var row = Utils.NonNull(GuaranteeRow(ref record) as DynamicRow);  // this `as` is absurdly important, don't remove it
-            var needsInit = true;
+            TryAllocateAndTrack(ref record);
 
             ReaderStateMachine.PinHandle handle = default;
             var disposeHandle = true;
@@ -81,7 +81,7 @@ namespace Cesil
                     if (!availableTask.IsCompletedSuccessfully(this))
                     {
                         disposeHandle = false;
-                        return TryReadInnerAsync_ContinueAfterReadAsync(this, availableTask, handle, returnComments, row, needsInit, cancel);
+                        return TryReadInnerAsync_ContinueAfterReadAsync(this, availableTask, handle, returnComments, cancel);
                     }
 
                     var available = availableTask.Result;
@@ -92,14 +92,9 @@ namespace Cesil
                         return new ValueTask<ReadWithCommentResult<dynamic>>(HandleAdvanceResult(endRes, returnComments));
                     }
 
-                    if (!Partial.HasPending)
+                    if (!RowBuilder.RowStarted)
                     {
-                        if (needsInit)
-                        {
-                            GuaranteeInitializedRow(this, row);
-                            needsInit = false;
-                        }
-                        SetValueToPopulate(row);
+                        StartRow();
                     }
 
                     var res = AdvanceWork(available);
@@ -118,19 +113,8 @@ namespace Cesil
                 }
             }
 
-            // make sure our row is ready to go
-            static DynamicRow GuaranteeInitializedRow(AsyncDynamicReader self, DynamicRow dynRow)
-            {
-                var options = self.Configuration.Options;
-
-                self.MonitorForDispose(dynRow);
-                dynRow.Init(self, self.RowNumber, self.Columns.Value.Length, self.Context, options.TypeDescriber, self.ColumnNames, options.MemoryPool);
-
-                return dynRow;
-            }
-
             // continue after we read a chunk into a buffer
-            static async ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync_ContinueAfterReadAsync(AsyncDynamicReader self, ValueTask<int> waitFor, ReaderStateMachine.PinHandle handle, bool returnComments, DynamicRow record, bool needsInit, CancellationToken cancel)
+            static async ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync_ContinueAfterReadAsync(AsyncDynamicReader self, ValueTask<int> waitFor, ReaderStateMachine.PinHandle handle, bool returnComments, CancellationToken cancel)
             {
                 try
                 {
@@ -151,14 +135,9 @@ namespace Cesil
                                 return self.HandleAdvanceResult(endRes, returnComments);
                             }
 
-                            if (!self.Partial.HasPending)
+                            if (!self.RowBuilder.RowStarted)
                             {
-                                if (needsInit)
-                                {
-                                    GuaranteeInitializedRow(self, record);
-                                    needsInit = false;
-                                }
-                                self.SetValueToPopulate(record);
+                                self.StartRow();
                             }
 
                             var res = self.AdvanceWork(available);
@@ -187,14 +166,9 @@ namespace Cesil
                                 return self.HandleAdvanceResult(endRes, returnComments);
                             }
 
-                            if (!self.Partial.HasPending)
+                            if (!self.RowBuilder.RowStarted)
                             {
-                                if (needsInit)
-                                {
-                                    GuaranteeInitializedRow(self, record);
-                                    needsInit = false;
-                                }
-                                self.SetValueToPopulate(record);
+                                self.StartRow();
                             }
 
                             var res = self.AdvanceWork(available);
@@ -213,40 +187,41 @@ namespace Cesil
             }
         }
 
-        internal override dynamic GuaranteeRow(ref dynamic row)
+        // todo: de-dupe this with DynamicReader's implementation
+        private void TryAllocateAndTrack(ref dynamic row)
         {
-            DynamicRow dynRow;
-            var rowAsObj = row as object;
+            // after this call row _WILL_ be a disposed non-null DynamicRow
+            TryPreAllocateRow(ref row);
 
-            if (rowAsObj == null || !(row is DynamicRow))
+            var dynRow = Utils.NonNull(row as DynamicRow);
+
+            var options = Configuration.Options;
+            var needsTracking = options.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose;
+            var isAttached = dynRow.Owner.HasValue;
+            var isAttachedToSelf = isAttached && dynRow.Owner.Value == this;
+
+            // possible states
+            // ---------------
+            // !needsTracking, !isAttached => do nothing
+            // !needsTracking, isAttached => detach
+            // needsTracking, !isAttached => attach
+            // needsTracking, isAttached, !isAttachedToSelf => detach, attach
+            // needsTracking, isAttached, isAttachedToSelf => do nothing
+
+            var doDetach = (!needsTracking && isAttached) || (needsTracking && isAttached && !isAttachedToSelf);
+            var doAttach = (needsTracking && !isAttached) || (needsTracking && isAttached && !isAttachedToSelf);
+
+            if (doDetach)
             {
-                row = dynRow = new DynamicRow();
+                dynRow.Owner.Value.Remove(dynRow);
             }
-            else
+
+            if (doAttach)
             {
-                // clear it, if we're reusing
-                dynRow = Utils.NonNull(row as DynamicRow);
-
-                if (!dynRow.IsDisposed)
-                {
-                    dynRow.Dispose();
-
-                    if (dynRow.Owner.HasValue)
-                    {
-                        dynRow.Owner.Value.Remove(dynRow);
-                    }
-                }
+                NotifyOnDisposeHead.AddHead(ref NotifyOnDisposeHead, dynRow);
             }
 
-            return dynRow;
-        }
-
-        private void MonitorForDispose(DynamicRow dynRow)
-        {
-            if (Configuration.Options.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose)
-            {
-                NotifyOnDisposeHead!.AddHead(ref NotifyOnDisposeHead, dynRow);
-            }
+            dynRow.Init(this, RowNumber, ColumnCount, Context, options.TypeDescriber, ColumnNames, options.MemoryPool);
         }
 
         public void Remove(DynamicRow row)
@@ -275,22 +250,19 @@ namespace Cesil
 
                 var res = resTask.Result;
 
-                var foundHeaders = res.Headers.Count;
-                if (foundHeaders == 0)
+                ColumnCount = res.Headers.Count;
+
+                if (ColumnCount == 0)
                 {
                     // rare, but possible if the file is empty or all comments or something like that
-                    Columns.Value = Array.Empty<Column>();
                     ColumnNames.Value = Array.Empty<string>();
                 }
                 else
                 {
-                    var columnsValue = new Column[foundHeaders];
-                    Columns.Value = columnsValue;
-
                     string[] columnNamesValue = Array.Empty<string>();
                     if (allowColumnsByName)
                     {
-                        columnNamesValue = new string[foundHeaders];
+                        columnNamesValue = new string[ColumnCount];
                         ColumnNames.Value = columnNamesValue;
                     }
 
@@ -304,12 +276,12 @@ namespace Cesil
                             {
                                 columnNamesValue[ix] = name;
                             }
-                            var col = new Column(name, ColumnSetter.CreateDynamic(name, ix), null, false);
-                            columnsValue[ix] = col;
 
                             ix++;
                         }
                     }
+
+                    RowBuilder.SetColumnOrder(res.Headers);
                 }
 
                 Buffer.PushBackFromOutsideBuffer(res.PushBack);
@@ -334,22 +306,18 @@ namespace Cesil
                     var res = await ConfigureCancellableAwait(self, toAwait, cancel);
                     CheckCancellation(self, cancel);
 
-                    var foundHeaders = res.Headers.Count;
-                    if (foundHeaders == 0)
+                    self.ColumnCount = res.Headers.Count;
+                    if (self.ColumnCount == 0)
                     {
                         // rare, but possible if the file is empty or all comments or something like that
-                        self.Columns.Value = Array.Empty<Column>();
                         self.ColumnNames.Value = Array.Empty<string>();
                     }
                     else
                     {
-                        var selfColumnsValue = new Column[foundHeaders];
-                        self.Columns.Value = selfColumnsValue;
-
                         string[] selfColumnNamesValue = Array.Empty<string>();
                         if (allowColumnsByName)
                         {
-                            selfColumnNamesValue = new string[foundHeaders];
+                            selfColumnNamesValue = new string[self.ColumnCount];
                             self.ColumnNames.Value = selfColumnNamesValue;
                         }
 
@@ -363,12 +331,12 @@ namespace Cesil
                                 {
                                     selfColumnNamesValue[ix] = name;
                                 }
-                                var col = new Column(name, ColumnSetter.CreateDynamic(name, ix), null, false);
-                                selfColumnsValue[ix] = col;
 
                                 ix++;
                             }
                         }
+
+                        self.RowBuilder.SetColumnOrder(res.Headers);
                     }
 
                     self.Buffer.PushBackFromOutsideBuffer(res.PushBack);
@@ -478,6 +446,7 @@ namespace Cesil
             // handle actual cleanup, a method to DRY things up
             static void Cleanup(AsyncDynamicReader self)
             {
+                self.RowBuilder.Dispose();
                 self.Buffer.Dispose();
                 self.Partial.Dispose();
                 self.StateMachine?.Dispose();
