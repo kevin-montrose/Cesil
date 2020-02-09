@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using static Cesil.AwaitHelper;
+using static Cesil.DynamicRowTrackingHelper;
 
 namespace Cesil
 {
@@ -62,7 +63,7 @@ namespace Cesil
 
         internal override ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync(bool returnComments, bool pinAcquired, ref dynamic record, CancellationToken cancel)
         {
-            TryAllocateAndTrack(ref record);
+            TryAllocateAndTrack(this, ColumnCount, ColumnNames, ref NotifyOnDisposeHead, ref record);
 
             ReaderStateMachine.PinHandle handle = default;
             var disposeHandle = true;
@@ -123,7 +124,7 @@ namespace Cesil
                         // finish this loop up
                         {
                             int available;
-                            using (self.StateMachine.ReleaseAndRePinForAsync(waitFor))
+                            self.StateMachine.ReleasePinForAsync(waitFor);
                             {
                                 available = await ConfigureCancellableAwait(self, waitFor, cancel);
                                 CheckCancellation(self, cancel);
@@ -154,7 +155,7 @@ namespace Cesil
                             self.PreparingToWriteToBuffer();
                             var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
                             int available;
-                            using (self.StateMachine.ReleaseAndRePinForAsync(availableTask))
+                            self.StateMachine.ReleasePinForAsync(availableTask);
                             {
                                 available = await ConfigureCancellableAwait(self, availableTask, cancel);
                                 CheckCancellation(self, cancel);
@@ -185,43 +186,6 @@ namespace Cesil
                     return Throw.PoisonAndRethrow<ReadWithCommentResult<dynamic>>(self, e);
                 }
             }
-        }
-
-        // todo: de-dupe this with DynamicReader's implementation
-        private void TryAllocateAndTrack(ref dynamic row)
-        {
-            // after this call row _WILL_ be a disposed non-null DynamicRow
-            TryPreAllocateRow(ref row);
-
-            var dynRow = Utils.NonNull(row as DynamicRow);
-
-            var options = Configuration.Options;
-            var needsTracking = options.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose;
-            var isAttached = dynRow.Owner.HasValue;
-            var isAttachedToSelf = isAttached && dynRow.Owner.Value == this;
-
-            // possible states
-            // ---------------
-            // !needsTracking, !isAttached => do nothing
-            // !needsTracking, isAttached => detach
-            // needsTracking, !isAttached => attach
-            // needsTracking, isAttached, !isAttachedToSelf => detach, attach
-            // needsTracking, isAttached, isAttachedToSelf => do nothing
-
-            var doDetach = (!needsTracking && isAttached) || (needsTracking && isAttached && !isAttachedToSelf);
-            var doAttach = (needsTracking && !isAttached) || (needsTracking && isAttached && !isAttachedToSelf);
-
-            if (doDetach)
-            {
-                dynRow.Owner.Value.Remove(dynRow);
-            }
-
-            if (doAttach)
-            {
-                NotifyOnDisposeHead.AddHead(ref NotifyOnDisposeHead, dynRow);
-            }
-
-            dynRow.Init(this, RowNumber, ColumnCount, Context, options.TypeDescriber, ColumnNames, options.MemoryPool);
         }
 
         public void Remove(DynamicRow row)

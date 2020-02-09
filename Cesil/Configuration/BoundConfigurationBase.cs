@@ -18,7 +18,6 @@ namespace Cesil
 
         internal readonly ReadOnlyMemory<char> RowEndingMemory;
 
-        internal readonly NonNull<InstanceProvider> InstanceProvider;
         internal readonly IEnumerable<DeserializableMember> DeserializeColumns;
 
         internal readonly Column[] SerializeColumns;
@@ -45,7 +44,6 @@ namespace Cesil
             Options options
         )
         {
-            InstanceProvider.Clear();
             DeserializeColumns = Enumerable.Empty<DeserializableMember>();
             SerializeColumns = Array.Empty<Column>();
             SerializeColumnsNeedEscape = Array.Empty<bool>();
@@ -98,21 +96,12 @@ namespace Cesil
         /// For working with concrete types.
         /// </summary>
         protected BoundConfigurationBase(
-            InstanceProvider? instanceProvider,
             IEnumerable<DeserializableMember> deserializeColumns,
             Column[] serializeColumns,
             bool[] serializeColumnsNeedEscape,
             Options options
         )
         {
-            if (instanceProvider != null)
-            {
-                InstanceProvider.Value = instanceProvider;
-            }
-            else
-            {
-                InstanceProvider.Clear();
-            }
             DeserializeColumns = deserializeColumns;
             SerializeColumns = serializeColumns;
             SerializeColumnsNeedEscape = serializeColumnsNeedEscape;

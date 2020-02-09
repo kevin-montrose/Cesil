@@ -7,6 +7,9 @@ namespace Cesil
 {
     internal sealed class ConcreteBoundConfiguration<T> : BoundConfigurationBase<T>
     {
+        // internal for testing purposes
+        internal readonly NonNull<IRowConstructor<T>> RowBuilder;
+
         internal ConcreteBoundConfiguration(
             InstanceProvider? instanceProvider,
             IEnumerable<DeserializableMember> deserializeColumns,
@@ -15,41 +18,49 @@ namespace Cesil
             Options options
         ) :
             base(
-                instanceProvider,
                 deserializeColumns,
                 serializeColumns,
                 serializeColumnsNeedEscape,
                 options
             )
-        { }
-
+        {
+            if(instanceProvider != null && deserializeColumns.Any())
+            {
+                var builder = RowConstructor.Create<T>(options.MemoryPool, instanceProvider, deserializeColumns);
+                RowBuilder.Value = builder;
+            }
+            else
+            {
+                RowBuilder.Clear();
+            }
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void AssertCanMakeReader()
         {
-            if (!InstanceProvider.HasValue)
+            if(!RowBuilder.HasValue)
             {
-                Throw.InvalidOperationException<object>($"Cannot make a reader for {typeof(T).Name}, no {nameof(InstanceProvider)} was discovered using {nameof(Options)} provided to {nameof(Configuration)}.");
-            }
-
-            if (!DeserializeColumns.Any())
-            {
-                Throw.InvalidOperationException<IReader<T>>($"No columns configured to read for {typeof(T).FullName}");
+                Throw.InvalidOperationException<object>($"Cannot make a reader for {typeof(T).Name}, returned {nameof(InstanceProvider)} and {nameof(DeserializableMember)}s were not sufficient.");
+                return;
             }
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private IRowConstructor<T> GetMutableRowBuilder()
+        => RowBuilder.Value.Clone();
 
         internal override IReader<T> CreateReader(IReaderAdapter inner, object? context = null)
         {
             AssertCanMakeReader();
 
-            return new Reader<T>(inner, this, context, CreateRowConstructor());
+            return new Reader<T>(inner, this, context, GetMutableRowBuilder());
         }
 
         internal override IAsyncReader<T> CreateAsyncReader(IAsyncReaderAdapter inner, object? context = null)
         {
             AssertCanMakeReader();
 
-            return new AsyncReader<T>(inner, this, context, CreateRowConstructor());
+            return new AsyncReader<T>(inner, this, context, GetMutableRowBuilder());
         }
 
         internal override IWriter<T> CreateWriter(IWriterAdapter inner, object? context = null)
@@ -71,9 +82,6 @@ namespace Cesil
 
             return new AsyncWriter<T>(this, inner, context);
         }
-
-        private IRowConstructor<T> CreateRowConstructor()
-        => RowConstructor.Create<T>(Options.MemoryPool, InstanceProvider.Value, DeserializeColumns);
 
         public override string ToString()
         {

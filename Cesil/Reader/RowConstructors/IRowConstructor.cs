@@ -6,7 +6,6 @@ namespace Cesil
     internal interface IRowConstructor<TRow> : ITestableDisposable
     {
         // just for testing purposes
-        // todo: #if DEBUG this out so it's really only for testing purposes?
         IEnumerable<string> Columns { get; }
 
         bool RowStarted { get; }
@@ -20,5 +19,7 @@ namespace Cesil
         void ColumnAvailable(Options options, int rowNumber, int columnNumber, object? context, in ReadOnlySpan<char> data);
 
         TRow FinishRow();
+
+        IRowConstructor<TRow> Clone();
     }
 }

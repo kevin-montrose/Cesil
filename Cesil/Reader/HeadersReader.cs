@@ -344,7 +344,7 @@ namespace Cesil
                 using (handle)
                 {
                     int available;
-                    using (self.StateMachine.ReleaseAndRePinForAsync(waitFor))
+                    self.StateMachine.ReleasePinForAsync(waitFor);
                     {
                         available = await ConfigureCancellableAwait(self, waitFor, cancel);
                     }
@@ -374,7 +374,7 @@ namespace Cesil
                     while (true)
                     {
                         var readTask = self.Buffer.ReadAsync(self.InnerAsync.Value, cancel);
-                        using (self.StateMachine.ReleaseAndRePinForAsync(readTask))
+                        self.StateMachine.ReleasePinForAsync(readTask);
                         {
                             available = await ConfigureCancellableAwait(self, readTask, cancel);
                         }

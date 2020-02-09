@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace Cesil
 {
@@ -14,8 +15,10 @@ namespace Cesil
         {
             get
             {
-                foreach (var t in MemberLookup)
+                for (var i = 0; i < MemberLookup.Length; i++)
                 {
+                    var t = LookupColumn(i);
+
                     if (t.SimpleMember != null)
                     {
                         yield return SimpleMembers[t.SimpleMember.Value].Name;
@@ -38,18 +41,27 @@ namespace Cesil
 
         private readonly GetInstanceGivenHoldDelegate<TRow, THold> GetInstance;
 
-        private ImmutableArray<(int? SimpleMember, int? HeldMember)> MemberLookup;
-        private ImmutableArray<(string Name, MemberRequired Required, ParseAndSetOnDelegate<THold> ParseAndHold, MoveFromHoldToRowDelegate<TRow, THold> MoveToRow, ParseAndSetOnDelegate<TRow> SetOnRow)> SimpleMembers;
-        private ImmutableArray<(string Name, MemberRequired Required, ParseAndSetOnDelegate<THold> ParseAndHold)> HeldMembers;
+        // use the single allocation MemberLookup if we don't re-order columns,
+        //   or the MemberLookupOverride which is backed by the MemoryPool if we do
+        private readonly ImmutableArray<(int? SimpleMember, int? HeldMember)> MemberLookup;
+        private UnmanagedLookupArray<(int? SimpleMember, int? HeldMember)>? MemberLookupOverride;
+
+        private readonly ImmutableArray<(string Name, MemberRequired Required, ParseAndSetOnDelegate<THold> ParseAndHold, MoveFromHoldToRowDelegate<TRow, THold> MoveToRow, ParseAndSetOnDelegate<TRow> SetOnRow)> SimpleMembers;
+        private readonly ImmutableArray<(string Name, MemberRequired Required, ParseAndSetOnDelegate<THold> ParseAndHold)> HeldMembers;
 
         public bool IsDisposed => RequiredTracker.IsDisposed;
 
-        private RequiredSet RequiredTracker;
+        private readonly MemoryPool<char> MemoryPool;
+
+        private readonly bool HasRequired;
+        private readonly RequiredSet RequiredTracker;
 
         private bool _RowStarted;
         public bool RowStarted => _RowStarted;
 
-        private NonNull<ImmutableArray<ReadContext>.Builder> SimpleSet;
+        private bool HasSimple;
+        private UnmanagedLookupArray<ShallowReadContext> SimpleSet;
+
         private bool CurrentPopulated;
         private TRow Current;
         private int HeldCount;
@@ -62,18 +74,10 @@ namespace Cesil
             ImmutableDictionary<int, (string Name, MemberRequired Required, ParseAndSetOnDelegate<THold> ParseAndHold)> held
         )
         {
+            MemoryPool = pool;
             ClearHold = clear;
 
             GetInstance = getInstance;
-
-            if (simple.Any())
-            {
-                SimpleSet.Value = ImmutableArray.CreateBuilder<ReadContext>();
-            }
-            else
-            {
-                SimpleSet.Clear();
-            }
 
             Hold = new THold();
             ClearHold = clear;
@@ -88,7 +92,9 @@ namespace Cesil
 
             var max = simple.Keys.Concat(held.Keys).Max();
 
-            RequiredTracker = new RequiredSet(pool, max + 1);
+            // we won't actually use this (we'll always clone it first) so
+            //    just keep track of whether we'll _need_ one
+            RequiredTracker = default;
 
             for (var i = 0; i <= max; i++)
             {
@@ -99,7 +105,7 @@ namespace Cesil
 
                     if (simpleVal.Required == MemberRequired.Yes)
                     {
-                        RequiredTracker.SetIsRequired(i);
+                        HasRequired = true;
                     }
 
                     continue;
@@ -112,7 +118,7 @@ namespace Cesil
 
                     if (heldVal.Required == MemberRequired.Yes)
                     {
-                        RequiredTracker.SetIsRequired(i);
+                        HasRequired = true;
                     }
 
                     continue;
@@ -126,6 +132,96 @@ namespace Cesil
             HeldMembers = heldArr.ToImmutable();
 
             HeldCount = 0;
+
+            MemberLookupOverride = null;
+
+            HasSimple = SimpleMembers.Any();
+        }
+
+        private NeedsHoldRowConstructor(
+            MemoryPool<char> pool,
+            ClearHoldDelegate<THold> clear,
+            GetInstanceGivenHoldDelegate<TRow, THold> getInstance,
+            ImmutableArray<(int? SimpleMember, int? HeldMember)> lookup,
+            ImmutableArray<(string Name, MemberRequired Required, ParseAndSetOnDelegate<THold> ParseAndHold, MoveFromHoldToRowDelegate<TRow, THold> MoveToRow, ParseAndSetOnDelegate<TRow> SetOnRow)> simple,
+            ImmutableArray<(string Name, MemberRequired Required, ParseAndSetOnDelegate<THold> ParseAndHold)> held,
+            bool hasRequired,
+            RequiredSet requiredTracker,
+            bool hasSimple,
+            UnmanagedLookupArray<ShallowReadContext> simpleSetTracker
+        )
+        {
+            MemoryPool = pool;
+            ClearHold = clear;
+
+            GetInstance = getInstance;
+
+
+            Hold = new THold();
+
+            CurrentPopulated = false;
+            _RowStarted = false;
+            Current = default!;
+
+            HasRequired = hasRequired;
+            RequiredTracker = requiredTracker;
+
+            SimpleSet = simpleSetTracker;
+
+            MemberLookup = lookup;
+            SimpleMembers = simple;
+            HeldMembers = held;
+
+            HeldCount = 0;
+
+            MemberLookupOverride = null;
+
+            HasSimple = hasSimple;
+            SimpleSet = simpleSetTracker;
+        }
+
+        public IRowConstructor<TRow> Clone()
+        {
+            RequiredSet tracker = default;
+            if (HasRequired)
+            {
+                tracker = new RequiredSet(MemoryPool, MemberLookup.Length);
+
+                for (var i = 0; i < MemberLookup.Length; i++)
+                {
+                    var l = LookupColumn(i);
+
+                    if (l.SimpleMember != null)
+                    {
+                        var config = SimpleMembers[l.SimpleMember.Value];
+                        if (config.Required == MemberRequired.Yes)
+                        {
+                            tracker.SetIsRequired(i);
+                        }
+
+                        continue;
+                    }
+
+                    if (l.HeldMember != null)
+                    {
+                        var config = HeldMembers[l.HeldMember.Value];
+                        if (config.Required == MemberRequired.Yes)
+                        {
+                            tracker.SetIsRequired(i);
+                        }
+
+                        continue;
+                    }
+                }
+            }
+
+            UnmanagedLookupArray<ShallowReadContext> simpleTracker = default;
+            if (HasSimple)
+            {
+                simpleTracker = new UnmanagedLookupArray<ShallowReadContext>(MemoryPool, SimpleMembers.Length);
+            }
+
+            return new NeedsHoldRowConstructor<TRow, THold>(MemoryPool, ClearHold, GetInstance, MemberLookup, SimpleMembers, HeldMembers, HasRequired, tracker, HasSimple, simpleTracker);
         }
 
         public static NeedsHoldRowConstructor<TRow, THold> Create(
@@ -177,9 +273,7 @@ namespace Cesil
             // took ownership, have to dispose
             using (columns)
             {
-                var lookupArr = ImmutableArray.CreateBuilder<(int? SimpleMember, int? HeldMember)>();
-                var simpleArr = ImmutableArray.CreateBuilder<(string Name, MemberRequired Required, ParseAndSetOnDelegate<THold> ParseAndHold, MoveFromHoldToRowDelegate<TRow, THold> MoveToRow, ParseAndSetOnDelegate<TRow> SetOnRow)>();
-                var heldArr = ImmutableArray.CreateBuilder<(string Name, MemberRequired Required, ParseAndSetOnDelegate<THold> ParseAndHold)>();
+                var lookupOverride = new UnmanagedLookupArray<(int? SimpleMember, int? HeldMember)>(MemoryPool, columns.Count);
 
                 RequiredTracker.ClearRequired();
 
@@ -190,12 +284,12 @@ namespace Cesil
 
                     var found = false;
 
-                    foreach (var simple in SimpleMembers)
+                    for (var simpleIx = 0; simpleIx < SimpleMembers.Length; simpleIx++)
                     {
+                        var simple = SimpleMembers[simpleIx];
                         if (Utils.AreEqual(ci, simple.Name.AsMemory()))
                         {
-                            simpleArr.Add(simple);
-                            lookupArr.Add((simpleArr.Count - 1, null));
+                            lookupOverride.Set(ix, (simpleIx, null));
 
                             if (simple.Required == MemberRequired.Yes)
                             {
@@ -209,12 +303,12 @@ namespace Cesil
 
                     if (!found)
                     {
-                        foreach (var held in HeldMembers)
+                        for (var heldIx = 0; heldIx < HeldMembers.Length; heldIx++)
                         {
+                            var held = HeldMembers[heldIx];
                             if (Utils.AreEqual(ci, held.Name.AsMemory()))
                             {
-                                heldArr.Add(held);
-                                lookupArr.Add((null, heldArr.Count - 1));
+                                lookupOverride.Set(ix, (null, heldIx));
 
                                 if (held.Required == MemberRequired.Yes)
                                 {
@@ -229,15 +323,13 @@ namespace Cesil
 
                     if (!found)
                     {
-                        lookupArr.Add((null, null));
+                        lookupOverride.Set(ix, (null, null));
                     }
 
                     ix++;
                 }
 
-                MemberLookup = lookupArr.ToImmutable();
-                SimpleMembers = simpleArr.ToImmutable();
-                HeldMembers = heldArr.ToImmutable();
+                MemberLookupOverride = lookupOverride;
             }
         }
 
@@ -257,6 +349,18 @@ namespace Cesil
             _RowStarted = true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private (int? SimpleMember, int? HeldMember) LookupColumn(int colNumber)
+        {
+            if (MemberLookupOverride != null)
+            {
+                MemberLookupOverride.Value.Get(colNumber, default, out var m);
+                return m;
+            }
+
+            return MemberLookup[colNumber];
+        }
+
         public void ColumnAvailable(Options options, int rowNumber, int columnNumber, object? context, in ReadOnlySpan<char> data)
         {
             if (!_RowStarted)
@@ -271,7 +375,7 @@ namespace Cesil
                 return;
             }
 
-            var res = MemberLookup[columnNumber];
+            var res = LookupColumn(columnNumber);
             if (res.SimpleMember != null)
             {
                 var simpleCol = SimpleMembers[res.SimpleMember.Value];
@@ -297,7 +401,7 @@ namespace Cesil
                 else
                 {
                     simpleCol.ParseAndHold(Hold, in ctx, data);
-                    SimpleSet.Value.Add(ctx);
+                    SimpleSet.Add(new ShallowReadContext(in ctx));
                 }
 
                 return;
@@ -329,20 +433,33 @@ namespace Cesil
                     CurrentPopulated = true;
                     Current = GetInstance(Hold);
 
-                    if (SimpleSet.HasValue)
+                    if (HasSimple)
                     {
-                        var toMove = SimpleSet.Value.ToImmutable();
-                        foreach (var oldCtx in toMove)
+                        for (var i = 0; i < SimpleSet.Count; i++)
                         {
-                            var lookup = MemberLookup[oldCtx.Column.Index];
-                            if (lookup.SimpleMember == null)
+                            SimpleSet.Get(i, default, out var shallowCtx);
+
+                            if (shallowCtx.Mode != ReadContextMode.ReadingColumn)
                             {
-                                Throw.Exception<object>($"Column [{oldCtx.Column}] recorded as a previously set simple column, but could not be found when creating row");
+                                Throw.Exception<object>($"{nameof(ShallowReadContext)} wasn't for {ReadContextMode.ReadingColumn}, which was not expected");
                                 return;
                             }
 
-                            var moveDelegate = SimpleMembers[lookup.SimpleMember.Value].MoveToRow;
-                            moveDelegate(Current, Hold, in oldCtx);
+                            var lookup = LookupColumn(shallowCtx.ColumnIndex);
+                            if (lookup.SimpleMember == null)
+                            {
+                                Throw.Exception<object>($"Column [{shallowCtx.ColumnIndex}] recorded as a previously set simple column, but could not be found when creating row");
+                                return;
+                            }
+
+                            var simple = SimpleMembers[lookup.SimpleMember.Value];
+
+                            var realCi = ColumnIdentifier.CreateInner(shallowCtx.ColumnIndex, simple.Name);
+
+                            var realCtx = ReadContext.ReadingColumn(options, shallowCtx.RowNumber, realCi, context);
+
+                            var moveDelegate = simple.MoveToRow;
+                            moveDelegate(Current, Hold, in realCtx);
                         }
                     }
                 }
@@ -365,19 +482,15 @@ namespace Cesil
 
             if (!RequiredTracker.CheckRequiredAndClear(out var missingIx))
             {
-                var lookup = MemberLookup[missingIx];
+                var lookup = LookupColumn(missingIx);
                 if (lookup.SimpleMember != null)
                 {
                     var simpleDetails = SimpleMembers[lookup.SimpleMember.Value];
                     return Throw.SerializationException<TRow>($"Column [{simpleDetails.Name}] is required, but was not found in row");
                 }
-                else if (lookup.HeldMember != null)
-                {
-                    var heldDetails = HeldMembers[lookup.HeldMember.Value];
-                    return Throw.SerializationException<TRow>($"Column [{heldDetails.Name}] is required, but was not found in row");
-                }
                 else
                 {
+                    // held isn't actually possible, because of the RowStarted check above
                     return Throw.Exception<TRow>($"Column in position {missingIx} was required and missing, but couldn't find a member to match it to.  This shouldn't happen.");
                 }
             }
@@ -390,9 +503,9 @@ namespace Cesil
 
             ClearHold(Hold);
 
-            if (SimpleSet.HasValue)
+            if (HasSimple)
             {
-                SimpleSet.Value.Clear();
+                SimpleSet.Clear();
             }
 
             return ret;
@@ -403,6 +516,10 @@ namespace Cesil
             if (!IsDisposed)
             {
                 RequiredTracker.Dispose();
+                SimpleSet.Dispose();
+
+                MemberLookupOverride?.Dispose();
+                MemberLookupOverride = null;
             }
         }
     }

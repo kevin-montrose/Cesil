@@ -12,7 +12,7 @@ namespace Cesil.Tests
         public void Explore()
         {
             var sizes = new HashSet<int>();
-            var relevantSizes = new[] { 0, 1, 4, 8 };
+            var relevantSizes = new[] { 0, 1, 4, 8, 17 };
             for (var i = 0; i < relevantSizes.Length; i++)
             {
                 for (var j = 0; j < relevantSizes.Length; j++)
@@ -36,6 +36,11 @@ namespace Cesil.Tests
                 }
             }
 
+            foreach(var x in sizes.ToList())
+            {
+                sizes.Add(x * 2 + 1);
+            }
+
             var rand = new Random(0x1234_5678);
 
             var testSizes = sizes.Except(new[] { 0 }).OrderBy(_ => _).ToList();
@@ -57,6 +62,15 @@ namespace Cesil.Tests
                     for (var i = 0; i < toMakeRequired; i++)
                     {
                         required.Add(rand.Next(size));
+                    }
+
+                    // put some junk in the pool
+                    using (var pool = MemoryPool<char>.Shared.Rent(size))
+                    {
+                        for (var i = 0; i <  pool.Memory.Length; i++)
+                        {
+                            pool.Memory.Span[i] = (char)rand.Next();
+                        }
                     }
 
                     using (var tracker = new RequiredSet(MemoryPool<char>.Shared, size))

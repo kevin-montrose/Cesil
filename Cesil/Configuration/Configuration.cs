@@ -55,14 +55,13 @@ namespace Cesil
                 return Throw.InvalidOperationException<IBoundConfiguration<TRow>>($"Use {nameof(ForDynamic)} when creating configurations for dynamic types");
             }
 
-            var deserializeColumns = options.TypeDescriber.EnumerateMembersToDeserialize(forType);
-            var serializeColumns = DiscoverSerializeColumns(forType, options);
+            var deserializeMembers = options.TypeDescriber.EnumerateMembersToDeserialize(forType);
+            var serializeMembers = options.TypeDescriber.EnumerateMembersToSerialize(forType);
             var provider = options.TypeDescriber.GetInstanceProvider(forType);
 
-            if (!deserializeColumns.Any() && serializeColumns.Length == 0)
-            {
-                return Throw.InvalidOperationException<IBoundConfiguration<TRow>>($"No columns found to read or write for {typeof(TRow).FullName}");
-            }
+            ValidateTypeDescription(forType, deserializeMembers, serializeMembers, provider);
+
+            var serializeColumns = CreateSerializeColumns(forType, serializeMembers);
 
             // this is entirely knowable now, so go ahead and calculate
             //   and save for future use
@@ -87,24 +86,107 @@ namespace Cesil
             return
                 new ConcreteBoundConfiguration<TRow>(
                     provider,
-                    deserializeColumns,
+                    deserializeMembers,
                     serializeColumns,
                     needsEscape,
                     options
                 );
         }
 
-        private static Column[] DiscoverSerializeColumns(TypeInfo t, Options options)
+        private static void ValidateTypeDescription(TypeInfo t, IEnumerable<DeserializableMember>? deserializeColumns, IEnumerable<SerializableMember>? serializeColumns, InstanceProvider? provider)
+        {
+            if (serializeColumns == null)
+            {
+                Throw.InvalidOperationException<object>($"Registered {nameof(ITypeDescriber)} returned null for {nameof(ITypeDescriber.EnumerateMembersToSerialize)}");
+                return;
+            }
+
+            if (deserializeColumns == null)
+            {
+                Throw.InvalidOperationException<object>($"Registered {nameof(ITypeDescriber)} returned null for {nameof(ITypeDescriber.EnumerateMembersToDeserialize)}");
+                return;
+            }
+
+            if (!deserializeColumns.Any() && !serializeColumns.Any())
+            {
+                Throw.InvalidOperationException<object>($"No columns found to read or write for {t.FullName}");
+                return;
+            }
+
+            if (provider != null)
+            {
+                if (provider.ConstructorTakesParameters)
+                {
+                    var cons = provider.Constructor.Value;
+
+                    foreach (var p in cons.GetParameters())
+                    {
+                        var found = false;
+                        foreach (var d in deserializeColumns)
+                        {
+                            var setter = d.Setter;
+
+                            if (setter.Mode != BackingMode.ConstructorParameter) continue;
+
+                            if (setter.ConstructorParameter.Value == p)
+                            {
+                                found = true;
+                                break;
+                            }
+                        }
+
+                        if (!found)
+                        {
+                            Throw.InvalidOperationException<object>($"No {nameof(Setter)} found for constructor parameter {p}");
+                            return;
+                        }
+                    }
+
+                    foreach (var d in deserializeColumns)
+                    {
+                        var setter = d.Setter;
+                        if (setter.Mode != BackingMode.ConstructorParameter) continue;
+
+                        var cp = setter.ConstructorParameter.Value;
+                        if (cp.Member != cons)
+                        {
+                            Throw.InvalidOperationException<object>($"{nameof(Setter)} {setter} is backed by a parameter not on the constructor {cons}");
+                            return;
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (var d in deserializeColumns)
+                    {
+                        var setter = d.Setter;
+                        if (setter.Mode == BackingMode.ConstructorParameter)
+                        {
+                            Throw.InvalidOperationException<object>($"{nameof(Setter)} {setter} bound to constructor parameter when {nameof(InstanceProvider)} is not backed by a parameter taking constructor");
+                            return;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (deserializeColumns.Any())
+                {
+                    Throw.InvalidOperationException<object>($"Registered {nameof(ITypeDescriber)} returned null for {nameof(ITypeDescriber.GetInstanceProvider)} while return non-null for {nameof(ITypeDescriber.EnumerateMembersToDeserialize)}");
+                    return;
+                }
+            }
+        }
+
+        private static Column[] CreateSerializeColumns(TypeInfo t, IEnumerable<SerializableMember> cols)
         {
             var ret = new List<Column>();
-
-            var cols = options.TypeDescriber.EnumerateMembersToSerialize(t.GetTypeInfo());
 
             foreach (var col in cols)
             {
                 var writer = ColumnWriter.Create(t, col.Formatter, col.ShouldSerialize, col.Getter, col.EmitDefaultValue);
 
-                ret.Add(new Column(col.Name, writer, false));
+                ret.Add(new Column(col.Name, writer));
             }
 
             return ret.ToArray();

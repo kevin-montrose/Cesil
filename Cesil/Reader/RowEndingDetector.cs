@@ -161,7 +161,7 @@ namespace Cesil
                 using (handle)
                 {
                     int end;
-                    using (self.State.ReleaseAndRePinForAsync(waitFor))
+                    self.State.ReleasePinForAsync(waitFor);
                     {
                         end = await ConfigureCancellableAwait(self, waitFor, cancel);
                     }
@@ -214,7 +214,7 @@ loopStart:
                         var mem = self.BufferOwner.Memory.Slice(self.BufferStart, self.BufferOwner.Memory.Length - self.BufferStart);
 
                         var readTask = self.InnerAsync.Value.ReadAsync(mem, cancel);
-                        using (self.State.ReleaseAndRePinForAsync(readTask))
+                        self.State.ReleasePinForAsync(readTask);
                         {
                             end = await ConfigureCancellableAwait(self, readTask, cancel);
                         }

@@ -115,7 +115,7 @@ namespace Cesil
                         // finish this loop up
                         {
                             int available;
-                            using (self.StateMachine.ReleaseAndRePinForAsync(waitFor))
+                            self.StateMachine.ReleasePinForAsync(waitFor);
                             {
                                 available = await ConfigureCancellableAwait(self, waitFor, cancel);
                                 CheckCancellation(self, cancel);
@@ -146,7 +146,7 @@ namespace Cesil
                             self.PreparingToWriteToBuffer();
                             var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
                             int available;
-                            using (self.StateMachine.ReleaseAndRePinForAsync(availableTask))
+                            self.StateMachine.ReleasePinForAsync(availableTask);
                             {
                                 available = await ConfigureCancellableAwait(self, availableTask, cancel);
                                 CheckCancellation(self, cancel);

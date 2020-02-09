@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO.Pipelines;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -100,6 +101,8 @@ namespace Cesil.Tests
             public _ColumnSetters_Val Field;
 #pragma warning restore CS0649
 
+            public _ColumnSetters(_ColumnSetters_Val p) { }
+
             public void Set(_ColumnSetters_Val c)
             {
                 Prop = c;
@@ -174,6 +177,10 @@ namespace Cesil.Tests
 
         private class _ColumnWriters
         {
+            public _ColumnWriters_Val GetProp => new _ColumnWriters_Val { Value = "prop" };
+
+            public static _ColumnWriters_Val GetPropStatic => new _ColumnWriters_Val { Value = "static prop" };
+
             public static _ColumnWriters_Val StaticA;
             public _ColumnWriters_Val A;
 
@@ -737,6 +744,21 @@ namespace Cesil.Tests
         private void _BadReturnGetter() { }
         private static string _BadArgs1Getter(int a, int b) { return null; }
         private string _BadArgs2Getter(int a) { return null; }
+        private string _BadArgs3Getter(ref object _) { return null; }
+        private static string _BadArgs4Getter(ref object _, ref WriteContext __) { return null; }
+        private static string _BadArgs5Getter(object a, object b, object c) { return null; }
+        private string _BadArgs6Getter(object a, object b) { return null; }
+
+        private sealed class _Getters
+        {
+            public string NoGetProperty
+            {
+                set
+                {
+                    // intentionally empty
+                }
+            }
+        }
 
         [Fact]
         public void Getters()
@@ -752,7 +774,9 @@ namespace Cesil.Tests
             var staticFieldGetter = Getter.ForField(typeof(_ColumnWriters).GetField(nameof(_ColumnWriters.StaticA)));
             var delGetter = (Getter)(GetterDelegate<_ColumnWriters, _ColumnWriters_Val>)((_ColumnWriters row, in WriteContext _) => { return row.A; });
             var staticDelGetter = (Getter)(StaticGetterDelegate<_ColumnWriters_Val>)((in WriteContext _) => { return new _ColumnWriters_Val { Value = "foo" }; });
-            var getters = new[] { methodGetter, methodGetterCtx, staticMethodGetter, staticMethodGetterCtx, staticMethodGetterRow, staticMethodGetterRowCtx, fieldGetter, staticFieldGetter, delGetter, staticDelGetter };
+            var propGetter = Getter.ForProperty(typeof(_ColumnWriters).GetProperty(nameof(_ColumnWriters.GetProp)));
+            var staticPropGetter = Getter.ForProperty(typeof(_ColumnWriters).GetProperty(nameof(_ColumnWriters.GetPropStatic)));
+            var getters = new[] { methodGetter, methodGetterCtx, staticMethodGetter, staticMethodGetterCtx, staticMethodGetterRow, staticMethodGetterRowCtx, fieldGetter, staticFieldGetter, delGetter, staticDelGetter, propGetter, staticPropGetter };
 
             var notGetter = "";
 
@@ -820,6 +844,18 @@ namespace Cesil.Tests
                 {
                     Assert.Equal(BackingMode.Delegate, g1.Mode);
                     Assert.True(g1.TakesContext);
+                    Assert.True(g1.IsStatic);
+                }
+                else if (g1 == propGetter)
+                {
+                    Assert.Equal(BackingMode.Method, g1.Mode);
+                    Assert.False(g1.TakesContext);
+                    Assert.False(g1.IsStatic);
+                }
+                else if (g1 == staticPropGetter)
+                {
+                    Assert.Equal(BackingMode.Method, g1.Mode);
+                    Assert.False(g1.TakesContext);
                     Assert.True(g1.IsStatic);
                 }
                 else
@@ -938,6 +974,10 @@ namespace Cesil.Tests
                 Assert.Throws<ArgumentException>(() => Getter.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadReturnGetter), BindingFlags.NonPublic | BindingFlags.Instance)));
                 Assert.Throws<ArgumentException>(() => Getter.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadArgs1Getter), BindingFlags.NonPublic | BindingFlags.Static)));
                 Assert.Throws<ArgumentException>(() => Getter.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadArgs2Getter), BindingFlags.NonPublic | BindingFlags.Instance)));
+                Assert.Throws<ArgumentException>(() => Getter.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadArgs3Getter), BindingFlags.NonPublic | BindingFlags.Instance)));
+                Assert.Throws<ArgumentException>(() => Getter.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadArgs4Getter), BindingFlags.NonPublic | BindingFlags.Static)));
+                Assert.Throws<ArgumentException>(() => Getter.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadArgs5Getter), BindingFlags.NonPublic | BindingFlags.Static)));
+                Assert.Throws<ArgumentException>(() => Getter.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadArgs6Getter), BindingFlags.NonPublic | BindingFlags.Instance)));
             }
 
             // ForField errors
@@ -957,6 +997,18 @@ namespace Cesil.Tests
                 Assert.Throws<InvalidOperationException>(() => (Getter)a);
                 Func<int, string, bool> b = (_, __) => false;
                 Assert.Throws<InvalidOperationException>(() => (Getter)b);
+                Func<string, string> c = _ => "";
+                Assert.Throws<InvalidOperationException>(() => (Getter)c);
+                Func<int, int, int, string> d = (_, __, ___) => "";
+                Assert.Throws<InvalidOperationException>(() => (Getter)d);
+            }
+
+            // ForProperty errors
+            {
+                Assert.Throws<ArgumentNullException>(() => Getter.ForProperty(null));
+
+                var noGetProp = typeof(_Getters).GetProperty(nameof(_Getters.NoGetProperty));
+                Assert.Throws<ArgumentException>(() => Getter.ForProperty(noGetProp));
             }
         }
 
@@ -1356,6 +1408,8 @@ namespace Cesil.Tests
         private class _SetterCast
         {
             public string Foo { get; set; }
+
+            public string NoSetter => "nope";
         }
 
         private delegate void SetterConcreteEquivDelegate(_SetterCast row, int val, in ReadContext ctx);
@@ -1451,6 +1505,9 @@ namespace Cesil.Tests
         private bool _BadReturnSetter() { return false; }
         private void _BadArgs1Setter(int a, int b) { }
         private void _BadArgs2Setter(int a, int b, int c) { }
+        private static void _BadArgs3Setter(int a, ref object notContext) { }
+        private static void _BadArgs4Setter(int a, int b, ReadContext notContext) { }
+        private static void _BadArgs5Setter(int a, int b, int c, int d) { }
 
         [Fact]
         public void Setters()
@@ -1470,9 +1527,11 @@ namespace Cesil.Tests
             var delSetter3 = (Setter)(SetterDelegate<_ColumnWriters, _ColumnSetters_Val>)((_ColumnWriters a, _ColumnSetters_Val v, in ReadContext _) => { /* intentionally empty */ });
             var delSetter4 = (Setter)(SetterDelegate<_ColumnWriters, _ColumnWriters_Val>)((_ColumnWriters a, _ColumnWriters_Val v, in ReadContext _) => { a.A = v; });
 
+            var consSetter = Setter.ForConstructorParameter(typeof(_ColumnSetters).GetConstructors().Single().GetParameters().Single());
 
             var staticDelSetter = (Setter)(StaticSetterDelegate<_ColumnSetters_Val>)((_ColumnSetters_Val f, in ReadContext _) => { _ColumnSetters.StaticField = f; });
-            var setters = new[] { methodSetter, methodSetterCtx, staticMethodSet, staticMethodSetCtx, staticMethodSetParam, staticMethodSetParamCtx, fieldSetter, delSetter1, delSetter2, delSetter3, delSetter4, staticDelSetter };
+
+            var setters = new[] { methodSetter, methodSetterCtx, staticMethodSet, staticMethodSetCtx, staticMethodSetParam, staticMethodSetParamCtx, fieldSetter, delSetter1, delSetter2, delSetter3, delSetter4, staticDelSetter, consSetter };
 
             var notSetter = "";
 
@@ -1532,6 +1591,11 @@ namespace Cesil.Tests
                     Assert.Equal(BackingMode.Delegate, s1.Mode);
                     Assert.True(s1.IsStatic);
                 }
+                else if (s1 == consSetter)
+                {
+                    Assert.Equal(BackingMode.ConstructorParameter, s1.Mode);
+                    Assert.False(s1.IsStatic);
+                }
                 else
                 {
 
@@ -1566,6 +1630,9 @@ namespace Cesil.Tests
                 Assert.Throws<ArgumentException>(() => Setter.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadReturnSetter), BindingFlags.NonPublic | BindingFlags.Instance)));
                 Assert.Throws<ArgumentException>(() => Setter.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadArgs1Setter), BindingFlags.NonPublic | BindingFlags.Instance)));
                 Assert.Throws<ArgumentException>(() => Setter.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadArgs2Setter), BindingFlags.NonPublic | BindingFlags.Instance)));
+                Assert.Throws<ArgumentException>(() => Setter.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadArgs3Setter), BindingFlags.NonPublic | BindingFlags.Static)));
+                Assert.Throws<ArgumentException>(() => Setter.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadArgs4Setter), BindingFlags.NonPublic | BindingFlags.Static)));
+                Assert.Throws<ArgumentException>(() => Setter.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadArgs5Setter), BindingFlags.NonPublic | BindingFlags.Static)));
             }
 
             // ForField errors
@@ -1579,12 +1646,32 @@ namespace Cesil.Tests
                 Assert.Throws<ArgumentNullException>(() => Setter.ForDelegate<string, int>(null));
             }
 
+            // ForParser errors
+            {
+                Assert.Throws<ArgumentNullException>(() => Setter.ForProperty(null));
+                Assert.Throws<ArgumentException>(() => Setter.ForProperty(typeof(_SetterCast).GetProperty(nameof(_SetterCast.NoSetter))));
+            }
+
+            // ForConstructorParameter errors
+            {
+                Assert.Throws<ArgumentNullException>(() => Setter.ForConstructorParameter(null));
+
+                var mtd = typeof(WrapperTests).GetMethod(nameof(_BadArgs5Setter), BindingFlags.NonPublic | BindingFlags.Static);
+                var ps = mtd.GetParameters().First();
+
+                Assert.Throws<ArgumentException>(() => Setter.ForConstructorParameter(ps));
+            }
+
             // delegate cast errors
             {
                 Func<string> a = () => "";
                 Assert.Throws<InvalidOperationException>(() => (Setter)a);
                 Action<int, int, int> b = (_, __, ___) => { };
                 Assert.Throws<InvalidOperationException>(() => (Setter)b);
+                Action<int, int> c = (_, __) => { };
+                Assert.Throws<InvalidOperationException>(() => (Setter)c);
+                Action<int> d = _ => { };
+                Assert.Throws<InvalidOperationException>(() => (Setter)d);
             }
         }
 
@@ -1687,6 +1774,9 @@ namespace Cesil.Tests
 
         private bool _BadArgsShouldSerialize(int a) { return true; }
         private bool _BadArgs2ShouldSerialize(_ShouldSerializeCast a, int b) { return true; }
+        private static bool _BadArgs3ShouldSerialize(ref object _) { return true; }
+        private static bool _BadArgs4ShouldSerialize(_ShouldSerializeCast a, object _) { return true; }
+        private static bool _BadArgs5ShouldSerialize(_ShouldSerializeCast a, object _, object __) { return true; }
         private void _BadReturnShouldSerialize() { }
 
         [Fact]
@@ -1700,8 +1790,10 @@ namespace Cesil.Tests
             var staticMethodShouldSerializeParam = ShouldSerialize.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.ShouldSerializeStaticWithParam)));
             var staticMethodShouldSerializeParamCtx = ShouldSerialize.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.ShouldSerializeStaticWithParamCtx)));
             var delShouldSerialize = (ShouldSerialize)(ShouldSerializeDelegate<_ColumnWriters>)((_ColumnWriters _, in WriteContext __) => { return true; });
+            var delOtherShouldSerialize = (ShouldSerialize)(ShouldSerializeGenEquivDelegate<_ColumnWriters>)((_ColumnWriters _, in WriteContext __) => { return true; });
             var staticDelShouldSerialize = (ShouldSerialize)(StaticShouldSerializeDelegate)((in WriteContext __) => { return true; });
-            var shouldSerializes = new[] { methodShouldSerialize, methodShouldSerializeCtx, staticMethodShouldSerialize, staticMethodShouldSerializeCtx, staticMethodShouldSerializeParam, staticMethodShouldSerializeParamCtx, delShouldSerialize, staticDelShouldSerialize };
+            var staticDelOtherShouldSerialize = (ShouldSerialize)(StaticShouldSerializeEquivDelegate)((in WriteContext __) => { return true; });
+            var shouldSerializes = new[] { methodShouldSerialize, methodShouldSerializeCtx, staticMethodShouldSerialize, staticMethodShouldSerializeCtx, staticMethodShouldSerializeParam, staticMethodShouldSerializeParamCtx, delShouldSerialize, delOtherShouldSerialize, staticDelShouldSerialize, staticDelOtherShouldSerialize };
 
             var notShouldSerialize = "";
 
@@ -1760,7 +1852,21 @@ namespace Cesil.Tests
                     Assert.False(s1.IsStatic);
                     Assert.True(s1.TakesContext);
                 }
+                else if (s1 == delOtherShouldSerialize)
+                {
+                    Assert.Equal(BackingMode.Delegate, s1.Mode);
+                    Assert.Equal(typeof(_ColumnWriters).GetTypeInfo(), s1.Takes.Value);
+                    Assert.False(s1.IsStatic);
+                    Assert.True(s1.TakesContext);
+                }
                 else if (s1 == staticDelShouldSerialize)
+                {
+                    Assert.Equal(BackingMode.Delegate, s1.Mode);
+                    Assert.False(s1.Takes.HasValue);
+                    Assert.True(s1.IsStatic);
+                    Assert.True(s1.TakesContext);
+                }
+                else if (s1 == staticDelOtherShouldSerialize)
                 {
                     Assert.Equal(BackingMode.Delegate, s1.Mode);
                     Assert.False(s1.Takes.HasValue);
@@ -1799,6 +1905,9 @@ namespace Cesil.Tests
                 Assert.Throws<ArgumentNullException>(() => ShouldSerialize.ForMethod(null));
                 Assert.Throws<ArgumentException>(() => ShouldSerialize.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadArgsShouldSerialize), BindingFlags.NonPublic | BindingFlags.Instance)));
                 Assert.Throws<ArgumentException>(() => ShouldSerialize.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadArgs2ShouldSerialize), BindingFlags.NonPublic | BindingFlags.Instance)));
+                Assert.Throws<ArgumentException>(() => ShouldSerialize.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadArgs3ShouldSerialize), BindingFlags.NonPublic | BindingFlags.Static)));
+                Assert.Throws<ArgumentException>(() => ShouldSerialize.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadArgs4ShouldSerialize), BindingFlags.NonPublic | BindingFlags.Static)));
+                Assert.Throws<ArgumentException>(() => ShouldSerialize.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadArgs5ShouldSerialize), BindingFlags.NonPublic | BindingFlags.Static)));
                 Assert.Throws<ArgumentException>(() => ShouldSerialize.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadReturnShouldSerialize), BindingFlags.NonPublic | BindingFlags.Instance)));
             }
 
@@ -1814,6 +1923,10 @@ namespace Cesil.Tests
                 Assert.Throws<InvalidOperationException>(() => (ShouldSerialize)a);
                 Func<int, int, bool> b = (_, __) => true;
                 Assert.Throws<InvalidOperationException>(() => (ShouldSerialize)b);
+                Func<int, int, int, bool> c = (_, __, ___) => true;
+                Assert.Throws<InvalidOperationException>(() => (ShouldSerialize)c);
+                Func<int, bool> d = _ => true;
+                Assert.Throws<InvalidOperationException>(() => (ShouldSerialize)d);
             }
         }
 

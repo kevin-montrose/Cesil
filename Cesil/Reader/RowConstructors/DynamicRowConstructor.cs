@@ -17,6 +17,8 @@ namespace Cesil
 
         internal DynamicRowConstructor() { }
 
+        public IRowConstructor<object> Clone() => new DynamicRowConstructor();
+
         public void SetColumnOrder(HeadersReader<object>.HeaderEnumerator columns)
         {
             // took ownership, have to dispose

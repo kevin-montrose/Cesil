@@ -1,5 +1,7 @@
 ﻿using System;
 
+using static Cesil.DynamicRowTrackingHelper;
+
 namespace Cesil
 {
     internal sealed class DynamicReader :
@@ -39,7 +41,7 @@ namespace Cesil
                 handle = StateMachine.Pin();
             }
 
-            TryAllocateAndTrack(ref row);
+            TryAllocateAndTrack(this, ColumnCount, ColumnNames, ref NotifyOnDisposeHead, ref row);
 
             using (handle)
             {
@@ -68,42 +70,6 @@ namespace Cesil
                     }
                 }
             }
-        }
-
-        private void TryAllocateAndTrack(ref dynamic row)
-        {
-            // after this call row _WILL_ be a disposed non-null DynamicRow
-            TryPreAllocateRow(ref row);
-
-            var dynRow = Utils.NonNull(row as DynamicRow);
-
-            var options = Configuration.Options;
-            var needsTracking = options.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose;
-            var isAttached = dynRow.Owner.HasValue;
-            var isAttachedToSelf = isAttached && dynRow.Owner.Value == this;
-
-            // possible states
-            // ---------------
-            // !needsTracking, !isAttached => do nothing
-            // !needsTracking, isAttached => detach
-            // needsTracking, !isAttached => attach
-            // needsTracking, isAttached, !isAttachedToSelf => detach, attach
-            // needsTracking, isAttached, isAttachedToSelf => do nothing
-
-            var doDetach = (!needsTracking && isAttached) || (needsTracking && isAttached && !isAttachedToSelf);
-            var doAttach = (needsTracking && !isAttached) || (needsTracking && isAttached && !isAttachedToSelf);
-
-            if (doDetach)
-            {
-                dynRow.Owner.Value.Remove(dynRow);
-            }
-
-            if (doAttach)
-            {
-                NotifyOnDisposeHead.AddHead(ref NotifyOnDisposeHead, dynRow);
-            }
-
-            dynRow.Init(this, RowNumber, ColumnCount, Context, options.TypeDescriber, ColumnNames, options.MemoryPool);
         }
 
         public void Remove(DynamicRow row)

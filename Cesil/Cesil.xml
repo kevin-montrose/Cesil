@@ -16,7 +16,7 @@
             For working with dynamic.
             </summary>
         </member>
-        <member name="M:Cesil.BoundConfigurationBase`1.#ctor(Cesil.InstanceProvider,System.Collections.Generic.IEnumerable{Cesil.DeserializableMember},Cesil.Column[],System.Boolean[],Cesil.Options)">
+        <member name="M:Cesil.BoundConfigurationBase`1.#ctor(System.Collections.Generic.IEnumerable{Cesil.DeserializableMember},Cesil.Column[],System.Boolean[],Cesil.Options)">
             <summary>
             For working with concrete types.
             </summary>
@@ -3683,7 +3683,7 @@
             <summary>
             Convenience operator, equivalent to calling Setter.ForConstructorParameter if non-null.
             
-            Returns null if field is null.
+            Returns null if parameter is null.
             </summary>
         </member>
         <member name="M:Cesil.Setter.op_Explicit(System.Delegate)~Cesil.Setter">

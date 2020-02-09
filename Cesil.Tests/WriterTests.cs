@@ -16,6 +16,63 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class WriterTests
     {
+        private sealed class _VariousShouldSerializes
+        {
+            public int Foo { get; set; }
+
+            public static bool Row_Context(_VariousShouldSerializes row, ref WriteContext _)
+            => true;
+
+            public string Bar { get; set; }
+
+            public static bool NoRow_Context(ref WriteContext _)
+            => true;
+
+            public bool Fizz { get; set; }
+
+            public bool Context(ref WriteContext _)
+            => true;
+        }
+
+        [Fact]
+        public void VariousShouldSerializes()
+        {
+            var t = typeof(_VariousShouldSerializes).GetTypeInfo();
+
+            var foo = Getter.ForProperty(t.GetProperty(nameof(_VariousShouldSerializes.Foo)));
+            var bar = Getter.ForProperty(t.GetProperty(nameof(_VariousShouldSerializes.Bar)));
+            var fizz = Getter.ForProperty(t.GetProperty(nameof(_VariousShouldSerializes.Fizz)));
+
+            var fooShould = Cesil.ShouldSerialize.ForMethod(t.GetMethod(nameof(_VariousShouldSerializes.Row_Context)));
+            var barShould = Cesil.ShouldSerialize.ForMethod(t.GetMethod(nameof(_VariousShouldSerializes.NoRow_Context)));
+            var fizzShould = Cesil.ShouldSerialize.ForMethod(t.GetMethod(nameof(_VariousShouldSerializes.Context)));
+
+            var m = ManualTypeDescriber.CreateBuilder();
+            m.WithExplicitGetter(t, "a", foo, Formatter.GetDefault(typeof(int).GetTypeInfo()), fooShould);
+            m.WithExplicitGetter(t, "b", bar, Formatter.GetDefault(typeof(string).GetTypeInfo()), barShould);
+            m.WithExplicitGetter(t, "c", fizz, Formatter.GetDefault(typeof(bool).GetTypeInfo()), fizzShould);
+
+            var td = m.ToManualTypeDescriber();
+
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(td).ToOptions();
+
+            RunSyncWriterVariants<_VariousShouldSerializes>(
+                opts,
+                (config, getWriter, getStr) =>
+                { 
+                    using(var writer = getWriter())
+                    using(var csv = config.CreateWriter(writer))
+                    {
+                        csv.Write(new _VariousShouldSerializes { Foo = 123, Bar = "hello", Fizz = false });
+                        csv.Write(new _VariousShouldSerializes { Foo = 456, Bar = "world", Fizz = true });
+                    }
+
+                    var str = getStr();
+                    Assert.Equal("a,b,c\r\n123,hello,False\r\n456,world,True", str);
+                }
+            );
+        }
+
         [Fact]
         public void Tuples()
         {
@@ -3041,45 +3098,54 @@ namespace Cesil.Tests
             );
         }
 
-        private class _StaticGetters
+        private class _VariousGetters
         {
             private int Foo;
 
-            public _StaticGetters() { }
+            public _VariousGetters() { }
 
-            public _StaticGetters(int f) : this()
+            public _VariousGetters(int f) : this()
             {
                 Foo = f;
             }
 
             public static int GetBar() => 2;
 
-            public static int GetFizz(_StaticGetters sg) => sg.Foo + GetBar();
+            public static int GetFizz(_VariousGetters sg) => sg.Foo + GetBar();
+
+            public static int GetBuzz(ref WriteContext _) => 3;
+            public static int GetHello(_VariousGetters sg, ref WriteContext _) => sg.Foo + 4;
+            public int GetWorld(ref WriteContext _) => 5;
+
+
         }
 
         [Fact]
-        public void StaticGetters()
+        public void VariousGetters()
         {
             var m = ManualTypeDescriberBuilder.CreateBuilder();
-            m.WithInstanceProvider((InstanceProvider)typeof(_StaticGetters).GetConstructor(Type.EmptyTypes));
-            m.WithExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Bar", (Getter)typeof(_StaticGetters).GetMethod("GetBar", BindingFlags.Static | BindingFlags.Public));
-            m.WithExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Fizz", (Getter)typeof(_StaticGetters).GetMethod("GetFizz", BindingFlags.Static | BindingFlags.Public));
+            m.WithInstanceProvider((InstanceProvider)typeof(_VariousGetters).GetConstructor(Type.EmptyTypes));
+            m.WithExplicitGetter(typeof(_VariousGetters).GetTypeInfo(), "Bar", (Getter)typeof(_VariousGetters).GetMethod("GetBar", BindingFlags.Static | BindingFlags.Public));
+            m.WithExplicitGetter(typeof(_VariousGetters).GetTypeInfo(), "Fizz", (Getter)typeof(_VariousGetters).GetMethod("GetFizz", BindingFlags.Static | BindingFlags.Public));
+            m.WithExplicitGetter(typeof(_VariousGetters).GetTypeInfo(), "Buzz", (Getter)typeof(_VariousGetters).GetMethod("GetBuzz", BindingFlags.Static | BindingFlags.Public));
+            m.WithExplicitGetter(typeof(_VariousGetters).GetTypeInfo(), "Hello", (Getter)typeof(_VariousGetters).GetMethod("GetHello", BindingFlags.Static | BindingFlags.Public));
+            m.WithExplicitGetter(typeof(_VariousGetters).GetTypeInfo(), "World", (Getter)typeof(_VariousGetters).GetMethod("GetWorld", BindingFlags.Instance | BindingFlags.Public));
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)m.ToManualTypeDescriber()).ToOptions();
 
-            RunSyncWriterVariants<_StaticGetters>(
+            RunSyncWriterVariants<_VariousGetters>(
                 opts,
                 (config, getWriter, getStr) =>
                 {
                     using (var csv = config.CreateWriter(getWriter()))
                     {
-                        csv.Write(new _StaticGetters(1));
-                        csv.Write(new _StaticGetters(2));
-                        csv.Write(new _StaticGetters(3));
+                        csv.Write(new _VariousGetters(1));
+                        csv.Write(new _VariousGetters(2));
+                        csv.Write(new _VariousGetters(3));
                     }
 
                     var str = getStr();
-                    Assert.Equal("Bar,Fizz\r\n2,3\r\n2,4\r\n2,5", str);
+                    Assert.Equal("Bar,Fizz,Buzz,Hello,World\r\n2,3,3,5,5\r\n2,4,3,6,5\r\n2,5,3,7,5", str);
                 }
             );
         }
@@ -3126,6 +3192,45 @@ namespace Cesil.Tests
 
                     var txt = getString();
                     Assert.Equal("1,,None,1970-01-01 00:00:00Z\r\n,Fizz,,", txt);
+                }
+            );
+        }
+
+        [Fact]
+        public async Task VariousShouldSerializesAsync()
+        {
+            var t = typeof(_VariousShouldSerializes).GetTypeInfo();
+
+            var foo = Getter.ForProperty(t.GetProperty(nameof(_VariousShouldSerializes.Foo)));
+            var bar = Getter.ForProperty(t.GetProperty(nameof(_VariousShouldSerializes.Bar)));
+            var fizz = Getter.ForProperty(t.GetProperty(nameof(_VariousShouldSerializes.Fizz)));
+
+            var fooShould = Cesil.ShouldSerialize.ForMethod(t.GetMethod(nameof(_VariousShouldSerializes.Row_Context)));
+            var barShould = Cesil.ShouldSerialize.ForMethod(t.GetMethod(nameof(_VariousShouldSerializes.NoRow_Context)));
+            var fizzShould = Cesil.ShouldSerialize.ForMethod(t.GetMethod(nameof(_VariousShouldSerializes.Context)));
+
+            var m = ManualTypeDescriber.CreateBuilder();
+            m.WithExplicitGetter(t, "a", foo, Formatter.GetDefault(typeof(int).GetTypeInfo()), fooShould);
+            m.WithExplicitGetter(t, "b", bar, Formatter.GetDefault(typeof(string).GetTypeInfo()), barShould);
+            m.WithExplicitGetter(t, "c", fizz, Formatter.GetDefault(typeof(bool).GetTypeInfo()), fizzShould);
+
+            var td = m.ToManualTypeDescriber();
+
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(td).ToOptions();
+
+            await RunAsyncWriterVariants<_VariousShouldSerializes>(
+                opts,
+                async (config, getWriter, getStr) =>
+                {
+                    await using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        await csv.WriteAsync(new _VariousShouldSerializes { Foo = 123, Bar = "hello", Fizz = false });
+                        await csv.WriteAsync(new _VariousShouldSerializes { Foo = 456, Bar = "world", Fizz = true });
+                    }
+
+                    var str = await getStr();
+                    Assert.Equal("a,b,c\r\n123,hello,False\r\n456,world,True", str);
                 }
             );
         }
@@ -5121,28 +5226,31 @@ namespace Cesil.Tests
         }
 
         [Fact]
-        public async Task StaticGettersAsync()
+        public async Task VariousGettersAsync()
         {
             var m = ManualTypeDescriberBuilder.CreateBuilder();
-            m.WithInstanceProvider((InstanceProvider)typeof(_StaticGetters).GetConstructor(Type.EmptyTypes));
-            m.WithExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Bar", (Getter)typeof(_StaticGetters).GetMethod("GetBar", BindingFlags.Static | BindingFlags.Public));
-            m.WithExplicitGetter(typeof(_StaticGetters).GetTypeInfo(), "Fizz", (Getter)typeof(_StaticGetters).GetMethod("GetFizz", BindingFlags.Static | BindingFlags.Public));
+            m.WithInstanceProvider((InstanceProvider)typeof(_VariousGetters).GetConstructor(Type.EmptyTypes));
+            m.WithExplicitGetter(typeof(_VariousGetters).GetTypeInfo(), "Bar", (Getter)typeof(_VariousGetters).GetMethod("GetBar", BindingFlags.Static | BindingFlags.Public));
+            m.WithExplicitGetter(typeof(_VariousGetters).GetTypeInfo(), "Fizz", (Getter)typeof(_VariousGetters).GetMethod("GetFizz", BindingFlags.Static | BindingFlags.Public));
+            m.WithExplicitGetter(typeof(_VariousGetters).GetTypeInfo(), "Buzz", (Getter)typeof(_VariousGetters).GetMethod("GetBuzz", BindingFlags.Static | BindingFlags.Public));
+            m.WithExplicitGetter(typeof(_VariousGetters).GetTypeInfo(), "Hello", (Getter)typeof(_VariousGetters).GetMethod("GetHello", BindingFlags.Static | BindingFlags.Public));
+            m.WithExplicitGetter(typeof(_VariousGetters).GetTypeInfo(), "World", (Getter)typeof(_VariousGetters).GetMethod("GetWorld", BindingFlags.Instance | BindingFlags.Public));
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)m.ToManualTypeDescriber()).ToOptions();
 
-            await RunAsyncWriterVariants<_StaticGetters>(
+            await RunAsyncWriterVariants<_VariousGetters>(
                 opts,
                 async (config, getWriter, getStr) =>
                 {
                     await using (var csv = config.CreateAsyncWriter(getWriter()))
                     {
-                        await csv.WriteAsync(new _StaticGetters(1));
-                        await csv.WriteAsync(new _StaticGetters(2));
-                        await csv.WriteAsync(new _StaticGetters(3));
+                        await csv.WriteAsync(new _VariousGetters(1));
+                        await csv.WriteAsync(new _VariousGetters(2));
+                        await csv.WriteAsync(new _VariousGetters(3));
                     }
 
                     var str = await getStr();
-                    Assert.Equal("Bar,Fizz\r\n2,3\r\n2,4\r\n2,5", str);
+                    Assert.Equal("Bar,Fizz,Buzz,Hello,World\r\n2,3,3,5,5\r\n2,4,3,6,5\r\n2,5,3,7,5", str);
                 }
             );
         }

@@ -515,7 +515,7 @@ namespace Cesil
         /// <summary>
         /// Convenience operator, equivalent to calling Setter.ForConstructorParameter if non-null.
         /// 
-        /// Returns null if field is null.
+        /// Returns null if parameter is null.
         /// </summary>
         public static explicit operator Setter?(ParameterInfo? parameter)
         => parameter == null ? null : ForConstructorParameter(parameter);

@@ -326,7 +326,7 @@ namespace Cesil
             return ret;
         }
 
-        protected void TryPreAllocateRow(ref T val)
+        internal void TryPreAllocateRow(ref T val)
         {
             var ctx = ReadContext.ReadingRow(Configuration.Options, RowNumber, Context);
 

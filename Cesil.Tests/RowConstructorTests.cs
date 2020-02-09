@@ -1,13 +1,259 @@
-﻿using System.Buffers;
+﻿using System;
+using System.Buffers;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Serialization;
 using Xunit;
 
 namespace Cesil.Tests
 {
     public class RowConstructorTests
     {
+        [Fact]
+        public void Columns()
+        {
+            using var simple = CreateSimpleConstructor();
+            Assert.Collection(
+                simple.Columns,
+                a => Assert.Equal("Foo", a),
+                b => Assert.Equal("Bar", b)
+            );
+
+            using var held = CreateHeldConstructor();
+            Assert.Collection(
+                held.Columns,
+                a => Assert.Equal("Foo", a),
+                b => Assert.Equal("Bar", b),
+                c => Assert.Equal("Fizz", c),
+                d => Assert.Equal("Buzz", d)
+            );
+
+            using var dynamic = new DynamicRowConstructor();
+            Assert.Empty(dynamic.Columns);
+
+            static IRowConstructor<_Simple> CreateSimpleConstructor()
+            {
+                var t = typeof(_Simple).GetTypeInfo();
+
+                var ip = InstanceProvider.ForDelegate((in ReadContext ctx, out _Simple val) => { val = new _Simple(); return true; });
+
+                var sFoo = Setter.ForDelegate((_Simple row, int val, in ReadContext ctx) => { row.Foo = val; });
+                var sBar = Setter.ForDelegate((_Simple row, string val, in ReadContext ctx) => { row.Bar = val; });
+
+                var pFoo = Parser.GetDefault(typeof(int).GetTypeInfo());
+                var pBar = Parser.GetDefault(typeof(string).GetTypeInfo());
+
+                var dmFoo = DeserializableMember.Create(t, nameof(_Simple.Foo), sFoo, pFoo, MemberRequired.Yes, null);
+                var dmBar = DeserializableMember.Create(t, nameof(_Simple.Bar), sBar, pBar, MemberRequired.No, null);
+
+                var builder = RowConstructor.Create<_Simple>(MemoryPool<char>.Shared, ip, new[] { dmFoo, dmBar });
+
+                return builder.Clone();
+            }
+
+            static IRowConstructor<_Mixed> CreateHeldConstructor()
+            {
+                var t = typeof(_Mixed).GetTypeInfo();
+
+                var cons = t.GetConstructors()[0];
+                var consPs = cons.GetParameters();
+
+                var ip = InstanceProvider.ForConstructorWithParameters(cons);
+
+                var sFoo = Setter.ForConstructorParameter(consPs.Single(s => s.Name == "a"));
+                var sBar = Setter.ForConstructorParameter(consPs.Single(s => s.Name == "b"));
+
+                var sFizz = Setter.ForDelegate((_Mixed row, char val, in ReadContext ctx) => { row.Fizz = val; });
+                var sBuzz = Setter.ForDelegate((_Mixed row, byte val, in ReadContext ctx) => { row.Buzz = val; });
+
+                var pFoo = Parser.GetDefault(typeof(int).GetTypeInfo());
+                var pBar = Parser.GetDefault(typeof(string).GetTypeInfo());
+                var pFizz = Parser.GetDefault(typeof(char).GetTypeInfo());
+                var pBuzz = Parser.GetDefault(typeof(byte).GetTypeInfo());
+
+                var dmFoo = DeserializableMember.Create(t, nameof(_Mixed.Foo), sFoo, pFoo, MemberRequired.Yes, null);
+                var dmBar = DeserializableMember.Create(t, nameof(_Mixed.Bar), sBar, pBar, MemberRequired.Yes, null);
+                var dmFizz = DeserializableMember.Create(t, nameof(_Mixed.Fizz), sFizz, pFizz, MemberRequired.Yes, null);
+                var dmBuzz = DeserializableMember.Create(t, nameof(_Mixed.Buzz), sBuzz, pBuzz, MemberRequired.No, null);
+
+                var builder =
+                    RowConstructor.Create<_Mixed>(
+                        MemoryPool<char>.Shared,
+                        ip,
+                        new[]
+                        {
+                        dmFoo,
+                        dmBar,
+                        dmFizz,
+                        dmBuzz
+                        }
+                    );
+
+                return builder.Clone();
+            }
+        }
+
+        [Fact]
+        public void MixedErrors()
+        {
+            // start, double start
+            {
+                using var builder = CreateConstructor();
+                builder.StartRow(default);
+                Assert.Throws<Exception>(() => builder.StartRow(default));
+            }
+
+            // column, not started
+            {
+                using var builder = CreateConstructor();
+                Assert.Throws<Exception>(() => builder.ColumnAvailable(Options.Default, 0, 0, null, default));
+            }
+
+            // column, bad column
+            {
+                using var builder = CreateConstructor();
+                builder.StartRow(default);
+                Assert.Throws<InvalidOperationException>(() => builder.ColumnAvailable(Options.Default, 0, 10, null, default));
+            }
+
+            // column, required simple missing
+            {
+                using var builder = CreateConstructor();
+                builder.StartRow(default);
+                Assert.Throws<SerializationException>(() => builder.ColumnAvailable(Options.Default, 0, 2, null, default));
+            }
+
+            // column, required held missing
+            {
+                using var builder = CreateConstructor();
+                builder.StartRow(default);
+                Assert.Throws<SerializationException>(() => builder.ColumnAvailable(Options.Default, 0, 0, null, default));
+            }
+
+            // finish, not started
+            {
+                using var builder = CreateConstructor();
+                Assert.Throws<Exception>(() => builder.FinishRow());
+            }
+
+            // finish, started but not all required set
+            {
+                using var builder = CreateConstructor();
+                builder.StartRow(default);
+                builder.ColumnAvailable(Options.Default, 0, 0, null, "123".AsSpan());
+                Assert.Throws<SerializationException>(() => builder.FinishRow());
+            }
+
+            // finish, but simple not set
+            {
+                using var builder = CreateConstructor();
+                builder.StartRow(default);
+                builder.ColumnAvailable(Options.Default, 0, 0, null, "123".AsSpan());
+                builder.ColumnAvailable(Options.Default, 0, 1, null, "hello".AsSpan());
+                Assert.Throws<SerializationException>(() => builder.FinishRow());
+            }
+
+            IRowConstructor<_Mixed> CreateConstructor()
+            {
+                var t = typeof(_Mixed).GetTypeInfo();
+
+                var cons = t.GetConstructors()[0];
+                var consPs = cons.GetParameters();
+
+                var ip = InstanceProvider.ForConstructorWithParameters(cons);
+
+                var sFoo = Setter.ForConstructorParameter(consPs.Single(s => s.Name == "a"));
+                var sBar = Setter.ForConstructorParameter(consPs.Single(s => s.Name == "b"));
+
+                var sFizz = Setter.ForDelegate((_Mixed row, char val, in ReadContext ctx) => { row.Fizz = val; });
+                var sBuzz = Setter.ForDelegate((_Mixed row, byte val, in ReadContext ctx) => { row.Buzz = val; });
+
+                var pFoo = Parser.GetDefault(typeof(int).GetTypeInfo());
+                var pBar = Parser.GetDefault(typeof(string).GetTypeInfo());
+                var pFizz = Parser.GetDefault(typeof(char).GetTypeInfo());
+                var pBuzz = Parser.GetDefault(typeof(byte).GetTypeInfo());
+
+                var dmFoo = DeserializableMember.Create(t, nameof(_Mixed.Foo), sFoo, pFoo, MemberRequired.Yes, null);
+                var dmBar = DeserializableMember.Create(t, nameof(_Mixed.Bar), sBar, pBar, MemberRequired.Yes, null);
+                var dmFizz = DeserializableMember.Create(t, nameof(_Mixed.Fizz), sFizz, pFizz, MemberRequired.Yes, null);
+                var dmBuzz = DeserializableMember.Create(t, nameof(_Mixed.Buzz), sBuzz, pBuzz, MemberRequired.No, null);
+
+                var builder =
+                    RowConstructor.Create<_Mixed>(
+                        MemoryPool<char>.Shared,
+                        ip,
+                        new[]
+                        {
+                        dmFoo,
+                        dmBar,
+                        dmFizz,
+                        dmBuzz
+                        }
+                    );
+
+                return builder.Clone();
+            }
+        }
+
+        [Fact]
+        public void SimpleErrors()
+        {
+            // start, not populated
+            {
+                using var builder = CreateConstructor();
+                Assert.Throws<Exception>(() => builder.StartRow(default));
+            }
+
+            // column, not populated
+            {
+                using var builder = CreateConstructor();
+                Assert.Throws<Exception>(() => builder.ColumnAvailable(Options.Default, 0, 0, null, default));
+            }
+
+            // column, populated, not started
+            {
+                _Simple _ = null;
+
+                using var builder = CreateConstructor();
+                builder.TryPreAllocate(default, ref _);
+                Assert.Throws<Exception>(() => builder.ColumnAvailable(Options.Default, 0, 0, null, default));
+            }
+
+            // column, required but empty
+            {
+                using var builder = CreateConstructor();
+                Assert.Throws<Exception>(() => builder.FinishRow());
+            }
+
+            // finish, not populated
+            {
+                using var builder = CreateConstructor();
+                Assert.Throws<Exception>(() => builder.ColumnAvailable(Options.Default, 0, 1, null, default));
+            }
+
+            static IRowConstructor<_Simple> CreateConstructor()
+            {
+                var t = typeof(_Simple).GetTypeInfo();
+
+                var ip = InstanceProvider.ForDelegate((in ReadContext ctx, out _Simple val) => { val = new _Simple(); return true; });
+
+                var sFoo = Setter.ForDelegate((_Simple row, int val, in ReadContext ctx) => { row.Foo = val; });
+                var sBar = Setter.ForDelegate((_Simple row, string val, in ReadContext ctx) => { row.Bar = val; });
+
+                var pFoo = Parser.GetDefault(typeof(int).GetTypeInfo());
+                var pBar = Parser.GetDefault(typeof(string).GetTypeInfo());
+
+                var dmFoo = DeserializableMember.Create(t, nameof(_Simple.Foo), sFoo, pFoo, MemberRequired.Yes, null);
+                var dmBar = DeserializableMember.Create(t, nameof(_Simple.Bar), sBar, pBar, MemberRequired.No, null);
+
+                var builder = RowConstructor.Create<_Simple>(MemoryPool<char>.Shared, ip, new[] { dmFoo, dmBar });
+
+                return builder.Clone();
+            }
+        }
+
         private sealed class _Simple
         {
             public int Foo { get; set; }
@@ -32,7 +278,7 @@ namespace Cesil.Tests
             var dmFoo = DeserializableMember.Create(t, nameof(_Simple.Foo), sFoo, pFoo, MemberRequired.No, null);
             var dmBar = DeserializableMember.Create(t, nameof(_Simple.Bar), sBar, pBar, MemberRequired.No, null);
 
-            using var builder = RowConstructor.Create<_Simple>(MemoryPool<char>.Shared, ip, new[] { dmFoo, dmBar });
+            using var builder = RowConstructor.Create<_Simple>(MemoryPool<char>.Shared, ip, new[] { dmFoo, dmBar }).Clone();
 
             _Simple _ = null;
 
@@ -108,9 +354,15 @@ namespace Cesil.Tests
             Assert.False(sBarInvoked);
         }
 
-        private static HeadersReader<T>.HeaderEnumerator CreateHeadersReader<T>(string header)
+        private static HeadersReader<T>.HeaderEnumerator CreateHeadersReader<T>(string header, ITypeDescriber td = null)
         {
-            var config = (BoundConfigurationBase<T>)Configuration.For<T>();
+            var opts = Options.Default;
+            if (td != null)
+            {
+                opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(td).ToOptions();
+            }
+
+            var config = (BoundConfigurationBase<T>)Configuration.For<T>(opts);
 
             var str = new StringReader(header);
 
@@ -254,7 +506,7 @@ namespace Cesil.Tests
             var dmFoo = DeserializableMember.Create(t, nameof(_ConstructorParameters.Foo), sFoo, pFoo, MemberRequired.Yes, null);
             var dmBar = DeserializableMember.Create(t, nameof(_ConstructorParameters.Bar), sBar, pBar, MemberRequired.Yes, null);
 
-            using var builder = RowConstructor.Create<_ConstructorParameters>(MemoryPool<char>.Shared, ip, new[] { dmFoo, dmBar });
+            using var builder = RowConstructor.Create<_ConstructorParameters>(MemoryPool<char>.Shared, ip, new[] { dmFoo, dmBar }).Clone();
 
             _ConstructorParameters _ = null;
 
@@ -336,7 +588,7 @@ namespace Cesil.Tests
 
                 var builder = RowConstructor.Create<_ConstructorParameters>(MemoryPool<char>.Shared, ip, new[] { dmFoo, dmBar });
 
-                return builder;
+                return builder.Clone();
             }
         }
 
@@ -394,7 +646,7 @@ namespace Cesil.Tests
                         dmFizz,
                         dmBuzz
                     }
-                );
+                ).Clone();
 
             _Mixed _ = null;
 
@@ -556,15 +808,35 @@ namespace Cesil.Tests
             Assert.Equal(0, r8.Buzz);
         }
 
+        private sealed class _SetColumnOrder_Mixed : DefaultTypeDescriber
+        {
+            private readonly InstanceProvider InstanceProvider;
+            private readonly IEnumerable<DeserializableMember> DeserializableMembers;
+
+            public _SetColumnOrder_Mixed(InstanceProvider ip, IEnumerable<DeserializableMember> dms)
+            {
+                InstanceProvider = ip;
+                DeserializableMembers = dms;
+            }
+
+            public override InstanceProvider GetInstanceProvider(TypeInfo forType)
+            => InstanceProvider;
+
+            public override IEnumerable<DeserializableMember> EnumerateMembersToDeserialize(TypeInfo forType)
+            => DeserializableMembers;
+        }
+
         [Fact]
         public void SetColumnOrder_Mixed()
         {
+            var ip = InstanceProvider.ForConstructorWithParameters(typeof(_Mixed).GetConstructors().Single());
+
             // in order
             {
                 _Mixed _ = null;
 
-                var builder = MakeConstructor();
-                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Foo,Bar,Fizz,Buzz"));
+                using var builder = MakeConstructor(out var td);
+                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Foo,Bar,Fizz,Buzz", td));
 
                 Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
@@ -584,8 +856,8 @@ namespace Cesil.Tests
             {
                 _Mixed _ = null;
 
-                var builder = MakeConstructor();
-                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Buzz,Fizz,Bar,Foo"));
+                using var builder = MakeConstructor(out var td);
+                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Buzz,Fizz,Bar,Foo", td));
 
                 Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
@@ -605,8 +877,8 @@ namespace Cesil.Tests
             {
                 _Mixed _ = null;
 
-                var builder = MakeConstructor();
-                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Foo,Bar,Buzz"));
+                using var builder = MakeConstructor(out var td);
+                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Foo,Bar,Buzz", td));
 
                 Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
@@ -625,8 +897,8 @@ namespace Cesil.Tests
             {
                 _Mixed _ = null;
 
-                var builder = MakeConstructor();
-                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Buzz,Bar,Foo"));
+                using var builder = MakeConstructor(out var td);
+                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Buzz,Bar,Foo", td));
 
                 Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
@@ -645,8 +917,8 @@ namespace Cesil.Tests
             {
                 _Mixed _ = null;
 
-                var builder = MakeConstructor();
-                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Foo,Bar,Fizz"));
+                using var builder = MakeConstructor(out var td);
+                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Foo,Bar,Fizz", td));
 
                 Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
@@ -665,8 +937,8 @@ namespace Cesil.Tests
             {
                 _Mixed _ = null;
 
-                var builder = MakeConstructor();
-                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Fizz,Bar,Foo"));
+                using var builder = MakeConstructor(out var td);
+                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Fizz,Bar,Foo", td));
 
                 Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
@@ -687,8 +959,8 @@ namespace Cesil.Tests
             {
                 _Mixed _ = null;
 
-                var builder = MakeConstructor();
-                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Foo,Bar"));
+                using var builder = MakeConstructor(out var td);
+                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Foo,Bar", td));
 
                 Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
@@ -706,8 +978,8 @@ namespace Cesil.Tests
             {
                 _Mixed _ = null;
 
-                var builder = MakeConstructor();
-                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Bar,Foo"));
+                using var builder = MakeConstructor(out var td);
+                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Bar,Foo", td));
 
                 Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
@@ -722,7 +994,7 @@ namespace Cesil.Tests
                 Assert.Equal(0, row.Buzz);
             }
 
-            static IRowConstructor<_Mixed> MakeConstructor()
+            static IRowConstructor<_Mixed> MakeConstructor(out ITypeDescriber describer)
             {
                 var t = typeof(_Mixed).GetTypeInfo();
 
@@ -747,6 +1019,8 @@ namespace Cesil.Tests
                 var dmFizz = DeserializableMember.Create(t, nameof(_Mixed.Fizz), sFizz, pFizz, MemberRequired.No, null);
                 var dmBuzz = DeserializableMember.Create(t, nameof(_Mixed.Buzz), sBuzz, pBuzz, MemberRequired.No, null);
 
+                describer = new _SetColumnOrder_Mixed(ip, new[] { dmFoo, dmBar, dmFizz, dmBuzz });
+
                 var builder =
                     RowConstructor.Create<_Mixed>(
                         MemoryPool<char>.Shared,
@@ -760,7 +1034,117 @@ namespace Cesil.Tests
                         }
                     );
 
-                return builder;
+                return builder.Clone();
+            }
+        }
+
+        [Fact]
+        public void MixedWithRequiredSimple()
+        {
+            using (var builder = MakeConstructor(out var describer))
+            {
+                _Mixed _ = null;
+
+                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Buzz,Fizz,Bar,Foo", describer));
+                
+                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+                builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
+                builder.ColumnAvailable(Options.Default, 0, 0, null, "123");
+                builder.ColumnAvailable(Options.Default, 0, 1, null, "c");
+                builder.ColumnAvailable(Options.Default, 0, 2, null, "foo");
+                builder.ColumnAvailable(Options.Default, 0, 3, null, "9999");
+                var row = builder.FinishRow();
+
+                Assert.Equal(123, row.Buzz);
+                Assert.Equal('c', row.Fizz);
+                Assert.Equal("foo", row.Bar);
+                Assert.Equal(9999, row.Foo);
+            }
+
+            using (var builder = MakeConstructor(out var describer))
+            {
+                _Mixed _ = null;
+
+                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Fizz,Bar,Foo,Buzz", describer));
+
+                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+                builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
+                builder.ColumnAvailable(Options.Default, 0, 0, null, "c");
+                builder.ColumnAvailable(Options.Default, 0, 1, null, "foo");
+                builder.ColumnAvailable(Options.Default, 0, 2, null, "9999");
+
+                Assert.Throws<SerializationException>(() => builder.FinishRow());
+            }
+
+            static IRowConstructor<_Mixed> MakeConstructor(out ITypeDescriber describer)
+            {
+                var t = typeof(_Mixed).GetTypeInfo();
+
+                var cons = t.GetConstructors()[0];
+                var consPs = cons.GetParameters();
+
+                var ip = InstanceProvider.ForConstructorWithParameters(cons);
+
+                var sFoo = Setter.ForConstructorParameter(consPs.Single(s => s.Name == "a"));
+                var sBar = Setter.ForConstructorParameter(consPs.Single(s => s.Name == "b"));
+
+                var sFizz = Setter.ForDelegate((_Mixed row, char val, in ReadContext ctx) => { row.Fizz = val; });
+                var sBuzz = Setter.ForDelegate((_Mixed row, byte val, in ReadContext ctx) => { row.Buzz = val; });
+
+                var pFoo = Parser.GetDefault(typeof(int).GetTypeInfo());
+                var pBar = Parser.GetDefault(typeof(string).GetTypeInfo());
+                var pFizz = Parser.GetDefault(typeof(char).GetTypeInfo());
+                var pBuzz = Parser.GetDefault(typeof(byte).GetTypeInfo());
+
+                var dmFoo = DeserializableMember.Create(t, nameof(_Mixed.Foo), sFoo, pFoo, MemberRequired.Yes, null);
+                var dmBar = DeserializableMember.Create(t, nameof(_Mixed.Bar), sBar, pBar, MemberRequired.Yes, null);
+                var dmFizz = DeserializableMember.Create(t, nameof(_Mixed.Fizz), sFizz, pFizz, MemberRequired.No, null);
+                var dmBuzz = DeserializableMember.Create(t, nameof(_Mixed.Buzz), sBuzz, pBuzz, MemberRequired.Yes, null);
+
+                describer = new _SetColumnOrder_Mixed(ip, new[] { dmFoo, dmBar, dmFizz, dmBuzz });
+
+                var builder =
+                    RowConstructor.Create<_Mixed>(
+                        MemoryPool<char>.Shared,
+                        ip,
+                        new[]
+                        {
+                        dmFoo,
+                        dmBar,
+                        dmFizz,
+                        dmBuzz
+                        }
+                    );
+
+                return builder.Clone();
+            }
+        }
+
+        [Fact]
+        public void DynamicErrors()
+        {
+            // start, no prealloc
+            {
+                using var dynamic = new DynamicRowConstructor();
+                Assert.Throws<Exception>(() => dynamic.StartRow(default));
+            }
+
+            // column, no start
+            {
+                using var dynamic = new DynamicRowConstructor();
+                object _ = null;
+
+                dynamic.TryPreAllocate(default, ref _);
+                Assert.Throws<Exception>(() => dynamic.ColumnAvailable(Options.Default, 0, 0, null, default));
+            }
+
+            // finish, no start
+            {
+                using var dynamic = new DynamicRowConstructor();
+                object _ = null;
+
+                dynamic.TryPreAllocate(default, ref _);
+                Assert.Throws<Exception>(() => dynamic.FinishRow());
             }
         }
     }

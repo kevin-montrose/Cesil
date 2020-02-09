@@ -96,7 +96,7 @@ namespace Cesil
 
                             var resTask = self.TryReadInnerAsync(false, true, ref _, cancel);
                             ReadWithCommentResult<T> res;
-                            using (self.StateMachine.ReleaseAndRePinForAsync(resTask))
+                            self.StateMachine.ReleasePinForAsync(resTask);
                             {
                                 res = await ConfigureCancellableAwait(self, resTask, cancel);
                                 CheckCancellation(self, cancel);
@@ -144,7 +144,7 @@ namespace Cesil
                         T _ = default!;
                         var resTask = self.TryReadInnerAsync(false, true, ref _, cancel);
                         ReadWithCommentResult<T> res;
-                        using (self.StateMachine.ReleaseAndRePinForAsync(resTask))
+                        self.StateMachine.ReleasePinForAsync(resTask);
                         {
                             res = await ConfigureCancellableAwait(self, resTask, cancel);
                             CheckCancellation(self, cancel);

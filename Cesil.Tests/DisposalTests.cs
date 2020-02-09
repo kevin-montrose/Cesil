@@ -126,12 +126,6 @@ namespace Cesil.Tests
                 {
                     IDisposable_ReadOnlySequenceAdapter();
                 }
-                else if (t == typeof(ReaderStateMachine.RePin))
-                {
-                    // intentionally NOT testing this one, it's a useful hack
-                    //   to use using for this one but it's not a traditional
-                    //   disposable
-                }
                 else if (t == typeof(DynamicRowMemberNameEnumerator))
                 {
                     IDisposable_DynamicRowMemberNameEnumerator();
@@ -153,9 +147,89 @@ namespace Cesil.Tests
                 {
                     // intentionally NOT testing, these are all just proxies for RequireSet and aren't really disposable
                 }
+                else if(t == typeof(UnmanagedLookupArray<>))
+                {
+                    IDisposable_UnmanagedLookupArray();
+                }
                 else
                 {
                     throw new XunitException($"No test configured for .Dispose() on {t.Name}");
+                }
+            }
+
+            void IDisposable_UnmanagedLookupArray()
+            {
+                // double dispose does not error
+                {
+                    var a = MakeLookupAdapter();
+                    a.Dispose();
+                    a.Dispose();
+                }
+
+                // assert throws after dispose
+                {
+                    var a = MakeLookupAdapter();
+                    a.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => ((ITestableDisposable)a).AssertNotDisposed());
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    using (var a = MakeLookupAdapter())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(a);
+                    }
+                }
+
+                // Add
+                {
+                    var a = MakeLookupAdapter();
+                    a.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => a.Add(-1));
+                    testCases++;
+                }
+
+                // Clear
+                {
+                    var a = MakeLookupAdapter();
+                    a.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => a.Clear());
+                    testCases++;
+                }
+
+                // Count
+                {
+                    var a = MakeLookupAdapter();
+                    a.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => a.Count);
+                    testCases++;
+                }
+
+                // Get
+                {
+                    var a = MakeLookupAdapter();
+                    a.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => a.Get(0, -1, out _));
+                    testCases++;
+                }
+
+                // Set
+                {
+                    var a = MakeLookupAdapter();
+                    a.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => a.Set(10, 10));
+                    testCases++;
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make an adapter that's "good to go"
+                UnmanagedLookupArray<int> MakeLookupAdapter()
+                {
+                    return new UnmanagedLookupArray<int>(MemoryPool<char>.Shared, 10);
                 }
             }
 

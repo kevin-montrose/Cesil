@@ -13,6 +13,150 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ConfigurationTests
     {
+        private sealed class _BadTypeDescribers_Row3
+        {
+            public string Foo { get; set; }
+
+            public _BadTypeDescribers_Row3(string foo)
+            {
+                Foo = foo;
+            }
+        }
+
+        private sealed class _BadTypeDescribers_Row2
+        {
+            public string Foo { get; set; }
+            public string Bar { get; set; }
+
+            public _BadTypeDescribers_Row2(string foo)
+            {
+                Foo = foo;
+            }
+        }
+
+        private sealed class _BadTypeDescribers_Row
+        {
+            public int Foo { get; set; }
+        }
+
+        private sealed class _BadTypeDescribers: ITypeDescriber
+        {
+            private readonly InstanceProvider InstanceProvider;
+            private readonly IEnumerable<DeserializableMember> DeserializableMembers;
+            private readonly IEnumerable<SerializableMember> SerializableMembers;
+
+            public _BadTypeDescribers(InstanceProvider ip, IEnumerable<DeserializableMember> dm, IEnumerable<SerializableMember> sm)
+            {
+                InstanceProvider = ip;
+                DeserializableMembers = dm;
+                SerializableMembers = sm;
+            }
+
+            public IEnumerable<DeserializableMember> EnumerateMembersToDeserialize(TypeInfo forType)
+            => DeserializableMembers;
+
+            public IEnumerable<SerializableMember> EnumerateMembersToSerialize(TypeInfo forType)
+            => SerializableMembers;
+
+            public IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext context, object row)
+            => Enumerable.Empty<DynamicCellValue>();
+
+            public Parser GetDynamicCellParserFor(in ReadContext context, TypeInfo targetType)
+            => null;
+
+            public DynamicRowConverter GetDynamicRowConverter(in ReadContext context, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
+            => null;
+
+            public InstanceProvider GetInstanceProvider(TypeInfo forType)
+            => InstanceProvider;
+        }
+
+        [Fact]
+        public void BadTypeDescribers()
+        {
+            var t = typeof(_BadTypeDescribers_Row).GetTypeInfo();
+
+            // null provider, non-null columns
+            {
+                var describer = new _BadTypeDescribers(null, TypeDescribers.Default.EnumerateMembersToDeserialize(t), TypeDescribers.Default.EnumerateMembersToSerialize(t));
+                var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(describer).ToOptions();
+
+                Assert.Throws<InvalidOperationException>(() => Configuration.For<_BadTypeDescribers_Row>(opts));
+            }
+
+            // null deserialize
+            {
+                var describer = new _BadTypeDescribers(TypeDescribers.Default.GetInstanceProvider(t), null, TypeDescribers.Default.EnumerateMembersToSerialize(t));
+                var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(describer).ToOptions();
+
+                Assert.Throws<InvalidOperationException>(() => Configuration.For<_BadTypeDescribers_Row>(opts));
+            }
+
+            // null serialize
+            {
+                var describer = new _BadTypeDescribers(TypeDescribers.Default.GetInstanceProvider(t), TypeDescribers.Default.EnumerateMembersToDeserialize(t), null);
+                var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(describer).ToOptions();
+
+                Assert.Throws<InvalidOperationException>(() => Configuration.For<_BadTypeDescribers_Row>(opts));
+            }
+
+            // missing constructor parameter
+            {
+                var t2 = typeof(_BadTypeDescribers_Row2).GetTypeInfo();
+
+                var cons = t2.GetConstructor(new[] { typeof(string) });
+                var ip = InstanceProvider.ForConstructorWithParameters(cons);
+                var ds = TypeDescribers.Default.EnumerateMembersToDeserialize(t2);
+
+                var describer = new _BadTypeDescribers(ip, ds, TypeDescribers.Default.EnumerateMembersToSerialize(t2));
+                var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(describer).ToOptions();
+
+                Assert.Throws<InvalidOperationException>(() => Configuration.For<_BadTypeDescribers_Row2>(opts));
+            }
+
+            // constructor parameter, not constructor provider
+            {
+                var t2 = typeof(_BadTypeDescribers_Row2).GetTypeInfo();
+
+                var cons = t2.GetConstructor(new[] { typeof(string) });
+                var p = cons.GetParameters().Single();
+                var s = Setter.ForConstructorParameter(p);
+                var dm = DeserializableMember.Create(t, "foo", s, Parser.GetDefault(typeof(string).GetTypeInfo()), MemberRequired.Yes, null);
+
+                var ip = TypeDescribers.Default.GetInstanceProvider(t);
+                var ds = TypeDescribers.Default.EnumerateMembersToDeserialize(t).Concat(new[] { dm }).ToArray();
+
+                var describer = new _BadTypeDescribers(ip, ds, TypeDescribers.Default.EnumerateMembersToSerialize(t));
+                var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(describer).ToOptions();
+
+                Assert.Throws<InvalidOperationException>(() => Configuration.For<_BadTypeDescribers_Row>(opts));
+            }
+
+            // parameter for different constructor
+            {
+                var t2 = typeof(_BadTypeDescribers_Row2).GetTypeInfo();
+                var t3 = typeof(_BadTypeDescribers_Row3).GetTypeInfo();
+
+                var cons2 = t2.GetConstructor(new[] { typeof(string) });
+                var p2 = cons2.GetParameters().Single();
+                var s2 = Setter.ForConstructorParameter(p2);
+                var dm2 = DeserializableMember.Create(t, "bar", s2, Parser.GetDefault(typeof(string).GetTypeInfo()), MemberRequired.Yes, null);
+
+                var cons3 = t3.GetConstructor(new[] { typeof(string) });
+                var p3 = cons3.GetParameters().Single();
+                var s3 = Setter.ForConstructorParameter(p3);
+                var dm3 = DeserializableMember.Create(t, "foo", s3, Parser.GetDefault(typeof(string).GetTypeInfo()), MemberRequired.Yes, null);
+
+                var ip = InstanceProvider.ForConstructorWithParameters(cons2);
+                var ds = new[] { dm2, dm3 };
+
+                var describer = new _BadTypeDescribers(ip, ds, TypeDescribers.Default.EnumerateMembersToSerialize(t2));
+                var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(describer).ToOptions();
+
+                Assert.Throws<InvalidOperationException>(() => Configuration.For<_BadTypeDescribers_Row2>(opts));
+            }
+        }
+
         [Fact]
         public void TransitionMatrixInBounds()
         {
@@ -300,7 +444,7 @@ namespace Cesil.Tests
         private static void _SingleColumn<T>(string n)
         {
             var config = (ConcreteBoundConfiguration<T>)Configuration.For<T>();
-            Assert.True(config.InstanceProvider.HasValue);
+            Assert.True(config.RowBuilder.HasValue);
 
             Assert.Collection(
                 config.DeserializeColumns,

@@ -95,6 +95,7 @@ namespace Cesil
             }
             else
             {
+                EnsurePinned();
                 cType = CharLookup[cOffset.Value];
             }
 
@@ -119,10 +120,19 @@ namespace Cesil
             return cOffset;
         }
 
+        private void EnsurePinned()
+        {
+            if (!IsPinned)
+            {
+                PinInner();
+            }
+        }
+
         private unsafe AdvanceResult AdvanceInner(State fromState, CharacterType cType)
         {
             var offset = GetTransitionMatrixOffset(fromState, cType);
 
+            EnsurePinned();
             var forChar = TransitionMatrix[offset];
 
             CurrentState = forChar.NextState;
@@ -175,6 +185,7 @@ namespace Cesil
 
                         var offset = GetTransitionMatrixOffset(s, c);
 
+                        EnsurePinned();
                         var rule = TransitionMatrix[offset];
 
                         ret.AppendLine($"  {c} => ({rule.NextState}, {rule.Result})");

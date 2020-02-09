@@ -16,6 +16,158 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ReaderTests
     {
+        private sealed class _VariousResets
+        {
+            private int _A;
+            public int A
+            {
+                get => _A;
+                set => _A = _A * value;
+            }
+            public static void ResetA_Row_Context(_VariousResets row, ref ReadContext _)
+            => row._A = 3;
+
+            public static int _B;
+            public int B
+            {
+                get => _B;
+                set => _B = _B + value;
+            }
+            public static void ResetB_NoRow_Context(ref ReadContext _)
+            {
+                _B = 4;
+            }
+
+            public int _C;
+            public int C
+            {
+                get => _C;
+                set => _C = _C * 2;
+            }
+            public void ResetC_Context(ref ReadContext _)
+            {
+                _C = 5;
+            }
+        }
+
+        [Fact]
+        public void VariousResets()
+        {
+            var t = typeof(_VariousResets).GetTypeInfo();
+            var cons = t.GetConstructors().Single();
+
+            var a = t.GetProperty(nameof(_VariousResets.A));
+            var aReset = t.GetMethod(nameof(_VariousResets.ResetA_Row_Context), BindingFlags.Public | BindingFlags.Static);
+            var b = t.GetProperty(nameof(_VariousResets.B));
+            var bReset = t.GetMethod(nameof(_VariousResets.ResetB_NoRow_Context), BindingFlags.Public | BindingFlags.Static);
+            var c = t.GetProperty(nameof(_VariousResets.C));
+            var cReset = t.GetMethod(nameof(_VariousResets.ResetC_Context), BindingFlags.Public | BindingFlags.Instance);
+
+            var m = ManualTypeDescriber.CreateBuilder();
+            m.WithInstanceProvider(InstanceProvider.ForParameterlessConstructor(cons));
+            m.WithExplicitSetter(t, "A", Setter.ForProperty(a), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.No, Reset.ForMethod(aReset));
+            m.WithExplicitSetter(t, "B", Setter.ForProperty(b), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.No, Reset.ForMethod(bReset));
+            m.WithExplicitSetter(t, "C", Setter.ForProperty(c), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.No, Reset.ForMethod(cReset));
+
+            var td = m.ToManualTypeDescriber();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(td).ToOptions();
+
+            RunSyncReaderVariants<_VariousResets>(
+                opts,
+                (config, getReader) =>
+                {
+                    _VariousResets._B = 123;
+
+                    using (var reader = getReader("A,B,C\r\n4,5,6"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+
+                        Assert.Collection(
+                            rows,
+                            r =>
+                            {
+                                Assert.Equal(12, r.A);
+                                Assert.Equal(9, r.B);
+                                Assert.Equal(10, r.C);
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
+        private sealed class _VariousSetters
+        {
+            public int A { get; private set; }
+            public string B { get; private set; }
+            public int C { get; private set; }
+
+            public _VariousSetters(int a)
+            {
+                A = -a;
+            }
+
+
+            public static void StaticSetter_Row_NoContext(_VariousSetters s, string b)
+            {
+                s.B = b + "." + b;
+            }
+
+            public static void StaticSetter_Row_Context(_VariousSetters s, int c, ref ReadContext ctx)
+            {
+                s.C = c + 1;
+            }
+
+            public static int D;
+            public static void StaticSetter_NoRow_Context(int d, ref ReadContext ctx)
+            {
+                D = d + 2;
+            }
+        }
+
+        [Fact]
+        public void VariousSetters()
+        {
+            var t = typeof(_VariousSetters).GetTypeInfo();
+            var cons = t.GetConstructors().Single();
+
+            var m = ManualTypeDescriber.CreateBuilder();
+            m.WithInstanceProvider(InstanceProvider.ForConstructorWithParameters(cons));
+            m.WithExplicitSetter(t, "A", Setter.ForConstructorParameter(cons.GetParameters().Single()), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes);
+            m.WithExplicitSetter(t, "B", Setter.ForMethod(t.GetMethod(nameof(_VariousSetters.StaticSetter_Row_NoContext))));
+            m.WithExplicitSetter(t, "C", Setter.ForMethod(t.GetMethod(nameof(_VariousSetters.StaticSetter_Row_Context))));
+            m.WithExplicitSetter(t, "D", Setter.ForMethod(t.GetMethod(nameof(_VariousSetters.StaticSetter_NoRow_Context))));
+
+            var td = m.ToManualTypeDescriber();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(td).ToOptions();
+
+            RunSyncReaderVariants<_VariousSetters>(
+                opts,
+                (config, getReader) =>
+                {
+                    _VariousSetters.D = 0;
+
+                    using (var reader = getReader("A,B,C,D\r\n1,foo,2,3"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+
+                        Assert.Collection(
+                            rows,
+                            r =>
+                            {
+                                Assert.Equal(-1, r.A);
+                                Assert.Equal("foo.foo", r.B);
+                                Assert.Equal(3, r.C);
+                                Assert.Equal(5, _VariousSetters.D);
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
         private sealed class _PoisedTryReadWithCommentReuse
         {
             public string Foo { get; set; }
@@ -3690,23 +3842,65 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             public string B { get; set; }
         }
 
+        private sealed class _IsRequiredMissing_Hold
+        {
+            public string A { get; private set; }
+            public string B { get; private set; }
+            public _IsRequiredMissing_Hold(string a, string b)
+            {
+                A = a;
+                B = b;
+            }
+        }
+
         [Fact]
         public void IsRequiredNotInHeader()
         {
-            var opts = Options.Default;
-            var CSV = "A,C\r\nhello,world";
+            // simple type
+            {
+                var opts = Options.Default;
+                var CSV = "A,C\r\nhello,world";
 
-            RunSyncReaderVariants<_IsRequiredMissing>(
-                opts,
-                (config, getReader) =>
-                {
-                    using (var str = getReader(CSV))
-                    using (var csv = config.CreateReader(str))
+                RunSyncReaderVariants<_IsRequiredMissing>(
+                    opts,
+                    (config, getReader) =>
                     {
-                        Assert.Throws<SerializationException>(() => csv.ReadAll());
+                        using (var str = getReader(CSV))
+                        using (var csv = config.CreateReader(str))
+                        {
+                            Assert.Throws<SerializationException>(() => csv.ReadAll());
+                        }
                     }
-                }
-            );
+                );
+            }
+
+            // hold type
+            {
+                var t = typeof(_IsRequiredMissing_Hold).GetTypeInfo();
+                var cons = t.GetConstructors().Single();
+                var pA = cons.GetParameters().Single(a => a.Name == "a");
+                var pB = cons.GetParameters().Single(b => b.Name == "b");
+
+                var td = ManualTypeDescriber.CreateBuilder();
+                td.WithInstanceProvider(InstanceProvider.ForConstructorWithParameters(cons));
+                td.WithExplicitSetter(t, "A", Setter.ForConstructorParameter(pA), Parser.GetDefault(typeof(string).GetTypeInfo()), MemberRequired.Yes);
+                td.WithExplicitSetter(t, "B", Setter.ForConstructorParameter(pB), Parser.GetDefault(typeof(string).GetTypeInfo()), MemberRequired.Yes);
+
+                var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(td.ToManualTypeDescriber()).ToOptions();
+                var CSV = "A,C\r\nhello,world";
+
+                RunSyncReaderVariants<_IsRequiredMissing_Hold>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var str = getReader(CSV))
+                        using (var csv = config.CreateReader(str))
+                        {
+                            Assert.Throws<SerializationException>(() => csv.ReadAll());
+                        }
+                    }
+                );
+            }
         }
 
         [Fact]
@@ -4074,6 +4268,95 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     }
                 );
             }
+        }
+
+        [Fact]
+        public async Task VariousResetsAsync()
+        {
+            var t = typeof(_VariousResets).GetTypeInfo();
+            var cons = t.GetConstructors().Single();
+
+            var a = t.GetProperty(nameof(_VariousResets.A));
+            var aReset = t.GetMethod(nameof(_VariousResets.ResetA_Row_Context), BindingFlags.Public | BindingFlags.Static);
+            var b = t.GetProperty(nameof(_VariousResets.B));
+            var bReset = t.GetMethod(nameof(_VariousResets.ResetB_NoRow_Context), BindingFlags.Public | BindingFlags.Static);
+            var c = t.GetProperty(nameof(_VariousResets.C));
+            var cReset = t.GetMethod(nameof(_VariousResets.ResetC_Context), BindingFlags.Public | BindingFlags.Instance);
+
+            var m = ManualTypeDescriber.CreateBuilder();
+            m.WithInstanceProvider(InstanceProvider.ForParameterlessConstructor(cons));
+            m.WithExplicitSetter(t, "A", Setter.ForProperty(a), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.No, Reset.ForMethod(aReset));
+            m.WithExplicitSetter(t, "B", Setter.ForProperty(b), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.No, Reset.ForMethod(bReset));
+            m.WithExplicitSetter(t, "C", Setter.ForProperty(c), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.No, Reset.ForMethod(cReset));
+
+            var td = m.ToManualTypeDescriber();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(td).ToOptions();
+
+            await RunAsyncReaderVariants<_VariousResets>(
+                opts,
+                async (config, getReader) =>
+                {
+                    _VariousResets._B = 123;
+
+                    await using (var reader = await getReader("A,B,C\r\n4,5,6"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+
+                        Assert.Collection(
+                            rows,
+                            r =>
+                            {
+                                Assert.Equal(12, r.A);
+                                Assert.Equal(9, r.B);
+                                Assert.Equal(10, r.C);
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public async Task VariousSettersAsync()
+        {
+            var t = typeof(_VariousSetters).GetTypeInfo();
+            var cons = t.GetConstructors().Single();
+
+            var m = ManualTypeDescriber.CreateBuilder();
+            m.WithInstanceProvider(InstanceProvider.ForConstructorWithParameters(cons));
+            m.WithExplicitSetter(t, "A", Setter.ForConstructorParameter(cons.GetParameters().Single()), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.Yes);
+            m.WithExplicitSetter(t, "B", Setter.ForMethod(t.GetMethod(nameof(_VariousSetters.StaticSetter_Row_NoContext))));
+            m.WithExplicitSetter(t, "C", Setter.ForMethod(t.GetMethod(nameof(_VariousSetters.StaticSetter_Row_Context))));
+            m.WithExplicitSetter(t, "D", Setter.ForMethod(t.GetMethod(nameof(_VariousSetters.StaticSetter_NoRow_Context))));
+
+            var td = m.ToManualTypeDescriber();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(td).ToOptions();
+
+            await RunAsyncReaderVariants<_VariousSetters>(
+                opts,
+                async (config, getReader) =>
+                {
+                    _VariousSetters.D = 0;
+
+                    await using (var reader = await getReader("A,B,C,D\r\n1,foo,2,3"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+
+                        Assert.Collection(
+                            rows,
+                            r =>
+                            {
+                                Assert.Equal(-1, r.A);
+                                Assert.Equal("foo.foo", r.B);
+                                Assert.Equal(3, r.C);
+                                Assert.Equal(5, _VariousSetters.D);
+                            }
+                        );
+                    }
+                }
+            );
         }
 
         [Fact]
@@ -7343,20 +7626,51 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public async Task IsRequiredNotInHeaderAsync()
         {
-            var opts = Options.Default;
-            var CSV = "A,C\r\nhello,world";
+            // simple
+            {
+                var opts = Options.Default;
+                var CSV = "A,C\r\nhello,world";
 
-            await RunAsyncReaderVariants<_IsRequiredMissing>(
-                opts,
-                async (config, makeReader) =>
-                {
-                    await using (var reader = await makeReader(CSV))
-                    await using (var csv = config.CreateAsyncReader(reader))
+                await RunAsyncReaderVariants<_IsRequiredMissing>(
+                    opts,
+                    async (config, makeReader) =>
                     {
-                        await Assert.ThrowsAsync<SerializationException>(async () => await csv.ReadAllAsync());
+                        await using (var reader = await makeReader(CSV))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            await Assert.ThrowsAsync<SerializationException>(async () => await csv.ReadAllAsync());
+                        }
                     }
-                }
-            );
+                );
+            }
+
+            // hold type
+            {
+                var t = typeof(_IsRequiredMissing_Hold).GetTypeInfo();
+                var cons = t.GetConstructors().Single();
+                var pA = cons.GetParameters().Single(a => a.Name == "a");
+                var pB = cons.GetParameters().Single(b => b.Name == "b");
+
+                var td = ManualTypeDescriber.CreateBuilder();
+                td.WithInstanceProvider(InstanceProvider.ForConstructorWithParameters(cons));
+                td.WithExplicitSetter(t, "A", Setter.ForConstructorParameter(pA), Parser.GetDefault(typeof(string).GetTypeInfo()), MemberRequired.Yes);
+                td.WithExplicitSetter(t, "B", Setter.ForConstructorParameter(pB), Parser.GetDefault(typeof(string).GetTypeInfo()), MemberRequired.Yes);
+
+                var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(td.ToManualTypeDescriber()).ToOptions();
+                var CSV = "A,C\r\nhello,world";
+
+                await RunAsyncReaderVariants<_IsRequiredMissing_Hold>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        await using (var str = await getReader(CSV))
+                        await using (var csv = config.CreateAsyncReader(str))
+                        {
+                            await Assert.ThrowsAsync<SerializationException>(async () => await csv.ReadAllAsync());
+                        }
+                    }
+                );
+            }
         }
 
         [Fact]

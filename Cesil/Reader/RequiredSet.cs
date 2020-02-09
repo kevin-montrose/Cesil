@@ -35,10 +35,10 @@ namespace Cesil
 
             Owner = pool.Rent(space);
 
-            Owner.Memory.Span.Clear();
+            Owner.Memory.Span.Slice(0, space).Clear();
 
-            Required = Owner.Memory.Slice(0, space);
-            Set = Owner.Memory.Slice(space, space);
+            Required = Owner.Memory.Slice(0, neededChars);
+            Set = Owner.Memory.Slice(neededChars, neededChars);
 
             LongsInLength = neededChars / CHARS_PER_LONG;
 
@@ -89,6 +89,7 @@ namespace Cesil
                 return true;
             }
 
+            // todo: is there a way to test that this won't read out of bounds?
             fixed (char* requiredCharPtrConst = Required.Span)
             fixed (char* setCharPtrConst = Set.Span)
             {

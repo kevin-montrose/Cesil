@@ -26,42 +26,30 @@ namespace Cesil
             }
         }
 
-        internal readonly struct RePin : IDisposable
-        {
-            private readonly ReaderStateMachine Outer;
-
-            internal RePin(ReaderStateMachine outer)
-            {
-                Outer = outer;
-            }
-
-            public void Dispose()
-            {
-                Outer.Pin();
-            }
-        }
-
-        internal unsafe PinHandle Pin()
+        private unsafe void PinInner()
         {
             CharLookupPin = CharacterLookup.Pin(out CharLookup);
             TransitionMatrixHandle = TransitionMatrixMemory.Pin();
             TransitionMatrix = (TransitionRule*)TransitionMatrixHandle.Pointer;
+        }
+
+        internal PinHandle Pin()
+        {
+            PinInner();
 
             return new PinHandle(this);
         }
 
         // it's actually kind of expensive to pin, so we don't want to unpin and re-pin before
         //   every await IF the await isn't actually going to do anything
-        internal RePin? ReleaseAndRePinForAsync<T>(ValueTask<T> task)
+        internal void ReleasePinForAsync<T>(ValueTask<T> task)
         {
             if (task.IsCompletedSuccessfully)
             {
-                return null;
+                return;
             }
 
             Unpin();
-
-            return new RePin(this);
         }
 
         private unsafe void Unpin()
