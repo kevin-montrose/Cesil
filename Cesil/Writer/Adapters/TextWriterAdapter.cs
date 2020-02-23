@@ -18,14 +18,14 @@ namespace Cesil
 
         public void Write(char c)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             Inner.Write(c);
         }
 
         public void Write(ReadOnlySpan<char> chars)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             Inner.Write(chars);
         }

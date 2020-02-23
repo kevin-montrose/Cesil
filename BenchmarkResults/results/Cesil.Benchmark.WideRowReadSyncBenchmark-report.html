@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>Cesil.Benchmark.WideRowReadSyncBenchmark-20200306-235136</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet=v0.12.0, OS=Windows 8.1 (6.3.9600.0)
+Intel Core i7-4960HQ CPU 2.60GHz (Haswell), 1 CPU, 8 logical and 4 physical cores
+Frequency=2533207 Hz, Resolution=394.7565 ns, Timer=TSC
+.NET Core SDK=3.0.100
+  [Host]     : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
+  DefaultJob : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
+</code></pre>
+<pre><code></code></pre>
+
+<table>
+<thead><tr><th>Method</th><th>RowSet</th><th>Library</th><th>  Mean</th><th>Error</th><th>StdDev</th><th>Gen 0</th><th>Gen 1</th><th>Gen 2</th><th>Allocated</th>
+</tr>
+</thead><tbody><tr><td>Run</td><td>DeepRows</td><td>Cesil</td><td>167,736.4 us</td><td>1,417.45 us</td><td>1,325.89 us</td><td>-</td><td>-</td><td>-</td><td>7745.6 KB</td>
+</tr><tr><td>Run</td><td>DeepRows</td><td>CsvHelper</td><td>227,033.6 us</td><td>1,912.32 us</td><td>1,695.22 us</td><td>1000.0000</td><td>-</td><td>-</td><td>77462.29 KB</td>
+</tr><tr><td>Run</td><td>ShallowRows</td><td>Cesil</td><td>203.8 us</td><td>0.47 us</td><td>0.44 us</td><td>-</td><td>-</td><td>-</td><td>9.96 KB</td>
+</tr><tr><td>Run</td><td>ShallowRows</td><td>CsvHelper</td><td>8,173.3 us</td><td>41.46 us</td><td>38.78 us</td><td>-</td><td>-</td><td>-</td><td>212.34 KB</td>
+</tr></tbody></table>
+</body>
+</html>

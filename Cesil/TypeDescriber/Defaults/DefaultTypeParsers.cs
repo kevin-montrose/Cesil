@@ -165,6 +165,7 @@ namespace Cesil
         private static bool TryParseVersion(ReadOnlySpan<char> span, in ReadContext _, out Version? val)
         => Version.TryParse(span, out val);
 
+        // todo: add Uri to docs?
         private static bool TryParseUri(ReadOnlySpan<char> span, in ReadContext _, out Uri? val)
         {
             if (!TryParseString(span, in _, out var asStr))
@@ -195,7 +196,6 @@ namespace Cesil
 
         private static bool TryParseDateTime(ReadOnlySpan<char> span, in ReadContext _, out DateTime val)
         => DateTime.TryParse(span, CultureInfo.InvariantCulture, DateTimeStyles.None, out val);
-
 
         private static bool TryParseDateTimeOffset(ReadOnlySpan<char> span, in ReadContext _, out DateTimeOffset val)
         => DateTimeOffset.TryParse(span, CultureInfo.InvariantCulture, DateTimeStyles.None, out val);
@@ -234,15 +234,15 @@ namespace Cesil
 
 
         private static bool TryParseFloat(ReadOnlySpan<char> span, in ReadContext _, out float val)
-        => float.TryParse(span, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out val);
+        => float.TryParse(span, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent, CultureInfo.InvariantCulture, out val);
 
 
         private static bool TryParseDouble(ReadOnlySpan<char> span, in ReadContext _, out double val)
-        => double.TryParse(span, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out val);
+        => double.TryParse(span, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent, CultureInfo.InvariantCulture, out val);
 
 
         private static bool TryParseDecimal(ReadOnlySpan<char> span, in ReadContext _, out decimal val)
-        => decimal.TryParse(span, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out val);
+        => decimal.TryParse(span, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent, CultureInfo.InvariantCulture, out val);
 
         private static bool TryParseGUID(ReadOnlySpan<char> span, in ReadContext _, out Guid val)
         => Guid.TryParse(span, out val);

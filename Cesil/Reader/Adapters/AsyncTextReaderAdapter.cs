@@ -20,7 +20,7 @@ namespace Cesil
 
         public ValueTask<int> ReadAsync(Memory<char> into, CancellationToken cancel)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             return Inner.ReadAsync(into, cancel);
         }

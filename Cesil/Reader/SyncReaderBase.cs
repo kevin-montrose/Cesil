@@ -26,6 +26,7 @@ namespace Cesil
             AssertNotPoisoned();
 
             Utils.CheckArgumentNull(into, nameof(into));
+            Utils.CheckImmutableReadInto<TCollection, T>(into, nameof(into));
 
             try
             {

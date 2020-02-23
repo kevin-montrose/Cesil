@@ -95,7 +95,6 @@ namespace Cesil
             }
             else
             {
-                EnsurePinned();
                 cType = CharLookup[cOffset.Value];
             }
 
@@ -120,7 +119,7 @@ namespace Cesil
             return cOffset;
         }
 
-        private void EnsurePinned()
+        internal void EnsurePinned()
         {
             if (!IsPinned)
             {
@@ -128,11 +127,11 @@ namespace Cesil
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private unsafe AdvanceResult AdvanceInner(State fromState, CharacterType cType)
         {
             var offset = GetTransitionMatrixOffset(fromState, cType);
 
-            EnsurePinned();
             var forChar = TransitionMatrix[offset];
 
             CurrentState = forChar.NextState;

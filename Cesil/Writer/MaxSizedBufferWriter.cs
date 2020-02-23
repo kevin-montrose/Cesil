@@ -12,28 +12,44 @@ namespace Cesil
     {
         internal const int DEFAULT_STAGING_SIZE = (4098 - 8) / sizeof(char);
 
-        private class Node
+        private sealed class Node
         {
-            internal NonNull<IMemoryOwner<char>> Owner;
+            public static readonly Node EmptyNode = new Node(true);
 
-            internal NonNull<Node> Next;
+            internal IMemoryOwner<char> Owner;
+            internal Memory<char> Allocation;
+
             internal int BytesUsed;
 
-            internal Memory<char> Allocation => Owner.Value.Memory;
+            internal bool HasNext;
+            internal Node Next;
 
-            internal Node() { }
+            private Node(bool isEmpty)
+            {
+                Owner = EmptyMemoryOwner.Singleton;
+                Allocation = Memory<char>.Empty;
+
+                HasNext = false;
+                BytesUsed = 0;
+
+                Next = isEmpty? this : EmptyNode;
+            }
+
+            internal Node() : this(false) { }
 
             public void Init(IMemoryOwner<char> owner)
             {
-                Owner.Value = owner;
-                Next.Clear();
+                Owner = owner;
+                Allocation = owner.Memory;
+
                 BytesUsed = 0;
+
+                HasNext = false;
+                Next = EmptyNode;
             }
         }
 
         public bool IsDisposed { get; private set; }
-
-        internal ReadOnlySequence<char> Buffer => MakeSequence();
 
         // we can allocate a whole bunch of these in a row when
         //    serializing...
@@ -43,8 +59,9 @@ namespace Cesil
         // likewise, we spend a _lot_ of time creating memory chunks...
         private IMemoryOwner<char>? FreeMemory;
 
-        private NonNull<Node> Head;
-        private NonNull<Node> Tail;
+        private bool HasNodes;
+        private Node Head;
+        private Node Tail;
         private bool IsSingleSegment;
 
         private readonly MemoryPool<char> MemoryPool;
@@ -59,16 +76,21 @@ namespace Cesil
             {
                 SizeHint = Math.Min(DEFAULT_STAGING_SIZE, memoryPool.MaxBufferSize);
             }
+
+            Head = Tail = Node.EmptyNode;
+            HasNodes = false;
         }
 
         internal void Reset()
         {
+            if (!HasNodes) return;
+
             IMemoryOwner<char>? largest = null;
+
             var n = Head;
-            while (n.HasValue)
+            while(true)
             {
-                var nValue = n.Value;
-                var alloc = nValue.Owner.Value;
+                var alloc = n.Owner;
                 if (largest == null || alloc.Memory.Length > largest.Memory.Length)
                 {
                     largest = alloc;
@@ -78,9 +100,9 @@ namespace Cesil
                     alloc.Dispose();
                 }
 
-                if (nValue.Next.HasValue)
+                if (n.HasNext)
                 {
-                    n = nValue.Next;
+                    n = n.Next;
                 }
                 else
                 {
@@ -88,14 +110,7 @@ namespace Cesil
                 }
             }
 
-            if (Head.HasValue)
-            {
-                FreeNode = Head.Value;
-            }
-            else
-            {
-                FreeNode = null;
-            }
+            FreeNode = Head;
 
             if (largest != null)
             {
@@ -117,25 +132,26 @@ namespace Cesil
                 }
             }
 
-            Head.Clear();
-            Tail.Clear();
+            Head = Tail = Node.EmptyNode;
+            HasNodes = false;
         }
 
         public void Advance(int count)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             if (count < 0)
             {
                 Throw.ArgumentException<object>($"Must be >= 0", nameof(count));
+                return;
             }
 
-            Tail.Value.BytesUsed += count;
+            Tail.BytesUsed += count;
         }
 
         public Memory<char> GetMemory(int sizeHint = 0)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             if (sizeHint < 0)
             {
@@ -153,9 +169,9 @@ namespace Cesil
             }
 
             // can we fit the remainder in the last allocation?
-            if (Tail.HasValue)
+            if (HasNodes)
             {
-                var tailValue = Tail.Value;
+                var tailValue = Tail;
 
                 var leftInTail = tailValue.Allocation.Length - tailValue.BytesUsed;
                 if (leftInTail >= size)
@@ -194,16 +210,19 @@ namespace Cesil
 
             newTail.Init(alloc);
 
-            if (!Head.HasValue)
+            if (!HasNodes)
             {
-                Head.Value = newTail;
-                Tail.Value = newTail;
+                HasNodes = true;
+                Head = newTail;
+                Tail = newTail;
                 IsSingleSegment = true;
             }
             else
             {
-                Tail.Value.Next.Value = newTail;
-                Tail.Value = newTail;
+                Tail.HasNext = true;
+                Tail.Next = newTail;
+
+                Tail = newTail;
                 IsSingleSegment = false;
             }
 
@@ -212,24 +231,26 @@ namespace Cesil
 
         public Span<char> GetSpan(int sizeHint = 0)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
             return GetMemory(sizeHint).Span;
         }
 
-        private ReadOnlySequence<char> MakeSequence()
+        public bool MakeSequence(ref ReadOnlySequence<char> nonEmpty)
         {
-            // nothing written
-            if (!Head.HasValue || Head.Value.BytesUsed == 0)
-            {
-                return ReadOnlySequence<char>.Empty;
-            }
+            AssertNotDisposedInternal(this);
 
-            var headValue = Head.Value;
+            // nothing written
+            if (!HasNodes || Head.BytesUsed == 0)
+            {
+                return false;
+            }
 
             // single segment case
             if (IsSingleSegment)
             {
-                return new ReadOnlySequence<char>(headValue.Allocation.Slice(0, headValue.BytesUsed));
+                var usedPartOfHead = Head.Allocation.Slice(0, Head.BytesUsed);
+                nonEmpty = new ReadOnlySequence<char>(usedPartOfHead);
+                return true;
             }
 
             // multi segment series
@@ -237,31 +258,31 @@ namespace Cesil
             //   Node representation isn't "finished"
             //   and still has extra space floating around
             //   between each node
-            var headSeg = new ReadOnlyCharSegment(headValue.Allocation, headValue.BytesUsed);
-            var n = headValue.Next;
+            var headSeg = new ReadOnlyCharSegment(Head.Allocation, Head.BytesUsed);
             var tailSeg = headSeg;
-            while (n.HasValue)
+            if (Head.HasNext)
             {
-                var nValue = n.Value;
-
-                tailSeg = tailSeg.Append(nValue.Allocation, nValue.BytesUsed);
-                if (nValue.Next.HasValue)
+                var n = Head.Next;
+                while (true)
                 {
-                    n = nValue.Next;
-                }
-                else
-                {
-                    break;
+                    tailSeg = tailSeg.Append(n.Allocation, n.BytesUsed);
+                    if (n.HasNext)
+                    {
+                        n = n.Next;
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
             }
 
             var startIx = 0;
 
-            var endIx = Tail.Value.BytesUsed;
+            var endIx = Tail.BytesUsed;
 
-            var ret = new ReadOnlySequence<char>(headSeg, startIx, tailSeg, endIx);
-
-            return ret;
+            nonEmpty = new ReadOnlySequence<char>(headSeg, startIx, tailSeg, endIx);
+            return true;
         }
 
 

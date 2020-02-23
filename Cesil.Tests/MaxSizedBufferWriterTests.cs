@@ -64,8 +64,8 @@ namespace Cesil.Tests
         public void Empty()
         {
             var writer = new MaxSizedBufferWriter(MemoryPool<char>.Shared, null);
-            var buff = writer.Buffer;
-            Assert.True(buff.IsEmpty);
+            ReadOnlySequence<char> buff = default;
+            Assert.False(writer.MakeSequence(ref buff));
         }
 
         [Fact]
@@ -81,8 +81,8 @@ namespace Cesil.Tests
                     writer.Advance(8);
                 }
 
-                var buff = writer.Buffer;
-                Assert.False(buff.IsEmpty);
+                ReadOnlySequence<char> buff = default;
+                Assert.True(writer.MakeSequence(ref buff));
                 Assert.True(buff.IsSingleSegment);
 
                 var resChars = buff.ToArray();
@@ -108,8 +108,8 @@ namespace Cesil.Tests
                     writer.Advance(4);
                 }
 
-                var buff = writer.Buffer;
-                Assert.False(buff.IsEmpty);
+                ReadOnlySequence<char> buff = default;
+                Assert.True(writer.MakeSequence(ref buff));
                 Assert.True(buff.IsSingleSegment);
 
                 var resChars = buff.ToArray();
@@ -138,8 +138,8 @@ namespace Cesil.Tests
                 writer.Advance(3);
             }
 
-            var buff = writer.Buffer;
-            Assert.False(buff.IsEmpty);
+            ReadOnlySequence<char> buff = default;
+            Assert.True(writer.MakeSequence(ref buff));
             Assert.False(buff.IsSingleSegment);
 
             var resChars = buff.ToArray();
@@ -168,8 +168,8 @@ namespace Cesil.Tests
                 writer.Advance(3);
             }
 
-            var buff = writer.Buffer;
-            Assert.False(buff.IsEmpty);
+            ReadOnlySequence<char> buff = default;
+            Assert.True(writer.MakeSequence(ref buff));
             Assert.True(buff.IsSingleSegment);
 
             var resChars = buff.ToArray();
@@ -179,7 +179,7 @@ namespace Cesil.Tests
             Assert.Equal("abc", str);
 
             writer.Reset();
-            Assert.True(writer.Buffer.IsEmpty);
+            Assert.False(writer.MakeSequence(ref buff));
         }
     }
 }

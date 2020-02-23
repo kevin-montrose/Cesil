@@ -81,17 +81,6 @@ namespace Cesil
             return CreateInner(index, name);
         }
 
-        internal static ColumnIdentifier Create(int index, NonNull<string> name)
-        {
-            if (name.HasValue)
-            {
-                return Create(index, name.Value);
-            }
-
-            return Create(index);
-        }
-
-        // just for testing
         internal static ColumnIdentifier CreateInner(int index, string? name)
         => new ColumnIdentifier(index, name);
 

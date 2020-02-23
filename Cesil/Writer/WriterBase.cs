@@ -9,11 +9,14 @@ namespace Cesil
 
         internal readonly MaxSizedBufferWriter Buffer;
 
-        internal NonNull<Column[]> Columns;
+        internal Column[] Columns;
+        internal WriteContext[] WriteContexts;
 
-        internal bool IsFirstRow => !Columns.HasValue;
+        internal bool IsFirstRow;
 
-        internal NonNull<IMemoryOwner<char>> Staging;
+        internal readonly bool HasStaging;
+        internal IMemoryOwner<char> Staging;
+        internal Memory<char> StagingMemory;
         internal int InStaging;
 
         internal int RowNumber;
@@ -35,14 +38,22 @@ namespace Cesil
             // buffering is configurable
             if (writeSizeHint == 0)
             {
-                Staging.Clear();
+                HasStaging = false;
+                Staging = EmptyMemoryOwner.Singleton;
+                StagingMemory = Memory<char>.Empty;
                 InStaging = -1;
             }
             else
             {
+                HasStaging = true;
+                Staging = memPool.Rent(writeSizeHint ?? MaxSizedBufferWriter.DEFAULT_STAGING_SIZE);
+                StagingMemory = Staging.Memory;
                 InStaging = 0;
-                Staging.Value = memPool.Rent(writeSizeHint ?? MaxSizedBufferWriter.DEFAULT_STAGING_SIZE);
             }
+
+            IsFirstRow = true;
+            Columns = Array.Empty<Column>();
+            WriteContexts = Array.Empty<WriteContext>();
         }
 
         internal bool NeedsEncode(ReadOnlyMemory<char> charMem)
@@ -57,12 +68,10 @@ namespace Cesil
         // returns true if we need to flush staging
         internal bool PlaceInStaging(char c)
         {
-            var stagingValue = Staging.Value;
-
-            stagingValue.Memory.Span[InStaging] = c;
+            StagingMemory.Span[InStaging] = c;
             InStaging++;
 
-            return InStaging == stagingValue.Memory.Length;
+            return InStaging == StagingMemory.Length;
         }
 
         internal (char CommentChar, ReadOnlySequence<char> CommentLines) SplitCommentIntoLines(string comment)
@@ -172,6 +181,16 @@ namespace Cesil
             if (escapeStartIx == -1) return;
 
             Throw.InvalidOperationException<object>($"Tried to write a value contain '{escapedValueStartAndEnd}' which requires escaping the character in an escaped value, but no way to escape inside an escaped value is configured");
+        }
+
+        // can't do this in Configuration because we need the _Context_ object
+        internal void CreateWriteContexts()
+        {
+            WriteContexts = new WriteContext[Columns.Length];
+            for(var i = 0; i < WriteContexts.Length; i++)
+            {
+                WriteContexts[i] = WriteContext.WritingColumn(Configuration.Options, 0, ColumnIdentifier.CreateInner(i, Columns[i].Name), Context);
+            }
         }
     }
 }

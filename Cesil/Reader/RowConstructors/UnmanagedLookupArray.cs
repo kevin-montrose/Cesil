@@ -17,7 +17,7 @@ namespace Cesil
         {
             get
             {
-                AssertNotDisposed(this);
+                AssertNotDisposedInternal(this);
 
                 return _Count;
             }
@@ -61,7 +61,7 @@ namespace Cesil
 
         public void Clear()
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             Data.Clear();
             _Count = 0;
@@ -69,14 +69,14 @@ namespace Cesil
 
         public void Add(T item)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             Set(_Count, item);
         }
 
         public void Set(int ix, T item)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             var data = Data;
 
@@ -87,7 +87,7 @@ namespace Cesil
 
         public void Get(int ix, T defaultValue, out T value)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             if(ix >= Data.Length)
             {

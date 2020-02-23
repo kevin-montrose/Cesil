@@ -18,7 +18,7 @@ namespace Cesil
 
         public int Read(Span<char> into)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             return Inner.Read(into);
         }

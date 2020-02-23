@@ -353,6 +353,8 @@ end:
 
         private AdvanceResult Advance(ReadOnlySpan<char> buffer)
         {
+            State.EnsurePinned();
+
             for (var i = 0; i < buffer.Length; i++)
             {
                 var cc = buffer[i];

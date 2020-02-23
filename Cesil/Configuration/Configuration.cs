@@ -68,7 +68,7 @@ namespace Cesil
             var needsEscape = new bool[serializeColumns.Length];
             for (var i = 0; i < serializeColumns.Length; i++)
             {
-                var name = serializeColumns[i].Name.Value;
+                var name = serializeColumns[i].Name;
                 var escape = false;
                 for (var j = 0; j < name.Length; j++)
                 {

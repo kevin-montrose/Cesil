@@ -26,7 +26,7 @@ namespace Cesil
                     return WriteAsync_ContinueAfterHeadersAndEndRecordAsync(this, checkHeadersAndEndRowTask, row, cancel);
                 }
 
-                var columnsValue = Columns.Value;
+                var columnsValue = Columns;
                 for (var i = 0; i < columnsValue.Length; i++)
                 {
                     var needsSeparator = i != 0;
@@ -57,7 +57,7 @@ namespace Cesil
                     await ConfigureCancellableAwait(self, waitFor, cancel);
                     CheckCancellation(self, cancel);
 
-                    var selfColumnsValue = self.Columns.Value;
+                    var selfColumnsValue = self.Columns;
                     for (var i = 0; i < selfColumnsValue.Length; i++)
                     {
                         var needsSeparator = i != 0;
@@ -87,7 +87,7 @@ namespace Cesil
                     // the implicit increment at the end of the loop
                     i++;
 
-                    var selfColumnsValue = self.Columns.Value;
+                    var selfColumnsValue = self.Columns;
                     for (; i < selfColumnsValue.Length; i++)
                     {
                         const bool needsSeparator = true;                  // by definition, this isn't the first loop
@@ -444,15 +444,14 @@ namespace Cesil
                 }
             }
 
-            var ctx = WriteContext.WritingColumn(Configuration.Options, RowNumber, ColumnIdentifier.Create(colIx, col.Name), Context);
-
-            if (!col.Write.Value(row, ctx, Buffer))
+            var ctx = WriteContexts[colIx].SetRowNumberForWriteColumn(RowNumber);
+            if (!col.Write(row, ctx, Buffer))
             {
                 return Throw.SerializationException<ValueTask>($"Could not write column {col.Name}, formatter returned false");
             }
 
-            var res = Buffer.Buffer;
-            if (res.IsEmpty)
+            ReadOnlySequence<char> res = default;
+            if (!Buffer.MakeSequence(ref res))
             {
                 // nothing was written, so just move on
                 return default;
@@ -474,15 +473,15 @@ namespace Cesil
                 await ConfigureCancellableAwait(self, waitFor, cancel);
                 CheckCancellation(self, cancel);
 
-                var ctx = WriteContext.WritingColumn(self.Configuration.Options, self.RowNumber, ColumnIdentifier.Create(colIx, col.Name), self.Context);
+                var ctx = self.WriteContexts[colIx].SetRowNumberForWriteColumn(self.RowNumber);
 
-                if (!col.Write.Value(row, ctx, self.Buffer))
+                if (!col.Write(row, ctx, self.Buffer))
                 {
                     Throw.SerializationException<object>($"Could not write column {col.Name}, formatter returned false");
                 }
 
-                var res = self.Buffer.Buffer;
-                if (res.IsEmpty)
+                ReadOnlySequence<char> res = default;
+                if (!self.Buffer.MakeSequence(ref res))
                 {
                     // nothing was written, so just move on
                     return;
@@ -511,7 +510,10 @@ namespace Cesil
         private ValueTask<bool> CheckHeadersAsync(CancellationToken cancel)
         {
             // make a note of what the columns to write actually are
-            Columns.Value = Configuration.SerializeColumns;
+            Columns = Configuration.SerializeColumns;
+            CreateWriteContexts();
+
+            IsFirstRow = false;
 
             if (Configuration.Options.WriteHeader == WriteHeader.Never)
             {
@@ -541,7 +543,7 @@ namespace Cesil
         {
             var needsEscape = Configuration.SerializeColumnsNeedEscape;
 
-            var columnsValue = Columns.Value;
+            var columnsValue = Columns;
             var valueSeparator = Configuration.Options.ValueSeparator;
 
             for (var i = 0; i < columnsValue.Length; i++)
@@ -571,7 +573,7 @@ namespace Cesil
                 await ConfigureCancellableAwait(self, waitFor, cancel);
                 CheckCancellation(self, cancel);
 
-                var selfColumnsValue = self.Columns.Value;
+                var selfColumnsValue = self.Columns;
                 var headerTask = self.WriteSingleHeaderAsync(selfColumnsValue[i], needsEscape[i], cancel);
                 await ConfigureCancellableAwait(self, headerTask, cancel);
                 CheckCancellation(self, cancel);
@@ -601,7 +603,7 @@ namespace Cesil
                 // implicit increment at the end of the calling loop
                 i++;
 
-                var selfColumnsValue = self.Columns.Value;
+                var selfColumnsValue = self.Columns;
                 for (; i < selfColumnsValue.Length; i++)
                 {
                     // by definition we've always wrote at least one column here
@@ -618,7 +620,7 @@ namespace Cesil
 
         private ValueTask WriteSingleHeaderAsync(Column column, bool escape, CancellationToken cancel)
         {
-            var colName = column.Name.Value;
+            var colName = column.Name;
 
             if (!escape)
             {
@@ -862,7 +864,7 @@ namespace Cesil
                         }
                     }
 
-                    if (Staging.HasValue)
+                    if (HasStaging)
                     {
                         if (InStaging > 0)
                         {
@@ -873,8 +875,9 @@ namespace Cesil
                             }
                         }
 
-                        Staging.Value.Dispose();
-                        Staging.Clear();
+                        Staging.Dispose();
+                        Staging = EmptyMemoryOwner.Singleton;
+                        StagingMemory = Memory<char>.Empty;
                     }
 
                     var ret = Inner.DisposeAsync();
@@ -893,10 +896,11 @@ namespace Cesil
                 }
                 catch (Exception e)
                 {
-                    if (Staging.HasValue)
+                    if (HasStaging)
                     {
-                        Staging.Value.Dispose();
-                        Staging.Clear();
+                        Staging.Dispose();
+                        Staging = EmptyMemoryOwner.Singleton;
+                        StagingMemory = Memory<char>.Empty;
                     }
 
                     if (OneCharOwner.HasValue)
@@ -926,7 +930,7 @@ namespace Cesil
                         await ConfigureCancellableAwait(self, endTask, CancellationToken.None);
                     }
 
-                    if (self.Staging.HasValue)
+                    if (self.HasStaging)
                     {
                         if (self.InStaging > 0)
                         {
@@ -934,8 +938,9 @@ namespace Cesil
                             await ConfigureCancellableAwait(self, flushTask, CancellationToken.None);
                         }
 
-                        self.Staging.Value.Dispose();
-                        self.Staging.Clear();
+                        self.Staging.Dispose();
+                        self.Staging = EmptyMemoryOwner.Singleton;
+                        self.StagingMemory = Memory<char>.Empty;
                     }
 
                     var disposeTask = self.Inner.DisposeAsync();
@@ -950,10 +955,11 @@ namespace Cesil
                 }
                 catch (Exception e)
                 {
-                    if (self.Staging.HasValue)
+                    if (self.HasStaging)
                     {
-                        self.Staging.Value.Dispose();
-                        self.Staging.Clear();
+                        self.Staging.Dispose();
+                        self.Staging = EmptyMemoryOwner.Singleton;
+                        self.StagingMemory = Memory<char>.Empty;
                     }
 
                     if (self.OneCharOwner.HasValue)
@@ -975,7 +981,7 @@ namespace Cesil
                 {
                     await ConfigureCancellableAwait(self, waitFor, CancellationToken.None);
 
-                    if (self.Staging.HasValue)
+                    if (self.HasStaging)
                     {
                         if (self.InStaging > 0)
                         {
@@ -983,8 +989,9 @@ namespace Cesil
                             await ConfigureCancellableAwait(self, flushTask, CancellationToken.None);
                         }
 
-                        self.Staging.Value.Dispose();
-                        self.Staging.Clear();
+                        self.Staging.Dispose();
+                        self.Staging = EmptyMemoryOwner.Singleton;
+                        self.StagingMemory = Memory<char>.Empty;
                     }
 
                     var disposeTask = self.Inner.DisposeAsync();
@@ -999,10 +1006,11 @@ namespace Cesil
                 }
                 catch (Exception e)
                 {
-                    if (self.Staging.HasValue)
+                    if (self.HasStaging)
                     {
-                        self.Staging.Value.Dispose();
-                        self.Staging.Clear();
+                        self.Staging.Dispose();
+                        self.Staging = EmptyMemoryOwner.Singleton;
+                        self.StagingMemory = Memory<char>.Empty;
                     }
 
                     if (self.OneCharOwner.HasValue)
@@ -1024,10 +1032,11 @@ namespace Cesil
                 {
                     await ConfigureCancellableAwait(self, waitFor, CancellationToken.None);
 
-                    if (self.Staging.HasValue)
+                    if (self.HasStaging)
                     {
-                        self.Staging.Value.Dispose();
-                        self.Staging.Clear();
+                        self.Staging.Dispose();
+                        self.Staging = EmptyMemoryOwner.Singleton;
+                        self.StagingMemory = Memory<char>.Empty;
                     }
 
                     var disposeTask = self.Inner.DisposeAsync();
@@ -1043,10 +1052,11 @@ namespace Cesil
                 }
                 catch (Exception e)
                 {
-                    if (self.Staging.HasValue)
+                    if (self.HasStaging)
                     {
-                        self.Staging.Value.Dispose();
-                        self.Staging.Clear();
+                        self.Staging.Dispose();
+                        self.Staging = EmptyMemoryOwner.Singleton;
+                        self.StagingMemory = Memory<char>.Empty;
                     }
 
                     if (self.OneCharOwner.HasValue)

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using Xunit;
@@ -9,6 +10,42 @@ namespace Cesil.Tests
 {
     public class UtilsTests
     {
+        [Fact]
+        public void CheckImmutableReadInto()
+        {
+            // arrays
+            {
+                var arr = ImmutableArray.Create("foo");
+                var arrBuilder = ImmutableArray.CreateBuilder<string>();
+                Assert.Throws<ArgumentException>(() => Utils.CheckImmutableReadInto<ImmutableArray<string>, string>(arr, "foo"));
+                Utils.CheckImmutableReadInto<ImmutableArray<string>.Builder, string>(arrBuilder, "foo");
+            }
+
+            // list
+            {
+                var list = ImmutableList.Create("foo");
+                var listBuilder = ImmutableList.CreateBuilder<string>();
+                Assert.Throws<ArgumentException>(() => Utils.CheckImmutableReadInto<ImmutableList<string>, string>(list, "foo"));
+                Utils.CheckImmutableReadInto<ImmutableList<string>.Builder, string>(listBuilder, "foo");
+            }
+
+            // hashset
+            {
+                var set = ImmutableHashSet.Create("foo");
+                var setBuilder = ImmutableHashSet.CreateBuilder<string>();
+                Assert.Throws<ArgumentException>(() => Utils.CheckImmutableReadInto<ImmutableHashSet<string>, string>(set, "foo"));
+                Utils.CheckImmutableReadInto<ImmutableHashSet<string>.Builder, string>(setBuilder, "foo");
+            }
+
+            // sortedSet
+            {
+                var set = ImmutableSortedSet.Create("foo");
+                var setBuilder = ImmutableSortedSet.CreateBuilder<string>();
+                Assert.Throws<ArgumentException>(() => Utils.CheckImmutableReadInto<ImmutableSortedSet<string>, string>(set, "foo"));
+                Utils.CheckImmutableReadInto<ImmutableSortedSet<string>.Builder, string>(setBuilder, "foo");
+            }
+        }
+
         private sealed class _RentMustIncrease : MemoryPool<char>
         {
             private sealed class MemoryOwner : IMemoryOwner<char>

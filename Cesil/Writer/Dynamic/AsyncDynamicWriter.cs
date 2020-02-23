@@ -100,7 +100,7 @@ namespace Cesil
                         ColumnIdentifier ci;
                         if (i < columnNamesValue.Length)
                         {
-                            ci = ColumnIdentifier.Create(i, columnNamesValue[i].Name);
+                            ci = ColumnIdentifier.CreateInner(i, columnNamesValue[i].Name);
                         }
                         else
                         {
@@ -120,8 +120,8 @@ namespace Cesil
                             return Throw.SerializationException<ValueTask>($"Could not write column {ci}, formatter {formatter} returned false");
                         }
 
-                        var res = Buffer.Buffer;
-                        if (res.IsEmpty)
+                        ReadOnlySequence<char> res = default;
+                        if (!Buffer.MakeSequence(ref res))
                         {
                             // nothing was written, so just move on
                             goto end;
@@ -186,7 +186,7 @@ end:
                         ColumnIdentifier ci;
                         if (i < selfColumnNamesValue.Length)
                         {
-                            ci = ColumnIdentifier.Create(i, selfColumnNamesValue[i].Name);
+                            ci = ColumnIdentifier.CreateInner(i, selfColumnNamesValue[i].Name);
                         }
                         else
                         {
@@ -206,8 +206,8 @@ end:
                             Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
                         }
 
-                        var res = self.Buffer.Buffer;
-                        if (res.IsEmpty)
+                        ReadOnlySequence<char> res = default;
+                        if (!self.Buffer.MakeSequence(ref res))
                         {
                             // nothing was written, so just move on
                             goto end;
@@ -249,7 +249,7 @@ end:
                             ColumnIdentifier ci;
                             if (i < selfColumnNamesValue.Length)
                             {
-                                ci = ColumnIdentifier.Create(i, selfColumnNamesValue[i].Name);
+                                ci = ColumnIdentifier.CreateInner(i, selfColumnNamesValue[i].Name);
                             }
                             else
                             {
@@ -269,8 +269,8 @@ end:
                                 Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
                             }
 
-                            var res = self.Buffer.Buffer;
-                            if (res.IsEmpty)
+                            ReadOnlySequence<char> res = default;
+                            if (!self.Buffer.MakeSequence(ref res))
                             {
                                 // nothing was written, so just move on
                                 goto end;
@@ -302,7 +302,7 @@ end:
                             ColumnIdentifier ci;
                             if (i < selfColumnNamesValue.Length)
                             {
-                                ci = ColumnIdentifier.Create(i, selfColumnNamesValue[i].Name);
+                                ci = ColumnIdentifier.CreateInner(i, selfColumnNamesValue[i].Name);
                             }
                             else
                             {
@@ -322,8 +322,8 @@ end:
                                 Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
                             }
 
-                            var res = self.Buffer.Buffer;
-                            if (res.IsEmpty)
+                            ReadOnlySequence<char> res = default;
+                            if (!self.Buffer.MakeSequence(ref res))
                             {
                                 // nothing was written, so just move on
                                 goto end;
@@ -388,7 +388,7 @@ end:
                             ColumnIdentifier ci;
                             if (i < selfColumnNamesValue.Length)
                             {
-                                ci = ColumnIdentifier.Create(i, selfColumnNamesValue[i].Name);
+                                ci = ColumnIdentifier.CreateInner(i, selfColumnNamesValue[i].Name);
                             }
                             else
                             {
@@ -408,8 +408,8 @@ end:
                                 Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
                             }
 
-                            var res = self.Buffer.Buffer;
-                            if (res.IsEmpty)
+                            ReadOnlySequence<char> res = default;
+                            if (!self.Buffer.MakeSequence(ref res))
                             {
                                 // nothing was written, so just move on
                                 goto end;
@@ -1074,7 +1074,7 @@ end:
                         }
                     }
 
-                    if (Staging.HasValue)
+                    if (HasStaging)
                     {
                         if (InStaging > 0)
                         {
@@ -1085,8 +1085,9 @@ end:
                             }
                         }
 
-                        Staging.Value.Dispose();
-                        Staging.Clear();
+                        Staging.Dispose();
+                        Staging = EmptyMemoryOwner.Singleton;
+                        StagingMemory = Memory<char>.Empty;
                     }
 
                     var innerDisposeTask = Inner.DisposeAsync();
@@ -1104,10 +1105,11 @@ end:
                 }
                 catch (Exception e)
                 {
-                    if (Staging.HasValue)
+                    if (HasStaging)
                     {
-                        Staging.Value.Dispose();
-                        Staging.Clear();
+                        Staging.Dispose();
+                        Staging = EmptyMemoryOwner.Singleton;
+                        StagingMemory = Memory<char>.Empty;
                     }
 
                     if (OneCharOwner.HasValue)
@@ -1137,7 +1139,7 @@ end:
                         await ConfigureCancellableAwait(self, endTask, CancellationToken.None);
                     }
 
-                    if (self.Staging.HasValue)
+                    if (self.HasStaging)
                     {
                         if (self.InStaging > 0)
                         {
@@ -1145,8 +1147,9 @@ end:
                             await ConfigureCancellableAwait(self, flushTask, CancellationToken.None);
                         }
 
-                        self.Staging.Value.Dispose();
-                        self.Staging.Clear();
+                        self.Staging.Dispose();
+                        self.Staging = EmptyMemoryOwner.Singleton;
+                        self.StagingMemory = Memory<char>.Empty;
                     }
 
                     var disposeTask = self.Inner.DisposeAsync();
@@ -1161,10 +1164,11 @@ end:
                 }
                 catch (Exception e)
                 {
-                    if (self.Staging.HasValue)
+                    if (self.HasStaging)
                     {
-                        self.Staging.Value.Dispose();
-                        self.Staging.Clear();
+                        self.Staging.Dispose();
+                        self.Staging = EmptyMemoryOwner.Singleton;
+                        self.StagingMemory = Memory<char>.Empty;
                     }
 
                     if (self.OneCharOwner.HasValue)
@@ -1186,7 +1190,7 @@ end:
                 {
                     await ConfigureCancellableAwait(self, waitFor, CancellationToken.None);
 
-                    if (self.Staging.HasValue)
+                    if (self.HasStaging)
                     {
                         if (self.InStaging > 0)
                         {
@@ -1194,8 +1198,9 @@ end:
                             await ConfigureCancellableAwait(self, flushTask, CancellationToken.None);
                         }
 
-                        self.Staging.Value.Dispose();
-                        self.Staging.Clear();
+                        self.Staging.Dispose();
+                        self.Staging = EmptyMemoryOwner.Singleton;
+                        self.StagingMemory = Memory<char>.Empty;
                     }
 
                     var disposeTask = self.Inner.DisposeAsync();
@@ -1210,10 +1215,11 @@ end:
                 }
                 catch (Exception e)
                 {
-                    if (self.Staging.HasValue)
+                    if (self.HasStaging)
                     {
-                        self.Staging.Value.Dispose();
-                        self.Staging.Clear();
+                        self.Staging.Dispose();
+                        self.Staging = EmptyMemoryOwner.Singleton;
+                        self.StagingMemory = Memory<char>.Empty;
                     }
 
                     if (self.OneCharOwner.HasValue)
@@ -1235,8 +1241,9 @@ end:
                 {
                     await ConfigureCancellableAwait(self, waitFor, CancellationToken.None);
 
-                    self.Staging.Value.Dispose();
-                    self.Staging.Clear();
+                    self.Staging.Dispose();
+                    self.Staging = EmptyMemoryOwner.Singleton;
+                    self.StagingMemory = Memory<char>.Empty;
 
                     var disposeTask = self.Inner.DisposeAsync();
                     await ConfigureCancellableAwait(self, disposeTask, CancellationToken.None);
@@ -1249,10 +1256,11 @@ end:
                 }
                 catch (Exception e)
                 {
-                    if (self.Staging.HasValue)
+                    if (self.HasStaging)
                     {
-                        self.Staging.Value.Dispose();
-                        self.Staging.Clear();
+                        self.Staging.Dispose();
+                        self.Staging = EmptyMemoryOwner.Singleton;
+                        self.StagingMemory = Memory<char>.Empty;
                     }
 
                     if (self.OneCharOwner.HasValue)

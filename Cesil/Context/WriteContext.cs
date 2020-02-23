@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 
 namespace Cesil
 {
@@ -101,24 +102,52 @@ namespace Cesil
         /// </summary>
         [NullableExposed("The provided context is nullable, so the returned one must be")]
         public object? Context { get; }
-
-        private WriteContext(Options opts, WriteContextMode m, int? r, ColumnIdentifier? ci, object? ctx)
+        
+        // for DiscoveringColumns
+        private WriteContext(Options opts, object? ctx)
         {
             Options = opts;
-            Mode = m;
-            _RowNumber = r ?? default;
-            _Column = ci ?? default;
+            Mode = WriteContextMode.DiscoveringColumns;
             Context = ctx;
+            _RowNumber = default;
+            _Column = default;
         }
 
+        // for DiscoveringCells
+        private WriteContext(Options opts, int rowNumber, object? ctx)
+        {
+            Options = opts;
+            Mode = WriteContextMode.DiscoveringCells;
+            Context = ctx;
+            _RowNumber = rowNumber;
+            _Column = default;
+        }
+
+        // for WritingColumn
+        private WriteContext(Options opts, int rowNumber, ColumnIdentifier col, object? ctx)
+        {
+            Options = opts;
+            Mode = WriteContextMode.WritingColumn;
+            Context = ctx;
+            _RowNumber = rowNumber;
+            _Column = col;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal WriteContext SetRowNumberForWriteColumn(int newRowNumber)
+        => new WriteContext(Options, newRowNumber, _Column, Context);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static WriteContext WritingColumn(Options opts, int row, ColumnIdentifier col, object? ctx)
-        => new WriteContext(opts, WriteContextMode.WritingColumn, row, col, ctx);
+        => new WriteContext(opts, row, col, ctx);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static WriteContext DiscoveringCells(Options opts, int row, object? ctx)
-        => new WriteContext(opts, WriteContextMode.DiscoveringCells, row, null, ctx);
+        => new WriteContext(opts, row, ctx);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static WriteContext DiscoveringColumns(Options opts, object? ctx)
-        => new WriteContext(opts, WriteContextMode.DiscoveringColumns, null, null, ctx);
+        => new WriteContext(opts, ctx);
 
         /// <summary>
         /// Returns true if this object equals the given WriteContext.

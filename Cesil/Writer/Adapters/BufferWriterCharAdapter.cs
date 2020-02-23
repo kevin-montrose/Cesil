@@ -22,7 +22,7 @@ namespace Cesil
 
         public void Write(char c)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             if (NextIndex == Memory.Length)
             {
@@ -41,7 +41,7 @@ namespace Cesil
 
         public void Write(ReadOnlySpan<char> chars)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             while (!chars.IsEmpty)
             {

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 
 using static Cesil.DisposableHelper;
@@ -47,11 +48,8 @@ namespace Cesil
             DelegateCache.Add(key, cached);
         }
 
-        public override void Write(dynamic row)
+        internal override void WriteInner(dynamic row)
         {
-            AssertNotDisposed(this);
-            AssertNotPoisoned();
-
             try
             {
                 WriteHeadersAndEndRowIfNeeded(row);
@@ -78,7 +76,7 @@ namespace Cesil
                     ColumnIdentifier ci;
                     if (i < columnNamesValue.Length)
                     {
-                        ci = ColumnIdentifier.Create(i, columnNamesValue[i].Name);
+                        ci = ColumnIdentifier.CreateInner(i, columnNamesValue[i].Name);
                     }
                     else
                     {
@@ -98,8 +96,8 @@ namespace Cesil
                         Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
                     }
 
-                    var res = Buffer.Buffer;
-                    if (res.IsEmpty)
+                    ReadOnlySequence<char> res = default;
+                    if (!Buffer.MakeSequence(ref res))
                     {
                         // nothing was written, so just move on
                         goto end;
@@ -347,15 +345,16 @@ end:
                         EndRecord();
                     }
 
-                    if (Staging.HasValue)
+                    if (HasStaging)
                     {
                         if (InStaging > 0)
                         {
                             FlushStaging();
                         }
 
-                        Staging.Value.Dispose();
-                        Staging.Clear();
+                        Staging.Dispose();
+                        Staging = EmptyMemoryOwner.Singleton;
+                        StagingMemory = Memory<char>.Empty;
                     }
 
                     Inner.Dispose();
@@ -363,10 +362,11 @@ end:
                 }
                 catch (Exception e)
                 {
-                    if (Staging.HasValue)
+                    if (HasStaging)
                     {
-                        Staging.Value.Dispose();
-                        Staging.Clear();
+                        Staging.Dispose();
+                        Staging = EmptyMemoryOwner.Singleton;
+                        StagingMemory = Memory<char>.Empty;
                     }
 
                     Buffer.Dispose();

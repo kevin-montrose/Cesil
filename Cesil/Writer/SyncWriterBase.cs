@@ -23,16 +23,25 @@ namespace Cesil
         public void WriteAll(IEnumerable<T> rows)
         {
             AssertNotDisposed(this);
+            AssertNotPoisoned();
 
             Utils.CheckArgumentNull(rows, nameof(rows));
 
             foreach (var row in rows)
             {
-                Write(row);
+                WriteInner(row);
             }
         }
 
-        public abstract void Write(T row);
+        public void Write(T row)
+        {
+            AssertNotDisposed(this);
+            AssertNotPoisoned();
+
+            WriteInner(row);
+        }
+
+        internal abstract void WriteInner(T row);
 
         public abstract void WriteComment(string comment);
 
@@ -152,7 +161,7 @@ namespace Cesil
         internal void PlaceCharInStaging(char c)
         {
             // if we can't buffer, just go straight to the underlying stream
-            if (!Staging.HasValue)
+            if (!HasStaging)
             {
                 WriteCharDirectly(c);
                 return;
@@ -167,7 +176,7 @@ namespace Cesil
         internal void PlaceAllInStaging(ReadOnlySpan<char> charSpan)
         {
             // if we can't buffer, just go straight to the underlying stream
-            if (!Staging.HasValue)
+            if (!HasStaging)
             {
                 WriteAllDirectly(charSpan);
                 return;
@@ -183,7 +192,7 @@ namespace Cesil
         // returns true if we need to flush stating, sets remaining to what wasn't placed in staging
         internal bool PlaceInStaging(ReadOnlySpan<char> c, out ReadOnlySpan<char> remaining)
         {
-            var stagingSpan = Staging.Value.Memory.Span;
+            var stagingSpan = StagingMemory.Span;
 
             var ix = 0;
             while (ix < c.Length)
@@ -223,7 +232,7 @@ namespace Cesil
 
         internal void FlushStaging()
         {
-            var span = Staging.Value.Memory.Span;
+            var span = StagingMemory.Span;
 
             Inner.Write(span.Slice(0, InStaging));
 

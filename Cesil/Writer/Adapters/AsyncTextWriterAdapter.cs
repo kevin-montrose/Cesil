@@ -20,7 +20,7 @@ namespace Cesil
 
         public ValueTask WriteAsync(ReadOnlyMemory<char> chars, CancellationToken cancel)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             var ret = Inner.WriteAsync(chars, cancel);
             if (ret.IsCompletedSuccessfully)

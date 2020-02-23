@@ -21,7 +21,7 @@ namespace Cesil
 
         public void Write(ReadOnlySpan<char> chars)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             if (chars.IsEmpty)
             {
@@ -38,6 +38,8 @@ namespace Cesil
 
         public void Write(char c)
         {
+            AssertNotDisposedInternal(this);
+
             Span<char> data = stackalloc char[1];
             data[0] = c;
 

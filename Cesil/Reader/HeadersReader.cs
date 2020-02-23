@@ -35,7 +35,7 @@ namespace Cesil
             {
                 get
                 {
-                    AssertNotDisposed(this);
+                    AssertNotDisposedInternal(this);
                     return _Current;
                 }
             }
@@ -56,7 +56,7 @@ namespace Cesil
 
             public bool MoveNext()
             {
-                AssertNotDisposed(this);
+                AssertNotDisposedInternal(this);
 
                 if (NextHeaderIndex >= Count)
                 {
@@ -109,7 +109,7 @@ namespace Cesil
 
             public void Reset()
             {
-                AssertNotDisposed(this);
+                AssertNotDisposedInternal(this);
 
                 _Current = default;
                 NextHeaderIndex = 0;
@@ -443,6 +443,8 @@ finish:
 
         private bool ProcessBuffer(int bufferLen, out int unprocessedCharacters)
         {
+            StateMachine.EnsurePinned();
+
             var buffSpan = Buffer.Buffer.Span;
 
             var appendingSince = -1;

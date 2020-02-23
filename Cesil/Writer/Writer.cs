@@ -1,5 +1,5 @@
 ﻿using System;
-
+using System.Buffers;
 using static Cesil.DisposableHelper;
 
 namespace Cesil
@@ -8,17 +8,13 @@ namespace Cesil
     {
         internal Writer(ConcreteBoundConfiguration<T> config, IWriterAdapter inner, object? context) : base(config, inner, context) { }
 
-        public override void Write(T row)
+        internal override void WriteInner(T row)
         {
-            AssertNotDisposed(this);
-            AssertNotPoisoned();
-
             try
             {
-
                 WriteHeadersAndEndRowIfNeeded();
 
-                var columnsValue = Columns.Value;
+                var columnsValue = Columns;
 
                 for (var i = 0; i < columnsValue.Length; i++)
                 {
@@ -31,15 +27,15 @@ namespace Cesil
 
                     var col = columnsValue[i];
 
-                    var ctx = WriteContext.WritingColumn(Configuration.Options, RowNumber, ColumnIdentifier.Create(i, col.Name), Context);
+                    var ctx = WriteContexts[i].SetRowNumberForWriteColumn(RowNumber);
 
-                    if (!col.Write.Value(row, ctx, Buffer))
+                    if (!col.Write(row, ctx, Buffer))
                     {
                         Throw.SerializationException<object>($"Could not write column {col.Name}, formatter returned false");
                     }
 
-                    var res = Buffer.Buffer;
-                    if (res.IsEmpty)
+                    ReadOnlySequence<char> res = default;
+                    if (!Buffer.MakeSequence(ref res))
                     {
                         // nothing was written, so just move on
                         continue;
@@ -131,7 +127,10 @@ namespace Cesil
         private bool CheckHeaders()
         {
             // make a note of what the columns to write actually are
-            Columns.Value = Configuration.SerializeColumns;
+            Columns = Configuration.SerializeColumns;
+            CreateWriteContexts();
+
+            IsFirstRow = false;
 
             if (Configuration.Options.WriteHeader == WriteHeader.Never)
             {
@@ -148,7 +147,7 @@ namespace Cesil
         {
             var needsEscape = Configuration.SerializeColumnsNeedEscape;
 
-            var columnsValue = Columns.Value;
+            var columnsValue = Columns;
 
             var options = Configuration.Options;
 
@@ -160,7 +159,7 @@ namespace Cesil
                     PlaceCharInStaging(options.ValueSeparator);
                 }
 
-                var colName = columnsValue[i].Name.Value;
+                var colName = columnsValue[i].Name;
                 var escape = needsEscape[i];
 
                 if (!escape)
@@ -186,7 +185,6 @@ namespace Cesil
                         var len = end - start;
                         var toWrite = colSpan.Slice(start, len);
 
-                        var write = toWrite;
                         PlaceAllInStaging(toWrite);
 
                         // place the escape char
@@ -229,15 +227,16 @@ namespace Cesil
                         EndRecord();
                     }
 
-                    if (Staging.HasValue)
+                    if (HasStaging)
                     {
                         if (InStaging > 0)
                         {
                             FlushStaging();
                         }
 
-                        Staging.Value.Dispose();
-                        Staging.Clear();
+                        Staging.Dispose();
+                        Staging = EmptyMemoryOwner.Singleton;
+                        StagingMemory = Memory<char>.Empty;
                     }
 
                     Inner.Dispose();
@@ -245,10 +244,11 @@ namespace Cesil
                 }
                 catch (Exception e)
                 {
-                    if (Staging.HasValue)
+                    if (HasStaging)
                     {
-                        Staging.Value.Dispose();
-                        Staging.Clear();
+                        Staging.Dispose();
+                        Staging = EmptyMemoryOwner.Singleton;
+                        StagingMemory = Memory<char>.Empty;
                     }
 
                     Buffer.Dispose();

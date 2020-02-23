@@ -203,7 +203,7 @@ namespace Cesil
 
         internal ValueTask PlaceInStagingAsync(ReadOnlyMemory<char> chars, CancellationToken cancel)
         {
-            if (!Staging.HasValue)
+            if (!HasStaging)
             {
                 return WriteDirectlyAsync(chars, cancel);
             }
@@ -250,7 +250,7 @@ namespace Cesil
 
         internal ValueTask FlushStagingAsync(CancellationToken cancel)
         {
-            var toWrite = Staging.Value.Memory.Slice(0, InStaging);
+            var toWrite = StagingMemory.Slice(0, InStaging);
             InStaging = 0;
 
             return Inner.WriteAsync(toWrite, cancel);
@@ -570,7 +570,7 @@ namespace Cesil
         // returns true if we need to flush stating, sets remaining to what wasn't placed in staging
         internal bool PlaceInStaging(ReadOnlyMemory<char> c, out ReadOnlyMemory<char> remaining)
         {
-            var stagingMem = Staging.Value.Memory;
+            var stagingMem = StagingMemory;
 
             var ix = 0;
             while (ix < c.Length)
@@ -600,7 +600,7 @@ namespace Cesil
 
         internal ValueTask PlaceCharInStagingAsync(char c, CancellationToken cancel)
         {
-            if (!Staging.HasValue)
+            if (!HasStaging)
             {
                 return WriteCharDirectlyAsync(c, cancel);
             }

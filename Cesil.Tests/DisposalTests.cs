@@ -151,6 +151,10 @@ namespace Cesil.Tests
                 {
                     IDisposable_UnmanagedLookupArray();
                 }
+                else if (t == typeof(EmptyMemoryOwner))
+                {
+                    // intentionally NOT testing, the empty owner has no resources to release but has to 
+                }
                 else
                 {
                     throw new XunitException($"No test configured for .Dispose() on {t.Name}");
@@ -1161,6 +1165,14 @@ namespace Cesil.Tests
                     var w = MakeWriter();
                     w.Dispose();
                     Assert.Throws<ObjectDisposedException>(() => w.GetSpan(0));
+                    testCases++;
+                }
+
+                // MakeSequence
+                {
+                    var w = MakeWriter();
+                    w.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => { var r = default(ReadOnlySequence<char>); w.MakeSequence(ref r); });
                     testCases++;
                 }
 

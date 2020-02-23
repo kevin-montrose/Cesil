@@ -88,6 +88,8 @@ namespace Cesil
 
         private ReadWithCommentResultType ProcessBuffer(int bufferLen, out int unprocessedCharacters)
         {
+            StateMachine.EnsurePinned();
+
             var buffSpan = Buffer.Buffer.Span;
 
             ReaderStateMachine.AdvanceResult? inBatchableResult = null;
@@ -226,6 +228,7 @@ namespace Cesil
 
         protected internal ReadWithCommentResultType EndOfData()
         {
+            StateMachine.EnsurePinned();
             var res = StateMachine.EndOfData();
 
             switch (res)

@@ -23,7 +23,7 @@ namespace Cesil
         internal readonly Column[] SerializeColumns;
         internal readonly bool[] SerializeColumnsNeedEscape;
 
-        internal readonly NeedsEncodeMode NeedsEncodeMode;
+        internal readonly NeedsEncodeHelper NeedsEncode;
 
 #pragma warning disable CS8618
         /// <summary>
@@ -68,28 +68,7 @@ namespace Cesil
                     break;
             }
 
-            if (Options.EscapedValueStartAndEnd != null)
-            {
-                if (Options.CommentCharacter != null)
-                {
-                    NeedsEncodeMode = NeedsEncodeMode.SeparatorLineEndingsEscapeStartComment;
-                }
-                else
-                {
-                    NeedsEncodeMode = NeedsEncodeMode.SeparatorLineEndingsEscapeStart;
-                }
-            }
-            else
-            {
-                if (Options.CommentCharacter != null)
-                {
-                    NeedsEncodeMode = NeedsEncodeMode.SeparatorLineEndingsComment;
-                }
-                else
-                {
-                    NeedsEncodeMode = NeedsEncodeMode.SeparatorAndLineEndings;
-                }
-            }
+            NeedsEncode = new NeedsEncodeHelper(options.ValueSeparator, options.EscapedValueStartAndEnd, options.CommentCharacter);
         }
 
         /// <summary>
@@ -126,28 +105,7 @@ namespace Cesil
                     break;
             }
 
-            if (Options.EscapedValueStartAndEnd != null)
-            {
-                if (Options.CommentCharacter != null)
-                {
-                    NeedsEncodeMode = NeedsEncodeMode.SeparatorLineEndingsEscapeStartComment;
-                }
-                else
-                {
-                    NeedsEncodeMode = NeedsEncodeMode.SeparatorLineEndingsEscapeStart;
-                }
-            }
-            else
-            {
-                if (Options.CommentCharacter != null)
-                {
-                    NeedsEncodeMode = NeedsEncodeMode.SeparatorLineEndingsComment;
-                }
-                else
-                {
-                    NeedsEncodeMode = NeedsEncodeMode.SeparatorAndLineEndings;
-                }
-            }
+            NeedsEncode = new NeedsEncodeHelper(options.ValueSeparator, options.EscapedValueStartAndEnd, options.CommentCharacter);
         }
 
         public IAsyncReader<T> CreateAsyncReader(PipeReader reader, Encoding encoding, object? context = null)

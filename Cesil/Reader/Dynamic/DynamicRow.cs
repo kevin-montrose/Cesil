@@ -52,7 +52,7 @@ namespace Cesil
                     if (Row.Names.HasValue)
                     {
                         var name = Row.Names.Value[ix];
-                        _Current = ColumnIdentifier.Create(ix, name);
+                        _Current = ColumnIdentifier.CreateInner(ix, name);
                     }
                     else
                     {
@@ -100,7 +100,7 @@ namespace Cesil
                     if (Row.Names.HasValue)
                     {
                         var name = Row.Names.Value[ix];
-                        return ColumnIdentifier.Create(ix, name);
+                        return ColumnIdentifier.CreateInner(ix, name);
                     }
 
                     return ColumnIdentifier.Create(ix);

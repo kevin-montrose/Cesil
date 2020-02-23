@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
@@ -147,6 +148,8 @@ namespace Cesil.Tests
             foreach (var mtd in typeof(DisposableHelper).GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
             {
                 if (mtd.DeclaringType != typeof(DisposableHelper)) continue;
+
+                if (mtd.GetCustomAttribute<ConditionalAttribute>()?.ConditionString == "DEBUG") continue;
 
                 Assert.True(mtd.MethodImplementationFlags.HasFlag(MethodImplAttributes.AggressiveInlining));
             }
@@ -897,6 +900,9 @@ namespace Cesil.Tests
                 else if (t == typeof(AsyncEnumerableAdapter<>))
                 {
                     msg = InvokeToString_AsyncEnumerableAdapter();
+                } else if(t == typeof(EmptyMemoryOwner))
+                {
+                    msg = InvokeToString_EmptyMemoryOwner();
                 }
                 else
                 {
@@ -922,6 +928,12 @@ namespace Cesil.Tests
                 {
                     Assert.StartsWith(shouldStartWith, msg2);
                 }
+            }
+
+            static string InvokeToString_EmptyMemoryOwner()
+            {
+                var m = EmptyMemoryOwner.Singleton;
+                return m.ToString();
             }
 
             static string InvokeToString_AsyncEnumerableAdapter()

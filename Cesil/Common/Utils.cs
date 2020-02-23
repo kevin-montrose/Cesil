@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Buffers;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 
 namespace Cesil
@@ -100,6 +102,24 @@ namespace Cesil
             var unsetSet = (eAsByte & LegalFlagEnum<T>.AntiMask) != 0;
 
             return anySet && !unsetSet;
+        }
+
+        // check if reading into arg is going to do something "weird" because it's a known immutable collection
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void CheckImmutableReadInto<TCollection, TItem>(TCollection arg, string argName)
+            where TCollection: ICollection<TItem>
+        {
+            var isImmutable =
+                arg is ImmutableArray<TItem> ||
+                arg is ImmutableList<TItem> ||
+                arg is ImmutableHashSet<TItem> ||
+                arg is ImmutableSortedSet<TItem>;
+
+            if (isImmutable)
+            {
+                Throw.ArgumentException<object>("Pass a builder to create immutable collections; passed an immutable collection directly, which will not reflect mutations", argName);
+                return;
+            }
         }
 
         // Use this when we're validating parameters that the type system
@@ -529,128 +549,18 @@ tryAgain:
         internal static int FindNeedsEncode<T>(ReadOnlyMemory<char> head, int start, BoundConfigurationBase<T> config)
         => FindNeedsEncode(head.Span, start, config);
 
-        internal static int FindNeedsEncode<T>(ReadOnlySpan<char> span, int start, BoundConfigurationBase<T> config)
+        internal static unsafe int FindNeedsEncode<T>(ReadOnlySpan<char> span, int start, BoundConfigurationBase<T> config)
         {
             var subset = span.Slice(start);
 
-            var options = config.Options;
-
-            int ret;
-
-            switch (config.NeedsEncodeMode)
+            fixed(char* subsetPtr = subset)
             {
-                case NeedsEncodeMode.SeparatorAndLineEndings: ret = FindsNeedsEncodeSingle(subset, options.ValueSeparator); break;
-                case NeedsEncodeMode.SeparatorLineEndingsComment: ret = FindNeedsEncodeDouble(subset, options.ValueSeparator, options.CommentCharacter!.Value); break;
-                case NeedsEncodeMode.SeparatorLineEndingsEscapeStart: ret = FindNeedsEncodeDouble(subset, options.ValueSeparator, options.EscapedValueStartAndEnd!.Value); break;
-                case NeedsEncodeMode.SeparatorLineEndingsEscapeStartComment: ret = FindNeedsEncodeTriple(subset, options.ValueSeparator, options.EscapedValueStartAndEnd!.Value, options.CommentCharacter!.Value); break;
-                default: return Throw.Exception<int>($"Unexpected {nameof(NeedsEncodeMode)}: {config.NeedsEncodeMode}");
+                var ret = config.NeedsEncode.ContainsCharRequiringEncoding(subsetPtr, subset.Length);
+
+                if (ret == -1) return -1;
+
+                return ret + start;
             }
-
-            if (ret == -1) return -1;
-
-            return start + ret;
-        }
-
-        private static unsafe int FindsNeedsEncodeSingle(ReadOnlySpan<char> span, char c1)
-        {
-            // allocate and initialize with \r and \n
-            short* probMap = stackalloc short[PROBABILITY_MAP_SIZE];
-            probMap[0] = 9216;
-            AddCharacterToProbMap(probMap, c1);
-
-            fixed (char* charPtr = span)
-            {
-                char* charPtrMut = charPtr;
-
-                var len = span.Length;
-                var ix = ProbablyContains(probMap, ref charPtrMut, len);
-                if (ix == -1)
-                {
-                    return -1;
-                }
-
-                for (var i = ix; i < len; i++)
-                {
-                    var c = *charPtrMut;
-                    if (c == c1 || c == '\r' || c == '\n')
-                    {
-                        return i;
-                    }
-
-                    charPtrMut++;
-                }
-            }
-
-            return -1;
-        }
-
-        private static unsafe int FindNeedsEncodeDouble(ReadOnlySpan<char> span, char c1, char c2)
-        {
-            // allocate and initialize with \r and \n
-            short* probMap = stackalloc short[PROBABILITY_MAP_SIZE];
-            probMap[0] = 9216;
-            AddCharacterToProbMap(probMap, c1);
-            AddCharacterToProbMap(probMap, c2);
-
-            fixed (char* charPtr = span)
-            {
-                char* charPtrMut = charPtr;
-
-                var len = span.Length;
-                var ix = ProbablyContains(probMap, ref charPtrMut, len);
-                if (ix == -1)
-                {
-                    return -1;
-                }
-
-                for (var i = ix; i < len; i++)
-                {
-                    var c = *charPtrMut;
-                    if (c == c1 || c == c2 || c == '\r' || c == '\n')
-                    {
-                        return i;
-                    }
-
-                    charPtrMut++;
-                }
-            }
-
-            return -1;
-        }
-
-        private static unsafe int FindNeedsEncodeTriple(ReadOnlySpan<char> span, char c1, char c2, char c3)
-        {
-            // allocate and initialize with \r and \n
-            short* probMap = stackalloc short[PROBABILITY_MAP_SIZE];
-            probMap[0] = 9216;
-            AddCharacterToProbMap(probMap, c1);
-            AddCharacterToProbMap(probMap, c2);
-            AddCharacterToProbMap(probMap, c3);
-
-            fixed (char* charPtr = span)
-            {
-                char* charPtrMut = charPtr;
-
-                var len = span.Length;
-                var ix = ProbablyContains(probMap, ref charPtrMut, len);
-                if (ix == -1)
-                {
-                    return -1;
-                }
-
-                for (var i = ix; i < len; i++)
-                {
-                    var c = *charPtrMut;
-                    if (c == c1 || c == c2 || c == c3 || c == '\r' || c == '\n')
-                    {
-                        return i;
-                    }
-
-                    charPtrMut++;
-                }
-            }
-
-            return -1;
         }
 
         internal static int FindNeedsEncode<T>(ReadOnlySequence<char> head, int start, BoundConfigurationBase<T> config)

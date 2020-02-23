@@ -29,7 +29,7 @@ namespace Cesil
 
         public ValueTask WriteAsync(ReadOnlyMemory<char> chars, CancellationToken cancel)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             if (chars.IsEmpty)
             {

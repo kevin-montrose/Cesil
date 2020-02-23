@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>Cesil.Benchmark.NarrowRowReadSyncBenchmark-20200306-214555</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet=v0.12.0, OS=Windows 8.1 (6.3.9600.0)
+Intel Core i7-4960HQ CPU 2.60GHz (Haswell), 1 CPU, 8 logical and 4 physical cores
+Frequency=2533207 Hz, Resolution=394.7565 ns, Timer=TSC
+.NET Core SDK=3.0.100
+  [Host]     : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
+  DefaultJob : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
+</code></pre>
+<pre><code></code></pre>
+
+<table>
+<thead><tr><th>Method</th><th>          Type</th><th>RowSet</th><th>Library</th><th>   Mean</th><th>Error</th><th>StdDev</th><th> Median</th><th>Gen 0</th><th>Gen 1</th><th>Gen 2</th><th>Allocated</th>
+</tr>
+</thead><tbody><tr><td>Run</td><td>Cesil(...)wEnum [29]</td><td>DeepRows</td><td>Cesil</td><td>8,123.006 us</td><td>185.0940 us</td><td>265.4563 us</td><td>8,000.130 us</td><td>31.2500</td><td>31.2500</td><td>31.2500</td><td>491.7 KB</td>
+</tr><tr><td>Run</td><td>Cesil(...)wEnum [29]</td><td>DeepRows</td><td>CsvHelper</td><td>20,476.907 us</td><td>230.4545 us</td><td>204.2920 us</td><td>20,410.276 us</td><td>156.2500</td><td>62.5000</td><td>31.2500</td><td>9566.48 KB</td>
+</tr><tr><td>Run</td><td>Cesil(...)wEnum [29]</td><td>ShallowRows</td><td>Cesil</td><td>10.196 us</td><td>0.0678 us</td><td>0.0601 us</td><td>10.202 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>Cesil(...)wEnum [29]</td><td>ShallowRows</td><td>CsvHelper</td><td>621.271 us</td><td>3.6441 us</td><td>3.4087 us</td><td>621.783 us</td><td>-</td><td>-</td><td>-</td><td>34.84 KB</td>
+</tr><tr><td>Run</td><td>Cesil(...)sEnum [34]</td><td>DeepRows</td><td>Cesil</td><td>10,660.197 us</td><td>212.0336 us</td><td>187.9622 us</td><td>10,634.870 us</td><td>31.2500</td><td>31.2500</td><td>31.2500</td><td>1565.23 KB</td>
+</tr><tr><td>Run</td><td>Cesil(...)sEnum [34]</td><td>DeepRows</td><td>CsvHelper</td><td>22,127.607 us</td><td>437.7503 us</td><td>365.5413 us</td><td>22,054.875 us</td><td>156.2500</td><td>62.5000</td><td>31.2500</td><td>10040.57 KB</td>
+</tr><tr><td>Run</td><td>Cesil(...)sEnum [34]</td><td>ShallowRows</td><td>Cesil</td><td>13.469 us</td><td>0.1586 us</td><td>0.1239 us</td><td>13.437 us</td><td>0.0305</td><td>-</td><td>-</td><td>2.84 KB</td>
+</tr><tr><td>Run</td><td>Cesil(...)sEnum [34]</td><td>ShallowRows</td><td>CsvHelper</td><td>620.218 us</td><td>5.7283 us</td><td>4.7834 us</td><td>619.902 us</td><td>-</td><td>-</td><td>-</td><td>35.35 KB</td>
+</tr><tr><td>Run</td><td>System.Byte</td><td>DeepRows</td><td>Cesil</td><td>6,509.289 us</td><td>144.6754 us</td><td>282.1783 us</td><td>6,390.272 us</td><td>39.0625</td><td>39.0625</td><td>39.0625</td><td>491.7 KB</td>
+</tr><tr><td>Run</td><td>System.Byte</td><td>DeepRows</td><td>CsvHelper</td><td>18,508.198 us</td><td>249.0232 us</td><td>207.9457 us</td><td>18,566.497 us</td><td>156.2500</td><td>62.5000</td><td>31.2500</td><td>9504.98 KB</td>
+</tr><tr><td>Run</td><td>System.Byte</td><td>ShallowRows</td><td>Cesil</td><td>8.283 us</td><td>0.1586 us</td><td>0.1406 us</td><td>8.267 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>System.Byte</td><td>ShallowRows</td><td>CsvHelper</td><td>618.909 us</td><td>2.2318 us</td><td>2.0876 us</td><td>618.952 us</td><td>-</td><td>-</td><td>-</td><td>34.79 KB</td>
+</tr><tr><td>Run</td><td>System.Char</td><td>DeepRows</td><td>Cesil</td><td>5,857.288 us</td><td>59.5908 us</td><td>52.8257 us</td><td>5,851.710 us</td><td>39.0625</td><td>39.0625</td><td>39.0625</td><td>491.7 KB</td>
+</tr><tr><td>Run</td><td>System.Char</td><td>DeepRows</td><td>CsvHelper</td><td>17,390.770 us</td><td>150.0617 us</td><td>140.3678 us</td><td>17,367.276 us</td><td>156.2500</td><td>62.5000</td><td>31.2500</td><td>9325.63 KB</td>
+</tr><tr><td>Run</td><td>System.Char</td><td>ShallowRows</td><td>Cesil</td><td>8.358 us</td><td>0.1654 us</td><td>0.1381 us</td><td>8.374 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>System.Char</td><td>ShallowRows</td><td>CsvHelper</td><td>618.350 us</td><td>3.3685 us</td><td>2.8128 us</td><td>617.338 us</td><td>-</td><td>-</td><td>-</td><td>34.65 KB</td>
+</tr><tr><td>Run</td><td>System.DateTime</td><td>DeepRows</td><td>Cesil</td><td>16,944.083 us</td><td>90.1050 us</td><td>79.8757 us</td><td>16,932.014 us</td><td>31.2500</td><td>31.2500</td><td>31.2500</td><td>491.72 KB</td>
+</tr><tr><td>Run</td><td>System.DateTime</td><td>DeepRows</td><td>CsvHelper</td><td>33,086.880 us</td><td>354.8434 us</td><td>314.5594 us</td><td>33,045.353 us</td><td>125.0000</td><td>-</td><td>-</td><td>12121.45 KB</td>
+</tr><tr><td>Run</td><td>System.DateTime</td><td>ShallowRows</td><td>Cesil</td><td>19.182 us</td><td>0.3202 us</td><td>0.2838 us</td><td>19.122 us</td><td>-</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>System.DateTime</td><td>ShallowRows</td><td>CsvHelper</td><td>659.846 us</td><td>4.4716 us</td><td>3.9639 us</td><td>658.386 us</td><td>-</td><td>-</td><td>-</td><td>37.42 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)ffset [21]</td><td>DeepRows</td><td>Cesil</td><td>13,598.149 us</td><td>169.0902 us</td><td>149.8940 us</td><td>13,536.686 us</td><td>31.2500</td><td>31.2500</td><td>31.2500</td><td>569.85 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)ffset [21]</td><td>DeepRows</td><td>CsvHelper</td><td>29,918.060 us</td><td>589.5327 us</td><td>951.9854 us</td><td>29,692.414 us</td><td>187.5000</td><td>62.5000</td><td>31.2500</td><td>12434.02 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)ffset [21]</td><td>ShallowRows</td><td>Cesil</td><td>16.323 us</td><td>0.0711 us</td><td>0.0593 us</td><td>16.331 us</td><td>-</td><td>-</td><td>-</td><td>1.63 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)ffset [21]</td><td>ShallowRows</td><td>CsvHelper</td><td>654.301 us</td><td>1.8010 us</td><td>1.6846 us</td><td>653.798 us</td><td>-</td><td>-</td><td>-</td><td>37.73 KB</td>
+</tr><tr><td>Run</td><td>System.Decimal</td><td>DeepRows</td><td>Cesil</td><td>11,752.745 us</td><td>116.7501 us</td><td>109.2081 us</td><td>11,741.663 us</td><td>31.2500</td><td>31.2500</td><td>31.2500</td><td>569.83 KB</td>
+</tr><tr><td>Run</td><td>System.Decimal</td><td>DeepRows</td><td>CsvHelper</td><td>25,944.159 us</td><td>320.7786 us</td><td>284.3619 us</td><td>25,860.099 us</td><td>187.5000</td><td>62.5000</td><td>31.2500</td><td>11921.71 KB</td>
+</tr><tr><td>Run</td><td>System.Decimal</td><td>ShallowRows</td><td>Cesil</td><td>14.211 us</td><td>0.1559 us</td><td>0.1458 us</td><td>14.186 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.63 KB</td>
+</tr><tr><td>Run</td><td>System.Decimal</td><td>ShallowRows</td><td>CsvHelper</td><td>645.428 us</td><td>3.4101 us</td><td>2.8476 us</td><td>645.542 us</td><td>-</td><td>-</td><td>-</td><td>37.27 KB</td>
+</tr><tr><td>Run</td><td>System.Double</td><td>DeepRows</td><td>Cesil</td><td>18,607.178 us</td><td>116.4108 us</td><td>103.1951 us</td><td>18,586.883 us</td><td>31.2500</td><td>31.2500</td><td>31.2500</td><td>491.7 KB</td>
+</tr><tr><td>Run</td><td>System.Double</td><td>DeepRows</td><td>CsvHelper</td><td>32,436.626 us</td><td>440.3269 us</td><td>411.8821 us</td><td>32,406.945 us</td><td>125.0000</td><td>-</td><td>-</td><td>11175.62 KB</td>
+</tr><tr><td>Run</td><td>System.Double</td><td>ShallowRows</td><td>Cesil</td><td>19.786 us</td><td>0.2362 us</td><td>0.2094 us</td><td>19.699 us</td><td>-</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>System.Double</td><td>ShallowRows</td><td>CsvHelper</td><td>649.974 us</td><td>3.4608 us</td><td>3.0679 us</td><td>649.327 us</td><td>-</td><td>-</td><td>-</td><td>36.45 KB</td>
+</tr><tr><td>Run</td><td>System.Guid</td><td>DeepRows</td><td>Cesil</td><td>11,067.363 us</td><td>42.0039 us</td><td>37.2354 us</td><td>11,056.162 us</td><td>31.2500</td><td>31.2500</td><td>31.2500</td><td>569.92 KB</td>
+</tr><tr><td>Run</td><td>System.Guid</td><td>DeepRows</td><td>CsvHelper</td><td>24,388.745 us</td><td>262.8158 us</td><td>219.4631 us</td><td>24,432.283 us</td><td>187.5000</td><td>62.5000</td><td>31.2500</td><td>12283.78 KB</td>
+</tr><tr><td>Run</td><td>System.Guid</td><td>ShallowRows</td><td>Cesil</td><td>13.446 us</td><td>0.1165 us</td><td>0.1090 us</td><td>13.422 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.63 KB</td>
+</tr><tr><td>Run</td><td>System.Guid</td><td>ShallowRows</td><td>CsvHelper</td><td>646.093 us</td><td>2.3343 us</td><td>2.0693 us</td><td>646.079 us</td><td>-</td><td>-</td><td>-</td><td>37.33 KB</td>
+</tr><tr><td>Run</td><td>System.Int16</td><td>DeepRows</td><td>Cesil</td><td>6,625.752 us</td><td>110.5010 us</td><td>103.3627 us</td><td>6,612.378 us</td><td>39.0625</td><td>39.0625</td><td>39.0625</td><td>491.7 KB</td>
+</tr><tr><td>Run</td><td>System.Int16</td><td>DeepRows</td><td>CsvHelper</td><td>19,925.949 us</td><td>125.2954 us</td><td>111.0711 us</td><td>19,919.075 us</td><td>156.2500</td><td>62.5000</td><td>31.2500</td><td>9773.98 KB</td>
+</tr><tr><td>Run</td><td>System.Int16</td><td>ShallowRows</td><td>Cesil</td><td>8.890 us</td><td>0.0720 us</td><td>0.0638 us</td><td>8.900 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>System.Int16</td><td>ShallowRows</td><td>CsvHelper</td><td>628.818 us</td><td>7.7235 us</td><td>7.2245 us</td><td>627.276 us</td><td>-</td><td>-</td><td>-</td><td>35 KB</td>
+</tr><tr><td>Run</td><td>System.Int32</td><td>DeepRows</td><td>Cesil</td><td>7,325.850 us</td><td>53.2014 us</td><td>44.4256 us</td><td>7,329.411 us</td><td>39.0625</td><td>39.0625</td><td>39.0625</td><td>491.7 KB</td>
+</tr><tr><td>Run</td><td>System.Int32</td><td>DeepRows</td><td>CsvHelper</td><td>19,933.096 us</td><td>156.9990 us</td><td>139.1755 us</td><td>19,959.118 us</td><td>156.2500</td><td>62.5000</td><td>31.2500</td><td>10164.31 KB</td>
+</tr><tr><td>Run</td><td>System.Int32</td><td>ShallowRows</td><td>Cesil</td><td>9.372 us</td><td>0.0799 us</td><td>0.0708 us</td><td>9.376 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>System.Int32</td><td>ShallowRows</td><td>CsvHelper</td><td>627.499 us</td><td>3.8790 us</td><td>3.2392 us</td><td>627.606 us</td><td>-</td><td>-</td><td>-</td><td>35.31 KB</td>
+</tr><tr><td>Run</td><td>System.Int64</td><td>DeepRows</td><td>Cesil</td><td>8,311.810 us</td><td>59.7041 us</td><td>46.6130 us</td><td>8,316.700 us</td><td>31.2500</td><td>31.2500</td><td>31.2500</td><td>491.72 KB</td>
+</tr><tr><td>Run</td><td>System.Int64</td><td>DeepRows</td><td>CsvHelper</td><td>21,211.382 us</td><td>329.7879 us</td><td>292.3484 us</td><td>21,259.773 us</td><td>156.2500</td><td>31.2500</td><td>31.2500</td><td>10893.86 KB</td>
+</tr><tr><td>Run</td><td>System.Int64</td><td>ShallowRows</td><td>Cesil</td><td>10.744 us</td><td>0.0580 us</td><td>0.0515 us</td><td>10.740 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>System.Int64</td><td>ShallowRows</td><td>CsvHelper</td><td>633.601 us</td><td>8.3159 us</td><td>7.3718 us</td><td>632.613 us</td><td>-</td><td>-</td><td>-</td><td>36.19 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Enum] [48]</td><td>DeepRows</td><td>Cesil</td><td>6,311.169 us</td><td>69.3226 us</td><td>64.8444 us</td><td>6,310.365 us</td><td>39.0625</td><td>39.0625</td><td>39.0625</td><td>491.7 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Enum] [48]</td><td>DeepRows</td><td>CsvHelper</td><td>20,259.673 us</td><td>531.2099 us</td><td>521.7191 us</td><td>20,083.756 us</td><td>156.2500</td><td>31.2500</td><td>31.2500</td><td>11097.48 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Enum] [48]</td><td>ShallowRows</td><td>Cesil</td><td>8.045 us</td><td>0.0862 us</td><td>0.0720 us</td><td>8.017 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Enum] [48]</td><td>ShallowRows</td><td>CsvHelper</td><td>654.711 us</td><td>3.4323 us</td><td>3.0426 us</td><td>654.411 us</td><td>-</td><td>-</td><td>-</td><td>36.72 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Enum] [53]</td><td>DeepRows</td><td>Cesil</td><td>9,372.165 us</td><td>109.6723 us</td><td>102.5875 us</td><td>9,360.609 us</td><td>31.2500</td><td>31.2500</td><td>31.2500</td><td>1288.27 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Enum] [53]</td><td>DeepRows</td><td>CsvHelper</td><td>23,335.187 us</td><td>186.0287 us</td><td>174.0113 us</td><td>23,301.738 us</td><td>187.5000</td><td>62.5000</td><td>31.2500</td><td>11780.46 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Enum] [53]</td><td>ShallowRows</td><td>Cesil</td><td>10.127 us</td><td>0.0745 us</td><td>0.0697 us</td><td>10.111 us</td><td>0.0305</td><td>-</td><td>-</td><td>2.05 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Enum] [53]</td><td>ShallowRows</td><td>CsvHelper</td><td>656.433 us</td><td>1.9192 us</td><td>1.4984 us</td><td>656.926 us</td><td>-</td><td>-</td><td>-</td><td>37.16 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Byte] [30]</td><td>DeepRows</td><td>Cesil</td><td>5,492.587 us</td><td>98.8742 us</td><td>92.4870 us</td><td>5,472.889 us</td><td>39.0625</td><td>39.0625</td><td>39.0625</td><td>491.7 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Byte] [30]</td><td>DeepRows</td><td>CsvHelper</td><td>19,411.580 us</td><td>124.9995 us</td><td>97.5914 us</td><td>19,420.973 us</td><td>156.2500</td><td>31.2500</td><td>31.2500</td><td>11074.83 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Byte] [30]</td><td>ShallowRows</td><td>Cesil</td><td>7.882 us</td><td>0.0273 us</td><td>0.0242 us</td><td>7.881 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Byte] [30]</td><td>ShallowRows</td><td>CsvHelper</td><td>643.313 us</td><td>1.6004 us</td><td>1.4187 us</td><td>643.835 us</td><td>-</td><td>-</td><td>-</td><td>36.98 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Char] [30]</td><td>DeepRows</td><td>Cesil</td><td>5,238.152 us</td><td>12.2679 us</td><td>10.8752 us</td><td>5,238.638 us</td><td>39.0625</td><td>39.0625</td><td>39.0625</td><td>491.7 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Char] [30]</td><td>DeepRows</td><td>CsvHelper</td><td>19,217.960 us</td><td>134.4190 us</td><td>119.1590 us</td><td>19,234.099 us</td><td>156.2500</td><td>31.2500</td><td>31.2500</td><td>10969.87 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Char] [30]</td><td>ShallowRows</td><td>Cesil</td><td>7.342 us</td><td>0.0278 us</td><td>0.0247 us</td><td>7.349 us</td><td>0.0229</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Char] [30]</td><td>ShallowRows</td><td>CsvHelper</td><td>645.043 us</td><td>3.7101 us</td><td>3.2890 us</td><td>645.109 us</td><td>-</td><td>-</td><td>-</td><td>36.75 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)fset] [40]</td><td>DeepRows</td><td>Cesil</td><td>9,112.258 us</td><td>84.4147 us</td><td>78.9615 us</td><td>9,105.232 us</td><td>31.2500</td><td>31.2500</td><td>31.2500</td><td>647.98 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)fset] [40]</td><td>DeepRows</td><td>CsvHelper</td><td>25,766.417 us</td><td>164.2355 us</td><td>145.5905 us</td><td>25,743.677 us</td><td>187.5000</td><td>62.5000</td><td>31.2500</td><td>12761.99 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)fset] [40]</td><td>ShallowRows</td><td>Cesil</td><td>11.496 us</td><td>0.0737 us</td><td>0.0689 us</td><td>11.486 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.72 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)fset] [40]</td><td>ShallowRows</td><td>CsvHelper</td><td>648.185 us</td><td>2.8077 us</td><td>2.6264 us</td><td>647.901 us</td><td>-</td><td>-</td><td>-</td><td>38.71 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Time] [34]</td><td>DeepRows</td><td>Cesil</td><td>10,707.662 us</td><td>87.6337 us</td><td>81.9726 us</td><td>10,729.606 us</td><td>31.2500</td><td>31.2500</td><td>31.2500</td><td>569.85 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Time] [34]</td><td>DeepRows</td><td>CsvHelper</td><td>26,235.849 us</td><td>159.2596 us</td><td>148.9715 us</td><td>26,247.756 us</td><td>187.5000</td><td>62.5000</td><td>31.2500</td><td>12488.46 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Time] [34]</td><td>ShallowRows</td><td>Cesil</td><td>13.030 us</td><td>0.0880 us</td><td>0.0823 us</td><td>12.995 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.63 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Time] [34]</td><td>ShallowRows</td><td>CsvHelper</td><td>638.198 us</td><td>2.3074 us</td><td>2.1584 us</td><td>638.390 us</td><td>-</td><td>-</td><td>-</td><td>38.44 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)imal] [33]</td><td>DeepRows</td><td>Cesil</td><td>8,373.151 us</td><td>65.4737 us</td><td>61.2441 us</td><td>8,371.096 us</td><td>31.2500</td><td>31.2500</td><td>31.2500</td><td>647.96 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)imal] [33]</td><td>DeepRows</td><td>CsvHelper</td><td>22,607.599 us</td><td>176.7038 us</td><td>165.2889 us</td><td>22,623.460 us</td><td>187.5000</td><td>62.5000</td><td>31.2500</td><td>12450.16 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)imal] [33]</td><td>ShallowRows</td><td>Cesil</td><td>12.521 us</td><td>0.0990 us</td><td>0.0926 us</td><td>12.499 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.72 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)imal] [33]</td><td>ShallowRows</td><td>CsvHelper</td><td>640.988 us</td><td>2.9659 us</td><td>2.6292 us</td><td>641.777 us</td><td>-</td><td>-</td><td>-</td><td>39.18 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)uble] [32]</td><td>DeepRows</td><td>Cesil</td><td>11,822.208 us</td><td>70.7429 us</td><td>66.1729 us</td><td>11,841.388 us</td><td>31.2500</td><td>31.2500</td><td>31.2500</td><td>569.83 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)uble] [32]</td><td>DeepRows</td><td>CsvHelper</td><td>27,118.060 us</td><td>156.9744 us</td><td>146.8339 us</td><td>27,094.768 us</td><td>187.5000</td><td>62.5000</td><td>31.2500</td><td>12038.65 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)uble] [32]</td><td>ShallowRows</td><td>Cesil</td><td>15.517 us</td><td>0.0634 us</td><td>0.0593 us</td><td>15.523 us</td><td>-</td><td>-</td><td>-</td><td>1.63 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)uble] [32]</td><td>ShallowRows</td><td>CsvHelper</td><td>660.692 us</td><td>2.7380 us</td><td>2.5611 us</td><td>660.408 us</td><td>-</td><td>-</td><td>-</td><td>38.36 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Guid] [30]</td><td>DeepRows</td><td>Cesil</td><td>7,924.481 us</td><td>91.3598 us</td><td>85.4580 us</td><td>7,944.642 us</td><td>31.2500</td><td>31.2500</td><td>31.2500</td><td>647.96 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Guid] [30]</td><td>DeepRows</td><td>CsvHelper</td><td>22,573.651 us</td><td>188.4539 us</td><td>167.0595 us</td><td>22,588.881 us</td><td>187.5000</td><td>62.5000</td><td>31.2500</td><td>12559.43 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Guid] [30]</td><td>ShallowRows</td><td>Cesil</td><td>9.567 us</td><td>0.0648 us</td><td>0.0606 us</td><td>9.553 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.72 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Guid] [30]</td><td>ShallowRows</td><td>CsvHelper</td><td>634.544 us</td><td>2.1623 us</td><td>2.0226 us</td><td>635.371 us</td><td>-</td><td>-</td><td>-</td><td>38.12 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt16] [31]</td><td>DeepRows</td><td>Cesil</td><td>5,617.582 us</td><td>53.3781 us</td><td>47.3183 us</td><td>5,624.978 us</td><td>39.0625</td><td>39.0625</td><td>39.0625</td><td>491.7 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt16] [31]</td><td>DeepRows</td><td>CsvHelper</td><td>19,591.098 us</td><td>212.0181 us</td><td>198.3218 us</td><td>19,597.873 us</td><td>187.5000</td><td>62.5000</td><td>31.2500</td><td>11237.32 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt16] [31]</td><td>ShallowRows</td><td>Cesil</td><td>7.916 us</td><td>0.0338 us</td><td>0.0300 us</td><td>7.921 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt16] [31]</td><td>ShallowRows</td><td>CsvHelper</td><td>646.502 us</td><td>4.5320 us</td><td>4.2393 us</td><td>646.709 us</td><td>-</td><td>-</td><td>-</td><td>37.03 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt32] [31]</td><td>DeepRows</td><td>Cesil</td><td>5,942.127 us</td><td>81.6518 us</td><td>76.3772 us</td><td>5,964.669 us</td><td>39.0625</td><td>39.0625</td><td>39.0625</td><td>491.7 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt32] [31]</td><td>DeepRows</td><td>CsvHelper</td><td>19,385.466 us</td><td>102.4211 us</td><td>85.5263 us</td><td>19,372.911 us</td><td>187.5000</td><td>62.5000</td><td>31.2500</td><td>11444.37 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt32] [31]</td><td>ShallowRows</td><td>Cesil</td><td>8.071 us</td><td>0.0522 us</td><td>0.0488 us</td><td>8.048 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt32] [31]</td><td>ShallowRows</td><td>CsvHelper</td><td>647.480 us</td><td>4.5829 us</td><td>4.2869 us</td><td>646.601 us</td><td>-</td><td>-</td><td>-</td><td>37.2 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt64] [31]</td><td>DeepRows</td><td>Cesil</td><td>6,482.523 us</td><td>78.9620 us</td><td>73.8611 us</td><td>6,448.406 us</td><td>39.0625</td><td>39.0625</td><td>39.0625</td><td>569.83 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt64] [31]</td><td>DeepRows</td><td>CsvHelper</td><td>20,360.081 us</td><td>343.3150 us</td><td>321.1371 us</td><td>20,388.114 us</td><td>187.5000</td><td>62.5000</td><td>31.2500</td><td>11892.19 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt64] [31]</td><td>ShallowRows</td><td>Cesil</td><td>9.270 us</td><td>0.0434 us</td><td>0.0385 us</td><td>9.275 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.63 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt64] [31]</td><td>ShallowRows</td><td>CsvHelper</td><td>650.278 us</td><td>2.6780 us</td><td>2.5050 us</td><td>650.495 us</td><td>-</td><td>-</td><td>-</td><td>38.16 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Byte] [31]</td><td>DeepRows</td><td>Cesil</td><td>5,470.153 us</td><td>76.4761 us</td><td>71.5358 us</td><td>5,492.257 us</td><td>39.0625</td><td>39.0625</td><td>39.0625</td><td>491.7 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Byte] [31]</td><td>DeepRows</td><td>CsvHelper</td><td>19,013.047 us</td><td>139.8905 us</td><td>130.8537 us</td><td>19,009.575 us</td><td>187.5000</td><td>62.5000</td><td>31.2500</td><td>11156.08 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Byte] [31]</td><td>ShallowRows</td><td>Cesil</td><td>7.810 us</td><td>0.0347 us</td><td>0.0325 us</td><td>7.815 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)Byte] [31]</td><td>ShallowRows</td><td>CsvHelper</td><td>644.438 us</td><td>2.1423 us</td><td>2.0039 us</td><td>643.630 us</td><td>-</td><td>-</td><td>-</td><td>37.06 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)ngle] [32]</td><td>DeepRows</td><td>Cesil</td><td>7,925.299 us</td><td>79.6439 us</td><td>74.4989 us</td><td>7,941.915 us</td><td>31.2500</td><td>31.2500</td><td>31.2500</td><td>491.7 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)ngle] [32]</td><td>DeepRows</td><td>CsvHelper</td><td>21,744.533 us</td><td>139.7481 us</td><td>130.7205 us</td><td>21,751.985 us</td><td>187.5000</td><td>62.5000</td><td>31.2500</td><td>11595.98 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)ngle] [32]</td><td>ShallowRows</td><td>Cesil</td><td>10.651 us</td><td>0.0278 us</td><td>0.0246 us</td><td>10.658 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)ngle] [32]</td><td>ShallowRows</td><td>CsvHelper</td><td>656.435 us</td><td>2.2582 us</td><td>2.0019 us</td><td>657.205 us</td><td>-</td><td>-</td><td>-</td><td>37.52 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt16] [32]</td><td>DeepRows</td><td>Cesil</td><td>5,609.441 us</td><td>57.8301 us</td><td>54.0944 us</td><td>5,615.547 us</td><td>39.0625</td><td>39.0625</td><td>39.0625</td><td>491.7 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt16] [32]</td><td>DeepRows</td><td>CsvHelper</td><td>19,435.103 us</td><td>101.2040 us</td><td>94.6662 us</td><td>19,406.539 us</td><td>187.5000</td><td>62.5000</td><td>31.2500</td><td>11200.25 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt16] [32]</td><td>ShallowRows</td><td>Cesil</td><td>8.030 us</td><td>0.0629 us</td><td>0.0588 us</td><td>8.035 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt16] [32]</td><td>ShallowRows</td><td>CsvHelper</td><td>659.978 us</td><td>12.7676 us</td><td>15.6798 us</td><td>656.096 us</td><td>-</td><td>-</td><td>-</td><td>36.97 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt32] [32]</td><td>DeepRows</td><td>Cesil</td><td>5,983.156 us</td><td>60.3298 us</td><td>56.4325 us</td><td>5,964.179 us</td><td>39.0625</td><td>39.0625</td><td>39.0625</td><td>491.7 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt32] [32]</td><td>DeepRows</td><td>CsvHelper</td><td>19,696.329 us</td><td>223.2082 us</td><td>208.7891 us</td><td>19,695.316 us</td><td>187.5000</td><td>62.5000</td><td>31.2500</td><td>11442.46 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt32] [32]</td><td>ShallowRows</td><td>Cesil</td><td>8.232 us</td><td>0.0480 us</td><td>0.0426 us</td><td>8.241 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt32] [32]</td><td>ShallowRows</td><td>CsvHelper</td><td>647.581 us</td><td>2.7865 us</td><td>2.6065 us</td><td>646.640 us</td><td>-</td><td>-</td><td>-</td><td>37.2 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt64] [32]</td><td>DeepRows</td><td>Cesil</td><td>6,574.529 us</td><td>78.0549 us</td><td>73.0126 us</td><td>6,574.368 us</td><td>39.0625</td><td>39.0625</td><td>39.0625</td><td>569.83 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt64] [32]</td><td>DeepRows</td><td>CsvHelper</td><td>20,437.694 us</td><td>220.5990 us</td><td>195.5552 us</td><td>20,432.160 us</td><td>187.5000</td><td>62.5000</td><td>31.2500</td><td>11892.48 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt64] [32]</td><td>ShallowRows</td><td>Cesil</td><td>9.256 us</td><td>0.0889 us</td><td>0.0788 us</td><td>9.234 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.63 KB</td>
+</tr><tr><td>Run</td><td>Syste(...)nt64] [32]</td><td>ShallowRows</td><td>CsvHelper</td><td>650.374 us</td><td>2.4798 us</td><td>2.3196 us</td><td>649.334 us</td><td>-</td><td>-</td><td>-</td><td>38.17 KB</td>
+</tr><tr><td>Run</td><td>System.SByte</td><td>DeepRows</td><td>Cesil</td><td>6,471.838 us</td><td>66.1419 us</td><td>61.8691 us</td><td>6,497.051 us</td><td>39.0625</td><td>39.0625</td><td>39.0625</td><td>491.7 KB</td>
+</tr><tr><td>Run</td><td>System.SByte</td><td>DeepRows</td><td>CsvHelper</td><td>18,725.990 us</td><td>159.0015 us</td><td>140.9507 us</td><td>18,683.833 us</td><td>156.2500</td><td>62.5000</td><td>31.2500</td><td>9592.33 KB</td>
+</tr><tr><td>Run</td><td>System.SByte</td><td>ShallowRows</td><td>Cesil</td><td>8.291 us</td><td>0.0290 us</td><td>0.0257 us</td><td>8.287 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>System.SByte</td><td>ShallowRows</td><td>CsvHelper</td><td>624.326 us</td><td>1.3725 us</td><td>1.2167 us</td><td>624.240 us</td><td>-</td><td>-</td><td>-</td><td>34.85 KB</td>
+</tr><tr><td>Run</td><td>System.Single</td><td>DeepRows</td><td>Cesil</td><td>10,813.774 us</td><td>103.8498 us</td><td>97.1412 us</td><td>10,839.077 us</td><td>31.2500</td><td>31.2500</td><td>31.2500</td><td>491.7 KB</td>
+</tr><tr><td>Run</td><td>System.Single</td><td>DeepRows</td><td>CsvHelper</td><td>23,548.692 us</td><td>227.2647 us</td><td>212.5835 us</td><td>23,553.901 us</td><td>156.2500</td><td>62.5000</td><td>31.2500</td><td>10460.81 KB</td>
+</tr><tr><td>Run</td><td>System.Single</td><td>ShallowRows</td><td>Cesil</td><td>12.121 us</td><td>0.0322 us</td><td>0.0252 us</td><td>12.113 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>System.Single</td><td>ShallowRows</td><td>CsvHelper</td><td>635.208 us</td><td>1.7847 us</td><td>1.6694 us</td><td>635.419 us</td><td>-</td><td>-</td><td>-</td><td>35.67 KB</td>
+</tr><tr><td>Run</td><td>System.String</td><td>DeepRows</td><td>Cesil</td><td>7,664.079 us</td><td>69.5281 us</td><td>65.0366 us</td><td>7,696.562 us</td><td>39.0625</td><td>39.0625</td><td>39.0625</td><td>910.4 KB</td>
+</tr><tr><td>Run</td><td>System.String</td><td>DeepRows</td><td>CsvHelper</td><td>21,209.482 us</td><td>70.5044 us</td><td>62.5004 us</td><td>21,201.177 us</td><td>156.2500</td><td>93.7500</td><td>31.2500</td><td>10118.46 KB</td>
+</tr><tr><td>Run</td><td>System.String</td><td>ShallowRows</td><td>Cesil</td><td>9.884 us</td><td>0.0294 us</td><td>0.0260 us</td><td>9.887 us</td><td>0.0305</td><td>-</td><td>-</td><td>2.02 KB</td>
+</tr><tr><td>Run</td><td>System.String</td><td>ShallowRows</td><td>CsvHelper</td><td>630.162 us</td><td>2.6406 us</td><td>2.4700 us</td><td>630.740 us</td><td>-</td><td>-</td><td>-</td><td>36.25 KB</td>
+</tr><tr><td>Run</td><td>System.UInt16</td><td>DeepRows</td><td>Cesil</td><td>6,408.832 us</td><td>89.8894 us</td><td>84.0826 us</td><td>6,363.799 us</td><td>39.0625</td><td>39.0625</td><td>39.0625</td><td>491.7 KB</td>
+</tr><tr><td>Run</td><td>System.UInt16</td><td>DeepRows</td><td>CsvHelper</td><td>18,297.060 us</td><td>173.2895 us</td><td>162.0951 us</td><td>18,299.728 us</td><td>156.2500</td><td>62.5000</td><td>31.2500</td><td>9710.7 KB</td>
+</tr><tr><td>Run</td><td>System.UInt16</td><td>ShallowRows</td><td>Cesil</td><td>8.539 us</td><td>0.0331 us</td><td>0.0293 us</td><td>8.535 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>System.UInt16</td><td>ShallowRows</td><td>CsvHelper</td><td>622.609 us</td><td>2.0555 us</td><td>1.9227 us</td><td>622.657 us</td><td>-</td><td>-</td><td>-</td><td>34.94 KB</td>
+</tr><tr><td>Run</td><td>System.UInt32</td><td>DeepRows</td><td>Cesil</td><td>7,010.789 us</td><td>54.5585 us</td><td>51.0341 us</td><td>7,001.985 us</td><td>39.0625</td><td>39.0625</td><td>39.0625</td><td>491.7 KB</td>
+</tr><tr><td>Run</td><td>System.UInt32</td><td>DeepRows</td><td>CsvHelper</td><td>19,282.708 us</td><td>90.1838 us</td><td>79.9456 us</td><td>19,279.348 us</td><td>156.2500</td><td>62.5000</td><td>31.2500</td><td>10163.54 KB</td>
+</tr><tr><td>Run</td><td>System.UInt32</td><td>ShallowRows</td><td>Cesil</td><td>9.690 us</td><td>0.0365 us</td><td>0.0285 us</td><td>9.682 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>System.UInt32</td><td>ShallowRows</td><td>CsvHelper</td><td>623.161 us</td><td>2.3789 us</td><td>1.9865 us</td><td>622.799 us</td><td>-</td><td>-</td><td>-</td><td>35.3 KB</td>
+</tr><tr><td>Run</td><td>System.UInt64</td><td>DeepRows</td><td>Cesil</td><td>8,195.743 us</td><td>45.1253 us</td><td>40.0024 us</td><td>8,191.525 us</td><td>31.2500</td><td>31.2500</td><td>31.2500</td><td>491.72 KB</td>
+</tr><tr><td>Run</td><td>System.UInt64</td><td>DeepRows</td><td>CsvHelper</td><td>21,201.813 us</td><td>134.5995 us</td><td>125.9044 us</td><td>21,157.778 us</td><td>156.2500</td><td>31.2500</td><td>31.2500</td><td>10894.3 KB</td>
+</tr><tr><td>Run</td><td>System.UInt64</td><td>ShallowRows</td><td>Cesil</td><td>10.425 us</td><td>0.0305 us</td><td>0.0285 us</td><td>10.424 us</td><td>0.0153</td><td>-</td><td>-</td><td>1.55 KB</td>
+</tr><tr><td>Run</td><td>System.UInt64</td><td>ShallowRows</td><td>CsvHelper</td><td>628.439 us</td><td>1.9472 us</td><td>1.8214 us</td><td>628.248 us</td><td>-</td><td>-</td><td>-</td><td>36.21 KB</td>
+</tr><tr><td>Run</td><td>System.Uri</td><td>DeepRows</td><td>Cesil</td><td>13,646.019 us</td><td>112.3837 us</td><td>105.1238 us</td><td>13,658.471 us</td><td>46.8750</td><td>31.2500</td><td>31.2500</td><td>2154.05 KB</td>
+</tr><tr><td>Run</td><td>System.Uri</td><td>DeepRows</td><td>CsvHelper</td><td>30,860.069 us</td><td>200.3689 us</td><td>187.4252 us</td><td>30,871.984 us</td><td>218.7500</td><td>125.0000</td><td>31.2500</td><td>12557.47 KB</td>
+</tr><tr><td>Run</td><td>System.Uri</td><td>ShallowRows</td><td>Cesil</td><td>14.985 us</td><td>0.0459 us</td><td>0.0358 us</td><td>14.985 us</td><td>0.0305</td><td>-</td><td>-</td><td>3.13 KB</td>
+</tr><tr><td>Run</td><td>System.Uri</td><td>ShallowRows</td><td>CsvHelper</td><td>636.829 us</td><td>2.0935 us</td><td>1.8558 us</td><td>636.892 us</td><td>-</td><td>-</td><td>-</td><td>37.89 KB</td>
+</tr></tbody></table>
+</body>
+</html>

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 
 namespace Cesil
 {
@@ -6,7 +7,8 @@ namespace Cesil
     {
         bool IsDisposed { get; }
 
-        public void AssertNotDisposed()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void AssertNotDisposed()
         {
             if (IsDisposed)
             {
