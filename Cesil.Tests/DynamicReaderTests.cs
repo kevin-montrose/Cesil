@@ -14,6 +14,29 @@ namespace Cesil.Tests
     public class DynamicReaderTests
     {
         [Fact]
+        public void AllowExcessColumns()
+        {
+            RunSyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader("A,B\r\nhello,world\r\nfizz,buzz,bazz\r\nfe,fi,fo,fum"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+
+                        Assert.Collection(
+                            rows,
+                            a => { Assert.Equal("hello", (string)a.A); Assert.Equal("world", (string)a.B); },
+                            a => { Assert.Equal("fizz", (string)a.A); Assert.Equal("buzz", (string)a.B); Assert.Equal("bazz", (string)a[2]); },
+                            a => { Assert.Equal("fe", (string)a.A); Assert.Equal("fi", (string)a.B); Assert.Equal("fo", (string)a[2]); Assert.Equal("fum", (string)a[3]); }
+                        );
+                    }
+                }
+            );
+        }
+
+        [Fact]
         public void UsingWithDynamicRow()
         {
             var opts = Options.CreateBuilder(Options.DynamicDefault).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).ToOptions();
@@ -4597,6 +4620,29 @@ loop:
         }
 
         // async tests
+
+        [Fact]
+        public async Task AllowExcessColumnsAsync()
+        {
+            await RunAsyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("A,B\r\nhello,world\r\nfizz,buzz,bazz\r\nfe,fi,fo,fum"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+
+                        Assert.Collection(
+                            rows,
+                            a => { Assert.Equal("hello", (string)a.A); Assert.Equal("world", (string)a.B); },
+                            a => { Assert.Equal("fizz", (string)a.A); Assert.Equal("buzz", (string)a.B); Assert.Equal("bazz", (string)a[2]); },
+                            a => { Assert.Equal("fe", (string)a.A); Assert.Equal("fi", (string)a.B); Assert.Equal("fo", (string)a[2]); Assert.Equal("fum", (string)a[3]); }
+                        );
+                    }
+                }
+            );
+        }
 
         [Fact]
         public async Task ChainedParsersAsync()

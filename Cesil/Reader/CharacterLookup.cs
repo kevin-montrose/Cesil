@@ -105,8 +105,7 @@ namespace Cesil
                 }
             }
 
-            var charLookupOffset = (maxChar - minimumCharacter) + 1;
-            neededSize = charLookupOffset * 2;
+            neededSize = (maxChar - minimumCharacter) + 1;
 
             var charLookupOwner = memoryPool.Rent(neededSize / sizeof(char));
 
@@ -114,7 +113,7 @@ namespace Cesil
             {
                 CharacterType* charLookup = (CharacterType*)charLookupPtr;
 
-                for (var i = 0; i < charLookupOffset; i++)
+                for (var i = 0; i < neededSize; i++)
                 {
                     var c = (char)(minimumCharacter + i);
 
@@ -122,6 +121,10 @@ namespace Cesil
                     if (c == escapeStartChar)
                     {
                         cType = CharacterType.EscapeStartAndEnd;
+                    }
+                    else if (c == escapeChar)
+                    {
+                        cType = CharacterType.Escape;
                     }
                     else if (c == valueSeparatorChar)
                     {
@@ -150,50 +153,9 @@ namespace Cesil
 
                     charLookup[i] = cType;
                 }
-
-                for (var i = 0; i < charLookupOffset; i++)
-                {
-                    var c = (char)(minimumCharacter + i);
-
-                    CharacterType cType;
-                    if (c == escapeChar)
-                    {
-                        cType = CharacterType.Escape;
-                    }
-                    else if (c == escapeStartChar)
-                    {
-                        cType = CharacterType.EscapeStartAndEnd;
-                    }
-                    else if (c == valueSeparatorChar)
-                    {
-                        cType = CharacterType.ValueSeparator;
-                    }
-                    else if (c == '\r')
-                    {
-                        cType = CharacterType.CarriageReturn;
-                    }
-                    else if (c == '\n')
-                    {
-                        cType = CharacterType.LineFeed;
-                    }
-                    else if (commentChar != null && c == commentChar)
-                    {
-                        cType = CharacterType.CommentStart;
-                    }
-                    else if (whitespaceSpecial && Array.IndexOf(WhitespaceCharacters, c) != -1)
-                    {
-                        cType = CharacterType.Whitespace;
-                    }
-                    else
-                    {
-                        cType = CharacterType.Other;
-                    }
-
-                    charLookup[i + charLookupOffset] = cType;
-                }
             }
 
-            return new CharacterLookup(minimumCharacter, charLookupOffset, charLookupOwner);
+            return new CharacterLookup(minimumCharacter, neededSize, charLookupOwner);
         }
 
         internal unsafe MemoryHandle Pin(out CharacterType* charLookup)

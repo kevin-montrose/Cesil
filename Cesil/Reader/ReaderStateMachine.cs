@@ -110,11 +110,6 @@ namespace Cesil
             {
                 return null;
             }
-            var inEscapedValue = IsInEscapedValue(fromState);
-            if (inEscapedValue)
-            {
-                cOffset += charLookup.CharLookupOffset;
-            }
 
             return cOffset;
         }

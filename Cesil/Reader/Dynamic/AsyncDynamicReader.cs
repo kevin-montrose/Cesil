@@ -63,7 +63,7 @@ namespace Cesil
 
         internal override ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync(bool returnComments, bool pinAcquired, ref dynamic record, CancellationToken cancel)
         {
-            TryAllocateAndTrack(this, ColumnCount, ColumnNames, ref NotifyOnDisposeHead, ref record);
+            TryAllocateAndTrack(this, ColumnNames, ref NotifyOnDisposeHead, ref record);
 
             ReaderStateMachine.PinHandle handle = default;
             var disposeHandle = true;

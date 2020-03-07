@@ -2,7 +2,7 @@
 {
     internal static class DynamicRowTrackingHelper
     {
-        public static void TryAllocateAndTrack<T>(T self, int columnCount, NonNull<string[]> columnNames, ref DynamicRow? head, ref dynamic row)
+        public static void TryAllocateAndTrack<T>(T self, NonNull<string[]> columnNames, ref DynamicRow? head, ref dynamic row)
             where T: ReaderBase<object>, IDynamicRowOwner
         {
             // after this call row _WILL_ be a disposed non-null DynamicRow
@@ -36,7 +36,7 @@
                 head.AddHead(ref head, dynRow);
             }
 
-            dynRow.Init(self, self.RowNumber, columnCount, self.Context, options.TypeDescriber, columnNames, options.MemoryPool);
+            dynRow.Init(self, self.RowNumber, self.Context, options.TypeDescriber, columnNames, options.MemoryPool);
         }
     }
 }

@@ -96,14 +96,20 @@ namespace Cesil
                 get
                 {
                     AssertNotDisposed(Row);
+
+                    string? colName = null;
+
                     var ix = index;
                     if (Row.Names.HasValue)
                     {
-                        var name = Row.Names.Value[ix];
-                        return ColumnIdentifier.CreateInner(ix, name);
+                        var names = Row.Names.Value;
+                        if (index < names.Length)
+                        {
+                            colName = names[ix];
+                        }
                     }
 
-                    return ColumnIdentifier.Create(ix);
+                    return ColumnIdentifier.CreateInner(ix, colName);
                 }
             }
 
@@ -172,7 +178,6 @@ namespace Cesil
         internal void Init(
             IDynamicRowOwner owner,
             int rowNumber,
-            int width,
             object? ctx,
             ITypeDescriber converter,
             NonNull<string[]> names,
@@ -194,7 +199,7 @@ namespace Cesil
             RowNumber = rowNumber;
             Converter.Value = converter;
             MemoryPool.Value = pool;
-            Width = width;
+            Width = 0;
             Context = ctx;
             Names = names;
             Generation++;
@@ -218,11 +223,12 @@ namespace Cesil
             {
                 var initialSize = Width * CHARS_PER_INT + CharsToStore(text);
 
-
                 var dataValue = MemoryPool.Value.Rent(initialSize);
                 Data.Value = dataValue;
                 CurrentDataOffset = dataValue.Memory.Length;
             }
+
+            Width = Math.Max(Width, index + 1);
 
             StoreDataSpan(text);
             StoreDataIndex(index, CurrentDataOffset);
@@ -404,7 +410,7 @@ namespace Cesil
             var namesNonNull = new NonNull<string[]>();
             namesNonNull.SetAllowNull(names);
 
-            newRow.Init(Owner.Value, RowNumber, width, Context, Converter.Value, namesNonNull, MemoryPool.Value);
+            newRow.Init(Owner.Value, RowNumber, Context, Converter.Value, namesNonNull, MemoryPool.Value);
 
             // todo: it would be _nice_ to avoid a copy here
             //   we might be able to, if we are informed when THIS

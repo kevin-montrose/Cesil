@@ -16,6 +16,35 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ReaderTests
     {
+        private sealed class _IgnoreExcessColumns
+        {
+            public string A { get; set; }
+            public string B { get; set; }
+        }
+
+        [Fact]
+        public void IgnoreExcessColumns()
+        {
+            RunSyncReaderVariants<_IgnoreExcessColumns>(
+                Options.Default,
+                (config, getReader) =>
+                {
+                    using(var reader = getReader("A,B\r\nhello,world\r\nfizz,buzz,bazz\r\nfe,fi,fo,fum"))
+                    using(var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+
+                        Assert.Collection(
+                            rows,
+                            a => { Assert.Equal("hello", a.A); Assert.Equal("world", a.B); },
+                            a => { Assert.Equal("fizz", a.A); Assert.Equal("buzz", a.B); },
+                            a => { Assert.Equal("fe", a.A); Assert.Equal("fi", a.B); }
+                        );
+                    }
+                }
+            );
+        }
+
         private sealed class _VariousResets
         {
             private int _A;
@@ -4268,6 +4297,29 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     }
                 );
             }
+        }
+
+        [Fact]
+        public async Task IgnoreExcessColumnsAsync()
+        {
+            await RunAsyncReaderVariants<_IgnoreExcessColumns>(
+                Options.Default,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("A,B\r\nhello,world\r\nfizz,buzz,bazz\r\nfe,fi,fo,fum"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+
+                        Assert.Collection(
+                            rows,
+                            a => { Assert.Equal("hello", a.A); Assert.Equal("world", a.B); },
+                            a => { Assert.Equal("fizz", a.A); Assert.Equal("buzz", a.B); },
+                            a => { Assert.Equal("fe", a.A); Assert.Equal("fi", a.B); }
+                        );
+                    }
+                }
+            );
         }
 
         [Fact]

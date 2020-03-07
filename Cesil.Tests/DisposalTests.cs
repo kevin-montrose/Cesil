@@ -396,7 +396,7 @@ namespace Cesil.Tests
                     var owner = new _FakeOwner();
                     var cols = new NonNull<string[]>();
                     cols.Value = new[] { "foo" };
-                    row.Init(owner, 1, 0, null, TypeDescribers.Default, cols, MemoryPool<char>.Shared);
+                    row.Init(owner, 0, null, TypeDescribers.Default, cols, MemoryPool<char>.Shared);
 
                     return new DynamicRowMemberNameEnumerator(row);
                 }

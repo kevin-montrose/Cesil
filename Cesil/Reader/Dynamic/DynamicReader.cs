@@ -41,7 +41,7 @@ namespace Cesil
                 handle = StateMachine.Pin();
             }
 
-            TryAllocateAndTrack(this, ColumnCount, ColumnNames, ref NotifyOnDisposeHead, ref row);
+            TryAllocateAndTrack(this, ColumnNames, ref NotifyOnDisposeHead, ref row);
 
             using (handle)
             {

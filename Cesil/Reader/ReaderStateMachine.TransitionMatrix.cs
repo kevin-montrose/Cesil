@@ -241,23 +241,23 @@ namespace Cesil
             InitTransitionMatrix_Comment_BeforeHeader(rowEndings, readComments, GetTransitionRulesSpan(State.Comment_BeforeHeader, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace));
             InitTransitionMatrix_Comment_BeforeHeader_ExpectingEndOfComment(readComments, GetTransitionRulesSpan(State.Comment_BeforeHeader_ExpectingEndOfComment, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace));
 
-            InitTransitionMatrix_Header_Start(rowEndings, GetTransitionRulesSpan(State.Header_Start, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace), skipLeadingWhitespace);
+            InitTransitionMatrix_Header_Start(rowEndings, escapeStartEqualsEscape, GetTransitionRulesSpan(State.Header_Start, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace), skipLeadingWhitespace);
             InitTransitionMatrix_Header_InEscapedValue(escapeStartEqualsEscape, GetTransitionRulesSpan(State.Header_InEscapedValue, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace));
             InitTransitionMatrix_Header_InEscapedValueWithPendingEscape(rowEndings, escapeStartEqualsEscape, GetTransitionRulesSpan(State.Header_InEscapedValueWithPendingEscape, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace), skipTrailingWhitespace);
             InitTransitionMatrix_Header_InEscapedValue_ExpectingEndOfValueOrRecord(rowEndings, GetTransitionRulesSpan(State.Header_InEscapedValue_ExpectingEndOfValueOrRecord, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace), skipTrailingWhitespace);
             InitTransitionMatrix_Header_Unescaped_NoValue(rowEndings, escapeStartEqualsEscape, GetTransitionRulesSpan(State.Header_Unescaped_NoValue, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace), skipLeadingWhitespace);
             InitTransitionMatrix_Header_Unescaped_WithValue(rowEndings, escapeStartEqualsEscape, GetTransitionRulesSpan(State.Header_Unescaped_WithValue, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace));
-            InitTransitionMatrix_Header_ExpectingEndOfRecord(GetTransitionRulesSpan(State.Header_ExpectingEndOfRecord, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace));
+            InitTransitionMatrix_Header_ExpectingEndOfRecord(escapeStartEqualsEscape, GetTransitionRulesSpan(State.Header_ExpectingEndOfRecord, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace));
 
             InitTransitionMatrix_Comment_BeforeRecord(rowEndings, readComments, GetTransitionRulesSpan(State.Comment_BeforeRecord, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace));
             InitTransitionMatrix_Comment_BeforeRecord_ExpectingEndOfComment(readComments, GetTransitionRulesSpan(State.Comment_BeforeRecord_ExpectingEndOfComment, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace));
 
-            InitTransitionMatrix_Record_Start(rowEndings, GetTransitionRulesSpan(State.Record_Start, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace), skipLeadingWhitespace);
+            InitTransitionMatrix_Record_Start(rowEndings, escapeStartEqualsEscape, GetTransitionRulesSpan(State.Record_Start, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace), skipLeadingWhitespace);
             InitTransitionMatrix_Record_InEscapedValue(escapeStartEqualsEscape, GetTransitionRulesSpan(State.Record_InEscapedValue, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace));
             InitTransitionMatrix_Record_InEscapedValueWithPendingEscape(rowEndings, escapeStartEqualsEscape, GetTransitionRulesSpan(State.Record_InEscapedValueWithPendingEscape, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace), skipTrailingWhitespace);
             InitTransitionMatrix_Record_InEscapedValue_ExpectingEndOfValueOrRecord(rowEndings, GetTransitionRulesSpan(State.Record_InEscapedValue_ExpectingEndOfValueOrRecord, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace), skipTrailingWhitespace);
-            InitTransitionMatrix_Record_Unescaped_NoValue(rowEndings, GetTransitionRulesSpan(State.Record_Unescaped_NoValue, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace), skipLeadingWhitespace);
-            InitTransitionMatrix_Record_Unescaped_WithValue(rowEndings, GetTransitionRulesSpan(State.Record_Unescaped_WithValue, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace));
+            InitTransitionMatrix_Record_Unescaped_NoValue(rowEndings, escapeStartEqualsEscape, GetTransitionRulesSpan(State.Record_Unescaped_NoValue, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace), skipLeadingWhitespace);
+            InitTransitionMatrix_Record_Unescaped_WithValue(rowEndings, escapeStartEqualsEscape, GetTransitionRulesSpan(State.Record_Unescaped_WithValue, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace));
             InitTransitionMatrix_Record_ExpectingEndOfRecord(GetTransitionRulesSpan(State.Record_ExpectingEndOfRecord, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace));
 
             InitTransitionMatrix_DataEnded(GetTransitionRulesSpan(State.DataEnded, rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace));
@@ -603,17 +603,27 @@ namespace Cesil
         }
 
         // moving from Header_Start
-        private static void InitTransitionMatrix_Header_Start(RowEnding rowEndings, Span<TransitionRule> innerRet, bool skipLeadingWhitespace)
+        private static void InitTransitionMatrix_Header_Start(RowEnding rowEndings, bool escapeStartEqualsEscape, Span<TransitionRule> innerRet, bool skipLeadingWhitespace)
         {
             // Looks like
             //  - <EMPTY>
             //
             // and there have been no previous values for the header
 
-            // \
-            innerRet[(int)CharacterType.Escape] = Header_Unescaped_WithValue_Skip_Character;
-            // "
-            innerRet[(int)CharacterType.EscapeStartAndEnd] = Header_InEscapedValue_Skip_Character;
+            if (escapeStartEqualsEscape)
+            {
+                // "
+                innerRet[(int)CharacterType.Escape] = Header_InEscapedValue_Skip_Character;
+                innerRet[(int)CharacterType.EscapeStartAndEnd] = Header_InEscapedValue_Skip_Character;
+            }
+            else
+            {
+                // \
+                innerRet[(int)CharacterType.Escape] = Header_Unescaped_WithValue_Skip_Character;
+                // "
+                innerRet[(int)CharacterType.EscapeStartAndEnd] = Header_InEscapedValue_Skip_Character;
+            }
+
             // ,
             innerRet[(int)CharacterType.ValueSeparator] = Header_Unescaped_NoValue_Skip_Character;
             // # (or whatever)
@@ -672,17 +682,27 @@ namespace Cesil
         }
 
         // moving from Record_Start
-        private static void InitTransitionMatrix_Record_Start(RowEnding rowEndings, Span<TransitionRule> innerRet, bool skipLeadingWhitespace)
+        private static void InitTransitionMatrix_Record_Start(RowEnding rowEndings, bool escapeStartEqualsEscape, Span<TransitionRule> innerRet, bool skipLeadingWhitespace)
         {
             // Looks like
             //  - <EMPTY>
             //
             // and there have been no previous values for the record
 
-            // \
-            innerRet[(int)CharacterType.Escape] = Record_Unescaped_WithValue_Append_Character;
-            // "
-            innerRet[(int)CharacterType.EscapeStartAndEnd] = Record_InEscapedValue_Skip_Character;
+            if (escapeStartEqualsEscape)
+            {
+                // "
+                innerRet[(int)CharacterType.Escape] = Record_InEscapedValue_Skip_Character;
+                innerRet[(int)CharacterType.EscapeStartAndEnd] = Record_InEscapedValue_Skip_Character;
+            }
+            else
+            {
+                // \
+                innerRet[(int)CharacterType.Escape] = Record_Unescaped_WithValue_Append_Character;
+                // "
+                innerRet[(int)CharacterType.EscapeStartAndEnd] = Record_InEscapedValue_Skip_Character;
+            }
+
             // ,
             innerRet[(int)CharacterType.ValueSeparator] = Record_Unescaped_NoValue_Finished_Unescaped_Value;
             // # (or whatever)
@@ -1218,17 +1238,27 @@ namespace Cesil
         }
 
         // moving from Header_ExpectingEndOfRecord
-        private static void InitTransitionMatrix_Header_ExpectingEndOfRecord(Span<TransitionRule> innerRet)
+        private static void InitTransitionMatrix_Header_ExpectingEndOfRecord(bool escapeStartEqualsEscape, Span<TransitionRule> innerRet)
         {
             // this only happens when there's a \r\n line ending
             // looks like
             // - foo\r
             // - "foo"\r
 
-            // foo\r\
-            innerRet[(int)CharacterType.Escape] = Invalid_ExceptionStartEscapeInValue;
-            // foo\r"
-            innerRet[(int)CharacterType.EscapeStartAndEnd] = Invalid_Exception_ExpectedEndOfRecord;
+            if (escapeStartEqualsEscape)
+            {
+                // foo\r"
+                innerRet[(int)CharacterType.Escape] = Invalid_ExceptionStartEscapeInValue;
+                innerRet[(int)CharacterType.EscapeStartAndEnd] = Invalid_Exception_ExpectedEndOfRecord;
+            }
+            else
+            {
+                // foo\r\
+                innerRet[(int)CharacterType.Escape] = Header_Unescaped_WithValue_Skip_Character;
+                // foo\r"
+                innerRet[(int)CharacterType.EscapeStartAndEnd] = Invalid_Exception_ExpectedEndOfRecord;
+            }
+
             // foo\r,
             innerRet[(int)CharacterType.ValueSeparator] = Header_Unescaped_NoValue_Skip_Character;
 
@@ -1416,16 +1446,24 @@ namespace Cesil
         }
 
         // moving from Record_Unescaped_NoValue
-        private static void InitTransitionMatrix_Record_Unescaped_NoValue(RowEnding rowEndings, Span<TransitionRule> innerRet, bool skipLeadingWhitespace)
+        private static void InitTransitionMatrix_Record_Unescaped_NoValue(RowEnding rowEndings, bool escapeStartEqualsEscape, Span<TransitionRule> innerRet, bool skipLeadingWhitespace)
         {
             // Looks like (assuming escape is ", separator is ,)
             // - <EMPTY>
 
-            // \
-            innerRet[(int)CharacterType.Escape] = Record_InEscapedValue_Skip_Character;
-
-            // "
-            innerRet[(int)CharacterType.EscapeStartAndEnd] = Record_InEscapedValue_Skip_Character;
+            if (escapeStartEqualsEscape)
+            {
+                // "
+                innerRet[(int)CharacterType.Escape] = Record_InEscapedValue_Skip_Character;
+                innerRet[(int)CharacterType.EscapeStartAndEnd] = Record_InEscapedValue_Skip_Character;
+            }
+            else
+            {
+                // \
+                innerRet[(int)CharacterType.Escape] = Record_Unescaped_WithValue_Append_Character;
+                // "
+                innerRet[(int)CharacterType.EscapeStartAndEnd] = Record_InEscapedValue_Skip_Character;
+            }
 
             // ,
             innerRet[(int)CharacterType.ValueSeparator] = Record_Unescaped_NoValue_Finished_Unescaped_Value;
@@ -1497,16 +1535,24 @@ namespace Cesil
         }
 
         // moving from Record_Unescaped_WithValue
-        private static void InitTransitionMatrix_Record_Unescaped_WithValue(RowEnding rowEndings, Span<TransitionRule> innerRet)
+        private static void InitTransitionMatrix_Record_Unescaped_WithValue(RowEnding rowEndings, bool escapeStartEqualsEscape, Span<TransitionRule> innerRet)
         {
             // looks like
             //  - df
 
-            // df\
-            innerRet[(int)CharacterType.Escape] = Invalid_ExceptionStartEscapeInValue;
-
-            // df"
-            innerRet[(int)CharacterType.EscapeStartAndEnd] = Invalid_ExceptionStartEscapeInValue;
+            if(escapeStartEqualsEscape)
+            {
+                // df"
+                innerRet[(int)CharacterType.Escape] = Invalid_ExceptionStartEscapeInValue;
+                innerRet[(int)CharacterType.EscapeStartAndEnd] = Invalid_ExceptionStartEscapeInValue;
+            }
+            else
+            {
+                // df\
+                innerRet[(int)CharacterType.Escape] = Record_Unescaped_WithValue_Append_Character;
+                // df"
+                innerRet[(int)CharacterType.EscapeStartAndEnd] = Invalid_ExceptionStartEscapeInValue;
+            }
 
             // df,
             innerRet[(int)CharacterType.ValueSeparator] = Record_Unescaped_NoValue_Finished_Unescaped_Value;
