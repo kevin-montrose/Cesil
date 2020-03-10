@@ -14,7 +14,7 @@ namespace Cesil
 
         internal readonly IReaderAdapter Inner;
 
-        internal SyncReaderBase(IReaderAdapter inner, BoundConfigurationBase<T> config, object? context, IRowConstructor<T> rowBuilder) : base(config, context, rowBuilder)
+        internal SyncReaderBase(IReaderAdapter inner, BoundConfigurationBase<T> config, object? context, IRowConstructor<T> rowBuilder, ExtraColumnTreatment extraTreatment) : base(config, context, rowBuilder, extraTreatment)
         {
             Inner = inner;
         }

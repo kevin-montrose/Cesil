@@ -13,6 +13,8 @@ namespace Cesil
     /// </summary>
     public sealed class Options : IEquatable<Options>
     {
+        // todo: add an option for what to do with excess columns; either ignore them, include them, or throw
+
         /// <summary>
         /// Default options:
         ///   - separator = ,
@@ -29,6 +31,7 @@ namespace Cesil
         ///   - uses the default read buffer size
         ///   - dynamic rows are disposed when the reader that returns them is disposed
         ///   - whitespace is preserved
+        ///   - extra columns are ignored
         /// </summary>
         public static readonly Options Default =
             CreateBuilder()
@@ -46,6 +49,7 @@ namespace Cesil
                 .WithReadBufferSizeHint(0)
                 .WithDynamicRowDisposal(DynamicRowDisposal.OnReaderDispose)
                 .WithWhitespaceTreatment(WhitespaceTreatments.Preserve)
+                .WithExtraColumnTreatment(ExtraColumnTreatment.Ignore)
                 .ToOptions();
 
         /// <summary>
@@ -63,7 +67,7 @@ namespace Cesil
         ///   - does not support comments
         ///   - uses the default read buffer size
         ///   - dynamic rows are disposed when the reader that returns them is disposed
-        ///   - whitespace is preserved
+        ///   - extra columns are included, accessible via index
         /// </summary>
         public static readonly Options DynamicDefault =
             CreateBuilder()
@@ -81,6 +85,7 @@ namespace Cesil
                 .WithReadBufferSizeHint(0)
                 .WithDynamicRowDisposal(DynamicRowDisposal.OnReaderDispose)
                 .WithWhitespaceTreatment(WhitespaceTreatments.Preserve)
+                .WithExtraColumnTreatment(ExtraColumnTreatment.IncludeDynamic)
                 .ToOptions();
 
         /// <summary>
@@ -163,6 +168,10 @@ namespace Cesil
         /// How to handle whitespace when encountered during parsing.
         /// </summary>
         public WhitespaceTreatments WhitespaceTreatment { get; private set; }
+        /// <summary>
+        /// How to handle extra colums encountered when reading a CSV.
+        /// </summary>
+        public ExtraColumnTreatment ExtraColumnTreatment { get; private set; }
 
         internal Options(OptionsBuilder copy)
         {
@@ -180,6 +189,7 @@ namespace Cesil
             ReadBufferSizeHint = copy.ReadBufferSizeHint;
             DynamicRowDisposal = copy.DynamicRowDisposal;
             WhitespaceTreatment = copy.WhitespaceTreatment;
+            ExtraColumnTreatment = copy.ExtraColumnTreatment;
         }
 
         /// <summary>
@@ -229,7 +239,8 @@ namespace Cesil
                 options.WriteBufferSizeHint == WriteBufferSizeHint &&
                 options.WriteHeader == WriteHeader &&
                 options.WriteTrailingRowEnding == WriteTrailingRowEnding &&
-                options.WhitespaceTreatment == WhitespaceTreatment;
+                options.WhitespaceTreatment == WhitespaceTreatment &&
+                options.ExtraColumnTreatment == ExtraColumnTreatment;
         }
 
         /// <summary>
@@ -251,7 +262,8 @@ namespace Cesil
                 WriteBufferSizeHint,
                 WriteHeader,
                 WriteTrailingRowEnding,
-                WhitespaceTreatment
+                WhitespaceTreatment,
+                ExtraColumnTreatment
             ));
 
         /// <summary>
@@ -277,6 +289,7 @@ namespace Cesil
             ret.Append($", {nameof(WriteHeader)}={WriteHeader}");
             ret.Append($", {nameof(WriteTrailingRowEnding)}={WriteTrailingRowEnding}");
             ret.Append($", {nameof(WhitespaceTreatment)}={WhitespaceTreatment}");
+            ret.Append($", {nameof(ExtraColumnTreatment)}={ExtraColumnTreatment}");
 
             return ret.ToString();
         }

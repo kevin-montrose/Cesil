@@ -18,7 +18,7 @@ namespace Cesil
 
         internal readonly ReadOnlyMemory<char> RowEndingMemory;
 
-        internal readonly IEnumerable<DeserializableMember> DeserializeColumns;
+        internal readonly DeserializableMember[] DeserializeColumns;
 
         internal readonly Column[] SerializeColumns;
         internal readonly bool[] SerializeColumnsNeedEscape;
@@ -44,7 +44,7 @@ namespace Cesil
             Options options
         )
         {
-            DeserializeColumns = Enumerable.Empty<DeserializableMember>();
+            DeserializeColumns = Array.Empty<DeserializableMember>();
             SerializeColumns = Array.Empty<Column>();
             SerializeColumnsNeedEscape = Array.Empty<bool>();
 
@@ -81,7 +81,7 @@ namespace Cesil
             Options options
         )
         {
-            DeserializeColumns = deserializeColumns;
+            DeserializeColumns = deserializeColumns.ToArray();
             SerializeColumns = serializeColumns;
             SerializeColumnsNeedEscape = serializeColumnsNeedEscape;
 

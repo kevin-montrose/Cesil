@@ -12,6 +12,8 @@ namespace Cesil
 
         internal readonly object? Context;
 
+        internal int ColumnCount;
+
         internal bool StateMachineInitialized;
         internal ReaderStateMachine StateMachine;
 
@@ -20,9 +22,11 @@ namespace Cesil
         internal RowEnding? RowEndings { get; set; }
         internal ReadHeader? ReadHeaders { get; set; }
 
+        private ExtraColumnTreatment ExtraColumnTreatment;
+
         internal int RowNumber;
 
-        protected ReaderBase(BoundConfigurationBase<T> config, object? context, IRowConstructor<T> rowBuilder)
+        protected ReaderBase(BoundConfigurationBase<T> config, object? context, IRowConstructor<T> rowBuilder, ExtraColumnTreatment extraTreatment)
         {
             RowNumber = 0;
             Configuration = config;
@@ -48,6 +52,8 @@ namespace Cesil
             SharedCharacterLookup = CharacterLookup.MakeCharacterLookup(options, out _);
             StateMachine = new ReaderStateMachine();
             RowBuilder = rowBuilder;
+
+            ExtraColumnTreatment = extraTreatment;
         }
 
         protected internal ReadWithCommentResultType AdvanceWork(int numInBuffer)
@@ -347,6 +353,25 @@ namespace Cesil
         {
             var dataSpan = Partial.PendingAsMemory(Buffer.Buffer);
 
+            if (Partial.CurrentColumnIndex >= ColumnCount)
+            {
+                switch (ExtraColumnTreatment)
+                {
+                    case ExtraColumnTreatment.Ignore:
+                            Partial.ClearBufferAndAdvanceColumnIndex();
+                            return;
+                    case ExtraColumnTreatment.IncludeDynamic:
+                        break;
+                    case ExtraColumnTreatment.ThrowException:
+                        var msg = $"Extra column was encountered on row {RowNumber}, in column index {Partial.CurrentColumnIndex}; column contents were \"{new string(dataSpan.Span)}\"";
+                        Throw.InvalidOperationException<object>(msg);
+                        return;
+                    default:
+                        Throw.Exception<object>($"Unexpected {nameof(ExtraColumnTreatment)}: {ExtraColumnTreatment}");
+                        return;
+                }
+            }
+
             var whitespace = Configuration.Options.WhitespaceTreatment;
 
             // The state machine will skip leading values outside of values, so we only need to do any trimming IN the values
@@ -394,7 +419,12 @@ namespace Cesil
 
             if (this.ReadHeaders == ReadHeader.Always)
             {
+                ColumnCount = headers.Headers.Count;
                 RowBuilder.SetColumnOrder(headers.Headers);
+            }
+            else
+            {
+                ColumnCount = Configuration.DeserializeColumns.Length;
             }
 
             Buffer.PushBackFromOutsideBuffer(headers.PushBack);

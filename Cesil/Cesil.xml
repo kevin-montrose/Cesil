@@ -69,6 +69,37 @@
               explicitly called on the row.
             </summary>
         </member>
+        <member name="T:Cesil.ExtraColumnTreatment">
+            <summary>
+            How to handle extra columns when reading a row.
+            
+            A column is "extra" is if it's index is beyond 
+            those found in the header (or first row, if no header is
+            present) of the CSV being read.
+            </summary>
+        </member>
+        <member name="F:Cesil.ExtraColumnTreatment.Ignore">
+            <summary>
+            Ignore any columns beyond those present in a
+            header (or first row, if no header is present).
+            </summary>
+        </member>
+        <member name="F:Cesil.ExtraColumnTreatment.IncludeDynamic">
+            <summary>
+            Include columns beyond those in the header (or first row,
+            if no header is present) when reading dynamic rows.  Extra
+            columns will be accessible via index, as no column name will
+            be available.
+            
+            This is equivalent to Ignore when reading statically typed rows.
+            </summary>
+        </member>
+        <member name="F:Cesil.ExtraColumnTreatment.ThrowException">
+            <summary>
+            Throw an exception when a column beyond those in the header (
+            or first row, if no header is present) is encountered.
+            </summary>
+        </member>
         <member name="T:Cesil.IBoundConfiguration`1">
             <summary>
             Represents and Options and Type pair.
@@ -198,6 +229,7 @@
               - uses the default read buffer size
               - dynamic rows are disposed when the reader that returns them is disposed
               - whitespace is preserved
+              - extra columns are ignored
             </summary>
         </member>
         <member name="F:Cesil.Options.DynamicDefault">
@@ -216,7 +248,7 @@
               - does not support comments
               - uses the default read buffer size
               - dynamic rows are disposed when the reader that returns them is disposed
-              - whitespace is preserved
+              - extra columns are included, accessible via index
             </summary>
         </member>
         <member name="P:Cesil.Options.ValueSeparator">
@@ -309,6 +341,11 @@
         <member name="P:Cesil.Options.WhitespaceTreatment">
             <summary>
             How to handle whitespace when encountered during parsing.
+            </summary>
+        </member>
+        <member name="P:Cesil.Options.ExtraColumnTreatment">
+            <summary>
+            How to handle extra colums encountered when reading a CSV.
             </summary>
         </member>
         <member name="M:Cesil.Options.CreateBuilder">
@@ -454,6 +491,11 @@
             How to handle whitespace when encountered during parsing.
             </summary>
         </member>
+        <member name="P:Cesil.OptionsBuilder.ExtraColumnTreatment">
+            <summary>
+            How to handle extra colums encountered when reading a CSV.
+            </summary>
+        </member>
         <member name="M:Cesil.OptionsBuilder.CreateBuilder">
             <summary>
             Create a new, empty, OptionsBuilder.
@@ -563,6 +605,11 @@
         <member name="M:Cesil.OptionsBuilder.WithWhitespaceTreatment(Cesil.WhitespaceTreatments)">
             <summary>
             Set how to treat whitespace when parsing.
+            </summary>
+        </member>
+        <member name="M:Cesil.OptionsBuilder.WithExtraColumnTreatment(Cesil.ExtraColumnTreatment)">
+            <summary>
+            Set how to treat extra columns when parsing.
             </summary>
         </member>
         <member name="M:Cesil.OptionsBuilder.ToString">

@@ -82,6 +82,8 @@ namespace Cesil
         internal static readonly TypeInfo WriteContextType = typeof(WriteContext).GetTypeInfo();
         internal static readonly TypeInfo DynamicRowDisposalType = typeof(DynamicRowDisposal).GetTypeInfo();
         internal static readonly TypeInfo ManualTypeDescriberFallbackBehaviorType = typeof(ManualTypeDescriberFallbackBehavior).GetTypeInfo();
+        internal static readonly TypeInfo ExtraColumnTreatmentType = typeof(ExtraColumnTreatment).GetTypeInfo();
+
         internal static readonly TypeInfo InstanceProviderDelegateType = typeof(InstanceProviderDelegate<>).GetTypeInfo();
         internal static readonly TypeInfo NeedsHoldRowConstructorType = typeof(NeedsHoldRowConstructor<,>).GetTypeInfo();
 

@@ -11,7 +11,6 @@ namespace Cesil
         AsyncReaderBase<dynamic>,
         IDynamicRowOwner
     {
-        private int ColumnCount;
         private NonNull<string[]> ColumnNames;
 
         private DynamicRow? NotifyOnDisposeHead;
@@ -20,7 +19,7 @@ namespace Cesil
 
         object? IDynamicRowOwner.Context => Context;
 
-        internal AsyncDynamicReader(IAsyncReaderAdapter reader, DynamicBoundConfiguration config, object? context) : base(reader, config, context, new DynamicRowConstructor()) { }
+        internal AsyncDynamicReader(IAsyncReaderAdapter reader, DynamicBoundConfiguration config, object? context) : base(reader, config, context, new DynamicRowConstructor(), config.Options.ExtraColumnTreatment) { }
 
         internal override ValueTask HandleRowEndingsAndHeadersAsync(CancellationToken cancel)
         {

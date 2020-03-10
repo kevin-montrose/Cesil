@@ -271,39 +271,41 @@ namespace Cesil.Tests
             var opts = new List<Options>();
 
             foreach (var commentChar in new char?[] { null, '#', })
-                foreach (DynamicRowDisposal drd in Enum.GetValues(typeof(DynamicRowDisposal)))
+                foreach (var drd in new[] { DynamicRowDisposal.OnExplicitDispose, DynamicRowDisposal.OnReaderDispose })
                     foreach (var escapeChar in new char[] { '"', '\\' })
                         foreach (var escapeStartChar in new char[] { '"', '!' })
                             foreach (var memPool in new[] { MemoryPool<char>.Shared, new _OptionsEquality_MemoryPool() })
                                 foreach (var readHint in new[] { 1, 10 })
-                                    foreach (ReadHeader rh in Enum.GetValues(typeof(ReadHeader)))
-                                        foreach (RowEnding re in Enum.GetValues(typeof(RowEnding)))
+                                    foreach (var rh in new[] { ReadHeader.Always, ReadHeader.Never })
+                                        foreach (var re in new[] { RowEnding.CarriageReturn, RowEnding.Detect })
                                             foreach (var typeDesc in new[] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() })
                                                 foreach (var valSepChar in new char[] { ',', ';' })
                                                     foreach (var writeHint in new int?[] { null, 10 })
-                                                        foreach (WriteHeader wh in Enum.GetValues(typeof(WriteHeader)))
-                                                            foreach (WriteTrailingRowEnding wt in Enum.GetValues(typeof(WriteTrailingRowEnding)))
-                                                            {
-                                                                var builder = OptionsBuilder.CreateBuilder();
-                                                                var opt =
-                                                                    builder
-                                                                        .WithCommentCharacter(commentChar)
-                                                                        .WithDynamicRowDisposal(drd)
-                                                                        .WithEscapedValueEscapeCharacter(escapeChar)
-                                                                        .WithEscapedValueStartAndEnd(escapeStartChar)
-                                                                        .WithMemoryPool(memPool)
-                                                                        .WithReadBufferSizeHint(readHint)
-                                                                        .WithReadHeader(rh)
-                                                                        .WithRowEnding(re)
-                                                                        .WithTypeDescriber(typeDesc)
-                                                                        .WithValueSeparator(valSepChar)
-                                                                        .WithWriteBufferSizeHint(writeHint)
-                                                                        .WithWriteHeader(wh)
-                                                                        .WithWriteTrailingRowEnding(wt)
-                                                                        .ToOptions();
+                                                        foreach (var wh in new[] { WriteHeader.Always, WriteHeader.Never })
+                                                            foreach (var wt in new[] { WriteTrailingRowEnding.Always, WriteTrailingRowEnding.Never })
+                                                                foreach (var ect in new[] { ExtraColumnTreatment.Ignore, ExtraColumnTreatment.ThrowException })
+                                                                {
+                                                                    var builder = OptionsBuilder.CreateBuilder();
+                                                                    var opt =
+                                                                        builder
+                                                                            .WithCommentCharacter(commentChar)
+                                                                            .WithDynamicRowDisposal(drd)
+                                                                            .WithEscapedValueEscapeCharacter(escapeChar)
+                                                                            .WithEscapedValueStartAndEnd(escapeStartChar)
+                                                                            .WithMemoryPool(memPool)
+                                                                            .WithReadBufferSizeHint(readHint)
+                                                                            .WithReadHeader(rh)
+                                                                            .WithRowEnding(re)
+                                                                            .WithTypeDescriber(typeDesc)
+                                                                            .WithValueSeparator(valSepChar)
+                                                                            .WithWriteBufferSizeHint(writeHint)
+                                                                            .WithWriteHeader(wh)
+                                                                            .WithWriteTrailingRowEnding(wt)
+                                                                            .WithExtraColumnTreatment(ect)
+                                                                            .ToOptions();
 
-                                                                opts.Add(opt);
-                                                            }
+                                                                    opts.Add(opt);
+                                                                }
 
             for (var i = 0; i < opts.Count; i++)
             {
@@ -570,6 +572,14 @@ namespace Cesil.Tests
                () =>
                    Options.CreateBuilder(Options.Default)
                        .WithWhitespaceTreatmentInternal(WhitespaceTreatments.Trim)
+                       .WithValueSeparator(' ')
+                       .ToOptions()
+           );
+
+            Assert.Throws<InvalidOperationException>(
+               () =>
+                   Options.CreateBuilder(Options.Default)
+                       .WithExtraColumnTreatmentInternal(0)
                        .WithValueSeparator(' ')
                        .ToOptions()
            );

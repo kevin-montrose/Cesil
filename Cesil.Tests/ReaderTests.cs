@@ -16,6 +16,96 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ReaderTests
     {
+        private sealed class _ThrowOnExcessColumns
+        {
+            public string A { get; set; }
+            public string B { get; set; }
+        }
+
+        [Fact]
+        public void ThrowOnExcessColumns()
+        {
+            var opts = Options.CreateBuilder(Options.Default).WithExtraColumnTreatment(ExtraColumnTreatment.ThrowException).ToOptions();
+
+            // with headers
+            {
+                // fine, shouldn't throw
+                RunSyncReaderVariants<_ThrowOnExcessColumns>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,B\r\nhello,world\r\n"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                a => { Assert.Equal("hello", a.A); Assert.Equal("world", a.B); }
+                            );
+                        }
+                    }
+                );
+
+                // should throw on second read
+                RunSyncReaderVariants<_ThrowOnExcessColumns>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,B\r\nhello,world\r\nfizz,buzz,bazz"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            Assert.True(csv.TryRead(out var row));
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal("world", row.B);
+
+                            Assert.Throws<InvalidOperationException>(() => csv.TryRead(out var row2));
+                        }
+                    }
+                );
+            }
+
+            // no headers
+            {
+                var noHeadersOpts = Options.CreateBuilder(opts).WithReadHeader(ReadHeader.Never).ToOptions();
+
+                // fine, shouldn't throw
+                RunSyncReaderVariants<_ThrowOnExcessColumns>(
+                    noHeadersOpts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("hello,world\r\n"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                a => { Assert.Equal("hello", a.A); Assert.Equal("world", a.B); }
+                            );
+                        }
+                    }
+                );
+
+                // should throw on second read
+                RunSyncReaderVariants<_ThrowOnExcessColumns>(
+                    noHeadersOpts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("hello,world\r\nfizz,buzz,bazz"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            Assert.True(csv.TryRead(out var row));
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal("world", row.B);
+
+                            Assert.Throws<InvalidOperationException>(() => csv.TryRead(out var row2));
+                        }
+                    }
+                );
+            }
+        }
+
         private sealed class _IgnoreExcessColumns
         {
             public string A { get; set; }
@@ -25,12 +115,34 @@ namespace Cesil.Tests
         [Fact]
         public void IgnoreExcessColumns()
         {
+            // with headers
             RunSyncReaderVariants<_IgnoreExcessColumns>(
                 Options.Default,
                 (config, getReader) =>
                 {
                     using(var reader = getReader("A,B\r\nhello,world\r\nfizz,buzz,bazz\r\nfe,fi,fo,fum"))
                     using(var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+
+                        Assert.Collection(
+                            rows,
+                            a => { Assert.Equal("hello", a.A); Assert.Equal("world", a.B); },
+                            a => { Assert.Equal("fizz", a.A); Assert.Equal("buzz", a.B); },
+                            a => { Assert.Equal("fe", a.A); Assert.Equal("fi", a.B); }
+                        );
+                    }
+                }
+            );
+
+            // without headers
+            var noHeadersOpts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
+            RunSyncReaderVariants<_IgnoreExcessColumns>(
+                noHeadersOpts,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader("hello,world\r\nfizz,buzz,bazz\r\nfe,fi,fo,fum"))
+                    using (var csv = config.CreateReader(reader))
                     {
                         var rows = csv.ReadAll();
 
@@ -4300,13 +4412,123 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         }
 
         [Fact]
+        public async Task ThrowOnExcessColumnsAsync()
+        {
+            var opts = Options.CreateBuilder(Options.Default).WithExtraColumnTreatment(ExtraColumnTreatment.ThrowException).ToOptions();
+
+            // with headers
+            {
+                // fine, shouldn't throw
+                await RunAsyncReaderVariants<_ThrowOnExcessColumns>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("A,B\r\nhello,world\r\n"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                rows,
+                                a => { Assert.Equal("hello", a.A); Assert.Equal("world", a.B); }
+                            );
+                        }
+                    }
+                );
+
+                // should throw on second read
+                await RunAsyncReaderVariants<_ThrowOnExcessColumns>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("A,B\r\nhello,world\r\nfizz,buzz,bazz"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var res = await csv.TryReadAsync();
+                            Assert.True(res.HasValue);
+                            var row = res.Value;
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal("world", row.B);
+
+                            await Assert.ThrowsAsync<InvalidOperationException>(async () => await csv.TryReadAsync());
+                        }
+                    }
+                );
+            }
+
+            // no headers
+            {
+                var noHeadersOpts = Options.CreateBuilder(opts).WithReadHeader(ReadHeader.Never).ToOptions();
+
+                // fine, shouldn't throw
+                await RunAsyncReaderVariants<_ThrowOnExcessColumns>(
+                    noHeadersOpts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("hello,world\r\n"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                rows,
+                                a => { Assert.Equal("hello", a.A); Assert.Equal("world", a.B); }
+                            );
+                        }
+                    }
+                );
+
+                // should throw on second read
+                await RunAsyncReaderVariants<_ThrowOnExcessColumns>(
+                    noHeadersOpts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("hello,world\r\nfizz,buzz,bazz"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var res = await csv.TryReadAsync();
+                            Assert.True(res.HasValue);
+                            var row = res.Value;
+                            Assert.Equal("hello", row.A);
+                            Assert.Equal("world", row.B);
+
+                            await Assert.ThrowsAsync<InvalidOperationException>(async () => await csv.TryReadAsync());
+                        }
+                    }
+                );
+            }
+        }
+
+        [Fact]
         public async Task IgnoreExcessColumnsAsync()
         {
+            // with headers
             await RunAsyncReaderVariants<_IgnoreExcessColumns>(
                 Options.Default,
                 async (config, getReader) =>
                 {
                     await using (var reader = await getReader("A,B\r\nhello,world\r\nfizz,buzz,bazz\r\nfe,fi,fo,fum"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+
+                        Assert.Collection(
+                            rows,
+                            a => { Assert.Equal("hello", a.A); Assert.Equal("world", a.B); },
+                            a => { Assert.Equal("fizz", a.A); Assert.Equal("buzz", a.B); },
+                            a => { Assert.Equal("fe", a.A); Assert.Equal("fi", a.B); }
+                        );
+                    }
+                }
+            );
+
+            // without headers
+            var noHeadersOpts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
+            await RunAsyncReaderVariants<_IgnoreExcessColumns>(
+                noHeadersOpts,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("hello,world\r\nfizz,buzz,bazz\r\nfe,fi,fo,fum"))
                     await using (var csv = config.CreateAsyncReader(reader))
                     {
                         var rows = await csv.ReadAllAsync();

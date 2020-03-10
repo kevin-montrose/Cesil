@@ -14,8 +14,139 @@ namespace Cesil.Tests
     public class DynamicReaderTests
     {
         [Fact]
+        public void ThrowsOnExcessColumns()
+        {
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithExtraColumnTreatment(ExtraColumnTreatment.ThrowException).ToOptions();
+
+            // with heaers
+            {
+                // fine, shouldn't throw
+                RunSyncDynamicReaderVariants(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,B\r\nhello,world\r\n"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                a => { Assert.Equal("hello", (string)a.A); Assert.Equal("world", (string)a.B); }
+                            );
+                        }
+                    }
+                );
+
+                // should throw on second read
+                RunSyncDynamicReaderVariants(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,B\r\nhello,world\r\nfizz,buzz,bazz"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            Assert.True(csv.TryRead(out var row));
+                            Assert.Equal("hello", (string)row.A);
+                            Assert.Equal("world", (string)row.B);
+
+                            Assert.Throws<InvalidOperationException>(() => csv.TryRead(out var row2));
+                        }
+                    }
+                );
+            }
+
+            // without heaers
+            {
+                var noHeadOpts = Options.CreateBuilder(opts).WithReadHeader(ReadHeader.Never).ToOptions();
+
+                // fine, shouldn't throw
+                RunSyncDynamicReaderVariants(
+                    noHeadOpts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("hello,world\r\n"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                a => { Assert.Equal("hello", (string)a[0]); Assert.Equal("world", (string)a[1]); }
+                            );
+                        }
+                    }
+                );
+
+                // should throw on second read
+                RunSyncDynamicReaderVariants(
+                    noHeadOpts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("hello,world\r\nfizz,buzz,bazz"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            Assert.True(csv.TryRead(out var row));
+                            Assert.Equal("hello", (string)row[0]);
+                            Assert.Equal("world", (string)row[1]);
+
+                            Assert.Throws<InvalidOperationException>(() => csv.TryRead(out var row2));
+                        }
+                    }
+                );
+            }
+        }
+
+        [Fact]
+        public void IgnoreExcessColumns()
+        {
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithExtraColumnTreatment(ExtraColumnTreatment.Ignore).ToOptions();
+
+            RunSyncDynamicReaderVariants(
+                opts,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader("A,B\r\nhello,world\r\nfizz,buzz,bazz\r\nfe,fi,fo,fum"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+
+                        Assert.Collection(
+                            rows,
+                            a => { Assert.Equal(2, ((IEnumerable<string>)a).Count()); Assert.Equal("hello", (string)a.A); Assert.Equal("world", (string)a.B); },
+                            a => { Assert.Equal(2, ((IEnumerable<string>)a).Count()); Assert.Equal("fizz", (string)a.A); Assert.Equal("buzz", (string)a.B); Assert.Throws<ArgumentOutOfRangeException>(() => a[2]); },
+                            a => { Assert.Equal(2, ((IEnumerable<string>)a).Count()); Assert.Equal("fe", (string)a.A); Assert.Equal("fi", (string)a.B); Assert.Throws<ArgumentOutOfRangeException>(() => a[2]); }
+                        );
+                    }
+                }
+            );
+
+            var noHeaderOpts = Options.CreateBuilder(opts).WithReadHeader(ReadHeader.Never).ToOptions();
+
+            RunSyncDynamicReaderVariants(
+                noHeaderOpts,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader("hello,world\r\nfizz,buzz,bazz\r\nfe,fi,fo,fum"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+
+                        Assert.Collection(
+                            rows,
+                            a => { Assert.Equal(2, ((IEnumerable<string>)a).Count()); Assert.Equal("hello", (string)a[0]); Assert.Equal("world", (string)a[1]); },
+                            a => { Assert.Equal(2, ((IEnumerable<string>)a).Count()); Assert.Equal("fizz", (string)a[0]); Assert.Equal("buzz", (string)a[1]); Assert.Throws<ArgumentOutOfRangeException>(() => a[2]); },
+                            a => { Assert.Equal(2, ((IEnumerable<string>)a).Count()); Assert.Equal("fe", (string)a[0]); Assert.Equal("fi", (string)a[1]); Assert.Throws<ArgumentOutOfRangeException>(() => a[2]); }
+                        );
+                    }
+                }
+            );
+        }
+
+        [Fact]
         public void AllowExcessColumns()
         {
+            // with headers
             RunSyncDynamicReaderVariants(
                 Options.DynamicDefault,
                 (config, getReader) =>
@@ -30,6 +161,27 @@ namespace Cesil.Tests
                             a => { Assert.Equal("hello", (string)a.A); Assert.Equal("world", (string)a.B); },
                             a => { Assert.Equal("fizz", (string)a.A); Assert.Equal("buzz", (string)a.B); Assert.Equal("bazz", (string)a[2]); },
                             a => { Assert.Equal("fe", (string)a.A); Assert.Equal("fi", (string)a.B); Assert.Equal("fo", (string)a[2]); Assert.Equal("fum", (string)a[3]); }
+                        );
+                    }
+                }
+            );
+
+            var noHeadersOpts = Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions();
+
+            RunSyncDynamicReaderVariants(
+                noHeadersOpts,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader("hello,world\r\nfizz,buzz,bazz\r\nfe,fi,fo,fum"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+
+                        Assert.Collection(
+                            rows,
+                            a => { Assert.Equal("hello", (string)a[0]); Assert.Equal("world", (string)a[1]); },
+                            a => { Assert.Equal("fizz", (string)a[0]); Assert.Equal("buzz", (string)a[1]); Assert.Equal("bazz", (string)a[2]); },
+                            a => { Assert.Equal("fe", (string)a[0]); Assert.Equal("fi", (string)a[1]); Assert.Equal("fo", (string)a[2]); Assert.Equal("fum", (string)a[3]); }
                         );
                     }
                 }
@@ -4622,8 +4774,143 @@ loop:
         // async tests
 
         [Fact]
+        public async Task IgnoreExcessColumnsAsync()
+        {
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithExtraColumnTreatment(ExtraColumnTreatment.Ignore).ToOptions();
+
+            await RunAsyncDynamicReaderVariants(
+                opts,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("A,B\r\nhello,world\r\nfizz,buzz,bazz\r\nfe,fi,fo,fum"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+
+                        Assert.Collection(
+                            rows,
+                            a => { Assert.Equal(2, ((IEnumerable<string>)a).Count()); Assert.Equal("hello", (string)a.A); Assert.Equal("world", (string)a.B); },
+                            a => { Assert.Equal(2, ((IEnumerable<string>)a).Count()); Assert.Equal("fizz", (string)a.A); Assert.Equal("buzz", (string)a.B); Assert.Throws<ArgumentOutOfRangeException>(() => a[2]); },
+                            a => { Assert.Equal(2, ((IEnumerable<string>)a).Count()); Assert.Equal("fe", (string)a.A); Assert.Equal("fi", (string)a.B); Assert.Throws<ArgumentOutOfRangeException>(() => a[2]); }
+                        );
+                    }
+                }
+            );
+
+            var noHeaderOpts = Options.CreateBuilder(opts).WithReadHeader(ReadHeader.Never).ToOptions();
+
+            await RunAsyncDynamicReaderVariants(
+                noHeaderOpts,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("hello,world\r\nfizz,buzz,bazz\r\nfe,fi,fo,fum"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+
+                        Assert.Collection(
+                            rows,
+                            a => { Assert.Equal(2, ((IEnumerable<string>)a).Count()); Assert.Equal("hello", (string)a[0]); Assert.Equal("world", (string)a[1]); },
+                            a => { Assert.Equal(2, ((IEnumerable<string>)a).Count()); Assert.Equal("fizz", (string)a[0]); Assert.Equal("buzz", (string)a[1]); Assert.Throws<ArgumentOutOfRangeException>(() => a[2]); },
+                            a => { Assert.Equal(2, ((IEnumerable<string>)a).Count()); Assert.Equal("fe", (string)a[0]); Assert.Equal("fi", (string)a[1]); Assert.Throws<ArgumentOutOfRangeException>(() => a[2]); }
+                        );
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public async Task ThrowsOnExcessColumnsAsync()
+        {
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithExtraColumnTreatment(ExtraColumnTreatment.ThrowException).ToOptions();
+
+            // with heaers
+            {
+                // fine, shouldn't throw
+                await RunAsyncDynamicReaderVariants(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("A,B\r\nhello,world\r\n"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                rows,
+                                a => { Assert.Equal("hello", (string)a.A); Assert.Equal("world", (string)a.B); }
+                            );
+                        }
+                    }
+                );
+
+                // should throw on second read
+                await RunAsyncDynamicReaderVariants(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("A,B\r\nhello,world\r\nfizz,buzz,bazz"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var res = await csv.TryReadAsync();
+                            Assert.True(res.HasValue);
+                            var row = res.Value;
+                            Assert.Equal("hello", (string)row.A);
+                            Assert.Equal("world", (string)row.B);
+
+                            await Assert.ThrowsAsync<InvalidOperationException>(async () => await csv.TryReadAsync());
+                        }
+                    }
+                );
+            }
+
+            // without heaers
+            {
+                var noHeadOpts = Options.CreateBuilder(opts).WithReadHeader(ReadHeader.Never).ToOptions();
+
+                // fine, shouldn't throw
+                await RunAsyncDynamicReaderVariants(
+                    noHeadOpts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("hello,world\r\n"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                rows,
+                                a => { Assert.Equal("hello", (string)a[0]); Assert.Equal("world", (string)a[1]); }
+                            );
+                        }
+                    }
+                );
+
+                // should throw on second read
+                await RunAsyncDynamicReaderVariants(
+                    noHeadOpts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("hello,world\r\nfizz,buzz,bazz"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var res = await csv.TryReadAsync();
+                            Assert.True(res.HasValue);
+                            var row = res.Value;
+                            Assert.Equal("hello", (string)row[0]);
+                            Assert.Equal("world", (string)row[1]);
+
+                            await Assert.ThrowsAsync<InvalidOperationException>(async () => await csv.TryReadAsync());
+                        }
+                    }
+                );
+            }
+        }
+
+        [Fact]
         public async Task AllowExcessColumnsAsync()
         {
+            // with headers
             await RunAsyncDynamicReaderVariants(
                 Options.DynamicDefault,
                 async (config, getReader) =>
@@ -4638,6 +4925,27 @@ loop:
                             a => { Assert.Equal("hello", (string)a.A); Assert.Equal("world", (string)a.B); },
                             a => { Assert.Equal("fizz", (string)a.A); Assert.Equal("buzz", (string)a.B); Assert.Equal("bazz", (string)a[2]); },
                             a => { Assert.Equal("fe", (string)a.A); Assert.Equal("fi", (string)a.B); Assert.Equal("fo", (string)a[2]); Assert.Equal("fum", (string)a[3]); }
+                        );
+                    }
+                }
+            );
+
+            var noHeadersOpts = Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions();
+
+            await RunAsyncDynamicReaderVariants(
+                noHeadersOpts,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("hello,world\r\nfizz,buzz,bazz\r\nfe,fi,fo,fum"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+
+                        Assert.Collection(
+                            rows,
+                            a => { Assert.Equal("hello", (string)a[0]); Assert.Equal("world", (string)a[1]); },
+                            a => { Assert.Equal("fizz", (string)a[0]); Assert.Equal("buzz", (string)a[1]); Assert.Equal("bazz", (string)a[2]); },
+                            a => { Assert.Equal("fe", (string)a[0]); Assert.Equal("fi", (string)a[1]); Assert.Equal("fo", (string)a[2]); Assert.Equal("fum", (string)a[3]); }
                         );
                     }
                 }

@@ -764,5 +764,20 @@ tryAgain:
             var mask = (short)(1 << ln);
             map[hn] |= mask;
         }
+
+        internal static ExtraColumnTreatment EffectiveColumnTreatmentForStatic(ExtraColumnTreatment ect)
+        {
+            switch (ect)
+            {
+                // no difference for static cases
+                case ExtraColumnTreatment.Ignore:
+                case ExtraColumnTreatment.IncludeDynamic:
+                    return ExtraColumnTreatment.Ignore;
+                case ExtraColumnTreatment.ThrowException:
+                    return ExtraColumnTreatment.ThrowException;
+                default:
+                    return Throw.Exception<ExtraColumnTreatment>($"Unexpected {nameof(ExtraColumnTreatment)}: {ect}");
+            }
+        }
     }
 }

@@ -16,7 +16,7 @@ namespace Cesil
 
         internal readonly IAsyncReaderAdapter Inner;
 
-        internal AsyncReaderBase(IAsyncReaderAdapter reader, BoundConfigurationBase<T> config, object? context, IRowConstructor<T> rowBuilder) : base(config, context, rowBuilder)
+        internal AsyncReaderBase(IAsyncReaderAdapter reader, BoundConfigurationBase<T> config, object? context, IRowConstructor<T> rowBuilder, ExtraColumnTreatment extraTreatment) : base(config, context, rowBuilder, extraTreatment)
         {
             Inner = reader;
         }

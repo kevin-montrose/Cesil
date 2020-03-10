@@ -969,6 +969,8 @@ namespace Cesil
                 return DynamicRowConverter.ForMethod(genMtd);
             }
 
+            // todo: should we support casting to IEnumerable<object> (the same as IEnumerable<dynamic> at runtime?)
+
             // handle IEnumerables
             if (targetType.IsGenericType && targetType.GetGenericTypeDefinition().GetTypeInfo() == Types.IEnumerableOfTType)
             {

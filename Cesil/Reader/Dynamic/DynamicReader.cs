@@ -8,7 +8,6 @@ namespace Cesil
         SyncReaderBase<dynamic>,
         IDynamicRowOwner
     {
-        private int ColumnCount;
         private NonNull<string[]> ColumnNames;
 
         private DynamicRow? NotifyOnDisposeHead;
@@ -17,7 +16,7 @@ namespace Cesil
 
         object? IDynamicRowOwner.Context => Context;
 
-        internal DynamicReader(IReaderAdapter reader, DynamicBoundConfiguration config, object? context) : base(reader, config, context, new DynamicRowConstructor()) { }
+        internal DynamicReader(IReaderAdapter reader, DynamicBoundConfiguration config, object? context) : base(reader, config, context, new DynamicRowConstructor(), config.Options.ExtraColumnTreatment) { }
 
         internal override void HandleRowEndingsAndHeaders()
         {

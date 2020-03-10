@@ -1462,6 +1462,30 @@ references:
   commentId: F:Cesil.EmitDefaultValue.Yes
   fullName: Cesil.EmitDefaultValue.Yes
   nameWithType: EmitDefaultValue.Yes
+- uid: Cesil.ExtraColumnTreatment
+  name: ExtraColumnTreatment
+  href: api/Cesil.ExtraColumnTreatment.html
+  commentId: T:Cesil.ExtraColumnTreatment
+  fullName: Cesil.ExtraColumnTreatment
+  nameWithType: ExtraColumnTreatment
+- uid: Cesil.ExtraColumnTreatment.Ignore
+  name: Ignore
+  href: api/Cesil.ExtraColumnTreatment.html#Cesil_ExtraColumnTreatment_Ignore
+  commentId: F:Cesil.ExtraColumnTreatment.Ignore
+  fullName: Cesil.ExtraColumnTreatment.Ignore
+  nameWithType: ExtraColumnTreatment.Ignore
+- uid: Cesil.ExtraColumnTreatment.IncludeDynamic
+  name: IncludeDynamic
+  href: api/Cesil.ExtraColumnTreatment.html#Cesil_ExtraColumnTreatment_IncludeDynamic
+  commentId: F:Cesil.ExtraColumnTreatment.IncludeDynamic
+  fullName: Cesil.ExtraColumnTreatment.IncludeDynamic
+  nameWithType: ExtraColumnTreatment.IncludeDynamic
+- uid: Cesil.ExtraColumnTreatment.ThrowException
+  name: ThrowException
+  href: api/Cesil.ExtraColumnTreatment.html#Cesil_ExtraColumnTreatment_ThrowException
+  commentId: F:Cesil.ExtraColumnTreatment.ThrowException
+  fullName: Cesil.ExtraColumnTreatment.ThrowException
+  nameWithType: ExtraColumnTreatment.ThrowException
 - uid: Cesil.Formatter
   name: Formatter
   href: api/Cesil.Formatter.html
@@ -3427,6 +3451,19 @@ references:
   isSpec: "True"
   fullName: Cesil.Options.EscapedValueStartAndEnd
   nameWithType: Options.EscapedValueStartAndEnd
+- uid: Cesil.Options.ExtraColumnTreatment
+  name: ExtraColumnTreatment
+  href: api/Cesil.Options.html#Cesil_Options_ExtraColumnTreatment
+  commentId: P:Cesil.Options.ExtraColumnTreatment
+  fullName: Cesil.Options.ExtraColumnTreatment
+  nameWithType: Options.ExtraColumnTreatment
+- uid: Cesil.Options.ExtraColumnTreatment*
+  name: ExtraColumnTreatment
+  href: api/Cesil.Options.html#Cesil_Options_ExtraColumnTreatment_
+  commentId: Overload:Cesil.Options.ExtraColumnTreatment
+  isSpec: "True"
+  fullName: Cesil.Options.ExtraColumnTreatment
+  nameWithType: Options.ExtraColumnTreatment
 - uid: Cesil.Options.GetHashCode
   name: GetHashCode()
   href: api/Cesil.Options.html#Cesil_Options_GetHashCode
@@ -3686,6 +3723,19 @@ references:
   isSpec: "True"
   fullName: Cesil.OptionsBuilder.EscapedValueStartAndEnd
   nameWithType: OptionsBuilder.EscapedValueStartAndEnd
+- uid: Cesil.OptionsBuilder.ExtraColumnTreatment
+  name: ExtraColumnTreatment
+  href: api/Cesil.OptionsBuilder.html#Cesil_OptionsBuilder_ExtraColumnTreatment
+  commentId: P:Cesil.OptionsBuilder.ExtraColumnTreatment
+  fullName: Cesil.OptionsBuilder.ExtraColumnTreatment
+  nameWithType: OptionsBuilder.ExtraColumnTreatment
+- uid: Cesil.OptionsBuilder.ExtraColumnTreatment*
+  name: ExtraColumnTreatment
+  href: api/Cesil.OptionsBuilder.html#Cesil_OptionsBuilder_ExtraColumnTreatment_
+  commentId: Overload:Cesil.OptionsBuilder.ExtraColumnTreatment
+  isSpec: "True"
+  fullName: Cesil.OptionsBuilder.ExtraColumnTreatment
+  nameWithType: OptionsBuilder.ExtraColumnTreatment
 - uid: Cesil.OptionsBuilder.MemoryPool
   name: MemoryPool
   href: api/Cesil.OptionsBuilder.html#Cesil_OptionsBuilder_MemoryPool
@@ -3864,6 +3914,19 @@ references:
   isSpec: "True"
   fullName: Cesil.OptionsBuilder.WithEscapedValueStartAndEnd
   nameWithType: OptionsBuilder.WithEscapedValueStartAndEnd
+- uid: Cesil.OptionsBuilder.WithExtraColumnTreatment(Cesil.ExtraColumnTreatment)
+  name: WithExtraColumnTreatment(ExtraColumnTreatment)
+  href: api/Cesil.OptionsBuilder.html#Cesil_OptionsBuilder_WithExtraColumnTreatment_Cesil_ExtraColumnTreatment_
+  commentId: M:Cesil.OptionsBuilder.WithExtraColumnTreatment(Cesil.ExtraColumnTreatment)
+  fullName: Cesil.OptionsBuilder.WithExtraColumnTreatment(Cesil.ExtraColumnTreatment)
+  nameWithType: OptionsBuilder.WithExtraColumnTreatment(ExtraColumnTreatment)
+- uid: Cesil.OptionsBuilder.WithExtraColumnTreatment*
+  name: WithExtraColumnTreatment
+  href: api/Cesil.OptionsBuilder.html#Cesil_OptionsBuilder_WithExtraColumnTreatment_
+  commentId: Overload:Cesil.OptionsBuilder.WithExtraColumnTreatment
+  isSpec: "True"
+  fullName: Cesil.OptionsBuilder.WithExtraColumnTreatment
+  nameWithType: OptionsBuilder.WithExtraColumnTreatment
 - uid: Cesil.OptionsBuilder.WithMemoryPool(MemoryPool{System.Char})
   name: WithMemoryPool(MemoryPool<Char>)
   href: api/Cesil.OptionsBuilder.html#Cesil_OptionsBuilder_WithMemoryPool_MemoryPool_System_Char__

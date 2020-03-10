@@ -1776,6 +1776,7 @@ namespace Cesil.Tests
                     [typeof(MemberRequired).GetTypeInfo()] = new[] { "required" },
                     [typeof(DynamicRowDisposal).GetTypeInfo()] = new[] { "dynamicRowDisposal" },
                     [typeof(WhitespaceTreatments).GetTypeInfo()] = new[] { "whitespaceTreatment" },
+                    [typeof(ExtraColumnTreatment).GetTypeInfo()] = new[] { "extraColumnTreatment" },
 
                     // wrapper types
                     [typeof(DynamicCellValue).GetTypeInfo()] = new[] { "value" },

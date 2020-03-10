@@ -4,7 +4,7 @@ namespace Cesil
 {
     internal sealed class Reader<T> : SyncReaderBase<T>
     {
-        internal Reader(IReaderAdapter inner, ConcreteBoundConfiguration<T> config, object? context, IRowConstructor<T> rowBuilder) : base(inner, config, context, rowBuilder) { }
+        internal Reader(IReaderAdapter inner, ConcreteBoundConfiguration<T> config, object? context, IRowConstructor<T> rowBuilder) : base(inner, config, context, rowBuilder, Utils.EffectiveColumnTreatmentForStatic(config.Options.ExtraColumnTreatment)) { }
 
         internal override void HandleRowEndingsAndHeaders()
         {
@@ -67,6 +67,7 @@ namespace Cesil
             {
                 // can just use the discovered copy from source
                 ReadHeaders = ReadHeader.Never;
+                ColumnCount = Configuration.DeserializeColumns.Length;
                 TryMakeStateMachine();
 
                 return;

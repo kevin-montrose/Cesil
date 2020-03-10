@@ -97,6 +97,10 @@ namespace Cesil
         /// How to handle whitespace when encountered during parsing.
         /// </summary>
         public WhitespaceTreatments WhitespaceTreatment { get; private set; }
+        /// <summary>
+        /// How to handle extra colums encountered when reading a CSV.
+        /// </summary>
+        public ExtraColumnTreatment ExtraColumnTreatment { get; private set; }
 
         internal OptionsBuilder() { }
 
@@ -116,6 +120,7 @@ namespace Cesil
             ReadBufferSizeHint = copy.ReadBufferSizeHint;
             DynamicRowDisposal = copy.DynamicRowDisposal;
             WhitespaceTreatment = copy.WhitespaceTreatment;
+            ExtraColumnTreatment = copy.ExtraColumnTreatment;
         }
 
         /// <summary>
@@ -210,6 +215,11 @@ namespace Cesil
             if (!Utils.IsLegalFlagEnum(WhitespaceTreatment))
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(WhitespaceTreatment)} has an unexpected value, '{WhitespaceTreatment}'");
+            }
+            // ExtraColumnTreatment not recognized
+            if (!Enum.IsDefined(Types.ExtraColumnTreatmentType, ExtraColumnTreatment))
+            {
+                return Throw.InvalidOperationException<Options>($"{nameof(ExtraColumnTreatment)} has an unexpected value, '{ExtraColumnTreatment}'");
             }
 
             // if any of the special characters are whitespace, we can't use them with any of the trimming... parse is ambiguous
@@ -486,6 +496,26 @@ namespace Cesil
         }
 
         /// <summary>
+        /// Set how to treat extra columns when parsing.
+        /// </summary>
+        public OptionsBuilder WithExtraColumnTreatment(ExtraColumnTreatment extraColumnTreatment)
+        {
+            // ExtraColumnTreatment not recognized
+            if (!Enum.IsDefined(Types.ExtraColumnTreatmentType, extraColumnTreatment))
+            {
+                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(ExtraColumnTreatment)} value: {extraColumnTreatment}", nameof(extraColumnTreatment));
+            }
+
+            return WithExtraColumnTreatmentInternal(extraColumnTreatment);
+        }
+
+        internal OptionsBuilder WithExtraColumnTreatmentInternal(ExtraColumnTreatment extraColumnTreatment)
+        {
+            ExtraColumnTreatment = extraColumnTreatment;
+            return this;
+        }
+
+        /// <summary>
         /// Returns a representation of this OptionsBuilder object.
         /// 
         /// Only for debugging, this value is not guaranteed to be stable.
@@ -508,6 +538,7 @@ namespace Cesil
             ret.Append($", {nameof(WriteHeader)}={WriteHeader}");
             ret.Append($", {nameof(WriteTrailingRowEnding)}={WriteTrailingRowEnding}");
             ret.Append($", {nameof(WhitespaceTreatment)}={WhitespaceTreatment}");
+            ret.Append($", {nameof(ExtraColumnTreatment)}={ExtraColumnTreatment}");
 
             return ret.ToString();
         }
