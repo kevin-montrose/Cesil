@@ -154,10 +154,83 @@ namespace Cesil.Tests
                 else if (t == typeof(EmptyMemoryOwner))
                 {
                     // intentionally NOT testing, the empty owner has no resources to release but has to 
+                } else if(t == typeof(PassthroughRowEnumerator))
+                {
+                    IDisposable_PassthroughRowEnumerator();
                 }
                 else
                 {
                     throw new XunitException($"No test configured for .Dispose() on {t.Name}");
+                }
+            }
+
+            void IDisposable_PassthroughRowEnumerator()
+            {
+                // double dispose does not error
+                {
+                    var a = MakeEnumerator();
+                    a.Dispose();
+                    a.Dispose();
+                }
+
+                // assert throws after dispose
+                {
+                    var a = MakeEnumerator();
+                    a.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => ((ITestableDisposable)a).AssertNotDisposed());
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    using (var a = MakeEnumerator())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(a);
+                    }
+                }
+
+                // Current
+                {
+                    var a = MakeEnumerator();
+                    a.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => a.Current);
+                    testCases++;
+                }
+
+                // MoveNext
+                {
+                    var a = MakeEnumerator();
+                    a.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => a.MoveNext());
+                    testCases++;
+                }
+
+                // Reset
+                {
+                    var a = MakeEnumerator();
+                    a.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => a.Reset());
+                    testCases++;
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make an adapter that's "good to go"
+                PassthroughRowEnumerator MakeEnumerator()
+                {
+                    var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
+                    var config = Configuration.ForDynamic(opts);
+
+                    var r = config.CreateReader(new StringReader("a,b,c"));
+
+                    r.TryRead(out var row);
+
+                    IEnumerable<dynamic> e = row;
+                    var ee = e.GetEnumerator();
+
+                    return (PassthroughRowEnumerator)ee;
                 }
             }
 
