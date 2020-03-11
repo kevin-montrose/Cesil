@@ -29,6 +29,8 @@ namespace Cesil
     [IntentionallyExtensible("Does 'what is expected' so minor tweaks can be handled with inheritance.")]
     public class DefaultTypeDescriber : ITypeDescriber
     {
+        private static readonly DynamicRowConverter PassthroughEnumerable = DynamicRowConverter.ForConstructorTakingDynamic(Constructors.PassthroughRowEnumerable);
+
         /// <summary>
         /// Construct a new DefaultTypeDesciber.
         /// 
@@ -969,15 +971,21 @@ namespace Cesil
                 return DynamicRowConverter.ForMethod(genMtd);
             }
 
-            // todo: should we support casting to IEnumerable<object> (the same as IEnumerable<dynamic> at runtime?)
-
             // handle IEnumerables
             if (targetType.IsGenericType && targetType.GetGenericTypeDefinition().GetTypeInfo() == Types.IEnumerableOfTType)
             {
-                var elementType = targetType.GetGenericArguments()[0];
-                var genEnum = Types.DynamicRowEnumerableType.MakeGenericType(elementType).GetTypeInfo();
-                var cons = genEnum.GetConstructorNonNull(BindingFlags.Instance | BindingFlags.NonPublic, null, new[] { Types.ObjectType }, null);
-                return DynamicRowConverter.ForConstructorTakingDynamic(cons);
+                var elementType = targetType.GetGenericArguments()[0].GetTypeInfo();
+                if (elementType != Types.ObjectType)
+                {
+                    var genEnum = Types.DynamicRowEnumerableType.MakeGenericType(elementType).GetTypeInfo();
+                    var cons = genEnum.GetConstructorNonNull(BindingFlags.Instance | BindingFlags.NonPublic, null, new[] { Types.ObjectType }, null);
+                    return DynamicRowConverter.ForConstructorTakingDynamic(cons);
+                }
+                else
+                {
+                    // in this case, we're basically casting to `dynamic`, so we don't want ANY conversion to happen.
+                    return PassthroughEnumerable;
+                }
             }
             else if (targetType == Types.IEnumerableType)
             {

@@ -100,6 +100,7 @@ namespace Cesil
 
         internal static readonly TypeInfo DynamicRowEnumerableType = typeof(DynamicRowEnumerable<>).GetTypeInfo();
         internal static readonly TypeInfo DynamicRowEnumerableNonGenericType = typeof(DynamicRowEnumerableNonGeneric).GetTypeInfo();
+        internal static readonly TypeInfo PassthroughRowEnumerableType = typeof(PassthroughRowEnumerable).GetTypeInfo();
 
         internal static readonly TypeInfo DefaultTypeDescriberType = typeof(DefaultTypeDescriber).GetTypeInfo();
 

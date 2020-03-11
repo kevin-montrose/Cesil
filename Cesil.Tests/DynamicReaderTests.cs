@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Dynamic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -13,6 +14,46 @@ namespace Cesil.Tests
 {
     public class DynamicReaderTests
     {
+        [Fact]
+        public void IEnumerableOfDynamic()
+        {
+            RunSyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                (config, getReader) =>
+                {
+                    using(var reader = getReader("A,B,C\r\n1,foo,2020-01-02\r\nfalse,c,100"))
+                    using(var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+
+                        Assert.Collection(
+                            rows,
+                            r =>
+                            {
+                                IEnumerable<dynamic> e = r;
+                                Assert.Collection(
+                                    e,
+                                    a => Assert.Equal(1, (int)a),
+                                    a => Assert.Equal("foo", (string)a),
+                                    a => Assert.Equal(DateTime.Parse("2020-01-02", CultureInfo.InvariantCulture, DateTimeStyles.None), (DateTime)a)
+                                );
+                            },
+                            r =>
+                            {
+                                IEnumerable<dynamic> e = r;
+                                Assert.Collection(
+                                    e,
+                                    a => Assert.False((bool)a),
+                                    a => Assert.Equal('c', (char)a),
+                                    a => Assert.Equal(100, (int)a)
+                                );
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
         [Fact]
         public void ThrowsOnExcessColumns()
         {
@@ -4772,6 +4813,46 @@ loop:
         }
 
         // async tests
+
+        [Fact]
+        public async Task IEnumerableOfDynamicAsync()
+        {
+            await RunAsyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("A,B,C\r\n1,foo,2020-01-02\r\nfalse,c,100"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+
+                        Assert.Collection(
+                            rows,
+                            r =>
+                            {
+                                IEnumerable<dynamic> e = r;
+                                Assert.Collection(
+                                    e,
+                                    a => Assert.Equal(1, (int)a),
+                                    a => Assert.Equal("foo", (string)a),
+                                    a => Assert.Equal(DateTime.Parse("2020-01-02", CultureInfo.InvariantCulture, DateTimeStyles.None), (DateTime)a)
+                                );
+                            },
+                            r =>
+                            {
+                                IEnumerable<dynamic> e = r;
+                                Assert.Collection(
+                                    e,
+                                    a => Assert.False((bool)a),
+                                    a => Assert.Equal('c', (char)a),
+                                    a => Assert.Equal(100, (int)a)
+                                );
+                            }
+                        );
+                    }
+                }
+            );
+        }
 
         [Fact]
         public async Task IgnoreExcessColumnsAsync()
