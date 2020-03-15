@@ -13,8 +13,6 @@ namespace Cesil
     /// </summary>
     public sealed class Options : IEquatable<Options>
     {
-        // todo: add an option for what to do with excess columns; either ignore them, include them, or throw
-
         /// <summary>
         /// Default options:
         ///   - separator = ,
