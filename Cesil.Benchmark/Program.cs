@@ -47,6 +47,8 @@ namespace Cesil.Benchmark
 
             Log(nameof(WideRowReadSyncBenchmark.InitializeAndTest), () => new WideRowReadSyncBenchmark().InitializeAndTest());
             Log(nameof(NarrowRowReadSyncBenchmark.InitializeAndTest), () => new NarrowRowReadSyncBenchmark().InitializeAndTest());
+
+            Log(nameof(WideRowDynamicReadSyncBenchmark.InitializeAndTest), () => new WideRowDynamicReadSyncBenchmark().InitializeAndTest());
         }
 
         private static void RunBenchmarks()
@@ -68,7 +70,9 @@ namespace Cesil.Benchmark
                 )
             );
 
-            BenchmarkRunner.Run(typeof(Program).Assembly, config);
+            //BenchmarkRunner.Run(typeof(Program).Assembly, config);
+
+            BenchmarkRunner.Run<WideRowDynamicReadSyncBenchmark>(config);
         }
     }
 }

@@ -15,6 +15,168 @@ namespace Cesil.Tests
     public class DynamicReaderTests
     {
         [Fact]
+        public void MissingTrailingColumns()
+        {
+            // with headers
+            RunSyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader("A,B,C\r\n1,2,3\r\n4,5\r\n6\r\n\r\n"))
+                    using(var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+
+                        Assert.Collection(
+                            rows,
+                            r1 =>
+                            {
+                                int a1 = r1.A;
+                                int a2 = r1[0];
+                                int b1 = r1.B;
+                                int b2 = r1[1];
+                                int c1 = r1.C;
+                                int c2 = r1[2];
+
+                                Assert.Equal(1, a1);
+                                Assert.Equal(1, a2);
+
+                                Assert.Equal(2, b1);
+                                Assert.Equal(2, b2);
+
+                                Assert.Equal(3, c1);
+                                Assert.Equal(3, c2);
+                            },
+                            r2 =>
+                            {
+                                int a1 = r2.A;
+                                int a2 = r2[0];
+                                int b1 = r2.B;
+                                int b2 = r2[1];
+                                int? c1 = r2.C;
+                                int? c2 = r2[2];
+
+                                Assert.Equal(4, a1);
+                                Assert.Equal(4, a2);
+
+                                Assert.Equal(5, b1);
+                                Assert.Equal(5, b2);
+
+                                Assert.False(c1.HasValue);
+                                Assert.False(c2.HasValue);
+                            },
+                            r3 =>
+                            {
+                                int a1 = r3.A;
+                                int a2 = r3[0];
+                                int? b1 = r3.B;
+                                int? b2 = r3[1];
+                                int? c1 = r3.C;
+                                int? c2 = r3[2];
+
+                                Assert.Equal(6, a1);
+                                Assert.Equal(6, a2);
+
+                                Assert.False(b1.HasValue);
+                                Assert.False(b2.HasValue);
+
+                                Assert.False(c1.HasValue);
+                                Assert.False(c2.HasValue);
+                            },
+                            r4 =>
+                            {
+                                int? a1 = r4.A;
+                                int? a2 = r4[0];
+                                int? b1 = r4.B;
+                                int? b2 = r4[1];
+                                int? c1 = r4.C;
+                                int? c2 = r4[2];
+
+                                Assert.False(a1.HasValue);
+                                Assert.False(a2.HasValue);
+
+                                Assert.False(b1.HasValue);
+                                Assert.False(b2.HasValue);
+
+                                Assert.False(c1.HasValue);
+                                Assert.False(c2.HasValue);
+                            }
+                        );
+                    }
+                }
+            );
+
+            var noHeadersOpts = Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions();
+
+            // without headers
+            RunSyncDynamicReaderVariants(
+                noHeadersOpts,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader("1,2,3\r\n4,5\r\n6\r\n\r\n"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+
+                        Assert.Collection(
+                            rows,
+                            r1 =>
+                            {
+                                int a2 = r1[0];
+                                int b2 = r1[1];
+                                int c2 = r1[2];
+
+                                Assert.Equal(1, a2);
+
+                                Assert.Equal(2, b2);
+
+                                Assert.Equal(3, c2);
+                            },
+                            r2 =>
+                            {
+                                int a2 = r2[0];
+                                int b2 = r2[1];
+                                int? c2 = r2[2];
+
+                                Assert.Equal(4, a2);
+
+                                Assert.Equal(5, b2);
+
+                                Assert.False(c2.HasValue);
+                            },
+                            r3 =>
+                            {
+                                int a2 = r3[0];
+                                int? b2 = r3[1];
+                                int? c2 = r3[2];
+
+                                Assert.Equal(6, a2);
+
+                                Assert.False(b2.HasValue);
+
+                                Assert.False(c2.HasValue);
+                            },
+                            r4 =>
+                            {
+                                int? a2 = r4[0];
+                                int? b2 = r4[1];
+                                int? c2 = r4[2];
+
+                                Assert.False(a2.HasValue);
+
+                                Assert.False(b2.HasValue);
+
+                                Assert.False(c2.HasValue);
+                            }
+                        );
+                    }
+                }
+            );
+
+            // todo: async
+        }
+
+        [Fact]
         public void DynamicCellsIConvertible()
         {
             var csvString =

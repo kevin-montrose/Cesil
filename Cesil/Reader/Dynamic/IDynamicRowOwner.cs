@@ -6,6 +6,8 @@
 
         object? Context { get; }
 
+        int MinimumExpectedColumns { get; }
+
         void Remove(DynamicRow row);
     }
 }

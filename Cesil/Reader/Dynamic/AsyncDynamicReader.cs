@@ -19,6 +19,8 @@ namespace Cesil
 
         object? IDynamicRowOwner.Context => Context;
 
+        int IDynamicRowOwner.MinimumExpectedColumns => ColumnCount;
+
         internal AsyncDynamicReader(IAsyncReaderAdapter reader, DynamicBoundConfiguration config, object? context) : base(reader, config, context, new DynamicRowConstructor(), config.Options.ExtraColumnTreatment) { }
 
         internal override ValueTask HandleRowEndingsAndHeadersAsync(CancellationToken cancel)

@@ -447,7 +447,9 @@ namespace Cesil
 
         private bool TryGetIndex(int index, out object? result)
         {
-            if (index < 0 || index >= Width)
+            var maxWidth = Math.Max(Width, Owner.Value.MinimumExpectedColumns);
+            
+            if (index < 0 || index >= maxWidth)
             {
                 result = null;
                 return false;
@@ -465,21 +467,22 @@ namespace Cesil
 
         private bool TryGetValue(string lookingFor, out object? result)
         {
-            var namesHasVal = Names.HasValue;
-            var namesVal = namesHasVal ? Names.Value : Array.Empty<string>();
-
-            for (var i = 0; i < Width; i++)
+            if (Names.HasValue)
             {
-                if (namesHasVal && (namesVal[i]?.Equals(lookingFor) ?? false))
+                var namesVal = Names.Value;
+                for (var i = 0; i < namesVal.Length; i++)
                 {
-                    if (!IsSet(i))
+                    if (namesVal[i]?.Equals(lookingFor) ?? false)
                     {
-                        result = null;
+                        if (!IsSet(i))
+                        {
+                            result = null;
+                            return true;
+                        }
+
+                        result = GetCellAt(i);
                         return true;
                     }
-
-                    result = GetCellAt(i);
-                    return true;
                 }
             }
 
@@ -523,6 +526,12 @@ namespace Cesil
             if (!Data.HasValue)
             {
                 // nothing has been stored
+                return -1;
+            }
+
+            if (atIndex >= Width)
+            {
+                // past the end
                 return -1;
             }
 

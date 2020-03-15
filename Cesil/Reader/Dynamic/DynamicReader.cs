@@ -16,6 +16,8 @@ namespace Cesil
 
         object? IDynamicRowOwner.Context => Context;
 
+        int IDynamicRowOwner.MinimumExpectedColumns => ColumnCount;
+
         internal DynamicReader(IReaderAdapter reader, DynamicBoundConfiguration config, object? context) : base(reader, config, context, new DynamicRowConstructor(), config.Options.ExtraColumnTreatment) { }
 
         internal override void HandleRowEndingsAndHeaders()

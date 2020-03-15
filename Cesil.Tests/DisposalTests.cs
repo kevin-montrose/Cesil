@@ -21,6 +21,8 @@ namespace Cesil.Tests
             public Options Options { get; set; }
             public object Context { get; set; }
 
+            public int MinimumExpectedColumns { get; set; }
+
             public void Remove(DynamicRow row) { }
         }
 
