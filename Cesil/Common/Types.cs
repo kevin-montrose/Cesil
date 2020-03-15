@@ -27,9 +27,21 @@ namespace Cesil
 
         internal static readonly TypeInfo VoidType = typeof(void).GetTypeInfo();
         internal static readonly TypeInfo BoolType = typeof(bool).GetTypeInfo();
+        internal static readonly TypeInfo ByteType = typeof(byte).GetTypeInfo();
+        internal static readonly TypeInfo SByteType = typeof(sbyte).GetTypeInfo();
+        internal static readonly TypeInfo ShortType = typeof(short).GetTypeInfo();
+        internal static readonly TypeInfo UShortType = typeof(ushort).GetTypeInfo();
         internal static readonly TypeInfo IntType = typeof(int).GetTypeInfo();
+        internal static readonly TypeInfo UIntType = typeof(uint).GetTypeInfo();
+        internal static readonly TypeInfo LongType = typeof(long).GetTypeInfo();
+        internal static readonly TypeInfo ULongType = typeof(ulong).GetTypeInfo();
+        internal static readonly TypeInfo FloatType = typeof(float).GetTypeInfo();
+        internal static readonly TypeInfo DoubleType = typeof(double).GetTypeInfo();
+        internal static readonly TypeInfo DecimalType = typeof(decimal).GetTypeInfo();
         internal static readonly TypeInfo ObjectType = typeof(object).GetTypeInfo();
+        internal static readonly TypeInfo CharType = typeof(char).GetTypeInfo();
         internal static readonly TypeInfo StringType = typeof(string).GetTypeInfo();
+        internal static readonly TypeInfo DateTimeType = typeof(DateTime).GetTypeInfo();
         internal static readonly TypeInfo IndexType = typeof(Index).GetTypeInfo();
         internal static readonly TypeInfo RangeType = typeof(Range).GetTypeInfo();
         internal static readonly TypeInfo IReadOnlyListType = typeof(IReadOnlyList<>).GetTypeInfo();
