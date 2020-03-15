@@ -40,6 +40,8 @@ namespace Cesil.Benchmark
         [Conditional("DEBUG")]
         private static void InitializeAndTest()
         {
+            Log(nameof(NameLookupBenchmark.InitializeAndTest), () => new NameLookupBenchmark().InitializeAndTest());
+
             Log(nameof(NeedsEncodeBenchmark.InitializeAndTest), () => new NeedsEncodeBenchmark().InitializeAndTest());
 
             Log(nameof(WideRowWriteSyncBenchmark.InitializeAndTest), () => new WideRowWriteSyncBenchmark().InitializeAndTest());
@@ -72,7 +74,7 @@ namespace Cesil.Benchmark
 
             //BenchmarkRunner.Run(typeof(Program).Assembly, config);
 
-            BenchmarkRunner.Run<WideRowDynamicReadSyncBenchmark>(config);
+            BenchmarkRunner.Run<NameLookupBenchmark>(config);
         }
     }
 }

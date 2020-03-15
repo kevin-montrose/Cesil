@@ -734,7 +734,7 @@ namespace Cesil
             // handle serializing our own dynamic types
             if (rowObj is DynamicRow asOwnRow)
             {
-                var cols = asOwnRow.Columns.Value;
+                var cols = asOwnRow.Columns;
 
                 var ret = new DynamicCellValue[cols.Count];
 

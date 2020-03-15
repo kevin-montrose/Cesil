@@ -46,9 +46,9 @@ namespace Cesil
             var index = Cell.ColumnNumber;
 
             var row = Cell.Row;
-            var owner = row.Owner.Value;
+            var owner = row.Owner;
 
-            var col = row.Columns.Value[index];
+            var col = row.Columns[index];
 
             var ctx = ReadContext.ConvertingColumn(owner.Options, row.RowNumber, col, owner.Context);
 

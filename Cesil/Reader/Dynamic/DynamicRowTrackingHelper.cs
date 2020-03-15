@@ -12,8 +12,8 @@
 
             var options = self.Configuration.Options;
             var needsTracking = options.DynamicRowDisposal == DynamicRowDisposal.OnReaderDispose;
-            var isAttached = dynRow.Owner.HasValue;
-            var isAttachedToSelf = isAttached && dynRow.Owner.Value == self;
+            var isAttached = dynRow.HasOwner;
+            var isAttachedToSelf = isAttached && dynRow.Owner == self;
 
             // possible states
             // ---------------
@@ -28,7 +28,9 @@
 
             if (doDetach)
             {
-                dynRow.Owner.Value.Remove(dynRow);
+                dynRow.Owner.Remove(dynRow);
+                dynRow.Owner = EmptyDynamicRowOwner.Singleton;
+                dynRow.HasOwner = false;
             }
 
             if (doAttach)
@@ -36,7 +38,10 @@
                 head.AddHead(ref head, dynRow);
             }
 
-            dynRow.Init(self, self.RowNumber, self.Context, options.TypeDescriber, columnNames, options.MemoryPool);
+            var hasNames = columnNames.HasValue;
+            var names = hasNames ? columnNames.Value : null;
+
+            dynRow.Init(self, self.RowNumber, self.Context, options.TypeDescriber, hasNames, names, options.MemoryPool);
         }
     }
 }

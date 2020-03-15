@@ -11,7 +11,7 @@ namespace Cesil
         internal readonly DynamicRow Row;
         internal readonly int ColumnNumber;
 
-        internal ITypeDescriber Converter => Row.Converter.Value;
+        internal ITypeDescriber Converter => Row.Converter;
 
         public DynamicCell(DynamicRow row, int num)
         {
@@ -37,9 +37,9 @@ namespace Cesil
         {
             var r = SafeRowGet();
 
-            var name = r.Columns.Value[ColumnNumber];
+            var name = r.Columns[ColumnNumber];
 
-            var owner = r.Owner.Value;
+            var owner = r.Owner;
 
             return ReadContext.ReadingColumn(owner.Options, r.RowNumber, name, owner.Context);
         }
@@ -144,13 +144,12 @@ namespace Cesil
             var self = this;
 
             var row = self.Row;
-            var describerNonNull = row.Converter;
-
             row.AssertGenerationMatch(Generation);
-            describer = describerNonNull.Value;
 
-            var owner = row.Owner.Value;
-            var col = row.Columns.Value[ColumnNumber];
+
+            describer = row.Converter;
+            var owner = row.Owner;
+            var col = row.Columns[ColumnNumber];
 
             ctx = ReadContext.ConvertingColumn(owner.Options, row.RowNumber, col, owner.Context);
             data = self.GetDataSpan();

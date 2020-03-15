@@ -140,14 +140,11 @@ namespace Cesil
         {
             var typeConst = Expression.Constant(forType);
             var selfAsRow = Expression.Convert(Expression, Types.DynamicRowType);
-            var converterNonNull = Expression.Field(selfAsRow, Fields.DynamicRow.Converter);
-            var converter = Expression.Call(converterNonNull, Methods.NonNull.OfITypeDescriber.Value);
+            var converter = Expression.Field(selfAsRow, Fields.DynamicRow.Converter);
             var rowNumber = Expression.Field(selfAsRow, Fields.DynamicRow.RowNumber);
-            var columnsNonNull = Expression.Field(selfAsRow, Fields.DynamicRow.Columns);
-            var columns = Expression.Call(columnsNonNull, Methods.NonNull.OfIReadOnlyListOfColumnIdentifier.Value);
+            var columns = Expression.Field(selfAsRow, Fields.DynamicRow.Columns);
             var context = Expression.Field(selfAsRow, Fields.DynamicRow.Context);
-            var ownerNull = Expression.Field(selfAsRow, Fields.DynamicRow.Owner);
-            var owner = Expression.Call(ownerNull, Methods.NonNull.OfIDynamicRowOwner.Value);
+            var owner = Expression.Field(selfAsRow, Fields.DynamicRow.Owner);
             var options = Expression.Call(owner, Methods.IDynamicRowOwner.Options);
 
             var getCtx = Expression.Call(Methods.ReadContext.ConvertingRow, options, rowNumber, context);
@@ -171,12 +168,12 @@ namespace Cesil
                 return new DynamicMetaObject(cast, alwaysRestrictions);
             }
 
-            var converterInterface = Row.Converter.Value;
+            var converterInterface = Row.Converter;
             var index = Row.RowNumber;
 
-            var ctx = ReadContext.ConvertingRow(Row.Owner.Value.Options, index, Row.Context);
+            var ctx = ReadContext.ConvertingRow(Row.Owner.Options, index, Row.Context);
 
-            var converter = converterInterface.GetDynamicRowConverter(in ctx, Row.Columns.Value, retType);
+            var converter = converterInterface.GetDynamicRowConverter(in ctx, Row.Columns, retType);
 
             var restrictions = MakeRestrictions(converter, retType);
 

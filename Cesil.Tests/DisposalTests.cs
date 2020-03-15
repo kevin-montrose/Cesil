@@ -469,9 +469,8 @@ namespace Cesil.Tests
                 {
                     var row = new DynamicRow();
                     var owner = new _FakeOwner();
-                    var cols = new NonNull<string[]>();
-                    cols.Value = new[] { "foo" };
-                    row.Init(owner, 0, null, TypeDescribers.Default, cols, MemoryPool<char>.Shared);
+                    var cols = new[] { "foo" };
+                    row.Init(owner, 0, null, TypeDescribers.Default, true, cols, MemoryPool<char>.Shared);
 
                     return new DynamicRowMemberNameEnumerator(row);
                 }
@@ -1656,7 +1655,7 @@ namespace Cesil.Tests
 
                     var dynRow = row as DynamicRow;
 
-                    var e = dynRow.Columns.Value.GetEnumerator();
+                    var e = dynRow.Columns.GetEnumerator();
 
                     return e;
                 }

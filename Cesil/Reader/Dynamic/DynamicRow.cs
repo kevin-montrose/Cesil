@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using static Cesil.DisposableHelper;
@@ -49,9 +50,9 @@ namespace Cesil
                 var ix = NextIndex;
                 if (ix < Row.Width)
                 {
-                    if (Row.Names.HasValue)
+                    if (Row.HasNames)
                     {
-                        var name = Row.Names.Value[ix];
+                        var name = Row.Names[ix];
                         _Current = ColumnIdentifier.CreateInner(ix, name);
                     }
                     else
@@ -95,14 +96,14 @@ namespace Cesil
             {
                 get
                 {
-                    AssertNotDisposed(Row);
+                    AssertNotDisposedInternal(Row);
 
                     string? colName = null;
 
                     var ix = index;
-                    if (Row.Names.HasValue)
+                    if (Row.HasNames)
                     {
-                        var names = Row.Names.Value;
+                        var names = Row.Names;
                         if (index < names.Length)
                         {
                             colName = names[ix];
@@ -136,22 +137,25 @@ namespace Cesil
 
         public bool IsDisposed { get; private set; }
 
-        private NonNull<MemoryPool<char>> MemoryPool;
+        private MemoryPool<char> MemoryPool;
 
-        internal NonNull<ITypeDescriber> Converter;
+        internal ITypeDescriber Converter;
 
         internal int RowNumber;
 
-        private NonNull<string[]> Names;
+        private bool HasNames;
+        private string[] Names;
 
         private int CurrentDataOffset;
 
-        internal NonNull<IReadOnlyList<ColumnIdentifier>> Columns;
+        internal IReadOnlyList<ColumnIdentifier> Columns;
 
-        internal NonNull<IDynamicRowOwner> Owner;
+        internal bool HasOwner;
+        internal IDynamicRowOwner Owner;
 
         internal object? Context;
 
+        private bool HasData;
         // we store data in here like so:
         //  <front (low address)>
         //    * <index for col #0>
@@ -162,7 +166,8 @@ namespace Cesil
         //    * <data for col #1> = (length) data
         //    * <data for col #0> = (length) data
         //  <back (high address)>
-        private NonNull<IMemoryOwner<char>> Data;
+        private IMemoryOwner<char> Data;
+        private Memory<char> DataMemory;
 
         private NonNull<DynamicRow> _Next;
         ref NonNull<DynamicRow> IIntrusiveLinkedList<DynamicRow>.Next => ref _Next;
@@ -173,6 +178,28 @@ namespace Cesil
         internal DynamicRow()
         {
             IsDisposed = true;
+
+            // we only keep one of these around for the lifetime of this row
+            Columns = new DynamicColumnEnumerable(this);
+
+            // won't ever actually be used, just avoid the null
+            MemoryPool = MemoryPool<char>.Shared;
+
+            // likewise, will be inited before we touch them
+            HasNames = false;
+            Names = Array.Empty<string>();
+
+            // again, no data
+            HasData = false;
+            Data = EmptyMemoryOwner.Singleton;
+            DataMemory = Memory<char>.Empty;
+
+            // nada until we touch it
+            HasOwner = false;
+            Owner = EmptyDynamicRowOwner.Singleton;
+
+            // doesn't matter, it'll get overwritten
+            Converter = TypeDescribers.Default;
         }
 
         internal void Init(
@@ -180,7 +207,8 @@ namespace Cesil
             int rowNumber,
             object? ctx,
             ITypeDescriber converter,
-            NonNull<string[]> names,
+            bool hasNames,
+            string[]? names,
             MemoryPool<char> pool
         )
         {
@@ -189,19 +217,22 @@ namespace Cesil
                 Throw.InvalidOperationException<object>("DynamicRow not in an uninitialized state");
             }
 
-            // keep a single one of these around, but initialize it lazily for consistency
-            if (!Columns.HasValue)
-            {
-                Columns.Value = new DynamicColumnEnumerable(this);
-            }
-
-            Owner.Value = owner;
+            HasOwner = true;
+            Owner = owner;
             RowNumber = rowNumber;
-            Converter.Value = converter;
-            MemoryPool.Value = pool;
+            Converter = converter;
+            MemoryPool = pool;
             Width = 0;
             Context = ctx;
-            Names = names;
+            HasNames = hasNames;
+            if (HasNames)
+            {
+                Names = Utils.NonNull(names);
+            }
+            else
+            {
+                Names = Array.Empty<string>();
+            }
             Generation++;
 
             IsDisposed = false;
@@ -219,13 +250,17 @@ namespace Cesil
 
         internal void SetValue(int index, ReadOnlySpan<char> text)
         {
-            if (!Data.HasValue)
+            AssertNotDisposedInternal(this);
+
+            if (!HasData)
             {
                 var initialSize = Width * CHARS_PER_INT + CharsToStore(text);
 
-                var dataValue = MemoryPool.Value.Rent(initialSize);
-                Data.Value = dataValue;
-                CurrentDataOffset = dataValue.Memory.Length;
+                var dataValue = MemoryPool.Rent(initialSize);
+                HasData = true;
+                Data = dataValue;
+                DataMemory = Data.Memory;
+                CurrentDataOffset = DataMemory.Length;
             }
 
             Width = Math.Max(Width, index + 1);
@@ -236,11 +271,11 @@ namespace Cesil
 
         internal ReadOnlySpan<char> GetDataSpan(int forCellNumber)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             var dataIx = GetDataIndex(forCellNumber);
 
-            var fromOffset = Data.Value.Memory.Span.Slice(dataIx);
+            var fromOffset = DataMemory.Span.Slice(dataIx);
             var asIntSpan = MemoryMarshal.Cast<char, int>(fromOffset);
             var length = asIntSpan[0];
             var fromData = MemoryMarshal.Cast<int, char>(asIntSpan.Slice(1));
@@ -252,7 +287,7 @@ namespace Cesil
 
         internal object? GetAt(int index)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             if (!TryGetIndex(index, out var ret))
             {
@@ -264,7 +299,7 @@ namespace Cesil
 
         internal object? GetByIndex(Index index)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             int actualIndex;
             if (index.IsFromEnd)
@@ -293,7 +328,7 @@ namespace Cesil
 
         internal object? GetByIdentifier(in ColumnIdentifier index)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             if (index.HasName)
             {
@@ -315,7 +350,7 @@ namespace Cesil
 
         internal object? GetByName(string column)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             if (!TryGetValue(column, out var ret))
             {
@@ -327,7 +362,7 @@ namespace Cesil
 
         internal DynamicCell? GetCellAt(int ix)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             var dataIndex = GetDataIndex(ix);
             if (dataIndex == -1)
@@ -340,7 +375,7 @@ namespace Cesil
 
         internal DynamicRow GetRange(Range range)
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             string[]? names;
 
@@ -381,7 +416,7 @@ namespace Cesil
             var width = rawEnd - rawStart;
 
             var newRow = new DynamicRow();
-            if (Names.HasValue)
+            if (HasNames)
             {
                 if (width == 0)
                 {
@@ -389,7 +424,7 @@ namespace Cesil
                 }
                 else
                 {
-                    var namesValue = Names.Value;
+                    var namesValue = Names;
 
                     names = new string[width];
 
@@ -407,10 +442,7 @@ namespace Cesil
                 names = null;
             }
 
-            var namesNonNull = new NonNull<string[]>();
-            namesNonNull.SetAllowNull(names);
-
-            newRow.Init(Owner.Value, RowNumber, Context, Converter.Value, namesNonNull, MemoryPool.Value);
+            newRow.Init(Owner, RowNumber, Context, Converter, HasNames, names, MemoryPool);
 
             // todo: it would be _nice_ to avoid a copy here
             //   we might be able to, if we are informed when THIS
@@ -427,7 +459,7 @@ namespace Cesil
                 copyFrom++;
             }
 
-            if (Owner.HasValue)
+            if (HasOwner)
             {
                 // by definition, the new row won't be the head, so we can skip the tricks needed for an empty list
                 this.AddAfter(newRow);
@@ -438,16 +470,16 @@ namespace Cesil
 
         internal ReadContext GetReadContext()
         {
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
-            var owner = Owner.Value;
+            var owner = Owner;
 
             return ReadContext.ConvertingRow(owner.Options, RowNumber, owner.Context);
         }
 
         private bool TryGetIndex(int index, out object? result)
         {
-            var maxWidth = Math.Max(Width, Owner.Value.MinimumExpectedColumns);
+            var maxWidth = Math.Max(Width, Owner.MinimumExpectedColumns);
             
             if (index < 0 || index >= maxWidth)
             {
@@ -467,9 +499,10 @@ namespace Cesil
 
         private bool TryGetValue(string lookingFor, out object? result)
         {
-            if (Names.HasValue)
+            if (HasNames)
             {
-                var namesVal = Names.Value;
+                // todo: this O(N) junk isn't gonna cut it, find a faster way
+                var namesVal = Names;
                 for (var i = 0; i < namesVal.Length; i++)
                 {
                     if (namesVal[i]?.Equals(lookingFor) ?? false)
@@ -493,6 +526,7 @@ namespace Cesil
         private static int CharsToStore(ReadOnlySpan<char> text)
         => text.Length + CHARS_PER_INT;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private uint DataOffsetForStorage(int offset)
         {
             // increment by 1 so we can distinguish set and not 0
@@ -502,6 +536,7 @@ namespace Cesil
             return asUint;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int StorageToDataOffset(uint stored)
         {
             if (stored == 0)
@@ -515,7 +550,7 @@ namespace Cesil
 
         private void StoreDataIndex(int atIndex, int dataIx)
         {
-            var dataSpan = Data.Value.Memory.Span;
+            var dataSpan = DataMemory.Span;
             var dataUIntSpan = MemoryMarshal.Cast<char, uint>(dataSpan);
 
             dataUIntSpan[atIndex] = DataOffsetForStorage(dataIx);
@@ -523,7 +558,7 @@ namespace Cesil
 
         private int GetDataIndex(int atIndex)
         {
-            if (!Data.HasValue)
+            if (!HasData)
             {
                 // nothing has been stored
                 return -1;
@@ -535,7 +570,7 @@ namespace Cesil
                 return -1;
             }
 
-            var dataSpan = Data.Value.Memory.Span;
+            var dataSpan = DataMemory.Span;
             var dataUIntSpan = MemoryMarshal.Cast<char, uint>(dataSpan);
 
             var storageOffset = dataUIntSpan[atIndex];
@@ -545,9 +580,9 @@ namespace Cesil
 
         private void ResizeData(int minSize)
         {
-            var dataValue = Data.Value;
+            var dataValue = Data;
 
-            var newData = MemoryPool.Value.Rent(minSize);
+            var newData = MemoryPool.Rent(minSize);
             var diff = newData.Memory.Length - dataValue.Memory.Length;
 
             // move all the offsets forward by the size change
@@ -574,13 +609,15 @@ namespace Cesil
 
             // update references
             CurrentDataOffset = newCurrentOffset;
-            Data.Value = newData;
+            HasData = true;
+            Data = newData;
+            DataMemory = Data.Memory;
         }
 
         private void StoreDataSpan(ReadOnlySpan<char> data)
         {
 checkSize:
-            var dataValue = Data.Value;
+            var dataValue = Data;
 
             var desiredInsertionIx = CurrentDataOffset - CharsToStore(data) - 1;
             var dataOffsetStopIx = Width * CHARS_PER_INT;
@@ -603,7 +640,11 @@ checkSize:
         }
 
         internal bool IsSet(int ix)
-        => GetDataIndex(ix) != -1;
+        {
+            AssertNotDisposedInternal(this);
+
+            return GetDataIndex(ix) != -1;
+        }
 
         internal void AssertGenerationMatch(uint gen)
         {
@@ -618,16 +659,19 @@ checkSize:
             if (!IsDisposed)
             {
                 CurrentDataOffset = -1;
-                if (Data.HasValue)
+                if (HasData)
                 {
-                    Data.Value.Dispose();
+                    Data.Dispose();
                 }
 
                 Context = null;
 
-                Data.Clear();
-                Names.Clear();
-                MemoryPool.Clear();
+                HasData = false;
+                Data = EmptyMemoryOwner.Singleton;
+                DataMemory = Memory<char>.Empty;
+                HasNames = false;
+                Names = Array.Empty<string>();
+                MemoryPool = MemoryPool<char>.Shared;
 
                 // important, not clearing Owner, _Next, or Previous here ; doing so will break ownership and disposal management
 

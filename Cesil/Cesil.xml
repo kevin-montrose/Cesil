@@ -1556,6 +1556,37 @@
             comment lines.
             </summary>
         </member>
+        <member name="T:Cesil.NameLookup">
+            <summary>
+            This is basically an adaptive radix tree, laid out in memory.
+            
+            For some number of strings, each unique prefix is 
+              found, and then sorted, and then stored in a Memory(char).
+            
+            After each prefix an offset is stored, which identifes the start
+              of the branch to take.
+            
+            So if you have prefixes: foo, fizz, bar, bazz
+            
+            Unique prefixes are: f, ba
+            Sorted they are: ba, f
+            
+            In memory we store (as chars)
+            1,             2,          b,     a,   X             1,          f      X
+            ^              ^           ^      ^    ^             ^           ^      ^
+            # prefixes - 1 |           |      |    |             |           |      |
+                           len prefix  |      |    |             |           |      |
+                                       char   char |             |           |      |
+                                                   offset branch |           |      |
+                                                                 len prefix  char   offset branch
+                                                             
+            If the offset is zero or positive, then we've hit a leaf and it's a value.
+            If the offset is negative, than we jump ahead the absolute value of the offset
+              to get to the next branch.
+              
+            We store # of prefixes - 1, since there will always be at least one prefix.
+            </summary>
+        </member>
         <member name="T:Cesil.RowConstructor">
             <summary>
             Handles gluing InstanceProviders and Setters together for constructing an object.

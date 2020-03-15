@@ -3,6 +3,8 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 
 namespace Cesil
 {
@@ -107,7 +109,7 @@ namespace Cesil
         // check if reading into arg is going to do something "weird" because it's a known immutable collection
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static void CheckImmutableReadInto<TCollection, TItem>(TCollection arg, string argName)
-            where TCollection: ICollection<TItem>
+            where TCollection : ICollection<TItem>
         {
             var isImmutable =
                 arg is ImmutableArray<TItem> ||
@@ -297,65 +299,87 @@ tryAgain:
         private const int CHARS_PER_LONG = sizeof(long) / sizeof(char);
         private const int CHARS_PER_INT = sizeof(int) / sizeof(char);
 
+        internal static unsafe bool AreEqual(ReadOnlySpan<char> a, ReadOnlySpan<char> b)
+        {
+            var aLen = a.Length;
+            var bLen = b.Length;
+            if (aLen != bLen) return false;
+
+            fixed (void* aPtr = a)
+            fixed (void* bPtr = b)
+            {
+                return AreEqual(aLen, aPtr, bPtr);
+            }
+        }
+
         internal static unsafe bool AreEqual(ReadOnlyMemory<char> a, ReadOnlyMemory<char> b)
         {
-            if (a.Length != b.Length) return false;
-
-            var longCount = a.Length / CHARS_PER_LONG;
-            var leftOverAfterLong = a.Length % CHARS_PER_LONG;
-            var hasLeftOverInt = leftOverAfterLong >= CHARS_PER_INT;
-            var leftOverAfterInt = leftOverAfterLong % CHARS_PER_INT;
-            var hasLeftOverChar = leftOverAfterInt != 0;
+            var aLen = a.Length;
+            var bLen = b.Length;
+            if (aLen != bLen) return false;
 
             using (var aPin = a.Pin())
             using (var bPin = b.Pin())
             {
-                var aPtrL = (long*)aPin.Pointer;
-                var bPtrL = (long*)bPin.Pointer;
+                return AreEqual(aLen, aPin.Pointer, bPin.Pointer);
+            }
+        }
 
-                for (var i = 0; i < longCount; i++)
+        internal static unsafe bool AreEqual(int length, void* aPtr, void* bPtr)
+        {
+            if (length == 0) return true;
+
+            var longCount = length / CHARS_PER_LONG;
+            var leftOverAfterLong = length % CHARS_PER_LONG;
+            var hasLeftOverInt = leftOverAfterLong >= CHARS_PER_INT;
+            var leftOverAfterInt = leftOverAfterLong % CHARS_PER_INT;
+            var hasLeftOverChar = leftOverAfterInt != 0;
+
+            var aPtrL = (long*)aPtr;
+            var bPtrL = (long*)bPtr;
+
+            for (var i = 0; i < longCount; i++)
+            {
+                var aL = *aPtrL;
+                var bL = *bPtrL;
+
+                if (aL != bL)
                 {
-                    var aL = *aPtrL;
-                    var bL = *bPtrL;
-
-                    if (aL != bL)
-                    {
-                        return false;
-                    }
-
-                    aPtrL++;
-                    bPtrL++;
+                    return false;
                 }
 
-                var aPtrI = (int*)aPtrL;
-                var bPtrI = (int*)bPtrL;
+                aPtrL++;
+                bPtrL++;
+            }
 
-                if (hasLeftOverInt)
+            var aPtrI = (int*)aPtrL;
+            var bPtrI = (int*)bPtrL;
+
+            if (hasLeftOverInt)
+            {
+                var aI = *aPtrI;
+                var bI = *bPtrI;
+
+                if (aI != bI)
                 {
-                    var aI = *aPtrI;
-                    var bI = *bPtrI;
-
-                    if (aI != bI)
-                    {
-                        return false;
-                    }
-
-                    aPtrI++;
-                    bPtrI++;
+                    return false;
                 }
 
-                if (hasLeftOverChar)
+                aPtrI++;
+                bPtrI++;
+            }
+
+            if (hasLeftOverChar)
+            {
+                var aPtrC = (char*)aPtrI;
+                var bPtrC = (char*)bPtrI;
+
+                var aC = *aPtrC;
+                var bC = *bPtrC;
+
+                if (aC != bC)
                 {
-                    var aPtrC = (char*)aPtrI;
-                    var bPtrC = (char*)bPtrI;
-
-                    var aC = *aPtrC;
-                    var bC = *bPtrC;
-
-                    if (aC != bC)
-                    {
-                        return false;
-                    }
+                    return false;
                 }
             }
 
@@ -553,7 +577,7 @@ tryAgain:
         {
             var subset = span.Slice(start);
 
-            fixed(char* subsetPtr = subset)
+            fixed (char* subsetPtr = subset)
             {
                 var ret = config.NeedsEncode.ContainsCharRequiringEncoding(subsetPtr, subset.Length);
 

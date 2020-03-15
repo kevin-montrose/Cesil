@@ -20,7 +20,7 @@ namespace Cesil
             {
                 AssertNotDisposed(this);
                 Inner.AssertGenerationMatch(Generation);
-                return Inner.Columns.Value[Index].Name;
+                return Inner.Columns[Index].Name;
             }
         }
 
@@ -38,7 +38,7 @@ namespace Cesil
             AssertNotDisposed(this);
             Inner.AssertGenerationMatch(Generation);
 
-            var columnsValue = Inner.Columns.Value;
+            var columnsValue = Inner.Columns;
 
             if (Index >= columnsValue.Count)
             {

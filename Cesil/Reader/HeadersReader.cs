@@ -197,7 +197,7 @@ namespace Cesil
             RowEnding rowEndingOverride
         )
         {
-            System.Diagnostics.Debug.WriteLineIf(LogConstants.LOG_STATE_TRANSITION, $"New {nameof(HeadersReader<T>)}");
+            System.Diagnostics.Debug.WriteLineIf(LogConstants.STATE_TRANSITION, $"New {nameof(HeadersReader<T>)}");
 
             Inner.SetAllowNull(inner);
             InnerAsync.SetAllowNull(innerAsync);
@@ -455,7 +455,7 @@ finish:
 
                 var res = StateMachine.Advance(c);
 
-                System.Diagnostics.Debug.WriteLineIf(LogConstants.LOG_STATE_TRANSITION, $"{StateMachine.CurrentState} + {c} => {StateMachine.CurrentState } & {res}");
+                System.Diagnostics.Debug.WriteLineIf(LogConstants.STATE_TRANSITION, $"{StateMachine.CurrentState} + {c} => {StateMachine.CurrentState } & {res}");
 
                 if (res == ReaderStateMachine.AdvanceResult.Append_Character)
                 {
