@@ -900,9 +900,18 @@ namespace Cesil.Tests
                 else if (t == typeof(AsyncEnumerableAdapter<>))
                 {
                     msg = InvokeToString_AsyncEnumerableAdapter();
-                } else if(t == typeof(EmptyMemoryOwner))
+                }
+                else if (t == typeof(EmptyMemoryOwner))
                 {
                     msg = InvokeToString_EmptyMemoryOwner();
+                }
+                else if (t == typeof(PassthroughRowEnumerable))
+                {
+                    msg = InvokeToString_PassthroughRowEnumerable();
+                }
+                else if (t == typeof(PassthroughRowEnumerator))
+                {
+                    msg = InvokeToString_PassthroughRowEnumerator();
                 }
                 else
                 {
@@ -927,6 +936,38 @@ namespace Cesil.Tests
                 if (msg2 != null)
                 {
                     Assert.StartsWith(shouldStartWith, msg2);
+                }
+            }
+
+            static string InvokeToString_PassthroughRowEnumerable()
+            {
+                var config = Configuration.ForDynamic(Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions());
+
+                using (var str = new StringReader("foo"))
+                using (var csv = config.CreateReader(str))
+                {
+                    var res = csv.ReadAll();
+                    IEnumerable<dynamic> row = res[0];
+                    var p = (PassthroughRowEnumerable)row;
+
+                    return p.ToString();
+                }
+            }
+
+            static string InvokeToString_PassthroughRowEnumerator()
+            {
+                var config = Configuration.ForDynamic(Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions());
+
+                using (var str = new StringReader("foo"))
+                using (var csv = config.CreateReader(str))
+                {
+                    var res = csv.ReadAll();
+                    IEnumerable<dynamic> row = res[0];
+                    var p = (PassthroughRowEnumerable)row;
+                    var e = p.GetEnumerator();
+                    var ee = (PassthroughRowEnumerator)e;
+
+                    return ee.ToString();
                 }
             }
 
