@@ -239,7 +239,6 @@ namespace Cesil.Benchmark
                     Array = Names.ToArray();
                     break;
                 case nameof(Cesil.NameLookup):
-                case nameof(Cesil.NameLookup) + "Unsafe":
                     NameLookup = NameLookup.Create(Names, MemoryPool<char>.Shared);
                     break;
                 default:

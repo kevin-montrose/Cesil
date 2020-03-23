@@ -536,12 +536,22 @@ namespace Cesil
             return -asShort;
         }
 
-        // distinguises between offsets adn values
+        // distinguises between offsets and values
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal bool IsOffset(char c)
+        internal static bool IsOffset(char c)
         {
             var asShort = (short)c;
 
+            return asShort < 0;
+        }
+
+        // unwraps a combo offset/value slot 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static bool UnwrapOffsetOrValue(char c, out int offsetOrValue)
+        {
+            var asShort = (short)c;
+
+            offsetOrValue = Math.Abs(asShort);
             return asShort < 0;
         }
 

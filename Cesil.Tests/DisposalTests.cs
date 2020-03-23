@@ -149,16 +149,22 @@ namespace Cesil.Tests
                 {
                     // intentionally NOT testing, these are all just proxies for RequireSet and aren't really disposable
                 }
-                else if(t == typeof(UnmanagedLookupArray<>))
+                else if (t == typeof(UnmanagedLookupArray<>))
                 {
                     IDisposable_UnmanagedLookupArray();
                 }
                 else if (t == typeof(EmptyMemoryOwner))
                 {
                     // intentionally NOT testing, the empty owner has no resources to release but has to 
-                } else if(t == typeof(PassthroughRowEnumerator))
+                }
+                else if (t == typeof(PassthroughRowEnumerator))
                 {
                     IDisposable_PassthroughRowEnumerator();
+                }
+                else if(t == typeof(NameLookup))
+                {
+                    // intentionally NOT testing, this is ref counted so this
+                    //   test wouldn't be sufficient
                 }
                 else
                 {

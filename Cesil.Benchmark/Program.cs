@@ -72,9 +72,7 @@ namespace Cesil.Benchmark
                 )
             );
 
-            //BenchmarkRunner.Run(typeof(Program).Assembly, config);
-
-            BenchmarkRunner.Run<NameLookupBenchmark>(config);
+            BenchmarkRunner.Run(typeof(Program).Assembly, config);
         }
     }
 }
