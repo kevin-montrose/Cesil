@@ -484,7 +484,7 @@ namespace Cesil
         internal static char ToPrefixCount(int count)
         {
             // offset will always be >= 1
-            Debug.Assert(count > 0, $"PrefixCount out of range: {count}");
+            Debug.Assert(count >= 1, $"PrefixCount out of range: {count}");
 
             ushort asUShort;
             checked
