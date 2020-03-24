@@ -42,17 +42,7 @@ namespace Cesil
         {
             var retType = binder.ReturnType.GetTypeInfo();
 
-            var converterInterface = Cell.Converter;
-            var index = Cell.ColumnNumber;
-
-            var row = Cell.Row;
-            var owner = row.Owner;
-
-            var col = row.Columns[index];
-
-            var ctx = ReadContext.ConvertingColumn(owner.Options, row.RowNumber, col, owner.Context);
-
-            var parser = converterInterface.GetDynamicCellParserFor(in ctx, retType);
+            var parser = Cell.GetParser(retType, out _);
             var restrictions = MakeRestrictions(parser, retType);
 
             if (parser == null)

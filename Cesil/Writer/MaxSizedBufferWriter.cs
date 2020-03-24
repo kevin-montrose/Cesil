@@ -8,6 +8,7 @@ namespace Cesil
     // An implementation of IBufferWriter that will _never_ 
     //   (baring OOM or max allocation size constraints) return
     //   a Memory or Span smaller than the given sizeHint.
+    [DoesNotEscape("Used as an internal member on WriterBase (which is Buffer)")]
     internal sealed class MaxSizedBufferWriter : IBufferWriter<char>, ITestableDisposable
     {
         internal const int DEFAULT_STAGING_SIZE = (4098 - 8) / sizeof(char);

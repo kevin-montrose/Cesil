@@ -5,6 +5,9 @@ using System.Reflection;
 
 namespace Cesil
 {
+    // todo: can we move the AssertNotDisposedXXXs here to the generated expressions?
+    //       will make it harder to double-dip on them
+
     internal sealed class DynamicCell : IDynamicMetaObjectProvider, IConvertible
     {
         internal readonly uint Generation;
@@ -20,16 +23,6 @@ namespace Cesil
             ColumnNumber = num;
         }
 
-        internal object? CoerceTo(TypeInfo toType)
-        {
-            var mtd = Methods.DynamicCell.CastTo.MakeGenericMethod(toType);
-
-            return mtd.Invoke(this, Array.Empty<object>());
-        }
-
-        internal T CastTo<T>()
-        => (T)(dynamic)this;
-
         internal ReadOnlySpan<char> GetDataSpan()
         => SafeRowGet().GetDataSpan(ColumnNumber);
 
@@ -42,6 +35,21 @@ namespace Cesil
             var owner = r.Owner;
 
             return ReadContext.ReadingColumn(owner.Options, r.RowNumber, name, owner.Context);
+        }
+
+        internal Parser? GetParser(TypeInfo forType, out ReadContext ctx)
+        {
+            var row = Row;
+            var owner = row.Owner;
+            var index = ColumnNumber;
+            var converterInterface = Converter;
+
+            var col = row.Columns[index];
+
+            ctx = ReadContext.ConvertingColumn(owner.Options, row.RowNumber, col, owner.Context);
+
+            var parser = converterInterface.GetDynamicCellParserFor(in ctx, forType);
+            return parser;
         }
 
         public DynamicMetaObject GetMetaObject(Expression exp)
@@ -116,6 +124,9 @@ namespace Cesil
             {
                 if (p == null) return false;
 
+                // we can't cache these because converter may not be the default type converter
+                //   thus we can't use any of the ICreatesCacheableDelegate infrastructure
+                //   that we use in other dynamic dispatch
                 var parserDel = MakeFromParser<T>(p);
 
                 return parserDel(data, in ctx, out _);

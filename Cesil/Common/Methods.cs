@@ -20,7 +20,6 @@ namespace Cesil
             public static readonly MethodInfo Converter = Types.DynamicCellType.GetPropertyNonNull(nameof(Cesil.DynamicCell.Converter), BindingFlags.Instance | BindingFlags.NonPublic).GetGetMethodNonNull();
             public static readonly MethodInfo GetDataSpan = Types.DynamicCellType.GetMethodNonNull(nameof(Cesil.DynamicCell.GetDataSpan), BindingFlags.Instance | BindingFlags.NonPublic);
             public static readonly MethodInfo GetReadContext = Types.DynamicCellType.GetMethodNonNull(nameof(Cesil.DynamicCell.GetReadContext), BindingFlags.Instance | BindingFlags.NonPublic);
-            public static readonly MethodInfo CastTo = Types.DynamicCellType.GetMethodNonNull(nameof(Cesil.DynamicCell.CastTo), BindingFlags.Instance | BindingFlags.NonPublic);
         }
 
         internal static class Throw

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit;
@@ -16,6 +17,104 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class DisposalTests
     {
+        private static IEnumerable<TypeInfo> ShouldThrowOnUseAfterDispose<TDisposeInterface>()
+        {
+            var disposeI = typeof(TDisposeInterface).GetTypeInfo();
+            if(!disposeI.IsInterface)
+            {
+                throw new Exception();
+            }
+
+            var cesilAssembly = typeof(Options).Assembly;
+            var cesilTypes = cesilAssembly.GetTypes().Select(t => t.GetTypeInfo()).ToList();
+
+            var concreteTypes =
+                cesilTypes
+                    .Where(t => !t.IsInterface)
+                    .Where(t => !t.IsAbstract)
+                    .Where(t => !t.Name.Contains("<"))  // filter out compiler generated classes
+                    .ToList();
+
+            var cesilPublicInterfaces =
+                cesilTypes
+                    .Where(t => t.IsPublic)
+                    .Where(t => t.IsInterface)
+                    .Where(t => !t.Name.Contains("<"))  // filter out compiler generated classes
+                    .ToHashSet();
+
+            var ret = new List<TypeInfo>();
+
+            foreach(var t in concreteTypes)
+            {
+                var implementedInterfaces = t.ImplementedInterfaces;
+                if(!implementedInterfaces.Any(i => i == disposeI))
+                {
+                    continue;
+                }
+
+#if RELEASE
+                // Only types that are either public or leak out wrapped in public interfaces (either from System
+                //   or Cesil) need to be checked.
+                //
+                // In DEBUG builds we check for use-after-dispose in all types, but that's a nasty perf
+                //   penalty for RELEASE (and DEBUG tests should flush out these bugs anyway).
+                //
+                // Famous last words I know.
+
+                var isPublic = t.IsPublic;
+                var implementsSystemInterface = 
+                    implementedInterfaces.Any(
+                        i =>
+                        {
+                            if (i == disposeI) return false;
+
+                            TypeInfo iGen;
+
+                            if(i.IsConstructedGenericType)
+                            {
+                                iGen = i.GetGenericTypeDefinition().GetTypeInfo();
+                            }
+                            else
+                            {
+                                iGen = i.GetTypeInfo();
+                            }
+
+                            return iGen.FullName.StartsWith("System.");
+                        }
+                    );
+                var implementsCesilInterface =
+                    implementedInterfaces.Any(
+                        i =>
+                        {
+                            TypeInfo iGen;
+
+                            if (i.IsConstructedGenericType)
+                            {
+                                iGen = i.GetGenericTypeDefinition().GetTypeInfo();
+                            }
+                            else
+                            {
+                                iGen = i.GetTypeInfo();
+                            }
+
+                            return cesilPublicInterfaces.Contains(iGen);
+                        }
+                    );
+                var doesNotEscape = t.GetCustomAttribute<DoesNotEscapeAttribute>() != null;
+
+                var shouldInclude = (isPublic || implementsSystemInterface || implementsCesilInterface) && !doesNotEscape;
+                if(!shouldInclude)
+                {
+                    continue;
+                }
+#endif
+
+                ret.Add(t);
+            }
+
+            return ret;
+        }
+
         private sealed class _FakeOwner : IDynamicRowOwner
         {
             public Options Options { get; set; }
@@ -34,13 +133,7 @@ namespace Cesil.Tests
         [Fact]
         public void IDisposable()
         {
-            var implementors =
-                typeof(Options).Assembly
-                    .GetTypes()
-                    .Where(t => t.GetInterfaces().Any(x => x == typeof(IDisposable)))
-                    .Where(t => !t.IsInterface)
-                    .Where(t => !t.IsAbstract)
-                    .Where(t => !t.Name.Contains("<")); // exclude compiler generated classes, let's assume they get it right?
+            var implementors = ShouldThrowOnUseAfterDispose<IDisposable>();
 
             foreach (var t in implementors)
             {
@@ -1671,13 +1764,7 @@ namespace Cesil.Tests
         [Fact]
         public async Task IAsyncDisposable()
         {
-            var implementors =
-                typeof(Options).Assembly
-                    .GetTypes()
-                    .Where(t => t.GetInterfaces().Any(x => x == typeof(IAsyncDisposable)))
-                    .Where(t => !t.IsInterface)
-                    .Where(t => !t.IsAbstract)
-                    .Where(t => !t.Name.Contains("<")); // exclude compiler generated classes, let's assume they get it right?
+            var implementors = ShouldThrowOnUseAfterDispose<IAsyncDisposable>();
 
             foreach (var t in implementors)
             {

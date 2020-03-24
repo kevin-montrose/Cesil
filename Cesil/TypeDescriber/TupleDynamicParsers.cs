@@ -59,8 +59,26 @@ namespace Cesil
                     return Throw.InvalidOperationException<object[]>("Unexpected null value in dynamic row cell");
                 }
 
-                var val = cell.CoerceTo(colTypes[i]);
-                ret[i] = val;
+                var colType = colTypes[i];
+
+                var parser = cell.GetParser(colType, out var ctx);
+                if (parser == null)
+                {
+                    return Throw.InvalidOperationException<object[]>($"No parser found to convert cell at index={i} to {colType}");
+                }
+
+                var del = (ICreatesCacheableDelegate<Parser.DynamicParserDelegate>)parser;
+
+                del.Guarantee(DefaultTypeDescriberDelegateCache.Instance);
+                var r = del.CachedDelegate.Value;
+
+                var data = cell.GetDataSpan();
+                if(!r(data, ctx, out var res))
+                {
+                    return Throw.InvalidOperationException<object[]>($"{nameof(Parser)} {parser} returned false");
+                }
+
+                ret[i] = res;
 
 end:
                 i++;

@@ -18,8 +18,11 @@ namespace Cesil
     /// </summary>
     public sealed class Parser :
         IElseSupporting<Parser>,
-        IEquatable<Parser>
+        IEquatable<Parser>,
+        ICreatesCacheableDelegate<Parser.DynamicParserDelegate>
     {
+        internal delegate bool DynamicParserDelegate(ReadOnlySpan<char> data, in ReadContext context, out object result);
+
         // internal for testing purposes
         internal static readonly IReadOnlyDictionary<TypeInfo, Parser> TypeParsers;
 
@@ -63,6 +66,9 @@ namespace Cesil
         private readonly ImmutableArray<Parser> _Fallbacks;
         ImmutableArray<Parser> IElseSupporting<Parser>.Fallbacks => _Fallbacks;
 
+        private NonNull<DynamicParserDelegate> _CachedDelegate;
+        ref NonNull<DynamicParserDelegate> ICreatesCacheableDelegate<DynamicParserDelegate>.CachedDelegate => ref _CachedDelegate;
+
         private Parser(MethodInfo method, TypeInfo creates, ImmutableArray<Parser> fallbacks)
         {
             Method.Value = method;
@@ -89,6 +95,35 @@ namespace Cesil
             Creates = cons.DeclaringTypeNonNull();
             _Fallbacks = fallbacks;
         }
+
+        DynamicParserDelegate ICreatesCacheableDelegate<DynamicParserDelegate>.CreateDelegate()
+        {
+            var spanVar = Expressions.Parameter_ReadOnlySpanOfChar;
+            var ctxVar = Expressions.Parameter_ReadContext_ByRef;
+            var outObjVar = Expressions.Parameter_Object_ByRef;
+            var outCreatesVar = Expression.Variable(Creates);
+            var resVar = Expressions.Variable_Bool;
+
+            var exp = MakeExpression(spanVar, ctxVar, outCreatesVar);
+            var assignToRes = Expression.Assign(resVar, exp);
+
+            var boxCreates = Expression.Convert(outCreatesVar, Types.ObjectType);
+            var assignOutObj = Expression.Assign(outObjVar, boxCreates);
+
+            var setOutDefault = Expression.Assign(outObjVar, Expressions.Constant_Null);
+
+            var ifSetOrClear = Expression.IfThenElse(resVar, assignOutObj, setOutDefault);
+
+            var body = Expression.Block(new[] { resVar, outCreatesVar }, assignToRes, ifSetOrClear, resVar);
+
+            var lambda = Expression.Lambda<DynamicParserDelegate>(body, spanVar, ctxVar, outObjVar);
+            var del = lambda.Compile();
+
+            return del;
+        }
+
+        void ICreatesCacheableDelegate<DynamicParserDelegate>.Guarantee(IDelegateCache cache)
+        => IDelegateCacheHelpers.GuaranteeImpl<Parser, DynamicParserDelegate>(this, cache);
 
         Parser IElseSupporting<Parser>.Clone(ImmutableArray<Parser> newFallbacks)
         {

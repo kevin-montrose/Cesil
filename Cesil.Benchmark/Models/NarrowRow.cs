@@ -251,8 +251,8 @@ tryAgain:
             return new Guid(buff);
         }
 
-        private static T CreateDate<T>(Random r, Func<int, int, int, int, int, int, T> maker)
-            where T : struct
+        private static V CreateDate<V>(Random r, Func<int, int, int, int, int, int, V> maker)
+            where V : struct
         {
             var years = Enumerable.Range(0, 9999);
             var months = Enumerable.Range(1, 12);
@@ -278,8 +278,8 @@ tryAgain:
             }
         }
 
-        private static T? CreateNullableDate<T>(Random r, Func<int, int, int, int, int, int, T> maker)
-            where T : struct
+        private static V? CreateNullableDate<V>(Random r, Func<int, int, int, int, int, int, V> maker)
+            where V : struct
         {
             var n = r.Next(2);
             if (n == 1) return null;

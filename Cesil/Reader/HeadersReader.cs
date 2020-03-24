@@ -10,14 +10,12 @@ using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
+    [DoesNotEscape("Only ever used as a local or parameter in method (though some async methods)")]
     internal sealed partial class HeadersReader<T> : ITestableDisposable
     {
-#if DEBUG
-        private const bool LOG_STATE_TRANSITION = true;
-#endif
-
         private const int LENGTH_SIZE = sizeof(uint) / sizeof(char);
 
+        [DoesNotEscape("Only ever used as a local or parameter in method (though some async methods)")]
         internal struct HeaderEnumerator : IEnumerator<ReadOnlyMemory<char>>, ITestableDisposable
         {
             internal readonly int Count;

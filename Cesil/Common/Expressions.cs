@@ -9,13 +9,11 @@ namespace Cesil
         internal static readonly ParameterExpression Parameter_WriteContext_ByRef = Expression.Parameter(Types.WriteContextType.MakeByRefType());
         internal static readonly ParameterExpression Parameter_Object = Expression.Parameter(Types.ObjectType);
         internal static readonly ParameterExpression Parameter_IBufferWriterOfChar = Expression.Parameter(Types.IBufferWriterOfCharType);
+        internal static readonly ParameterExpression Parameter_Object_ByRef = Expression.Parameter(Types.ObjectType.MakeByRefType());
 
         internal static readonly ConstantExpression Constant_True = Expression.Constant(true);
         internal static readonly ConstantExpression Constant_False = Expression.Constant(false);
         internal static readonly ConstantExpression Constant_Null = Expression.Constant(null, Types.ObjectType);
-
-        internal static readonly DefaultExpression Default_Bool = Expression.Default(Types.BoolType);
-        internal static readonly DefaultExpression Default_Object = Expression.Default(Types.ObjectType);
 
         internal static readonly ParameterExpression Variable_Bool = Expression.Variable(Types.BoolType);
         internal static readonly ParameterExpression Variable_ReadOnlySpanOfChar = Expression.Variable(Types.ReadOnlySpanOfCharType);

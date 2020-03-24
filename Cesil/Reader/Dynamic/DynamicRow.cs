@@ -11,6 +11,9 @@ using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
+    // todo: can we move the AssertNotDisposedXXXs here to the generated expressions?
+    //       will make it harder to double-dip on them
+
     internal sealed class DynamicRow : IDynamicMetaObjectProvider, ITestableDisposable, IIntrusiveLinkedList<DynamicRow>
     {
         internal sealed class DynamicColumnEnumerator : IEnumerator<ColumnIdentifier>, ITestableDisposable
@@ -271,7 +274,8 @@ namespace Cesil
 
         internal ReadOnlySpan<char> GetDataSpan(int forCellNumber)
         {
-            AssertNotDisposedInternal(this);
+            // calle dvia DynamicCell
+            AssertNotDisposed(this);
 
             var dataIx = GetDataIndex(forCellNumber);
 
@@ -287,7 +291,8 @@ namespace Cesil
 
         internal object? GetAt(int index)
         {
-            AssertNotDisposedInternal(this);
+            // called via DynamicRowMetaObject
+            AssertNotDisposed(this);
 
             if (!TryGetIndex(index, out var ret))
             {
@@ -299,7 +304,8 @@ namespace Cesil
 
         internal object? GetByIndex(Index index)
         {
-            AssertNotDisposedInternal(this);
+            // called via DynamicRowMetaObject
+            AssertNotDisposed(this);
 
             int actualIndex;
             if (index.IsFromEnd)
@@ -328,7 +334,8 @@ namespace Cesil
 
         internal object? GetByIdentifier(in ColumnIdentifier index)
         {
-            AssertNotDisposedInternal(this);
+            // called via DynamicRowMetaObject
+            AssertNotDisposed(this);
 
             if (index.HasName)
             {
@@ -350,7 +357,8 @@ namespace Cesil
 
         internal object? GetByName(string column)
         {
-            AssertNotDisposedInternal(this);
+            // called via DynamicRowMetaObject
+            AssertNotDisposed(this);
 
             if (!TryGetValue(column, out var ret))
             {
@@ -375,7 +383,8 @@ namespace Cesil
 
         internal DynamicRow GetRange(Range range)
         {
-            AssertNotDisposedInternal(this);
+            // called via DynamicRowMetaObject
+            AssertNotDisposed(this);
 
             string[]? names;
 
@@ -470,7 +479,8 @@ namespace Cesil
 
         internal ReadContext GetReadContext()
         {
-            AssertNotDisposedInternal(this);
+            // called via DynamicRowMetaObject
+            AssertNotDisposed(this);
 
             var owner = Owner;
 
