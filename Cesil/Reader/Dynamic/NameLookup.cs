@@ -545,16 +545,6 @@ namespace Cesil
             return asShort < 0;
         }
 
-        // unwraps a combo offset/value slot 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool UnwrapOffsetOrValue(char c, out int offsetOrValue)
-        {
-            var asShort = (short)c;
-
-            offsetOrValue = Math.Abs(asShort);
-            return asShort < 0;
-        }
-
         // prefix lengths are stored as (char)len
         //   and always interpreted as unsigned
         // nothing fancy, except we always expect
