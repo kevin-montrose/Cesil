@@ -15,7 +15,7 @@ namespace Cesil
 
         private sealed class Node
         {
-            public static readonly Node EmptyNode = new Node(true);
+            internal static readonly Node EmptyNode = new Node(true);
 
             internal IMemoryOwner<char> Owner;
             internal Memory<char> Allocation;
@@ -33,12 +33,12 @@ namespace Cesil
                 HasNext = false;
                 BytesUsed = 0;
 
-                Next = isEmpty? this : EmptyNode;
+                Next = isEmpty ? this : EmptyNode;
             }
 
             internal Node() : this(false) { }
 
-            public void Init(IMemoryOwner<char> owner)
+            internal void Init(IMemoryOwner<char> owner)
             {
                 Owner = owner;
                 Allocation = owner.Memory;
@@ -89,7 +89,7 @@ namespace Cesil
             IMemoryOwner<char>? largest = null;
 
             var n = Head;
-            while(true)
+            while (true)
             {
                 var alloc = n.Owner;
                 if (largest == null || alloc.Memory.Length > largest.Memory.Length)
@@ -236,7 +236,7 @@ namespace Cesil
             return GetMemory(sizeHint).Span;
         }
 
-        public bool MakeSequence(ref ReadOnlySequence<char> nonEmpty)
+        internal bool MakeSequence(ref ReadOnlySequence<char> nonEmpty)
         {
             AssertNotDisposedInternal(this);
 

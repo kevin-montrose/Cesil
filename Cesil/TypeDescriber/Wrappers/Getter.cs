@@ -115,7 +115,7 @@ namespace Cesil
             TypeInfo rowTypeVar;
             if (IsStatic)
             {
-                rowTypeVar = Types.ObjectType;
+                rowTypeVar = Types.Object;
                 onType = Expressions.Constant_Null;
             }
             else
@@ -128,7 +128,7 @@ namespace Cesil
             var assignRowVar = Expression.Assign(rowAsTypeVar, onType);
 
             var body = MakeExpression(rowAsTypeVar, ctx);
-            var convertToObject = Expression.Convert(body, Types.ObjectType);
+            var convertToObject = Expression.Convert(body, Types.Object);
 
             var block = Expression.Block(new[] { rowAsTypeVar }, assignRowVar, convertToObject);
 
@@ -257,7 +257,7 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(method, nameof(method));
 
-            if (method.ReturnType == Types.VoidType)
+            if (method.ReturnType == Types.Void)
             {
                 return Throw.ArgumentException<Getter>($"{nameof(method)} must return a non-void value", nameof(method));
             }
@@ -280,7 +280,7 @@ namespace Cesil
                     if (p0.IsByRef)
                     {
                         var p0Elem = p0.GetElementTypeNonNull();
-                        if (p0Elem != Types.WriteContextType)
+                        if (p0Elem != Types.WriteContext)
                         {
                             return Throw.ArgumentException<Getter>($"If the first parameter to a {nameof(Getter)} method is by ref, it must be an `in {nameof(WriteContext)}`", nameof(method));
                         }
@@ -516,7 +516,7 @@ namespace Cesil
             {
                 var genArgs = delType.GetGenericArguments();
                 var delGenType = delType.GetGenericTypeDefinition().GetTypeInfo();
-                if (delGenType == Types.GetterDelegateType)
+                if (delGenType == Types.GetterDelegate)
                 {
                     var takes = genArgs[0].GetTypeInfo();
                     var returns = genArgs[1].GetTypeInfo();
@@ -524,7 +524,7 @@ namespace Cesil
                     return new Getter(takes, returns, del);
                 }
 
-                if (delGenType == Types.StaticGetterDelegateType)
+                if (delGenType == Types.StaticGetterDelegate)
                 {
                     var returns = genArgs[0].GetTypeInfo();
 
@@ -534,7 +534,7 @@ namespace Cesil
 
             var mtd = del.Method;
             var ret = mtd.ReturnType.GetTypeInfo();
-            if (ret == Types.VoidType)
+            if (ret == Types.Void)
             {
                 return Throw.InvalidOperationException<Getter>($"Delegate cannot return void");
             }
@@ -549,7 +549,7 @@ namespace Cesil
                     return Throw.InvalidOperationException<Getter>($"Delegate's second parameter must be a `in {nameof(WriteContext)}`; {msg}");
                 }
 
-                var formatterDel = Types.GetterDelegateType.MakeGenericType(takes, ret);
+                var formatterDel = Types.GetterDelegate.MakeGenericType(takes, ret);
                 var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
                 var reboundDel = System.Delegate.CreateDelegate(formatterDel, del, invoke);
@@ -563,7 +563,7 @@ namespace Cesil
                     return Throw.InvalidOperationException<Getter>($"Delegate's first parameter must be a `in {nameof(WriteContext)}`; {msg}");
                 }
 
-                var formatterDel = Types.StaticGetterDelegateType.MakeGenericType(ret);
+                var formatterDel = Types.StaticGetterDelegate.MakeGenericType(ret);
                 var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
                 var reboundDel = System.Delegate.CreateDelegate(formatterDel, del, invoke);

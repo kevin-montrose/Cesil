@@ -1,48 +1,57 @@
 ﻿using System.Reflection;
 
+using static Cesil.BindingFlagsConstants;
+
 namespace Cesil
 {
     internal static class Methods
     {
+
+
         internal static class ReadContext
         {
-            public static readonly MethodInfo ConvertingRow = Types.ReadContextType.GetMethodNonNull(nameof(Cesil.ReadContext.ConvertingRow), BindingFlags.NonPublic | BindingFlags.Static);
+            internal static readonly MethodInfo ConvertingRow = Types.ReadContext.GetMethodNonNull(nameof(Cesil.ReadContext.ConvertingRow), InternalStatic);
         }
 
         internal static class ITypeDescriber
         {
-            public static readonly MethodInfo GetDynamicCellParserFor = Types.ITypeDescriberType.GetMethodNonNull(nameof(Cesil.ITypeDescriber.GetDynamicCellParserFor));
-            public static readonly MethodInfo GetDynamicRowConverter = Types.ITypeDescriberType.GetMethodNonNull(nameof(Cesil.ITypeDescriber.GetDynamicRowConverter));
+            internal static readonly MethodInfo GetDynamicCellParserFor = Types.ITypeDescriber.GetMethodNonNull(nameof(Cesil.ITypeDescriber.GetDynamicCellParserFor), PublicInstance);
+            internal static readonly MethodInfo GetDynamicRowConverter = Types.ITypeDescriber.GetMethodNonNull(nameof(Cesil.ITypeDescriber.GetDynamicRowConverter), PublicInstance);
         }
 
         internal static class DynamicCell
         {
-            public static readonly MethodInfo Converter = Types.DynamicCellType.GetPropertyNonNull(nameof(Cesil.DynamicCell.Converter), BindingFlags.Instance | BindingFlags.NonPublic).GetGetMethodNonNull();
-            public static readonly MethodInfo GetDataSpan = Types.DynamicCellType.GetMethodNonNull(nameof(Cesil.DynamicCell.GetDataSpan), BindingFlags.Instance | BindingFlags.NonPublic);
-            public static readonly MethodInfo GetReadContext = Types.DynamicCellType.GetMethodNonNull(nameof(Cesil.DynamicCell.GetReadContext), BindingFlags.Instance | BindingFlags.NonPublic);
+            internal static readonly MethodInfo Converter = Types.DynamicCell.GetPropertyNonNull(nameof(Cesil.DynamicCell.Converter), InternalInstance).GetGetMethodNonNull();
+            internal static readonly MethodInfo GetDataSpan = Types.DynamicCell.GetMethodNonNull(nameof(Cesil.DynamicCell.GetDataSpan), InternalInstance);
+            internal static readonly MethodInfo GetReadContext = Types.DynamicCell.GetMethodNonNull(nameof(Cesil.DynamicCell.GetReadContext), InternalInstance);
         }
 
         internal static class Throw
         {
-            public static readonly MethodInfo InvalidOperationException = Types.ThrowType.GetMethodNonNull(nameof(Cesil.Throw.InvalidOperationException), BindingFlags.Static | BindingFlags.NonPublic);
-            public static readonly MethodInfo InvalidOperationExceptionOfObject = Types.ThrowType.GetMethodNonNull(nameof(Cesil.Throw.InvalidOperationException), BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(Types.ObjectType);
-            public static readonly MethodInfo ParseFailed = Types.ThrowType.GetMethodNonNull(nameof(Cesil.Throw.ParseFailed), BindingFlags.Static | BindingFlags.NonPublic);
+            internal static readonly MethodInfo InvalidOperationException = Types.ThrowType.GetMethodNonNull(nameof(Cesil.Throw.InvalidOperationException), InternalStatic);
+            internal static readonly MethodInfo InvalidOperationExceptionOfObject = Types.ThrowType.GetMethodNonNull(nameof(Cesil.Throw.InvalidOperationException), InternalStatic).MakeGenericMethod(Types.Object);
+            internal static readonly MethodInfo ParseFailed = Types.ThrowType.GetMethodNonNull(nameof(Cesil.Throw.ParseFailed), InternalStatic);
         }
 
         internal static class DynamicRow
         {
-            public static readonly MethodInfo GetAt = Types.DynamicRowType.GetMethodNonNull(nameof(Cesil.DynamicRow.GetAt), BindingFlags.Instance | BindingFlags.NonPublic);
-            public static readonly MethodInfo GetAtTyped = Types.DynamicRowType.GetMethodNonNull(nameof(Cesil.DynamicRow.GetAtTyped), BindingFlags.Instance | BindingFlags.NonPublic);
-            public static readonly MethodInfo GetByName = Types.DynamicRowType.GetMethodNonNull(nameof(Cesil.DynamicRow.GetByName), BindingFlags.Instance | BindingFlags.NonPublic);
-            public static readonly MethodInfo GetByIndex = Types.DynamicRowType.GetMethodNonNull(nameof(Cesil.DynamicRow.GetByIndex), BindingFlags.Instance | BindingFlags.NonPublic);
-            public static readonly MethodInfo GetRange = Types.DynamicRowType.GetMethodNonNull(nameof(Cesil.DynamicRow.GetRange), BindingFlags.Instance | BindingFlags.NonPublic);
-            public static readonly MethodInfo GetReadContext = Types.DynamicRowType.GetMethodNonNull(nameof(Cesil.DynamicRow.GetReadContext), BindingFlags.Instance | BindingFlags.NonPublic);
-            public static readonly MethodInfo GetByIdentifier = Types.DynamicRowType.GetMethodNonNull(nameof(Cesil.DynamicRow.GetByIdentifier), BindingFlags.Instance | BindingFlags.NonPublic);
+            internal static readonly MethodInfo GetAt = Types.DynamicRow.GetMethodNonNull(nameof(Cesil.DynamicRow.GetAt), InternalInstance);
+            internal static readonly MethodInfo GetAtTyped = Types.DynamicRow.GetMethodNonNull(nameof(Cesil.DynamicRow.GetAtTyped), InternalInstance);
+            internal static readonly MethodInfo GetByName = Types.DynamicRow.GetMethodNonNull(nameof(Cesil.DynamicRow.GetByName), InternalInstance);
+            internal static readonly MethodInfo GetByIndex = Types.DynamicRow.GetMethodNonNull(nameof(Cesil.DynamicRow.GetByIndex), InternalInstance);
+            internal static readonly MethodInfo GetRange = Types.DynamicRow.GetMethodNonNull(nameof(Cesil.DynamicRow.GetRange), InternalInstance);
+            internal static readonly MethodInfo GetReadContext = Types.DynamicRow.GetMethodNonNull(nameof(Cesil.DynamicRow.GetReadContext), InternalInstance);
+            internal static readonly MethodInfo GetByIdentifier = Types.DynamicRow.GetMethodNonNull(nameof(Cesil.DynamicRow.GetByIdentifier), InternalInstance);
         }
 
         internal static class IDynamicRowOwner
         {
-            public static readonly MethodInfo Options = Types.IDynamicRowOwnerType.GetPropertyNonNull(nameof(Cesil.IDynamicRowOwner.Options), BindingFlags.Instance | BindingFlags.Public).GetGetMethodNonNull();
+            internal static readonly MethodInfo Options = Types.IDynamicRowOwner.GetPropertyNonNull(nameof(Cesil.IDynamicRowOwner.Options), PublicInstance).GetGetMethodNonNull();
+        }
+
+        internal static class DisposableHelper
+        {
+            internal static readonly MethodInfo AssertNotDisposed = Types.DisposableHelper.GetMethodNonNull(nameof(Cesil.DisposableHelper.AssertNotDisposed), InternalStatic, null, new[] { Types.ITestableDisposable }, null);
         }
     }
 }

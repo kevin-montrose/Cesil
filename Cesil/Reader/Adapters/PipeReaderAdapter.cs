@@ -14,7 +14,7 @@ namespace Cesil
 
         private readonly PipeReader Inner;
 
-        public PipeReaderAdapter(PipeReader reader, Encoding encoding) : base(encoding)
+        internal PipeReaderAdapter(PipeReader reader, Encoding encoding) : base(encoding)
         {
             Inner = reader;
         }

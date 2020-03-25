@@ -1540,7 +1540,7 @@ namespace Cesil
             // looks like
             //  - df
 
-            if(escapeStartEqualsEscape)
+            if (escapeStartEqualsEscape)
             {
                 // df"
                 innerRet[(int)CharacterType.Escape] = Invalid_ExceptionStartEscapeInValue;

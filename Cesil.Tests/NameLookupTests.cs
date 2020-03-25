@@ -638,7 +638,7 @@ namespace Cesil.Tests
                 var vals = new List<string> { "NullableGuid", "NullableInt", "NullableChar", "NullableSByte", "NullableDateTime", "NullableFloat", "DateTime", "Long", "Float", "ULong", "NullableUInt", "NullableShort", "Byte", "Enum", "NullableDecimal", "ShallowRows", "DeepRows", "Decimal", "NullableByte", "NullableUShort", "Char", "DateTimeOffset", "Int", "NullableULong", "SByte", "Short", "NullableLong", "NullableDouble", "UShort", "Double", "FlagsEnum", "Uri", "String", "NullableEnum", "NullableDateTimeOffset", "UInt", "NullableFlagsEnum", "Guid" };
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
-                    for(var i = 0; i < vals.Count; i++)
+                    for (var i = 0; i < vals.Count; i++)
                     {
                         var val = vals[i];
                         Assert.True(lookup.TryLookup(val, out var ix));

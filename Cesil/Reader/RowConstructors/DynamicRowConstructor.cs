@@ -10,8 +10,8 @@ namespace Cesil
 
         public bool IsDisposed => true;
 
-        private DynamicRow? PreAlloced;
-        private DynamicRow? CurrentRow;
+        internal DynamicRow? PreAlloced;
+        internal DynamicRow? CurrentRow;
 
         public bool RowStarted => CurrentRow != null;
 

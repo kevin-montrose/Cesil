@@ -158,7 +158,7 @@ namespace Cesil
             Utils.CheckArgumentNull(method, nameof(method));
 
             var ret = method.ReturnType.GetTypeInfo();
-            if (ret != Types.BoolType)
+            if (ret != Types.Bool)
             {
                 return Throw.ArgumentException<ShouldSerialize>($"{nameof(method)} must return a boolean", nameof(method));
             }
@@ -204,7 +204,7 @@ namespace Cesil
                     if (p0.IsByRef)
                     {
                         var p0Elem = p0.GetElementTypeNonNull();
-                        if (p0Elem != Types.WriteContextType)
+                        if (p0Elem != Types.WriteContext)
                         {
                             return Throw.ArgumentException<ShouldSerialize>($"If an static method takes one parameter and it is by ref it must be a `in {nameof(WriteContext)}`, wasn't `{nameof(WriteContext)}`", nameof(method));
                         }
@@ -370,12 +370,12 @@ namespace Cesil
             if (del == null) return null;
 
             var delType = del.GetType().GetTypeInfo();
-            if (delType == Types.StaticShouldSerializeDelegateType)
+            if (delType == Types.StaticShouldSerializeDelegate)
             {
                 return new ShouldSerialize(null, del);
             }
 
-            if (delType.IsGenericType && delType.GetGenericTypeDefinition().GetTypeInfo() == Types.ShouldSerializeDelegateType)
+            if (delType.IsGenericType && delType.GetGenericTypeDefinition().GetTypeInfo() == Types.ShouldSerializeDelegate)
             {
                 var genArgs = delType.GetGenericArguments();
                 var takesType = genArgs[0].GetTypeInfo();
@@ -385,7 +385,7 @@ namespace Cesil
 
             var mtd = del.Method;
             var retType = mtd.ReturnType.GetTypeInfo();
-            if (retType != Types.BoolType)
+            if (retType != Types.Bool)
             {
                 return Throw.InvalidOperationException<ShouldSerialize>($"Delegate must return boolean, found {retType}");
             }
@@ -400,7 +400,7 @@ namespace Cesil
                     return Throw.InvalidOperationException<ShouldSerialize>($"If an delegate takes a single parameter it must be a `in {nameof(WriteContext)}`; {msg}");
                 }
 
-                var reboundDel = System.Delegate.CreateDelegate(Types.StaticShouldSerializeDelegateType, del, invoke);
+                var reboundDel = System.Delegate.CreateDelegate(Types.StaticShouldSerializeDelegate, del, invoke);
 
                 return new ShouldSerialize(null, reboundDel);
             }
@@ -413,7 +413,7 @@ namespace Cesil
                     return Throw.InvalidOperationException<ShouldSerialize>($"If an delegate takes two parameters the second must be an `in {nameof(WriteContext)}`; {msg}");
                 }
 
-                var shouldSerializeDelType = Types.ShouldSerializeDelegateType.MakeGenericType(takesType);
+                var shouldSerializeDelType = Types.ShouldSerializeDelegate.MakeGenericType(takesType);
                 var reboundDel = System.Delegate.CreateDelegate(shouldSerializeDelType, del, invoke);
 
                 return new ShouldSerialize(takesType, reboundDel);

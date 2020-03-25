@@ -3,8 +3,6 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 
 namespace Cesil
 {
@@ -19,8 +17,8 @@ namespace Cesil
             where T : unmanaged, Enum
         {
             // has all the bits set that are present in 
-            public static readonly byte Mask;
-            public static readonly byte AntiMask;
+            internal static readonly byte Mask;
+            internal static readonly byte AntiMask;
 
             static LegalFlagEnum()
             {
@@ -630,7 +628,7 @@ tryAgain:
             return -1;
         }
 
-        public static string Encode(string rawStr, Options options)
+        internal static string Encode(string rawStr, Options options)
         {
             // assume there's a single character that needs escape, so 2 chars for the start and stop and 1 for the escape
             var defaultSize = rawStr.Length + 2 + 1;

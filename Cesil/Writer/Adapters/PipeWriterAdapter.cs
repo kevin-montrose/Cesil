@@ -20,7 +20,7 @@ namespace Cesil
 
         private IMemoryOwner<char>? BufferOwner;
 
-        public PipeWriterAdapter(PipeWriter writer, Encoding encoding, MemoryPool<char> memoryPool)
+        internal PipeWriterAdapter(PipeWriter writer, Encoding encoding, MemoryPool<char> memoryPool)
         {
             Writer = writer;
             Encoding = encoding;

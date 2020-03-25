@@ -237,7 +237,7 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(method, nameof(method));
 
-            var returnsNoValue = method.ReturnType == Types.VoidType;
+            var returnsNoValue = method.ReturnType == Types.Void;
 
             if (!returnsNoValue)
             {
@@ -273,7 +273,7 @@ namespace Cesil
                     else
                     {
                         var p1Elem = p1.GetElementTypeNonNull();
-                        if (p1Elem != Types.ReadContextType)
+                        if (p1Elem != Types.ReadContext)
                         {
                             return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by a static method taking 2 parameters where the second parameter is by ref must have a second parameter of `in {nameof(ReadContext)}`, was not `{nameof(ReadContext)}`", nameof(method));
                         }
@@ -533,7 +533,7 @@ namespace Cesil
             if (delType.IsGenericType)
             {
                 var delGenType = delType.GetGenericTypeDefinition().GetTypeInfo();
-                if (delGenType == Types.SetterDelegateType)
+                if (delGenType == Types.SetterDelegate)
                 {
                     var genArgs = delType.GetGenericArguments();
                     var rowType = genArgs[0].GetTypeInfo();
@@ -541,7 +541,7 @@ namespace Cesil
 
                     return new Setter(rowType, takesType, del);
                 }
-                else if (delGenType == Types.StaticSetterDelegateType)
+                else if (delGenType == Types.StaticSetterDelegate)
                 {
                     var genArgs = delType.GetGenericArguments();
                     var takesType = genArgs[0].GetTypeInfo();
@@ -552,7 +552,7 @@ namespace Cesil
 
             var mtd = del.Method;
             var retType = mtd.ReturnType.GetTypeInfo();
-            if (retType != Types.VoidType)
+            if (retType != Types.Void)
             {
                 return Throw.InvalidOperationException<Setter>($"Delegate must return void, found {retType}");
             }
@@ -569,7 +569,7 @@ namespace Cesil
                     return Throw.InvalidOperationException<Setter>($"Delegate taking 3 parameters must have a third parameter of `in {nameof(ReadContext)}`; {msg}");
                 }
 
-                var setterDelType = Types.SetterDelegateType.MakeGenericType(rowType, takesType);
+                var setterDelType = Types.SetterDelegate.MakeGenericType(rowType, takesType);
 
                 var reboundDel = System.Delegate.CreateDelegate(setterDelType, del, invoke);
 
@@ -584,7 +584,7 @@ namespace Cesil
                     return Throw.InvalidOperationException<Setter>($"Delegate taking 2 parameters must have a second parameter of `in {nameof(ReadContext)}`; {msg}");
                 }
 
-                var setterDelType = Types.StaticSetterDelegateType.MakeGenericType(takesType);
+                var setterDelType = Types.StaticSetterDelegate.MakeGenericType(takesType);
 
                 var reboundDel = System.Delegate.CreateDelegate(setterDelType, del, invoke);
 

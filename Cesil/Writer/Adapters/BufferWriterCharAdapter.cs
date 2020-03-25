@@ -13,7 +13,7 @@ namespace Cesil
         private Memory<char> Memory;
         private readonly IBufferWriter<char> Writer;
 
-        public BufferWriterCharAdapter(IBufferWriter<char> writer)
+        internal BufferWriterCharAdapter(IBufferWriter<char> writer)
         {
             Writer = writer;
             Memory = default;

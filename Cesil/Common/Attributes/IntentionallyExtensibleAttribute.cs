@@ -6,6 +6,6 @@ namespace Cesil
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     internal sealed class IntentionallyExtensibleAttribute : Attribute
     {
-        public IntentionallyExtensibleAttribute(string reason) { }
+        internal IntentionallyExtensibleAttribute(string reason) { }
     }
 }

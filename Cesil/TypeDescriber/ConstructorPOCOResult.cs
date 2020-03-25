@@ -4,13 +4,13 @@ namespace Cesil
 {
     internal readonly struct ConstructorPOCOResult
     {
-        public static readonly ConstructorPOCOResult Empty = new ConstructorPOCOResult();
+        internal static readonly ConstructorPOCOResult Empty = new ConstructorPOCOResult();
 
-        public bool HasValue => Constructor.HasValue;
-        public readonly NonNull<ConstructorInfo> Constructor;
-        public readonly NonNull<ColumnIdentifier[]> Columns;
+        internal bool HasValue => Constructor.HasValue;
+        internal readonly NonNull<ConstructorInfo> Constructor;
+        internal readonly NonNull<ColumnIdentifier[]> Columns;
 
-        public ConstructorPOCOResult(ConstructorInfo cons, ColumnIdentifier[] cols)
+        internal ConstructorPOCOResult(ConstructorInfo cons, ColumnIdentifier[] cols)
         {
             Constructor = default;
             Constructor.Value = cons;

@@ -120,8 +120,8 @@ namespace Cesil.Tests
                 Options.Default,
                 (config, getReader) =>
                 {
-                    using(var reader = getReader("A,B\r\nhello,world\r\nfizz,buzz,bazz\r\nfe,fi,fo,fum"))
-                    using(var csv = config.CreateReader(reader))
+                    using (var reader = getReader("A,B\r\nhello,world\r\nfizz,buzz,bazz\r\nfe,fi,fo,fum"))
+                    using (var csv = config.CreateReader(reader))
                     {
                         var rows = csv.ReadAll();
 

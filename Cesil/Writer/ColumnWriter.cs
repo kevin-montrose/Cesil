@@ -14,7 +14,7 @@ namespace Cesil
         // create a delegate that will format the given value (pulled from a getter or a field) into
         //   a buffer, subject to shouldSerialize being null or returning true
         //   and return true if it was able to do so
-        public static ColumnWriterDelegate Create(TypeInfo type, Formatter formatter, NonNull<ShouldSerialize> shouldSerialize, Getter getter, bool emitDefaultValue)
+        internal static ColumnWriterDelegate Create(TypeInfo type, Formatter formatter, NonNull<ShouldSerialize> shouldSerialize, Getter getter, bool emitDefaultValue)
         {
             var p1 = Expressions.Parameter_Object;
             var p2 = Expressions.Parameter_WriteContext_ByRef;
@@ -28,7 +28,7 @@ namespace Cesil
             var assignToL1 = Expression.Assign(l1, p1AsType);
             statements.Add(assignToL1);
 
-            var end = Expression.Label(Types.BoolType, "end");
+            var end = Expression.Label(Types.Bool, "end");
             var returnTrue = Expression.Label("return-true");
 
             if (shouldSerialize.HasValue)
@@ -64,7 +64,7 @@ namespace Cesil
                 }
                 else
                 {
-                    var equatableI = Types.IEquatableType.MakeGenericType(columnType).GetTypeInfo();
+                    var equatableI = Types.IEquatable.MakeGenericType(columnType).GetTypeInfo();
                     if (columnType.GetInterfaces().Any(i => i == equatableI))
                     {
                         var equals = equatableI.GetMethodNonNull(nameof(IEquatable<object>.Equals));
@@ -86,7 +86,7 @@ namespace Cesil
                     else
                     {
                         var eqsUntyped = columnType.GetMethodNonNull(nameof(object.Equals));
-                        var defAsObject = Expression.Convert(defValue, Types.ObjectType);
+                        var defAsObject = Expression.Convert(defValue, Types.Object);
                         isDefault = Expression.Call(l2, eqsUntyped, defAsObject);
                     }
                 }

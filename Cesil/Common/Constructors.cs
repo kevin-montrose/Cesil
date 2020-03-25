@@ -1,10 +1,11 @@
-﻿using System;
-using System.Reflection;
+﻿using System.Reflection;
+
+using static Cesil.BindingFlagsConstants;
 
 namespace Cesil
 {
     internal static class Constructors
     {
-        public static readonly ConstructorInfo PassthroughRowEnumerable = Types.PassthroughRowEnumerableType.GetConstructorNonNull(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { Types.ObjectType }, null);
+        internal static readonly ConstructorInfo PassthroughRowEnumerable = Types.PassthroughRowEnumerable.GetConstructorNonNull(InternalInstance, null, new[] { Types.Object }, null);
     }
 }

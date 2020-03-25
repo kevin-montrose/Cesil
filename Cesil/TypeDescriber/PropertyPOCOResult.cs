@@ -4,14 +4,14 @@ namespace Cesil
 {
     internal readonly struct PropertyPOCOResult
     {
-        public static readonly PropertyPOCOResult Empty = new PropertyPOCOResult();
+        internal static readonly PropertyPOCOResult Empty = new PropertyPOCOResult();
 
-        public bool HasValue => Constructor.HasValue;
-        public readonly NonNull<ConstructorInfo> Constructor;
-        public readonly NonNull<Setter[]> Setters;
-        public readonly NonNull<ColumnIdentifier[]> Columns;
+        internal bool HasValue => Constructor.HasValue;
+        internal readonly NonNull<ConstructorInfo> Constructor;
+        internal readonly NonNull<Setter[]> Setters;
+        internal readonly NonNull<ColumnIdentifier[]> Columns;
 
-        public PropertyPOCOResult(ConstructorInfo cons, Setter[] sets, ColumnIdentifier[] cols)
+        internal PropertyPOCOResult(ConstructorInfo cons, Setter[] sets, ColumnIdentifier[] cols)
         {
             Constructor = default;
             Constructor.Value = cons;

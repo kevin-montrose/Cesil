@@ -24,12 +24,12 @@ namespace Cesil
                 var enumType = typeof(T).GetTypeInfo();
                 Names = Enum.GetNames(enumType);
 
-                var parsingClass = Types.DefaultFlagsEnumTypeFormatterType.MakeGenericType(enumType).GetTypeInfo();
+                var parsingClass = Types.DefaultFlagsEnumTypeFormatter.MakeGenericType(enumType).GetTypeInfo();
 
-                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryFormatFlagsEnum), BindingFlags.Static | BindingFlags.NonPublic);
+                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryFormatFlagsEnum), BindingFlagsConstants.InternalStatic);
                 TryFlagsEnumFormatter = Formatter.ForMethod(enumParsingMtd);
 
-                var nullableEnumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryFormatNullableFlagsEnum), BindingFlags.Static | BindingFlags.NonPublic);
+                var nullableEnumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryFormatNullableFlagsEnum), BindingFlagsConstants.InternalStatic);
                 TryNullableFlagsEnumFormatter = Formatter.ForMethod(nullableEnumParsingMtd);
             }
 
@@ -84,12 +84,12 @@ namespace Cesil
             {
                 var enumType = typeof(T).GetTypeInfo();
 
-                var parsingClass = Types.DefaultEnumTypeFormatterType.MakeGenericType(enumType).GetTypeInfo();
+                var parsingClass = Types.DefaultEnumTypeFormatter.MakeGenericType(enumType).GetTypeInfo();
 
-                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryFormatEnum), BindingFlags.Static | BindingFlags.NonPublic);
+                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryFormatEnum), BindingFlagsConstants.InternalStatic);
                 TryEnumFormatter = Formatter.ForMethod(enumParsingMtd);
 
-                var nullableEnumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryFormatNullableEnum), BindingFlags.Static | BindingFlags.NonPublic);
+                var nullableEnumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryFormatNullableEnum), BindingFlagsConstants.InternalStatic);
                 TryNullableEnumFormatter = Formatter.ForMethod(nullableEnumParsingMtd);
             }
 

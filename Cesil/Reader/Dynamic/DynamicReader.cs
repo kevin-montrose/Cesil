@@ -1,5 +1,5 @@
 ﻿using System;
-
+using System.Threading;
 using static Cesil.DynamicRowTrackingHelper;
 
 namespace Cesil
@@ -18,7 +18,30 @@ namespace Cesil
 
         int IDynamicRowOwner.MinimumExpectedColumns => ColumnCount;
 
-        internal DynamicReader(IReaderAdapter reader, DynamicBoundConfiguration config, object? context) : base(reader, config, context, new DynamicRowConstructor(), config.Options.ExtraColumnTreatment) { }
+        private int NameLookupReferenceCount;
+        private NameLookup NameLookup;
+
+        NameLookup IDynamicRowOwner.AcquireNameLookup()
+        {
+            Interlocked.Increment(ref NameLookupReferenceCount);
+            return NameLookup;
+        }
+
+        void IDynamicRowOwner.ReleaseNameLookup()
+        {
+            var res = Interlocked.Decrement(ref NameLookupReferenceCount);
+            if (res == 0)
+            {
+                NameLookup.Dispose();
+            }
+        }
+
+        internal DynamicReader(IReaderAdapter reader, DynamicBoundConfiguration config, object? context)
+            : base(reader, config, context, new DynamicRowConstructor(), config.Options.ExtraColumnTreatment)
+        {
+            NameLookupReferenceCount = 0;
+            NameLookup = NameLookup.Empty;
+        }
 
         internal override void HandleRowEndingsAndHeaders()
         {
@@ -55,7 +78,7 @@ namespace Cesil
                     {
                         var endRes = EndOfData();
 
-                        return HandleAdvanceResult(endRes, returnComments);
+                        return HandleAdvanceResult(endRes, returnComments, ending: true);
                     }
 
                     if (!RowBuilder.RowStarted)
@@ -64,7 +87,7 @@ namespace Cesil
                     }
 
                     var res = AdvanceWork(available);
-                    var possibleReturn = HandleAdvanceResult(res, returnComments);
+                    var possibleReturn = HandleAdvanceResult(res, returnComments, ending: false);
                     if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
                         return possibleReturn;
@@ -72,6 +95,9 @@ namespace Cesil
                 }
             }
         }
+
+        protected internal override void EndedWithoutReturningRow()
+        => FreePreAllocatedOnEnd(RowBuilder);
 
         public void Remove(DynamicRow row)
         {
@@ -103,21 +129,24 @@ namespace Cesil
                     {
                         columnNamesValue = new string[ColumnCount];
                         ColumnNames.Value = columnNamesValue;
-                    }
 
-                    using (var e = res.Headers)
-                    {
-                        var ix = 0;
-                        while (e.MoveNext())
+                        using (var e = res.Headers)
                         {
-                            var name = allowColumnsByName ? new string(e.Current.Span) : null;
-                            if (name != null)
+                            var ix = 0;
+                            while (e.MoveNext())
                             {
-                                columnNamesValue[ix] = name;
-                            }
+                                var name = allowColumnsByName ? new string(e.Current.Span) : null;
+                                if (name != null)
+                                {
+                                    columnNamesValue[ix] = name;
+                                }
 
-                            ix++;
+                                ix++;
+                            }
                         }
+
+                        Interlocked.Increment(ref NameLookupReferenceCount);
+                        NameLookup = NameLookup.Create(columnNamesValue, Configuration.Options.MemoryPool);
                     }
 
                     RowBuilder.SetColumnOrder(res.Headers);
@@ -182,6 +211,10 @@ namespace Cesil
                 self.Partial.Dispose();
                 self.StateMachine.Dispose();
                 self.SharedCharacterLookup.Dispose();
+
+                // if we never acquired one, this will moved the count to -1
+                //   which WON'T actually release NameLookup
+                (self as IDynamicRowOwner)?.ReleaseNameLookup();
             }
         }
 

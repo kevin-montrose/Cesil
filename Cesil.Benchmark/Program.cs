@@ -65,7 +65,7 @@ namespace Cesil.Benchmark
                 new CsvExporter(
                     CsvSeparator.CurrentCulture,
                     new BenchmarkDotNet.Reports.SummaryStyle(
-                        true, 
+                        true,
                         BenchmarkDotNet.Columns.SizeUnit.B,
                         BenchmarkDotNet.Horology.TimeUnit.Nanosecond
                     )

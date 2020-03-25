@@ -30,7 +30,7 @@ namespace Cesil
         {
             // load up default parsers
             var ret = new Dictionary<TypeInfo, Parser>();
-            foreach (var mtd in Types.DefaultTypeParsersType.GetMethods(BindingFlags.Static | BindingFlags.NonPublic))
+            foreach (var mtd in Types.DefaultTypeParsers.GetMethods(BindingFlagsConstants.InternalStatic))
             {
                 var thirdArg = mtd.GetParameters()[2];
                 var forType = thirdArg.ParameterType.GetTypeInfo().GetElementTypeNonNull();
@@ -107,7 +107,7 @@ namespace Cesil
             var exp = MakeExpression(spanVar, ctxVar, outCreatesVar);
             var assignToRes = Expression.Assign(resVar, exp);
 
-            var boxCreates = Expression.Convert(outCreatesVar, Types.ObjectType);
+            var boxCreates = Expression.Convert(outCreatesVar, Types.Object);
             var assignOutObj = Expression.Assign(outObjVar, boxCreates);
 
             var setOutDefault = Expression.Assign(outObjVar, Expressions.Constant_Null);
@@ -127,13 +127,14 @@ namespace Cesil
 
         Parser IElseSupporting<Parser>.Clone(ImmutableArray<Parser> newFallbacks)
         {
-            switch (Mode)
-            {
-                case BackingMode.Method: return new Parser(Method.Value, Creates, newFallbacks);
-                case BackingMode.Delegate: return new Parser(Delegate.Value, Creates, newFallbacks);
-                case BackingMode.Constructor: return new Parser(Constructor.Value, newFallbacks);
-                default: return Throw.Exception<Parser>($"Unexpected {nameof(BackingMode)}: {Mode}");
-            }
+            return
+                Mode switch
+                {
+                    BackingMode.Method => new Parser(Method.Value, Creates, newFallbacks),
+                    BackingMode.Delegate => new Parser(Delegate.Value, Creates, newFallbacks),
+                    BackingMode.Constructor => new Parser(Constructor.Value, newFallbacks),
+                    _ => Throw.Exception<Parser>($"Unexpected {nameof(BackingMode)}: {Mode}"),
+                };
         }
 
         /// <summary>
@@ -240,7 +241,7 @@ namespace Cesil
 
             var p1 = args[0].ParameterType.GetTypeInfo();
 
-            if (p1 != Types.ReadOnlySpanOfCharType)
+            if (p1 != Types.ReadOnlySpanOfChar)
             {
                 return Throw.ArgumentException<Parser>($"The first parameter of {nameof(method)} must be a {nameof(ReadOnlySpan<char>)}", nameof(method));
             }
@@ -260,7 +261,7 @@ namespace Cesil
             var underlying = p3.GetElementTypeNonNull();
 
             var parserRetType = method.ReturnType.GetTypeInfo();
-            if (parserRetType != Types.BoolType)
+            if (parserRetType != Types.Bool)
             {
                 return Throw.ArgumentException<Parser>($"{nameof(method)} must return a bool", nameof(method));
             }
@@ -287,7 +288,7 @@ namespace Cesil
             {
                 var firstP = ps[0].ParameterType.GetTypeInfo();
 
-                if (firstP != Types.ReadOnlySpanOfCharType)
+                if (firstP != Types.ReadOnlySpanOfChar)
                 {
                     return Throw.ArgumentException<Parser>($"{nameof(constructor)} first parameter must be a ReadOnlySpan<char>", nameof(constructor));
                 }
@@ -296,7 +297,7 @@ namespace Cesil
             {
                 var firstP = ps[0].ParameterType.GetTypeInfo();
 
-                if (firstP != Types.ReadOnlySpanOfCharType)
+                if (firstP != Types.ReadOnlySpanOfChar)
                 {
                     return Throw.ArgumentException<Parser>($"{nameof(constructor)} first parameter must be a ReadOnlySpan<char>", nameof(constructor));
                 }
@@ -336,16 +337,16 @@ namespace Cesil
             {
                 if (forType.GetCustomAttribute<FlagsAttribute>() == null)
                 {
-                    var parsingClass = Types.DefaultEnumTypeParserType.MakeGenericType(forType).GetTypeInfo();
-                    var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultEnumTypeParser<StringComparison>.TryParseEnumParser), BindingFlags.Static | BindingFlags.NonPublic);
+                    var parsingClass = Types.DefaultEnumTypeParser.MakeGenericType(forType).GetTypeInfo();
+                    var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultEnumTypeParser<StringComparison>.TryParseEnumParser), BindingFlagsConstants.InternalStatic);
                     var parser = (Parser?)parserField.GetValue(null);
 
                     return parser;
                 }
                 else
                 {
-                    var parsingClass = Types.DefaultFlagsEnumTypeParserType.MakeGenericType(forType).GetTypeInfo();
-                    var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultFlagsEnumTypeParser<StringComparison>.TryParseFlagsEnumParser), BindingFlags.Static | BindingFlags.NonPublic);
+                    var parsingClass = Types.DefaultFlagsEnumTypeParser.MakeGenericType(forType).GetTypeInfo();
+                    var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultFlagsEnumTypeParser<StringComparison>.TryParseFlagsEnumParser), BindingFlagsConstants.InternalStatic);
                     var parser = (Parser?)parserField.GetValue(null);
 
                     return parser;
@@ -357,16 +358,16 @@ namespace Cesil
             {
                 if (nullableElem.GetCustomAttribute<FlagsAttribute>() == null)
                 {
-                    var parsingClass = Types.DefaultEnumTypeParserType.MakeGenericType(nullableElem).GetTypeInfo();
-                    var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultEnumTypeParser<StringComparison>.TryParseNullableEnumParser), BindingFlags.Static | BindingFlags.NonPublic);
+                    var parsingClass = Types.DefaultEnumTypeParser.MakeGenericType(nullableElem).GetTypeInfo();
+                    var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultEnumTypeParser<StringComparison>.TryParseNullableEnumParser), BindingFlagsConstants.InternalStatic);
                     var parser = (Parser?)parserField.GetValue(null);
 
                     return parser;
                 }
                 else
                 {
-                    var parsingClass = Types.DefaultFlagsEnumTypeParserType.MakeGenericType(nullableElem).GetTypeInfo();
-                    var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultFlagsEnumTypeParser<StringComparison>.TryParseNullableFlagsEnumParser), BindingFlags.Static | BindingFlags.NonPublic);
+                    var parsingClass = Types.DefaultFlagsEnumTypeParser.MakeGenericType(nullableElem).GetTypeInfo();
+                    var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultFlagsEnumTypeParser<StringComparison>.TryParseNullableFlagsEnumParser), BindingFlagsConstants.InternalStatic);
                     var parser = (Parser?)parserField.GetValue(null);
 
                     return parser;
@@ -388,17 +389,14 @@ namespace Cesil
         /// </summary>
         public override string ToString()
         {
-            switch (Mode)
-            {
-                case BackingMode.Method:
-                    return $"{nameof(Parser)} backed by method {Method} creating {Creates}";
-                case BackingMode.Delegate:
-                    return $"{nameof(Parser)} backed by delegate {Delegate} creating {Creates}";
-                case BackingMode.Constructor:
-                    return $"{nameof(Parser)} backed by constructor {Constructor} creating {Creates}";
-                default:
-                    return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
-            }
+            return
+                Mode switch
+                {
+                    BackingMode.Method => $"{nameof(Parser)} backed by method {Method} creating {Creates}",
+                    BackingMode.Delegate => $"{nameof(Parser)} backed by delegate {Delegate} creating {Creates}",
+                    BackingMode.Constructor => $"{nameof(Parser)} backed by constructor {Constructor} creating {Creates}",
+                    _ => Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}"),
+                };
         }
 
         /// <summary>
@@ -413,17 +411,14 @@ namespace Cesil
 
             if (selfMode != otherMode) return false;
 
-            switch (selfMode)
-            {
-                case BackingMode.Constructor:
-                    return Constructor.Value == parser.Constructor.Value;
-                case BackingMode.Delegate:
-                    return Delegate.Value == parser.Delegate.Value;
-                case BackingMode.Method:
-                    return Method.Value == parser.Method.Value;
-                default:
-                    return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {selfMode}");
-            }
+            return
+                selfMode switch
+                {
+                    BackingMode.Constructor => Constructor.Value == parser.Constructor.Value,
+                    BackingMode.Delegate => Delegate.Value == parser.Delegate.Value,
+                    BackingMode.Method => Method.Value == parser.Method.Value,
+                    _ => Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {selfMode}"),
+                };
         }
 
         /// <summary>
@@ -484,7 +479,7 @@ namespace Cesil
 
             var delType = del.GetType().GetTypeInfo();
 
-            if (delType.IsGenericType && delType.GetGenericTypeDefinition() == Types.ParserDelegateType)
+            if (delType.IsGenericType && delType.GetGenericTypeDefinition() == Types.ParserDelegate)
             {
                 var t = delType.GetGenericArguments()[0].GetTypeInfo();
 
@@ -493,7 +488,7 @@ namespace Cesil
 
             var mtd = del.Method;
             var ret = mtd.ReturnType.GetTypeInfo();
-            if (ret != Types.BoolType)
+            if (ret != Types.Bool)
             {
                 return Throw.InvalidOperationException<Parser>($"Delegate must return a bool");
             }
@@ -505,7 +500,7 @@ namespace Cesil
             }
 
             var p1 = args[0].ParameterType.GetTypeInfo();
-            if (p1 != Types.ReadOnlySpanOfCharType)
+            if (p1 != Types.ReadOnlySpanOfChar)
             {
                 return Throw.InvalidOperationException<Parser>($"The first parameter to the delegate must be a {nameof(ReadOnlySpan<char>)}");
             }
@@ -523,7 +518,7 @@ namespace Cesil
 
             var creates = createsRef.GetElementTypeNonNull();
 
-            var parserDel = Types.ParserDelegateType.MakeGenericType(creates);
+            var parserDel = Types.ParserDelegate.MakeGenericType(creates);
             var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
             var reboundDel = System.Delegate.CreateDelegate(parserDel, del, invoke);

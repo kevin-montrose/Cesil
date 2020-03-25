@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 
@@ -23,7 +22,7 @@ namespace Cesil.Benchmark
         Bar = 3
     }
 
-    internal sealed class NarrowRow<T>: IEquatable<NarrowRow<T>>
+    internal sealed class NarrowRow<T> : IEquatable<NarrowRow<T>>
     {
         public T Column { get; set; }
 
@@ -225,7 +224,7 @@ tryAgain:
             return new decimal(lo, mid, high, neg, scale);
         }
 
-        private unsafe static V Create<V>(Random r, Func<byte[], int, V> maker)
+        private static unsafe V Create<V>(Random r, Func<byte[], int, V> maker)
             where V : unmanaged
         {
             var buff = new byte[sizeof(V)];
@@ -294,7 +293,7 @@ tryAgain:
         {
             if (other == null) return false;
 
-            if(Column == null)
+            if (Column == null)
             {
                 return other.Column == null;
             }
@@ -322,7 +321,7 @@ tryAgain:
             {
                 Map(r => r.Column).Index(0).TypeConverterOption.CultureInfo(CultureInfo.InstalledUICulture).TypeConverterOption.Format("u").TypeConverterOption.DateTimeStyles(DateTimeStyles.AssumeUniversal);
             }
-            else if(typeof(T) == typeof(DateTimeOffset) || typeof(T) == typeof(DateTimeOffset?))
+            else if (typeof(T) == typeof(DateTimeOffset) || typeof(T) == typeof(DateTimeOffset?))
             {
                 Map(r => r.Column).Index(0).TypeConverterOption.CultureInfo(CultureInfo.InstalledUICulture).TypeConverterOption.Format("u");
             }

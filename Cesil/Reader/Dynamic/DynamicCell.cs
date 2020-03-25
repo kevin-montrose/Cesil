@@ -5,9 +5,6 @@ using System.Reflection;
 
 namespace Cesil
 {
-    // todo: can we move the AssertNotDisposedXXXs here to the generated expressions?
-    //       will make it harder to double-dip on them
-
     internal sealed class DynamicCell : IDynamicMetaObjectProvider, IConvertible
     {
         internal readonly uint Generation;
@@ -16,7 +13,7 @@ namespace Cesil
 
         internal ITypeDescriber Converter => Row.Converter;
 
-        public DynamicCell(DynamicRow row, int num)
+        internal DynamicCell(DynamicRow row, int num)
         {
             Row = row;
             Generation = row.Generation;
@@ -60,6 +57,8 @@ namespace Cesil
             var ret = Row;
             ret.AssertGenerationMatch(Generation);
 
+            Cesil.DisposableHelper.AssertNotDisposed(ret);
+
             return ret;
         }
 
@@ -72,21 +71,21 @@ namespace Cesil
         {
             GetConversionDetails(out var describer, out var data, out var ctx);
 
-            var boolConf = describer.GetDynamicCellParserFor(in ctx, Types.BoolType);
-            var byteConf = describer.GetDynamicCellParserFor(in ctx, Types.ByteType);
-            var charConf = describer.GetDynamicCellParserFor(in ctx, Types.CharType);
-            var dtConf = describer.GetDynamicCellParserFor(in ctx, Types.DateTimeType);
+            var boolConf = describer.GetDynamicCellParserFor(in ctx, Types.Bool);
+            var byteConf = describer.GetDynamicCellParserFor(in ctx, Types.Byte);
+            var charConf = describer.GetDynamicCellParserFor(in ctx, Types.Char);
+            var dtConf = describer.GetDynamicCellParserFor(in ctx, Types.DateTime);
             //var decConf = describer.GetDynamicCellParserFor(in ctx, Types.DecimalType);
-            var doubleConf = describer.GetDynamicCellParserFor(in ctx, Types.DoubleType);
-            var shortConf = describer.GetDynamicCellParserFor(in ctx, Types.ShortType);
-            var intConf = describer.GetDynamicCellParserFor(in ctx, Types.IntType);
-            var longConf = describer.GetDynamicCellParserFor(in ctx, Types.LongType);
-            var sbyteConf = describer.GetDynamicCellParserFor(in ctx, Types.SByteType);
+            var doubleConf = describer.GetDynamicCellParserFor(in ctx, Types.Double);
+            var shortConf = describer.GetDynamicCellParserFor(in ctx, Types.Short);
+            var intConf = describer.GetDynamicCellParserFor(in ctx, Types.Int);
+            var longConf = describer.GetDynamicCellParserFor(in ctx, Types.Long);
+            var sbyteConf = describer.GetDynamicCellParserFor(in ctx, Types.SByte);
             //var floatConf = describer.GetDynamicCellParserFor(in ctx, Types.FloatType);
-            var stringConf = describer.GetDynamicCellParserFor(in ctx, Types.StringType);
-            var ushortConf = describer.GetDynamicCellParserFor(in ctx, Types.UShortType);
-            var uintConf = describer.GetDynamicCellParserFor(in ctx, Types.UIntType);
-            var ulongConf = describer.GetDynamicCellParserFor(in ctx, Types.ULongType);
+            var stringConf = describer.GetDynamicCellParserFor(in ctx, Types.String);
+            var ushortConf = describer.GetDynamicCellParserFor(in ctx, Types.UShort);
+            var uintConf = describer.GetDynamicCellParserFor(in ctx, Types.UInt);
+            var ulongConf = describer.GetDynamicCellParserFor(in ctx, Types.ULong);
 
             // this is very tricky, because we don't actually have any type information... so we 
             //   want to be as narrow as we can be
@@ -168,7 +167,7 @@ namespace Cesil
 
         private T ToTypeImpl<T>(IFormatProvider? provider, TypeInfo? toType = null)
         {
-            toType = toType ?? typeof(T).GetTypeInfo();
+            toType ??= typeof(T).GetTypeInfo();
 
             if (provider != null)
             {

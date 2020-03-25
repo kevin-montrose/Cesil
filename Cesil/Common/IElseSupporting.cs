@@ -14,7 +14,7 @@ namespace Cesil
         // this creates a new T from baseT, and sets up fallbacks such
         //   that each fallback T should be checked in reverse order
         //   of how it appears in the chain AFTER checking the returned T
-        public static T DoElse<T>(this T baseT, T fallback)
+        internal static T DoElse<T>(this T baseT, T fallback)
             where T : class, IElseSupporting<T>
         {
             var builder = ImmutableArray.CreateBuilder<T>();

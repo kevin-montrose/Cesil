@@ -18,7 +18,7 @@ namespace Cesil
     {
         private T? _Value;
 
-        public bool HasValue
+        internal bool HasValue
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => _Value != null;
@@ -26,7 +26,7 @@ namespace Cesil
 
         [DisallowNull]
         [NotNull]
-        public T Value
+        internal T Value
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => Utils.NonNull(_Value);
@@ -42,13 +42,13 @@ namespace Cesil
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetAllowNull(T? value)
+        internal void SetAllowNull(T? value)
         {
             _Value = value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear()
+        internal void Clear()
         {
             _Value = null;
         }

@@ -4,7 +4,7 @@ namespace Cesil
 {
     internal static class IDelegateCacheHelpers
     {
-        public static void GuaranteeImpl<TSelf, TDelegate>(TSelf inst, IDelegateCache cache)
+        internal static void GuaranteeImpl<TSelf, TDelegate>(TSelf inst, IDelegateCache cache)
             where TSelf : ICreatesCacheableDelegate<TDelegate>, IEquatable<TSelf>
             where TDelegate : Delegate
         {

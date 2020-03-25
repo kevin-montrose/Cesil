@@ -59,9 +59,9 @@ namespace Cesil.Tests
             RunSyncWriterVariants<_VariousShouldSerializes>(
                 opts,
                 (config, getWriter, getStr) =>
-                { 
-                    using(var writer = getWriter())
-                    using(var csv = config.CreateWriter(writer))
+                {
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
                     {
                         csv.Write(new _VariousShouldSerializes { Foo = 123, Bar = "hello", Fizz = false });
                         csv.Write(new _VariousShouldSerializes { Foo = 456, Bar = "world", Fizz = true });

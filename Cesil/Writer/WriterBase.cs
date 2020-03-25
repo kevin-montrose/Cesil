@@ -187,7 +187,7 @@ namespace Cesil
         internal void CreateWriteContexts()
         {
             WriteContexts = new WriteContext[Columns.Length];
-            for(var i = 0; i < WriteContexts.Length; i++)
+            for (var i = 0; i < WriteContexts.Length; i++)
             {
                 WriteContexts[i] = WriteContext.WritingColumn(Configuration.Options, 0, ColumnIdentifier.CreateInner(i, Columns[i].Name), Context);
             }

@@ -11,7 +11,7 @@ namespace Cesil
 
         private readonly TextWriter Inner;
 
-        public TextWriterAdapter(TextWriter inner)
+        internal TextWriterAdapter(TextWriter inner)
         {
             Inner = inner;
         }

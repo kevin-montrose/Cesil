@@ -7,6 +7,6 @@ namespace Cesil
     [AttributeUsage(AttributeTargets.ReturnValue | AttributeTargets.Property | AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
     internal sealed class NullableExposedAttribute : Attribute
     {
-        public NullableExposedAttribute(string reason) { }
+        internal NullableExposedAttribute(string reason) { }
     }
 }

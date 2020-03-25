@@ -20,7 +20,7 @@ namespace Cesil.Tests
         private static IEnumerable<TypeInfo> ShouldThrowOnUseAfterDispose<TDisposeInterface>()
         {
             var disposeI = typeof(TDisposeInterface).GetTypeInfo();
-            if(!disposeI.IsInterface)
+            if (!disposeI.IsInterface)
             {
                 throw new Exception();
             }
@@ -44,10 +44,10 @@ namespace Cesil.Tests
 
             var ret = new List<TypeInfo>();
 
-            foreach(var t in concreteTypes)
+            foreach (var t in concreteTypes)
             {
                 var implementedInterfaces = t.ImplementedInterfaces;
-                if(!implementedInterfaces.Any(i => i == disposeI))
+                if (!implementedInterfaces.Any(i => i == disposeI))
                 {
                     continue;
                 }
@@ -62,7 +62,7 @@ namespace Cesil.Tests
                 // Famous last words I know.
 
                 var isPublic = t.IsPublic;
-                var implementsSystemInterface = 
+                var implementsSystemInterface =
                     implementedInterfaces.Any(
                         i =>
                         {
@@ -70,7 +70,7 @@ namespace Cesil.Tests
 
                             TypeInfo iGen;
 
-                            if(i.IsConstructedGenericType)
+                            if (i.IsConstructedGenericType)
                             {
                                 iGen = i.GetGenericTypeDefinition().GetTypeInfo();
                             }
@@ -103,7 +103,7 @@ namespace Cesil.Tests
                 var doesNotEscape = t.GetCustomAttribute<DoesNotEscapeAttribute>() != null;
 
                 var shouldInclude = (isPublic || implementsSystemInterface || implementsCesilInterface) && !doesNotEscape;
-                if(!shouldInclude)
+                if (!shouldInclude)
                 {
                     continue;
                 }
@@ -121,6 +121,11 @@ namespace Cesil.Tests
             public object Context { get; set; }
 
             public int MinimumExpectedColumns { get; set; }
+
+            public NameLookup AcquireNameLookup()
+            => NameLookup.Empty;
+
+            public void ReleaseNameLookup() { }
 
             public void Remove(DynamicRow row) { }
         }
@@ -254,7 +259,7 @@ namespace Cesil.Tests
                 {
                     IDisposable_PassthroughRowEnumerator();
                 }
-                else if(t == typeof(NameLookup))
+                else if (t == typeof(NameLookup))
                 {
                     // intentionally NOT testing, this is ref counted so this
                     //   test wouldn't be sufficient
@@ -319,7 +324,7 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make an adapter that's "good to go"
-                PassthroughRowEnumerator MakeEnumerator()
+                static PassthroughRowEnumerator MakeEnumerator()
                 {
                     var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
                     var config = Configuration.ForDynamic(opts);
@@ -362,50 +367,10 @@ namespace Cesil.Tests
                     }
                 }
 
-                // Add
-                {
-                    var a = MakeLookupAdapter();
-                    a.Dispose();
-                    Assert.Throws<ObjectDisposedException>(() => a.Add(-1));
-                    testCases++;
-                }
-
-                // Clear
-                {
-                    var a = MakeLookupAdapter();
-                    a.Dispose();
-                    Assert.Throws<ObjectDisposedException>(() => a.Clear());
-                    testCases++;
-                }
-
-                // Count
-                {
-                    var a = MakeLookupAdapter();
-                    a.Dispose();
-                    Assert.Throws<ObjectDisposedException>(() => a.Count);
-                    testCases++;
-                }
-
-                // Get
-                {
-                    var a = MakeLookupAdapter();
-                    a.Dispose();
-                    Assert.Throws<ObjectDisposedException>(() => a.Get(0, -1, out _));
-                    testCases++;
-                }
-
-                // Set
-                {
-                    var a = MakeLookupAdapter();
-                    a.Dispose();
-                    Assert.Throws<ObjectDisposedException>(() => a.Set(10, 10));
-                    testCases++;
-                }
-
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make an adapter that's "good to go"
-                UnmanagedLookupArray<int> MakeLookupAdapter()
+                static UnmanagedLookupArray<int> MakeLookupAdapter()
                 {
                     return new UnmanagedLookupArray<int>(MemoryPool<char>.Shared, 10);
                 }
@@ -458,7 +423,7 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make an adapter that's "good to go"
-                BufferWriterByteAdapter MakeAdapter()
+                static BufferWriterByteAdapter MakeAdapter()
                 {
                     return new BufferWriterByteAdapter(default, Encoding.UTF8);
                 }
@@ -503,14 +468,14 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make an adapter that's "good to go"
-                ReadOnlyByteSequenceAdapter MakeAdapter()
+                static ReadOnlyByteSequenceAdapter MakeAdapter()
                 {
                     return new ReadOnlyByteSequenceAdapter(default, Encoding.UTF8);
                 }
             }
 
             // test for DynamicRowMemberNameEnumerator
-            void IDisposable_DynamicRowMemberNameEnumerator()
+            static void IDisposable_DynamicRowMemberNameEnumerator()
             {
                 // double dispose does not error
                 {
@@ -564,19 +529,19 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make an enumerator that's "good to go"
-                DynamicRowMemberNameEnumerator MakeEnumerator()
+                static DynamicRowMemberNameEnumerator MakeEnumerator()
                 {
                     var row = new DynamicRow();
                     var owner = new _FakeOwner();
                     var cols = new[] { "foo" };
-                    row.Init(owner, 0, null, TypeDescribers.Default, true, cols, MemoryPool<char>.Shared);
+                    row.Init(owner, 0, null, TypeDescribers.Default, true, cols, 0, MemoryPool<char>.Shared);
 
                     return new DynamicRowMemberNameEnumerator(row);
                 }
             }
 
             // test for ReadOnlySequenceAdapter
-            void IDisposable_ReadOnlySequenceAdapter()
+            static void IDisposable_ReadOnlySequenceAdapter()
             {
                 // double dispose does not error
                 {
@@ -614,14 +579,14 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a writer that's "good to go"
-                ReadOnlyCharSequenceAdapter MakeReader()
+                static ReadOnlyCharSequenceAdapter MakeReader()
                 {
                     return new ReadOnlyCharSequenceAdapter(ReadOnlySequence<char>.Empty);
                 }
             }
 
             // test for BufferWriterAdapter
-            void IDisposable_BufferWriterAdapter()
+            static void IDisposable_BufferWriterAdapter()
             {
                 // double dispose does not error
                 {
@@ -667,14 +632,14 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a writer that's "good to go"
-                BufferWriterCharAdapter MakeWriter()
+                static BufferWriterCharAdapter MakeWriter()
                 {
                     return new BufferWriterCharAdapter(new CharWriter(new Pipe().Writer));
                 }
             }
 
             // test for TextReaderAdapter
-            void IDisposable_TextReaderAdapter()
+            static void IDisposable_TextReaderAdapter()
             {
                 // double dispose does not error
                 {
@@ -712,14 +677,14 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a writer that's "good to go"
-                TextReaderAdapter MakeReader()
+                static TextReaderAdapter MakeReader()
                 {
                     return new TextReaderAdapter(TextReader.Null);
                 }
             }
 
             // test for TextWriterAdapter
-            void IDisposable_TextWriterAdapter()
+            static void IDisposable_TextWriterAdapter()
             {
                 // double dispose does not error
                 {
@@ -765,14 +730,14 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a writer that's "good to go"
-                TextWriterAdapter MakeWriter()
+                static TextWriterAdapter MakeWriter()
                 {
                     return new TextWriterAdapter(TextWriter.Null);
                 }
             }
 
             // test for Reader
-            void IDisposable_Reader()
+            static void IDisposable_Reader()
             {
                 // double dispose does not error
                 {
@@ -860,7 +825,7 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a reader that's "good to go"
-                IReader<_IDisposable> MakeReader()
+                static IReader<_IDisposable> MakeReader()
                 {
                     return
                         Configuration.For<_IDisposable>(Options.Default)
@@ -871,7 +836,7 @@ namespace Cesil.Tests
             }
 
             // test for ReaderStateMachine
-            void IDisposable_ReaderStateMachine()
+            static void IDisposable_ReaderStateMachine()
             {
                 // double dispose does not error
                 {
@@ -901,7 +866,7 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a reader that's "good to go"
-                ReaderStateMachine MakeReader()
+                static ReaderStateMachine MakeReader()
                 {
                     var ret = new ReaderStateMachine();
                     ret.Initialize(
@@ -919,7 +884,7 @@ namespace Cesil.Tests
             }
 
             // test for Writer
-            void IDisposable_Writer()
+            static void IDisposable_Writer()
             {
                 // double dispose does not error
                 {
@@ -974,7 +939,7 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a writer that's "good to go"
-                IWriter<_IDisposable> MakeWriter()
+                static IWriter<_IDisposable> MakeWriter()
                 {
                     return
                         Configuration.For<_IDisposable>(Options.Default)
@@ -985,7 +950,7 @@ namespace Cesil.Tests
             }
 
             // test for BufferWithPushback
-            void IDisposable_BufferWithPushback()
+            static void IDisposable_BufferWithPushback()
             {
                 // double dispose does not error
                 {
@@ -1015,7 +980,7 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a buffer that's "good to go"
-                BufferWithPushback MakeBuffer()
+                static BufferWithPushback MakeBuffer()
                 {
                     return
                         new BufferWithPushback(
@@ -1026,7 +991,7 @@ namespace Cesil.Tests
             }
 
             // test for MaybeInPlaceBuffer
-            void IDisposable_MaybeInPlaceBuffer()
+            static void IDisposable_MaybeInPlaceBuffer()
             {
                 // double dispose does not error
                 {
@@ -1056,14 +1021,14 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a buffer that's "good to go"
-                MaybeInPlaceBuffer<char> MakeBuffer()
+                static MaybeInPlaceBuffer<char> MakeBuffer()
                 {
                     return new MaybeInPlaceBuffer<char>(MemoryPool<char>.Shared);
                 }
             }
 
             // test for Partial
-            void IDisposable_Partial()
+            static void IDisposable_Partial()
             {
                 // double dispose does not error
                 {
@@ -1093,14 +1058,14 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a partial that's "good to go"
-                Partial MakePartial()
+                static Partial MakePartial()
                 {
                     return new Partial(MemoryPool<char>.Shared);
                 }
             }
 
             // test for RowEndingDetector
-            void IDisposable_RowEndingDetector()
+            static void IDisposable_RowEndingDetector()
             {
                 // double dispose does not error
                 {
@@ -1130,7 +1095,7 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a partial that's "good to go"
-                RowEndingDetector MakeDetector()
+                static RowEndingDetector MakeDetector()
                 {
                     return new RowEndingDetector(
                         new ReaderStateMachine(),
@@ -1142,7 +1107,7 @@ namespace Cesil.Tests
             }
 
             // test for HeadersReader
-            void IDisposable_HeadersReader()
+            static void IDisposable_HeadersReader()
             {
                 // double dispose does not error
                 {
@@ -1172,7 +1137,7 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a partial that's "good to go"
-                HeadersReader<_IDisposable> MakeReader()
+                static HeadersReader<_IDisposable> MakeReader()
                 {
                     var config = (ConcreteBoundConfiguration<_IDisposable>)Configuration.For<_IDisposable>();
 
@@ -1192,7 +1157,7 @@ namespace Cesil.Tests
             }
 
             // test HeaderEnumerator
-            void IDisposable_HeaderEnumerator()
+            static void IDisposable_HeaderEnumerator()
             {
                 // double dispose does not error
                 {
@@ -1246,14 +1211,14 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a partial that's "good to go"
-                HeadersReader<_IDisposable>.HeaderEnumerator MakeEnumerator()
+                static HeadersReader<_IDisposable>.HeaderEnumerator MakeEnumerator()
                 {
                     return new HeadersReader<_IDisposable>.HeaderEnumerator(0, ReadOnlyMemory<char>.Empty, WhitespaceTreatments.Preserve);
                 }
             }
 
             // test CharacterLookup
-            void IDisposable_CharacterLookup()
+            static void IDisposable_CharacterLookup()
             {
                 // double dispose does not error
                 {
@@ -1283,14 +1248,14 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a partial that's "good to go"
-                CharacterLookup MakeLookup()
+                static CharacterLookup MakeLookup()
                 {
                     return CharacterLookup.MakeCharacterLookup(Options.Default, out _);
                 }
             }
 
             // test CharacterLookup
-            void IDisposable_MaxSizedBufferWriter()
+            static void IDisposable_MaxSizedBufferWriter()
             {
                 // double dispose does not error
                 {
@@ -1341,25 +1306,17 @@ namespace Cesil.Tests
                     testCases++;
                 }
 
-                // MakeSequence
-                {
-                    var w = MakeWriter();
-                    w.Dispose();
-                    Assert.Throws<ObjectDisposedException>(() => { var r = default(ReadOnlySequence<char>); w.MakeSequence(ref r); });
-                    testCases++;
-                }
-
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a partial that's "good to go"
-                MaxSizedBufferWriter MakeWriter()
+                static MaxSizedBufferWriter MakeWriter()
                 {
                     return new MaxSizedBufferWriter(MemoryPool<char>.Shared, null);
                 }
             }
 
             // test for DynamicReader
-            void IDisposable_DynamicReader()
+            static void IDisposable_DynamicReader()
             {
                 // double dispose does not error
                 {
@@ -1447,7 +1404,7 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a reader that's "good to go"
-                IReader<dynamic> MakeReader()
+                static IReader<dynamic> MakeReader()
                 {
                     return
                         Configuration.ForDynamic(Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions())
@@ -1456,7 +1413,7 @@ namespace Cesil.Tests
             }
 
             // test for DynamicRow
-            void IDisposable_DynamicRow()
+            static void IDisposable_DynamicRow()
             {
                 // double dispose does not error
                 {
@@ -1486,14 +1443,14 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a reader that's "good to go"
-                DynamicRow MakeRow()
+                static DynamicRow MakeRow()
                 {
                     return new DynamicRow();
                 }
             }
 
             // test for DynamicRowEnumerator
-            void IDisposable_DynamicRowEnumerator()
+            static void IDisposable_DynamicRowEnumerator()
             {
                 // double dispose does not error
                 {
@@ -1547,7 +1504,7 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a reader that's "good to go"
-                IEnumerator<string> MakeDynamicRowEnumerator()
+                static IEnumerator<string> MakeDynamicRowEnumerator()
                 {
                     var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
                     var config = Configuration.ForDynamic(opts);
@@ -1564,7 +1521,7 @@ namespace Cesil.Tests
             }
 
             // test for Enumerator
-            void IDisposable_Enumerable()
+            static void IDisposable_Enumerable()
             {
                 // double dispose does not error
                 {
@@ -1611,7 +1568,7 @@ namespace Cesil.Tests
                 }
 
                 // make a reader that's "good to go"
-                Enumerable<_IDisposable> MakeEnumerable()
+                static Enumerable<_IDisposable> MakeEnumerable()
                 {
                     var config = Configuration.For<_IDisposable>();
 
@@ -1622,7 +1579,7 @@ namespace Cesil.Tests
             }
 
             // test for DynamicWriter
-            void IDisposable_DynamicWriter()
+            static void IDisposable_DynamicWriter()
             {
                 // double dispose does not error
                 {
@@ -1676,7 +1633,7 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a writer that's "good to go"
-                IWriter<dynamic> MakeWriter()
+                static IWriter<dynamic> MakeWriter()
                 {
                     var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
 
@@ -1689,7 +1646,7 @@ namespace Cesil.Tests
             }
 
             // test DynamicColumnEnumerator
-            void IDisposable_DynamicColumnEnumerator()
+            static void IDisposable_DynamicColumnEnumerator()
             {
                 // double dispose does not error
                 {
@@ -1743,7 +1700,7 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a reader that's "good to go"
-                IEnumerator<ColumnIdentifier> MakeEnumerator()
+                static IEnumerator<ColumnIdentifier> MakeEnumerator()
                 {
                     var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
                     var config = Configuration.ForDynamic(opts);
@@ -1815,7 +1772,7 @@ namespace Cesil.Tests
             }
 
             // test AsyncEnumerableAdapter
-            async Task IAsyncDisposable_AsyncEnumerableAdapter()
+            static async Task IAsyncDisposable_AsyncEnumerableAdapter()
             {
                 // double dispose does not error
                 {
@@ -1869,14 +1826,14 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a writer that's "good to go"
-                AsyncEnumerableAdapter<_IDisposable> MakeAsyncEnumerableAdapter()
+                static AsyncEnumerableAdapter<_IDisposable> MakeAsyncEnumerableAdapter()
                 {
                     return new AsyncEnumerableAdapter<_IDisposable>(new _IDisposable[0]);
                 }
             }
 
             // test pipe writer adapter
-            async Task IAsyncDisposable_AsyncEnumerableAsync()
+            static async Task IAsyncDisposable_AsyncEnumerableAsync()
             {
                 // double dispose does not error
                 {
@@ -1916,7 +1873,7 @@ namespace Cesil.Tests
                 }
 
                 // make a writer that's "good to go"
-                AsyncEnumerable<_IDisposable> MakeAsyncEnumerable()
+                static AsyncEnumerable<_IDisposable> MakeAsyncEnumerable()
                 {
                     return
                         (AsyncEnumerable<_IDisposable>)
@@ -1928,7 +1885,7 @@ namespace Cesil.Tests
             }
 
             // test pipe writer adapter
-            async Task IAsyncDisposable_PipeWriterAdapter()
+            static async Task IAsyncDisposable_PipeWriterAdapter()
             {
                 // double dispose does not error
                 {
@@ -1959,14 +1916,14 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a writer that's "good to go"
-                PipeWriterAdapter MakeWriter()
+                static PipeWriterAdapter MakeWriter()
                 {
                     return new PipeWriterAdapter(new Pipe().Writer, Encoding.UTF8, MemoryPool<char>.Shared);
                 }
             }
 
             // test pipe reader adapter
-            async Task IAsyncDisposable_PipeReaderAdapter()
+            static async Task IAsyncDisposable_PipeReaderAdapter()
             {
                 // double dispose does not error
                 {
@@ -1997,14 +1954,14 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a reader that's "good to go"
-                PipeReaderAdapter MakeReader()
+                static PipeReaderAdapter MakeReader()
                 {
                     return new PipeReaderAdapter(new Pipe().Reader, Encoding.UTF8);
                 }
             }
 
             // test async reader adapter
-            async Task IAsyncDisposable_TextReaderAsyncAdapter()
+            static async Task IAsyncDisposable_TextReaderAsyncAdapter()
             {
                 // double dispose does not error
                 {
@@ -2035,14 +1992,14 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a reader that's "good to go"
-                AsyncTextReaderAdapter MakeReader()
+                static AsyncTextReaderAdapter MakeReader()
                 {
                     return new AsyncTextReaderAdapter(TextReader.Null);
                 }
             }
 
             // test async writer adapter
-            async Task IAsyncDisposable_TextWriterAsyncAdapater()
+            static async Task IAsyncDisposable_TextWriterAsyncAdapater()
             {
                 // double dispose does not error
                 {
@@ -2073,14 +2030,14 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a reader that's "good to go"
-                AsyncTextWriterAdapter MakeWriter()
+                static AsyncTextWriterAdapter MakeWriter()
                 {
                     return new AsyncTextWriterAdapter(TextWriter.Null);
                 }
             }
 
             // test async reader
-            async Task IAsyncDisposable_AsyncReaderAsync()
+            static async Task IAsyncDisposable_AsyncReaderAsync()
             {
                 // double dispose does not error
                 {
@@ -2159,7 +2116,7 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a reader that's "good to go"
-                IAsyncReader<_IDisposable> MakeReader()
+                static IAsyncReader<_IDisposable> MakeReader()
                 {
                     return
                         Configuration.For<_IDisposable>()
@@ -2168,7 +2125,7 @@ namespace Cesil.Tests
             }
 
             // test async writer
-            async Task IAsyncDisposable_AsyncWriterAsync()
+            static async Task IAsyncDisposable_AsyncWriterAsync()
             {
                 // double dispose does not error
                 {
@@ -2208,7 +2165,7 @@ namespace Cesil.Tests
                 {
                     var w = MakeWriter();
                     await w.DisposeAsync();
-                    Assert.Throws<ObjectDisposedException>(() => w.WriteAsync(default(_IDisposable)));
+                    Assert.Throws<ObjectDisposedException>(() => w.WriteAsync(default));
                     testCases++;
                 }
 
@@ -2223,7 +2180,7 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a reader that's "good to go"
-                IAsyncWriter<_IDisposable> MakeWriter()
+                static IAsyncWriter<_IDisposable> MakeWriter()
                 {
                     return
                         Configuration.For<_IDisposable>()
@@ -2232,7 +2189,7 @@ namespace Cesil.Tests
             }
 
             // test async dynamic reader
-            async Task IAsyncDisposable_AsyncDynamicReaderAsync()
+            static async Task IAsyncDisposable_AsyncDynamicReaderAsync()
             {
                 // double dispose does not error
                 {
@@ -2311,7 +2268,7 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a reader that's "good to go"
-                IAsyncReader<dynamic> MakeReader()
+                static IAsyncReader<dynamic> MakeReader()
                 {
                     return
                         Configuration.ForDynamic(Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions())
@@ -2320,7 +2277,7 @@ namespace Cesil.Tests
             }
 
             // test async dynamic writer
-            async Task IAsyncDisposable_AsyncDynamicWriterAsync()
+            static async Task IAsyncDisposable_AsyncDynamicWriterAsync()
             {
                 // double dispose does not error
                 {
@@ -2375,7 +2332,7 @@ namespace Cesil.Tests
                 Assert.Equal(expectedTestCases, testCases);
 
                 // make a reader that's "good to go"
-                IAsyncWriter<dynamic> MakeWriter()
+                static IAsyncWriter<dynamic> MakeWriter()
                 {
                     return
                         Configuration.ForDynamic()

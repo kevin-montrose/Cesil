@@ -167,17 +167,17 @@ namespace Cesil
                 return Throw.InvalidOperationException<Options>($"{nameof(EscapedValueEscapeCharacter)} cannot be set if, {nameof(EscapedValueStartAndEnd)} isn't set");
             }
             // RowEnding not recognized
-            if (!Enum.IsDefined(Types.RowEndingType, RowEnding))
+            if (!Enum.IsDefined(Types.RowEnding, RowEnding))
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(RowEnding)} has an unexpected value, '{RowEnding}'");
             }
             // ReadHeader not recognized
-            if (!Enum.IsDefined(Types.ReadHeaderType, ReadHeader))
+            if (!Enum.IsDefined(Types.ReadHeader, ReadHeader))
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(ReadHeader)} has an unexpected value, '{ReadHeader}'");
             }
             // WriteHeader not recognized
-            if (!Enum.IsDefined(Types.WriteHeaderType, WriteHeader))
+            if (!Enum.IsDefined(Types.WriteHeader, WriteHeader))
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(WriteHeader)} has an unexpected value, '{WriteHeader}'");
             }
@@ -187,7 +187,7 @@ namespace Cesil
                 return Throw.InvalidOperationException<Options>($"{nameof(TypeDescriber)} has not been set");
             }
             // WriteTrailingNewLine not recognized
-            if (!Enum.IsDefined(Types.WriteTrailingRowEndingType, WriteTrailingRowEnding))
+            if (!Enum.IsDefined(Types.WriteTrailingRowEnding, WriteTrailingRowEnding))
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(WriteTrailingRowEnding)} has an unexpected value, '{WriteTrailingRowEnding}'");
             }
@@ -207,7 +207,7 @@ namespace Cesil
                 return Throw.InvalidOperationException<Options>($"{nameof(ReadBufferSizeHint)} cannot be less than 0, is '{ReadBufferSizeHint}'");
             }
             // DynamicRowDisposal not recognized
-            if (!Enum.IsDefined(Types.DynamicRowDisposalType, DynamicRowDisposal))
+            if (!Enum.IsDefined(Types.DynamicRowDisposal, DynamicRowDisposal))
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(DynamicRowDisposal)} has an unexpected value, '{DynamicRowDisposal}'");
             }
@@ -217,7 +217,7 @@ namespace Cesil
                 return Throw.InvalidOperationException<Options>($"{nameof(WhitespaceTreatment)} has an unexpected value, '{WhitespaceTreatment}'");
             }
             // ExtraColumnTreatment not recognized
-            if (!Enum.IsDefined(Types.ExtraColumnTreatmentType, ExtraColumnTreatment))
+            if (!Enum.IsDefined(Types.ExtraColumnTreatment, ExtraColumnTreatment))
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(ExtraColumnTreatment)} has an unexpected value, '{ExtraColumnTreatment}'");
             }
@@ -290,7 +290,7 @@ namespace Cesil
         /// </summary>
         public OptionsBuilder WithRowEnding(RowEnding rowEnding)
         {
-            if (!Enum.IsDefined(Types.RowEndingType, rowEnding))
+            if (!Enum.IsDefined(Types.RowEnding, rowEnding))
             {
                 return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(Cesil.RowEnding)} value: {rowEnding}", nameof(rowEnding));
             }
@@ -310,7 +310,7 @@ namespace Cesil
         /// </summary>
         public OptionsBuilder WithReadHeader(ReadHeader readHeader)
         {
-            if (!Enum.IsDefined(Types.ReadHeaderType, readHeader))
+            if (!Enum.IsDefined(Types.ReadHeader, readHeader))
             {
                 return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(Cesil.ReadHeader)} value: {readHeader}", nameof(readHeader));
             }
@@ -330,7 +330,7 @@ namespace Cesil
         /// </summary>
         public OptionsBuilder WithWriteHeader(WriteHeader writeHeader)
         {
-            if (!Enum.IsDefined(Types.WriteHeaderType, writeHeader))
+            if (!Enum.IsDefined(Types.WriteHeader, writeHeader))
             {
                 return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(Cesil.WriteHeader)} value: {writeHeader}", nameof(writeHeader));
             }
@@ -362,7 +362,7 @@ namespace Cesil
         /// </summary>
         public OptionsBuilder WithWriteTrailingRowEnding(WriteTrailingRowEnding writeTrailingNewLine)
         {
-            if (!Enum.IsDefined(Types.WriteTrailingRowEndingType, writeTrailingNewLine))
+            if (!Enum.IsDefined(Types.WriteTrailingRowEnding, writeTrailingNewLine))
             {
                 return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(Cesil.WriteTrailingRowEnding)} value: {writeTrailingNewLine}", nameof(writeTrailingNewLine));
             }
@@ -501,7 +501,7 @@ namespace Cesil
         public OptionsBuilder WithExtraColumnTreatment(ExtraColumnTreatment extraColumnTreatment)
         {
             // ExtraColumnTreatment not recognized
-            if (!Enum.IsDefined(Types.ExtraColumnTreatmentType, extraColumnTreatment))
+            if (!Enum.IsDefined(Types.ExtraColumnTreatment, extraColumnTreatment))
             {
                 return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(ExtraColumnTreatment)} value: {extraColumnTreatment}", nameof(extraColumnTreatment));
             }

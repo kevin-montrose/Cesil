@@ -8,7 +8,7 @@ namespace Cesil
     {
         public bool IsDisposed => CurrentState == State.NONE;
 
-        public State CurrentState;
+        internal State CurrentState;
 
         internal RowEnding RowEndings;
         internal ReadHeader HasHeaders;

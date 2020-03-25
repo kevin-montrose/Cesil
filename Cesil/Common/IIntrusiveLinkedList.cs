@@ -10,7 +10,7 @@
 
     internal static class IIntrusiveLinkedListExtensionMethods
     {
-        public static void AddAfter<T>(this T linkedList, T item)
+        internal static void AddAfter<T>(this T linkedList, T item)
             where T : class, IIntrusiveLinkedList<T>
         {
             item.Previous.Value = linkedList;
@@ -30,7 +30,7 @@
             linkedListNext.Value = item;
         }
 
-        public static void AddHead<T>(this T? linkedList, ref T? head, T item)
+        internal static void AddHead<T>(this T? linkedList, ref T? head, T item)
             where T : class, IIntrusiveLinkedList<T>
         {
             ref var itemNext = ref item.Next;
@@ -48,7 +48,7 @@
             head = item;
         }
 
-        public static void Remove<T>(this T? linkedList, ref T? head, T item)
+        internal static void Remove<T>(this T? linkedList, ref T? head, T item)
             where T : class, IIntrusiveLinkedList<T>
         {
             ref var itemPrevious = ref item.Previous;

@@ -2,7 +2,7 @@
 <html lang='en'>
 <head>
 <meta charset='utf-8' />
-<title>Cesil.Benchmark.WideRowWriteSyncBenchmark-20200306-235230</title>
+<title>Cesil.Benchmark.WideRowWriteSyncBenchmark-20200326-234749</title>
 
 <style type="text/css">
 	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
@@ -15,7 +15,7 @@
 <pre><code>
 BenchmarkDotNet=v0.12.0, OS=Windows 8.1 (6.3.9600.0)
 Intel Core i7-4960HQ CPU 2.60GHz (Haswell), 1 CPU, 8 logical and 4 physical cores
-Frequency=2533207 Hz, Resolution=394.7565 ns, Timer=TSC
+Frequency=2533206 Hz, Resolution=394.7567 ns, Timer=TSC
 .NET Core SDK=3.0.100
   [Host]     : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
   DefaultJob : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
@@ -25,10 +25,10 @@ Frequency=2533207 Hz, Resolution=394.7565 ns, Timer=TSC
 <table>
 <thead><tr><th>Method</th><th>RowSet</th><th>Library</th><th>  Mean</th><th>Error</th><th>StdDev</th><th>Gen 0</th><th>Gen 1</th><th>Gen 2</th><th>Allocated</th>
 </tr>
-</thead><tbody><tr><td>Run</td><td>DeepRows</td><td>Cesil</td><td>104,564.1 us</td><td>318.95 us</td><td>298.34 us</td><td>-</td><td>-</td><td>-</td><td>2634.08 KB</td>
-</tr><tr><td>Run</td><td>DeepRows</td><td>CsvHelper</td><td>148,433.9 us</td><td>446.76 us</td><td>396.04 us</td><td>333.3333</td><td>-</td><td>-</td><td>38708.45 KB</td>
-</tr><tr><td>Run</td><td>ShallowRows</td><td>Cesil</td><td>105.6 us</td><td>0.22 us</td><td>0.19 us</td><td>-</td><td>-</td><td>-</td><td>5.42 KB</td>
-</tr><tr><td>Run</td><td>ShallowRows</td><td>CsvHelper</td><td>16,684.0 us</td><td>70.35 us</td><td>62.36 us</td><td>-</td><td>-</td><td>-</td><td>321.45 KB</td>
+</thead><tbody><tr><td>Run</td><td>DeepRows</td><td>Cesil</td><td>100,460.3 us</td><td>243.41 us</td><td>203.26 us</td><td>-</td><td>-</td><td>-</td><td>2635.35 KB</td>
+</tr><tr><td>Run</td><td>DeepRows</td><td>CsvHelper</td><td>144,204.5 us</td><td>1,979.82 us</td><td>1,851.92 us</td><td>500.0000</td><td>-</td><td>-</td><td>38707.59 KB</td>
+</tr><tr><td>Run</td><td>ShallowRows</td><td>Cesil</td><td>101.6 us</td><td>0.41 us</td><td>0.36 us</td><td>-</td><td>-</td><td>-</td><td>5.41 KB</td>
+</tr><tr><td>Run</td><td>ShallowRows</td><td>CsvHelper</td><td>16,150.1 us</td><td>35.07 us</td><td>32.81 us</td><td>-</td><td>-</td><td>-</td><td>322.3 KB</td>
 </tr></tbody></table>
 </body>
 </html>

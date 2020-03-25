@@ -58,11 +58,11 @@ namespace Cesil.Tests
                     chained = chained.Else(chainable[j]);
                 }
 
-                var p = Expression.Parameter(Types.ObjectType);
-                var ctx = Expression.Parameter(Types.ReadContextType.MakeByRefType());
+                var p = Expression.Parameter(Types.Object);
+                var ctx = Expression.Parameter(Types.ReadContext.MakeByRefType());
                 var outVar = Expression.Parameter(t.MakeByRefType());
 
-                var asRow = Expression.Convert(p, Types.DynamicRowType);
+                var asRow = Expression.Convert(p, Types.DynamicRow);
                 var rowVar = Expressions.Variable_DynamicRow;
                 var assignRowVar = Expression.Assign(rowVar, asRow);
 
@@ -108,8 +108,8 @@ namespace Cesil.Tests
                 }
 
                 var data = Expression.Parameter(typeof(_Formatters1).GetTypeInfo());
-                var writeContext = Expression.Parameter(Types.WriteContextType.MakeByRefType());
-                var writer = Expression.Parameter(Types.IBufferWriterOfCharType);
+                var writeContext = Expression.Parameter(Types.WriteContext.MakeByRefType());
+                var writer = Expression.Parameter(Types.IBufferWriterOfChar);
 
                 var body = chained.MakeExpression(data, writeContext, writer);
 
@@ -218,8 +218,8 @@ namespace Cesil.Tests
                     chained = chained.Else(chainable[j]);
                 }
 
-                var data = Expression.Parameter(Types.ReadOnlySpanOfCharType);
-                var ctx = Expression.Parameter(Types.ReadContextType.MakeByRefType());
+                var data = Expression.Parameter(Types.ReadOnlySpanOfChar);
+                var ctx = Expression.Parameter(Types.ReadContext.MakeByRefType());
                 var outVar = Expression.Parameter(t1.MakeByRefType());
 
                 var body = chained.MakeExpression(data, ctx, outVar);

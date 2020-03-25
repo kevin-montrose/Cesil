@@ -1046,7 +1046,7 @@ namespace Cesil.Tests
                 _Mixed _ = null;
 
                 builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Buzz,Fizz,Bar,Foo", describer));
-                
+
                 Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
                 builder.ColumnAvailable(Options.Default, 0, 0, null, "123");

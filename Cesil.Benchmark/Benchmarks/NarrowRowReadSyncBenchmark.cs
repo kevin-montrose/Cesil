@@ -106,7 +106,7 @@ namespace Cesil.Benchmark
 
         public void InitializeAndTest()
         {
-            foreach(var type in KnownTypes)
+            foreach (var type in KnownTypes)
             {
                 foreach (var row in KnownRowSet)
                 {

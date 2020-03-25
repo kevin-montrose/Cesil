@@ -19,7 +19,7 @@ namespace Cesil.Benchmark
         public IEnumerable<string> NameSets => new[] { nameof(WideRow), nameof(NarrowRow<object>), "CommonEnglish" };
 
         public IEnumerable<string> Classes =>
-            new[] 
+            new[]
             {
                 nameof(Dictionary<string, int>),
                 nameof(System.Array),

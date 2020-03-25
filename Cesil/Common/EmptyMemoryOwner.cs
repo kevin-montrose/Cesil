@@ -5,7 +5,7 @@ namespace Cesil
 {
     internal sealed class EmptyMemoryOwner : IMemoryOwner<char>
     {
-        public static readonly EmptyMemoryOwner Singleton = new EmptyMemoryOwner();
+        internal static readonly EmptyMemoryOwner Singleton = new EmptyMemoryOwner();
 
         public Memory<char> Memory => Memory<char>.Empty;
 

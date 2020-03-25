@@ -22,7 +22,7 @@ namespace Cesil
 
             var sameParserRestriction = BindingRestrictions.GetExpressionRestriction(eq);
 
-            var expressionIsCellRestriction = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicCellType);
+            var expressionIsCellRestriction = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicCell);
 
             return expressionIsCellRestriction.Merge(sameParserRestriction);
         }
@@ -30,7 +30,7 @@ namespace Cesil
         private Expression GetParser(TypeInfo forType)
         {
             var typeConst = Expression.Constant(forType);
-            var selfAsCell = Expression.Convert(Expression, Types.DynamicCellType);
+            var selfAsCell = Expression.Convert(Expression, Types.DynamicCell);
             var converter = Expression.Call(selfAsCell, Methods.DynamicCell.Converter);
             var ctx = Expression.Call(selfAsCell, Methods.DynamicCell.GetReadContext);
             var parser = Expression.Call(converter, Methods.ITypeDescriber.GetDynamicCellParserFor, ctx, typeConst);
@@ -63,7 +63,7 @@ namespace Cesil
 
             var statements = new List<Expression>();
 
-            var selfAsCell = Expression.Convert(Expression, Types.DynamicCellType);
+            var selfAsCell = Expression.Convert(Expression, Types.DynamicCell);
 
             var callGetSpan = Expression.Call(selfAsCell, Methods.DynamicCell.GetDataSpan);
             var dataSpanVar = Expressions.Variable_ReadOnlySpanOfChar;

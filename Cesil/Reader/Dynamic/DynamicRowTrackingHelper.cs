@@ -2,8 +2,8 @@
 {
     internal static class DynamicRowTrackingHelper
     {
-        public static void TryAllocateAndTrack<T>(T self, NonNull<string[]> columnNames, ref DynamicRow? head, ref dynamic row)
-            where T: ReaderBase<object>, IDynamicRowOwner
+        internal static void TryAllocateAndTrack<T>(T self, NonNull<string[]> columnNames, ref DynamicRow? head, ref dynamic row)
+            where T : ReaderBase<object>, IDynamicRowOwner
         {
             // after this call row _WILL_ be a disposed non-null DynamicRow
             self.TryPreAllocateRow(ref row);
@@ -41,7 +41,21 @@
             var hasNames = columnNames.HasValue;
             var names = hasNames ? columnNames.Value : null;
 
-            dynRow.Init(self, self.RowNumber, self.Context, options.TypeDescriber, hasNames, names, options.MemoryPool);
+            dynRow.Init(self, self.RowNumber, self.Context, options.TypeDescriber, hasNames, names, 0, options.MemoryPool);
+        }
+
+        internal static void FreePreAllocatedOnEnd(IRowConstructor<object> builder)
+        {
+            var dyn = (DynamicRowConstructor)builder;
+
+            if (dyn.PreAlloced != null)
+            {
+                dyn.PreAlloced.Dispose();
+            }
+            else if (dyn.CurrentRow != null)
+            {
+                dyn.CurrentRow.Dispose();
+            }
         }
     }
 }

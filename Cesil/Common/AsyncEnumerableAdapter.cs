@@ -34,7 +34,7 @@ namespace Cesil
             }
         }
 
-        public AsyncEnumerableAdapter(IEnumerable<T> rows)
+        internal AsyncEnumerableAdapter(IEnumerable<T> rows)
         {
             Rows = rows;
             Enumerated = false;

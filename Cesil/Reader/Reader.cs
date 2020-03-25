@@ -41,7 +41,7 @@ namespace Cesil
                     {
                         var endRes = EndOfData();
 
-                        return HandleAdvanceResult(endRes, returnComments);
+                        return HandleAdvanceResult(endRes, returnComments, ending: true);
                     }
 
                     if (!RowBuilder.RowStarted)
@@ -50,7 +50,7 @@ namespace Cesil
                     }
 
                     var res = AdvanceWork(available);
-                    var possibleReturn = HandleAdvanceResult(res, returnComments);
+                    var possibleReturn = HandleAdvanceResult(res, returnComments, ending: false);
                     if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
                         return possibleReturn;
@@ -58,6 +58,8 @@ namespace Cesil
                 }
             }
         }
+
+        protected internal override void EndedWithoutReturningRow() { }
 
         private void HandleHeaders()
         {

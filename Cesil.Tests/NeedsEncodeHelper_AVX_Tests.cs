@@ -25,7 +25,7 @@ namespace Cesil.Tests
 
             fixed (char* charPtr = txt)
             {
-                var res= state.ContainsCharRequiringEncoding(charPtr, txt.Length);
+                var res = state.ContainsCharRequiringEncoding(charPtr, txt.Length);
 
                 Assert.Equal(expected, res);
             }
@@ -47,7 +47,7 @@ namespace Cesil.Tests
                     Assert.Equal(-1, res);
                 }
 
-                for(var j = 0; j < len; j++)
+                for (var j = 0; j < len; j++)
                 {
                     var newStr1 = str.Substring(0, j) + "\r" + str.Substring(j + 1);
                     var newStr2 = str.Substring(0, j) + "\n" + str.Substring(j + 1);
@@ -56,7 +56,7 @@ namespace Cesil.Tests
                     var newStr5 = str.Substring(0, j) + "#" + str.Substring(j + 1);
 
                     var arr = new[] { newStr1, newStr2, newStr3, newStr4, newStr5 };
-                    foreach(var s in arr)
+                    foreach (var s in arr)
                     {
                         fixed (char* charPtr = s)
                         {

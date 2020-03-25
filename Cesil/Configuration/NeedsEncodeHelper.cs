@@ -52,7 +52,7 @@ namespace Cesil
         [FieldOffset(END_OF_PROBILITY_MAP + sizeof(short) * 4)]
         private readonly short Char3Mask;
 
-        public NeedsEncodeHelper(char c1, char? c2, char? c3)
+        internal NeedsEncodeHelper(char c1, char? c2, char? c3)
         {
             FirstChar = (short)c1;
             SecondChar = (short)(c2.HasValue ? c2.Value : '\0');
@@ -73,7 +73,7 @@ namespace Cesil
         }
 
         // primary interface
-        public int ContainsCharRequiringEncoding(char* strPtr, int len)
+        internal int ContainsCharRequiringEncoding(char* strPtr, int len)
         {
             // We use Avx2, Avx2, and Bmi1 in CharRequiringEncodingAvx2
             //    but only need to check for Avx2 and Bmi1 because Avx is implied

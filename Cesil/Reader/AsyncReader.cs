@@ -81,7 +81,9 @@ namespace Cesil
                     {
                         var endRes = EndOfData();
 
-                        return new ValueTask<ReadWithCommentResult<T>>(HandleAdvanceResult(endRes, returnComments));
+                        var advanceRes = HandleAdvanceResult(endRes, returnComments, ending: true);
+
+                        return new ValueTask<ReadWithCommentResult<T>>(advanceRes);
                     }
 
                     if (!RowBuilder.RowStarted)
@@ -90,7 +92,7 @@ namespace Cesil
                     }
 
                     var res = AdvanceWork(available);
-                    var possibleReturn = HandleAdvanceResult(res, returnComments);
+                    var possibleReturn = HandleAdvanceResult(res, returnComments, ending: false);
                     if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
                         return new ValueTask<ReadWithCommentResult<T>>(possibleReturn);
@@ -124,7 +126,7 @@ namespace Cesil
                             {
                                 var endRes = self.EndOfData();
 
-                                return self.HandleAdvanceResult(endRes, returnComments);
+                                return self.HandleAdvanceResult(endRes, returnComments, ending: true);
                             }
 
                             if (!self.RowBuilder.RowStarted)
@@ -133,7 +135,7 @@ namespace Cesil
                             }
 
                             var res = self.AdvanceWork(available);
-                            var possibleReturn = self.HandleAdvanceResult(res, returnComments);
+                            var possibleReturn = self.HandleAdvanceResult(res, returnComments, ending: false);
                             if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                             {
                                 return possibleReturn;
@@ -155,7 +157,7 @@ namespace Cesil
                             {
                                 var endRes = self.EndOfData();
 
-                                return self.HandleAdvanceResult(endRes, returnComments);
+                                return self.HandleAdvanceResult(endRes, returnComments, ending: true);
                             }
 
                             if (!self.RowBuilder.RowStarted)
@@ -164,7 +166,7 @@ namespace Cesil
                             }
 
                             var res = self.AdvanceWork(available);
-                            var possibleReturn = self.HandleAdvanceResult(res, returnComments);
+                            var possibleReturn = self.HandleAdvanceResult(res, returnComments, ending: false);
                             if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                             {
                                 return possibleReturn;
@@ -178,6 +180,8 @@ namespace Cesil
                 }
             }
         }
+
+        protected internal override void EndedWithoutReturningRow() { }
 
         private ValueTask HandleLineEndingsAsync(CancellationToken cancel)
         {

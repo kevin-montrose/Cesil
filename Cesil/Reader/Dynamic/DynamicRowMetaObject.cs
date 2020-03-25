@@ -19,7 +19,7 @@ namespace Cesil
 
         public override DynamicMetaObject BindGetIndex(GetIndexBinder binder, DynamicMetaObject[] indexes)
         {
-            var expressionIsDynamicRowRestriction = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRowType);
+            var expressionIsDynamicRowRestriction = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRow);
 
             if (indexes.Length != 1)
             {
@@ -34,69 +34,89 @@ namespace Cesil
             var indexExp = indexes[0].Expression;
             var indexType = indexes[0].RuntimeType.GetTypeInfo();
 
-            if (indexType == Types.IntType)
+            if (indexType == Types.Int)
             {
-                var indexExpressionIsIntRestriction = BindingRestrictions.GetTypeRestriction(indexExp, Types.IntType);
+                var indexExpressionIsIntRestriction = BindingRestrictions.GetTypeRestriction(indexExp, Types.Int);
 
-                var castToRow = Expression.Convert(Expression, Types.DynamicRowType);
+                var castToRow = Expression.Convert(Expression, Types.DynamicRow);
 
-                var index = Expression.Convert(indexExp, Types.IntType);
+                var index = Expression.Convert(indexExp, Types.Int);
                 var callOnSelf = Expression.Call(castToRow, Methods.DynamicRow.GetAt, index);
 
+                var assertNotDisposed = MakeAssertNotDisposedExpression(Expression);
+
+                var block = Expression.Block(assertNotDisposed, callOnSelf);
+
                 var finalRestrictions = expressionIsDynamicRowRestriction.Merge(indexExpressionIsIntRestriction);
-                return new DynamicMetaObject(callOnSelf, finalRestrictions);
+                return new DynamicMetaObject(block, finalRestrictions);
             }
 
-            if (indexType == Types.StringType)
+            if (indexType == Types.String)
             {
-                var indexExpressionIsStringRestriction = BindingRestrictions.GetTypeRestriction(indexExp, Types.StringType);
+                var indexExpressionIsStringRestriction = BindingRestrictions.GetTypeRestriction(indexExp, Types.String);
 
-                var castToRow = Expression.Convert(Expression, Types.DynamicRowType);
+                var castToRow = Expression.Convert(Expression, Types.DynamicRow);
 
-                var col = Expression.Convert(indexExp, Types.StringType);
+                var col = Expression.Convert(indexExp, Types.String);
                 var callOnSelf = Expression.Call(castToRow, Methods.DynamicRow.GetByName, col);
 
+                var assertNotDisposed = MakeAssertNotDisposedExpression(Expression);
+
+                var block = Expression.Block(assertNotDisposed, callOnSelf);
+
                 var finalRestrictions = expressionIsDynamicRowRestriction.Merge(indexExpressionIsStringRestriction);
-                return new DynamicMetaObject(callOnSelf, finalRestrictions);
+                return new DynamicMetaObject(block, finalRestrictions);
             }
 
-            if (indexType == Types.IndexType)
+            if (indexType == Types.Index)
             {
-                var indexExpressionIsIndexRestriction = BindingRestrictions.GetTypeRestriction(indexExp, Types.IndexType);
+                var indexExpressionIsIndexRestriction = BindingRestrictions.GetTypeRestriction(indexExp, Types.Index);
 
-                var castToRow = Expression.Convert(Expression, Types.DynamicRowType);
+                var castToRow = Expression.Convert(Expression, Types.DynamicRow);
 
-                var col = Expression.Convert(indexExp, Types.IndexType);
+                var col = Expression.Convert(indexExp, Types.Index);
                 var callOnSelf = Expression.Call(castToRow, Methods.DynamicRow.GetByIndex, col);
 
+                var assertNotDisposed = MakeAssertNotDisposedExpression(Expression);
+
+                var block = Expression.Block(assertNotDisposed, callOnSelf);
+
                 var finalRestrictions = expressionIsDynamicRowRestriction.Merge(indexExpressionIsIndexRestriction);
-                return new DynamicMetaObject(callOnSelf, finalRestrictions);
+                return new DynamicMetaObject(block, finalRestrictions);
             }
 
-            if (indexType == Types.RangeType)
+            if (indexType == Types.Range)
             {
-                var indexExpressionIsRangeRestriction = BindingRestrictions.GetTypeRestriction(indexExp, Types.RangeType);
+                var indexExpressionIsRangeRestriction = BindingRestrictions.GetTypeRestriction(indexExp, Types.Range);
 
-                var castToRow = Expression.Convert(Expression, Types.DynamicRowType);
+                var castToRow = Expression.Convert(Expression, Types.DynamicRow);
 
-                var range = Expression.Convert(indexExp, Types.RangeType);
+                var range = Expression.Convert(indexExp, Types.Range);
                 var callOnSelf = Expression.Call(castToRow, Methods.DynamicRow.GetRange, range);
 
+                var assertNotDisposed = MakeAssertNotDisposedExpression(Expression);
+
+                var block = Expression.Block(assertNotDisposed, callOnSelf);
+
                 var finalRestrictions = expressionIsDynamicRowRestriction.Merge(indexExpressionIsRangeRestriction);
-                return new DynamicMetaObject(callOnSelf, finalRestrictions);
+                return new DynamicMetaObject(block, finalRestrictions);
             }
 
-            if (indexType == Types.ColumnIdentifierType)
+            if (indexType == Types.ColumnIdentifier)
             {
-                var indexExpressionIsRangeRestriction = BindingRestrictions.GetTypeRestriction(indexExp, Types.ColumnIdentifierType);
+                var indexExpressionIsRangeRestriction = BindingRestrictions.GetTypeRestriction(indexExp, Types.ColumnIdentifier);
 
-                var castToRow = Expression.Convert(Expression, Types.DynamicRowType);
+                var castToRow = Expression.Convert(Expression, Types.DynamicRow);
 
-                var colId = Expression.Convert(indexExp, Types.ColumnIdentifierType);
+                var colId = Expression.Convert(indexExp, Types.ColumnIdentifier);
                 var callOnSelf = Expression.Call(castToRow, Methods.DynamicRow.GetByIdentifier, colId);
 
+                var assertNotDisposed = MakeAssertNotDisposedExpression(Expression);
+
+                var block = Expression.Block(assertNotDisposed, callOnSelf);
+
                 var finalRestrictions = expressionIsDynamicRowRestriction.Merge(indexExpressionIsRangeRestriction);
-                return new DynamicMetaObject(callOnSelf, finalRestrictions);
+                return new DynamicMetaObject(block, finalRestrictions);
             }
 
             // no binder
@@ -112,13 +132,17 @@ namespace Cesil
 
         public override DynamicMetaObject BindGetMember(GetMemberBinder binder)
         {
-            var restrictions = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRowType);
+            var restrictions = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRow);
 
             var name = Expression.Constant(binder.Name);
-            var castToRow = Expression.Convert(Expression, Types.DynamicRowType);
+            var castToRow = Expression.Convert(Expression, Types.DynamicRow);
             var callOnSelf = Expression.Call(castToRow, Methods.DynamicRow.GetByName, name);
 
-            return new DynamicMetaObject(callOnSelf, restrictions);
+            var assertNotDisposed = MakeAssertNotDisposedExpression(Expression);
+
+            var block = Expression.Block(assertNotDisposed, callOnSelf);
+
+            return new DynamicMetaObject(block, restrictions);
         }
 
         private BindingRestrictions MakeRestrictions(DynamicRowConverter? expected, TypeInfo returnType)
@@ -129,7 +153,7 @@ namespace Cesil
 
             var sameConverterRestriction = BindingRestrictions.GetExpressionRestriction(eq);
 
-            var expressionIsRowRestriction = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRowType);
+            var expressionIsRowRestriction = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRow);
 
             var ret = expressionIsRowRestriction.Merge(sameConverterRestriction);
 
@@ -139,7 +163,7 @@ namespace Cesil
         private Expression GetRowConverter(TypeInfo forType)
         {
             var typeConst = Expression.Constant(forType);
-            var selfAsRow = Expression.Convert(Expression, Types.DynamicRowType);
+            var selfAsRow = Expression.Convert(Expression, Types.DynamicRow);
             var converter = Expression.Field(selfAsRow, Fields.DynamicRow.Converter);
             var rowNumber = Expression.Field(selfAsRow, Fields.DynamicRow.RowNumber);
             var columns = Expression.Field(selfAsRow, Fields.DynamicRow.Columns);
@@ -160,10 +184,12 @@ namespace Cesil
 
             // special case, converting to IDisposable will ALWAYS succeed
             //   because every dynamic row supports disposal
-            if (retType == Types.IDisposableType)
+            if (retType == Types.IDisposable)
             {
-                var alwaysRestrictions = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRowType);
-                var cast = Expression.Convert(Expression, Types.IDisposableType);
+                var alwaysRestrictions = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRow);
+                var cast = Expression.Convert(Expression, Types.IDisposable);
+
+                // intentionally NOT checking if the row is already disposed
 
                 return new DynamicMetaObject(cast, alwaysRestrictions);
             }
@@ -195,7 +221,10 @@ namespace Cesil
 
             var statements = new List<Expression>();
 
-            var selfAsRow = Expression.Convert(Expression, Types.DynamicRowType);
+            var assertNotDisposed = MakeAssertNotDisposedExpression(Expression);
+            statements.Add(assertNotDisposed);
+
+            var selfAsRow = Expression.Convert(Expression, Types.DynamicRow);
             var dynRowVar = Expressions.Variable_DynamicRow;
             var assignDynRow = Expression.Assign(dynRowVar, selfAsRow);
             statements.Add(assignDynRow);
@@ -219,6 +248,14 @@ namespace Cesil
             var block = Expression.Block(new[] { outArg, dynRowVar, readCtxVar }, statements);
 
             return new DynamicMetaObject(block, restrictions);
+        }
+
+        private static Expression MakeAssertNotDisposedExpression(Expression exp)
+        {
+            var cast = Expression.Convert(exp, Types.ITestableDisposable);
+            var call = Expression.Call(Methods.DisposableHelper.AssertNotDisposed, cast);
+
+            return call;
         }
     }
 }

@@ -49,7 +49,7 @@ namespace Cesil.Benchmark
 
         public void InitializeAndTest()
         {
-            foreach(var set in KnownRowSet)
+            foreach (var set in KnownRowSet)
             {
                 RowSet = set;
                 Library = nameof(Cesil);
@@ -74,14 +74,14 @@ namespace Cesil.Benchmark
                         )
                         .ToList();
 
-                for(var i = 1; i < res.Count; i++)
+                for (var i = 1; i < res.Count; i++)
                 {
-                    var first = res[0]; 
+                    var first = res[0];
                     var second = res[i];
 
                     if (first.Rows.Count() != second.Rows.Count()) throw new Exception();
 
-                    for(var j = 0; j < first.Rows.Count(); j++)
+                    for (var j = 0; j < first.Rows.Count(); j++)
                     {
                         var fRow = first.Rows.ElementAt(j);
                         var sRow = second.Rows.ElementAt(j);
@@ -132,7 +132,7 @@ namespace Cesil.Benchmark
                 case nameof(Cesil):
                     return (reader) =>
                     {
-                        using(var csv = CesilConfig.CreateReader(reader))
+                        using (var csv = CesilConfig.CreateReader(reader))
                         {
                             return csv.ReadAll();
                         }
@@ -140,7 +140,7 @@ namespace Cesil.Benchmark
                 case nameof(CsvHelper):
                     return (reader) =>
                     {
-                        using(var csv = new CsvHelper.CsvReader(reader, CsvHelperConfig))
+                        using (var csv = new CsvHelper.CsvReader(reader, CsvHelperConfig))
                         {
                             return csv.GetRecords<WideRow>().ToList();
                         }

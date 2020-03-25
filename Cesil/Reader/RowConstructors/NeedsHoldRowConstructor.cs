@@ -224,7 +224,7 @@ namespace Cesil
             return new NeedsHoldRowConstructor<TRow, THold>(MemoryPool, ClearHold, GetInstance, MemberLookup, SimpleMembers, HeldMembers, HasRequired, tracker, HasSimple, simpleTracker);
         }
 
-        public static NeedsHoldRowConstructor<TRow, THold> Create(
+        internal static NeedsHoldRowConstructor<TRow, THold> Create(
             MemoryPool<char> pool,
             Delegate clearHold,
             Delegate constructFromHold,

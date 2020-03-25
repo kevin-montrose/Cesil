@@ -31,7 +31,7 @@ namespace Cesil
         {
             // load up default formatters
             var ret = new Dictionary<TypeInfo, Formatter>();
-            foreach (var mtd in Types.DefaultTypeFormattersType.GetMethods(BindingFlags.Static | BindingFlags.NonPublic))
+            foreach (var mtd in Types.DefaultTypeFormatters.GetMethods(BindingFlagsConstants.InternalStatic))
             {
                 var firstArg = mtd.GetParameters()[0];
                 var forType = firstArg.ParameterType;
@@ -83,13 +83,13 @@ namespace Cesil
 
         Formatter IElseSupporting<Formatter>.Clone(ImmutableArray<Formatter> newFallbacks)
         {
-            switch (Mode)
-            {
-                case BackingMode.Delegate: return new Formatter(Takes, Delegate.Value, newFallbacks);
-                case BackingMode.Method: return new Formatter(Takes, Method.Value, newFallbacks);
-            }
-
-            return Throw.Exception<Formatter>($"Unexpected {nameof(BackingMode)}: {Mode}");
+            return
+                Mode switch
+                {
+                    BackingMode.Delegate => new Formatter(Takes, Delegate.Value, newFallbacks),
+                    BackingMode.Method => new Formatter(Takes, Method.Value, newFallbacks),
+                    _ => Throw.Exception<Formatter>($"Unexpected {nameof(BackingMode)}: {Mode}"),
+                };
         }
 
         DynamicFormatterDelegate ICreatesCacheableDelegate<DynamicFormatterDelegate>.CreateDelegate()
@@ -182,7 +182,7 @@ namespace Cesil
             }
 
             var formatterRetType = method.ReturnType.GetTypeInfo();
-            if (formatterRetType != Types.BoolType)
+            if (formatterRetType != Types.Bool)
             {
                 return Throw.ArgumentException<Formatter>($"{nameof(method)} must return bool", nameof(method));
             }
@@ -200,7 +200,7 @@ namespace Cesil
                 return Throw.ArgumentException<Formatter>($"The second parameter to {nameof(method)} must be an `in {nameof(WriteContext)}`; {msg}", nameof(method));
             }
 
-            if (args[2].ParameterType.GetTypeInfo() != Types.IBufferWriterOfCharType)
+            if (args[2].ParameterType.GetTypeInfo() != Types.IBufferWriterOfChar)
             {
                 return Throw.ArgumentException<Formatter>($"The third parameter to {nameof(method)} must be a {nameof(IBufferWriter<char>)}", nameof(method));
             }
@@ -230,16 +230,16 @@ namespace Cesil
             {
                 if (forType.GetCustomAttribute<FlagsAttribute>() == null)
                 {
-                    var formattingClass = Types.DefaultEnumTypeFormatterType.MakeGenericType(forType).GetTypeInfo();
-                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryEnumFormatter), BindingFlags.Static | BindingFlags.NonPublic);
+                    var formattingClass = Types.DefaultEnumTypeFormatter.MakeGenericType(forType).GetTypeInfo();
+                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryEnumFormatter), BindingFlagsConstants.InternalStatic);
                     var formatter = (Formatter?)formatterField.GetValue(null);
 
                     return formatter;
                 }
                 else
                 {
-                    var formattingClass = Types.DefaultFlagsEnumTypeFormatterType.MakeGenericType(forType).GetTypeInfo();
-                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultFlagsEnumTypeFormatter<StringComparison>.TryFlagsEnumFormatter), BindingFlags.Static | BindingFlags.NonPublic);
+                    var formattingClass = Types.DefaultFlagsEnumTypeFormatter.MakeGenericType(forType).GetTypeInfo();
+                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultFlagsEnumTypeFormatter<StringComparison>.TryFlagsEnumFormatter), BindingFlagsConstants.InternalStatic);
                     var formatter = (Formatter?)formatterField.GetValue(null);
 
                     return formatter;
@@ -251,16 +251,16 @@ namespace Cesil
             {
                 if (nullableElem.GetCustomAttribute<FlagsAttribute>() == null)
                 {
-                    var formattingClass = Types.DefaultEnumTypeFormatterType.MakeGenericType(nullableElem).GetTypeInfo();
-                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryNullableEnumFormatter), BindingFlags.Static | BindingFlags.NonPublic);
+                    var formattingClass = Types.DefaultEnumTypeFormatter.MakeGenericType(nullableElem).GetTypeInfo();
+                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryNullableEnumFormatter), BindingFlagsConstants.InternalStatic);
                     var formatter = (Formatter?)formatterField.GetValue(null);
 
                     return formatter;
                 }
                 else
                 {
-                    var formattingClass = Types.DefaultFlagsEnumTypeFormatterType.MakeGenericType(nullableElem).GetTypeInfo();
-                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultFlagsEnumTypeFormatter<StringComparison>.TryNullableFlagsEnumFormatter), BindingFlags.Static | BindingFlags.NonPublic);
+                    var formattingClass = Types.DefaultFlagsEnumTypeFormatter.MakeGenericType(nullableElem).GetTypeInfo();
+                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultFlagsEnumTypeFormatter<StringComparison>.TryNullableFlagsEnumFormatter), BindingFlagsConstants.InternalStatic);
                     var formatter = (Formatter?)formatterField.GetValue(null);
 
                     return formatter;
@@ -310,15 +310,13 @@ namespace Cesil
                 if (sf != of) return false;
             }
 
-            switch (otherMode)
-            {
-                case BackingMode.Method:
-                    return Method.Value == formatter.Method.Value;
-                case BackingMode.Delegate:
-                    return Delegate.Value == formatter.Delegate.Value;
-                default:
-                    return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {otherMode}");
-            }
+            return
+                otherMode switch
+                {
+                    BackingMode.Method => Method.Value == formatter.Method.Value,
+                    BackingMode.Delegate => Delegate.Value == formatter.Delegate.Value,
+                    _ => Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {otherMode}"),
+                };
         }
 
         /// <summary>
@@ -378,7 +376,7 @@ namespace Cesil
 
             var delType = del.GetType().GetTypeInfo();
 
-            if (delType.IsGenericType && delType.GetGenericTypeDefinition() == Types.FormatterDelegateType)
+            if (delType.IsGenericType && delType.GetGenericTypeDefinition() == Types.FormatterDelegate)
             {
                 var t = delType.GetGenericArguments()[0].GetTypeInfo();
 
@@ -387,7 +385,7 @@ namespace Cesil
 
             var mtd = del.Method;
             var ret = mtd.ReturnType.GetTypeInfo();
-            if (ret != Types.BoolType)
+            if (ret != Types.Bool)
             {
                 return Throw.InvalidOperationException<Formatter>($"Delegate must return a bool");
             }
@@ -405,12 +403,12 @@ namespace Cesil
                 return Throw.InvalidOperationException<Formatter>($"The second parameter to the delegate must be an `in {nameof(WriteContext)}`; {msg}");
             }
 
-            if (args[2].ParameterType.GetTypeInfo() != Types.IBufferWriterOfCharType)
+            if (args[2].ParameterType.GetTypeInfo() != Types.IBufferWriterOfChar)
             {
                 return Throw.InvalidOperationException<Formatter>($"The third parameter to the delegate must be a {nameof(IBufferWriter<char>)}");
             }
 
-            var formatterDel = Types.FormatterDelegateType.MakeGenericType(takes);
+            var formatterDel = Types.FormatterDelegate.MakeGenericType(takes);
             var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
             var reboundDel = System.Delegate.CreateDelegate(formatterDel, del, invoke);

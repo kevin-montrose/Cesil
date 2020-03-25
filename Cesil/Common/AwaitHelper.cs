@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,7 +7,7 @@ namespace Cesil
     internal static class AwaitHelper
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void CheckCancellation<T>(T provider, CancellationToken token)
+        internal static void CheckCancellation<T>(T provider, CancellationToken token)
         {
 #if DEBUG
             var c = (ITestableCancellableProvider)provider!;
@@ -18,7 +17,8 @@ namespace Cesil
             {
                 if (c.CancelCounter >= c.CancelAfter)
                 {
-                    throw new OperationCanceledException();
+                    Throw.OperationCanceledException<object>();
+                    return;
                 }
             }
 #endif
@@ -27,14 +27,14 @@ namespace Cesil
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ConfiguredValueTaskAwaitable ConfigureCancellableAwait<T>(T p, ValueTask task, CancellationToken token)
+        internal static ConfiguredValueTaskAwaitable ConfigureCancellableAwait<T>(T p, ValueTask task, CancellationToken token)
         {
             CheckCancellation(p, token);
             return task.ConfigureAwait(false);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ConfiguredValueTaskAwaitable<V> ConfigureCancellableAwait<T, V>(T p, ValueTask<V> task, CancellationToken token)
+        internal static ConfiguredValueTaskAwaitable<V> ConfigureCancellableAwait<T, V>(T p, ValueTask<V> task, CancellationToken token)
         {
             CheckCancellation(p, token);
             return task.ConfigureAwait(false);

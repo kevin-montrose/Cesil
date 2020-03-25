@@ -5,7 +5,7 @@ using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
-    internal sealed class PassthroughRowEnumerator: IEnumerator<object>, ITestableDisposable
+    internal sealed class PassthroughRowEnumerator : IEnumerator<object>, ITestableDisposable
     {
         // this checks that reusing the underlying DynamicRow will
         //   cause a generation check failure

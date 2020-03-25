@@ -102,7 +102,7 @@ namespace Cesil
         /// </summary>
         [NullableExposed("The provided context is nullable, so the returned one must be")]
         public object? Context { get; }
-        
+
         // for DiscoveringColumns
         private WriteContext(Options opts, object? ctx)
         {

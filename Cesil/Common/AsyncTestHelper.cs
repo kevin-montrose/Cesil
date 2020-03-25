@@ -6,7 +6,7 @@ namespace Cesil
     internal static class AsyncTestHelper
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsCompletedSuccessfully(this ref ValueTask t, object selfObj)
+        internal static bool IsCompletedSuccessfully(this ref ValueTask t, object selfObj)
         {
 #if DEBUG
             var self = (ITestableAsyncProvider)selfObj;
@@ -28,7 +28,7 @@ namespace Cesil
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsCompletedSuccessfully<T>(this ref ValueTask<T> t, object selfObj)
+        internal static bool IsCompletedSuccessfully<T>(this ref ValueTask<T> t, object selfObj)
         {
 #if DEBUG
             var self = (ITestableAsyncProvider)selfObj;

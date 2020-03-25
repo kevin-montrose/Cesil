@@ -13,7 +13,7 @@ namespace Cesil
         private ReadOnlySequence<char>.Enumerator Enumerator;
         private bool IsComplete;
 
-        public ReadOnlyCharSequenceAdapter(ReadOnlySequence<char> sequence)
+        internal ReadOnlyCharSequenceAdapter(ReadOnlySequence<char> sequence)
         {
             Enumerator = sequence.GetEnumerator();
             CurrentSegment = ReadOnlyMemory<char>.Empty;

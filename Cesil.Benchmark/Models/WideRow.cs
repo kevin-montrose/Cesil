@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 
@@ -24,7 +23,7 @@ namespace Cesil.Benchmark
         Bar = 3
     }
 
-    public class WideRow: IEquatable<WideRow>
+    public class WideRow : IEquatable<WideRow>
     {
         public static IEnumerable<WideRow> ShallowRows { get; private set; }
         public static IEnumerable<WideRow> DeepRows { get; private set; }
@@ -118,7 +117,7 @@ namespace Cesil.Benchmark
         //  - Range
 
         public WideRow() { }
-        
+
         public static WideRow Create(Random r)
         {
             var ret = new WideRow();
@@ -198,9 +197,9 @@ namespace Cesil.Benchmark
         {
             char ret;
 
-            tryAgain:
+tryAgain:
 
-            switch(r.Next(3))
+            switch (r.Next(3))
             {
                 // ascii
                 case 0: ret = (char)r.Next(128); break;
@@ -243,7 +242,7 @@ tryAgain:
                     break;
                 case 3:
                     {
-                        var buff = new char[r.Next(100)+1];
+                        var buff = new char[r.Next(100) + 1];
                         for (var i = 0; i < buff.Length; i++)
                         {
                             buff[i] = (char)r.Next(128);
@@ -295,7 +294,7 @@ tryAgain:
             return new decimal(lo, mid, high, neg, scale);
         }
 
-        private unsafe static T Create<T>(Random r, Func<byte[], int, T> maker)
+        private static unsafe T Create<T>(Random r, Func<byte[], int, T> maker)
             where T : unmanaged
         {
             var buff = new byte[sizeof(T)];
@@ -306,7 +305,7 @@ tryAgain:
         }
 
         private static T? CreateNullable<T>(Random r, Func<byte[], int, T> maker)
-            where T: unmanaged
+            where T : unmanaged
         {
             var n = r.Next(2);
             if (n == 1) return null;
@@ -323,7 +322,7 @@ tryAgain:
         }
 
         private static T CreateDate<T>(Random r, Func<int, int, int, int, int, int, T> maker)
-            where T: struct
+            where T : struct
         {
             var years = Enumerable.Range(0, 9999);
             var months = Enumerable.Range(1, 12);
@@ -435,9 +434,9 @@ tryAgain:
         => 0;   // just for everything to get an Equals call
     }
 
-    internal class WideRowMapping: CsvHelper.Configuration.ClassMap<WideRow>
+    internal class WideRowMapping : CsvHelper.Configuration.ClassMap<WideRow>
     {
-        public WideRowMapping(): base()
+        public WideRowMapping() : base()
         {
             Map(r => r.Byte).Index(0).TypeConverterOption.CultureInfo(CultureInfo.InvariantCulture);
             Map(r => r.SByte).Index(1).TypeConverterOption.CultureInfo(CultureInfo.InvariantCulture);

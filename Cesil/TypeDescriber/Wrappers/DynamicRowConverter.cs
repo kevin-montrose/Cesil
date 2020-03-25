@@ -337,7 +337,7 @@ namespace Cesil
             }
 
             var p = ps[0].ParameterType.GetTypeInfo();
-            if (p != Types.ObjectType)
+            if (p != Types.Object)
             {
                 return Throw.ArgumentException<DynamicRowConverter>($"Constructor {constructor} must take a object, found a {p}", nameof(constructor));
             }
@@ -466,7 +466,7 @@ namespace Cesil
                 return Throw.ArgumentException<DynamicRowConverter>($"Method {method} must be static", nameof(method));
             }
 
-            if (method.ReturnType.GetTypeInfo() != Types.BoolType)
+            if (method.ReturnType.GetTypeInfo() != Types.Bool)
             {
                 return Throw.ArgumentException<DynamicRowConverter>($"Method {method} must return a bool", nameof(method));
             }
@@ -478,7 +478,7 @@ namespace Cesil
             }
 
             var p1 = ps[0].ParameterType.GetTypeInfo();
-            if (p1 != Types.ObjectType)
+            if (p1 != Types.Object)
             {
                 return Throw.ArgumentException<DynamicRowConverter>($"Method {method}'s first parameter must be an object", nameof(method));
             }
@@ -756,7 +756,7 @@ namespace Cesil
 
             var delType = del.GetType().GetTypeInfo();
 
-            if (delType.IsGenericType && delType.GetGenericTypeDefinition() == Types.DynamicRowConverterDelegateType)
+            if (delType.IsGenericType && delType.GetGenericTypeDefinition() == Types.DynamicRowConverterDelegate)
             {
                 var t = delType.GetGenericArguments()[0].GetTypeInfo();
 
@@ -765,7 +765,7 @@ namespace Cesil
 
             var mtd = del.Method;
             var ret = mtd.ReturnType.GetTypeInfo();
-            if (ret != Types.BoolType)
+            if (ret != Types.Bool)
             {
                 return Throw.InvalidOperationException<DynamicRowConverter>($"Delegate must return a bool");
             }
@@ -777,7 +777,7 @@ namespace Cesil
             }
 
             var p1 = args[0].ParameterType.GetTypeInfo();
-            if (p1 != Types.ObjectType)
+            if (p1 != Types.Object)
             {
                 return Throw.InvalidOperationException<DynamicRowConverter>($"The first parameter to the delegate must be an object (can be dynamic in source)");
             }
@@ -795,7 +795,7 @@ namespace Cesil
 
             var creates = createsRef.GetElementTypeNonNull();
 
-            var converterDel = Types.DynamicRowConverterDelegateType.MakeGenericType(creates);
+            var converterDel = Types.DynamicRowConverterDelegate.MakeGenericType(creates);
             var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
             var reboundDel = System.Delegate.CreateDelegate(converterDel, del, invoke);

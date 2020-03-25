@@ -6,14 +6,14 @@ using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
-    internal struct UnmanagedLookupArray<T>: ITestableDisposable
-        where T: unmanaged
+    internal struct UnmanagedLookupArray<T> : ITestableDisposable
+        where T : unmanaged
     {
         private static readonly unsafe int BYTES_PER_T = sizeof(T);
         private const int BYTES_PER_CHAR = sizeof(char);
 
         private int _Count;
-        public int Count
+        internal int Count
         {
             get
             {
@@ -42,7 +42,7 @@ namespace Cesil
             }
         }
 
-        public UnmanagedLookupArray(MemoryPool<char> pool, int elemCount)
+        internal UnmanagedLookupArray(MemoryPool<char> pool, int elemCount)
         {
             _Count = 0;
             NumElements = elemCount;
@@ -59,7 +59,7 @@ namespace Cesil
             Owner.Memory.Slice(0, totalCharsNeeded).Span.Clear();
         }
 
-        public void Clear()
+        internal void Clear()
         {
             AssertNotDisposedInternal(this);
 
@@ -67,14 +67,14 @@ namespace Cesil
             _Count = 0;
         }
 
-        public void Add(T item)
+        internal void Add(T item)
         {
             AssertNotDisposedInternal(this);
 
             Set(_Count, item);
         }
 
-        public void Set(int ix, T item)
+        internal void Set(int ix, T item)
         {
             AssertNotDisposedInternal(this);
 
@@ -85,11 +85,11 @@ namespace Cesil
             _Count = Math.Max(_Count, ix + 1);
         }
 
-        public void Get(int ix, T defaultValue, out T value)
+        internal void Get(int ix, T defaultValue, out T value)
         {
             AssertNotDisposedInternal(this);
 
-            if(ix >= Data.Length)
+            if (ix >= Data.Length)
             {
                 value = defaultValue;
                 return;

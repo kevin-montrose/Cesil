@@ -31,14 +31,14 @@ namespace Cesil
         {
             var data = MakeArrayOfObjects(row, colTypes);
 
-            return ConvertToTuple(colTypes, data, 0, Types.TupleTypes);
+            return ConvertToTuple(colTypes, data, 0, Types.Tuple_Array);
         }
 
         private static object GetValueTuple(DynamicRow row, TypeInfo[] colTypes)
         {
             var data = MakeArrayOfObjects(row, colTypes);
 
-            return ConvertToTuple(colTypes, data, 0, Types.ValueTupleTypes);
+            return ConvertToTuple(colTypes, data, 0, Types.ValueTuple_Array);
         }
 
         private static object?[] MakeArrayOfObjects(DynamicRow row, TypeInfo[] colTypes)
@@ -73,7 +73,7 @@ namespace Cesil
                 var r = del.CachedDelegate.Value;
 
                 var data = cell.GetDataSpan();
-                if(!r(data, ctx, out var res))
+                if (!r(data, ctx, out var res))
                 {
                     return Throw.InvalidOperationException<object[]>($"{nameof(Parser)} {parser} returned false");
                 }

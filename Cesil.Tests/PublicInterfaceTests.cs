@@ -119,11 +119,155 @@ namespace Cesil.Tests
             }
         }
 
+        [Fact]
+        public void PrivateTypesHaveNonPublicMembers()
+        {
+            // this doesn't really matter (internal, protected, or private types'
+            //   public members are still hidden) but makes grep'ing for public
+            //   easier.
+
+            foreach (var t in AllPrivateTypes())
+            {
+                // ignore interfaces, delegates, enums, and compiler generated types
+                if (t.IsInterface) continue;
+                if (t.BaseType == typeof(MulticastDelegate)) continue;
+                if (t.IsEnum) continue;
+                if (t.Name.Contains("<")) continue;
+
+                if (t == typeof(DynamicRowConstructor))
+                {
+                    Console.WriteLine();
+                }
+
+                var pubMethods = t.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+                Check(t, pubMethods);
+                var pubFields = t.GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+                Check(t, pubFields);
+                var pubProps = t.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+                Check(t, pubProps);
+                var pubEvents = t.GetEvents(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+                Check(t, pubEvents);
+                var pubCons = t.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+                Check(t, pubCons);
+            }
+
+            static void Check(TypeInfo onType, IEnumerable<MemberInfo> members)
+            {
+                members = RemoveInherited(onType, members);
+
+                if (!members.Any()) return;
+
+                var type = members.FirstOrDefault()?.MemberType;
+
+                var mems = string.Join(", ", members.Select(t => t.Name));
+
+                var msg = $"{onType.FullName} has public {type}: {mems}";
+
+                Assert.True(false, msg);
+            }
+
+            static IEnumerable<MemberInfo> RemoveInherited(TypeInfo onType, IEnumerable<MemberInfo> members)
+            {
+                var onTypeMethods = onType.GetMethods();
+
+                var fromInterfaces = new HashSet<MemberInfo>();
+                foreach (var i in onType.ImplementedInterfaces)
+                {
+                    var map = onType.GetInterfaceMap(i);
+
+                    foreach (var implMtd in map.TargetMethods)
+                    {
+                        // default methods
+                        if (implMtd.DeclaringType == map.InterfaceType) continue;
+
+                        var implName = implMtd.Name;
+                        var dotIx = implName.LastIndexOf('.');
+                        if (dotIx != -1)
+                        {
+                            implName = implName.Substring(dotIx + 1);
+                        }
+
+                        var match =
+                            onTypeMethods
+                                .SingleOrDefault(
+                                    m =>
+                                    {
+                                        if (m.Name != implName) return false;
+                                        if (m.ReturnType != implMtd.ReturnType) return false;
+
+                                        var mParams = m.GetParameters();
+                                        var implParams = implMtd.GetParameters();
+
+                                        if (mParams.Length != implParams.Length) return false;
+
+                                        for (var i = 0; i < implParams.Length; i++)
+                                        {
+                                            if (mParams[i].ParameterType != implParams[i].ParameterType) return false;
+                                        }
+
+                                        return true;
+                                    }
+                                );
+
+                        if (match != null)
+                        {
+                            fromInterfaces.Add(match);
+                        }
+                    }
+                }
+
+                foreach (var m in members)
+                {
+                    bool implOfInterface;
+
+                    if (m is PropertyInfo p)
+                    {
+                        var methodsCovered = true;
+
+                        if (p.GetMethod != null && p.GetMethod.IsPublic)
+                        {
+                            methodsCovered &= fromInterfaces.Contains(p.GetMethod);
+                        }
+
+                        if (p.SetMethod != null && p.SetMethod.IsPublic)
+                        {
+                            methodsCovered &= fromInterfaces.Contains(p.SetMethod);
+                        }
+
+                        implOfInterface = methodsCovered;
+                    }
+                    else
+                    {
+                        implOfInterface = fromInterfaces.Contains(m);
+                    }
+
+                    if (implOfInterface) continue;
+
+                    if (m.DeclaringType?.FullName?.StartsWith("System.") ?? false) continue;
+                    if (m.DeclaringType?.FullName?.StartsWith("Microsoft.") ?? false) continue;
+                    if (m.DeclaringType.IsPublic) continue;
+
+                    if (m is MethodInfo mtd)
+                    {
+                        if (mtd.Name.StartsWith("op_")) continue;
+
+                        var baseMtd = mtd.GetBaseDefinition();
+
+                        if (baseMtd.DeclaringType?.FullName?.StartsWith("System.") ?? false) continue;
+                        if (baseMtd.DeclaringType?.FullName?.StartsWith("Microsoft.") ?? false) continue;
+                        if (baseMtd.DeclaringType.IsPublic) continue;
+                    }
+
+                    yield return m;
+                }
+            }
+        }
+
 #if RELEASE
         [Fact]
         public void ReleaseHasNoITestableAsyncProvider()
         {
-            foreach(var t in AllTypes())
+            foreach (var t in AllTypes())
             {
                 Assert.False(t.ImplementedInterfaces.Any(i => i == typeof(ITestableAsyncProvider)), t.Name);
             }
@@ -651,7 +795,9 @@ namespace Cesil.Tests
             public string Foo { get; set; }
 
             public _HelpfulToString() { }
+#pragma warning disable IDE0060
             public _HelpfulToString(dynamic row) { }
+#pragma warning restore IDE0060
         }
 
         [Fact]

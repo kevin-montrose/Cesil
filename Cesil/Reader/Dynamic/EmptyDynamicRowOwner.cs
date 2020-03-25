@@ -2,7 +2,7 @@
 {
     internal sealed class EmptyDynamicRowOwner : IDynamicRowOwner
     {
-        public static readonly IDynamicRowOwner Singleton = new EmptyDynamicRowOwner();
+        internal static readonly IDynamicRowOwner Singleton = new EmptyDynamicRowOwner();
 
         public Options Options => Throw.Exception<Options>("Shouldn't be possible");
 
@@ -13,6 +13,12 @@
         private EmptyDynamicRowOwner() { }
 
         public void Remove(DynamicRow row)
+        => Throw.Exception<object>("Shouldn't be possible");
+
+        public NameLookup AcquireNameLookup()
+        => Throw.Exception<NameLookup>("Shouldn't be possible");
+
+        public void ReleaseNameLookup()
         => Throw.Exception<object>("Shouldn't be possible");
     }
 }

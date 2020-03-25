@@ -19,8 +19,8 @@ namespace Cesil.Benchmark
         public IEnumerable<int> PercentsNeedEncoding => new[] { 0, /*10,*/ 50, 100 };
         public IEnumerable<string> Implementations =>
             new[]
-            { 
-                nameof(BasicContains), 
+            {
+                nameof(BasicContains),
                 nameof(Probabilistic),
                 nameof(Avx2),
                 nameof(Combo)

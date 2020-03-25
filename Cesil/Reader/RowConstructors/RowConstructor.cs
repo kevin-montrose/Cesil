@@ -33,7 +33,7 @@ namespace Cesil
         private static readonly AssemblyBuilder AssemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName(nameof(Cesil) + "_" + nameof(RowConstructor) + "_" + nameof(AssemblyBuilder)), AssemblyBuilderAccess.RunAndCollect);
         private static readonly ModuleBuilder ModuleBuilder = AssemblyBuilder.DefineDynamicModule(nameof(Cesil) + "_" + nameof(RowConstructor) + "_" + nameof(ModuleBuilder));
 
-        public static IRowConstructor<TRow> Create<TRow>(
+        internal static IRowConstructor<TRow> Create<TRow>(
             MemoryPool<char> pool,
             InstanceProvider instanceProvider,
             IEnumerable<DeserializableMember> setters
@@ -133,7 +133,7 @@ namespace Cesil
                 var name = member.Name;
                 var required = member.IsRequired ? MemberRequired.Yes : MemberRequired.No;
 
-                var field = holdType.GetFieldNonNull("Simple_" + name, BindingFlags.Instance | BindingFlags.NonPublic);
+                var field = holdType.GetFieldNonNull("Simple_" + name, BindingFlagsConstants.InternalInstance);
                 var parseAndHold = RowConstructor.MakeParseAndSetDelegate(holdType, member.Parser, Setter.ForField(field), default);
                 var moveToRow = MakeMoveFromHoldToRowDelegate(rowType, holdType, member.Setter, Getter.ForField(field), member.Reset);
                 var setOnRow = RowConstructor.MakeParseAndSetDelegate(rowType, member.Parser, member.Setter, member.Reset);
@@ -144,8 +144,8 @@ namespace Cesil
 
             var clearHold = MakeClearHold(holdType);
 
-            var constructorType = Types.NeedsHoldRowConstructorType.MakeGenericType(rowType, holdType).GetTypeInfo();
-            var createMtd = constructorType.GetMethodNonNull(nameof(NeedsHoldRowConstructor<object, object>.Create));
+            var constructorType = Types.NeedsHoldRowConstructor.MakeGenericType(rowType, holdType).GetTypeInfo();
+            var createMtd = constructorType.GetMethodNonNull(nameof(NeedsHoldRowConstructor<object, object>.Create), BindingFlagsConstants.InternalStatic);
 
             var ret = createMtd.Invoke(null, new object[] { pool, clearHold, constructFromHold, simple, hold });
             if (ret == null)
@@ -162,7 +162,7 @@ namespace Cesil
 
                 var holdParam = Expression.Parameter(holdType);
 
-                foreach (var f in holdType.GetFields(BindingFlags.Instance | BindingFlags.NonPublic))
+                foreach (var f in holdType.GetFields(BindingFlagsConstants.InternalInstance))
                 {
                     var clear = Expression.Assign(Expression.Field(holdParam, f), Expression.Default(f.FieldType.GetTypeInfo()));
                     statements.Add(clear);
@@ -204,7 +204,7 @@ namespace Cesil
                     var name = member.Name;
                     var required = member.IsRequired ? MemberRequired.Yes : MemberRequired.No;
 
-                    var field = holdType.GetFieldNonNull("Hold_" + name, BindingFlags.Instance | BindingFlags.NonPublic);
+                    var field = holdType.GetFieldNonNull("Hold_" + name, BindingFlagsConstants.InternalInstance);
                     var parseAndHold = RowConstructor.MakeParseAndSetDelegate(holdType, csp.Member.Parser, Setter.ForField(field), default);
 
                     parseAndHoldBuilder.Add(csp.Index, (name, required, parseAndHold));
@@ -214,7 +214,7 @@ namespace Cesil
 
                 var make = Expression.New(cons, access);
 
-                var delType = Types.GetInstanceGivenHoldDelegateType.MakeGenericType(instanceProvider.ConstructsType, holdType);
+                var delType = Types.GetInstanceGivenHoldDelegate.MakeGenericType(instanceProvider.ConstructsType, holdType);
 
                 var lambda = Expression.Lambda(delType, make, holdParam);
 
@@ -249,7 +249,7 @@ namespace Cesil
 
                 var body = Expression.Block(new[] { getterVar }, statements);
 
-                var delType = Types.MoveFromHoldToRowDelegateType.MakeGenericType(rowType, holdType);
+                var delType = Types.MoveFromHoldToRowDelegate.MakeGenericType(rowType, holdType);
 
                 var lambda = Expression.Lambda(delType, body, rowParam, holdParam, setterCtxParam);
 
@@ -297,7 +297,7 @@ namespace Cesil
 
             var body = Expression.Block(new[] { resVar, outDestVar }, statements);
 
-            var delType = Types.ParseAndSetOnDelegateType.MakeGenericType(rowType);
+            var delType = Types.ParseAndSetOnDelegate.MakeGenericType(rowType);
 
             var lambda = Expression.Lambda(delType, body, rowParam, ctxParam, dataSpanParam);
 

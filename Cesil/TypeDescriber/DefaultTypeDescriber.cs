@@ -8,6 +8,9 @@ using Microsoft.CSharp.RuntimeBinder;
 
 namespace Cesil
 {
+    // everything in DefaultTypeDescriber is part of a public API
+#pragma warning disable IDE0060
+
     /// <summary>
     /// The default implementation of ITypeDescriber used to
     ///   determine how to (de)serialize types and how to convert
@@ -67,7 +70,7 @@ namespace Cesil
 
             var buffer = new List<(DeserializableMember Member, int? Position)>();
 
-            foreach (var p in forType.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance))
+            foreach (var p in forType.GetProperties(BindingFlagsConstants.All))
             {
                 if (!ShouldDeserialize(forType, p)) continue;
 
@@ -239,7 +242,7 @@ namespace Cesil
             Utils.CheckArgumentNull(property, nameof(property));
 
             // intentionally letting this be null
-            var mtd = forType.GetMethod("Reset" + property.Name, BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
+            var mtd = forType.GetMethod("Reset" + property.Name, BindingFlagsConstants.All);
             if (mtd == null) return null;
 
             if (mtd.IsStatic)
@@ -404,7 +407,7 @@ namespace Cesil
                 var buffer = new List<(SerializableMember Member, int? Position)>();
 
 
-                foreach (var p in forType.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance))
+                foreach (var p in forType.GetProperties(BindingFlagsConstants.All))
                 {
                     if (!self.ShouldSerialize(forType, p)) continue;
 
@@ -473,7 +476,7 @@ namespace Cesil
             if (getMtd.GetParameters().Length != 0) return false;
 
             var propType = getMtd.ReturnType.GetTypeInfo();
-            if (propType == Types.VoidType) return false;
+            if (propType == Types.Void) return false;
 
             if (Formatter.GetDefault(propType) == null) return false;
 
@@ -523,10 +526,10 @@ namespace Cesil
             Utils.CheckArgumentNull(property, nameof(property));
 
             // intentionally letting this be null
-            var mtd = forType.GetMethod("ShouldSerialize" + property.Name, BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
+            var mtd = forType.GetMethod("ShouldSerialize" + property.Name, BindingFlagsConstants.All);
             if (mtd == null) return null;
 
-            if (mtd.ReturnType != Types.BoolType) return null;
+            if (mtd.ReturnType != Types.Bool) return null;
 
             if (mtd.IsStatic)
             {
@@ -594,7 +597,7 @@ namespace Cesil
                 var fieldType = field.FieldType.GetTypeInfo();
 
                 return
-                    fieldType != Types.VoidType &&
+                    fieldType != Types.Void &&
                     Formatter.GetDefault(fieldType) != null;
             }
 
@@ -724,15 +727,16 @@ namespace Cesil
         /// </summary>
         public virtual IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext context, dynamic row)
         {
-            // handle no value
-            var rowObj = row as object;
-            if (rowObj == null)
+            // handle no valu
+            if (row is null)
             {
                 return Array.Empty<DynamicCellValue>();
             }
 
+            var rowObj = row as object;
+
             // handle serializing our own dynamic types
-            if (rowObj is DynamicRow asOwnRow)
+            if (row is DynamicRow asOwnRow)
             {
                 var cols = asOwnRow.Columns;
 
@@ -747,7 +751,7 @@ namespace Cesil
                     var valueRaw = asOwnRow.GetDataSpan(ix);
                     var value = new string(valueRaw);
 
-                    var formatter = GetFormatter(Types.StringType, name, in context, rowObj);
+                    var formatter = GetFormatter(Types.String, name, in context, rowObj);
                     if (formatter == null)
                     {
                         return Throw.InvalidOperationException<IEnumerable<DynamicCellValue>>($"No formatter returned by {nameof(GetFormatter)}");
@@ -761,7 +765,7 @@ namespace Cesil
             }
 
             // special case the most convenient dynamic type
-            if (rowObj is ExpandoObject asExpando)
+            if (row is ExpandoObject asExpando)
             {
                 var ret = new List<DynamicCellValue>();
 
@@ -775,7 +779,7 @@ namespace Cesil
 
                     if (value == null)
                     {
-                        formatter = GetFormatter(Types.StringType, name, in context, rowObj);
+                        formatter = GetFormatter(Types.String, name, in context, rowObj);
                     }
                     else
                     {
@@ -784,12 +788,12 @@ namespace Cesil
                         if (formatter == null)
                         {
                             // try and coerce into a string?
-                            var convert = Microsoft.CSharp.RuntimeBinder.Binder.Convert(0, Types.StringType, valueType);
+                            var convert = Microsoft.CSharp.RuntimeBinder.Binder.Convert(0, Types.String, valueType);
                             var convertCallSite = CallSite<Func<CallSite, object, object>>.Create(convert);
                             try
                             {
                                 value = convertCallSite.Target.Invoke(convertCallSite, value);
-                                formatter = Formatter.GetDefault(Types.StringType);
+                                formatter = Formatter.GetDefault(Types.String);
                             }
                             catch
                             {
@@ -844,7 +848,7 @@ namespace Cesil
 
                     if (value == null)
                     {
-                        formatter = GetFormatter(Types.StringType, name, in context, rowObj);
+                        formatter = GetFormatter(Types.String, name, in context, rowObj);
                     }
                     else
                     {
@@ -854,12 +858,12 @@ namespace Cesil
                         if (formatter == null)
                         {
                             // try and coerce into a string?
-                            var convert = Microsoft.CSharp.RuntimeBinder.Binder.Convert(0, Types.StringType, valueType);
+                            var convert = Microsoft.CSharp.RuntimeBinder.Binder.Convert(0, Types.String, valueType);
                             var convertCallSite = CallSite<Func<CallSite, object, object>>.Create(convert);
                             try
                             {
                                 value = convertCallSite.Target.Invoke(convertCallSite, value);
-                                formatter = GetFormatter(Types.StringType, name, in context, rowObj);
+                                formatter = GetFormatter(Types.String, name, in context, rowObj);
                             }
                             catch
                             {
@@ -931,8 +935,8 @@ namespace Cesil
         [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         public virtual Parser? GetDynamicCellParserFor(in ReadContext context, TypeInfo targetType)
         {
-            var onePCons = targetType.GetConstructor(BindingFlags.Instance | BindingFlags.Public, null, Types.ParserConstructorOneParameterTypes_Array, null);
-            var twoPCons = targetType.GetConstructor(BindingFlags.Instance | BindingFlags.Public, null, Types.ParserConstructorTwoParameterTypes_Array, null);
+            var onePCons = targetType.GetConstructor(BindingFlagsConstants.PublicInstance, null, Types.ParserConstructorOneParameter_Array, null);
+            var twoPCons = targetType.GetConstructor(BindingFlagsConstants.PublicInstance, null, Types.ParserConstructorTwoParameter_Array, null);
             var cons = onePCons ?? twoPCons;
             if (cons != null)
             {
@@ -960,25 +964,25 @@ namespace Cesil
             // handle tuples
             if (IsValueTuple(targetType))
             {
-                var mtd = Types.TupleDynamicParsersType.MakeGenericType(targetType).GetTypeInfo();
-                var genMtd = mtd.GetMethodNonNull(nameof(TupleDynamicParsers<object>.TryConvertValueTuple), BindingFlags.Static | BindingFlags.NonPublic);
+                var mtd = Types.TupleDynamicParsers.MakeGenericType(targetType).GetTypeInfo();
+                var genMtd = mtd.GetMethodNonNull(nameof(TupleDynamicParsers<object>.TryConvertValueTuple), BindingFlagsConstants.InternalStatic);
                 return DynamicRowConverter.ForMethod(genMtd);
             }
             else if (IsTuple(targetType))
             {
-                var mtd = Types.TupleDynamicParsersType.MakeGenericType(targetType).GetTypeInfo();
-                var genMtd = mtd.GetMethodNonNull(nameof(TupleDynamicParsers<object>.TryConvertTuple), BindingFlags.Static | BindingFlags.NonPublic);
+                var mtd = Types.TupleDynamicParsers.MakeGenericType(targetType).GetTypeInfo();
+                var genMtd = mtd.GetMethodNonNull(nameof(TupleDynamicParsers<object>.TryConvertTuple), BindingFlagsConstants.InternalStatic);
                 return DynamicRowConverter.ForMethod(genMtd);
             }
 
             // handle IEnumerables
-            if (targetType.IsGenericType && targetType.GetGenericTypeDefinition().GetTypeInfo() == Types.IEnumerableOfTType)
+            if (targetType.IsGenericType && targetType.GetGenericTypeDefinition().GetTypeInfo() == Types.IEnumerableOfT)
             {
                 var elementType = targetType.GetGenericArguments()[0].GetTypeInfo();
-                if (elementType != Types.ObjectType)
+                if (elementType != Types.Object)
                 {
-                    var genEnum = Types.DynamicRowEnumerableType.MakeGenericType(elementType).GetTypeInfo();
-                    var cons = genEnum.GetConstructorNonNull(BindingFlags.Instance | BindingFlags.NonPublic, null, new[] { Types.ObjectType }, null);
+                    var genEnum = Types.DynamicRowEnumerable.MakeGenericType(elementType).GetTypeInfo();
+                    var cons = genEnum.GetConstructorNonNull(BindingFlagsConstants.InternalInstance, null, new[] { Types.Object }, null);
                     return DynamicRowConverter.ForConstructorTakingDynamic(cons);
                 }
                 else
@@ -987,9 +991,9 @@ namespace Cesil
                     return PassthroughEnumerable;
                 }
             }
-            else if (targetType == Types.IEnumerableType)
+            else if (targetType == Types.IEnumerable)
             {
-                var cons = Types.DynamicRowEnumerableNonGenericType.GetConstructorNonNull(BindingFlags.Instance | BindingFlags.NonPublic, null, new[] { Types.ObjectType }, null);
+                var cons = Types.DynamicRowEnumerableNonGeneric.GetConstructorNonNull(BindingFlagsConstants.InternalInstance, null, new[] { Types.Object }, null);
                 return DynamicRowConverter.ForConstructorTakingDynamic(cons);
             }
 
@@ -1027,7 +1031,7 @@ namespace Cesil
             if (!t.IsGenericType || t.IsGenericTypeDefinition) return false;
 
             var genType = t.GetGenericTypeDefinition();
-            return Array.IndexOf(Types.TupleTypes, genType) != -1;
+            return Array.IndexOf(Types.Tuple_Array, genType) != -1;
         }
 
         private static bool IsValueTuple(TypeInfo t)
@@ -1035,12 +1039,12 @@ namespace Cesil
             if (!t.IsGenericType || t.IsGenericTypeDefinition) return false;
 
             var genType = t.GetGenericTypeDefinition();
-            return Array.IndexOf(Types.ValueTupleTypes, genType) != -1;
+            return Array.IndexOf(Types.ValueTuple_Array, genType) != -1;
         }
 
         private static ConstructorPOCOResult IsConstructorPOCO(int width, TypeInfo type)
         {
-            foreach (var cons in type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+            foreach (var cons in type.GetConstructors(BindingFlagsConstants.AllInstance))
             {
                 var consPs = cons.GetParameters();
                 if (consPs.Length != width) continue;
@@ -1060,13 +1064,13 @@ namespace Cesil
 
         private static PropertyPOCOResult IsPropertyPOCO(TypeInfo type, IEnumerable<ColumnIdentifier> columns)
         {
-            var emptyCons = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, Type.EmptyTypes, null);
+            var emptyCons = type.GetConstructor(BindingFlagsConstants.AllInstance, null, Type.EmptyTypes, null);
             if (emptyCons == null)
             {
                 return PropertyPOCOResult.Empty;
             }
 
-            var allProperties = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+            var allProperties = type.GetProperties(BindingFlagsConstants.All);
 
             var setters = new Setter[allProperties.Length];
             var columnIndexes = new ColumnIdentifier[allProperties.Length];
@@ -1103,7 +1107,7 @@ namespace Cesil
                     goto loopEnd;
                 }
 
-                if (setterMtd.ReturnType.GetTypeInfo() != Types.VoidType)
+                if (setterMtd.ReturnType.GetTypeInfo() != Types.Void)
                 {
                     goto loopEnd;
                 }
@@ -1143,7 +1147,7 @@ loopEnd:
 
             var t = GetType().GetTypeInfo();
 
-            if (t == Types.DefaultTypeDescriberType)
+            if (t == Types.DefaultTypeDescriber)
             {
                 return $"{nameof(DefaultTypeDescriber)} Unique Instance";
             }
@@ -1151,4 +1155,5 @@ loopEnd:
             return $"{nameof(DefaultTypeDescriber)} Subclass {t.Name}";
         }
     }
+#pragma warning restore IDE0060
 }

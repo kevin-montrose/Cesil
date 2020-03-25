@@ -39,7 +39,7 @@ namespace Cesil
             }
         }
 
-        public Enumerable(IReader<T> reader)
+        internal Enumerable(IReader<T> reader)
         {
             Reader = reader;
             Enumerated = false;

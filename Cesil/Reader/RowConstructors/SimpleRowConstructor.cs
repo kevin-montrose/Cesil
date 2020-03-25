@@ -12,10 +12,10 @@ namespace Cesil
         {
             get
             {
-                for(var i = 0; i < Setters.Length; i++)
+                for (var i = 0; i < Setters.Length; i++)
                 {
                     LookupColumn(i, out var setterIx);
-                    if(setterIx != null)
+                    if (setterIx != null)
                     {
                         var item = Setters[setterIx.Value];
                         yield return item.Name ?? "--UNKNONW--";
@@ -63,7 +63,7 @@ namespace Cesil
             RequiredTracker = default;
             foreach (var setter in Setters)
             {
-                if(setter.Required == MemberRequired.Yes)
+                if (setter.Required == MemberRequired.Yes)
                 {
                     HasRequired = true;
                     break;
@@ -127,9 +127,9 @@ namespace Cesil
         public void SetColumnOrder(HeadersReader<TRow>.HeaderEnumerator columns)
         {
             var totalRequired = 0;
-            foreach(var col in Setters)
+            foreach (var col in Setters)
             {
-                if(col.Required == MemberRequired.Yes)
+                if (col.Required == MemberRequired.Yes)
                 {
                     totalRequired++;
                 }
@@ -151,7 +151,7 @@ namespace Cesil
 
                     var found = false;
 
-                    for(var setterIx = 0; setterIx < Setters.Length; setterIx++)
+                    for (var setterIx = 0; setterIx < Setters.Length; setterIx++)
                     {
                         var s = Setters[setterIx];
                         if (Utils.AreEqual(s.Name.AsMemory(), ci))
@@ -243,7 +243,7 @@ namespace Cesil
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void LookupColumn(int columnNumber, out int? setterIx)
         {
-            if(SettersLookupOverride != null)
+            if (SettersLookupOverride != null)
             {
                 SettersLookupOverride.Value.Get(columnNumber, -1, out var rawValue);
 
@@ -252,7 +252,7 @@ namespace Cesil
             }
 
             // don't blindly trust the value either
-            if(columnNumber >= Setters.Length)
+            if (columnNumber >= Setters.Length)
             {
                 setterIx = null;
                 return;

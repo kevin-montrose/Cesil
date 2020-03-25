@@ -24,7 +24,7 @@ namespace Cesil
                 options
             )
         {
-            if(instanceProvider != null && deserializeColumns.Any())
+            if (instanceProvider != null && deserializeColumns.Any())
             {
                 var builder = RowConstructor.Create<T>(options.MemoryPool, instanceProvider, deserializeColumns);
                 RowBuilder.Value = builder;
@@ -38,7 +38,7 @@ namespace Cesil
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void AssertCanMakeReader()
         {
-            if(!RowBuilder.HasValue)
+            if (!RowBuilder.HasValue)
             {
                 Throw.InvalidOperationException<object>($"Cannot make a reader for {typeof(T).Name}, returned {nameof(InstanceProvider)} and {nameof(DeserializableMember)}s were not sufficient.");
                 return;

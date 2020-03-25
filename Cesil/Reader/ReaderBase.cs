@@ -68,7 +68,7 @@ namespace Cesil
             return res;
         }
 
-        protected internal ReadWithCommentResult<T> HandleAdvanceResult(ReadWithCommentResultType res, bool returnComments)
+        protected internal ReadWithCommentResult<T> HandleAdvanceResult(ReadWithCommentResultType res, bool returnComments, bool ending)
         {
             switch (res)
             {
@@ -85,6 +85,10 @@ namespace Cesil
                     var record = GetValueForReturn();
                     return new ReadWithCommentResult<T>(record);
                 case ReadWithCommentResultType.NoValue:
+                    if (ending)
+                    {
+                        EndedWithoutReturningRow();
+                    }
                     return ReadWithCommentResult<T>.Empty;
 
                 default:
@@ -335,6 +339,8 @@ namespace Cesil
             return ret;
         }
 
+        protected internal abstract void EndedWithoutReturningRow();
+
         internal void TryPreAllocateRow(ref T val)
         {
             var ctx = ReadContext.ReadingRow(Configuration.Options, RowNumber, Context);
@@ -358,8 +364,8 @@ namespace Cesil
                 switch (ExtraColumnTreatment)
                 {
                     case ExtraColumnTreatment.Ignore:
-                            Partial.ClearBufferAndAdvanceColumnIndex();
-                            return;
+                        Partial.ClearBufferAndAdvanceColumnIndex();
+                        return;
                     case ExtraColumnTreatment.IncludeDynamic:
                         break;
                     case ExtraColumnTreatment.ThrowException:

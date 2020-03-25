@@ -2,13 +2,13 @@
 {
     internal readonly struct ShallowReadContext
     {
-        public bool HasColumn => ColumnIndex != -1;
+        internal bool HasColumn => ColumnIndex != -1;
 
-        public readonly ReadContextMode Mode;
-        public readonly int RowNumber;
-        public readonly int ColumnIndex;
+        internal readonly ReadContextMode Mode;
+        internal readonly int RowNumber;
+        internal readonly int ColumnIndex;
 
-        public ShallowReadContext(in ReadContext ctx)
+        internal ShallowReadContext(in ReadContext ctx)
         {
             Mode = ctx.Mode;
             RowNumber = ctx.RowNumber;

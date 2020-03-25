@@ -13,7 +13,7 @@ namespace Cesil
 
         private readonly TextReader Inner;
 
-        public AsyncTextReaderAdapter(TextReader inner)
+        internal AsyncTextReaderAdapter(TextReader inner)
         {
             Inner = inner;
         }

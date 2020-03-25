@@ -207,7 +207,7 @@ namespace Cesil
                 Type[] resetTakesTypes;
                 if (surrogateResetWrapper.TakesContext)
                 {
-                    resetTakesTypes = new[] { Types.ReadContextType };
+                    resetTakesTypes = new[] { Types.ReadContext };
                 }
                 else
                 {
@@ -433,9 +433,18 @@ handleMethod:
         // internal for testing purposes
         internal static BindingFlags GetEquivalentFlagsFor(bool isPublic, bool isStatic)
         {
-            return
-                (isPublic ? BindingFlags.Public : BindingFlags.NonPublic) |
-                (isStatic ? BindingFlags.Static : BindingFlags.Instance);
+            if (isPublic)
+            {
+                if (isStatic) return BindingFlagsConstants.PublicStatic;
+
+                return BindingFlagsConstants.PublicInstance;
+            }
+            else
+            {
+                if (isStatic) return BindingFlagsConstants.InternalStatic;
+
+                return BindingFlagsConstants.InternalInstance;
+            }
         }
 
         // internal for testing purposes

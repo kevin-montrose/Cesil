@@ -5,7 +5,7 @@ namespace Cesil
 {
     internal sealed class DefaultTypeDescriberDelegateCache : IDelegateCache
     {
-        public static readonly IDelegateCache Instance = new DefaultTypeDescriberDelegateCache();
+        internal static readonly IDelegateCache Instance = new DefaultTypeDescriberDelegateCache();
 
         private readonly ConcurrentDictionary<object, Delegate> Cache;
 

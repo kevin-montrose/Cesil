@@ -11,16 +11,14 @@ using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
-    // todo: can we move the AssertNotDisposedXXXs here to the generated expressions?
-    //       will make it harder to double-dip on them
-
     internal sealed class DynamicRow : IDynamicMetaObjectProvider, ITestableDisposable, IIntrusiveLinkedList<DynamicRow>
     {
         internal sealed class DynamicColumnEnumerator : IEnumerator<ColumnIdentifier>, ITestableDisposable
         {
             internal DynamicRow Row;
             private int NextIndex;
-            private uint ExpectedGeneration;
+
+            private readonly uint ExpectedGeneration;
 
             private ColumnIdentifier _Current;
             public ColumnIdentifier Current
@@ -148,6 +146,8 @@ namespace Cesil
 
         private bool HasNames;
         private string[] Names;
+        private int NamesIndexOffset;
+        private NameLookup NameLookup;
 
         private int CurrentDataOffset;
 
@@ -191,6 +191,7 @@ namespace Cesil
             // likewise, will be inited before we touch them
             HasNames = false;
             Names = Array.Empty<string>();
+            NamesIndexOffset = 0;
 
             // again, no data
             HasData = false;
@@ -212,6 +213,7 @@ namespace Cesil
             ITypeDescriber converter,
             bool hasNames,
             string[]? names,
+            int namesIndexOffset,
             MemoryPool<char> pool
         )
         {
@@ -231,10 +233,14 @@ namespace Cesil
             if (HasNames)
             {
                 Names = Utils.NonNull(names);
+                NamesIndexOffset = namesIndexOffset;
+                NameLookup = owner.AcquireNameLookup();
             }
             else
             {
                 Names = Array.Empty<string>();
+                NamesIndexOffset = 0;
+                NameLookup = default;
             }
             Generation++;
 
@@ -274,8 +280,7 @@ namespace Cesil
 
         internal ReadOnlySpan<char> GetDataSpan(int forCellNumber)
         {
-            // calle dvia DynamicCell
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             var dataIx = GetDataIndex(forCellNumber);
 
@@ -291,8 +296,7 @@ namespace Cesil
 
         internal object? GetAt(int index)
         {
-            // called via DynamicRowMetaObject
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             if (!TryGetIndex(index, out var ret))
             {
@@ -304,8 +308,7 @@ namespace Cesil
 
         internal object? GetByIndex(Index index)
         {
-            // called via DynamicRowMetaObject
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             int actualIndex;
             if (index.IsFromEnd)
@@ -327,6 +330,8 @@ namespace Cesil
 
         internal T GetAtTyped<T>(in ColumnIdentifier index)
         {
+            AssertNotDisposedInternal(this);
+
             dynamic? toCast = GetByIdentifier(in index);
 
             return (T)toCast!;
@@ -334,8 +339,7 @@ namespace Cesil
 
         internal object? GetByIdentifier(in ColumnIdentifier index)
         {
-            // called via DynamicRowMetaObject
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             if (index.HasName)
             {
@@ -357,8 +361,7 @@ namespace Cesil
 
         internal object? GetByName(string column)
         {
-            // called via DynamicRowMetaObject
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             if (!TryGetValue(column, out var ret))
             {
@@ -383,8 +386,7 @@ namespace Cesil
 
         internal DynamicRow GetRange(Range range)
         {
-            // called via DynamicRowMetaObject
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             string[]? names;
 
@@ -451,7 +453,7 @@ namespace Cesil
                 names = null;
             }
 
-            newRow.Init(Owner, RowNumber, Context, Converter, HasNames, names, MemoryPool);
+            newRow.Init(Owner, RowNumber, Context, Converter, HasNames, names, NamesIndexOffset - rawStart, MemoryPool);
 
             // todo: it would be _nice_ to avoid a copy here
             //   we might be able to, if we are informed when THIS
@@ -479,8 +481,7 @@ namespace Cesil
 
         internal ReadContext GetReadContext()
         {
-            // called via DynamicRowMetaObject
-            AssertNotDisposed(this);
+            AssertNotDisposedInternal(this);
 
             var owner = Owner;
 
@@ -490,7 +491,7 @@ namespace Cesil
         private bool TryGetIndex(int index, out object? result)
         {
             var maxWidth = Math.Max(Width, Owner.MinimumExpectedColumns);
-            
+
             if (index < 0 || index >= maxWidth)
             {
                 result = null;
@@ -511,21 +512,21 @@ namespace Cesil
         {
             if (HasNames)
             {
-                // todo: this O(N) junk isn't gonna cut it, find a faster way
-                var namesVal = Names;
-                for (var i = 0; i < namesVal.Length; i++)
+                if (NameLookup.TryLookup(lookingFor, out var index))
                 {
-                    if (namesVal[i]?.Equals(lookingFor) ?? false)
-                    {
-                        if (!IsSet(i))
-                        {
-                            result = null;
-                            return true;
-                        }
+                    // we might be in a row fetched by GetRange
+                    //   in which case _our_ index is a bit different from
+                    //   the outer index
+                    var adjuestedIndex = index + NamesIndexOffset;
 
-                        result = GetCellAt(i);
+                    if (!IsSet(adjuestedIndex))
+                    {
+                        result = null;
                         return true;
                     }
+
+                    result = GetCellAt(adjuestedIndex);
+                    return true;
                 }
             }
 
@@ -682,6 +683,9 @@ checkSize:
                 HasNames = false;
                 Names = Array.Empty<string>();
                 MemoryPool = MemoryPool<char>.Shared;
+
+                // if we never acquired one this is a no-op
+                Owner.ReleaseNameLookup();
 
                 // important, not clearing Owner, _Next, or Previous here ; doing so will break ownership and disposal management
 

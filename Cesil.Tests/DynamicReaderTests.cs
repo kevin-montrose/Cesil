@@ -23,7 +23,7 @@ namespace Cesil.Tests
                 (config, getReader) =>
                 {
                     using (var reader = getReader("A,B,C\r\n1,2,3\r\n4,5\r\n6\r\n\r\n"))
-                    using(var csv = config.CreateReader(reader))
+                    using (var csv = config.CreateReader(reader))
                     {
                         var rows = csv.ReadAll();
 
@@ -610,8 +610,8 @@ namespace Cesil.Tests
                 Options.DynamicDefault,
                 (config, getReader) =>
                 {
-                    using(var reader = getReader("A,B,C\r\n1,foo,2020-01-02\r\nfalse,c,100"))
-                    using(var csv = config.CreateReader(reader))
+                    using (var reader = getReader("A,B,C\r\n1,foo,2020-01-02\r\nfalse,c,100"))
+                    using (var csv = config.CreateReader(reader))
                     {
                         var rows = csv.ReadAll();
 
@@ -2614,53 +2614,52 @@ namespace Cesil.Tests
                         var emptyTwo = 2..2;
                         var emptyTwoEnd = ^2..^2;
 
-                        Action<Range> check =
-                            range =>
+                        Check(all);
+                        Check(allEnd);
+                        Check(allImp);
+
+                        Check(skip1Front);
+                        Check(skip1FrontImp);
+                        Check(skip1Back);
+                        Check(skip1BackImp);
+                        Check(skip1FrontEnd);
+                        Check(skip1FrontEndImp);
+                        Check(skip1BackEnd);
+                        Check(skip1BackEndImp);
+
+                        Check(skip2Front);
+                        Check(skip2FrontImp);
+                        Check(skip2Back);
+                        Check(skip2BackImp);
+                        Check(skip2FrontEnd);
+                        Check(skip2FrontEndImp);
+                        Check(skip2BackEnd);
+                        Check(skip2BackEndImp);
+
+                        Check(emptyZero);
+                        Check(emptyZeroEnd);
+                        Check(emptyOne);
+                        Check(emptyOneEnd);
+                        Check(emptyTwo);
+                        Check(emptyTwoEnd);
+
+                        void Check(Range range)
+                        {
+                            var dynRes = row[range];
+                            var shouldMatchRes = equivalent[range];
+
+                            for (var i = 0; i < shouldMatchRes.Length; i++)
                             {
-                                var dynRes = row[range];
-                                var shouldMatchRes = equivalent[range];
+                                Assert.Equal(shouldMatchRes[i], (string)dynRes[i]);
+                            }
 
-                                for (var i = 0; i < shouldMatchRes.Length; i++)
-                                {
-                                    Assert.Equal(shouldMatchRes[i], (string)dynRes[i]);
-                                }
-
-                                var ix = 0;
-                                foreach (string val in dynRes)
-                                {
-                                    Assert.Equal(shouldMatchRes[ix], val);
-                                    ix++;
-                                }
-                            };
-
-                        check(all);
-                        check(allEnd);
-                        check(allImp);
-
-                        check(skip1Front);
-                        check(skip1FrontImp);
-                        check(skip1Back);
-                        check(skip1BackImp);
-                        check(skip1FrontEnd);
-                        check(skip1FrontEndImp);
-                        check(skip1BackEnd);
-                        check(skip1BackEndImp);
-
-                        check(skip2Front);
-                        check(skip2FrontImp);
-                        check(skip2Back);
-                        check(skip2BackImp);
-                        check(skip2FrontEnd);
-                        check(skip2FrontEndImp);
-                        check(skip2BackEnd);
-                        check(skip2BackEndImp);
-
-                        check(emptyZero);
-                        check(emptyZeroEnd);
-                        check(emptyOne);
-                        check(emptyOneEnd);
-                        check(emptyTwo);
-                        check(emptyTwoEnd);
+                            var ix = 0;
+                            foreach (string val in dynRes)
+                            {
+                                Assert.Equal(shouldMatchRes[ix], val);
+                                ix++;
+                            }
+                        }
                     }
                 }
             );
@@ -2734,15 +2733,18 @@ namespace Cesil.Tests
 
                 dynamic o = null;
 
-                Action cast = () => GC.KeepAlive((DynamicReaderTests)o);
-
                 o = cell;
-                Assert.Throws<InvalidOperationException>(cast);
+                Assert.Throws<InvalidOperationException>(Cast);
 
                 o = this;
-                cast();
+                Cast();
 
                 row.Dispose();
+
+                void Cast()
+                {
+                    GC.KeepAlive((DynamicReaderTests)o);
+                }
             }
 
             // bad conversion
@@ -2766,7 +2768,7 @@ namespace Cesil.Tests
             }
 
             // create a test row
-            dynamic MakeRow(ITypeDescriber c = null)
+            static dynamic MakeRow(ITypeDescriber c = null)
             {
                 var opts =
                     Options.CreateBuilder(Options.Default)
@@ -2802,16 +2804,19 @@ namespace Cesil.Tests
 
                 dynamic lookup = null;
 
-                Func<dynamic> get = () => row[lookup];
-
                 lookup = ix;
-                int b = get();
+                int b = Get();
 
                 lookup = key;
-                int c = get();
+                int c = Get();
 
                 Assert.Equal(2, b);
                 Assert.Equal(3, c);
+
+                dynamic Get()
+                {
+                    return row[lookup];
+                }
             }
         }
 
@@ -2861,14 +2866,17 @@ namespace Cesil.Tests
 
                 dynamic o = null;
 
-                Action twoIndexes = () => GC.KeepAlive(o[0, 1]);
-
                 o = row;
-                Assert.Throws<InvalidOperationException>(twoIndexes);
+                Assert.Throws<InvalidOperationException>(TwoIndexes);
                 o = correct;
-                twoIndexes();
+                TwoIndexes();
 
                 row.Dispose();
+
+                void TwoIndexes()
+                {
+                    GC.KeepAlive(o[0, 1]);
+                }
             }
 
             // bad index type
@@ -2880,14 +2888,17 @@ namespace Cesil.Tests
 
                 dynamic o = null;
 
-                Action guidIndex = () => GC.KeepAlive(o[key]);
-
                 o = row;
-                Assert.Throws<InvalidOperationException>(guidIndex);
+                Assert.Throws<InvalidOperationException>(GuidIndex);
                 o = correct;
-                guidIndex();
+                GuidIndex();
 
                 row.Dispose();
+
+                void GuidIndex()
+                {
+                    GC.KeepAlive(o[key]);
+                }
             }
 
             // out of range, index
@@ -2925,14 +2936,17 @@ namespace Cesil.Tests
                 var ok = Guid.NewGuid();
                 dynamic o = null;
 
-                Action cast = () => GC.KeepAlive((Guid)o);
-
                 o = row;
-                Assert.Throws<InvalidOperationException>(cast);
+                Assert.Throws<InvalidOperationException>(Cast);
                 o = ok;
-                cast();
+                Cast();
 
                 row.Dispose();
+
+                void Cast()
+                {
+                    GC.KeepAlive((Guid)o);
+                }
             }
 
             // bad row conversion
@@ -3121,6 +3135,8 @@ namespace Cesil.Tests
             {
                 var converter = new _CustomDynamicCellConverter();
                 var called = 0;
+                // whole point is to use a delegate here
+#pragma warning disable IDE0039 
                 ParserDelegate<int> del =
                     (ReadOnlySpan<char> _, in ReadContext ctx, out int val) =>
                     {
@@ -3130,6 +3146,7 @@ namespace Cesil.Tests
 
                         return true;
                     };
+#pragma warning restore IDE0039
                 var cellConverter = Parser.ForDelegate(del);
 
                 converter.Add(typeof(int).GetTypeInfo(), cellConverter);
@@ -5330,6 +5347,8 @@ loop:
         [Fact]
         public void DelegateRowConversions()
         {
+            // whole point is the delegate
+#pragma warning disable IDE0039
             DynamicRowConverterDelegate<__DelegateRowConversions_Row> x =
                 (dynamic row, in ReadContext ctx, out __DelegateRowConversions_Row res) =>
                 {
@@ -5343,6 +5362,7 @@ loop:
 
                     return true;
                 };
+#pragma warning restore IDE0039
 
             var convert = new _DelegateRowConversions<__DelegateRowConversions_Row>(x);
 
@@ -6974,53 +6994,52 @@ loop:
                         var emptyTwo = 2..2;
                         var emptyTwoEnd = ^2..^2;
 
-                        Action<Range> check =
-                            range =>
+                        Check(all);
+                        Check(allEnd);
+                        Check(allImp);
+
+                        Check(skip1Front);
+                        Check(skip1FrontImp);
+                        Check(skip1Back);
+                        Check(skip1BackImp);
+                        Check(skip1FrontEnd);
+                        Check(skip1FrontEndImp);
+                        Check(skip1BackEnd);
+                        Check(skip1BackEndImp);
+
+                        Check(skip2Front);
+                        Check(skip2FrontImp);
+                        Check(skip2Back);
+                        Check(skip2BackImp);
+                        Check(skip2FrontEnd);
+                        Check(skip2FrontEndImp);
+                        Check(skip2BackEnd);
+                        Check(skip2BackEndImp);
+
+                        Check(emptyZero);
+                        Check(emptyZeroEnd);
+                        Check(emptyOne);
+                        Check(emptyOneEnd);
+                        Check(emptyTwo);
+                        Check(emptyTwoEnd);
+
+                        void Check(Range range)
+                        {
+                            var dynRes = row[range];
+                            var shouldMatchRes = equivalent[range];
+
+                            for (var i = 0; i < shouldMatchRes.Length; i++)
                             {
-                                var dynRes = row[range];
-                                var shouldMatchRes = equivalent[range];
+                                Assert.Equal(shouldMatchRes[i], (string)dynRes[i]);
+                            }
 
-                                for (var i = 0; i < shouldMatchRes.Length; i++)
-                                {
-                                    Assert.Equal(shouldMatchRes[i], (string)dynRes[i]);
-                                }
-
-                                var ix = 0;
-                                foreach (string val in dynRes)
-                                {
-                                    Assert.Equal(shouldMatchRes[ix], val);
-                                    ix++;
-                                }
-                            };
-
-                        check(all);
-                        check(allEnd);
-                        check(allImp);
-
-                        check(skip1Front);
-                        check(skip1FrontImp);
-                        check(skip1Back);
-                        check(skip1BackImp);
-                        check(skip1FrontEnd);
-                        check(skip1FrontEndImp);
-                        check(skip1BackEnd);
-                        check(skip1BackEndImp);
-
-                        check(skip2Front);
-                        check(skip2FrontImp);
-                        check(skip2Back);
-                        check(skip2BackImp);
-                        check(skip2FrontEnd);
-                        check(skip2FrontEndImp);
-                        check(skip2BackEnd);
-                        check(skip2BackEndImp);
-
-                        check(emptyZero);
-                        check(emptyZeroEnd);
-                        check(emptyOne);
-                        check(emptyOneEnd);
-                        check(emptyTwo);
-                        check(emptyTwoEnd);
+                            var ix = 0;
+                            foreach (string val in dynRes)
+                            {
+                                Assert.Equal(shouldMatchRes[ix], val);
+                                ix++;
+                            }
+                        }
                     }
                 }
             );
@@ -7136,6 +7155,8 @@ loop:
             {
                 var converter = new _CustomDynamicCellConverter();
                 var called = 0;
+                // whole point is to use a delegate
+#pragma warning disable IDE0039
                 ParserDelegate<int> del =
                     (ReadOnlySpan<char> _, in ReadContext ctx, out int val) =>
                     {
@@ -7145,6 +7166,7 @@ loop:
 
                         return true;
                     };
+#pragma warning restore IDE0039
                 var cellConverter = Parser.ForDelegate(del);
 
                 converter.Add(typeof(int).GetTypeInfo(), cellConverter);
@@ -9217,6 +9239,8 @@ loop:
         [Fact]
         public async Task DelegateRowConversionsAsync()
         {
+            // whole point is to use a delegate
+#pragma warning disable IDE0039
             DynamicRowConverterDelegate<__DelegateRowConversions_Row> x =
                 (dynamic row, in ReadContext ctx, out __DelegateRowConversions_Row res) =>
                 {
@@ -9230,6 +9254,7 @@ loop:
 
                     return true;
                 };
+#pragma warning restore IDE0039
 
             var convert = new _DelegateRowConversions<__DelegateRowConversions_Row>(x);
 

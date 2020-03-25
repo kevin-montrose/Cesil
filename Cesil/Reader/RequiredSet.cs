@@ -23,7 +23,7 @@ namespace Cesil
 
         public bool IsDisposed => Owner == null;
 
-        public RequiredSet(MemoryPool<char> pool, int numMembers)
+        internal RequiredSet(MemoryPool<char> pool, int numMembers)
         {
             var neededChars = (numMembers / BITS_PER_CHAR);
             if ((numMembers % BITS_PER_CHAR > 0))
@@ -57,7 +57,7 @@ namespace Cesil
             HasCharInLength = leftOver != 0;
         }
 
-        public void ClearRequired()
+        internal void ClearRequired()
         {
             if (IsDisposed) return;
 
@@ -67,21 +67,21 @@ namespace Cesil
             }
         }
 
-        public void SetIsRequired(int ix)
+        internal void SetIsRequired(int ix)
         {
             if (IsDisposed) return;
 
             SetImpl(ix, Required);
         }
 
-        public void MarkSet(int ix)
+        internal void MarkSet(int ix)
         {
             if (IsDisposed) return;
 
             SetImpl(ix, Set);
         }
 
-        public unsafe bool CheckRequiredAndClear(out int firstMissingRequired)
+        internal unsafe bool CheckRequiredAndClear(out int firstMissingRequired)
         {
             if (IsDisposed)
             {

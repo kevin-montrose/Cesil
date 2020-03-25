@@ -50,7 +50,7 @@ namespace Cesil
 
             var forType = typeof(TRow).GetTypeInfo();
 
-            if (forType == Types.ObjectType)
+            if (forType == Types.Object)
             {
                 return Throw.InvalidOperationException<IBoundConfiguration<TRow>>($"Use {nameof(ForDynamic)} when creating configurations for dynamic types");
             }

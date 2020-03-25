@@ -160,7 +160,7 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(method, nameof(method));
 
-            if (method.ReturnType.GetTypeInfo() != Types.VoidType)
+            if (method.ReturnType.GetTypeInfo() != Types.Void)
             {
                 return Throw.ArgumentException<Reset>($"{method} does not return void", nameof(method));
             }
@@ -184,7 +184,7 @@ namespace Cesil
                     if (p0.IsByRef)
                     {
                         var p0Elem = p0.GetElementTypeNonNull();
-                        if (p0Elem != Types.ReadContextType)
+                        if (p0Elem != Types.ReadContext)
                         {
                             return Throw.ArgumentException<Reset>($"A {nameof(Reset)} backed by a static method with a single by ref parameter must take `in {nameof(ReadContext)}`, was not `{nameof(ReadContext)}`", nameof(method));
                         }
@@ -373,12 +373,12 @@ namespace Cesil
             if (del == null) return null;
 
             var delType = del.GetType().GetTypeInfo();
-            if (delType == Types.StaticResetDelegateType)
+            if (delType == Types.StaticResetDelegate)
             {
                 return new Reset(null, del);
             }
 
-            if (delType.IsGenericType && delType.GetGenericTypeDefinition().GetTypeInfo() == Types.ResetDelegateType)
+            if (delType.IsGenericType && delType.GetGenericTypeDefinition().GetTypeInfo() == Types.ResetDelegate)
             {
                 var rowType = delType.GetGenericArguments()[0].GetTypeInfo();
 
@@ -387,7 +387,7 @@ namespace Cesil
 
             var mtd = del.Method;
             var retType = mtd.ReturnType.GetTypeInfo();
-            if (retType != Types.VoidType)
+            if (retType != Types.Void)
             {
                 return Throw.InvalidOperationException<Reset>($"Delegate must return void, found {retType}");
             }
@@ -402,7 +402,7 @@ namespace Cesil
                     return Throw.InvalidOperationException<Reset>($"Delegate of one parameter must take an `in {nameof(ReadContext)}`; {msg}");
                 }
 
-                var reboundDel = System.Delegate.CreateDelegate(Types.StaticResetDelegateType, del, invoke);
+                var reboundDel = System.Delegate.CreateDelegate(Types.StaticResetDelegate, del, invoke);
 
                 return new Reset(null, reboundDel);
             }
@@ -415,7 +415,7 @@ namespace Cesil
                     return Throw.InvalidOperationException<Reset>($"Delegate of two parameters must take an `in {nameof(ReadContext)}` as it's second parameter; {msg}");
                 }
 
-                var getterDelType = Types.ResetDelegateType.MakeGenericType(rowType);
+                var getterDelType = Types.ResetDelegate.MakeGenericType(rowType);
 
                 var reboundDel = System.Delegate.CreateDelegate(getterDelType, del, invoke);
 

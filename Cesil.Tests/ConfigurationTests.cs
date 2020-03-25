@@ -39,7 +39,7 @@ namespace Cesil.Tests
             public int Foo { get; set; }
         }
 
-        private sealed class _BadTypeDescribers: ITypeDescriber
+        private sealed class _BadTypeDescribers : ITypeDescriber
         {
             private readonly InstanceProvider InstanceProvider;
             private readonly IEnumerable<DeserializableMember> DeserializableMembers;

@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 using static Cesil.DisposableHelper;
 
@@ -41,8 +40,7 @@ namespace Cesil
     /// </summary>
     internal struct NameLookup : ITestableDisposable
     {
-        // low enough we're unlikely to get there from a bug, but not so low that we'll overflow from a bug either
-        private const long EXPLICITLY_DISPOSED_REFERENCE_COUNT = -1_000_000;
+        internal static readonly NameLookup Empty = new NameLookup(EmptyMemoryOwner.Singleton, ReadOnlyMemory<char>.Empty);
 
         private const int NUM_PREFIX_OFFSET = 0;
 
@@ -50,54 +48,26 @@ namespace Cesil
         internal readonly IMemoryOwner<char> MemoryOwner;
         internal readonly ReadOnlyMemory<char> Memory;
 
-        private long ReferenceCount;
+        private bool _IsDisposed;
+        public bool IsDisposed => _IsDisposed;
 
-        public bool IsDisposed => ReferenceCount <= 0;
-
-        public NameLookup(IMemoryOwner<char> owner, ReadOnlyMemory<char> memory)
+        internal NameLookup(IMemoryOwner<char> owner, ReadOnlyMemory<char> memory)
         {
             MemoryOwner = owner;
             Memory = memory;
-            ReferenceCount = 1;
-        }
-
-        internal void AddReference()
-        {
-            AssertNotDisposedInternal(this);
-
-            // has to be interlocked because RemoveReference is interlocked
-            Interlocked.Increment(ref ReferenceCount);
-        }
-
-        internal void RemoveReference()
-        {
-            AssertNotDisposedInternal(this);
-
-            // has to be interlocked because we can't assume disposal will happen on the same thread as creation
-            var res = Interlocked.Decrement(ref ReferenceCount);
-
-            // if this was the last reference, let go of the MemoryOwner
-            if (res == 0)
-            {
-                DisposeInner();
-            }
+            _IsDisposed = false;
         }
 
         public void Dispose()
         {
             if (!IsDisposed)
             {
-                ReferenceCount = EXPLICITLY_DISPOSED_REFERENCE_COUNT;
-                DisposeInner();
+                _IsDisposed = true;
+                MemoryOwner.Dispose();
             }
         }
 
-        private void DisposeInner()
-        {
-            MemoryOwner.Dispose();
-        }
-
-        public unsafe bool TryLookup(string key, out int value)
+        internal unsafe bool TryLookup(string key, out int value)
         {
             AssertNotDisposedInternal(this);
 
@@ -110,20 +80,20 @@ namespace Cesil
 
                 var trieSpan = Memory.Span;
 
-                fixed(char* triePtrConst = trieSpan)
+                fixed (char* triePtrConst = trieSpan)
                 {
                     // likewise, triePtr will always be pointing at the _start_
                     //   of the prefix group
                     char* triePtr = triePtrConst;
 
-                    // starting point for processing a single prefix group
-                    //   as we descend the trie we'll come back here
-                    processPrefixGroup:
+// starting point for processing a single prefix group
+//   as we descend the trie we'll come back here
+processPrefixGroup:
 
-                    // this can read 1 past the end of keyPtr (if keyPtr == "")
-                    //   but this is fine because key is always a string AND
-                    //   .NET strings are always null terminated (with a zero
-                    //   char not just a zero byte)
+// this can read 1 past the end of keyPtr (if keyPtr == "")
+//   but this is fine because key is always a string AND
+//   .NET strings are always null terminated (with a zero
+//   char not just a zero byte)
                     var firstKeyChar = *keyPtr;
                     var numPrefixes = FromPrefixCount(*triePtr);
                     // advance past the prefix count
@@ -265,15 +235,11 @@ namespace Cesil
             return false;
         }
 
-        public static NameLookup Create(List<string> names, MemoryPool<char> memoryPool)
+        internal static NameLookup Create(IEnumerable<string> names, MemoryPool<char> memoryPool)
         {
-            if (names.Count > ushort.MaxValue)
-            {
-                return Throw.ArgumentException<NameLookup>($"{nameof(NameLookup)} can only at most {ushort.MaxValue}", nameof(names));
-            }
-
+            // todo: can we do this in a less allocate-y way?
             // sort 'em, so we can more easily find common prefixes
-            var inOrder = names.Select((n, ix) => (Name: n, Index: ix)).OrderBy(t => t.Name, StringComparer.Ordinal).ToList();
+            var inOrder = names.Select((n, ix) => (Name: n, Index: ix)).OrderBy(t => t.Name, StringComparer.Ordinal);
 
             var sortedNames = new List<ReadOnlyMemory<char>>();
             var sortedNamesValues = new List<ushort>();
@@ -282,6 +248,12 @@ namespace Cesil
             {
                 sortedNames.Add(t.Name.AsMemory());
                 sortedNamesValues.Add((ushort)t.Index);
+            }
+
+
+            if (sortedNames.Count > ushort.MaxValue)
+            {
+                return Throw.ArgumentException<NameLookup>($"{nameof(NameLookup)} can only at most {ushort.MaxValue}", nameof(names));
             }
 
             Debug.WriteLineIf(

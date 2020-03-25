@@ -21,7 +21,30 @@ namespace Cesil
 
         int IDynamicRowOwner.MinimumExpectedColumns => ColumnCount;
 
-        internal AsyncDynamicReader(IAsyncReaderAdapter reader, DynamicBoundConfiguration config, object? context) : base(reader, config, context, new DynamicRowConstructor(), config.Options.ExtraColumnTreatment) { }
+        private int NameLookupReferenceCount;
+        private NameLookup NameLookup;
+
+        NameLookup IDynamicRowOwner.AcquireNameLookup()
+        {
+            Interlocked.Increment(ref NameLookupReferenceCount);
+            return NameLookup;
+        }
+
+        void IDynamicRowOwner.ReleaseNameLookup()
+        {
+            var res = Interlocked.Decrement(ref NameLookupReferenceCount);
+            if (res == 0)
+            {
+                NameLookup.Dispose();
+            }
+        }
+
+        internal AsyncDynamicReader(IAsyncReaderAdapter reader, DynamicBoundConfiguration config, object? context)
+            : base(reader, config, context, new DynamicRowConstructor(), config.Options.ExtraColumnTreatment)
+        {
+            NameLookupReferenceCount = 0;
+            NameLookup = NameLookup.Empty;
+        }
 
         internal override ValueTask HandleRowEndingsAndHeadersAsync(CancellationToken cancel)
         {
@@ -91,7 +114,9 @@ namespace Cesil
                     {
                         var endRes = EndOfData();
 
-                        return new ValueTask<ReadWithCommentResult<dynamic>>(HandleAdvanceResult(endRes, returnComments));
+                        var advanceRes = HandleAdvanceResult(endRes, returnComments, ending: true);
+
+                        return new ValueTask<ReadWithCommentResult<dynamic>>(advanceRes);
                     }
 
                     if (!RowBuilder.RowStarted)
@@ -100,7 +125,7 @@ namespace Cesil
                     }
 
                     var res = AdvanceWork(available);
-                    var possibleReturn = HandleAdvanceResult(res, returnComments);
+                    var possibleReturn = HandleAdvanceResult(res, returnComments, ending: false);
                     if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
                         return new ValueTask<ReadWithCommentResult<dynamic>>(possibleReturn);
@@ -134,7 +159,7 @@ namespace Cesil
                             {
                                 var endRes = self.EndOfData();
 
-                                return self.HandleAdvanceResult(endRes, returnComments);
+                                return self.HandleAdvanceResult(endRes, returnComments, ending: true);
                             }
 
                             if (!self.RowBuilder.RowStarted)
@@ -143,7 +168,7 @@ namespace Cesil
                             }
 
                             var res = self.AdvanceWork(available);
-                            var possibleReturn = self.HandleAdvanceResult(res, returnComments);
+                            var possibleReturn = self.HandleAdvanceResult(res, returnComments, ending: false);
                             if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                             {
                                 return possibleReturn;
@@ -165,7 +190,7 @@ namespace Cesil
                             {
                                 var endRes = self.EndOfData();
 
-                                return self.HandleAdvanceResult(endRes, returnComments);
+                                return self.HandleAdvanceResult(endRes, returnComments, ending: true);
                             }
 
                             if (!self.RowBuilder.RowStarted)
@@ -174,7 +199,7 @@ namespace Cesil
                             }
 
                             var res = self.AdvanceWork(available);
-                            var possibleReturn = self.HandleAdvanceResult(res, returnComments);
+                            var possibleReturn = self.HandleAdvanceResult(res, returnComments, ending: false);
                             if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                             {
                                 return possibleReturn;
@@ -188,6 +213,9 @@ namespace Cesil
                 }
             }
         }
+
+        protected internal override void EndedWithoutReturningRow()
+        => FreePreAllocatedOnEnd(RowBuilder);
 
         public void Remove(DynamicRow row)
         {
@@ -229,24 +257,28 @@ namespace Cesil
                     {
                         columnNamesValue = new string[ColumnCount];
                         ColumnNames.Value = columnNamesValue;
-                    }
 
-                    using (var e = res.Headers)
-                    {
-                        var ix = 0;
-                        while (e.MoveNext())
+                        using (var e = res.Headers)
                         {
-                            var name = allowColumnsByName ? new string(e.Current.Span) : null;
-                            if (name != null)
+                            var ix = 0;
+                            while (e.MoveNext())
                             {
-                                columnNamesValue[ix] = name;
-                            }
+                                var name = allowColumnsByName ? new string(e.Current.Span) : null;
+                                if (name != null)
+                                {
+                                    columnNamesValue[ix] = name;
+                                }
 
-                            ix++;
+                                ix++;
+                            }
                         }
+
+                        Interlocked.Increment(ref NameLookupReferenceCount);
+                        NameLookup = NameLookup.Create(columnNamesValue, Configuration.Options.MemoryPool);
                     }
 
                     RowBuilder.SetColumnOrder(res.Headers);
+
                 }
 
                 Buffer.PushBackFromOutsideBuffer(res.PushBack);
@@ -279,26 +311,29 @@ namespace Cesil
                     }
                     else
                     {
-                        string[] selfColumnNamesValue = Array.Empty<string>();
+                        string[] columnNamesValue = Array.Empty<string>();
                         if (allowColumnsByName)
                         {
-                            selfColumnNamesValue = new string[self.ColumnCount];
-                            self.ColumnNames.Value = selfColumnNamesValue;
-                        }
+                            columnNamesValue = new string[self.ColumnCount];
+                            self.ColumnNames.Value = columnNamesValue;
 
-                        using (var e = res.Headers)
-                        {
-                            var ix = 0;
-                            while (e.MoveNext())
+                            using (var e = res.Headers)
                             {
-                                var name = allowColumnsByName ? new string(e.Current.Span) : null;
-                                if (name != null)
+                                var ix = 0;
+                                while (e.MoveNext())
                                 {
-                                    selfColumnNamesValue[ix] = name;
-                                }
+                                    var name = allowColumnsByName ? new string(e.Current.Span) : null;
+                                    if (name != null)
+                                    {
+                                        columnNamesValue[ix] = name;
+                                    }
 
-                                ix++;
+                                    ix++;
+                                }
                             }
+
+                            Interlocked.Increment(ref self.NameLookupReferenceCount);
+                            self.NameLookup = NameLookup.Create(columnNamesValue, self.Configuration.Options.MemoryPool);
                         }
 
                         self.RowBuilder.SetColumnOrder(res.Headers);
@@ -416,6 +451,10 @@ namespace Cesil
                 self.Partial.Dispose();
                 self.StateMachine?.Dispose();
                 self.SharedCharacterLookup.Dispose();
+
+                // if we never acquired one, this will moved the count to -1
+                //   which WON'T actually release NameLookup
+                (self as IDynamicRowOwner)?.ReleaseNameLookup();
             }
 
             // wait for Inner's DisposeAsync call to finish, then finish disposing self

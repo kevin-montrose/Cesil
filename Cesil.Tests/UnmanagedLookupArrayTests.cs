@@ -149,14 +149,14 @@ namespace Cesil.Tests
 
                 // all set
                 {
-                    using(var mem = new UnmanagedLookupArray<int>(MemoryPool<char>.Shared, size))
+                    using (var mem = new UnmanagedLookupArray<int>(MemoryPool<char>.Shared, size))
                     {
-                        for(var j = 0; j < size; j++)
+                        for (var j = 0; j < size; j++)
                         {
                             mem.Set(j, memberIndexes[j]);
                         }
 
-                        for(var j = 0; j < size; j++)
+                        for (var j = 0; j < size; j++)
                         {
                             mem.Get(j, -1, out var val);
                             Assert.Equal(memberIndexes[j], val);
@@ -207,7 +207,7 @@ namespace Cesil.Tests
                             {
                                 Assert.Equal(-1, val);
                             }
-                            
+
                         }
                     }
                 }

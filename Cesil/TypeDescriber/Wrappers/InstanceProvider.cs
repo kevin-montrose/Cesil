@@ -123,7 +123,7 @@ namespace Cesil
                         else
                         {
                             var constructedVar = Expression.Variable(ConstructsType);
-                            var resVar = Expression.Variable(Types.BoolType);
+                            var resVar = Expression.Variable(Types.Bool);
                             var invoke = Expression.Invoke(delConst, context, constructedVar);
                             var assignRes = Expression.Assign(resVar, invoke);
 
@@ -190,7 +190,7 @@ namespace Cesil
                 return Throw.ArgumentException<InstanceProvider>("Method must be static", nameof(method));
             }
 
-            if (method.ReturnType.GetTypeInfo() != Types.BoolType)
+            if (method.ReturnType.GetTypeInfo() != Types.Bool)
             {
                 return Throw.ArgumentException<InstanceProvider>("Method must return a boolean", nameof(method));
             }
@@ -429,7 +429,7 @@ namespace Cesil
             if (delType.IsGenericType)
             {
                 var delGenType = delType.GetGenericTypeDefinition().GetTypeInfo();
-                if (delGenType == Types.InstanceProviderDelegateType)
+                if (delGenType == Types.InstanceProviderDelegate)
                 {
                     var genArgs = delType.GetGenericArguments();
                     var makes = genArgs[0].GetTypeInfo();
@@ -440,7 +440,7 @@ namespace Cesil
 
             var mtd = del.Method;
             var ret = mtd.ReturnType.GetTypeInfo();
-            if (ret != Types.BoolType)
+            if (ret != Types.Bool)
             {
                 return Throw.InvalidOperationException<InstanceProvider>($"Delegate must return boolean, found {ret}");
             }
@@ -464,7 +464,7 @@ namespace Cesil
 
             var constructs = outP.GetElementTypeNonNull();
 
-            var instanceBuilderDel = Types.InstanceProviderDelegateType.MakeGenericType(constructs);
+            var instanceBuilderDel = Types.InstanceProviderDelegate.MakeGenericType(constructs);
             var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
             var reboundDel = System.Delegate.CreateDelegate(instanceBuilderDel, del, invoke);

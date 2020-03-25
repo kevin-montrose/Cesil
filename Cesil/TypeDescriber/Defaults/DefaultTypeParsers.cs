@@ -23,12 +23,12 @@ namespace Cesil
 
                 Names = Enum.GetNames(enumType);
 
-                var parsingClass = Types.DefaultFlagsEnumTypeParserType.MakeGenericType(enumType).GetTypeInfo();
+                var parsingClass = Types.DefaultFlagsEnumTypeParser.MakeGenericType(enumType).GetTypeInfo();
 
-                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseFlagsEnum), BindingFlags.Static | BindingFlags.NonPublic);
+                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseFlagsEnum), BindingFlagsConstants.InternalStatic);
                 TryParseFlagsEnumParser = Parser.ForMethod(enumParsingMtd);
 
-                var nullableEnumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseNullableFlagsEnum), BindingFlags.Static | BindingFlags.NonPublic);
+                var nullableEnumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseNullableFlagsEnum), BindingFlagsConstants.InternalStatic);
                 TryParseNullableFlagsEnumParser = Parser.ForMethod(nullableEnumParsingMtd);
             }
 
@@ -104,12 +104,12 @@ namespace Cesil
                 Values = Enum.GetValues(enumType).Cast<T>().ToArray();
                 Names = Enum.GetNames(enumType);
 
-                var parsingClass = Types.DefaultEnumTypeParserType.MakeGenericType(enumType).GetTypeInfo();
+                var parsingClass = Types.DefaultEnumTypeParser.MakeGenericType(enumType).GetTypeInfo();
 
-                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseEnum), BindingFlags.Static | BindingFlags.NonPublic);
+                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseEnum), BindingFlagsConstants.InternalStatic);
                 TryParseEnumParser = Parser.ForMethod(enumParsingMtd);
 
-                var nullableEnumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseNullableEnum), BindingFlags.Static | BindingFlags.NonPublic);
+                var nullableEnumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseNullableEnum), BindingFlagsConstants.InternalStatic);
                 TryParseNullableEnumParser = Parser.ForMethod(nullableEnumParsingMtd);
             }
 
@@ -165,7 +165,6 @@ namespace Cesil
         private static bool TryParseVersion(ReadOnlySpan<char> span, in ReadContext _, out Version? val)
         => Version.TryParse(span, out val);
 
-        // todo: add Uri to docs?
         private static bool TryParseUri(ReadOnlySpan<char> span, in ReadContext _, out Uri? val)
         {
             if (!TryParseString(span, in _, out var asStr))

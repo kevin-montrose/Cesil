@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -7,7 +8,7 @@ namespace Cesil
 {
     internal static class ReflectionExtensionMethods
     {
-        public static bool IsBigTuple(this TypeInfo type)
+        internal static bool IsBigTuple(this TypeInfo type)
         {
             if (!type.IsGenericType) return false;
 
@@ -16,10 +17,10 @@ namespace Cesil
                 type = type.GetGenericTypeDefinition().GetTypeInfo();
             }
 
-            return type == Types.TupleTypes[Types.TupleTypes.Length - 1];
+            return type == Types.Tuple_Array[Types.Tuple_Array.Length - 1];
         }
 
-        public static bool IsBigValueTuple(this TypeInfo type)
+        internal static bool IsBigValueTuple(this TypeInfo type)
         {
             if (!type.IsGenericType) return false;
 
@@ -28,10 +29,10 @@ namespace Cesil
                 type = type.GetGenericTypeDefinition().GetTypeInfo();
             }
 
-            return type == Types.ValueTupleTypes[Types.ValueTupleTypes.Length - 1];
+            return type == Types.ValueTuple_Array[Types.ValueTuple_Array.Length - 1];
         }
 
-        public static bool IsValueTuple(this TypeInfo type)
+        internal static bool IsValueTuple(this TypeInfo type)
         {
             if (!type.IsGenericType) return false;
 
@@ -40,10 +41,10 @@ namespace Cesil
                 type = type.GetGenericTypeDefinition().GetTypeInfo();
             }
 
-            return Array.IndexOf(Types.ValueTupleTypes, type) != -1;
+            return Array.IndexOf(Types.ValueTuple_Array, type) != -1;
         }
 
-        public static bool IsReadContextByRef(this ParameterInfo p, out string error)
+        internal static bool IsReadContextByRef(this ParameterInfo p, out string error)
         {
             var pType = p.ParameterType.GetTypeInfo();
 
@@ -54,7 +55,7 @@ namespace Cesil
             }
 
             var pElem = pType.GetElementTypeNonNull();
-            if (pElem != Types.ReadContextType)
+            if (pElem != Types.ReadContext)
             {
                 error = $"was not {nameof(ReadContext)}";
                 return false;
@@ -64,7 +65,7 @@ namespace Cesil
             return true;
         }
 
-        public static bool IsWriteContextByRef(this ParameterInfo p, out string error)
+        internal static bool IsWriteContextByRef(this ParameterInfo p, out string error)
         {
             var pType = p.ParameterType.GetTypeInfo();
 
@@ -75,7 +76,7 @@ namespace Cesil
             }
 
             var pElem = pType.GetElementTypeNonNull();
-            if (pElem != Types.WriteContextType)
+            if (pElem != Types.WriteContext)
             {
                 error = $"was not {nameof(WriteContext)}";
                 return false;
@@ -85,7 +86,7 @@ namespace Cesil
             return true;
         }
 
-        public static ConstructorInfo GetConstructorNonNull(this TypeInfo type, BindingFlags bindingAttr, Binder? binder, TypeInfo[] types, ParameterModifier[]? modifiers)
+        internal static ConstructorInfo GetConstructorNonNull(this TypeInfo type, BindingFlags bindingAttr, Binder? binder, TypeInfo[] types, ParameterModifier[]? modifiers)
         {
             var consNull = type.GetConstructor(bindingAttr, binder, types, modifiers);
             if (consNull == null)
@@ -96,7 +97,7 @@ namespace Cesil
             return consNull;
         }
 
-        public static ConstructorInfo GetConstructorNonNull(this TypeInfo type, TypeInfo[] args)
+        internal static ConstructorInfo GetConstructorNonNull(this TypeInfo type, TypeInfo[] args)
         {
             var consNull = type.GetConstructor(args);
             if (consNull == null)
@@ -107,7 +108,7 @@ namespace Cesil
             return consNull;
         }
 
-        public static TypeInfo GetElementTypeNonNull(this TypeInfo type)
+        internal static TypeInfo GetElementTypeNonNull(this TypeInfo type)
         {
             var elemNull = type.GetElementType();
             if (elemNull == null)
@@ -118,7 +119,7 @@ namespace Cesil
             return elemNull.GetTypeInfo();
         }
 
-        public static TypeInfo DeclaringTypeNonNull(this ConstructorInfo cons)
+        internal static TypeInfo DeclaringTypeNonNull(this ConstructorInfo cons)
         {
             var declNull = cons.DeclaringType;
 
@@ -132,7 +133,7 @@ namespace Cesil
             return declNull.GetTypeInfo();
         }
 
-        public static TypeInfo DeclaringTypeNonNull(this MethodInfo mtd)
+        internal static TypeInfo DeclaringTypeNonNull(this MethodInfo mtd)
         {
             var declNull = mtd.DeclaringType;
 
@@ -146,7 +147,7 @@ namespace Cesil
             return declNull.GetTypeInfo();
         }
 
-        public static TypeInfo DeclaringTypeNonNull(this FieldInfo field)
+        internal static TypeInfo DeclaringTypeNonNull(this FieldInfo field)
         {
             var declNull = field.DeclaringType;
 
@@ -160,7 +161,7 @@ namespace Cesil
             return declNull.GetTypeInfo();
         }
 
-        public static FieldInfo GetFieldNonNull(this TypeInfo type, string fieldName, BindingFlags flags)
+        internal static FieldInfo GetFieldNonNull(this TypeInfo type, string fieldName, BindingFlags flags)
         {
             var fieldNull = type.GetField(fieldName, flags);
             if (fieldNull == null)
@@ -171,7 +172,7 @@ namespace Cesil
             return fieldNull;
         }
 
-        public static MethodInfo GetMethodNonNull(this TypeInfo type, string methodName)
+        internal static MethodInfo GetMethodNonNull(this TypeInfo type, string methodName)
         {
             var mtdNull = type.GetMethod(methodName);
             if (mtdNull == null)
@@ -182,7 +183,7 @@ namespace Cesil
             return mtdNull;
         }
 
-        public static MethodInfo GetMethodNonNull(this TypeInfo type, string methodName, BindingFlags flags)
+        internal static MethodInfo GetMethodNonNull(this TypeInfo type, string methodName, BindingFlags flags)
         {
             var mtdNull = type.GetMethod(methodName, flags);
             if (mtdNull == null)
@@ -193,7 +194,22 @@ namespace Cesil
             return mtdNull;
         }
 
-        public static PropertyInfo GetPropertyNonNull(this TypeInfo type, string propName, BindingFlags flags)
+        internal static MethodInfo GetMethodNonNull(this TypeInfo type, string methodName, BindingFlags flags, Binder? binder, TypeInfo[] parameterTypes, ParameterModifier[]? modifiers)
+        {
+            var mtdNull = type.GetMethod(methodName, flags, binder, parameterTypes, modifiers);
+
+            if (mtdNull == null)
+            {
+                return
+                    Throw.InvalidOperationException<MethodInfo>(
+                        $"Could not find method {methodName} with {flags} and ({string.Join(", ", parameterTypes.Select(s => s.FullName))}) on {type}"
+                    );
+            }
+
+            return mtdNull;
+        }
+
+        internal static PropertyInfo GetPropertyNonNull(this TypeInfo type, string propName, BindingFlags flags)
         {
             var propNull = type.GetProperty(propName, flags);
             if (propNull == null)
@@ -204,7 +220,7 @@ namespace Cesil
             return propNull;
         }
 
-        public static MethodInfo GetGetMethodNonNull(this PropertyInfo prop)
+        internal static MethodInfo GetGetMethodNonNull(this PropertyInfo prop)
         {
             var getNull = prop.GetMethod;
             if (getNull == null)
@@ -215,7 +231,7 @@ namespace Cesil
             return getNull;
         }
 
-        public static TypeInfo CreateTypeNonNull(this TypeBuilder builder)
+        internal static TypeInfo CreateTypeNonNull(this TypeBuilder builder)
         {
             var type = builder.CreateTypeInfo();
             if (type == null)
