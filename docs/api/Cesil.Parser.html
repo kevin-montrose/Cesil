@@ -67,7 +67,9 @@
   <h1 id="Cesil_Parser" data-uid="Cesil.Parser" class="text-break">Class Parser
   </h1>
   <div class="markdown level0 summary"><p>Represents code used to parse values into concrete types.</p>
-<p>Wraps either a MethodInfo, a ParserDelegate, or a ConstructorInfo.</p>
+<p>Wraps a static method, a constructor taking a single
+ReadOnlySpan(char), a constuctor taking a ReadOnlySpan(char)
+and a ReadContext, or a delegate.</p>
 </div>
   <div class="markdown level0 conceptual"></div>
   <div class="inheritance">
@@ -98,7 +100,7 @@
   <h6><strong>Assembly</strong>: Cesil.dll</h6>
   <h5 id="Cesil_Parser_syntax">Syntax</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public sealed class Parser : IElseSupporting&lt;Parser&gt;, IEquatable&lt;Parser&gt;</code></pre>
+    <pre><code class="lang-csharp hljs">public sealed class Parser : IElseSupporting&lt;Parser&gt;, IEquatable&lt;Parser&gt;, ICreatesCacheableDelegate&lt;Parser.DynamicParserDelegate&gt;</code></pre>
   </div>
   <h3 id="methods">Methods
   </h3>
@@ -107,7 +109,7 @@
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_Parser_Else_Cesil_Parser_.md&amp;value=---%0Auid%3A%20Cesil.Parser.Else(Cesil.Parser)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L108">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L146">View Source</a>
   </span>
   <a id="Cesil_Parser_Else_" data-uid="Cesil.Parser.Else*"></a>
   <h4 id="Cesil_Parser_Else_Cesil_Parser_" data-uid="Cesil.Parser.Else(Cesil.Parser)">Else(Parser)</h4>
@@ -156,7 +158,7 @@ it will then try the given fallback Parser.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_Parser_Equals_Cesil_Parser_.md&amp;value=---%0Auid%3A%20Cesil.Parser.Equals(Cesil.Parser)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L372">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L407">View Source</a>
   </span>
   <a id="Cesil_Parser_Equals_" data-uid="Cesil.Parser.Equals*"></a>
   <h4 id="Cesil_Parser_Equals_Cesil_Parser_" data-uid="Cesil.Parser.Equals(Cesil.Parser)">Equals(Parser)</h4>
@@ -204,7 +206,7 @@ it will then try the given fallback Parser.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_Parser_Equals_System_Object_.md&amp;value=---%0Auid%3A%20Cesil.Parser.Equals(System.Object)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L397">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L429">View Source</a>
   </span>
   <a id="Cesil_Parser_Equals_" data-uid="Cesil.Parser.Equals*"></a>
   <h4 id="Cesil_Parser_Equals_System_Object_" data-uid="Cesil.Parser.Equals(System.Object)">Equals(Object)</h4>
@@ -254,7 +256,7 @@ it will then try the given fallback Parser.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_Parser_ForConstructor_ConstructorInfo_.md&amp;value=---%0Auid%3A%20Cesil.Parser.ForConstructor(ConstructorInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L246">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L284">View Source</a>
   </span>
   <a id="Cesil_Parser_ForConstructor_" data-uid="Cesil.Parser.ForConstructor*"></a>
   <h4 id="Cesil_Parser_ForConstructor_ConstructorInfo_" data-uid="Cesil.Parser.ForConstructor(ConstructorInfo)">ForConstructor(ConstructorInfo)</h4>
@@ -312,7 +314,7 @@ or</li>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_Parser_ForDelegate__1_Cesil_ParserDelegate___0__.md&amp;value=---%0Auid%3A%20Cesil.Parser.ForDelegate%60%601(Cesil.ParserDelegate%7B%60%600%7D)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L285">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L323">View Source</a>
   </span>
   <a id="Cesil_Parser_ForDelegate_" data-uid="Cesil.Parser.ForDelegate*"></a>
   <h4 id="Cesil_Parser_ForDelegate__1_Cesil_ParserDelegate___0__" data-uid="Cesil.Parser.ForDelegate``1(Cesil.ParserDelegate{``0})">ForDelegate&lt;TOutput&gt;(ParserDelegate&lt;TOutput&gt;)</h4>
@@ -375,7 +377,7 @@ or</li>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_Parser_ForMethod_MethodInfo_.md&amp;value=---%0Auid%3A%20Cesil.Parser.ForMethod(MethodInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L185">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L223">View Source</a>
   </span>
   <a id="Cesil_Parser_ForMethod_" data-uid="Cesil.Parser.ForMethod*"></a>
   <h4 id="Cesil_Parser_ForMethod_MethodInfo_" data-uid="Cesil.Parser.ForMethod(MethodInfo)">ForMethod(MethodInfo)</h4>
@@ -434,7 +436,7 @@ or</li>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_Parser_GetDefault_TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.Parser.GetDefault(TypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L295">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L333">View Source</a>
   </span>
   <a id="Cesil_Parser_GetDefault_" data-uid="Cesil.Parser.GetDefault*"></a>
   <h4 id="Cesil_Parser_GetDefault_TypeInfo_" data-uid="Cesil.Parser.GetDefault(TypeInfo)">GetDefault(TypeInfo)</h4>
@@ -482,7 +484,7 @@ or</li>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_Parser_GetHashCode.md&amp;value=---%0Auid%3A%20Cesil.Parser.GetHashCode%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L410">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L442">View Source</a>
   </span>
   <a id="Cesil_Parser_GetHashCode_" data-uid="Cesil.Parser.GetHashCode*"></a>
   <h4 id="Cesil_Parser_GetHashCode" data-uid="Cesil.Parser.GetHashCode">GetHashCode()</h4>
@@ -515,7 +517,7 @@ or</li>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_Parser_ToString.md&amp;value=---%0Auid%3A%20Cesil.Parser.ToString%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L354">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L392">View Source</a>
   </span>
   <a id="Cesil_Parser_ToString_" data-uid="Cesil.Parser.ToString*"></a>
   <h4 id="Cesil_Parser_ToString" data-uid="Cesil.Parser.ToString">ToString()</h4>
@@ -551,7 +553,7 @@ or</li>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_Parser_op_Equality_Cesil_Parser_Cesil_Parser_.md&amp;value=---%0Auid%3A%20Cesil.Parser.op_Equality(Cesil.Parser%2CCesil.Parser)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L416">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L448">View Source</a>
   </span>
   <a id="Cesil_Parser_op_Equality_" data-uid="Cesil.Parser.op_Equality*"></a>
   <h4 id="Cesil_Parser_op_Equality_Cesil_Parser_Cesil_Parser_" data-uid="Cesil.Parser.op_Equality(Cesil.Parser,Cesil.Parser)">Equality(Parser, Parser)</h4>
@@ -604,7 +606,7 @@ or</li>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_Parser_op_Explicit_System_Delegate__Cesil_Parser.md&amp;value=---%0Auid%3A%20Cesil.Parser.op_Explicit(System.Delegate)~Cesil.Parser%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L446">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L478">View Source</a>
   </span>
   <a id="Cesil_Parser_op_Explicit_" data-uid="Cesil.Parser.op_Explicit*"></a>
   <h4 id="Cesil_Parser_op_Explicit_System_Delegate__Cesil_Parser" data-uid="Cesil.Parser.op_Explicit(System.Delegate)~Cesil.Parser">Explicit(Delegate to Parser)</h4>
@@ -653,7 +655,7 @@ or</li>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_Parser_op_Explicit_System_Nullable_ConstructorInfo___Cesil_Parser.md&amp;value=---%0Auid%3A%20Cesil.Parser.op_Explicit(System.Nullable%7BConstructorInfo%7D)~Cesil.Parser%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L438">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L470">View Source</a>
   </span>
   <a id="Cesil_Parser_op_Explicit_" data-uid="Cesil.Parser.op_Explicit*"></a>
   <h4 id="Cesil_Parser_op_Explicit_System_Nullable_ConstructorInfo___Cesil_Parser" data-uid="Cesil.Parser.op_Explicit(System.Nullable{ConstructorInfo})~Cesil.Parser">Explicit(Nullable&lt;ConstructorInfo&gt; to Parser)</h4>
@@ -702,7 +704,7 @@ or</li>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_Parser_op_Explicit_System_Nullable_MethodInfo___Cesil_Parser.md&amp;value=---%0Auid%3A%20Cesil.Parser.op_Explicit(System.Nullable%7BMethodInfo%7D)~Cesil.Parser%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L430">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L462">View Source</a>
   </span>
   <a id="Cesil_Parser_op_Explicit_" data-uid="Cesil.Parser.op_Explicit*"></a>
   <h4 id="Cesil_Parser_op_Explicit_System_Nullable_MethodInfo___Cesil_Parser" data-uid="Cesil.Parser.op_Explicit(System.Nullable{MethodInfo})~Cesil.Parser">Explicit(Nullable&lt;MethodInfo&gt; to Parser)</h4>
@@ -751,7 +753,7 @@ or</li>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_Parser_op_Inequality_Cesil_Parser_Cesil_Parser_.md&amp;value=---%0Auid%3A%20Cesil.Parser.op_Inequality(Cesil.Parser%2CCesil.Parser)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L422">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L454">View Source</a>
   </span>
   <a id="Cesil_Parser_op_Inequality_" data-uid="Cesil.Parser.op_Inequality*"></a>
   <h4 id="Cesil_Parser_op_Inequality_Cesil_Parser_Cesil_Parser_" data-uid="Cesil.Parser.op_Inequality(Cesil.Parser,Cesil.Parser)">Inequality(Parser, Parser)</h4>
@@ -814,7 +816,7 @@ or</li>
                     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_Parser.md&amp;value=---%0Auid%3A%20Cesil.Parser%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
                   </li>
                   <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L19" class="contribution-link">View Source</a>
+                    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/Wrappers/Parser.cs/#L21" class="contribution-link">View Source</a>
                   </li>
                 </ul>
               </div>

@@ -15,7 +15,7 @@ namespace Cesil
     /// <summary>
     /// Represents code used to format a value into a IBufferWriter(char).
     /// 
-    /// Wraps either a MethodInfo or a FormatterDelegate.
+    /// Wraps either a static method or a delegate.
     /// </summary>
     public sealed class Formatter :
         IEquatable<Formatter>,

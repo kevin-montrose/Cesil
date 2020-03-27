@@ -17,7 +17,7 @@ namespace Cesil
     /// <summary>
     /// Represents code used to determine whether or not to write a value.
     /// 
-    /// Wraps either a MethodInfo, a ShouldSerializeDelegate, or a StaticShouldSerializeDelegate.
+    /// Wraps a static method, an instance method, or a delegate.
     /// </summary>
     public sealed class ShouldSerialize : IEquatable<ShouldSerialize>
     {

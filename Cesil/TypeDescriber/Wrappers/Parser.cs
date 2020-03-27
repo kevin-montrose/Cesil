@@ -14,7 +14,9 @@ namespace Cesil
     /// <summary>
     /// Represents code used to parse values into concrete types.
     /// 
-    /// Wraps either a MethodInfo, a ParserDelegate, or a ConstructorInfo.
+    /// Wraps a static method, a constructor taking a single
+    ///   ReadOnlySpan(char), a constuctor taking a ReadOnlySpan(char)
+    ///   and a ReadContext, or a delegate.
     /// </summary>
     public sealed class Parser :
         IElseSupporting<Parser>,

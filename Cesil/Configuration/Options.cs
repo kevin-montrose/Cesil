@@ -8,7 +8,7 @@ namespace Cesil
     /// A set of options for reading and writing CSV files.
     /// 
     /// Combine with Configuration to bind to a particular
-    /// type in a Configuration(T) which can create
+    /// type in a IBoundConfiguration(T) which can create
     /// readers and writers.
     /// </summary>
     public sealed class Options : IEquatable<Options>

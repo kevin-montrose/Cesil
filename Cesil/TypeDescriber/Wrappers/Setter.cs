@@ -17,7 +17,8 @@ namespace Cesil
     /// <summary>
     /// Represents code used to set parsed values onto types.
     /// 
-    /// Wraps either a MethodInfo, a FieldInfo, a SetterDelegate, a StaticSetterDelegate, or a constructor parameter.
+    /// Wraps a static method, an instance method, a delegate, a field, or a constructor
+    ///   parameter.
     /// </summary>
     public sealed class Setter : IEquatable<Setter>
     {

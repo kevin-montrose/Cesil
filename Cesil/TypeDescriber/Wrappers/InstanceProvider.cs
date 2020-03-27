@@ -11,10 +11,10 @@ namespace Cesil
     public delegate bool InstanceProviderDelegate<TInstance>(in ReadContext context, out TInstance instance);
 
     /// <summary>
-    /// Represents a way to create new instances of a type.
+    /// Represents a way to obtain an instance of a type.
     /// 
-    /// This can be backed by a zero-parameter constructor, a static 
-    ///   method, or a delegate.
+    /// This can be backed by a zero-parameter constructor, a constructor
+    ///   taking typed parameters, a static method, or a delegate.
     /// </summary>
     public sealed class InstanceProvider :
         IEquatable<InstanceProvider>,

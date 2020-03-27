@@ -108,16 +108,16 @@ or static methods.</p>
 </section>
       <h4><a class="xref" href="Cesil.Formatter.html">Formatter</a></h4>
       <section><p>Represents code used to format a value into a IBufferWriter(char).</p>
-<p>Wraps either a MethodInfo or a FormatterDelegate.</p>
+<p>Wraps either a static method or a delegate.</p>
 </section>
       <h4><a class="xref" href="Cesil.Getter.html">Getter</a></h4>
       <section><p>Represents code used to get a value from a type.</p>
-<p>Wraps either a MethodInfo, a FieldInfo, a GetterDelegate, or a StaticGetterDelegate.</p>
+<p>Wraps a static method, an instance method, a field, or a delegate.</p>
 </section>
       <h4><a class="xref" href="Cesil.InstanceProvider.html">InstanceProvider</a></h4>
-      <section><p>Represents a way to create new instances of a type.</p>
-<p>This can be backed by a zero-parameter constructor, a static
-method, or a delegate.</p>
+      <section><p>Represents a way to obtain an instance of a type.</p>
+<p>This can be backed by a zero-parameter constructor, a constructor
+taking typed parameters, a static method, or a delegate.</p>
 </section>
       <h4><a class="xref" href="Cesil.ManualTypeDescriber.html">ManualTypeDescriber</a></h4>
       <section><p>An ITypeDescriber that takes lets you register explicit members to return
@@ -131,7 +131,7 @@ when one of the EnumerateXXX() methods are called.</p>
       <h4><a class="xref" href="Cesil.Options.html">Options</a></h4>
       <section><p>A set of options for reading and writing CSV files.</p>
 <p>Combine with Configuration to bind to a particular
-type in a Configuration(T) which can create
+type in a IBoundConfiguration(T) which can create
 readers and writers.</p>
 </section>
       <h4><a class="xref" href="Cesil.OptionsBuilder.html">OptionsBuilder</a></h4>
@@ -141,23 +141,26 @@ is chainable and mutable.</p>
 </section>
       <h4><a class="xref" href="Cesil.Parser.html">Parser</a></h4>
       <section><p>Represents code used to parse values into concrete types.</p>
-<p>Wraps either a MethodInfo, a ParserDelegate, or a ConstructorInfo.</p>
+<p>Wraps a static method, a constructor taking a single
+ReadOnlySpan(char), a constuctor taking a ReadOnlySpan(char)
+and a ReadContext, or a delegate.</p>
 </section>
       <h4><a class="xref" href="Cesil.Reset.html">Reset</a></h4>
       <section><p>Represents code called before a setter is called or a field
 is set.</p>
-<p>Wraps either a MethodInfo, a ResetDelegate, or a StaticResetDelegate.</p>
+<p>Wraps a static method, an instance method, or a delegate.</p>
 </section>
       <h4><a class="xref" href="Cesil.SerializableMember.html">SerializableMember</a></h4>
       <section><p>Represents a member of a type to use when serializing.</p>
 </section>
       <h4><a class="xref" href="Cesil.Setter.html">Setter</a></h4>
       <section><p>Represents code used to set parsed values onto types.</p>
-<p>Wraps either a MethodInfo, a FieldInfo, a SetterDelegate, a StaticSetterDelegate, or a constructor parameter.</p>
+<p>Wraps a static method, an instance method, a delegate, a field, or a constructor
+parameter.</p>
 </section>
       <h4><a class="xref" href="Cesil.ShouldSerialize.html">ShouldSerialize</a></h4>
       <section><p>Represents code used to determine whether or not to write a value.</p>
-<p>Wraps either a MethodInfo, a ShouldSerializeDelegate, or a StaticShouldSerializeDelegate.</p>
+<p>Wraps a static method, an instance method, or a delegate.</p>
 </section>
       <h4><a class="xref" href="Cesil.SurrogateTypeDescriber.html">SurrogateTypeDescriber</a></h4>
       <section><p>A ITypeDesciber that enumerates members on a surrogate type and maps them to another type.</p>

@@ -18,7 +18,7 @@ namespace Cesil
     /// Represents code called before a setter is called or a field
     ///   is set.
     /// 
-    /// Wraps either a MethodInfo, a ResetDelegate, or a StaticResetDelegate.
+    /// Wraps a static method, an instance method, or a delegate.
     /// </summary>
     public sealed class Reset : IEquatable<Reset>
     {

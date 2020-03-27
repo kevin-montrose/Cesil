@@ -17,7 +17,7 @@ namespace Cesil
     /// <summary>
     /// Represents code used to get a value from a type.
     /// 
-    /// Wraps either a MethodInfo, a FieldInfo, a GetterDelegate, or a StaticGetterDelegate.
+    /// Wraps a static method, an instance method, a field, or a delegate.
     /// </summary>
     public sealed class Getter : IEquatable<Getter>, ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>
     {
