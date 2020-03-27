@@ -17,6 +17,47 @@ namespace Cesil
         public override IEnumerable<string> GetDynamicMemberNames()
         => new DynamicRowMemberNameEnumerable(Row);
 
+        public override DynamicMetaObject BindInvokeMember(InvokeMemberBinder binder, DynamicMetaObject[] args)
+        {
+            var expressionIsDynamicRowRestriction = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRow);
+
+            // only supported operation is .Dispose()
+            if(binder.Name == nameof(DynamicRow.Dispose) && args.Length == 0)
+            {
+                var castToRow = Expression.Convert(Expression, Types.DynamicRow);
+                var callDispose = Expression.Call(castToRow, Methods.DynamicRow.Dispose);
+
+                Expression final;
+
+                if(binder.ReturnType == Types.Void)
+                {
+                    final = callDispose;
+                }
+                else
+                {
+                    if(binder.ReturnType == Types.Object)
+                    {
+                        final = Expression.Block(callDispose, Expressions.Constant_Null);
+                    }
+                    else
+                    {
+                        final = Expression.Block(callDispose, Expression.Default(binder.ReturnType));
+                    }
+                }
+
+                // we can cache this forever (for this type), doesn't vary by anything else
+                return new DynamicMetaObject(final, expressionIsDynamicRowRestriction);
+            }
+
+            var msg = Expression.Constant($"Only the Dispose() method is supported.");
+            var invalidOpCall = Methods.Throw.InvalidOperationExceptionOfObject;
+            var call = Expression.Call(invalidOpCall, msg);
+
+            // we can cache this forever (for this type), since there's no scenario under which a non-Dispose call
+            //    becomes legal
+            return new DynamicMetaObject(call, expressionIsDynamicRowRestriction);
+        }
+
         public override DynamicMetaObject BindGetIndex(GetIndexBinder binder, DynamicMetaObject[] indexes)
         {
             var expressionIsDynamicRowRestriction = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRow);
@@ -121,7 +162,7 @@ namespace Cesil
 
             // no binder
             {
-                var msg = Expression.Constant($"Only string, int, index, and range indexers are supported.");
+                var msg = Expression.Constant($"Only string, int, Index, and Range indexers are supported.");
                 var invalidOpCall = Methods.Throw.InvalidOperationExceptionOfObject;
                 var call = Expression.Call(invalidOpCall, msg);
 

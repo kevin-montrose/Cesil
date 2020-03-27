@@ -53,6 +53,7 @@ namespace Cesil
         internal static T NotSupportedException<T>(string type, string method)
         => throw new NotSupportedException($"Method {method} on {type} is not supported");
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         internal static T OperationCanceledException<T>()
         => throw new OperationCanceledException();
 

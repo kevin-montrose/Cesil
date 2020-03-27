@@ -33,6 +33,14 @@ namespace Cesil
     public class DefaultTypeDescriber : ITypeDescriber
     {
         private static readonly DynamicRowConverter PassthroughEnumerable = DynamicRowConverter.ForConstructorTakingDynamic(Constructors.PassthroughRowEnumerable);
+        private static readonly DynamicRowConverter Identity =
+            DynamicRowConverter.ForDelegate(
+                (object obj, in ReadContext _, out object res) =>
+                {
+                    res = obj;
+                    return true;
+                }
+            );
 
         /// <summary>
         /// Construct a new DefaultTypeDesciber.
@@ -995,6 +1003,12 @@ namespace Cesil
             {
                 var cons = Types.DynamicRowEnumerableNonGeneric.GetConstructorNonNull(BindingFlagsConstants.InternalInstance, null, new[] { Types.Object }, null);
                 return DynamicRowConverter.ForConstructorTakingDynamic(cons);
+            }
+
+            // a plain object cast is also allowed
+            if (targetType == Types.Object)
+            {
+                return Identity;
             }
 
             int width;

@@ -59,6 +59,7 @@ namespace Cesil
 
         // System interfaces
         internal static readonly TypeInfo IDisposable = typeof(IDisposable).GetTypeInfo();
+        internal static readonly TypeInfo IConvertible = typeof(IConvertible).GetTypeInfo();
 
         // System.Collections.Generic interfaces
         internal static readonly TypeInfo IReadOnlyList = typeof(IReadOnlyList<>).GetTypeInfo();

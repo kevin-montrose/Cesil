@@ -11,6 +11,14 @@ namespace Cesil.Tests
     public class UtilsTests
     {
         [Fact]
+        public void NonNull()
+        {
+            Assert.NotNull(Utils.NonNull("foo"));
+
+            Assert.Throws<Exception>(() => Utils.NonNull(default(string)));
+        }
+
+        [Fact]
         public void CheckImmutableReadInto()
         {
             // arrays

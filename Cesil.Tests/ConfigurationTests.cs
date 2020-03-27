@@ -583,6 +583,14 @@ namespace Cesil.Tests
                        .WithValueSeparator(' ')
                        .ToOptions()
            );
+
+            Assert.Throws<InvalidOperationException>(
+                () =>
+                    Options.CreateBuilder(Options.Default)
+                        .WithEscapedValueStartAndEnd(null)
+                        .WithEscapedValueEscapeCharacter('\\')
+                        .ToOptions()
+            );
         }
 
         private class _BadCreateCalls

@@ -15,6 +15,143 @@ namespace Cesil.Tests
     public class DynamicReaderTests
     {
         [Fact]
+        public void DynamicRowAsObject()
+        {
+            RunSyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader("A,B,C\r\n1,2,3"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var row = csv.EnumerateAll().Single();
+
+                        var obj = (object)row;
+                        Assert.NotNull(obj);
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public void DynamicCellAsIConvertible()
+        {
+            RunSyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader("A,B,C\r\n1,2,3"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var row = csv.EnumerateAll().Single();
+
+                        var cell = row[0];
+                        var convertible = (IConvertible)cell;
+                        Assert.NotNull(convertible);
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public void DynamicCellAsObject()
+        {
+            RunSyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader("A,B,C\r\n1,2,3"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var row = csv.EnumerateAll().Single();
+
+                        var cell = row[0];
+                        var obj = (object)cell;
+                        Assert.NotNull(obj);
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public void DynamicCellDoesntSupportMethods()
+        {
+            RunSyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                (config, getReader) =>
+                {
+                    // doesn't support other public methods
+                    {
+                        using (var reader = getReader("A,B,C\r\n1,2,3"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var row = csv.EnumerateAll().Single();
+
+                            var cell = row[0];
+                            Assert.Throws<InvalidOperationException>(() => cell.GetMetaObject(Expressions.Constant_True));
+                        }
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public void DynamicRowOnlySupportsDispose()
+        {
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).ToOptions();
+
+            RunSyncDynamicReaderVariants(
+                opts,
+                (config, getReader) =>
+                {
+                    // explicit Dispose
+                    {
+                        dynamic row;
+
+                        using (var reader = getReader("A,B,C\r\n1,2,3"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            row = csv.EnumerateAll().Single();
+                        }
+
+                        row.Dispose();
+                    }
+
+                    // cast to IDisposable
+                    {
+                        dynamic row;
+
+                        using (var reader = getReader("A,B,C\r\n1,2,3"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            row = csv.EnumerateAll().Single();
+                        }
+
+                        var disposable = (IDisposable)row;
+
+                        disposable.Dispose();
+                    }
+
+                    // doesn't support other public methods
+                    {
+                        dynamic row;
+
+                        using (var reader = getReader("A,B,C\r\n1,2,3"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            row = csv.EnumerateAll().Single();
+
+                            Assert.Throws<InvalidOperationException>(() => row.GetMetaObject(Expressions.Constant_True));
+
+                            row.Dispose();
+                        }
+                    }
+                },
+                expectedRuns: 3
+            );
+        }
+
+        [Fact]
         public void MissingTrailingColumns()
         {
             // with headers

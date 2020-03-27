@@ -208,7 +208,7 @@
             A set of options for reading and writing CSV files.
             
             Combine with Configuration to bind to a particular
-            type in a Configuration(T) which can create
+            type in a IBoundConfiguration(T) which can create
             readers and writers.
             </summary>
         </member>
@@ -3159,7 +3159,7 @@
             <summary>
             Represents code used to format a value into a IBufferWriter(char).
             
-            Wraps either a MethodInfo or a FormatterDelegate.
+            Wraps either a static method or a delegate.
             </summary>
         </member>
         <member name="M:Cesil.Formatter.Else(Cesil.Formatter)">
@@ -3251,7 +3251,7 @@
             <summary>
             Represents code used to get a value from a type.
             
-            Wraps either a MethodInfo, a FieldInfo, a GetterDelegate, or a StaticGetterDelegate.
+            Wraps a static method, an instance method, a field, or a delegate.
             </summary>
         </member>
         <member name="M:Cesil.Getter.ForProperty(System.Reflection.PropertyInfo)">
@@ -3350,10 +3350,10 @@
         </member>
         <member name="T:Cesil.InstanceProvider">
             <summary>
-            Represents a way to create new instances of a type.
+            Represents a way to obtain an instance of a type.
             
-            This can be backed by a zero-parameter constructor, a static 
-              method, or a delegate.
+            This can be backed by a zero-parameter constructor, a constructor
+              taking typed parameters, a static method, or a delegate.
             </summary>
         </member>
         <member name="M:Cesil.InstanceProvider.Else(Cesil.InstanceProvider)">
@@ -3469,7 +3469,9 @@
             <summary>
             Represents code used to parse values into concrete types.
             
-            Wraps either a MethodInfo, a ParserDelegate, or a ConstructorInfo.
+            Wraps a static method, a constructor taking a single
+              ReadOnlySpan(char), a constuctor taking a ReadOnlySpan(char)
+              and a ReadContext, or a delegate.
             </summary>
         </member>
         <member name="M:Cesil.Parser.Else(Cesil.Parser)">
@@ -3581,7 +3583,7 @@
             Represents code called before a setter is called or a field
               is set.
             
-            Wraps either a MethodInfo, a ResetDelegate, or a StaticResetDelegate.
+            Wraps a static method, an instance method, or a delegate.
             </summary>
         </member>
         <member name="M:Cesil.Reset.ForMethod(System.Reflection.MethodInfo)">
@@ -3672,7 +3674,8 @@
             <summary>
             Represents code used to set parsed values onto types.
             
-            Wraps either a MethodInfo, a FieldInfo, a SetterDelegate, a StaticSetterDelegate, or a constructor parameter.
+            Wraps a static method, an instance method, a delegate, a field, or a constructor
+              parameter.
             </summary>
         </member>
         <member name="M:Cesil.Setter.ForProperty(System.Reflection.PropertyInfo)">
@@ -3795,7 +3798,7 @@
             <summary>
             Represents code used to determine whether or not to write a value.
             
-            Wraps either a MethodInfo, a ShouldSerializeDelegate, or a StaticShouldSerializeDelegate.
+            Wraps a static method, an instance method, or a delegate.
             </summary>
         </member>
         <member name="M:Cesil.ShouldSerialize.ForMethod(System.Reflection.MethodInfo)">

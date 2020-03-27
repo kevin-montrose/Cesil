@@ -341,12 +341,14 @@ namespace Cesil
         {
             AssertNotDisposedInternal(this);
 
-            if (index.HasName)
+            if (index.HasName && HasNames)
             {
                 if (TryGetValue(index.Name, out var res))
                 {
                     return res;
                 }
+
+                return Throw.KeyNotFoundException<object>(index.Name);
             }
             else
             {
@@ -354,9 +356,9 @@ namespace Cesil
                 {
                     return res;
                 }
-            }
 
-            return default;
+                return Throw.ArgumentOutOfRangeException<object>(nameof(index), index.Index, Width);
+            }
         }
 
         internal object? GetByName(string column)

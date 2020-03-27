@@ -297,19 +297,6 @@ tryAgain:
         private const int CHARS_PER_LONG = sizeof(long) / sizeof(char);
         private const int CHARS_PER_INT = sizeof(int) / sizeof(char);
 
-        internal static unsafe bool AreEqual(ReadOnlySpan<char> a, ReadOnlySpan<char> b)
-        {
-            var aLen = a.Length;
-            var bLen = b.Length;
-            if (aLen != bLen) return false;
-
-            fixed (void* aPtr = a)
-            fixed (void* bPtr = b)
-            {
-                return AreEqual(aLen, aPtr, bPtr);
-            }
-        }
-
         internal static unsafe bool AreEqual(ReadOnlyMemory<char> a, ReadOnlyMemory<char> b)
         {
             var aLen = a.Length;
@@ -740,51 +727,6 @@ tryAgain:
 
                 oldOwner = newOwner;
             }
-        }
-
-        // inspired by https://github.com/bbowyersmyth/coreclr/blob/d59b674ee9cd6d092073f9d8d321f935a757e53d/src/classlibnative/bcltype/stringnative.cpp
-        private const int PROBABILITY_MAP_SIZE = 16;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe int ProbablyContains(short* probMap, ref char* strPtr, int len)
-        {
-            for (var i = 0; i < len; i++)
-            {
-                var c = *strPtr;
-                var b = (byte)c;
-
-                // 0 to 15
-                var ln = (byte)(b & 0x00_00_00_FF);
-                var hn = (byte)(b >> 4);
-
-                // based on the low half
-                {
-                    var mask = (short)(1 << ln);
-
-                    var inMap = (probMap[hn] & mask) != 0;
-                    if (!inMap)
-                    {
-                        strPtr++;
-                        continue;
-                    }
-                }
-
-                return i;
-            }
-
-            return -1;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe void AddCharacterToProbMap(short* map, char c)
-        {
-            var b = (byte)c;
-
-            var ln = (byte)(b & 0x00_00_00_FF);
-            var hn = (byte)(b >> 4);
-
-            var mask = (short)(1 << ln);
-            map[hn] |= mask;
         }
 
         internal static ExtraColumnTreatment EffectiveColumnTreatmentForStatic(ExtraColumnTreatment ect)

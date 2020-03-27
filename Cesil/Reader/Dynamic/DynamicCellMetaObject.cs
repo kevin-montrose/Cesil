@@ -38,9 +38,31 @@ namespace Cesil
             return parser;
         }
 
+        public override DynamicMetaObject BindInvokeMember(InvokeMemberBinder binder, DynamicMetaObject[] args)
+        {
+            var expressionIsCellRestriction = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicCell);
+
+            var retType = binder.ReturnType != Types.Void ? binder.ReturnType : Types.Object;
+
+            var invalidOpCall = Methods.Throw.InvalidOperationException.MakeGenericMethod(retType);
+            var throwMsg = Expression.Call(invalidOpCall, Expression.Constant($"Dynamic cells have no methods.  Explicitly cast to desired type or IConvertible."));
+
+            return new DynamicMetaObject(throwMsg, expressionIsCellRestriction);
+        }
+
         public override DynamicMetaObject BindConvert(ConvertBinder binder)
         {
             var retType = binder.ReturnType.GetTypeInfo();
+
+            // casting to IConvertible is always supported
+            if(binder.Type == Types.IConvertible)
+            {
+                var expressionIsCellRestriction = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicCell);
+                var selfAsIConvertible = Expression.Convert(Expression, Types.IConvertible);
+
+                // this will always succeed provide the dynamic doesn't become a non-DynamicCell type
+                return new DynamicMetaObject(selfAsIConvertible, expressionIsCellRestriction);
+            }
 
             var parser = Cell.GetParser(retType, out _);
             var restrictions = MakeRestrictions(parser, retType);

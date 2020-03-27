@@ -42,6 +42,7 @@ namespace Cesil
             internal static readonly MethodInfo GetRange = Types.DynamicRow.GetMethodNonNull(nameof(Cesil.DynamicRow.GetRange), InternalInstance);
             internal static readonly MethodInfo GetReadContext = Types.DynamicRow.GetMethodNonNull(nameof(Cesil.DynamicRow.GetReadContext), InternalInstance);
             internal static readonly MethodInfo GetByIdentifier = Types.DynamicRow.GetMethodNonNull(nameof(Cesil.DynamicRow.GetByIdentifier), InternalInstance);
+            internal static readonly MethodInfo Dispose = Types.DynamicRow.GetMethodNonNull(nameof(Cesil.DynamicRow.Dispose), PublicInstance);
         }
 
         internal static class IDynamicRowOwner
