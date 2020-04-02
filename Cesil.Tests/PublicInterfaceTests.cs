@@ -16,6 +16,9 @@ namespace Cesil.Tests
 {
     public class PublicInterfaceTests
     {
+        // todo: test that all static fields are beforefieldinit?
+        //       in theory that's better perf
+
         private static IEnumerable<TypeInfo> AllTypes()
         {
             var ts = typeof(Configuration).Assembly.GetTypes();

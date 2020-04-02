@@ -796,6 +796,8 @@
         <member name="P:Cesil.ColumnIdentifier.Name">
             <summary>
             The name of the column.
+            
+            If HasName is false, this will throw an exception.
             </summary>
         </member>
         <member name="M:Cesil.ColumnIdentifier.Create(System.Int32)">

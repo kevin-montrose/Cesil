@@ -20,6 +20,8 @@ namespace Cesil
 
         private Dictionary<object, Delegate>? DelegateCache;
 
+        private bool HasWrittenComments;
+
         internal DynamicWriter(DynamicBoundConfiguration config, IWriterAdapter inner, object? context) : base(config, inner, context) { }
 
         CachedDelegate<V> IDelegateCache.TryGet<T, V>(T key)
@@ -131,16 +133,19 @@ end:
                 var shouldEndRecord = true;
                 if (IsFirstRow)
                 {
-                    // todo: I feel like this can be made to work?
-                    // it's basically just a write line
                     if (Configuration.Options.WriteHeader == WriteHeader.Always)
                     {
-                        Throw.InvalidOperationException<object>($"First operation on a dynamic writer cannot be {nameof(WriteComment)} if configured to write headers, headers cannot be inferred");
+                        if (!HasWrittenComments)
+                        {
+                            shouldEndRecord = false;
+                        }
                     }
-
-                    if (!CheckHeaders(null))
+                    else
                     {
-                        shouldEndRecord = false;
+                        if (!CheckHeaders(null))
+                        {
+                            shouldEndRecord = false;
+                        }
                     }
                 }
 
@@ -155,6 +160,8 @@ end:
                 var isFirstRow = true;
                 foreach (var seg in segments)
                 {
+                    HasWrittenComments = true;
+
                     if (!isFirstRow)
                     {
                         EndRecord();
@@ -312,10 +319,21 @@ end:
             var columnNamesValue = ColumnNames.Value;
             for (var i = 0; i < columnNamesValue.Length; i++)
             {
-                // for the separator
                 if (i != 0)
                 {
+                    // first value doesn't get a separator
                     PlaceCharInStaging(Configuration.Options.ValueSeparator);
+                }
+                else
+                {
+                    // if we're going to write any headers... before we 
+                    //   write the first one we need to check if
+                    //   we need to end the previous record... which only happens
+                    //   if we've written comments _before_ the header
+                    if (HasWrittenComments)
+                    {
+                        EndRecord();
+                    }
                 }
 
                 var colName = columnNamesValue[i].EncodedName;

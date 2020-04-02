@@ -8,6 +8,7 @@ namespace Cesil
 {
     internal static class Throw
     {
+        // todo: change this to a "it's impossible" exception
         [MethodImpl(MethodImplOptions.NoInlining)]
         internal static T Exception<T>(string message)
         => throw new Exception(message);

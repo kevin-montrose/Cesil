@@ -24,6 +24,8 @@ namespace Cesil
 
         /// <summary>
         /// The name of the column.
+        /// 
+        /// If HasName is false, this will throw an exception.
         /// </summary>
         public string Name
         {

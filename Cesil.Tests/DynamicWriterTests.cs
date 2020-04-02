@@ -33,6 +33,158 @@ namespace Cesil.Tests
             }
         }
 
+        [Fact]
+        public void WriteCommentBeforeRow()
+        {
+            // no headers
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteHeader(WriteHeader.Never).WithCommentCharacter('#').ToOptions();
+                // comment, then row
+                RunSyncDynamicWriterVariants(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteComment("hello world");
+                            csv.Write(new { Foo = 123, Bar = "+456" });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("#hello world\r\n123,+456", res);
+                    }
+                );
+
+                // comment, no row
+                RunSyncDynamicWriterVariants(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteComment("hello world");
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("#hello world", res);
+                    }
+                );
+
+                // multiple comments, then row
+                RunSyncDynamicWriterVariants(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteComment("hello world");
+                            csv.WriteComment("fizz buzz");
+                            csv.WriteComment("foo\r\nbar");
+                            csv.Write(new { Foo = 123, Bar = "+456" });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("#hello world\r\n#fizz buzz\r\n#foo\r\n#bar\r\n123,+456", res);
+                    }
+                );
+
+                // multiple comments, no row
+                RunSyncDynamicWriterVariants(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteComment("hello world");
+                            csv.WriteComment("fizz buzz");
+                            csv.WriteComment("foo\r\nbar");
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("#hello world\r\n#fizz buzz\r\n#foo\r\n#bar", res);
+                    }
+                );
+            }
+
+            // headers
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithCommentCharacter('#').ToOptions();
+                // comment, then row
+                RunSyncDynamicWriterVariants(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteComment("hello world");
+                            csv.Write(new { Foo = 123, Bar = "+456" });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("#hello world\r\nFoo,Bar\r\n123,+456", res);
+                    }
+                );
+
+                // comment, no row
+                RunSyncDynamicWriterVariants(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteComment("hello world");
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("#hello world", res);
+                    }
+                );
+
+                // multiple comments, then row
+                RunSyncDynamicWriterVariants(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteComment("hello world");
+                            csv.WriteComment("fizz buzz");
+                            csv.WriteComment("foo\r\nbar");
+                            csv.Write(new { Foo = 123, Bar = "+456" });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("#hello world\r\n#fizz buzz\r\n#foo\r\n#bar\r\nFoo,Bar\r\n123,+456", res);
+                    }
+                );
+
+                // multiple comments, no row
+                RunSyncDynamicWriterVariants(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteComment("hello world");
+                            csv.WriteComment("fizz buzz");
+                            csv.WriteComment("foo\r\nbar");
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("#hello world\r\n#fizz buzz\r\n#foo\r\n#bar", res);
+                    }
+                );
+            }
+        }
+
         private sealed class _ChainedFormatters_Context
         {
             public int F { get; set; }
@@ -1687,6 +1839,158 @@ namespace Cesil.Tests
         }
 
         // async tests
+
+        [Fact]
+        public async Task WriteCommentBeforeRowAsync()
+        {
+            // no headers
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteHeader(WriteHeader.Never).WithCommentCharacter('#').ToOptions();
+                // comment, then row
+                await RunAsyncDynamicWriterVariants(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteCommentAsync("hello world");
+                            await csv.WriteAsync(new { Foo = 123, Bar = "+456" });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("#hello world\r\n123,+456", res);
+                    }
+                );
+
+                // comment, no row
+                await RunAsyncDynamicWriterVariants(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteCommentAsync("hello world");
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("#hello world", res);
+                    }
+                );
+
+                // multiple comments, then row
+                await RunAsyncDynamicWriterVariants(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteCommentAsync("hello world");
+                            await csv.WriteCommentAsync("fizz buzz");
+                            await csv.WriteCommentAsync("foo\r\nbar");
+                            await csv.WriteAsync(new { Foo = 123, Bar = "+456" });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("#hello world\r\n#fizz buzz\r\n#foo\r\n#bar\r\n123,+456", res);
+                    }
+                );
+
+                // multiple comments, no row
+                await RunAsyncDynamicWriterVariants(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteCommentAsync("hello world");
+                            await csv.WriteCommentAsync("fizz buzz");
+                            await csv.WriteCommentAsync("foo\r\nbar");
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("#hello world\r\n#fizz buzz\r\n#foo\r\n#bar", res);
+                    }
+                );
+            }
+
+            // headers
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithCommentCharacter('#').ToOptions();
+                // comment, then row
+                await RunAsyncDynamicWriterVariants(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteCommentAsync("hello world");
+                            await csv.WriteAsync(new { Foo = 123, Bar = "+456" });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("#hello world\r\nFoo,Bar\r\n123,+456", res);
+                    }
+                );
+
+                // comment, no row
+                await RunAsyncDynamicWriterVariants(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteCommentAsync("hello world");
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("#hello world", res);
+                    }
+                );
+
+                // multiple comments, then row
+                await RunAsyncDynamicWriterVariants(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteCommentAsync("hello world");
+                            await csv.WriteCommentAsync("fizz buzz");
+                            await csv.WriteCommentAsync("foo\r\nbar");
+                            await csv.WriteAsync(new { Foo = 123, Bar = "+456" });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("#hello world\r\n#fizz buzz\r\n#foo\r\n#bar\r\nFoo,Bar\r\n123,+456", res);
+                    }
+                );
+
+                // multiple comments, no row
+                await RunAsyncDynamicWriterVariants(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteCommentAsync("hello world");
+                            await csv.WriteCommentAsync("fizz buzz");
+                            await csv.WriteCommentAsync("foo\r\nbar");
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("#hello world\r\n#fizz buzz\r\n#foo\r\n#bar", res);
+                    }
+                );
+            }
+        }
 
         [Fact]
         public async Task ChainedFormattersAsync()

@@ -309,17 +309,17 @@ namespace Cesil.Tests
             );
         }
 
-        private sealed class _PoisedTryReadWithCommentReuse
+        private sealed class _PoisonedTryReadWithCommentReuse
         {
             public string Foo { get; set; }
         }
 
         [Fact]
-        public void PoisedTryReadWithCommentReuse()
+        public void PoisonedTryReadWithCommentReuse()
         {
-            var setter = Setter.ForDelegate((_PoisedTryReadWithCommentReuse row, string val, in ReadContext _) => throw new Exception());
+            var setter = Setter.ForDelegate((_PoisonedTryReadWithCommentReuse row, string val, in ReadContext _) => throw new Exception());
 
-            var type = typeof(_PoisedTryReadWithCommentReuse).GetTypeInfo();
+            var type = typeof(_PoisonedTryReadWithCommentReuse).GetTypeInfo();
             var cons = type.GetConstructor(Type.EmptyTypes);
             var provider = InstanceProvider.ForParameterlessConstructor(cons);
 
@@ -327,7 +327,7 @@ namespace Cesil.Tests
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(m).ToOptions();
 
-            RunSyncReaderVariants<_PoisedTryReadWithCommentReuse>(
+            RunSyncReaderVariants<_PoisonedTryReadWithCommentReuse>(
                 opts,
                 (config, getReader) =>
                 {
@@ -337,7 +337,7 @@ namespace Cesil.Tests
                         Assert.Throws<Exception>(
                             () =>
                             {
-                                _PoisedTryReadWithCommentReuse row = null;
+                                _PoisonedTryReadWithCommentReuse row = null;
                                 csv.TryReadWithCommentReuse(ref row);
                             }
                         );
@@ -4636,9 +4636,9 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public async Task PoisedTryReadWithCommentReuseAsync()
         {
-            var setter = Setter.ForDelegate((_PoisedTryReadWithCommentReuse row, string val, in ReadContext _) => throw new Exception());
+            var setter = Setter.ForDelegate((_PoisonedTryReadWithCommentReuse row, string val, in ReadContext _) => throw new Exception());
 
-            var type = typeof(_PoisedTryReadWithCommentReuse).GetTypeInfo();
+            var type = typeof(_PoisonedTryReadWithCommentReuse).GetTypeInfo();
             var cons = type.GetConstructor(Type.EmptyTypes);
             var provider = InstanceProvider.ForParameterlessConstructor(cons);
 
@@ -4646,7 +4646,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
 
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(m).ToOptions();
 
-            await RunAsyncReaderVariants<_PoisedTryReadWithCommentReuse>(
+            await RunAsyncReaderVariants<_PoisonedTryReadWithCommentReuse>(
                 opts,
                 async (config, getReader) =>
                 {
@@ -4656,7 +4656,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                         await Assert.ThrowsAnyAsync<Exception>(
                             async () =>
                             {
-                                _PoisedTryReadWithCommentReuse row = null;
+                                _PoisonedTryReadWithCommentReuse row = null;
                                 await csv.TryReadWithCommentReuseAsync(ref row);
                             }
                         );

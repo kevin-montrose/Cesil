@@ -22,6 +22,8 @@ namespace Cesil
 
         private Dictionary<object, Delegate>? DelegateCache;
 
+        private bool HasWrittenComments;
+
         internal AsyncDynamicWriter(DynamicBoundConfiguration config, IAsyncWriterAdapter inner, object? context) : base(config, inner, context) { }
 
         CachedDelegate<V> IDelegateCache.TryGet<T, V>(T key)
@@ -451,21 +453,25 @@ end:
                 var shouldEndRecord = true;
                 if (IsFirstRow)
                 {
-                    // todo: I feel like this can be made to work?
                     if (Configuration.Options.WriteHeader == WriteHeader.Always)
                     {
-                        return Throw.InvalidOperationException<ValueTask>($"First operation on a dynamic writer cannot be {nameof(WriteCommentAsync)} if configured to write headers, headers cannot be inferred");
+                        if (!HasWrittenComments)
+                        {
+                            shouldEndRecord = false;
+                        }
                     }
-
-                    var checkHeaders = CheckHeadersAsync(null, cancel);
-                    if (!checkHeaders.IsCompletedSuccessfully(this))
+                    else
                     {
-                        return WriteCommentAsync_ContinueAfterCheckHeadersAsync(this, checkHeaders, comment, cancel);
-                    }
+                        var checkHeaders = CheckHeadersAsync(null, cancel);
+                        if (!checkHeaders.IsCompletedSuccessfully(this))
+                        {
+                            return WriteCommentAsync_ContinueAfterCheckHeadersAsync(this, checkHeaders, comment, cancel);
+                        }
 
-                    if (!checkHeaders.Result)
-                    {
-                        shouldEndRecord = false;
+                        if (!checkHeaders.Result)
+                        {
+                            shouldEndRecord = false;
+                        }
                     }
                 }
 
@@ -485,6 +491,8 @@ end:
                 var e = segments.GetEnumerator();
                 while (e.MoveNext())
                 {
+                    HasWrittenComments = true;
+
                     var seg = e.Current;
 
                     if (!isFirstRow)
@@ -550,6 +558,8 @@ end:
                     var isFirstRow = true;
                     foreach (var seg in segments)
                     {
+                        self.HasWrittenComments = true;
+
                         if (!isFirstRow)
                         {
                             var endTask = self.EndRecordAsync(cancel);
@@ -582,7 +592,6 @@ end:
             {
                 try
                 {
-
                     await ConfigureCancellableAwait(self, waitFor, cancel);
                     CheckCancellation(self, cancel);
 
@@ -592,6 +601,8 @@ end:
                     var isFirstRow = true;
                     foreach (var seg in segments)
                     {
+                        self.HasWrittenComments = true;
+
                         if (!isFirstRow)
                         {
                             var endTask = self.EndRecordAsync(cancel);
@@ -958,13 +969,28 @@ end:
             var columnNamesValue = ColumnNames.Value;
             for (var i = 0; i < columnNamesValue.Length; i++)
             {
-                // for the separator
                 if (i != 0)
                 {
+                    // first value doesn't get a separator
                     var placeCharTask = PlaceCharInStagingAsync(valueSeparator, cancel);
                     if (!placeCharTask.IsCompletedSuccessfully(this))
                     {
-                        return WriteHeadersAsync_ContinueAfterPlaceCharAsync(this, placeCharTask, valueSeparator, i, cancel);
+                        return WriteHeadersAsync_ContinueAfterStartOfForAsync(this, placeCharTask, valueSeparator, i, cancel);
+                    }
+                }
+                else
+                {
+                    // if we're going to write any headers... before we 
+                    //   write the first one we need to check if
+                    //   we need to end the previous record... which only happens
+                    //   if we've written comments _before_ the header
+                    if (HasWrittenComments)
+                    {
+                        var endRecordTask = EndRecordAsync(cancel);
+                        if (!endRecordTask.IsCompletedSuccessfully(this))
+                        {
+                            return WriteHeadersAsync_ContinueAfterStartOfForAsync(this, endRecordTask, valueSeparator, i, cancel);
+                        }
                     }
                 }
 
@@ -981,8 +1007,9 @@ end:
 
             return default;
 
-            // continue after a PlaceCharInStagingAsync call
-            static async ValueTask WriteHeadersAsync_ContinueAfterPlaceCharAsync(AsyncDynamicWriter self, ValueTask waitFor, char valueSeparator, int i, CancellationToken cancel)
+            // continue after a PlaceCharInStagingAsync or EndRecordAsync call
+            //   we can share this because both branches go into the same next step
+            static async ValueTask WriteHeadersAsync_ContinueAfterStartOfForAsync(AsyncDynamicWriter self, ValueTask waitFor, char valueSeparator, int i, CancellationToken cancel)
             {
                 await ConfigureCancellableAwait(self, waitFor, cancel);
                 CheckCancellation(self, cancel);
