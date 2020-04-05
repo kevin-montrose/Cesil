@@ -22,7 +22,7 @@ namespace Cesil
         // 1  => 0xFFFF_FFFF_0000_0000_...._0000_0000 // 256 bits
         // ...
         // 7 => 0xFFFF_FFFF_FFFF_FFFF_...._FFFF_FFFF // 256 bits
-        internal static ushort[] SUB_VECTOR_MASK =
+        internal static readonly ushort[] SUB_VECTOR_MASK =
             new ushort[]
             {   0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
                 0xFFFF, 0xFFFF, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
@@ -55,8 +55,8 @@ namespace Cesil
         internal NeedsEncodeHelper(char c1, char? c2, char? c3)
         {
             FirstChar = (short)c1;
-            SecondChar = (short)(c2.HasValue ? c2.Value : '\0');
-            ThirdChar = (short)(c3.HasValue ? c3.Value : '\0');
+            SecondChar = (short)(c2 ?? '\0');
+            ThirdChar = (short)(c3 ?? '\0');
 
             fixed (short* mapPtr = MAP)
             {
@@ -73,7 +73,7 @@ namespace Cesil
         }
 
         // primary interface
-        internal int ContainsCharRequiringEncoding(char* strPtr, int len)
+        internal readonly int ContainsCharRequiringEncoding(char* strPtr, int len)
         {
             // We use Avx2, Avx2, and Bmi1 in CharRequiringEncodingAvx2
             //    but only need to check for Avx2 and Bmi1 because Avx is implied
@@ -87,7 +87,7 @@ namespace Cesil
         }
 
         // internal for testing and benchmarking
-        internal unsafe int Avx2ContainsChar(char* strPtr, int len)
+        internal readonly unsafe int Avx2ContainsChar(char* strPtr, int len)
         {
             const int CHARS_PER_INT = sizeof(int) / sizeof(char);
             const int BITS_IN_INT = sizeof(int) * 8;
@@ -262,7 +262,7 @@ namespace Cesil
         }
 
         // internal for testing and benchmarking
-        internal int ProbabilisticContainsChar(char* strPtr, int len)
+        internal readonly int ProbabilisticContainsChar(char* strPtr, int len)
         {
 tryAgain:
             var ix = ProbablyContains(ref strPtr, len);
@@ -286,7 +286,7 @@ tryAgain:
 
         // inspired by https://github.com/bbowyersmyth/coreclr/blob/d59b674ee9cd6d092073f9d8d321f935a757e53d/src/classlibnative/bcltype/stringnative.cpp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private unsafe int ProbablyContains(ref char* strPtr, int len)
+        private readonly unsafe int ProbablyContains(ref char* strPtr, int len)
         {
             fixed (short* mapPtr = MAP)
             {

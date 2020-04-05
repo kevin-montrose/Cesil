@@ -209,37 +209,34 @@ namespace Cesil.Tests
             using (var e = CharacterLookup.MakeCharacterLookup(eOpts, out var maxSize3))
             using (var f = CharacterLookup.MakeCharacterLookup(fOpts, out var maxSize4))
             {
-                foreach (var state in Enum.GetValues(typeof(ReaderStateMachine.State)).Cast<ReaderStateMachine.State>())
+                for (var x = 0; x <= char.MaxValue; x++)
                 {
-                    for (var x = 0; x <= char.MaxValue; x++)
+                    var offset1 = ReaderStateMachine.GetCharLookupOffset(in c, (char)x);
+                    if (offset1 != null)
                     {
-                        var offset1 = ReaderStateMachine.GetCharLookupOffset(in c, state, (char)x);
-                        if (offset1 != null)
-                        {
-                            Assert.True(offset1 >= 0);
-                            Assert.True(offset1 < maxSize1);
-                        }
+                        Assert.True(offset1 >= 0);
+                        Assert.True(offset1 < maxSize1);
+                    }
 
-                        var offset2 = ReaderStateMachine.GetCharLookupOffset(in d, state, (char)x);
-                        if (offset2 != null)
-                        {
-                            Assert.True(offset2 >= 0);
-                            Assert.True(offset2 < maxSize2);
-                        }
+                    var offset2 = ReaderStateMachine.GetCharLookupOffset(in d, (char)x);
+                    if (offset2 != null)
+                    {
+                        Assert.True(offset2 >= 0);
+                        Assert.True(offset2 < maxSize2);
+                    }
 
-                        var offset3 = ReaderStateMachine.GetCharLookupOffset(in e, state, (char)x);
-                        if (offset3 != null)
-                        {
-                            Assert.True(offset3 >= 0);
-                            Assert.True(offset3 < maxSize3);
-                        }
+                    var offset3 = ReaderStateMachine.GetCharLookupOffset(in e, (char)x);
+                    if (offset3 != null)
+                    {
+                        Assert.True(offset3 >= 0);
+                        Assert.True(offset3 < maxSize3);
+                    }
 
-                        var offset4 = ReaderStateMachine.GetCharLookupOffset(in f, state, (char)x);
-                        if (offset4 != null)
-                        {
-                            Assert.True(offset4 >= 0);
-                            Assert.True(offset4 < maxSize4);
-                        }
+                    var offset4 = ReaderStateMachine.GetCharLookupOffset(in f, (char)x);
+                    if (offset4 != null)
+                    {
+                        Assert.True(offset4 >= 0);
+                        Assert.True(offset4 < maxSize4);
                     }
                 }
             }

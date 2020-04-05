@@ -17,10 +17,10 @@ namespace Cesil
             where T : unmanaged, Enum
         {
             // has all the bits set that are present in 
-            internal static readonly byte Mask;
-            internal static readonly byte AntiMask;
+            internal static readonly byte Mask = CreateMask();
+            internal static readonly byte AntiMask = (byte)~CreateMask();
 
-            static LegalFlagEnum()
+            private static byte CreateMask()
             {
                 var values = Enum.GetValues(typeof(T));
                 byte ret = 0;
@@ -29,15 +29,13 @@ namespace Cesil
                     var o = values.GetValue(i);
                     if (o == null)
                     {
-                        Throw.Exception<object>("Shouldn't be possible");
-                        return;
+                        return Throw.Exception<byte>("Shouldn't be possible");
                     }
 
                     ret |= (byte)o;
                 }
 
-                Mask = ret;
-                AntiMask = (byte)(~ret);
+                return ret;
             }
         }
 
@@ -170,7 +168,7 @@ namespace Cesil
                 var len = ix - lastIx;
                 if (len > 0)
                 {
-                    var subset = str.Slice(lastIx, ix - lastIx);
+                    var subset = str[lastIx..ix];
                     if (head == null)
                     {
                         head = new ReadOnlyCharSegment(subset, len);
@@ -412,10 +410,10 @@ tryAgain:
                     //      for more on this trick
                     var masked = fourChars ^ cQuad;
                     var temp = masked & 0x7FFF_7FFF_7FFF_7FFFUL;
-                    temp = temp + 0x7FFF_7FFF_7FFF_7FFFUL;
-                    temp = temp & 0x8000_8000_8000_8000UL;
-                    temp = temp | masked;
-                    temp = temp | 0x7FFF_7FFF_7FFF_7FFFUL;
+                    temp += 0x7FFF_7FFF_7FFF_7FFFUL;
+                    temp &= 0x8000_8000_8000_8000UL;
+                    temp |= masked;
+                    temp |= 0x7FFF_7FFF_7FFF_7FFFUL;
                     temp = ~temp;
                     var hasMatch = temp != 0;
 
@@ -466,10 +464,10 @@ tryAgain:
                     //      for more on this trick
                     var masked = twoChars ^ cDouble;
                     var temp = masked & 0x7FFF_7FFFU;
-                    temp = temp + 0x7FFF_7FFFU;
-                    temp = temp & 0x8000_8000U;
-                    temp = temp | masked;
-                    temp = temp | 0x7FFF_7FFFU;
+                    temp += 0x7FFF_7FFFU;
+                    temp &= 0x8000_8000U;
+                    temp |= masked;
+                    temp |= 0x7FFF_7FFFU;
                     temp = ~temp;
                     var hasMatch = temp != 0;
 

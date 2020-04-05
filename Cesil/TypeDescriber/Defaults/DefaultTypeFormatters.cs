@@ -14,23 +14,34 @@ namespace Cesil
         internal static class DefaultFlagsEnumTypeFormatter<T>
             where T : struct, Enum
         {
-            private static readonly string[] Names;
+            private static readonly string[] Names = Enum.GetNames(typeof(T).GetTypeInfo());
 
-            internal static readonly Formatter TryFlagsEnumFormatter;
-            internal static readonly Formatter TryNullableFlagsEnumFormatter;
+            internal static readonly Formatter TryFlagsEnumFormatter = CreateTryFlagsEnumFormatter();
+            internal static readonly Formatter TryNullableFlagsEnumFormatter = CreateTryNullableFlagsEnumFormatter();
 
-            static DefaultFlagsEnumTypeFormatter()
+            private static TypeInfo GetFormattingClass()
             {
                 var enumType = typeof(T).GetTypeInfo();
-                Names = Enum.GetNames(enumType);
 
-                var parsingClass = Types.DefaultFlagsEnumTypeFormatter.MakeGenericType(enumType).GetTypeInfo();
+                var formattingClass = Types.DefaultFlagsEnumTypeFormatter.MakeGenericType(enumType).GetTypeInfo();
 
-                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryFormatFlagsEnum), BindingFlagsConstants.InternalStatic);
-                TryFlagsEnumFormatter = Formatter.ForMethod(enumParsingMtd);
+                return formattingClass;
+            }
 
-                var nullableEnumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryFormatNullableFlagsEnum), BindingFlagsConstants.InternalStatic);
-                TryNullableFlagsEnumFormatter = Formatter.ForMethod(nullableEnumParsingMtd);
+            private static Formatter CreateTryFlagsEnumFormatter()
+            {
+                var formattingClass = GetFormattingClass();
+
+                var enumParsingMtd = formattingClass.GetMethodNonNull(nameof(TryFormatFlagsEnum), BindingFlagsConstants.InternalStatic);
+                return Formatter.ForMethod(enumParsingMtd);
+            }
+
+            private static Formatter CreateTryNullableFlagsEnumFormatter()
+            {
+                var formattingClass = GetFormattingClass();
+
+                var nullableEnumParsingMtd = formattingClass.GetMethodNonNull(nameof(TryFormatNullableFlagsEnum), BindingFlagsConstants.InternalStatic);
+                return Formatter.ForMethod(nullableEnumParsingMtd);
             }
 
             private static bool TryFormatFlagsEnum(T e, in WriteContext _, IBufferWriter<char> writer)
@@ -77,20 +88,32 @@ namespace Cesil
         internal static class DefaultEnumTypeFormatter<T>
             where T : struct, Enum
         {
-            internal static readonly Formatter TryEnumFormatter;
-            internal static readonly Formatter TryNullableEnumFormatter;
+            internal static readonly Formatter TryEnumFormatter = CreateTryEnumFormatter();
+            internal static readonly Formatter TryNullableEnumFormatter = CreateTryNullableEnumFormatter();
 
-            static DefaultEnumTypeFormatter()
+            private static TypeInfo GetFormattingClass()
             {
                 var enumType = typeof(T).GetTypeInfo();
 
-                var parsingClass = Types.DefaultEnumTypeFormatter.MakeGenericType(enumType).GetTypeInfo();
+                var formattingClass = Types.DefaultEnumTypeFormatter.MakeGenericType(enumType).GetTypeInfo();
 
-                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryFormatEnum), BindingFlagsConstants.InternalStatic);
-                TryEnumFormatter = Formatter.ForMethod(enumParsingMtd);
+                return formattingClass;
+            }
 
-                var nullableEnumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryFormatNullableEnum), BindingFlagsConstants.InternalStatic);
-                TryNullableEnumFormatter = Formatter.ForMethod(nullableEnumParsingMtd);
+            private static Formatter CreateTryEnumFormatter()
+            {
+                var formattingClass = GetFormattingClass();
+
+                var enumParsingMtd = formattingClass.GetMethodNonNull(nameof(TryFormatEnum), BindingFlagsConstants.InternalStatic);
+                return Formatter.ForMethod(enumParsingMtd);
+            }
+
+            private static Formatter CreateTryNullableEnumFormatter()
+            {
+                var formattingClass = GetFormattingClass();
+
+                var nullableEnumParsingMtd = formattingClass.GetMethodNonNull(nameof(TryFormatNullableEnum), BindingFlagsConstants.InternalStatic);
+                return Formatter.ForMethod(nullableEnumParsingMtd);
             }
 
             private static bool TryFormatEnum(T e, in WriteContext _, IBufferWriter<char> writer)

@@ -16,9 +16,6 @@ namespace Cesil.Tests
 {
     public class PublicInterfaceTests
     {
-        // todo: test that all static fields are beforefieldinit?
-        //       in theory that's better perf
-
         private static IEnumerable<TypeInfo> AllTypes()
         {
             var ts = typeof(Configuration).Assembly.GetTypes();
@@ -2290,6 +2287,48 @@ namespace Cesil.Tests
                         var with = "With" + p.Name;
                         var mtd = instanceBuilderMtds.SingleOrDefault(m => m.Name == with);
                         Assert.NotNull(mtd);
+                    }
+                );
+            }
+        }
+
+        [Fact]
+        public void AllTypesAreBeforeFieldInit()
+        {
+            // What we want to avoid are checks everywhere before
+            //   touching static members.
+            //
+            // This looks like .beforefieldinit, which the compiler
+            //   will slap on all static types that DON'T have a 
+            //   static constructor.
+            //
+            // For kicks, this also checks to make sure all static
+            //   fields are readonly or const.
+
+            foreach (var type in AllTypes())
+            {
+                // ignore interfaces, delegates, enums, and compiler generated types
+                if (type.IsInterface) continue;
+                if (type.BaseType == typeof(MulticastDelegate)) continue;
+                if (type.IsEnum) continue;
+                if (type.Name.Contains("<")) continue;
+
+                // skip bits that we don't declare (Roslyn likes to add random attributes, for example)
+                if (type.Namespace == null || !type.Namespace.StartsWith("Cesil")) continue;
+
+                Assert.True(type.Attributes.HasFlag(TypeAttributes.BeforeFieldInit), $"{type.FullName} is not .beforefieldinit");
+
+                var staticFields = type.GetFields(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
+                Assert.All(
+                    staticFields,
+                    f =>
+                    {
+                        var isReadOnly = f.IsInitOnly;
+                        var isConst = f.IsLiteral;
+
+                        var allowedDeclaration = isReadOnly || isConst;
+
+                        Assert.True(allowedDeclaration, $"Static field {f.Name} on {type.FullName} is not readonly or const");
                     }
                 );
             }

@@ -54,15 +54,15 @@ namespace Cesil
         {
             get
             {
-                switch (Mode)
-                {
-                    case BackingMode.Field: return Field.Value.IsStatic;
-                    case BackingMode.Method: return Method.Value.IsStatic;
-                    case BackingMode.Delegate: return !RowType.HasValue;
-                    case BackingMode.ConstructorParameter: return false;
-                    default:
-                        return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}");
-                }
+                return 
+                    Mode switch
+                    {
+                        BackingMode.Field => Field.Value.IsStatic,
+                        BackingMode.Method => Method.Value.IsStatic,
+                        BackingMode.Delegate => !RowType.HasValue,
+                        BackingMode.ConstructorParameter => false,
+                        _ => Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}"),
+                    };
             }
         }
 
@@ -436,16 +436,16 @@ namespace Cesil
                 if (setter.RowType.HasValue) return false;
             }
 
-            switch (mode)
-            {
-                case BackingMode.Delegate: return Delegate.Value == setter.Delegate.Value;
-                case BackingMode.Field: return Field.Value == setter.Field.Value;
-                case BackingMode.Method: return Method.Value == setter.Method.Value;
-                case BackingMode.ConstructorParameter: return ConstructorParameter.Value == setter.ConstructorParameter.Value;
+            return 
+                mode switch
+                {
+                    BackingMode.Delegate => Delegate.Value == setter.Delegate.Value,
+                    BackingMode.Field => Field.Value == setter.Field.Value,
+                    BackingMode.Method => Method.Value == setter.Method.Value,
+                    BackingMode.ConstructorParameter => ConstructorParameter.Value == setter.ConstructorParameter.Value,
 
-                default:
-                    return Throw.Exception<bool>($"Unexpected {nameof(BackingMode)}: {mode}");
-            }
+                    _ => Throw.Exception<bool>($"Unexpected {nameof(BackingMode)}: {mode}"),
+                };
         }
 
         /// <summary>

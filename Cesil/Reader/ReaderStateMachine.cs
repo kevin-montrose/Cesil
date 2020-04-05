@@ -87,7 +87,7 @@ namespace Cesil
         {
             var fromState = CurrentState;
 
-            var cOffset = GetCharLookupOffset(in CharacterLookup, fromState, c);
+            var cOffset = GetCharLookupOffset(in CharacterLookup, c);
             CharacterType cType;
             if (cOffset == null)
             {
@@ -103,7 +103,7 @@ namespace Cesil
 
         // internal for testing purposes
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static int? GetCharLookupOffset(in CharacterLookup charLookup, State fromState, char c)
+        internal static int? GetCharLookupOffset(in CharacterLookup charLookup, char c)
         {
             var cOffset = (c - charLookup.MinimumCharacter);
             if (cOffset < 0 || cOffset >= charLookup.CharLookupOffset)

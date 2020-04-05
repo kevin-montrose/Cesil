@@ -29,7 +29,7 @@ namespace Cesil
             public bool IsDisposed { get; private set; }
 
             private ReadOnlyMemory<char> _Current;
-            public ReadOnlyMemory<char> Current
+            public readonly ReadOnlyMemory<char> Current
             {
                 get
                 {
@@ -38,7 +38,7 @@ namespace Cesil
                 }
             }
 
-            object IEnumerator.Current => Current;
+            readonly object IEnumerator.Current => Current;
 
             internal HeaderEnumerator(int count, ReadOnlyMemory<char> buffer, WhitespaceTreatments whitespaceTreatment)
             {

@@ -40,6 +40,8 @@ namespace Cesil
     /// </summary>
     internal struct NameLookup : ITestableDisposable
     {
+        // todo: figure out how to support really long names, or a way to reject them in a "don't throw an exception" way?
+
         internal static readonly NameLookup Empty = new NameLookup(EmptyMemoryOwner.Singleton, ReadOnlyMemory<char>.Empty);
 
         private const int NUM_PREFIX_OFFSET = 0;
@@ -67,7 +69,7 @@ namespace Cesil
             }
         }
 
-        internal unsafe bool TryLookup(string key, out int value)
+        internal readonly unsafe bool TryLookup(string key, out int value)
         {
             AssertNotDisposedInternal(this);
 

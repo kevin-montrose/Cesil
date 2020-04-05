@@ -25,11 +25,10 @@ namespace Cesil
         internal delegate bool DynamicFormatterDelegate(object? value, in WriteContext context, IBufferWriter<char> buffer);
 
         // internal for testing purposes
-        internal static readonly IReadOnlyDictionary<TypeInfo, Formatter> TypeFormatters;
+        internal static readonly IReadOnlyDictionary<TypeInfo, Formatter> TypeFormatters = CreateTypeFormatters();
 
-        static Formatter()
+        private static IReadOnlyDictionary<TypeInfo, Formatter> CreateTypeFormatters()
         {
-            // load up default formatters
             var ret = new Dictionary<TypeInfo, Formatter>();
             foreach (var mtd in Types.DefaultTypeFormatters.GetMethods(BindingFlagsConstants.InternalStatic))
             {
@@ -39,7 +38,7 @@ namespace Cesil
                 ret.Add(forType.GetTypeInfo(), Formatter.ForMethod(mtd));
             }
 
-            TypeFormatters = ret;
+            return ret;
         }
 
         internal BackingMode Mode

@@ -158,7 +158,7 @@ namespace Cesil
             return new CharacterLookup(minimumCharacter, neededSize, charLookupOwner);
         }
 
-        internal unsafe MemoryHandle Pin(out CharacterType* charLookup)
+        internal readonly unsafe MemoryHandle Pin(out CharacterType* charLookup)
         {
             var ret = Memory.Memory.Pin();
 

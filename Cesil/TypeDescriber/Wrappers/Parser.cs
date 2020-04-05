@@ -26,11 +26,10 @@ namespace Cesil
         internal delegate bool DynamicParserDelegate(ReadOnlySpan<char> data, in ReadContext context, out object result);
 
         // internal for testing purposes
-        internal static readonly IReadOnlyDictionary<TypeInfo, Parser> TypeParsers;
+        internal static readonly IReadOnlyDictionary<TypeInfo, Parser> TypeParsers = CreateTypeParsers();
 
-        static Parser()
+        private static IReadOnlyDictionary<TypeInfo, Parser> CreateTypeParsers()
         {
-            // load up default parsers
             var ret = new Dictionary<TypeInfo, Parser>();
             foreach (var mtd in Types.DefaultTypeParsers.GetMethods(BindingFlagsConstants.InternalStatic))
             {
@@ -42,7 +41,7 @@ namespace Cesil
                 ret.Add(forType, parser);
             }
 
-            TypeParsers = ret;
+            return ret;
         }
 
         internal BackingMode Mode
