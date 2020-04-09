@@ -14,7 +14,7 @@ namespace Cesil
         // create a delegate that will format the given value (pulled from a getter or a field) into
         //   a buffer, subject to shouldSerialize being null or returning true
         //   and return true if it was able to do so
-        internal static ColumnWriterDelegate Create(TypeInfo type, Formatter formatter, NonNull<ShouldSerialize> shouldSerialize, Getter getter, bool emitDefaultValue)
+        internal static ColumnWriterDelegate Create(TypeInfo type, Options options, Formatter formatter, NonNull<ShouldSerialize> shouldSerialize, Getter getter, bool emitDefaultValue)
         {
             var p1 = Expressions.Parameter_Object;
             var p2 = Expressions.Parameter_WriteContext_ByRef;
@@ -81,7 +81,7 @@ namespace Cesil
                             }
                         }
 
-                        return Throw.Exception<ColumnWriterDelegate>($"Could not find typed {nameof(IEquatable<object>.Equals)} method, which shouldn't be possible");
+                        return Throw.ImpossibleException<ColumnWriterDelegate>($"Could not find typed {nameof(IEquatable<object>.Equals)} method, which shouldn't be possible", options);
                     }
                     else
                     {

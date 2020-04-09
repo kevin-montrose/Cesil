@@ -25,7 +25,7 @@ namespace Cesil
         where TCollection : class, ICollection<T>
         {
             AssertNotDisposed(this);
-            AssertNotPoisoned();
+            AssertNotPoisoned(Configuration);
 
             return ReadAllIntoCollectionAsync(into, cancel);
         }
@@ -37,7 +37,7 @@ namespace Cesil
         where TCollection : class, ICollection<T>
         {
             AssertNotDisposed(this);
-            AssertNotPoisoned();
+            AssertNotPoisoned(Configuration);
 
             Utils.CheckArgumentNull(into, nameof(into));
             Utils.CheckImmutableReadInto<TCollection, T>(into, nameof(into));
@@ -172,7 +172,7 @@ namespace Cesil
         public IAsyncEnumerable<T> EnumerateAllAsync()
         {
             AssertNotDisposed(this);
-            AssertNotPoisoned();
+            AssertNotPoisoned(Configuration);
 
             return new AsyncEnumerable<T>(this);
         }
@@ -180,7 +180,7 @@ namespace Cesil
         public ValueTask<ReadResult<T>> TryReadWithReuseAsync(ref T row, CancellationToken cancel = default)
         {
             AssertNotDisposed(this);
-            AssertNotPoisoned();
+            AssertNotPoisoned(Configuration);
 
             try
             {
@@ -269,7 +269,7 @@ namespace Cesil
         public ValueTask<ReadResult<T>> TryReadAsync(CancellationToken cancel = default)
         {
             AssertNotDisposed(this);
-            AssertNotPoisoned();
+            AssertNotPoisoned(Configuration);
 
             var record = default(T)!;
             return TryReadWithReuseAsync(ref record, cancel);
@@ -278,7 +278,7 @@ namespace Cesil
         public ValueTask<ReadWithCommentResult<T>> TryReadWithCommentAsync(CancellationToken cancel = default)
         {
             AssertNotDisposed(this);
-            AssertNotPoisoned();
+            AssertNotPoisoned(Configuration);
 
             var record = default(T)!;
             return TryReadWithCommentReuseAsync(ref record, cancel);
@@ -287,7 +287,7 @@ namespace Cesil
         public ValueTask<ReadWithCommentResult<T>> TryReadWithCommentReuseAsync(ref T record, CancellationToken cancel = default)
         {
             AssertNotDisposed(this);
-            AssertNotPoisoned();
+            AssertNotPoisoned(Configuration);
 
             try
             {

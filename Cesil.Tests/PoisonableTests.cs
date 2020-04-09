@@ -9,7 +9,9 @@ namespace Cesil.Tests
         {
             public void InvokeAssert()
             {
-                AssertNotPoisoned();
+                var config = Configuration.For<SimplePoisonable>();
+
+                AssertNotPoisoned(config);
             }
         }
 

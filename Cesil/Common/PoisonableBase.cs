@@ -33,7 +33,7 @@ namespace Cesil
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void AssertNotPoisoned()
+        protected void AssertNotPoisoned<T>(IBoundConfiguration<T> self)
         {
             if (Poison != null)
             {
@@ -42,7 +42,7 @@ namespace Cesil
                     case PoisonType.Cancelled: Throw.InvalidOperationException<object>("Object is in an invalid state, a previous operation was canceled"); return;
                     case PoisonType.Exception: Throw.InvalidOperationException<object>("Object is in an invalid state, a previous operation raised an exception"); return;
                     default:
-                        Throw.Exception<object>($"Unexpected {nameof(PoisonType)}: {Poison}");
+                        Throw.ImpossibleException<object, T>($"Unexpected {nameof(PoisonType)}: {Poison}", self);
                         return;
                 }
             }

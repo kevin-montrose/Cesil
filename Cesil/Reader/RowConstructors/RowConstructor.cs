@@ -150,7 +150,7 @@ namespace Cesil
             var ret = createMtd.Invoke(null, new object[] { pool, clearHold, constructFromHold, simple, hold });
             if (ret == null)
             {
-                return Throw.Exception<IRowConstructor<TRow>>($"Couldn't build an {nameof(NeedsHoldRowConstructor<object, object>)}, shouldn't be possible");
+                return Throw.ImpossibleException<IRowConstructor<TRow>>($"Couldn't build an {nameof(NeedsHoldRowConstructor<object, object>)}, shouldn't be possible");
             }
 
             return (IRowConstructor<TRow>)ret;

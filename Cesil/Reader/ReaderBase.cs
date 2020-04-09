@@ -22,7 +22,7 @@ namespace Cesil
         internal RowEnding? RowEndings { get; set; }
         internal ReadHeader? ReadHeaders { get; set; }
 
-        private ExtraColumnTreatment ExtraColumnTreatment;
+        private readonly ExtraColumnTreatment ExtraColumnTreatment;
 
         internal int RowNumber;
 
@@ -138,7 +138,7 @@ namespace Cesil
                                 break;
                             default:
                                 unprocessedCharacters = default;
-                                return Throw.Exception<ReadWithCommentResultType>($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {inBatchableResult.Value}");
+                                return Throw.ImpossibleException<ReadWithCommentResultType>($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {inBatchableResult.Value}", Configuration.Options);
                         }
 
                         inBatchableResult = null;
@@ -228,7 +228,7 @@ namespace Cesil
 
                     default:
                         unprocessedCharacters = default;
-                        return Throw.Exception<ReadWithCommentResultType>($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {inBatchableResult.Value}");
+                        return Throw.ImpossibleException<ReadWithCommentResultType>($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {inBatchableResult.Value}", Configuration.Options);
                 }
             }
 
@@ -249,7 +249,7 @@ namespace Cesil
 
                 case ReaderStateMachine.AdvanceResult.Append_CarriageReturnAndCurrentCharacter:
                 case ReaderStateMachine.AdvanceResult.Append_Character:
-                    return Throw.Exception<ReadWithCommentResultType>($"Attempted to append end of data with {nameof(ReaderStateMachine.Advance)} = {res}");
+                    return Throw.ImpossibleException<ReadWithCommentResultType>($"Attempted to append end of data with {nameof(ReaderStateMachine.Advance)} = {res}", Configuration.Options);
 
                 case ReaderStateMachine.AdvanceResult.Append_CarriageReturnAndEndComment:
                     Partial.AppendCarriageReturn(ReadOnlySpan<char>.Empty);
@@ -295,34 +295,21 @@ namespace Cesil
                 c = "<end of data>";
             }
 
-            switch (res)
-            {
-                case ReaderStateMachine.AdvanceResult.Exception_ExpectedEndOfRecord:
-                    return Throw.InvalidOperationException<ReadWithCommentResultType>($"Encountered '{c}' when expecting end of record");
-                case ReaderStateMachine.AdvanceResult.Exception_InvalidState:
-                    return Throw.InvalidOperationException<ReadWithCommentResultType>($"Internal state machine is in an invalid state due to a previous error");
-                case ReaderStateMachine.AdvanceResult.Exception_StartEscapeInValue:
-                    return Throw.InvalidOperationException<ReadWithCommentResultType>($"Encountered '{c}', starting an escaped value, when already in a value");
-                case ReaderStateMachine.AdvanceResult.Exception_UnexpectedCharacterInEscapeSequence:
-                    return Throw.InvalidOperationException<ReadWithCommentResultType>($"Encountered '{c}' in an escape sequence, which is invalid");
-
-                case ReaderStateMachine.AdvanceResult.Exception_ExpectedEndOfRecordOrValue:
-                    return Throw.InvalidOperationException<ReadWithCommentResultType>($"Encountered '{c}' when expecting the end of a record or value");
-
-                case ReaderStateMachine.AdvanceResult.Exception_UnexpectedEnd:
-                    return Throw.InvalidOperationException<ReadWithCommentResultType>($"Data ended unexpectedly");
-
-                // this is CRAZY unlikely, but indicates that the TransitionMatrix used was incorrect
-                case ReaderStateMachine.AdvanceResult.Exception_UnexpectedLineEnding:
-                    return Throw.Exception<ReadWithCommentResultType>($"Unexpected {nameof(Cesil.RowEnding)} value encountered");
-
-                // likewise, CRAZY unlikely
-                case ReaderStateMachine.AdvanceResult.Exception_UnexpectedState:
-                    return Throw.Exception<ReadWithCommentResultType>($"Unexpected state value entered");
-
-                default:
-                    return Throw.Exception<ReadWithCommentResultType>($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {res}");
-            }
+            return 
+                res switch
+                {
+                    ReaderStateMachine.AdvanceResult.Exception_ExpectedEndOfRecord => Throw.InvalidOperationException<ReadWithCommentResultType>($"Encountered '{c}' when expecting end of record"),
+                    ReaderStateMachine.AdvanceResult.Exception_InvalidState => Throw.InvalidOperationException<ReadWithCommentResultType>($"Internal state machine is in an invalid state due to a previous error"),
+                    ReaderStateMachine.AdvanceResult.Exception_StartEscapeInValue => Throw.InvalidOperationException<ReadWithCommentResultType>($"Encountered '{c}', starting an escaped value, when already in a value"),
+                    ReaderStateMachine.AdvanceResult.Exception_UnexpectedCharacterInEscapeSequence => Throw.InvalidOperationException<ReadWithCommentResultType>($"Encountered '{c}' in an escape sequence, which is invalid"),
+                    ReaderStateMachine.AdvanceResult.Exception_ExpectedEndOfRecordOrValue => Throw.InvalidOperationException<ReadWithCommentResultType>($"Encountered '{c}' when expecting the end of a record or value"),
+                    ReaderStateMachine.AdvanceResult.Exception_UnexpectedEnd => Throw.InvalidOperationException<ReadWithCommentResultType>($"Data ended unexpectedly"),
+                    // this is CRAZY unlikely, but indicates that the TransitionMatrix used was incorrect
+                    ReaderStateMachine.AdvanceResult.Exception_UnexpectedLineEnding => Throw.ImpossibleException<ReadWithCommentResultType, T>($"Unexpected {nameof(Cesil.RowEnding)} value encountered", Configuration),
+                    // likewise, CRAZY unlikely
+                    ReaderStateMachine.AdvanceResult.Exception_UnexpectedState => Throw.ImpossibleException<ReadWithCommentResultType, T>($"Unexpected state value entered", Configuration),
+                    _ => Throw.ImpossibleException<ReadWithCommentResultType, T>($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {res}", Configuration),
+                };
         }
 
         protected internal void PreparingToWriteToBuffer()
@@ -373,7 +360,7 @@ namespace Cesil
                         Throw.InvalidOperationException<object>(msg);
                         return;
                     default:
-                        Throw.Exception<object>($"Unexpected {nameof(ExtraColumnTreatment)}: {ExtraColumnTreatment}");
+                        Throw.ImpossibleException<object, T>($"Unexpected {nameof(ExtraColumnTreatment)}: {ExtraColumnTreatment}", Configuration);
                         return;
                 }
             }

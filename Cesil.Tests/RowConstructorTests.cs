@@ -102,13 +102,13 @@ namespace Cesil.Tests
             {
                 using var builder = CreateConstructor();
                 builder.StartRow(default);
-                Assert.Throws<Exception>(() => builder.StartRow(default));
+                Assert.Throws<ImpossibleException>(() => builder.StartRow(default));
             }
 
             // column, not started
             {
                 using var builder = CreateConstructor();
-                Assert.Throws<Exception>(() => builder.ColumnAvailable(Options.Default, 0, 0, null, default));
+                Assert.Throws<ImpossibleException>(() => builder.ColumnAvailable(Options.Default, 0, 0, null, default));
             }
 
             // column, bad column
@@ -135,7 +135,7 @@ namespace Cesil.Tests
             // finish, not started
             {
                 using var builder = CreateConstructor();
-                Assert.Throws<Exception>(() => builder.FinishRow());
+                Assert.Throws<ImpossibleException>(() => builder.FinishRow());
             }
 
             // finish, started but not all required set
@@ -203,13 +203,13 @@ namespace Cesil.Tests
             // start, not populated
             {
                 using var builder = CreateConstructor();
-                Assert.Throws<Exception>(() => builder.StartRow(default));
+                Assert.Throws<ImpossibleException>(() => builder.StartRow(default));
             }
 
             // column, not populated
             {
                 using var builder = CreateConstructor();
-                Assert.Throws<Exception>(() => builder.ColumnAvailable(Options.Default, 0, 0, null, default));
+                Assert.Throws<ImpossibleException>(() => builder.ColumnAvailable(Options.Default, 0, 0, null, default));
             }
 
             // column, populated, not started
@@ -218,19 +218,19 @@ namespace Cesil.Tests
 
                 using var builder = CreateConstructor();
                 builder.TryPreAllocate(default, ref _);
-                Assert.Throws<Exception>(() => builder.ColumnAvailable(Options.Default, 0, 0, null, default));
+                Assert.Throws<ImpossibleException>(() => builder.ColumnAvailable(Options.Default, 0, 0, null, default));
             }
 
             // column, required but empty
             {
                 using var builder = CreateConstructor();
-                Assert.Throws<Exception>(() => builder.FinishRow());
+                Assert.Throws<ImpossibleException>(() => builder.FinishRow());
             }
 
             // finish, not populated
             {
                 using var builder = CreateConstructor();
-                Assert.Throws<Exception>(() => builder.ColumnAvailable(Options.Default, 0, 1, null, default));
+                Assert.Throws<ImpossibleException>(() => builder.ColumnAvailable(Options.Default, 0, 1, null, default));
             }
 
             static IRowConstructor<_Simple> CreateConstructor()
@@ -1126,7 +1126,7 @@ namespace Cesil.Tests
             // start, no prealloc
             {
                 using var dynamic = new DynamicRowConstructor();
-                Assert.Throws<Exception>(() => dynamic.StartRow(default));
+                Assert.Throws<ImpossibleException>(() => dynamic.StartRow(default));
             }
 
             // column, no start
@@ -1135,7 +1135,7 @@ namespace Cesil.Tests
                 object _ = null;
 
                 dynamic.TryPreAllocate(default, ref _);
-                Assert.Throws<Exception>(() => dynamic.ColumnAvailable(Options.Default, 0, 0, null, default));
+                Assert.Throws<ImpossibleException>(() => dynamic.ColumnAvailable(Options.Default, 0, 0, null, default));
             }
 
             // finish, no start
@@ -1144,7 +1144,7 @@ namespace Cesil.Tests
                 object _ = null;
 
                 dynamic.TryPreAllocate(default, ref _);
-                Assert.Throws<Exception>(() => dynamic.FinishRow());
+                Assert.Throws<ImpossibleException>(() => dynamic.FinishRow());
             }
         }
     }

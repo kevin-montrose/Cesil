@@ -15,7 +15,7 @@ namespace Cesil.Tests
         {
             Assert.NotNull(Utils.NonNull("foo"));
 
-            Assert.Throws<Exception>(() => Utils.NonNull(default(string)));
+            Assert.Throws<ImpossibleException>(() => Utils.NonNull(default(string)));
         }
 
         [Fact]
@@ -285,12 +285,12 @@ namespace Cesil.Tests
             // no escapes at all
             var opts1 = Options.CreateBuilder(Options.Default).WithEscapedValueEscapeCharacter(null).WithEscapedValueStartAndEnd(null).ToOptions();
 
-            Assert.Throws<Exception>(() => Utils.Encode("", opts1));
+            Assert.Throws<ImpossibleException>(() => Utils.Encode("", opts1));
 
             // no escape char
             var opts2 = Options.CreateBuilder(opts1).WithEscapedValueEscapeCharacter(null).ToOptions();
 
-            Assert.Throws<Exception>(() => Utils.Encode("", opts2));
+            Assert.Throws<ImpossibleException>(() => Utils.Encode("", opts2));
         }
 
 

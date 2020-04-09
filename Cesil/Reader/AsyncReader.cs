@@ -9,7 +9,7 @@ namespace Cesil
     internal sealed class AsyncReader<T> :
         AsyncReaderBase<T>
     {
-        internal AsyncReader(IAsyncReaderAdapter inner, ConcreteBoundConfiguration<T> config, object? context, IRowConstructor<T> rowBuilder) : base(inner, config, context, rowBuilder, Utils.EffectiveColumnTreatmentForStatic(config.Options.ExtraColumnTreatment)) { }
+        internal AsyncReader(IAsyncReaderAdapter inner, ConcreteBoundConfiguration<T> config, object? context, IRowConstructor<T> rowBuilder) : base(inner, config, context, rowBuilder, Utils.EffectiveColumnTreatmentForStatic(config)) { }
 
         internal override ValueTask HandleRowEndingsAndHeadersAsync(CancellationToken cancel)
         {

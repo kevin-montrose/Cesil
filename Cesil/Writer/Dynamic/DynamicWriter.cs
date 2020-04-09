@@ -123,7 +123,7 @@ end:
         public override void WriteComment(string comment)
         {
             AssertNotDisposed(this);
-            AssertNotPoisoned();
+            AssertNotPoisoned(Configuration);
 
             Utils.CheckArgumentNull(comment, nameof(comment));
 

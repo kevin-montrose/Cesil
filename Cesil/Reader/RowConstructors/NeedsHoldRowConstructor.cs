@@ -343,7 +343,7 @@ namespace Cesil
         {
             if (RowStarted)
             {
-                Throw.Exception<object>("Row already started");
+                Throw.ImpossibleException<object>("Row already started");
             }
 
             _RowStarted = true;
@@ -365,7 +365,7 @@ namespace Cesil
         {
             if (!_RowStarted)
             {
-                Throw.Exception<object>("Row hasn't been started, column is unexpected");
+                Throw.ImpossibleException<object>("Row hasn't been started, column is unexpected");
                 return;
             }
 
@@ -441,14 +441,14 @@ namespace Cesil
 
                             if (shallowCtx.Mode != ReadContextMode.ReadingColumn)
                             {
-                                Throw.Exception<object>($"{nameof(ShallowReadContext)} wasn't for {ReadContextMode.ReadingColumn}, which was not expected");
+                                Throw.ImpossibleException<object>($"{nameof(ShallowReadContext)} wasn't for {ReadContextMode.ReadingColumn}, which was not expected");
                                 return;
                             }
 
                             var lookup = LookupColumn(shallowCtx.ColumnIndex);
                             if (lookup.SimpleMember == null)
                             {
-                                Throw.Exception<object>($"Column [{shallowCtx.ColumnIndex}] recorded as a previously set simple column, but could not be found when creating row");
+                                Throw.ImpossibleException<object>($"Column [{shallowCtx.ColumnIndex}] recorded as a previously set simple column, but could not be found when creating row");
                                 return;
                             }
 
@@ -477,7 +477,7 @@ namespace Cesil
                     return Throw.SerializationException<TRow>($"Current row has started, but insufficient columns have been parsed to create the row");
                 }
 
-                return Throw.Exception<TRow>($"No current row available, shouldn't be trying to finish a row");
+                return Throw.ImpossibleException<TRow>($"No current row available, shouldn't be trying to finish a row");
             }
 
             if (!RequiredTracker.CheckRequiredAndClear(out var missingIx))
@@ -491,7 +491,7 @@ namespace Cesil
                 else
                 {
                     // held isn't actually possible, because of the RowStarted check above
-                    return Throw.Exception<TRow>($"Column in position {missingIx} was required and missing, but couldn't find a member to match it to.  This shouldn't happen.");
+                    return Throw.ImpossibleException<TRow>($"Column in position {missingIx} was required and missing, but couldn't find a member to match it to.  This shouldn't happen.");
                 }
             }
 

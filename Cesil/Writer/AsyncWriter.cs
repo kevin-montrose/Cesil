@@ -15,7 +15,7 @@ namespace Cesil
         public override ValueTask WriteAsync(T row, CancellationToken cancel = default)
         {
             AssertNotDisposed(this);
-            AssertNotPoisoned();
+            AssertNotPoisoned(Configuration);
 
             try
             {
@@ -110,7 +110,7 @@ namespace Cesil
         public override ValueTask WriteCommentAsync(string comment, CancellationToken cancel = default)
         {
             AssertNotDisposed(this);
-            AssertNotPoisoned();
+            AssertNotPoisoned(Configuration);
 
             Utils.CheckArgumentNull(comment, nameof(comment));
 

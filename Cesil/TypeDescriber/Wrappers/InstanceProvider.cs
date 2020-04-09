@@ -85,7 +85,7 @@ namespace Cesil
                 case BackingMode.Method: return new InstanceProvider(Method.Value, ConstructsType, newFallbacks);
             }
 
-            return Throw.Exception<InstanceProvider>($"Unexpected {nameof(BackingMode)}: {Mode}");
+            return Throw.ImpossibleException<InstanceProvider>($"Unexpected {nameof(BackingMode)}: {Mode}");
         }
 
         /// <summary>
@@ -158,7 +158,7 @@ namespace Cesil
                         break;
                     }
                 default:
-                    return Throw.Exception<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    return Throw.ImpossibleException<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
             }
 
             var finalExp = selfExp;

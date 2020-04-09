@@ -23,7 +23,7 @@ namespace Cesil
         public void WriteAll(IEnumerable<T> rows)
         {
             AssertNotDisposed(this);
-            AssertNotPoisoned();
+            AssertNotPoisoned(Configuration);
 
             Utils.CheckArgumentNull(rows, nameof(rows));
 
@@ -36,7 +36,7 @@ namespace Cesil
         public void Write(T row)
         {
             AssertNotDisposed(this);
-            AssertNotPoisoned();
+            AssertNotPoisoned(Configuration);
 
             WriteInner(row);
         }

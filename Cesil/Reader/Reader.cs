@@ -4,7 +4,7 @@ namespace Cesil
 {
     internal sealed class Reader<T> : SyncReaderBase<T>
     {
-        internal Reader(IReaderAdapter inner, ConcreteBoundConfiguration<T> config, object? context, IRowConstructor<T> rowBuilder) : base(inner, config, context, rowBuilder, Utils.EffectiveColumnTreatmentForStatic(config.Options.ExtraColumnTreatment)) { }
+        internal Reader(IReaderAdapter inner, ConcreteBoundConfiguration<T> config, object? context, IRowConstructor<T> rowBuilder) : base(inner, config, context, rowBuilder, Utils.EffectiveColumnTreatmentForStatic(config)) { }
 
         internal override void HandleRowEndingsAndHeaders()
         {

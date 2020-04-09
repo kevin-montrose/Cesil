@@ -134,7 +134,7 @@ namespace Cesil
                     BackingMode.Method => new Parser(Method.Value, Creates, newFallbacks),
                     BackingMode.Delegate => new Parser(Delegate.Value, Creates, newFallbacks),
                     BackingMode.Constructor => new Parser(Constructor.Value, newFallbacks),
-                    _ => Throw.Exception<Parser>($"Unexpected {nameof(BackingMode)}: {Mode}"),
+                    _ => Throw.ImpossibleException<Parser>($"Unexpected {nameof(BackingMode)}: {Mode}"),
                 };
         }
 
@@ -195,7 +195,7 @@ namespace Cesil
                     }
                     break;
                 default:
-                    return Throw.Exception<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    return Throw.ImpossibleException<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
             }
 
             var finalExp = selfExp;

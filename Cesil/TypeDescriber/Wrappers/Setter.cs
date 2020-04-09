@@ -444,7 +444,7 @@ namespace Cesil
                     BackingMode.Method => Method.Value == setter.Method.Value,
                     BackingMode.ConstructorParameter => ConstructorParameter.Value == setter.ConstructorParameter.Value,
 
-                    _ => Throw.Exception<bool>($"Unexpected {nameof(BackingMode)}: {mode}"),
+                    _ => Throw.ImpossibleException<bool>($"Unexpected {nameof(BackingMode)}: {mode}"),
                 };
         }
 

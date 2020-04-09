@@ -4,21 +4,21 @@
     {
         internal static readonly IDynamicRowOwner Singleton = new EmptyDynamicRowOwner();
 
-        public Options Options => Throw.Exception<Options>("Shouldn't be possible");
+        public Options Options => Throw.ImpossibleException<Options>("Shouldn't be possible");
 
-        public object? Context => Throw.Exception<object?>("Shouldn't be possible");
+        public object? Context => Throw.ImpossibleException<object?>("Shouldn't be possible");
 
-        public int MinimumExpectedColumns => Throw.Exception<int>("Shouldn't be possible");
+        public int MinimumExpectedColumns => Throw.ImpossibleException<int>("Shouldn't be possible");
 
         private EmptyDynamicRowOwner() { }
 
         public void Remove(DynamicRow row)
-        => Throw.Exception<object>("Shouldn't be possible");
+        => Throw.ImpossibleException<object>("Shouldn't be possible");
 
         public NameLookup AcquireNameLookup()
-        => Throw.Exception<NameLookup>("Shouldn't be possible");
+        => Throw.ImpossibleException<NameLookup>("Shouldn't be possible");
 
         public void ReleaseNameLookup()
-        => Throw.Exception<object>("Shouldn't be possible");
+        => Throw.ImpossibleException<object>("Shouldn't be possible");
     }
 }

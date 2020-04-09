@@ -61,7 +61,7 @@ namespace Cesil
 
             ValidateTypeDescription(forType, deserializeMembers, serializeMembers, provider);
 
-            var serializeColumns = CreateSerializeColumns(forType, serializeMembers);
+            var serializeColumns = CreateSerializeColumns(forType, options, serializeMembers);
 
             // this is entirely knowable now, so go ahead and calculate
             //   and save for future use
@@ -178,13 +178,13 @@ namespace Cesil
             }
         }
 
-        private static Column[] CreateSerializeColumns(TypeInfo t, IEnumerable<SerializableMember> cols)
+        private static Column[] CreateSerializeColumns(TypeInfo t, Options opts, IEnumerable<SerializableMember> cols)
         {
             var ret = new List<Column>();
 
             foreach (var col in cols)
             {
-                var writer = ColumnWriter.Create(t, col.Formatter, col.ShouldSerialize, col.Getter, col.EmitDefaultValue);
+                var writer = ColumnWriter.Create(t, opts, col.Formatter, col.ShouldSerialize, col.Getter, col.EmitDefaultValue);
 
                 ret.Add(new Column(col.Name, writer));
             }

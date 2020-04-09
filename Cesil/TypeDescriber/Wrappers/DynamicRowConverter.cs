@@ -146,7 +146,7 @@ namespace Cesil
                 case BackingMode.Method: return new DynamicRowConverter(TargetType, Method.Value, newFallbacks);
             }
 
-            return Throw.Exception<DynamicRowConverter>($"Unexpected {nameof(BackingMode)}: {Mode}");
+            return Throw.ImpossibleException<DynamicRowConverter>($"Unexpected {nameof(BackingMode)}: {Mode}");
         }
 
         internal Expression MakeExpression(TypeInfo targetType, ParameterExpression rowVar, ParameterExpression contextVar, ParameterExpression outVar)
@@ -243,7 +243,7 @@ namespace Cesil
                             break;
                         }
 
-                        return Throw.Exception<Expression>($"Constructor converter couldn't be turned into an expression, shouldn't be possible");
+                        return Throw.ImpossibleException<Expression>($"Constructor converter couldn't be turned into an expression, shouldn't be possible");
                     }
                 case BackingMode.Method:
                     {
@@ -298,7 +298,7 @@ namespace Cesil
                         break;
                     }
                 default:
-                    return Throw.Exception<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    return Throw.ImpossibleException<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
             }
 
             var finalExp = selfExp;
@@ -566,7 +566,7 @@ namespace Cesil
                             return $"{nameof(DynamicRowConverter)} using parameterless constructor {EmptyConstructor} then invoking ({setterMap}) creating {TargetType}";
                         }
 
-                        return Throw.Exception<string>("Shouldn't be possible");
+                        return Throw.ImpossibleException<string>("Shouldn't be possible");
                     }
                 case BackingMode.Method:
                     {
@@ -695,7 +695,7 @@ namespace Cesil
                         return true;
                     }
 
-                    return Throw.Exception<bool>($"Shouldn't be possible, unexpected Constructor configuration");
+                    return Throw.ImpossibleException<bool>($"Shouldn't be possible, unexpected Constructor configuration");
                 case BackingMode.Delegate: return Delegate.Value.Equals(rowConverter.Delegate.Value);
                 default:
                     return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {thisMode}");

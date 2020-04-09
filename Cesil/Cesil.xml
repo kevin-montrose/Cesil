@@ -1466,6 +1466,20 @@
             if the underlying sink does not complete immediately.
             </summary>
         </member>
+        <member name="T:Cesil.ImpossibleException">
+            <summary>
+            An exception that should never happen.
+            
+            If it does, that indicates a bug in Cesil.  Kindly report it on https://github.com/kevin-montrose/Cesil/issues/new.
+            </summary>
+        </member>
+        <member name="M:Cesil.ImpossibleException.ToString">
+            <summary>
+            Returns a representation of this ImpossibleException object.
+            
+            Only for debugging, this value is not guaranteed to be stable.
+            </summary>
+        </member>
         <member name="T:Cesil.IReader`1">
             <summary>
             Interface for a synchronous reader.

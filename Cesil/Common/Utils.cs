@@ -29,7 +29,7 @@ namespace Cesil
                     var o = values.GetValue(i);
                     if (o == null)
                     {
-                        return Throw.Exception<byte>("Shouldn't be possible");
+                        return Throw.ImpossibleException<byte>("Shouldn't be possible");
                     }
 
                     ret |= (byte)o;
@@ -140,7 +140,7 @@ namespace Cesil
         {
             if (toCheck == null)
             {
-                return Throw.Exception<T>("Expected non-null value, but found null");
+                return Throw.ImpossibleException<T>("Expected non-null value, but found null");
             }
 
             return toCheck;
@@ -624,14 +624,14 @@ tryAgain:
 
             if (escapedValueStartAndStop == null)
             {
-                return Throw.Exception<string>("Attempted to encode a string without a configured escape char, shouldn't be possible");
+                return Throw.ImpossibleException<string>("Attempted to encode a string without a configured escape char, shouldn't be possible", options);
             }
 
             var escapeChar = options.EscapedValueEscapeCharacter;
 
             if (escapeChar == null)
             {
-                return Throw.Exception<string>("Attempted to encode a string without a configured escape sequence start char, shouldn't be possible");
+                return Throw.ImpossibleException<string>("Attempted to encode a string without a configured escape sequence start char, shouldn't be possible", options);
             }
 
             var raw = rawStr.AsMemory();
@@ -727,8 +727,10 @@ tryAgain:
             }
         }
 
-        internal static ExtraColumnTreatment EffectiveColumnTreatmentForStatic(ExtraColumnTreatment ect)
+        internal static ExtraColumnTreatment EffectiveColumnTreatmentForStatic<T>(ConcreteBoundConfiguration<T> config)
         {
+            var ect = config.Options.ExtraColumnTreatment;
+
             switch (ect)
             {
                 // no difference for static cases
@@ -738,7 +740,7 @@ tryAgain:
                 case ExtraColumnTreatment.ThrowException:
                     return ExtraColumnTreatment.ThrowException;
                 default:
-                    return Throw.Exception<ExtraColumnTreatment>($"Unexpected {nameof(ExtraColumnTreatment)}: {ect}");
+                    return Throw.ImpossibleException<ExtraColumnTreatment, T>($"Unexpected {nameof(ExtraColumnTreatment)}: {ect}", config);
             }
         }
     }

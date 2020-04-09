@@ -45,7 +45,7 @@ namespace Cesil
         {
             if (PreAlloced == null)
             {
-                Throw.Exception<object>($"Row not pre-allocated, shouldn't be possible");
+                Throw.ImpossibleException<object>($"Row not pre-allocated, shouldn't be possible");
             }
 
             CurrentRow = PreAlloced;
@@ -56,7 +56,7 @@ namespace Cesil
         {
             if (CurrentRow == null)
             {
-                Throw.Exception<object>($"Row not initialized, column unexpected");
+                Throw.ImpossibleException<object>($"Row not initialized, column unexpected");
                 return;
             }
 
@@ -69,7 +69,7 @@ namespace Cesil
 
             if (ret == null)
             {
-                return Throw.Exception<object>($"Row not initialized, ending a row unexpected");
+                return Throw.ImpossibleException<object>($"Row not initialized, ending a row unexpected");
             }
 
             CurrentRow = null;

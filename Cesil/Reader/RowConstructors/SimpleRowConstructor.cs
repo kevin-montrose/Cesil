@@ -234,7 +234,7 @@ namespace Cesil
         {
             if (!CurrentPopulated)
             {
-                Throw.Exception<object>("Row should already be pre-allocated");
+                Throw.ImpossibleException<object>("Row should already be pre-allocated");
             }
 
             _RowStarted = true;
@@ -265,7 +265,7 @@ namespace Cesil
         {
             if (!CurrentPopulated || !RowStarted)
             {
-                Throw.Exception<object>($"No current row available, shouldn't be trying to read a column");
+                Throw.ImpossibleException<object>($"No current row available, shouldn't be trying to read a column");
                 return;
             }
 
@@ -297,7 +297,7 @@ namespace Cesil
         {
             if (!CurrentPopulated)
             {
-                return Throw.Exception<TRow>($"No current row available, shouldn't be trying to finish a row");
+                return Throw.ImpossibleException<TRow>($"No current row available, shouldn't be trying to finish a row");
             }
 
             if (!RequiredTracker.CheckRequiredAndClear(out var missingIx))
@@ -310,7 +310,7 @@ namespace Cesil
                     return Throw.SerializationException<TRow>($"Column [{details.Name}] is required, but was not found in row");
                 }
 
-                return Throw.Exception<TRow>($"Column in position {missingIx} was required and missing, but couldn't find a member to match it to.  This shouldn't happen.");
+                return Throw.ImpossibleException<TRow>($"Column in position {missingIx} was required and missing, but couldn't find a member to match it to.  This shouldn't happen.");
             }
 
             var ret = Current;

@@ -307,7 +307,7 @@ namespace Cesil.Tests
 
                             var sNonNull = new NonNull<ShouldSerialize>();
                             sNonNull.SetAllowNull(s);
-                            var colWriter = ColumnWriter.Create(typeof(_ColumnWriters).GetTypeInfo(), f, sNonNull, g, e);
+                            var colWriter = ColumnWriter.Create(typeof(_ColumnWriters).GetTypeInfo(), Options.Default, f, sNonNull, g, e);
 
                             var pipe = new Pipe();
                             var writer = new CharWriter(pipe.Writer);

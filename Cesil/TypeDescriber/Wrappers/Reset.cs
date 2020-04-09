@@ -311,7 +311,7 @@ namespace Cesil
                     return reset.Method.Value == Method.Value;
 
                 default:
-                    return Throw.Exception<bool>($"Unexpected {nameof(BackingMode)}: {mode}");
+                    return Throw.ImpossibleException<bool>($"Unexpected {nameof(BackingMode)}: {mode}");
 
             }
         }

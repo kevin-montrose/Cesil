@@ -87,7 +87,7 @@ namespace Cesil
                 {
                     BackingMode.Delegate => new Formatter(Takes, Delegate.Value, newFallbacks),
                     BackingMode.Method => new Formatter(Takes, Method.Value, newFallbacks),
-                    _ => Throw.Exception<Formatter>($"Unexpected {nameof(BackingMode)}: {Mode}"),
+                    _ => Throw.ImpossibleException<Formatter>($"Unexpected {nameof(BackingMode)}: {Mode}"),
                 };
         }
 
@@ -128,7 +128,7 @@ namespace Cesil
                         break;
                     }
                 default:
-                    return Throw.Exception<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    return Throw.ImpossibleException<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
             }
 
             var ret = selfExp;

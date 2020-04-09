@@ -1059,6 +1059,10 @@ namespace Cesil.Tests
                 {
                     msg = InvokeToString_PassthroughRowEnumerator();
                 }
+                else if(t == typeof(ImpossibleException))
+                {
+                    msg = InvokeToString_ImpossibleException();
+                }
                 else
                 {
                     Assert.True(false, $"No test for ToString() on {t}");
@@ -1083,6 +1087,13 @@ namespace Cesil.Tests
                 {
                     Assert.StartsWith(shouldStartWith, msg2);
                 }
+            }
+
+            static string InvokeToString_ImpossibleException()
+            {
+                var exc = ImpossibleException.Create("Some reason!", "a", "b", 3);
+
+                return exc.ToString();
             }
 
             static string InvokeToString_PassthroughRowEnumerable()

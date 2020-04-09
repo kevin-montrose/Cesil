@@ -38,7 +38,7 @@ namespace Cesil
                     ThrowOnNoRegisteredSurrogate = false;
                     break;
                 default:
-                    Throw.Exception<object>($"Unexpected {nameof(SurrogateTypeDescriberFallbackBehavior)}: {fallbackBehavior}");
+                    Throw.ImpossibleException<object>($"Unexpected {nameof(SurrogateTypeDescriberFallbackBehavior)}: {fallbackBehavior}");
                     break;
             }
         }

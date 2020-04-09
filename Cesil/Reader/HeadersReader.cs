@@ -126,6 +126,8 @@ namespace Cesil
             => $"{nameof(HeaderEnumerator)} with {nameof(Count)}={Count}";
         }
 
+        private readonly IBoundConfiguration<T> Configuration;
+
         private NonNull<IReaderAdapter> Inner;
         private NonNull<IAsyncReaderAdapter> InnerAsync;
 
@@ -197,10 +199,12 @@ namespace Cesil
         {
             System.Diagnostics.Debug.WriteLineIf(LogConstants.STATE_TRANSITION, $"New {nameof(HeadersReader<T>)}");
 
+            Configuration = config;
+
             Inner.SetAllowNull(inner);
             InnerAsync.SetAllowNull(innerAsync);
 
-            var options = config.Options;
+            var options = Configuration.Options;
 
             MemoryPool = options.MemoryPool;
             BufferSizeHint = options.ReadBufferSizeHint;
@@ -477,7 +481,7 @@ finish:
                 {
                     if (appendingSince != -1)
                     {
-                        var toAppend = buffSpan.Slice(appendingSince, i - appendingSince);
+                        var toAppend = buffSpan[appendingSince..i];
                         AddToBuilder(toAppend);
 
                         appendingSince = -1;
@@ -533,23 +537,23 @@ finish:
                         return Throw.InvalidOperationException<bool>($"Encountered '{c}' in an escape sequence, which is invalid");
                     case ReaderStateMachine.AdvanceResult.Exception_UnexpectedLineEnding:
                         unprocessedCharacters = default;
-                        return Throw.Exception<bool>($"Unexpected {nameof(RowEnding)} value encountered");
+                        return Throw.ImpossibleException<bool, T>($"Unexpected {nameof(RowEnding)} value encountered", Configuration);
                     case ReaderStateMachine.AdvanceResult.Exception_UnexpectedState:
                         unprocessedCharacters = default;
-                        return Throw.Exception<bool>($"Unexpected state value entered");
+                        return Throw.ImpossibleException<bool, T>($"Unexpected state value entered", Configuration);
                     case ReaderStateMachine.AdvanceResult.Exception_ExpectedEndOfRecordOrValue:
                         unprocessedCharacters = default;
                         return Throw.InvalidOperationException<bool>($"Encountered '{c}' when expecting the end of a record or value");
 
                     default:
                         unprocessedCharacters = default;
-                        return Throw.Exception<bool>($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {res}");
+                        return Throw.ImpossibleException<bool, T>($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {res}", Configuration);
                 }
             }
 
             if (appendingSince != -1)
             {
-                var toAppend = buffSpan.Slice(appendingSince, bufferLen - appendingSince);
+                var toAppend = buffSpan[appendingSince..bufferLen];
                 AddToBuilder(toAppend);
             }
 

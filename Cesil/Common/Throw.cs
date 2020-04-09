@@ -8,10 +8,44 @@ namespace Cesil
 {
     internal static class Throw
     {
-        // todo: change this to a "it's impossible" exception
+        private const string UNKNOWN_FILE = "<unknown file>";
+        private const string UNKNOWN_MEMBER = "<unknown member>";
+
         [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static T Exception<T>(string message)
-        => throw new Exception(message);
+        internal static T ImpossibleException<T, V>(
+            string message,
+            IBoundConfiguration<V> config,
+            [CallerFilePath]
+            string? file = null,
+            [CallerMemberName]
+            string? member = null,
+            [CallerLineNumber]
+            int line = -1)
+        => throw Cesil.ImpossibleException.Create(message, file ?? UNKNOWN_FILE, member ?? UNKNOWN_MEMBER, line, config);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        internal static T ImpossibleException<T>(
+            string message,
+            Options options,
+            [CallerFilePath]
+            string? file = null,
+            [CallerMemberName]
+            string? member = null,
+            [CallerLineNumber]
+            int line = -1)
+        => throw Cesil.ImpossibleException.Create(message, file ?? UNKNOWN_FILE, member ?? UNKNOWN_MEMBER, line, options);
+
+        // prefer the other two impossible throwers to this one
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        internal static T ImpossibleException<T>(
+            string message,
+            [CallerFilePath]
+            string? file = null,
+            [CallerMemberName]
+            string? member = null,
+            [CallerLineNumber]
+            int line = -1)
+        => throw Cesil.ImpossibleException.Create(message, file ?? UNKNOWN_FILE, member ?? UNKNOWN_MEMBER, line);
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         internal static T InvalidOperationException<T>(string message)

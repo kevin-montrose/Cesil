@@ -303,7 +303,7 @@ namespace Cesil
                     return Method.Value == shouldSerialize.Method.Value;
 
                 default:
-                    return Throw.Exception<bool>($"Unexpected {nameof(BackingMode)}: {mode}");
+                    return Throw.ImpossibleException<bool>($"Unexpected {nameof(BackingMode)}: {mode}");
             }
         }
 

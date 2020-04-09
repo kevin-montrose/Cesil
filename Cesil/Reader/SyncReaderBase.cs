@@ -23,7 +23,7 @@ namespace Cesil
             where TCollection : class, ICollection<T>
         {
             AssertNotDisposed(this);
-            AssertNotPoisoned();
+            AssertNotPoisoned(Configuration);
 
             Utils.CheckArgumentNull(into, nameof(into));
             Utils.CheckImmutableReadInto<TCollection, T>(into, nameof(into));
@@ -62,7 +62,7 @@ namespace Cesil
         public IEnumerable<T> EnumerateAll()
         {
             AssertNotDisposed(this);
-            AssertNotPoisoned();
+            AssertNotPoisoned(Configuration);
 
             return new Enumerable<T>(this);
         }
@@ -70,7 +70,7 @@ namespace Cesil
         public bool TryRead(out T record)
         {
             AssertNotDisposed(this);
-            AssertNotPoisoned();
+            AssertNotPoisoned(Configuration);
 
             record = default!;
             return TryReadWithReuse(ref record);
@@ -79,7 +79,7 @@ namespace Cesil
         public bool TryReadWithReuse(ref T record)
         {
             AssertNotDisposed(this);
-            AssertNotPoisoned();
+            AssertNotPoisoned(Configuration);
 
             try
             {
@@ -104,7 +104,7 @@ namespace Cesil
         public ReadWithCommentResult<T> TryReadWithComment()
         {
             AssertNotDisposed(this);
-            AssertNotPoisoned();
+            AssertNotPoisoned(Configuration);
 
             var record = default(T)!;
             return TryReadWithCommentReuse(ref record);
@@ -113,7 +113,7 @@ namespace Cesil
         public ReadWithCommentResult<T> TryReadWithCommentReuse(ref T record)
         {
             AssertNotDisposed(this);
-            AssertNotPoisoned();
+            AssertNotPoisoned(Configuration);
 
             try
             {
