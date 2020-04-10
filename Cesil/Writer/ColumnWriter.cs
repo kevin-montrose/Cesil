@@ -54,7 +54,15 @@ namespace Cesil
 
             if (!emitDefaultValue)
             {
-                var defValue = Expression.Constant(Activator.CreateInstance(columnType));
+                ConstantExpression defValue;
+                if(columnType.IsValueType)
+                {
+                    defValue = Expression.Constant(Activator.CreateInstance(columnType));
+                }
+                else
+                {
+                    defValue = Expression.Constant(null, columnType);
+                }
 
                 Expression isDefault;
                 // intentionally letting GetMethod return null here

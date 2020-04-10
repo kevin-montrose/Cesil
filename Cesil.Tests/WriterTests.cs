@@ -16,6 +16,85 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class WriterTests
     {
+        private sealed class _DontEmitDefaultNonTrivial_TypeDescriber : DefaultTypeDescriber
+        {
+            protected override Formatter GetFormatter(TypeInfo forType, PropertyInfo property)
+            {
+                if (property.PropertyType == typeof(_DontEmitDefaultNonTrivial_Member).GetTypeInfo())
+                {
+                    return
+                        Formatter.ForDelegate(
+                            (_DontEmitDefaultNonTrivial_Member value, in WriteContext context, IBufferWriter<char> writer) =>
+                            {
+                                var span = writer.GetSpan(100);
+
+                                if (!value.Fizz.TryFormat(span, out int written))
+                                {
+                                    throw new Exception();
+                                }
+
+                                writer.Advance(written);
+
+                                return true;
+                            }
+                        );
+                }
+
+                return base.GetFormatter(forType, property);
+            }
+        }
+
+        private sealed class _DontEmitDefaultNonTrivial_Member
+        {
+            public int Fizz { get; }
+
+            public _DontEmitDefaultNonTrivial_Member(string a)
+            {
+                Fizz = a.Length;
+            }
+        }
+
+        private sealed class _DontEmitDefaultNonTrivial
+        {
+            [DataMember(EmitDefaultValue = false)]
+            public _DontEmitDefaultNonTrivial_Member Bar { get; }
+
+            public _DontEmitDefaultNonTrivial(string foo)
+            {
+                Bar = foo != null ? new _DontEmitDefaultNonTrivial_Member(foo) : null;
+            }
+        }
+
+        [Fact]
+        public void DontEmitDefaultNonTrivial()
+        {
+            var data = 
+                new []
+                {
+                    new _DontEmitDefaultNonTrivial("a"),
+                    new _DontEmitDefaultNonTrivial(null),
+                    new _DontEmitDefaultNonTrivial("ab"),
+                    new _DontEmitDefaultNonTrivial("abc"),
+                };
+
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(new _DontEmitDefaultNonTrivial_TypeDescriber()).ToOptions();
+
+            RunSyncWriterVariants<_DontEmitDefaultNonTrivial>(
+                opts,
+                (config, getWriter, getStr) =>
+                {
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
+                    {
+                        csv.WriteAll(data);
+                    }
+
+                    var res = getStr();
+                    Assert.Equal("Bar\r\n1\r\n\r\n2\r\n3", res);
+                }
+            );
+        }
+
         private sealed class _VariousShouldSerializes
         {
             public int Foo { get; set; }
@@ -130,7 +209,7 @@ namespace Cesil.Tests
             {
                 // Tuple
                 RunSyncWriterVariants<T>(
-                    Options.Default,
+                    global::Cesil.Options.Default,
                     (config, getWriter, getStr) =>
                     {
                         using (var writer = getWriter())
@@ -3196,6 +3275,38 @@ namespace Cesil.Tests
             );
         }
 
+
+
+        [Fact]
+        public async Task DontEmitDefaultNonTrivialAsync()
+        {
+            var data =
+                new[]
+                {
+                    new _DontEmitDefaultNonTrivial("a"),
+                    new _DontEmitDefaultNonTrivial(null),
+                    new _DontEmitDefaultNonTrivial("ab"),
+                    new _DontEmitDefaultNonTrivial("abc"),
+                };
+
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(new _DontEmitDefaultNonTrivial_TypeDescriber()).ToOptions();
+
+            await RunAsyncWriterVariants<_DontEmitDefaultNonTrivial>(
+                opts,
+                async (config, getWriter, getStr) =>
+                {
+                    await using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        await csv.WriteAllAsync(data);
+                    }
+
+                    var res = await getStr();
+                    Assert.Equal("Bar\r\n1\r\n\r\n2\r\n3", res);
+                }
+            );
+        }
+
         [Fact]
         public async Task VariousShouldSerializesAsync()
         {
@@ -3292,7 +3403,7 @@ namespace Cesil.Tests
             {
                 // Tuple
                 await RunAsyncWriterVariants<T>(
-                    Options.Default,
+                    global::Cesil.Options.Default,
                     async (config, getWriter, getStr) =>
                     {
                         await using (var writer = getWriter())
