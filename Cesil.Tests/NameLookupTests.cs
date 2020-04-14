@@ -2,20 +2,517 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Xunit;
 
 namespace Cesil.Tests
 {
     public class NameLookupTests
     {
+        // Binary Tree tests
         [Fact]
-        public void CommonPrefixLength()
+        public void Create_BinarySearchTree()
+        {
+            // todo: this test assumes little endian
+
+            // one value
+            {
+                var vals = OrderValues(new[] { "bar" });
+
+                Assert.True(NameLookup.TryCreateBinarySearchTree(vals, MemoryPool<char>.Shared, out var owner, out var mem));
+                var chars = mem.ToArray();
+                owner.Dispose();
+
+                // should be (remember, ints are little endian here)
+                // 00: 01, 00         -- count = 1
+                // 02: 06, 00         -- index of bar       
+                // 04: 00, 00         -- value of bar = 0
+                // 06: b, a, r        -- text of bar
+
+                Assert.True(
+                    chars.SequenceEqual(
+                        new[]
+                        {
+                            '\x0001', '\0',
+                            '\x0006', '\0',
+                            '\0', '\0',
+                            'b', 'a', 'r'
+                        }
+                    )
+                );
+            }
+
+            // two values
+            {
+                var vals = OrderValues(new[] { "bar", "buzz" });
+
+                Assert.True(NameLookup.TryCreateBinarySearchTree(vals, MemoryPool<char>.Shared, out var owner, out var mem));
+                var chars = mem.ToArray();
+                owner.Dispose();
+
+                // should be (remember, ints are little endian here)
+                // 00: 02, 00         -- count = 2
+                // 02: 14, 00         -- index of bar
+                // 04: 00, 00         -- value of bar = 0
+                // 06: 10, 00         -- index of buzz
+                // 08: 01, 00         -- value of buzz = 1
+                // 10: b, u, z, z     -- text of buzz
+                // 14: b, a, r        -- text of bar
+
+                Assert.True(
+                    chars.SequenceEqual(
+                        new[]
+                        {
+                            '\x0002','\0',
+                            '\x000E','\0',
+                            '\0', '\0',
+                            '\x000A','\0',
+                            '\x0001','\0',
+                            'b', 'u', 'z', 'z',
+                            'b', 'a', 'r'
+                        }
+                    )
+                );
+            }
+
+            // actual values
+            {
+                var vals = OrderValues(new[] { "bar", "buzz", "foo", "head", "heap", "hello" });
+
+                Assert.True(NameLookup.TryCreateBinarySearchTree(vals, MemoryPool<char>.Shared, out var owner, out var mem));
+                var chars = mem.ToArray();
+                owner.Dispose();
+
+                // should be (remember, ints are little endian here)
+                // 00: 06, 00         -- count = 6
+                // 02: 46, 00         -- index of bar
+                // 04: 00, 00         -- value of bar = 0
+                // 06: 42, 00         -- index of buzz
+                // 08: 01, 00         -- value of buzz = 1
+                // 10: 39, 00         -- index of foo
+                // 12: 02, 00         -- value of foo = 2
+                // 14: 35, 00         -- index of head
+                // 16: 03, 00         -- value of head = 3
+                // 18: 31, 00         -- index of heap
+                // 20: 04, 00         -- value of heap = 4
+                // 22: 26, 00         -- index of hello
+                // 24: 05, 00         -- value of hello = 5
+                // 26: h, e, l, l, o  -- text of hello
+                // 31: h, e, a, p     -- text of heap
+                // 35: h, e, a, d     -- text of head
+                // 39: f, o, o        -- text of foo
+                // 42: b, u, z, z     -- text of buzz
+                // 46: b, a, r        -- text of bar
+
+                Assert.True(
+                    chars.SequenceEqual(
+                        new[]
+                        {
+                            '\x0006','\0',
+                            (char)46,'\0',
+                            '\0', '\0',
+                            (char)42,'\0',
+                            '\x0001','\0',
+                            (char)39, '\0',
+                            '\x0002', '\0',
+                            (char)35, '\0',
+                            '\x0003', '\0',
+                            (char)31, '\0',
+                            '\x0004', '\0',
+                            (char)26, '\0',
+                            '\x0005', '\0',
+                            'h', 'e', 'l', 'l', 'o',
+                            'h', 'e', 'a', 'p',
+                            'h', 'e', 'a', 'd',
+                            'f', 'o', 'o',
+                            'b', 'u', 'z', 'z',
+                            'b', 'a', 'r'
+                        }
+                    )
+                );
+            }
+
+            // some longer values, and try a bunch of orders
+            {
+                var rand = new Random(2020_04_14);
+                var valsMaster = new List<string> { "fizz", "fizzing", "foo", "he", "heap", "heaper", "heaping", "heapingly", "heat" };
+
+                for (var i = 0; i < 10; i++)
+                {
+                    // get em in a random order for test purposes
+                    var vals =
+                        valsMaster
+                            .Select(v => (Value: v, Order: rand.Next()))
+                            .OrderBy(t => t.Order)
+                            .Select((t, ix) => (Name: t.Value, Index: ix))
+                            .ToList();
+
+                    var valsOrdered = vals.OrderBy(x => x.Name, StringComparer.Ordinal);
+
+                    var fizzIx = vals.Single(s => s.Name == "fizz").Index;
+                    Assert.NotEqual(-1, fizzIx);
+                    var fizzingIx = vals.Single(s => s.Name == "fizzing").Index;
+                    Assert.NotEqual(-1, fizzingIx);
+                    var fooIx = vals.Single(s => s.Name == "foo").Index;
+                    Assert.NotEqual(-1, fooIx);
+                    var heIx = vals.Single(s => s.Name == "he").Index;
+                    Assert.NotEqual(-1, heIx);
+                    var heapIx = vals.Single(s => s.Name == "heap").Index;
+                    Assert.NotEqual(-1, heapIx);
+                    var heaperIx = vals.Single(s => s.Name == "heaper").Index;
+                    Assert.NotEqual(-1, heaperIx);
+                    var heapingIx = vals.Single(s => s.Name == "heaping").Index;
+                    Assert.NotEqual(-1, heapingIx);
+                    var heapinglyIx = vals.Single(s => s.Name == "heapingly").Index;
+                    Assert.NotEqual(-1, heapinglyIx);
+                    var heatIx = vals.Single(s => s.Name == "heat").Index;
+                    Assert.NotEqual(-1, heatIx);
+
+                    Assert.True(NameLookup.TryCreateBinarySearchTree(valsOrdered, MemoryPool<char>.Shared, out var owner, out var mem));
+                    var chars = mem.ToArray();
+                    owner.Dispose();
+
+                    var asSpan = chars.AsSpan();
+                    var asIntSpan = MemoryMarshal.Cast<char, int>(asSpan);
+
+                    // validate count and values
+                    Assert.Equal(valsOrdered.Count(), asIntSpan[0]);
+
+                    var fizzStart = asIntSpan[1];
+                    Assert.Equal(fizzIx, asIntSpan[2]);
+
+                    var fizzingStart = asIntSpan[3];
+                    Assert.Equal(fizzingIx, asIntSpan[4]);
+
+                    var fooStart = asIntSpan[5];
+                    Assert.Equal(fooIx, asIntSpan[6]);
+
+                    var heStart = asIntSpan[7];
+                    Assert.Equal(heIx, asIntSpan[8]);
+
+                    var heapStart = asIntSpan[9];
+                    Assert.Equal(heapIx, asIntSpan[10]);
+
+                    var heaperStart = asIntSpan[11];
+                    Assert.Equal(heaperIx, asIntSpan[12]);
+
+                    var heapingStart = asIntSpan[13];
+                    Assert.Equal(heapingIx, asIntSpan[14]);
+
+                    var heapinglyStart = asIntSpan[15];
+                    Assert.Equal(heapinglyIx, asIntSpan[16]);
+
+                    var heatStart = asIntSpan[17];
+                    Assert.Equal(heatIx, asIntSpan[18]);
+
+                    // strings are stored in reverse order
+                    Assert.True(fizzStart > fizzingStart);
+                    Assert.True(fizzingStart > fooStart);
+                    Assert.True(fooStart > heStart);
+                    Assert.True(heStart > heapStart);
+                    Assert.True(heapStart > heaperStart);
+                    Assert.True(heaperStart > heapingStart);
+                    Assert.True(heapingStart > heapinglyStart);
+                    Assert.True(heapinglyStart > heatStart);
+
+                    // strings are where expected
+                    var fizzLen = asSpan.Length - fizzStart;
+                    var fizzSpan = asSpan.Slice(fizzStart, fizzLen);
+                    Assert.True(Equal(fizzSpan, "fizz".AsSpan()));
+
+                    var fizzingLen = fizzStart - fizzingStart;
+                    var fizzingSpan = asSpan.Slice(fizzingStart, fizzingLen);
+                    Assert.True(Equal(fizzingSpan, "fizzing".AsSpan()));
+
+                    var fooLen = fizzingStart - fooStart;
+                    var fooSpan = asSpan.Slice(fooStart, fooLen);
+                    Assert.True(Equal(fooSpan, "foo".AsSpan()));
+
+                    var heLen = fooStart - heStart;
+                    var heSpan = asSpan.Slice(heStart, heLen);
+                    Assert.True(Equal(heSpan, "he".AsSpan()));
+
+                    var heapLen = heStart - heapStart;
+                    var heapSpan = asSpan.Slice(heapStart, heapLen);
+                    Assert.True(Equal(heapSpan, "heap".AsSpan()));
+
+                    var heaperLen = heapStart - heaperStart;
+                    var heaperSpan = asSpan.Slice(heaperStart, heaperLen);
+                    Assert.True(Equal(heaperSpan, "heaper".AsSpan()));
+
+                    var heapingLen = heaperStart - heapingStart;
+                    var heapingSpan = asSpan.Slice(heapingStart, heapingLen);
+                    Assert.True(Equal(heapingSpan, "heaping".AsSpan()));
+
+                    var heapinglyLen = heapingStart - heapinglyStart;
+                    var heapinglySpan = asSpan.Slice(heapinglyStart, heapinglyLen);
+                    Assert.True(Equal(heapinglySpan, "heapingly".AsSpan()));
+
+                    var heatLen = heapinglyStart - heatStart;
+                    var heatSpan = asSpan.Slice(heatStart, heatLen);
+                    Assert.True(Equal(heatSpan, "heat".AsSpan()));
+                }
+            }
+
+            // put stuff in the correct order for the create call
+            static IOrderedEnumerable<(string Name, int Index)> OrderValues(IEnumerable<string> raw)
+            => raw.Select((r, ix) => (Name: r, Index: ix)).OrderBy(r => r.Name, StringComparer.Ordinal);
+
+            static unsafe bool Equal(ReadOnlySpan<char> a, ReadOnlySpan<char> b)
+            {
+                fixed (char* aPtr = a)
+                fixed (char* bPtr = b)
+                {
+                    return a.Length == b.Length && Utils.AreEqual(a.Length, aPtr, bPtr);
+                }
+            }
+        }
+
+        [Fact]
+        public void Lookup_BinarySearchTree()
+        {
+            // single key
+            {
+                var vals = new List<string> { "bar" };
+
+                using (var lookup = Create(vals))
+                {
+                    Assert.Equal(NameLookup.MemoryLayout.BinarySearchTree, lookup.Mode);
+                    Assert.True(lookup.TryLookup("bar", out var barVal));
+                    Assert.Equal(0, barVal);
+
+                    Assert.False(lookup.TryLookup("", out var emptyVal));
+                    Assert.Equal(-1, emptyVal);
+
+                    Assert.False(lookup.TryLookup("b", out var bVal));
+                    Assert.Equal(-1, bVal);
+
+                    Assert.False(lookup.TryLookup("ba", out var baVal));
+                    Assert.Equal(-1, baVal);
+
+                    Assert.False(lookup.TryLookup("bars", out var barsVal));
+                    Assert.Equal(-1, barsVal);
+
+                    Assert.False(lookup.TryLookup("a", out var aVal));
+                    Assert.Equal(-1, aVal);
+
+                    Assert.False(lookup.TryLookup("aar", out var aarVal));
+                    Assert.Equal(-1, aarVal);
+
+                    Assert.False(lookup.TryLookup("c", out var cVal));
+                    Assert.Equal(-1, cVal);
+
+                    Assert.False(lookup.TryLookup("car", out var carVal));
+                    Assert.Equal(-1, carVal);
+                }
+            }
+
+            // two strings
+            {
+                var vals = new List<string> { "bar", "buzz" };
+
+                using (var lookup = Create(vals))
+                {
+                    Assert.Equal(NameLookup.MemoryLayout.BinarySearchTree, lookup.Mode);
+                    Assert.True(lookup.TryLookup("bar", out var barVal));
+                    Assert.Equal(0, barVal);
+
+                    Assert.True(lookup.TryLookup("buzz", out var buzzVal));
+                    Assert.Equal(1, buzzVal);
+
+                    Assert.False(lookup.TryLookup("", out var emptyVal));
+                    Assert.Equal(-1, emptyVal);
+
+                    Assert.False(lookup.TryLookup("b", out var bVal));
+                    Assert.Equal(-1, bVal);
+
+                    Assert.False(lookup.TryLookup("ba", out var baVal));
+                    Assert.Equal(-1, baVal);
+
+                    Assert.False(lookup.TryLookup("bars", out var barsVal));
+                    Assert.Equal(-1, barsVal);
+
+                    Assert.False(lookup.TryLookup("a", out var aVal));
+                    Assert.Equal(-1, aVal);
+
+                    Assert.False(lookup.TryLookup("aar", out var aarVal));
+                    Assert.Equal(-1, aarVal);
+
+                    Assert.False(lookup.TryLookup("c", out var cVal));
+                    Assert.Equal(-1, cVal);
+
+                    Assert.False(lookup.TryLookup("car", out var carVal));
+                    Assert.Equal(-1, carVal);
+
+                    Assert.False(lookup.TryLookup("buzzy", out var buzzyVal));
+                    Assert.Equal(-1, buzzyVal);
+                }
+            }
+
+            // proper values
+            {
+                var vals = new List<string> { "bar", "buzz", "foo", "head", "heap", "hello" };
+
+                using (var lookup = Create(vals))
+                {
+                    Assert.Equal(NameLookup.MemoryLayout.BinarySearchTree, lookup.Mode);
+                    Assert.False(lookup.TryLookup("", out var emptyVal));
+                    Assert.Equal(-1, emptyVal);
+
+                    for (var i = 0; i < vals.Count; i++)
+                    {
+                        var val = vals[i];
+                        Assert.True(lookup.TryLookup(val, out var valVal));
+                        Assert.Equal(i, valVal);
+
+                        var missingHead = val.Substring(1);
+                        if (!vals.Contains(missingHead))
+                        {
+                            Assert.False(lookup.TryLookup(missingHead, out var missingVal));
+                            Assert.Equal(-1, missingVal);
+                        }
+
+                        var missingTail = val.Substring(0, val.Length - 1);
+                        if (!vals.Contains(missingTail))
+                        {
+                            Assert.False(lookup.TryLookup(missingTail, out var missingVal));
+                            Assert.Equal(-1, missingVal);
+                        }
+
+                        var missingCenter = val.Substring(0, 1) + val.Substring(2);
+                        if (!vals.Contains(missingCenter))
+                        {
+                            Assert.False(lookup.TryLookup(missingCenter, out var missingVal));
+                            Assert.Equal(-1, missingVal);
+                        }
+
+                        var extraHead = 'a' + val;
+                        if (!vals.Contains(extraHead))
+                        {
+                            Assert.False(lookup.TryLookup(extraHead, out var extraVal));
+                            Assert.Equal(-1, extraVal);
+                        }
+
+                        var extraTail = val + 'a';
+                        if (!vals.Contains(extraTail))
+                        {
+                            Assert.False(lookup.TryLookup(extraTail, out var extraVal));
+                            Assert.Equal(-1, extraVal);
+                        }
+
+                        var extraCenter = val.Substring(0, 1) + val[1] + val.Substring(1);
+                        if (!vals.Contains(extraCenter))
+                        {
+                            Assert.False(lookup.TryLookup(extraCenter, out var extraVal));
+                            Assert.Equal(-1, extraVal);
+                        }
+                    }
+                }
+            }
+
+            // tricky values
+            {
+                var rand = new Random(2020_03_22);
+                var valsMaster = new List<string> { "fizz", "fizzing", "foo", "he", "heap", "heaper", "heaping", "heapingly", "heat" };
+
+                for (var i = 0; i < 10; i++)
+                {
+                    // get em in a random order for test purposes
+                    var vals = valsMaster.Select(v => (Value: v, Order: rand.Next())).OrderBy(t => t.Order).Select(t => t.Value).ToList();
+
+                    using (var lookup = Create(vals))
+                    {
+                        Assert.Equal(NameLookup.MemoryLayout.BinarySearchTree, lookup.Mode);
+                        Assert.False(lookup.TryLookup("", out var emptyVal));
+                        Assert.Equal(-1, emptyVal);
+
+                        for (var j = 0; j < vals.Count; j++)
+                        {
+                            var val = vals[j];
+                            Assert.True(lookup.TryLookup(val, out var valVal));
+                            Assert.Equal(j, valVal);
+
+                            var missingHead = val.Substring(1);
+                            if (!vals.Contains(missingHead))
+                            {
+                                Assert.False(lookup.TryLookup(missingHead, out var missingVal));
+                                Assert.Equal(-1, missingVal);
+                            }
+
+                            var missingTail = val.Substring(0, val.Length - 1);
+                            if (!vals.Contains(missingTail))
+                            {
+                                Assert.False(lookup.TryLookup(missingTail, out var missingVal));
+                                Assert.Equal(-1, missingVal);
+                            }
+
+                            var missingCenter = val.Substring(0, 1) + val.Substring(2);
+                            if (!vals.Contains(missingCenter))
+                            {
+                                Assert.False(lookup.TryLookup(missingCenter, out var missingVal));
+                                Assert.Equal(-1, missingVal);
+                            }
+
+                            var extraHead = 'a' + val;
+                            if (!vals.Contains(extraHead))
+                            {
+                                Assert.False(lookup.TryLookup(extraHead, out var extraVal));
+                                Assert.Equal(-1, extraVal);
+                            }
+
+                            var extraTail = val + 'a';
+                            if (!vals.Contains(extraTail))
+                            {
+                                Assert.False(lookup.TryLookup(extraTail, out var extraVal));
+                                Assert.Equal(-1, extraVal);
+                            }
+
+                            var extraCenter = val.Substring(0, 1) + val[1] + val.Substring(1);
+                            if (!vals.Contains(extraCenter))
+                            {
+                                Assert.False(lookup.TryLookup(extraCenter, out var extraVal));
+                                Assert.Equal(-1, extraVal);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // benchmark values
+            {
+                var vals = new List<string> { "NullableGuid", "NullableInt", "NullableChar", "NullableSByte", "NullableDateTime", "NullableFloat", "DateTime", "Long", "Float", "ULong", "NullableUInt", "NullableShort", "Byte", "Enum", "NullableDecimal", "ShallowRows", "DeepRows", "Decimal", "NullableByte", "NullableUShort", "Char", "DateTimeOffset", "Int", "NullableULong", "SByte", "Short", "NullableLong", "NullableDouble", "UShort", "Double", "FlagsEnum", "Uri", "String", "NullableEnum", "NullableDateTimeOffset", "UInt", "NullableFlagsEnum", "Guid" };
+                using (var lookup = Create(vals))
+                {
+                    Assert.Equal(NameLookup.MemoryLayout.BinarySearchTree, lookup.Mode);
+                    for (var i = 0; i < vals.Count; i++)
+                    {
+                        var val = vals[i];
+                        Assert.True(lookup.TryLookup(val, out var ix));
+                        Assert.Equal(i, ix);
+                    }
+                }
+            }
+
+            static NameLookup Create(List<string> values)
+            {
+                var vals = values.Select((t, ix) => (Name: t, Index: ix)).OrderBy(o => o.Name, StringComparer.Ordinal);
+
+                Assert.True(NameLookup.TryCreateBinarySearchTree(vals, MemoryPool<char>.Shared, out var owner, out var mem));
+
+                return new NameLookup(NameLookup.MemoryLayout.BinarySearchTree, owner, mem);
+            }
+        }
+
+        // Trie tests
+
+        [Fact]
+        public void CommonPrefixLength_Trie()
         {
             // one value
             {
                 var vals = new List<string> { "bar" }.Select(b => b.AsMemory()).ToList();
 
-                var take = NameLookup.CommonPrefixLength(vals, vals.Count - 1, 0, 0, out var endOfGroupIx);
+                var take = NameLookup.CommonPrefixLengthAdaptivePrefixTrie(vals, vals.Count - 1, 0, 0, out var endOfGroupIx);
                 Assert.Equal(3, take);
                 Assert.Equal(0, endOfGroupIx);
             }
@@ -33,22 +530,22 @@ namespace Cesil.Tests
                 var headIx = 3;
                 Assert.True(Utils.AreEqual("head".AsMemory(), vals[headIx]));
 
-                var takeFromFoo = NameLookup.CommonPrefixLength(vals, vals.Count - 1, fooIx, 0, out var endOfFooIx);
+                var takeFromFoo = NameLookup.CommonPrefixLengthAdaptivePrefixTrie(vals, vals.Count - 1, fooIx, 0, out var endOfFooIx);
                 Assert.Equal(3, takeFromFoo);
                 Assert.Equal(fooIx, endOfFooIx);
 
-                var takeFromBar = NameLookup.CommonPrefixLength(vals, vals.Count - 1, barIx, 0, out var endOfBarIx);
+                var takeFromBar = NameLookup.CommonPrefixLengthAdaptivePrefixTrie(vals, vals.Count - 1, barIx, 0, out var endOfBarIx);
                 Assert.Equal(1, takeFromBar);
                 Assert.Equal(barIx + 1, endOfBarIx);
 
-                var takeFromHead = NameLookup.CommonPrefixLength(vals, vals.Count - 1, headIx, 0, out var endOfHeadIx);
+                var takeFromHead = NameLookup.CommonPrefixLengthAdaptivePrefixTrie(vals, vals.Count - 1, headIx, 0, out var endOfHeadIx);
                 Assert.Equal(2, takeFromHead);
                 Assert.Equal(headIx + 2, endOfHeadIx);
             }
         }
 
         [Fact]
-        public void CalculateNeededMemory()
+        public void CalculateNeededMemory_Trie()
         {
             // just one string
             // should be 
@@ -56,7 +553,7 @@ namespace Cesil.Tests
             {
                 var vals = new List<string> { "bar" }.Select(b => b.AsMemory()).ToList();
 
-                var mem = NameLookup.CalculateNeededMemory(vals, 0, vals.Count - 1, 0);
+                var mem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(vals, 0, vals.Count - 1, 0);
                 Assert.Equal(6, mem);
             }
 
@@ -96,22 +593,50 @@ namespace Cesil.Tests
                 Assert.True(groupAt23.Select(_ => new string(_.Span)).SequenceEqual(groupAt23.Select(_ => new string(_.Span)).OrderBy(_ => _)));
                 Assert.True(groupAt32.Select(_ => new string(_.Span)).SequenceEqual(groupAt32.Select(_ => new string(_.Span)).OrderBy(_ => _)));
 
-                var g32Mem = NameLookup.CalculateNeededMemory(groupAt32, 0, groupAt32.Count - 1, 0);
+                var g32Mem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(groupAt32, 0, groupAt32.Count - 1, 0);
                 Assert.Equal(7, g32Mem);
 
-                var g23Mem = NameLookup.CalculateNeededMemory(groupAt23, 0, groupAt23.Count - 1, 0);
+                var g23Mem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(groupAt23, 0, groupAt23.Count - 1, 0);
                 Assert.Equal(9, g23Mem - g32Mem);
 
-                var g13Mem = NameLookup.CalculateNeededMemory(groupAt13, 0, groupAt13.Count - 1, 0);
+                var g13Mem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(groupAt13, 0, groupAt13.Count - 1, 0);
                 Assert.Equal(10, g13Mem);
 
-                var rootMem = NameLookup.CalculateNeededMemory(rootVals, 0, rootVals.Count - 1, 0);
+                var rootMem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(rootVals, 0, rootVals.Count - 1, 0);
                 Assert.Equal(39, rootMem);
             }
         }
 
+        private static char ToPrefixCount(int val)
+        {
+            var res = NameLookup.ToPrefixCount(val, out var ret);
+            Assert.True(res);
+            return ret;
+        }
+
+        private static char ToPrefixLength(int val)
+        {
+            var res = NameLookup.ToPrefixLength(val, out var ret);
+            Assert.True(res);
+            return ret;
+        }
+
+        private static char ToValue(int val)
+        {
+            var res = NameLookup.ToValue(val, out var ret);
+            Assert.True(res);
+            return ret;
+        }
+
+        private static char ToOffset(int val)
+        {
+            var res = NameLookup.ToOffset(val, out var ret);
+            Assert.True(res);
+            return ret;
+        }
+
         [Fact]
-        public void Create()
+        public void Create_Trie()
         {
             // just one string: "bar"
             // should be 
@@ -126,6 +651,8 @@ namespace Cesil.Tests
 
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
+                    Assert.Equal(NameLookup.MemoryLayout.AdaptiveRadixTrie, lookup.Mode);
+
                     Assert.NotNull(lookup.MemoryOwner);
                     Assert.Equal(6, lookup.Memory.Length);
 
@@ -134,12 +661,12 @@ namespace Cesil.Tests
                         arr.SequenceEqual(
                             new char[]
                             {
-                            NameLookup.ToPrefixCount(1),
-                            NameLookup.ToPrefixLength(3),
+                            ToPrefixCount(1),
+                            ToPrefixLength(3),
                             'b',
                             'a',
                             'r',
-                            NameLookup.ToValue(0)
+                            ToValue(0)
                             }
                         )
                     );
@@ -164,7 +691,7 @@ namespace Cesil.Tests
 
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
-
+                    Assert.Equal(NameLookup.MemoryLayout.AdaptiveRadixTrie, lookup.Mode);
                     Assert.NotNull(lookup.MemoryOwner);
 
                     var arr = lookup.Memory.ToArray();
@@ -173,22 +700,22 @@ namespace Cesil.Tests
                         new char[]
                         { 
                         // -- root --
-                        NameLookup.ToPrefixCount(1),
-                        NameLookup.ToPrefixLength(1),
+                        ToPrefixCount(1),
+                        ToPrefixLength(1),
                         'b',
-                        NameLookup.ToOffset(1),
+                        ToOffset(1),
                             
                         // -- branch from prefix@1 --
-                        NameLookup.ToPrefixCount(2),
-                        NameLookup.ToPrefixLength(2),
+                        ToPrefixCount(2),
+                        ToPrefixLength(2),
                         'a',
                         'r',
-                        NameLookup.ToValue(0),
-                        NameLookup.ToPrefixLength(3),
+                        ToValue(0),
+                        ToPrefixLength(3),
                         'u',
                         'z',
                         'z',
-                        NameLookup.ToValue(1)
+                        ToValue(1)
                         };
 
                     Assert.Equal(14, arr.Length);
@@ -226,6 +753,7 @@ namespace Cesil.Tests
 
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
+                    Assert.Equal(NameLookup.MemoryLayout.AdaptiveRadixTrie, lookup.Mode);
                     Assert.NotNull(lookup.MemoryOwner);
                     Assert.Equal(39, lookup.Memory.Length);
 
@@ -235,44 +763,44 @@ namespace Cesil.Tests
                             new char[]
                             {
                             // -- root ---
-                            NameLookup.ToPrefixCount(3),
-                            NameLookup.ToPrefixLength(1),
+                            ToPrefixCount(3),
+                            ToPrefixLength(1),
                             'b',
-                            NameLookup.ToOffset(10),
-                            NameLookup.ToPrefixLength(3),
+                            ToOffset(10),
+                            ToPrefixLength(3),
                             'f', 'o', 'o',
-                            NameLookup.ToValue(2),
-                            NameLookup.ToPrefixLength(2),
+                            ToValue(2),
+                            ToPrefixLength(2),
                             'h', 'e',
-                            NameLookup.ToOffset(11),
+                            ToOffset(11),
 
                             // -- branch from prefix @1 --
-                            NameLookup.ToPrefixCount(2),
-                            NameLookup.ToPrefixLength(2),
+                            ToPrefixCount(2),
+                            ToPrefixLength(2),
                             'a', 'r',
-                            NameLookup.ToValue(0),
-                            NameLookup.ToPrefixLength(3),
+                            ToValue(0),
+                            ToPrefixLength(3),
                             'u', 'z', 'z',
-                            NameLookup.ToValue(1),
+                            ToValue(1),
 
                             // -- branch from prefix @9 --
-                            NameLookup.ToPrefixCount(2),
-                            NameLookup.ToPrefixLength(1),
+                            ToPrefixCount(2),
+                            ToPrefixLength(1),
                             'a',
-                            NameLookup.ToOffset(6),
-                            NameLookup.ToPrefixLength(3),
+                            ToOffset(6),
+                            ToPrefixLength(3),
                             'l', 'l', 'o',
-                            NameLookup.ToValue(5),
+                            ToValue(5),
 
 
                             // -- branch from prefix @24 --
-                            NameLookup.ToPrefixCount(2),
-                            NameLookup.ToPrefixLength(1),
+                            ToPrefixCount(2),
+                            ToPrefixLength(1),
                             'd',
-                            NameLookup.ToValue(3),
-                            NameLookup.ToPrefixLength(1),
+                            ToValue(3),
+                            ToPrefixLength(1),
                             'p',
-                            NameLookup.ToValue(4)
+                            ToValue(4)
                             }
                         )
                     );
@@ -350,6 +878,7 @@ namespace Cesil.Tests
 
                     using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                     {
+                        Assert.Equal(NameLookup.MemoryLayout.AdaptiveRadixTrie, lookup.Mode);
                         Assert.NotNull(lookup.MemoryOwner);
                         var arr = lookup.Memory.ToArray();
 
@@ -359,66 +888,66 @@ namespace Cesil.Tests
                             new char[]
                                 {
                                 // --root--
-                                NameLookup.ToPrefixCount(2),    // root, has 2 prefixes "f" and "he"
-                                NameLookup.ToPrefixLength(1),   // <length = 1>, "f", <offset = 8 - 3 = 5>
+                                ToPrefixCount(2),    // root, has 2 prefixes "f" and "he"
+                                ToPrefixLength(1),   // <length = 1>, "f", <offset = 8 - 3 = 5>
                                 'f',
-                                NameLookup.ToOffset(5),
-                                NameLookup.ToPrefixLength(2),   // <length = 2>, "he", <offset = 26 - 7 = 19>
+                                ToOffset(5),
+                                ToPrefixLength(2),   // <length = 2>, "he", <offset = 26 - 7 = 19>
                                 'h', 'e',
-                                NameLookup.ToOffset(19),
+                                ToOffset(19),
                                 
                                 // -- branch from prefix@1 --
-                                NameLookup.ToPrefixCount(2),    // from "f", has 2 prefixes: "oo", "izz"
-                                NameLookup.ToPrefixLength(3),   // <length = 3>, "izz", <offset = 18 - 13 = 5>
+                                ToPrefixCount(2),    // from "f", has 2 prefixes: "oo", "izz"
+                                ToPrefixLength(3),   // <length = 3>, "izz", <offset = 18 - 13 = 5>
                                 'i', 'z', 'z',
-                                NameLookup.ToOffset(5),
-                                NameLookup.ToPrefixLength(2),   // <length = 2>, "oo", <value = ?>
+                                ToOffset(5),
+                                ToPrefixLength(2),   // <length = 2>, "oo", <value = ?>
                                 'o', 'o',
-                                NameLookup.ToValue(fooIx),
+                                ToValue(fooIx),
 
                                 // -- branch from prefix@14 --
-                                NameLookup.ToPrefixCount(2),    // from "fizz", has 2 prefixes: "", "ing"
-                                NameLookup.ToPrefixLength(0),   // <length = 0>, "", <value = ?>
-                                NameLookup.ToValue(fizzIx),
-                                NameLookup.ToPrefixLength(3),   // <length = 3>, "ing", <value = ?>
+                                ToPrefixCount(2),    // from "fizz", has 2 prefixes: "", "ing"
+                                ToPrefixLength(0),   // <length = 0>, "", <value = ?>
+                                ToValue(fizzIx),
+                                ToPrefixLength(3),   // <length = 3>, "ing", <value = ?>
                                 'i', 'n', 'g',
-                                NameLookup.ToValue(fizzingIx),
+                                ToValue(fizzingIx),
                                 
                                 // -- branch from prefix@4 --
-                                NameLookup.ToPrefixCount(2),    // from "he", has 3 prefixes: "", "a"
-                                NameLookup.ToPrefixLength(0),   // <length = 0>, "", <value = ?>
-                                NameLookup.ToValue(heIx),
-                                NameLookup.ToPrefixLength(1),   // <length = 1>, "a", <offset = 32-31 = 1>
+                                ToPrefixCount(2),    // from "he", has 3 prefixes: "", "a"
+                                ToPrefixLength(0),   // <length = 0>, "", <value = ?>
+                                ToValue(heIx),
+                                ToPrefixLength(1),   // <length = 1>, "a", <offset = 32-31 = 1>
                                 'a',
-                                NameLookup.ToOffset(1),
+                                ToOffset(1),
                                 
                                 // -- branch from prefix@29 --
-                                NameLookup.ToPrefixCount(2),    // from "hea", has 2 prefixes: "p", "t"
-                                NameLookup.ToPrefixLength(1),   // <length = 1>, "p", <offset = 39 - 35 = 4>
+                                ToPrefixCount(2),    // from "hea", has 2 prefixes: "p", "t"
+                                ToPrefixLength(1),   // <length = 1>, "p", <offset = 39 - 35 = 4>
                                 'p',
-                                NameLookup.ToOffset(4),
-                                NameLookup.ToPrefixLength(1),   // <length = 1>, "t", <value = ?>
+                                ToOffset(4),
+                                ToPrefixLength(1),   // <length = 1>, "t", <value = ?>
                                 't',
-                                NameLookup.ToValue(heatIx),
+                                ToValue(heatIx),
                                 
                                 // -- branch from prefix@33 --
-                                NameLookup.ToPrefixCount(3),    // from "heap", has 3 prefixes: "", "er", "ing"
-                                NameLookup.ToPrefixLength(0),   // <length = 0>, "", <value = ?>
-                                NameLookup.ToValue(heapIx),
-                                NameLookup.ToPrefixLength(2),   // <length = 2>, "er", <value = ?>
+                                ToPrefixCount(3),    // from "heap", has 3 prefixes: "", "er", "ing"
+                                ToPrefixLength(0),   // <length = 0>, "", <value = ?>
+                                ToValue(heapIx),
+                                ToPrefixLength(2),   // <length = 2>, "er", <value = ?>
                                 'e', 'r',
-                                NameLookup.ToValue(heaperIx),
-                                NameLookup.ToPrefixLength(3),   // <length = 3>, "ing", <offset = 51 - 50 = 1>
+                                ToValue(heaperIx),
+                                ToPrefixLength(3),   // <length = 3>, "ing", <offset = 51 - 50 = 1>
                                 'i', 'n', 'g',
-                                NameLookup.ToOffset(1),
+                                ToOffset(1),
                                 
                                 // -- branch from prefix@46
-                                NameLookup.ToPrefixCount(2),    // from "heaping", has 2 prefixes: "", "ly"
-                                NameLookup.ToPrefixLength(0),   // <length = 0>, "", <value = ?>
-                                NameLookup.ToValue(heapingIx),
-                                NameLookup.ToPrefixLength(2),   // <length = 2>, "ly", <value = ?>
+                                ToPrefixCount(2),    // from "heaping", has 2 prefixes: "", "ly"
+                                ToPrefixLength(0),   // <length = 0>, "", <value = ?>
+                                ToValue(heapingIx),
+                                ToPrefixLength(2),   // <length = 2>, "ly", <value = ?>
                                 'l', 'y',
-                                NameLookup.ToValue(heapinglyIx)
+                                ToValue(heapinglyIx)
                                 };
 
                         Assert.True(arr.SequenceEqual(shouldMatch));
@@ -428,7 +957,7 @@ namespace Cesil.Tests
         }
 
         [Fact]
-        public void Lookup()
+        public void Lookup_Trie()
         {
             // single key
             {
@@ -436,6 +965,7 @@ namespace Cesil.Tests
 
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
+                    Assert.Equal(NameLookup.MemoryLayout.AdaptiveRadixTrie, lookup.Mode);
                     Assert.True(lookup.TryLookup("bar", out var barVal));
                     Assert.Equal(0, barVal);
 
@@ -471,6 +1001,7 @@ namespace Cesil.Tests
 
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
+                    Assert.Equal(NameLookup.MemoryLayout.AdaptiveRadixTrie, lookup.Mode);
                     Assert.True(lookup.TryLookup("bar", out var barVal));
                     Assert.Equal(0, barVal);
 
@@ -512,6 +1043,7 @@ namespace Cesil.Tests
 
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
+                    Assert.Equal(NameLookup.MemoryLayout.AdaptiveRadixTrie, lookup.Mode);
                     Assert.False(lookup.TryLookup("", out var emptyVal));
                     Assert.Equal(-1, emptyVal);
 
@@ -578,6 +1110,7 @@ namespace Cesil.Tests
 
                     using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                     {
+                        Assert.Equal(NameLookup.MemoryLayout.AdaptiveRadixTrie, lookup.Mode);
                         Assert.False(lookup.TryLookup("", out var emptyVal));
                         Assert.Equal(-1, emptyVal);
 
@@ -638,6 +1171,7 @@ namespace Cesil.Tests
                 var vals = new List<string> { "NullableGuid", "NullableInt", "NullableChar", "NullableSByte", "NullableDateTime", "NullableFloat", "DateTime", "Long", "Float", "ULong", "NullableUInt", "NullableShort", "Byte", "Enum", "NullableDecimal", "ShallowRows", "DeepRows", "Decimal", "NullableByte", "NullableUShort", "Char", "DateTimeOffset", "Int", "NullableULong", "SByte", "Short", "NullableLong", "NullableDouble", "UShort", "Double", "FlagsEnum", "Uri", "String", "NullableEnum", "NullableDateTimeOffset", "UInt", "NullableFlagsEnum", "Guid" };
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
+                    Assert.Equal(NameLookup.MemoryLayout.AdaptiveRadixTrie, lookup.Mode);
                     for (var i = 0; i < vals.Count; i++)
                     {
                         var val = vals[i];

@@ -1574,7 +1574,19 @@
         </member>
         <member name="T:Cesil.NameLookup">
             <summary>
-            This is basically an adaptive radix tree, laid out in memory.
+            This has two modes: 
+             1. An adaptive radix tree
+             2. A binary tree
+             
+            The radix tree is faster and more compact, but can fail if names are reeeeaaaallly long.
+            
+            The binary tree can handle names that are quite long, but does many more comparisons and 
+              is less compact.
+            
+            ===
+            
+            The adaptix radix tree
+            ----
             
             For some number of strings, each unique prefix is 
               found, and then sorted, and then stored in a Memory(char).
@@ -1601,6 +1613,42 @@
               to get to the next branch.
               
             We store # of prefixes - 1, since there will always be at least one prefix.
+            
+            ===
+            
+            The binary search tree
+            ----
+            
+            Strings are sorted, then a count of strings (as an int), then pairs of indexes and values.
+              The indexes are absolute into the memory.
+              The values are stored plain.
+              The actual strings are in reverse order at the end of the memory.
+            
+            For the strings:
+            
+             - abc = 2
+             - defg = 1
+             - hijkl = 0
+             
+            we end up with:
+             - count 3
+             - 
+            
+            
+             0: 0000, 0003,     // 3 strings (each int takes 2 chars)
+             2: 0000, 0022,     // index of abc 
+             4: 0000, 0002,     // value for abc
+             6: 0000, 0018,     // index to defg
+             8: 0000, 0001,     // value for defg
+            10: 0000, 0014,     // index to hijkl
+            12: 0000, 0000,     // value for hijkl
+            14: h, i, j, k, l,  // string hijkl
+            18: d, e, f, g,     // string defg
+            22: a, b, c         // string abc
+            
+            The length of each string can be determined from the difference between each index, with a special case for the LAST string
+              whose length can be calculated from the end of the memory.
+            
             </summary>
         </member>
         <member name="T:Cesil.RowConstructor">

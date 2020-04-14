@@ -4,13 +4,25 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
-
+using System.Runtime.InteropServices;
 using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
     /// <summary>
-    /// This is basically an adaptive radix tree, laid out in memory.
+    /// This has two modes: 
+    ///  1. An adaptive radix tree
+    ///  2. A binary tree
+    ///  
+    /// The radix tree is faster and more compact, but can fail if names are reeeeaaaallly long.
+    /// 
+    /// The binary tree can handle names that are quite long, but does many more comparisons and 
+    ///   is less compact.
+    /// 
+    /// ===
+    /// 
+    /// The adaptix radix tree
+    /// ----
     /// 
     /// For some number of strings, each unique prefix is 
     ///   found, and then sorted, and then stored in a Memory(char).
@@ -37,26 +49,71 @@ namespace Cesil
     ///   to get to the next branch.
     ///   
     /// We store # of prefixes - 1, since there will always be at least one prefix.
+    /// 
+    /// ===
+    /// 
+    /// The binary search tree
+    /// ----
+    /// 
+    /// Strings are sorted, then a count of strings (as an int), then pairs of indexes and values.
+    ///   The indexes are absolute into the memory.
+    ///   The values are stored plain.
+    ///   The actual strings are in reverse order at the end of the memory.
+    /// 
+    /// For the strings:
+    /// 
+    ///  - abc = 2
+    ///  - defg = 1
+    ///  - hijkl = 0
+    ///  
+    /// we end up with:
+    ///  - count 3
+    ///  - 
+    /// 
+    /// 
+    ///  0: 0000, 0003,     // 3 strings (each int takes 2 chars)
+    ///  2: 0000, 0022,     // index of abc 
+    ///  4: 0000, 0002,     // value for abc
+    ///  6: 0000, 0018,     // index to defg
+    ///  8: 0000, 0001,     // value for defg
+    /// 10: 0000, 0014,     // index to hijkl
+    /// 12: 0000, 0000,     // value for hijkl
+    /// 14: h, i, j, k, l,  // string hijkl
+    /// 18: d, e, f, g,     // string defg
+    /// 22: a, b, c         // string abc
+    /// 
+    /// The length of each string can be determined from the difference between each index, with a special case for the LAST string
+    ///   whose length can be calculated from the end of the memory.
+    /// 
     /// </summary>
     internal struct NameLookup : ITestableDisposable
     {
-        // todo: figure out how to support really long names, or a way to reject them in a "don't throw an exception" way?
+        internal enum MemoryLayout : byte
+        {
+            None = 0,
 
-        internal static readonly NameLookup Empty = new NameLookup(EmptyMemoryOwner.Singleton, ReadOnlyMemory<char>.Empty);
+            AdaptiveRadixTrie = 1,
+            BinarySearchTree = 2
+        }
+
+        internal static readonly NameLookup Empty = new NameLookup(MemoryLayout.None, EmptyMemoryOwner.Singleton, ReadOnlyMemory<char>.Empty);
 
         private const int NUM_PREFIX_OFFSET = 0;
+        private const int CHARS_PER_INT = sizeof(int) / sizeof(char);
 
         // internal for testing purposes
         internal readonly IMemoryOwner<char> MemoryOwner;
         internal readonly ReadOnlyMemory<char> Memory;
+        internal readonly MemoryLayout Mode;
 
         private bool _IsDisposed;
         public bool IsDisposed => _IsDisposed;
 
-        internal NameLookup(IMemoryOwner<char> owner, ReadOnlyMemory<char> memory)
+        internal NameLookup(MemoryLayout mode, IMemoryOwner<char> owner, ReadOnlyMemory<char> memory)
         {
             MemoryOwner = owner;
             Memory = memory;
+            Mode = mode;
             _IsDisposed = false;
         }
 
@@ -69,7 +126,19 @@ namespace Cesil
             }
         }
 
-        internal readonly unsafe bool TryLookup(string key, out int value)
+        internal readonly bool TryLookup(string key, out int value)
+        {
+            switch (Mode)
+            {
+                case MemoryLayout.AdaptiveRadixTrie: return TryLookupAdaptiveRadixTrie(key, out value);
+                case MemoryLayout.BinarySearchTree: return TryLookupBinarySearchTree(key, out value);
+                default:
+                    value = 0;
+                    return Throw.ImpossibleException<bool>($"Unexpected {nameof(MemoryLayout)}: {Mode}");
+            }
+        }
+
+        private readonly unsafe bool TryLookupAdaptiveRadixTrie(string key, out int value)
         {
             AssertNotDisposedInternal(this);
 
@@ -237,12 +306,220 @@ processPrefixGroup:
             return false;
         }
 
+        private readonly unsafe bool TryLookupBinarySearchTree(string key, out int value)
+        {
+            AssertNotDisposedInternal(this);
+
+            var keyLength = key.Length;
+            fixed (char* keyConstPtr = key)
+            {
+                var treeSpan = Memory.Span;
+                var treeLength = treeSpan.Length;
+                fixed (char* constTreePtr = treeSpan)
+                {
+                    int* intPtr = (int*)constTreePtr;
+
+                    // read how many names we have to check, in total
+                    var count = *intPtr;
+
+                    var startOfPairs = intPtr + 1;
+
+                    var startOfNames = startOfPairs + count * 2;      // times 2 because we have the index and the value as pairs
+
+                    // setup pointers to the "active window" of values to search over
+                    var startOfWindow = startOfPairs;
+                    var endOfWindow = startOfNames - 2;
+
+                    while (startOfWindow <= endOfWindow)
+                    {
+                        // this calculation is a bit long winded, but I'm fairly certain
+                        //   it doesn't fall afoul of the "every binary search ever is 
+                        //   broken"-problem
+                        var intsInWindow = endOfWindow - startOfWindow + 2; // we need to add 2 because if start == end we still have 1 pair (2 ints)
+                        var pairsInWindow = intsInWindow / 2;
+
+                        var pivot = pairsInWindow / 2;
+
+                        var offsetFromStartOfGroup = pivot * 2; // times 2 because we have the index and the value as pairs
+
+                        // read the pair we're currently considering
+                        var toCheck = startOfWindow + offsetFromStartOfGroup;
+                        var toCheckIx = *toCheck;
+                        var toCheckValue = *(toCheck + 1);
+
+                        // now we need to determine the length of the string
+                        //   at `toCheckIx`
+                        int toCheckLength;
+
+                        // if we have no previous value, then the string
+                        //    is going to terminate at the end of memory
+                        if (toCheck == startOfPairs)
+                        {
+                            toCheckLength = treeLength - toCheckIx;
+                        }
+                        else
+                        {
+                            // otherwise, we need to look BACK one pair
+                            //   this will give us the index of the FOLLOWING
+                            //   string in the sequence
+                            var beforeToCheck = toCheck - 2;
+
+                            var beforeToCheckIx = *beforeToCheck;
+                            toCheckLength = beforeToCheckIx - toCheckIx;
+                        }
+
+                        // get a ptr to the string value
+                        var startOfNamePtr = constTreePtr + toCheckIx;
+
+                        var commonLength = Math.Min(keyLength, toCheckLength);
+                        int cmpRes = 0;
+                        for (var i = 0; i < commonLength; i++)
+                        {
+                            var keyChar = keyConstPtr[i];
+                            var nameChar = *startOfNamePtr;
+
+                            cmpRes = keyChar - nameChar;
+                            if (cmpRes != 0)
+                            {
+                                break;
+                            }
+
+                            startOfNamePtr++;
+                        }
+
+                        // now, if cmpRes < 0 then key < name
+                        //      if cmpRes > 0 then key > name
+                        //      if cmpRes == 0 then key == name UP TO commonLength
+
+                        if (cmpRes == 0)
+                        {
+                            // now we have to compare the lengths
+                            cmpRes = keyLength - toCheckLength;
+                        }
+
+                        // now, if cmpRes < 0 then key < name
+                        //      if cmpRes > 0 then key > name
+                        //      if cmpRes == 0 then key == name
+
+                        if (cmpRes == 0)
+                        {
+                            value = toCheckValue;
+                            return true;
+                        }
+                        else if (cmpRes < 0)
+                        {
+                            // we need to move back towards the origin
+                            //    so startOfWindow remains the same and
+                            //    endOfWindow needs to move to before toCheck
+                            endOfWindow = toCheck - 2;  // skip back one because we've checked it
+                        }
+                        else
+                        {
+                            // we need to move away from the origin
+                            //    so startOfWindow advances to after pivot
+                            //    but endOfWindow remains teh same
+                            startOfWindow = toCheck + 2;    // skip forward one because we've checked it
+                        }
+                    }
+
+                    // we've fully exhausted the window, so we're not going to find key
+                    value = -1;
+                    return false;
+                }
+            }
+        }
+
         internal static NameLookup Create(IEnumerable<string> names, MemoryPool<char> memoryPool)
         {
             // todo: can we do this in a less allocate-y way?
             // sort 'em, so we can more easily find common prefixes
             var inOrder = names.Select((n, ix) => (Name: n, Index: ix)).OrderBy(t => t.Name, StringComparer.Ordinal);
 
+            if (TryCreateAdaptiveRadixTrie(inOrder, memoryPool, out var trieOwner, out var trieMem))
+            {
+                return new NameLookup(MemoryLayout.AdaptiveRadixTrie, trieOwner, trieMem);
+            }
+
+            if (TryCreateBinarySearchTree(inOrder, memoryPool, out var binaryTreeOwner, out var binaryTreeMem))
+            {
+                return new NameLookup(MemoryLayout.BinarySearchTree, binaryTreeOwner, binaryTreeMem);
+            }
+
+            return Throw.InvalidOperationException<NameLookup>($"Could create a lookup for dynamic member names, names could not fit in memory acquired from MemoryPool: {memoryPool}");
+        }
+
+        // internal for testing purposes
+        internal static bool TryCreateBinarySearchTree(IOrderedEnumerable<(string Name, int Index)> inOrder, MemoryPool<char> memoryPool, out IMemoryOwner<char> memOwner, out ReadOnlyMemory<char> mem)
+        {
+            // todo: don't love allocating here?
+            var sortedNames = new List<ReadOnlyMemory<char>>();
+            var sortedNamesValues = new List<int>();
+
+            var neededChars = CHARS_PER_INT;    // start at 1 int, because we need a count
+
+            foreach (var t in inOrder)
+            {
+                var tMem = t.Name.AsMemory();
+
+                neededChars += CHARS_PER_INT;   // 1 for the index into the string
+                neededChars += CHARS_PER_INT;   // 1 for the value
+                neededChars += tMem.Length;     // then the string itself
+
+                sortedNames.Add(tMem);
+                sortedNamesValues.Add(t.Index);
+            }
+
+            var writeableMemOwner = memoryPool.Rent(neededChars);
+            var writeableMem = writeableMemOwner.Memory;
+            if (writeableMem.Length < neededChars)
+            {
+                writeableMemOwner.Dispose();
+
+                memOwner = EmptyMemoryOwner.Singleton;
+                mem = ReadOnlyMemory<char>.Empty;
+                return false;
+            }
+
+            writeableMem = writeableMem[0..neededChars];
+            var charSpan = writeableMem.Span;
+            var intSpan = MemoryMarshal.Cast<char, int>(charSpan);
+
+            var frontPtr = 0;
+            var backPtr = charSpan.Length;
+
+            // store the count of names
+            intSpan[frontPtr] = sortedNames.Count;
+            frontPtr++;
+
+            for (var i = 0; i < sortedNames.Count; i++)
+            {
+                var name = sortedNames[i];
+                var value = sortedNamesValues[i];
+
+                // copy the string to the furthest unused chunk of charSpan
+                var startOfNameIx = backPtr - name.Length;
+                name.Span.CopyTo(charSpan[startOfNameIx..]);
+
+                // write the index of the string, and the value that goes with it
+                //   to the next two open slots of intSpan
+                var indexAddr = frontPtr;
+                var valueAddr = frontPtr + 1;
+                intSpan[indexAddr] = startOfNameIx;
+                intSpan[valueAddr] = value;
+
+                // update the pointers
+                frontPtr = valueAddr + 1;
+                backPtr = startOfNameIx;
+            }
+
+            memOwner = writeableMemOwner;
+            mem = writeableMem;
+            return true;
+        }
+
+        private static bool TryCreateAdaptiveRadixTrie(IOrderedEnumerable<(string Name, int Index)> inOrder, MemoryPool<char> memoryPool, out IMemoryOwner<char> memOwner, out ReadOnlyMemory<char> mem)
+        {
+            // todo: don't love allocating here?
             var sortedNames = new List<ReadOnlyMemory<char>>();
             var sortedNamesValues = new List<ushort>();
 
@@ -252,10 +529,11 @@ processPrefixGroup:
                 sortedNamesValues.Add((ushort)t.Index);
             }
 
-
             if (sortedNames.Count > ushort.MaxValue)
             {
-                return Throw.ArgumentException<NameLookup>($"{nameof(NameLookup)} can only at most {ushort.MaxValue}", nameof(names));
+                memOwner = EmptyMemoryOwner.Singleton;
+                mem = ReadOnlyMemory<char>.Empty;
+                return false;
             }
 
             Debug.WriteLineIf(
@@ -263,19 +541,38 @@ processPrefixGroup:
                 $"{nameof(Create)}: ordered names ({string.Join(", ", sortedNames.Select(x => '"' + new string(x.Span) + '"'))})"
             );
 
-            var neededMemory = CalculateNeededMemory(sortedNames, 0, sortedNames.Count - 1, 0);
+            var neededMemory = CalculateNeededMemoryAdaptivePrefixTrie(sortedNames, 0, sortedNames.Count - 1, 0);
 
-            var memOwner = memoryPool.Rent(neededMemory);
-            var mem = memOwner.Memory.Slice(0, neededMemory);
+            var writeableMemOwner = memoryPool.Rent(neededMemory);
+            var writeableMem = writeableMemOwner.Memory;
+            if (writeableMem.Length < neededMemory)
+            {
+                writeableMemOwner.Dispose();
 
-            var span = mem.Span;
+                memOwner = EmptyMemoryOwner.Singleton;
+                mem = ReadOnlyMemory<char>.Empty;
+                return false;
+            }
 
-            StorePrefixGroups(0, sortedNames, 0, sortedNames.Count - 1, sortedNamesValues, span, 0);
+            writeableMem = writeableMem[0..neededMemory];
 
-            return new NameLookup(memOwner, mem);
+            var span = writeableMem.Span;
+
+            if (!StorePrefixGroups(0, sortedNames, 0, sortedNames.Count - 1, sortedNamesValues, span, 0, out _))
+            {
+                writeableMemOwner.Dispose();
+                memOwner = EmptyMemoryOwner.Singleton;
+                mem = ReadOnlyMemory<char>.Empty;
+
+                return false;
+            }
+
+            memOwner = writeableMemOwner;
+            mem = writeableMem;
+            return true;
 
             // pushes a level of prefix groups into groupStartSpan
-            static int StorePrefixGroups(
+            static bool StorePrefixGroups(
                 // for debugging purposes
                 int depth,
                 // rather than allocate explicit subsets, 
@@ -301,11 +598,12 @@ processPrefixGroup:
                 // this works because the path to the current prefix group
                 //   is shared (foobar and football both start with "foo") 
                 //   and thus always the same length
-                int ignoreCharCount
+                int ignoreCharCount,
+                out int curOffset
             )
             {
                 // one past, since we're going to write to the count repeatedly and directly
-                var curOffset = NUM_PREFIX_OFFSET + 1;
+                curOffset = NUM_PREFIX_OFFSET + 1;
 
                 // fill out the prefix groups
                 //
@@ -330,7 +628,12 @@ processPrefixGroup:
                         if (startOfPrefixGroup == firstNamesIx)
                         {
                             // first time, just store 1
-                            groupStartSpan[NUM_PREFIX_OFFSET] = ToPrefixCount(1);
+                            if (!ToPrefixCount(1, out var prefixCountChar))
+                            {
+                                curOffset = -1;
+                                return false;
+                            }
+                            groupStartSpan[NUM_PREFIX_OFFSET] = prefixCountChar;
                         }
                         else
                         {
@@ -339,10 +642,15 @@ processPrefixGroup:
                         }
 
                         // find the length of common prefix for name
-                        var prefixLen = CommonPrefixLength(names, lastNamesIx, startOfPrefixGroup, ignoreCharCount, out int lastIndexOfPrefixGroup);
+                        var prefixLen = CommonPrefixLengthAdaptivePrefixTrie(names, lastNamesIx, startOfPrefixGroup, ignoreCharCount, out int lastIndexOfPrefixGroup);
 
                         // store the length of this prefix
-                        groupStartSpan[curOffset] = ToPrefixLength(prefixLen);
+                        if (!ToPrefixLength(prefixLen, out var prefixLenChar))
+                        {
+                            curOffset = -1;
+                            return false;
+                        }
+                        groupStartSpan[curOffset] = prefixLenChar;
                         curOffset++;
 
                         Debug.WriteLineIf(
@@ -356,7 +664,13 @@ processPrefixGroup:
                         curOffset += prefixLen;
 
                         // stash the end of the group for the next loop
-                        groupStartSpan[curOffset] = ToEndOfPrefixGroup(lastIndexOfPrefixGroup);
+                        if (!ToEndOfPrefixGroup(lastIndexOfPrefixGroup, out var indexChar))
+                        {
+                            curOffset = -1;
+                            return false;
+                        }
+
+                        groupStartSpan[curOffset] = indexChar;
                         curOffset++;
 
                         startOfPrefixGroup = lastIndexOfPrefixGroup + 1;
@@ -396,13 +710,22 @@ processPrefixGroup:
                         {
                             // store the jump to the next chunk of free memory as the offset
                             var offset = curOffset - groupPtr;
-                            groupStartSpan[groupPtr] = ToOffset(offset);
+                            if (!ToOffset(offset, out var offsetChar))
+                            {
+                                curOffset = -1;
+                                return false;
+                            }
+                            groupStartSpan[groupPtr] = offsetChar;
                             groupPtr++;
 
                             // store the next prefix groups into the buffer, and then note that we've advanced that far
                             //   into the span
                             var newIgnoreCharCount = ignoreCharCount + prefixLen;
-                            var sizeOfNextPrefixGroup = StorePrefixGroups(depth + 1, names, newFirstNamesIx, newLastNamesIx, values, nextGroupStartSpan, newIgnoreCharCount);
+                            if (!StorePrefixGroups(depth + 1, names, newFirstNamesIx, newLastNamesIx, values, nextGroupStartSpan, newIgnoreCharCount, out var sizeOfNextPrefixGroup))
+                            {
+                                curOffset = -1;
+                                return false;
+                            }
                             curOffset += sizeOfNextPrefixGroup;
                         }
                         else
@@ -412,7 +735,12 @@ processPrefixGroup:
                             //   overload the space we'd store the offset
                             //   to instead store the final value.
                             var value = values[newFirstNamesIx];
-                            groupStartSpan[groupPtr] = ToValue(value);
+                            if (!ToValue(value, out var valueChar))
+                            {
+                                curOffset = -1;
+                                return false;
+                            }
+                            groupStartSpan[groupPtr] = valueChar;
                             groupPtr++;
                         }
 
@@ -421,25 +749,29 @@ processPrefixGroup:
                     }
                 }
 
-                return curOffset;
+                return true;
             }
         }
 
         // index is stored as is, just assuming >= 0
         //    since it's an index into a list
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static char ToEndOfPrefixGroup(int index)
+        internal static bool ToEndOfPrefixGroup(int index, out char asChar)
         {
             // index will always be positive
             Debug.Assert(index >= 0, $"Index out of range: {index}");
 
-            ushort asUShort;
-            checked
+            if (index < 0 || index > ushort.MaxValue)
             {
-                asUShort = (ushort)index;
+                asChar = '\0';
+                return false;
             }
 
-            return (char)asUShort;
+            ushort asUShort = checked((ushort)index);
+
+            asChar = (char)asUShort;
+
+            return true;
         }
 
         // undoes ToEndOfPrefixGroup
@@ -455,18 +787,22 @@ processPrefixGroup:
         //   since we always expect a > 0 number of prefixes
         //   in a group
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static char ToPrefixCount(int count)
+        internal static bool ToPrefixCount(int count, out char asChar)
         {
             // offset will always be >= 1
             Debug.Assert(count >= 1, $"PrefixCount out of range: {count}");
 
-            ushort asUShort;
-            checked
+            var val = count - 1;
+            if (val < 0 || val > ushort.MaxValue)
             {
-                asUShort = (ushort)(count - 1);
+                asChar = '\0';
+                return false;
             }
 
-            return (char)asUShort;
+            ushort asUShort = checked((ushort)val);
+
+            asChar = (char)asUShort;
+            return true;
         }
 
         // undoes ToPrefixCount
@@ -485,18 +821,22 @@ processPrefixGroup:
         //   (which are always >= 0) and offsets
         //   (which will always be < 0).
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static char ToOffset(int offset)
+        internal static bool ToOffset(int offset, out char asChar)
         {
             // offset will always be >= 1
             Debug.Assert(offset >= 1, $"Offset out of range: {offset}");
 
-            short asShort;
-            checked
+            var val = -offset;
+            if (val < short.MinValue || val > short.MaxValue)
             {
-                asShort = (short)-offset;
+                asChar = '\0';
+                return false;
             }
 
-            return (char)asShort;
+            short asShort = checked((short)val);
+
+            asChar = (char)asShort;
+            return true;
         }
 
         // undoes ToOffset
@@ -524,17 +864,20 @@ processPrefixGroup:
         // nothing fancy, except we always expect
         //   prefix lengths to be >= 0
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static char ToPrefixLength(int len)
+        internal static bool ToPrefixLength(int len, out char asChar)
         {
             Debug.Assert(len >= 0, $"Length out of range: {len}");
 
-            ushort asUShort;
-            checked
+            if (len < 0 || len > ushort.MaxValue)
             {
-                asUShort = (ushort)len;
+                asChar = '\0';
+                return false;
             }
 
-            return (char)asUShort;
+            ushort asUShort = checked((ushort)len);
+
+            asChar = (char)asUShort;
+            return true;
         }
 
         // undoes ToPrefixLength
@@ -552,18 +895,21 @@ processPrefixGroup:
         //   values to be >=0 since they're indexes
         //   into a List
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static char ToValue(int value)
+        internal static bool ToValue(int value, out char asChar)
         {
             // value will always be >= 0
             Debug.Assert(value >= 0, $"Value out of range: {value}");
 
-            ushort asUShort;
-            checked
+            if (value < 0 || value > ushort.MaxValue)
             {
-                asUShort = (ushort)value;
+                asChar = '\0';
+                return false;
             }
 
-            return (char)asUShort;
+            ushort asUShort = checked((ushort)value);
+
+            asChar = (char)asUShort;
+            return true;
         }
 
         // undoes ToValue
@@ -577,7 +923,7 @@ processPrefixGroup:
 
         // figure out how much total memory we'll need to store the whole tree
         // internal for testing purposes
-        internal static int CalculateNeededMemory(
+        internal static int CalculateNeededMemoryAdaptivePrefixTrie(
             // rather than allocate explicit subsets, 
             //   we only work on the part of names between
             //   [firstNamesIx, lastNamesIx] on each call
@@ -601,7 +947,7 @@ processPrefixGroup:
             while (startOfPrefixGroup <= lastNamesIx)
             {
                 // find the length of common prefix for name
-                var prefixLen = CommonPrefixLength(names, lastNamesIx, startOfPrefixGroup, ignoreCharCount, out int lastIndexOfPrefixGroup);
+                var prefixLen = CommonPrefixLengthAdaptivePrefixTrie(names, lastNamesIx, startOfPrefixGroup, ignoreCharCount, out int lastIndexOfPrefixGroup);
 
                 // calculate the subset of names we need to recurse on
                 var newFirstNamesIx = startOfPrefixGroup;
@@ -618,7 +964,7 @@ processPrefixGroup:
                 if (size > 1)
                 {
                     // figure out how much we'll need from the prefixes too
-                    var subgroupNeeded = CalculateNeededMemory(names, newFirstNamesIx, newLastNamesIx, newIgnoreCharCount);
+                    var subgroupNeeded = CalculateNeededMemoryAdaptivePrefixTrie(names, newFirstNamesIx, newLastNamesIx, newIgnoreCharCount);
                     neededMemory += subgroupNeeded;
                 }
 
@@ -629,7 +975,7 @@ processPrefixGroup:
         }
 
         // figure out how many characters are in the prefix group (and how big that group is) for name
-        internal static int CommonPrefixLength(
+        internal static int CommonPrefixLengthAdaptivePrefixTrie(
             // rather than allocate explicit subsets, 
             //   we only work on the part of names between
             //   on each call.  other methods use [first, last]
