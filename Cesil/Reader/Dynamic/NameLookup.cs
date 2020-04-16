@@ -12,11 +12,11 @@ namespace Cesil
     /// <summary>
     /// This has two modes: 
     ///  1. An adaptive radix tree
-    ///  2. A binary tree
+    ///  2. A sorted array search with binary search
     ///  
     /// The radix tree is faster and more compact, but can fail if names are reeeeaaaallly long.
     /// 
-    /// The binary tree can handle names that are quite long, but does many more comparisons and 
+    /// Binary search can handle names that are quite long, but does many more comparisons and 
     ///   is less compact.
     /// 
     /// ===
@@ -52,7 +52,7 @@ namespace Cesil
     /// 
     /// ===
     /// 
-    /// The binary search tree
+    /// The binary search
     /// ----
     /// 
     /// Strings are sorted, then a count of strings (as an int), then pairs of indexes and values.
@@ -93,7 +93,7 @@ namespace Cesil
             None = 0,
 
             AdaptiveRadixTrie = 1,
-            BinarySearchTree = 2
+            BinarySearch = 2
         }
 
         internal static readonly NameLookup Empty = new NameLookup(MemoryLayout.None, EmptyMemoryOwner.Singleton, ReadOnlyMemory<char>.Empty);
@@ -131,7 +131,7 @@ namespace Cesil
             switch (Mode)
             {
                 case MemoryLayout.AdaptiveRadixTrie: return TryLookupAdaptiveRadixTrie(key, out value);
-                case MemoryLayout.BinarySearchTree: return TryLookupBinarySearchTree(key, out value);
+                case MemoryLayout.BinarySearch: return TryLookupBinarySearch(key, out value);
                 default:
                     value = 0;
                     return Throw.ImpossibleException<bool>($"Unexpected {nameof(MemoryLayout)}: {Mode}");
@@ -306,7 +306,7 @@ processPrefixGroup:
             return false;
         }
 
-        private readonly unsafe bool TryLookupBinarySearchTree(string key, out int value)
+        private readonly unsafe bool TryLookupBinarySearch(string key, out int value)
         {
             AssertNotDisposedInternal(this);
 
@@ -440,16 +440,16 @@ processPrefixGroup:
                 return new NameLookup(MemoryLayout.AdaptiveRadixTrie, trieOwner, trieMem);
             }
 
-            if (TryCreateBinarySearchTree(inOrder, memoryPool, out var binaryTreeOwner, out var binaryTreeMem))
+            if (TryCreateBinarySearch(inOrder, memoryPool, out var binaryTreeOwner, out var binaryTreeMem))
             {
-                return new NameLookup(MemoryLayout.BinarySearchTree, binaryTreeOwner, binaryTreeMem);
+                return new NameLookup(MemoryLayout.BinarySearch, binaryTreeOwner, binaryTreeMem);
             }
 
             return Throw.InvalidOperationException<NameLookup>($"Could create a lookup for dynamic member names, names could not fit in memory acquired from MemoryPool: {memoryPool}");
         }
 
         // internal for testing purposes
-        internal static bool TryCreateBinarySearchTree(IOrderedEnumerable<(string Name, int Index)> inOrder, MemoryPool<char> memoryPool, out IMemoryOwner<char> memOwner, out ReadOnlyMemory<char> mem)
+        internal static bool TryCreateBinarySearch(IOrderedEnumerable<(string Name, int Index)> inOrder, MemoryPool<char> memoryPool, out IMemoryOwner<char> memOwner, out ReadOnlyMemory<char> mem)
         {
             // todo: don't love allocating here?
             var sortedNames = new List<ReadOnlyMemory<char>>();

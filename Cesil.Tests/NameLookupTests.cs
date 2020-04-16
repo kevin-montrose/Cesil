@@ -9,9 +9,9 @@ namespace Cesil.Tests
 {
     public class NameLookupTests
     {
-        // Binary Tree tests
+        // Binary Search tests
         [Fact]
-        public void Create_BinarySearchTree()
+        public void Create_BinarySearch()
         {
             // todo: this test assumes little endian
 
@@ -19,7 +19,7 @@ namespace Cesil.Tests
             {
                 var vals = OrderValues(new[] { "bar" });
 
-                Assert.True(NameLookup.TryCreateBinarySearchTree(vals, MemoryPool<char>.Shared, out var owner, out var mem));
+                Assert.True(NameLookup.TryCreateBinarySearch(vals, MemoryPool<char>.Shared, out var owner, out var mem));
                 var chars = mem.ToArray();
                 owner.Dispose();
 
@@ -46,7 +46,7 @@ namespace Cesil.Tests
             {
                 var vals = OrderValues(new[] { "bar", "buzz" });
 
-                Assert.True(NameLookup.TryCreateBinarySearchTree(vals, MemoryPool<char>.Shared, out var owner, out var mem));
+                Assert.True(NameLookup.TryCreateBinarySearch(vals, MemoryPool<char>.Shared, out var owner, out var mem));
                 var chars = mem.ToArray();
                 owner.Dispose();
 
@@ -79,7 +79,7 @@ namespace Cesil.Tests
             {
                 var vals = OrderValues(new[] { "bar", "buzz", "foo", "head", "heap", "hello" });
 
-                Assert.True(NameLookup.TryCreateBinarySearchTree(vals, MemoryPool<char>.Shared, out var owner, out var mem));
+                Assert.True(NameLookup.TryCreateBinarySearch(vals, MemoryPool<char>.Shared, out var owner, out var mem));
                 var chars = mem.ToArray();
                 owner.Dispose();
 
@@ -168,7 +168,7 @@ namespace Cesil.Tests
                     var heatIx = vals.Single(s => s.Name == "heat").Index;
                     Assert.NotEqual(-1, heatIx);
 
-                    Assert.True(NameLookup.TryCreateBinarySearchTree(valsOrdered, MemoryPool<char>.Shared, out var owner, out var mem));
+                    Assert.True(NameLookup.TryCreateBinarySearch(valsOrdered, MemoryPool<char>.Shared, out var owner, out var mem));
                     var chars = mem.ToArray();
                     owner.Dispose();
 
@@ -269,7 +269,7 @@ namespace Cesil.Tests
         }
 
         [Fact]
-        public void Lookup_BinarySearchTree()
+        public void Lookup_BinarySearch()
         {
             // single key
             {
@@ -277,7 +277,7 @@ namespace Cesil.Tests
 
                 using (var lookup = Create(vals))
                 {
-                    Assert.Equal(NameLookup.MemoryLayout.BinarySearchTree, lookup.Mode);
+                    Assert.Equal(NameLookup.MemoryLayout.BinarySearch, lookup.Mode);
                     Assert.True(lookup.TryLookup("bar", out var barVal));
                     Assert.Equal(0, barVal);
 
@@ -313,7 +313,7 @@ namespace Cesil.Tests
 
                 using (var lookup = Create(vals))
                 {
-                    Assert.Equal(NameLookup.MemoryLayout.BinarySearchTree, lookup.Mode);
+                    Assert.Equal(NameLookup.MemoryLayout.BinarySearch, lookup.Mode);
                     Assert.True(lookup.TryLookup("bar", out var barVal));
                     Assert.Equal(0, barVal);
 
@@ -355,7 +355,7 @@ namespace Cesil.Tests
 
                 using (var lookup = Create(vals))
                 {
-                    Assert.Equal(NameLookup.MemoryLayout.BinarySearchTree, lookup.Mode);
+                    Assert.Equal(NameLookup.MemoryLayout.BinarySearch, lookup.Mode);
                     Assert.False(lookup.TryLookup("", out var emptyVal));
                     Assert.Equal(-1, emptyVal);
 
@@ -422,7 +422,7 @@ namespace Cesil.Tests
 
                     using (var lookup = Create(vals))
                     {
-                        Assert.Equal(NameLookup.MemoryLayout.BinarySearchTree, lookup.Mode);
+                        Assert.Equal(NameLookup.MemoryLayout.BinarySearch, lookup.Mode);
                         Assert.False(lookup.TryLookup("", out var emptyVal));
                         Assert.Equal(-1, emptyVal);
 
@@ -483,7 +483,7 @@ namespace Cesil.Tests
                 var vals = new List<string> { "NullableGuid", "NullableInt", "NullableChar", "NullableSByte", "NullableDateTime", "NullableFloat", "DateTime", "Long", "Float", "ULong", "NullableUInt", "NullableShort", "Byte", "Enum", "NullableDecimal", "ShallowRows", "DeepRows", "Decimal", "NullableByte", "NullableUShort", "Char", "DateTimeOffset", "Int", "NullableULong", "SByte", "Short", "NullableLong", "NullableDouble", "UShort", "Double", "FlagsEnum", "Uri", "String", "NullableEnum", "NullableDateTimeOffset", "UInt", "NullableFlagsEnum", "Guid" };
                 using (var lookup = Create(vals))
                 {
-                    Assert.Equal(NameLookup.MemoryLayout.BinarySearchTree, lookup.Mode);
+                    Assert.Equal(NameLookup.MemoryLayout.BinarySearch, lookup.Mode);
                     for (var i = 0; i < vals.Count; i++)
                     {
                         var val = vals[i];
@@ -497,9 +497,9 @@ namespace Cesil.Tests
             {
                 var vals = values.Select((t, ix) => (Name: t, Index: ix)).OrderBy(o => o.Name, StringComparer.Ordinal);
 
-                Assert.True(NameLookup.TryCreateBinarySearchTree(vals, MemoryPool<char>.Shared, out var owner, out var mem));
+                Assert.True(NameLookup.TryCreateBinarySearch(vals, MemoryPool<char>.Shared, out var owner, out var mem));
 
-                return new NameLookup(NameLookup.MemoryLayout.BinarySearchTree, owner, mem);
+                return new NameLookup(NameLookup.MemoryLayout.BinarySearch, owner, mem);
             }
         }
 
