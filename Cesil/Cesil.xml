@@ -1576,11 +1576,11 @@
             <summary>
             This has two modes: 
              1. An adaptive radix tree
-             2. A binary tree
+             2. A sorted array search with binary search
              
             The radix tree is faster and more compact, but can fail if names are reeeeaaaallly long.
             
-            The binary tree can handle names that are quite long, but does many more comparisons and 
+            Binary search can handle names that are quite long, but does many more comparisons and 
               is less compact.
             
             ===
@@ -1616,7 +1616,7 @@
             
             ===
             
-            The binary search tree
+            The binary search
             ----
             
             Strings are sorted, then a count of strings (as an int), then pairs of indexes and values.

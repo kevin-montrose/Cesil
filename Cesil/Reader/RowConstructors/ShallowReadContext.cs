@@ -2,8 +2,6 @@
 {
     internal readonly struct ShallowReadContext
     {
-        internal bool HasColumn => ColumnIndex != -1;
-
         internal readonly ReadContextMode Mode;
         internal readonly int RowNumber;
         internal readonly int ColumnIndex;

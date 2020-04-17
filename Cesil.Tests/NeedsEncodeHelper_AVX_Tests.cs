@@ -6,6 +6,30 @@ namespace Cesil.Tests
     public class NeedsEncodeHelper_AVX_Tests
     {
         [Theory]
+        [InlineData("0123456789ABCDEFa", -1)]
+        [InlineData("0123456789ABCDEF,", 16)]
+        [InlineData("0123456789ABCDEFab", -1)]
+        [InlineData("0123456789ABCDEF,b", 16)]
+        [InlineData("0123456789ABCDEFa,", 17)]
+        [InlineData("0123456789ABCDEFabc", -1)]
+        [InlineData("0123456789ABCDEFab,", 18)]
+        public unsafe void AwkwardLengths(string txt, int expected)
+        {
+            var charsFor256Bits = 256 / (sizeof(char) * 8);
+
+            Assert.NotEqual(0, txt.Length % charsFor256Bits);
+
+            var state = new NeedsEncodeHelper(',', '"', '#');
+
+            fixed (char* charPtr = txt)
+            {
+                var res = state.ContainsCharRequiringEncoding(charPtr, txt.Length);
+
+                Assert.Equal(expected, res);
+            }
+        }
+
+        [Theory]
         [InlineData("0123456789ABCDEF", -1)]
         [InlineData("\r123456789ABCDEF", 0)]
         [InlineData("0\n23456789ABCDEF", 1)]

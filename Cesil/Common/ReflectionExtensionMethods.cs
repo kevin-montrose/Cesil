@@ -234,6 +234,9 @@ namespace Cesil
         internal static TypeInfo CreateTypeNonNull(this TypeBuilder builder)
         {
             var type = builder.CreateTypeInfo();
+
+            // is this ever really possible?
+            // todo: find a way to test
             if (type == null)
             {
                 return Throw.InvalidOperationException<TypeInfo>($"Created type was null");

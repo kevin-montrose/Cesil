@@ -9,6 +9,148 @@ namespace Cesil.Tests
 {
     public class NameLookupTests
     {
+        private sealed class _FailIfMemoryNotAvailable : MemoryPool<char>
+        {
+            private sealed class Owner: IMemoryOwner<char>
+            {
+                public Memory<char> Memory { get; }
+
+                internal Owner(char[] mem)
+                {
+                    Memory = mem.AsMemory();
+                }
+
+                public void Dispose() { }
+            }
+
+            public override int MaxBufferSize => 100;
+
+            public override IMemoryOwner<char> Rent(int minBufferSize = -1)
+            => new Owner(new char[MaxBufferSize]);
+
+            protected override void Dispose(bool disposing) { }
+        }
+
+        [Fact]
+        public void FailIfMemoryNotAvailable()
+        {
+            var mem = new _FailIfMemoryNotAvailable();
+
+            var keys = Enumerable.Range(0, ushort.MaxValue + 2).Select(i => i.ToString()).ToList();
+
+            Assert.Throws<InvalidOperationException>(() => NameLookup.Create(keys, mem));
+        }
+
+        [Fact]
+        public void FallbackToBinarySearch()
+        {
+            // too many keys
+            {
+                var keys = Enumerable.Range(0, ushort.MaxValue + 2).Select(i => i.ToString()).ToList();
+
+                using (var lookup = NameLookup.Create(keys, MemoryPool<char>.Shared))
+                {
+                    Assert.Equal(NameLookup.Algorithm.BinarySearch, lookup.Mode);
+
+                    for (var i = 0; i <= ushort.MaxValue + 1; i++)
+                    {
+                        var key = i.ToString();
+
+                        Assert.True(lookup.TryLookup(key, out var val));
+                        Assert.Equal(i, val);
+                    }
+
+                    var badKey = (ushort.MaxValue + 2).ToString();
+                    Assert.False(lookup.TryLookup(badKey, out _));
+                }
+            }
+
+            // single keys / prefixes too big
+            //
+            // this tests ToPrefixLength() failing
+            {
+                var keys =
+                    new[]
+                    {
+                        string.Join("", Enumerable.Repeat('a', 1024*64)),
+                        string.Join("", Enumerable.Repeat('b', 1024*64))
+                    };
+
+                using (var lookup = NameLookup.Create(keys, MemoryPool<char>.Shared))
+                {
+                    Assert.Equal(NameLookup.Algorithm.BinarySearch, lookup.Mode);
+
+                    Assert.True(lookup.TryLookup(keys[0], out var val0));
+                    Assert.Equal(0, val0);
+
+                    Assert.True(lookup.TryLookup(keys[1], out var val1));
+                    Assert.Equal(1, val1);
+
+                    Assert.False(lookup.TryLookup("c", out _));
+                }
+            }
+
+            // offset too far
+            //
+            // this is a tricky one to think about
+            //
+            // basically, if there needs to be a prefix
+            //   group such that storing all the other options
+            //   takes up enough space the the difference between
+            //   the first prefix option and the _next_ one
+            //   can't fit in a ushort
+            //
+            // this tests ToOffset() failing
+            {
+                // the root group will have two entires, 
+                //   one for UniqueKey, and one of the CommonPrefix
+                //   which keeps this "simple"
+                const string UniqueKey = "cd";
+                const string CommonPrefix = "ab";
+                const int InfixCount = 1000;
+                const int InfixLength = 100;
+
+                var keys = new List<string>();
+
+                keys.Add(UniqueKey);
+
+                // these a 
+                var uniqueInfixes = Enumerable.Range(0, InfixCount).Select(x => string.Join("", Enumerable.Repeat((char)x, InfixLength))).ToArray();
+
+                foreach (var infix in uniqueInfixes)
+                {
+                    // we now create two keys with the infix, so the
+                    //    infix doesn't get the tail character attached
+                    var key1 = CommonPrefix + infix + (char)InfixCount;
+                    var key2 = CommonPrefix + infix + (char)(InfixCount + 1);
+
+                    keys.Add(key1);
+                    keys.Add(key2);
+                }
+
+                // with these keys, the second level after the CommonPrefix will have
+                //   InfixCount entries, each entry will be InfixLength + 2 (one for 
+                //   prefix length, and one for the offset to the next group) chars long,
+                //   making the offset from the FIRST entry = (InfixCount - 1) * (InfixLength +2)
+                //   (minus one because the offset doesn't have to go past the first entry)
+                //   and so long as that is > short.MaxValue we can't fit that in the trie.
+
+                using (var lookup = NameLookup.Create(keys, MemoryPool<char>.Shared))
+                {
+                    Assert.Equal(NameLookup.Algorithm.BinarySearch, lookup.Mode);
+
+                    for (var i = 0; i < keys.Count; i++)
+                    {
+                        var key = keys[i];
+                        Assert.True(lookup.TryLookup(key, out var val));
+                        Assert.Equal(i, val);
+                    }
+
+                    Assert.False(lookup.TryLookup("d", out _));
+                }
+            }
+        }
+
         // Binary Search tests
         [Fact]
         public void Create_BinarySearch()
@@ -277,7 +419,7 @@ namespace Cesil.Tests
 
                 using (var lookup = Create(vals))
                 {
-                    Assert.Equal(NameLookup.MemoryLayout.BinarySearch, lookup.Mode);
+                    Assert.Equal(NameLookup.Algorithm.BinarySearch, lookup.Mode);
                     Assert.True(lookup.TryLookup("bar", out var barVal));
                     Assert.Equal(0, barVal);
 
@@ -313,7 +455,7 @@ namespace Cesil.Tests
 
                 using (var lookup = Create(vals))
                 {
-                    Assert.Equal(NameLookup.MemoryLayout.BinarySearch, lookup.Mode);
+                    Assert.Equal(NameLookup.Algorithm.BinarySearch, lookup.Mode);
                     Assert.True(lookup.TryLookup("bar", out var barVal));
                     Assert.Equal(0, barVal);
 
@@ -355,7 +497,7 @@ namespace Cesil.Tests
 
                 using (var lookup = Create(vals))
                 {
-                    Assert.Equal(NameLookup.MemoryLayout.BinarySearch, lookup.Mode);
+                    Assert.Equal(NameLookup.Algorithm.BinarySearch, lookup.Mode);
                     Assert.False(lookup.TryLookup("", out var emptyVal));
                     Assert.Equal(-1, emptyVal);
 
@@ -422,7 +564,7 @@ namespace Cesil.Tests
 
                     using (var lookup = Create(vals))
                     {
-                        Assert.Equal(NameLookup.MemoryLayout.BinarySearch, lookup.Mode);
+                        Assert.Equal(NameLookup.Algorithm.BinarySearch, lookup.Mode);
                         Assert.False(lookup.TryLookup("", out var emptyVal));
                         Assert.Equal(-1, emptyVal);
 
@@ -483,7 +625,7 @@ namespace Cesil.Tests
                 var vals = new List<string> { "NullableGuid", "NullableInt", "NullableChar", "NullableSByte", "NullableDateTime", "NullableFloat", "DateTime", "Long", "Float", "ULong", "NullableUInt", "NullableShort", "Byte", "Enum", "NullableDecimal", "ShallowRows", "DeepRows", "Decimal", "NullableByte", "NullableUShort", "Char", "DateTimeOffset", "Int", "NullableULong", "SByte", "Short", "NullableLong", "NullableDouble", "UShort", "Double", "FlagsEnum", "Uri", "String", "NullableEnum", "NullableDateTimeOffset", "UInt", "NullableFlagsEnum", "Guid" };
                 using (var lookup = Create(vals))
                 {
-                    Assert.Equal(NameLookup.MemoryLayout.BinarySearch, lookup.Mode);
+                    Assert.Equal(NameLookup.Algorithm.BinarySearch, lookup.Mode);
                     for (var i = 0; i < vals.Count; i++)
                     {
                         var val = vals[i];
@@ -499,11 +641,39 @@ namespace Cesil.Tests
 
                 Assert.True(NameLookup.TryCreateBinarySearch(vals, MemoryPool<char>.Shared, out var owner, out var mem));
 
-                return new NameLookup(NameLookup.MemoryLayout.BinarySearch, owner, mem);
+                return new NameLookup(NameLookup.Algorithm.BinarySearch, owner, mem);
             }
         }
 
         // Trie tests
+
+        [Fact]
+        public void MaxSizePrefixGroup_Trie()
+        {
+            // bugs can easily creep in
+            //   when certain values get up near 
+            //   your max values.
+            //
+            // this tests that we can handle having
+            //   a prefix group with all values [0, short.MaxValue]
+            //   in it
+
+            var keys = Enumerable.Range(0, short.MaxValue + 1).Select(x => "" + (char)x).ToList();
+
+            using (var lookup = NameLookup.Create(keys, MemoryPool<char>.Shared))
+            {
+                Assert.Equal(NameLookup.Algorithm.AdaptiveRadixTrie, lookup.Mode);
+
+                for (var i = 0; i < keys.Count; i++)
+                {
+                    var key = keys[i];
+                    Assert.True(lookup.TryLookup(key, out var val));
+                    Assert.Equal(i, val);
+                }
+
+                Assert.False(lookup.TryLookup("ab", out _));
+            }
+        }
 
         [Fact]
         public void CommonPrefixLength_Trie()
@@ -512,7 +682,7 @@ namespace Cesil.Tests
             {
                 var vals = new List<string> { "bar" }.Select(b => b.AsMemory()).ToList();
 
-                var take = NameLookup.CommonPrefixLengthAdaptivePrefixTrie(vals, vals.Count - 1, 0, 0, out var endOfGroupIx);
+                var take = NameLookup.CommonPrefixLengthAdaptivePrefixTrie(vals, (ushort)(vals.Count - 1), 0, 0, out var endOfGroupIx);
                 Assert.Equal(3, take);
                 Assert.Equal(0, endOfGroupIx);
             }
@@ -523,22 +693,22 @@ namespace Cesil.Tests
 
                 Assert.True(vals.Select(_ => new string(_.Span)).SequenceEqual(vals.Select(_ => new string(_.Span)).OrderBy(_ => _)));
 
-                var fooIx = 2;
+                ushort fooIx = 2;
                 Assert.True(Utils.AreEqual("foo".AsMemory(), vals[fooIx]));
-                var barIx = 0;
+                ushort barIx = 0;
                 Assert.True(Utils.AreEqual("bar".AsMemory(), vals[barIx]));
-                var headIx = 3;
+                ushort headIx = 3;
                 Assert.True(Utils.AreEqual("head".AsMemory(), vals[headIx]));
 
-                var takeFromFoo = NameLookup.CommonPrefixLengthAdaptivePrefixTrie(vals, vals.Count - 1, fooIx, 0, out var endOfFooIx);
+                var takeFromFoo = NameLookup.CommonPrefixLengthAdaptivePrefixTrie(vals, (ushort)(vals.Count - 1), fooIx, 0, out var endOfFooIx);
                 Assert.Equal(3, takeFromFoo);
                 Assert.Equal(fooIx, endOfFooIx);
 
-                var takeFromBar = NameLookup.CommonPrefixLengthAdaptivePrefixTrie(vals, vals.Count - 1, barIx, 0, out var endOfBarIx);
+                var takeFromBar = NameLookup.CommonPrefixLengthAdaptivePrefixTrie(vals, (ushort)(vals.Count - 1), barIx, 0, out var endOfBarIx);
                 Assert.Equal(1, takeFromBar);
                 Assert.Equal(barIx + 1, endOfBarIx);
 
-                var takeFromHead = NameLookup.CommonPrefixLengthAdaptivePrefixTrie(vals, vals.Count - 1, headIx, 0, out var endOfHeadIx);
+                var takeFromHead = NameLookup.CommonPrefixLengthAdaptivePrefixTrie(vals, (ushort)(vals.Count - 1), headIx, 0, out var endOfHeadIx);
                 Assert.Equal(2, takeFromHead);
                 Assert.Equal(headIx + 2, endOfHeadIx);
             }
@@ -553,7 +723,7 @@ namespace Cesil.Tests
             {
                 var vals = new List<string> { "bar" }.Select(b => b.AsMemory()).ToList();
 
-                var mem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(vals, 0, vals.Count - 1, 0);
+                var mem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(vals, 0, (ushort)(vals.Count - 1), 0);
                 Assert.Equal(6, mem);
             }
 
@@ -593,25 +763,40 @@ namespace Cesil.Tests
                 Assert.True(groupAt23.Select(_ => new string(_.Span)).SequenceEqual(groupAt23.Select(_ => new string(_.Span)).OrderBy(_ => _)));
                 Assert.True(groupAt32.Select(_ => new string(_.Span)).SequenceEqual(groupAt32.Select(_ => new string(_.Span)).OrderBy(_ => _)));
 
-                var g32Mem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(groupAt32, 0, groupAt32.Count - 1, 0);
+                var g32Mem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(groupAt32, 0, (ushort)(groupAt32.Count - 1), 0);
                 Assert.Equal(7, g32Mem);
 
-                var g23Mem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(groupAt23, 0, groupAt23.Count - 1, 0);
+                var g23Mem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(groupAt23, 0, (ushort)(groupAt23.Count - 1), 0);
                 Assert.Equal(9, g23Mem - g32Mem);
 
-                var g13Mem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(groupAt13, 0, groupAt13.Count - 1, 0);
+                var g13Mem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(groupAt13, 0, (ushort)(groupAt13.Count - 1), 0);
                 Assert.Equal(10, g13Mem);
 
-                var rootMem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(rootVals, 0, rootVals.Count - 1, 0);
+                var rootMem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(rootVals, 0, (ushort)(rootVals.Count - 1), 0);
                 Assert.Equal(39, rootMem);
             }
         }
 
         private static char ToPrefixCount(int val)
         {
-            var res = NameLookup.ToPrefixCount(val, out var ret);
+            var res = ToPrefixCountAssert(val, out var ret);
             Assert.True(res);
             return ret;
+        }
+
+        private static bool ToPrefixCountAssert(int count, out char asChar)
+        {
+            var val = count - 1;
+            if (val < 0 || val > ushort.MaxValue)
+            {
+                asChar = '\0';
+                return false;
+            }
+
+            ushort asUShort = checked((ushort)val);
+
+            asChar = (char)asUShort;
+            return true;
         }
 
         private static char ToPrefixLength(int val)
@@ -623,9 +808,9 @@ namespace Cesil.Tests
 
         private static char ToValue(int val)
         {
-            var res = NameLookup.ToValue(val, out var ret);
-            Assert.True(res);
-            return ret;
+            var asUShort = checked((ushort)val);
+
+            return NameLookup.ToValue(asUShort);
         }
 
         private static char ToOffset(int val)
@@ -651,7 +836,7 @@ namespace Cesil.Tests
 
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
-                    Assert.Equal(NameLookup.MemoryLayout.AdaptiveRadixTrie, lookup.Mode);
+                    Assert.Equal(NameLookup.Algorithm.AdaptiveRadixTrie, lookup.Mode);
 
                     Assert.NotNull(lookup.MemoryOwner);
                     Assert.Equal(6, lookup.Memory.Length);
@@ -691,7 +876,7 @@ namespace Cesil.Tests
 
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
-                    Assert.Equal(NameLookup.MemoryLayout.AdaptiveRadixTrie, lookup.Mode);
+                    Assert.Equal(NameLookup.Algorithm.AdaptiveRadixTrie, lookup.Mode);
                     Assert.NotNull(lookup.MemoryOwner);
 
                     var arr = lookup.Memory.ToArray();
@@ -753,7 +938,7 @@ namespace Cesil.Tests
 
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
-                    Assert.Equal(NameLookup.MemoryLayout.AdaptiveRadixTrie, lookup.Mode);
+                    Assert.Equal(NameLookup.Algorithm.AdaptiveRadixTrie, lookup.Mode);
                     Assert.NotNull(lookup.MemoryOwner);
                     Assert.Equal(39, lookup.Memory.Length);
 
@@ -878,7 +1063,7 @@ namespace Cesil.Tests
 
                     using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                     {
-                        Assert.Equal(NameLookup.MemoryLayout.AdaptiveRadixTrie, lookup.Mode);
+                        Assert.Equal(NameLookup.Algorithm.AdaptiveRadixTrie, lookup.Mode);
                         Assert.NotNull(lookup.MemoryOwner);
                         var arr = lookup.Memory.ToArray();
 
@@ -965,7 +1150,7 @@ namespace Cesil.Tests
 
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
-                    Assert.Equal(NameLookup.MemoryLayout.AdaptiveRadixTrie, lookup.Mode);
+                    Assert.Equal(NameLookup.Algorithm.AdaptiveRadixTrie, lookup.Mode);
                     Assert.True(lookup.TryLookup("bar", out var barVal));
                     Assert.Equal(0, barVal);
 
@@ -1001,7 +1186,7 @@ namespace Cesil.Tests
 
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
-                    Assert.Equal(NameLookup.MemoryLayout.AdaptiveRadixTrie, lookup.Mode);
+                    Assert.Equal(NameLookup.Algorithm.AdaptiveRadixTrie, lookup.Mode);
                     Assert.True(lookup.TryLookup("bar", out var barVal));
                     Assert.Equal(0, barVal);
 
@@ -1043,7 +1228,7 @@ namespace Cesil.Tests
 
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
-                    Assert.Equal(NameLookup.MemoryLayout.AdaptiveRadixTrie, lookup.Mode);
+                    Assert.Equal(NameLookup.Algorithm.AdaptiveRadixTrie, lookup.Mode);
                     Assert.False(lookup.TryLookup("", out var emptyVal));
                     Assert.Equal(-1, emptyVal);
 
@@ -1110,7 +1295,7 @@ namespace Cesil.Tests
 
                     using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                     {
-                        Assert.Equal(NameLookup.MemoryLayout.AdaptiveRadixTrie, lookup.Mode);
+                        Assert.Equal(NameLookup.Algorithm.AdaptiveRadixTrie, lookup.Mode);
                         Assert.False(lookup.TryLookup("", out var emptyVal));
                         Assert.Equal(-1, emptyVal);
 
@@ -1171,7 +1356,7 @@ namespace Cesil.Tests
                 var vals = new List<string> { "NullableGuid", "NullableInt", "NullableChar", "NullableSByte", "NullableDateTime", "NullableFloat", "DateTime", "Long", "Float", "ULong", "NullableUInt", "NullableShort", "Byte", "Enum", "NullableDecimal", "ShallowRows", "DeepRows", "Decimal", "NullableByte", "NullableUShort", "Char", "DateTimeOffset", "Int", "NullableULong", "SByte", "Short", "NullableLong", "NullableDouble", "UShort", "Double", "FlagsEnum", "Uri", "String", "NullableEnum", "NullableDateTimeOffset", "UInt", "NullableFlagsEnum", "Guid" };
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
-                    Assert.Equal(NameLookup.MemoryLayout.AdaptiveRadixTrie, lookup.Mode);
+                    Assert.Equal(NameLookup.Algorithm.AdaptiveRadixTrie, lookup.Mode);
                     for (var i = 0; i < vals.Count; i++)
                     {
                         var val = vals[i];

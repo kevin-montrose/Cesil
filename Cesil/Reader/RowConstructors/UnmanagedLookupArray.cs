@@ -29,13 +29,14 @@ namespace Cesil
 
         public bool IsDisposed => Owner == null;
 
-        private Span<T> Data
+        // internal for testing purposes
+        internal Span<T> Data
         {
             get
             {
                 if (Owner != null)
                 {
-                    return MemoryMarshal.Cast<char, T>(Owner.Memory.Span).Slice(0, NumElements);
+                    return MemoryMarshal.Cast<char, T>(Owner.Memory.Span)[0..NumElements];
                 }
 
                 return default;

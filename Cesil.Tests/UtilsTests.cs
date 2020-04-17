@@ -11,6 +11,44 @@ namespace Cesil.Tests
     public class UtilsTests
     {
         [Fact]
+        public void EmptyMemoryOwnerIsEmpty()
+        {
+            var m = EmptyMemoryOwner.Singleton;
+            Assert.True(m.Memory.IsEmpty);
+        }
+
+        private sealed class _WeirdImpossibleExceptions
+        {
+            public string Foo { get; set; }
+        }
+
+        [Fact]
+        public void WeirdImpossibleExceptions()
+        {
+            // for lack of a better place to test these, just do it
+
+            var concreteConfig = Configuration.For<_WeirdImpossibleExceptions>();
+            var concreteExc = ImpossibleException.Create("testing", "foo", "bar", 123, concreteConfig);
+            Assert.Equal("The impossible has happened!\r\ntesting\r\nFile: foo\r\nMember: bar\r\nLine: 123\r\nPlease report this to https://github.com/kevin-montrose/Cesil/issues/new\r\nBound to Cesil.Tests.UtilsTests+_WeirdImpossibleExceptions\r\nConcrete binding\r\nWith options: Options with CommentCharacter=, DynamicRowDisposal=OnReaderDispose, EscapedValueEscapeCharacter=\", EscapedValueStartAndEnd=\", MemoryPool=System.Buffers.ArrayMemoryPool`1[System.Char], ReadBufferSizeHint=0, ReadHeader=Detect, RowEnding=CarriageReturnLineFeed, TypeDescriber=DefaultTypeDescriber Shared Instance, ValueSeparator=,, WriteBufferSizeHint=, WriteHeader=Always, WriteTrailingRowEnding=Never, WhitespaceTreatment=Preserve, ExtraColumnTreatment=Ignore", concreteExc.Message);
+
+            var dynConfig = Configuration.ForDynamic();
+            var dynExc = ImpossibleException.Create("testing", "foo", "bar", 123, dynConfig);
+            Assert.Equal("The impossible has happened!\r\ntesting\r\nFile: foo\r\nMember: bar\r\nLine: 123\r\nPlease report this to https://github.com/kevin-montrose/Cesil/issues/new\r\nBound to System.Object\r\nDynamic binding\r\nWith options: Options with CommentCharacter=, DynamicRowDisposal=OnReaderDispose, EscapedValueEscapeCharacter=\", EscapedValueStartAndEnd=\", MemoryPool=System.Buffers.ArrayMemoryPool`1[System.Char], ReadBufferSizeHint=0, ReadHeader=Always, RowEnding=CarriageReturnLineFeed, TypeDescriber=DefaultTypeDescriber Shared Instance, ValueSeparator=,, WriteBufferSizeHint=, WriteHeader=Always, WriteTrailingRowEnding=Never, WhitespaceTreatment=Preserve, ExtraColumnTreatment=IncludeDynamic", dynExc.Message);
+        }
+
+        [Fact]
+        public void EmptyDynamicRowOwnerMembersThrow()
+        {
+            var e = EmptyDynamicRowOwner.Singleton;
+            Assert.Throws<ImpossibleException>(() => e.AcquireNameLookup());
+            Assert.Throws<ImpossibleException>(() => e.Context);
+            Assert.Throws<ImpossibleException>(() => e.MinimumExpectedColumns);
+            Assert.Throws<ImpossibleException>(() => e.Options);
+            Assert.Throws<ImpossibleException>(() => e.ReleaseNameLookup());
+            Assert.Throws<ImpossibleException>(() => e.Remove(new DynamicRow()));
+        }
+
+        [Fact]
         public void NonNull()
         {
             Assert.NotNull(Utils.NonNull("foo"));
@@ -128,11 +166,16 @@ namespace Cesil.Tests
             Assert.Throws<InvalidOperationException>(() => t.GetFieldNonNull("Foo", BindingFlags.Static));
             Assert.Throws<InvalidOperationException>(() => t.GetMethodNonNull("Foo", BindingFlags.Static));
             Assert.Throws<InvalidOperationException>(() => t.GetMethodNonNull("Foo"));
+            Assert.Throws<InvalidOperationException>(() => t.GetMethodNonNull("Foo", BindingFlags.Static, null, Array.Empty<TypeInfo>(), null));
             Assert.Throws<InvalidOperationException>(() => t.GetPropertyNonNull("Foo", BindingFlags.Static));
 
             var c = typeof(_ReflectionHelpers).GetTypeInfo();
             var p = c.GetPropertyNonNull("Foo", BindingFlags.Public | BindingFlags.Instance);
             Assert.Throws<InvalidOperationException>(() => p.GetGetMethodNonNull());
+
+            // generic tuple types
+            Assert.True(typeof(Tuple<,,,,,,,>).GetTypeInfo().IsBigTuple());
+            Assert.True(typeof(ValueTuple<,,,,,,,>).GetTypeInfo().IsBigValueTuple());
         }
 
         [Fact]

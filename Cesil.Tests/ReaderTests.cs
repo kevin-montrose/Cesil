@@ -16,6 +16,35 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ReaderTests
     {
+        [Fact]
+        public void ShallowReadContexts()
+        {
+            var ccCtx = ReadContext.ConvertingColumn(Options.Default, 0, ColumnIdentifier.Create(1), "foo");
+            var crCtx = ReadContext.ConvertingRow(Options.Default, 2, "bar");
+            var rcCtx = ReadContext.ReadingColumn(Options.Default, 3, ColumnIdentifier.Create(4), "fizz");
+            var rrCtx = ReadContext.ReadingRow(Options.Default, 5, "buzz");
+
+            var shallowCC = new ShallowReadContext(in ccCtx);
+            Assert.Equal(0, shallowCC.RowNumber);
+            Assert.Equal(1, shallowCC.ColumnIndex);
+            Assert.Equal(ReadContextMode.ConvertingColumn, shallowCC.Mode);
+
+            var shallowCR = new ShallowReadContext(in crCtx);
+            Assert.Equal(2, shallowCR.RowNumber);
+            Assert.Equal(-1, shallowCR.ColumnIndex);
+            Assert.Equal(ReadContextMode.ConvertingRow, shallowCR.Mode);
+
+            var shallowRC = new ShallowReadContext(in rcCtx);
+            Assert.Equal(3, shallowRC.RowNumber);
+            Assert.Equal(4, shallowRC.ColumnIndex);
+            Assert.Equal(ReadContextMode.ReadingColumn, shallowRC.Mode);
+
+            var shallowRR = new ShallowReadContext(in rrCtx);
+            Assert.Equal(5, shallowRR.RowNumber);
+            Assert.Equal(-1, shallowRR.ColumnIndex);
+            Assert.Equal(ReadContextMode.ReadingRow, shallowRR.Mode);
+        }
+
         private sealed class _ThrowOnExcessColumns
         {
             public string A { get; set; }

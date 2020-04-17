@@ -23,7 +23,8 @@ namespace Cesil.Benchmark
             {
                 nameof(Dictionary<string, int>),
                 nameof(System.Array),
-                nameof(Cesil.NameLookup)
+                nameof(NameLookup.Algorithm.BinarySearch),
+                nameof(NameLookup.Algorithm.AdaptiveRadixTrie),
             };
 
         private List<string> Names;
@@ -31,7 +32,8 @@ namespace Cesil.Benchmark
 
         private Dictionary<string, int> Dictionary;
         private string[] Array;
-        private NameLookup NameLookup;
+        private NameLookup BinarySearch;
+        private NameLookup AdaptiveRadixTrie;
 
         private LookupDelegate LookupFunc;
 
@@ -217,8 +219,10 @@ namespace Cesil.Benchmark
                             res = -1;
                             return false;
                         };
-                case nameof(Cesil.NameLookup):
-                    return (string val, out int res) => NameLookup.TryLookup(val, out res);
+                case nameof(NameLookup.Algorithm.AdaptiveRadixTrie):
+                    return (string val, out int res) => AdaptiveRadixTrie.TryLookup(val, out res);
+                case nameof(NameLookup.Algorithm.BinarySearch):
+                    return (string val, out int res) => BinarySearch.TryLookup(val, out res);
                 default:
                     throw new Exception();
             }
@@ -238,8 +242,29 @@ namespace Cesil.Benchmark
                 case nameof(System.Array):
                     Array = Names.ToArray();
                     break;
-                case nameof(Cesil.NameLookup):
-                    NameLookup = NameLookup.Create(Names, MemoryPool<char>.Shared);
+                case nameof(NameLookup.Algorithm.BinarySearch):
+                    {
+                        var withIx = Names.Select((n, ix) => (Name: n, Index: ix));
+                        var inOrder = withIx.OrderBy(o => o.Name, StringComparer.Ordinal);
+
+                        if (!NameLookup.TryCreateBinarySearch(inOrder, MemoryPool<char>.Shared, out var owner, out var mem))
+                        {
+                            throw new Exception();
+                        }
+                        BinarySearch = new NameLookup(NameLookup.Algorithm.BinarySearch, owner, mem);
+                    }
+                    break;
+                case nameof(NameLookup.Algorithm.AdaptiveRadixTrie):
+                    {
+                        var withIx = Names.Select((n, ix) => (Name: n, Index: ix));
+                        var inOrder = withIx.OrderBy(o => o.Name, StringComparer.Ordinal);
+
+                        if (!NameLookup.TryCreateAdaptiveRadixTrie(inOrder, MemoryPool<char>.Shared, out var owner, out var mem))
+                        {
+                            throw new Exception();
+                        }
+                        AdaptiveRadixTrie = new NameLookup(NameLookup.Algorithm.AdaptiveRadixTrie, owner, mem);
+                    }
                     break;
                 default:
                     throw new Exception();
