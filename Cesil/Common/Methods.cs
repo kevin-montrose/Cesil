@@ -23,6 +23,7 @@ namespace Cesil
         {
             internal static readonly MethodInfo Converter = Types.DynamicCell.GetPropertyNonNull(nameof(Cesil.DynamicCell.Converter), InternalInstance).GetGetMethodNonNull();
             internal static readonly MethodInfo GetDataSpan = Types.DynamicCell.GetMethodNonNull(nameof(Cesil.DynamicCell.GetDataSpan), InternalInstance);
+            internal static readonly MethodInfo GetDataSpanAndReadContext = Types.DynamicCell.GetMethodNonNull(nameof(Cesil.DynamicCell.GetDataSpanAndReadContext), InternalInstance);
             internal static readonly MethodInfo GetReadContext = Types.DynamicCell.GetMethodNonNull(nameof(Cesil.DynamicCell.GetReadContext), InternalInstance);
         }
 
@@ -53,6 +54,18 @@ namespace Cesil
         internal static class DisposableHelper
         {
             internal static readonly MethodInfo AssertNotDisposed = Types.DisposableHelper.GetMethodNonNull(nameof(Cesil.DisposableHelper.AssertNotDisposed), InternalStatic, null, new[] { Types.ITestableDisposable }, null);
+        }
+
+        internal static class DefaultTypeInstanceProviders
+        {
+            internal static readonly MethodInfo TryCreateInstance = Types.DefaultTypeInstanceProviders.GetMethodNonNull(nameof(Cesil.DefaultTypeInstanceProviders.TryCreateInstance), InternalStatic);
+            internal static readonly MethodInfo TryCreateNullableInstance = Types.DefaultTypeInstanceProviders.GetMethodNonNull(nameof(Cesil.DefaultTypeInstanceProviders.TryCreateNullableInstance), InternalStatic);
+            internal static readonly MethodInfo TryCreateNull = Types.DefaultTypeInstanceProviders.GetMethodNonNull(nameof(Cesil.DefaultTypeInstanceProviders.TryCreateNull), InternalStatic);
+        }
+
+        internal static class WellKnownRowTypes
+        {
+            internal static readonly MethodInfo WellKnownSetter = Types.WellKnownRowTypes.GetMethodNonNull(nameof(Cesil.WellKnownRowTypes.WellKnownSetter), InternalStatic);
         }
     }
 }

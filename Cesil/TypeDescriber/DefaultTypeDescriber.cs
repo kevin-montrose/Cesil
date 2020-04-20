@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -51,23 +52,13 @@ namespace Cesil
 
         /// <summary>
         /// Gets an InstanceProvider that wraps the parameterless constructor
-        ///   for the given type.
+        ///   for reference types, and the zero value for value types.
         ///   
-        /// Returns null if no parameterless constructor is found.
+        /// Returns null if no InstanceProvider can be found.
         /// </summary>
         [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         public virtual InstanceProvider? GetInstanceProvider(TypeInfo forType)
-        {
-            Utils.CheckArgumentNull(forType, nameof(forType));
-
-            var cons = forType.GetConstructor(TypeInfo.EmptyTypes);
-            if (cons == null)
-            {
-                return null;
-            }
-
-            return InstanceProvider.ForParameterlessConstructor(cons);
-        }
+        => InstanceProvider.GetDefault(forType);
 
         /// <summary>
         /// Enumerate all columns to deserialize.
@@ -78,35 +69,42 @@ namespace Cesil
 
             var buffer = new List<(DeserializableMember Member, int? Position)>();
 
-            foreach (var p in forType.GetProperties(BindingFlagsConstants.All))
+            if (CheckWellKnownType(forType, out var knownMember))
             {
-                if (!ShouldDeserialize(forType, p)) continue;
-
-                var name = GetDeserializationName(forType, p);
-                var setter = GetSetter(forType, p);
-                var parser = GetParser(forType, p);
-                var order = GetOrder(forType, p);
-                var isRequired = GetIsRequired(forType, p);
-                var reset = GetReset(forType, p);
-
-                buffer.Add((DeserializableMember.CreateInner(forType, name, setter, parser, isRequired, reset), order));
+                buffer.Add((knownMember, null));
             }
-
-            foreach (var f in forType.GetFields())
+            else
             {
-                if (!ShouldDeserialize(forType, f)) continue;
+                foreach (var p in forType.GetProperties(BindingFlagsConstants.All))
+                {
+                    if (!ShouldDeserialize(forType, p)) continue;
 
-                var name = GetDeserializationName(forType, f);
-                var setter = GetSetter(forType, f);
-                var parser = GetParser(forType, f);
-                var order = GetOrder(forType, f);
-                var isRequired = GetIsRequired(forType, f);
-                var reset = GetReset(forType, f);
+                    var name = GetDeserializationName(forType, p);
+                    var setter = GetSetter(forType, p);
+                    var parser = GetParser(forType, p);
+                    var order = GetOrder(forType, p);
+                    var isRequired = GetIsRequired(forType, p);
+                    var reset = GetReset(forType, p);
 
-                buffer.Add((DeserializableMember.CreateInner(forType, name, setter, parser, isRequired, reset), order));
+                    buffer.Add((DeserializableMember.CreateInner(forType, name, setter, parser, isRequired, reset), order));
+                }
+
+                foreach (var f in forType.GetFields())
+                {
+                    if (!ShouldDeserialize(forType, f)) continue;
+
+                    var name = GetDeserializationName(forType, f);
+                    var setter = GetSetter(forType, f);
+                    var parser = GetParser(forType, f);
+                    var order = GetOrder(forType, f);
+                    var isRequired = GetIsRequired(forType, f);
+                    var reset = GetReset(forType, f);
+
+                    buffer.Add((DeserializableMember.CreateInner(forType, name, setter, parser, isRequired, reset), order));
+                }
+
+                buffer.Sort(TypeDescribers.DeserializableComparer);
             }
-
-            buffer.Sort(TypeDescribers.DeserializableComparer);
 
             return Map(buffer);
 
@@ -373,6 +371,18 @@ namespace Cesil
 
         // common deserialization defaults
 
+        /// <summary>
+        /// Returns the parser to use for the given type.
+        /// 
+        /// If you do not care about the member being parsed, override just this method
+        ///   as the other GetParser(...) methods delegate to it.
+        /// 
+        /// Override to tweak behavior.
+        /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
+        public virtual Parser? GetParser(TypeInfo forType)
+        => Parser.GetDefault(forType);
+
         private static string GetName(MemberInfo member)
         {
             var dataMember = member.GetCustomAttribute<DataMemberAttribute>();
@@ -384,8 +394,7 @@ namespace Cesil
             return member.Name;
         }
 
-        private static Parser? GetParser(TypeInfo forType)
-        => Parser.GetDefault(forType);
+        
 
         private static MemberRequired GetIsRequired(MemberInfo member)
         {
@@ -735,7 +744,7 @@ namespace Cesil
         /// </summary>
         public virtual IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext context, dynamic row)
         {
-            // handle no valu
+            // handle no value
             if (row is null)
             {
                 return Array.Empty<DynamicCellValue>();
@@ -1144,6 +1153,26 @@ loopEnd:
             }
 
             return new PropertyPOCOResult(emptyCons, setters, columnIndexes);
+        }
+
+        private bool CheckWellKnownType(TypeInfo forType, [MaybeNullWhen(returnValue: false)]out DeserializableMember member)
+        {
+            if (!WellKnownRowTypes.TryGetSetter(forType, out var setter))
+            {
+                member = null;
+                return false;
+            }
+
+            var name = forType.Name;
+            var parser = GetParser(forType);
+            if (parser == null)
+            {
+                member = null;
+                return false;
+            }
+
+            member = DeserializableMember.CreateInner(forType, name, setter, parser, MemberRequired.No, null);
+            return true;
         }
 
         /// <summary>

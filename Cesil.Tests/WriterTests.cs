@@ -16,6 +16,9 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class WriterTests
     {
+        // todo: tests for single column versions of all default supported types 
+        //       ie. Write<int>, with no wrapper
+
         private sealed class _DontEmitDefaultNonTrivial_TypeDescriber : DefaultTypeDescriber
         {
             protected override Formatter GetFormatter(TypeInfo forType, PropertyInfo property)

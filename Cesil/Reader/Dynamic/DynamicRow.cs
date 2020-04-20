@@ -659,6 +659,7 @@ checkSize:
             return GetDataIndex(ix) != -1;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void AssertGenerationMatch(uint gen)
         {
             if (gen != Generation)

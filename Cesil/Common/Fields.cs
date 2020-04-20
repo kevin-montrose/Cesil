@@ -14,5 +14,10 @@ namespace Cesil
             internal static readonly FieldInfo Owner = Types.DynamicRow.GetFieldNonNull(nameof(Cesil.DynamicRow.Owner), InternalInstance);
             internal static readonly FieldInfo RowNumber = Types.DynamicRow.GetFieldNonNull(nameof(Cesil.DynamicRow.RowNumber), InternalInstance);
         }
+
+        internal static class DynamicCell
+        {
+            internal static readonly FieldInfo Row = Types.DynamicCell.GetFieldNonNull(nameof(Cesil.DynamicCell.Row), InternalInstance);
+        }
     }
 }

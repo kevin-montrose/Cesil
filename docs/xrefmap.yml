@@ -735,6 +735,12 @@ references:
   isSpec: "True"
   fullName: Cesil.DefaultTypeDescriber.GetOrder
   nameWithType: DefaultTypeDescriber.GetOrder
+- uid: Cesil.DefaultTypeDescriber.GetParser(TypeInfo)
+  name: GetParser(TypeInfo)
+  href: api/Cesil.DefaultTypeDescriber.html#Cesil_DefaultTypeDescriber_GetParser_TypeInfo_
+  commentId: M:Cesil.DefaultTypeDescriber.GetParser(TypeInfo)
+  fullName: Cesil.DefaultTypeDescriber.GetParser(TypeInfo)
+  nameWithType: DefaultTypeDescriber.GetParser(TypeInfo)
 - uid: Cesil.DefaultTypeDescriber.GetParser(TypeInfo,FieldInfo)
   name: GetParser(TypeInfo, FieldInfo)
   href: api/Cesil.DefaultTypeDescriber.html#Cesil_DefaultTypeDescriber_GetParser_TypeInfo_FieldInfo_
@@ -2180,6 +2186,25 @@ references:
   fullName.vb: Cesil.IBoundConfiguration(Of TRow).Options
   nameWithType: IBoundConfiguration<TRow>.Options
   nameWithType.vb: IBoundConfiguration(Of TRow).Options
+- uid: Cesil.ImpossibleException
+  name: ImpossibleException
+  href: api/Cesil.ImpossibleException.html
+  commentId: T:Cesil.ImpossibleException
+  fullName: Cesil.ImpossibleException
+  nameWithType: ImpossibleException
+- uid: Cesil.ImpossibleException.ToString
+  name: ToString()
+  href: api/Cesil.ImpossibleException.html#Cesil_ImpossibleException_ToString
+  commentId: M:Cesil.ImpossibleException.ToString
+  fullName: Cesil.ImpossibleException.ToString()
+  nameWithType: ImpossibleException.ToString()
+- uid: Cesil.ImpossibleException.ToString*
+  name: ToString
+  href: api/Cesil.ImpossibleException.html#Cesil_ImpossibleException_ToString_
+  commentId: Overload:Cesil.ImpossibleException.ToString
+  isSpec: "True"
+  fullName: Cesil.ImpossibleException.ToString
+  nameWithType: ImpossibleException.ToString
 - uid: Cesil.InstanceProvider
   name: InstanceProvider
   href: api/Cesil.InstanceProvider.html
@@ -2273,6 +2298,19 @@ references:
   isSpec: "True"
   fullName: Cesil.InstanceProvider.ForParameterlessConstructor
   nameWithType: InstanceProvider.ForParameterlessConstructor
+- uid: Cesil.InstanceProvider.GetDefault(TypeInfo)
+  name: GetDefault(TypeInfo)
+  href: api/Cesil.InstanceProvider.html#Cesil_InstanceProvider_GetDefault_TypeInfo_
+  commentId: M:Cesil.InstanceProvider.GetDefault(TypeInfo)
+  fullName: Cesil.InstanceProvider.GetDefault(TypeInfo)
+  nameWithType: InstanceProvider.GetDefault(TypeInfo)
+- uid: Cesil.InstanceProvider.GetDefault*
+  name: GetDefault
+  href: api/Cesil.InstanceProvider.html#Cesil_InstanceProvider_GetDefault_
+  commentId: Overload:Cesil.InstanceProvider.GetDefault
+  isSpec: "True"
+  fullName: Cesil.InstanceProvider.GetDefault
+  nameWithType: InstanceProvider.GetDefault
 - uid: Cesil.InstanceProvider.GetHashCode
   name: GetHashCode()
   href: api/Cesil.InstanceProvider.html#Cesil_InstanceProvider_GetHashCode
@@ -5107,6 +5145,15 @@ references:
   fullName.vb: Cesil.Setter.ForDelegate(Of TValue)(Cesil.StaticSetterDelegate(Of TValue))
   nameWithType: Setter.ForDelegate<TValue>(StaticSetterDelegate<TValue>)
   nameWithType.vb: Setter.ForDelegate(Of TValue)(StaticSetterDelegate(Of TValue))
+- uid: Cesil.Setter.ForDelegate``2(Cesil.SetterByRefDelegate{``0,``1})
+  name: ForDelegate<TRow, TValue>(SetterByRefDelegate<TRow, TValue>)
+  href: api/Cesil.Setter.html#Cesil_Setter_ForDelegate__2_Cesil_SetterByRefDelegate___0___1__
+  commentId: M:Cesil.Setter.ForDelegate``2(Cesil.SetterByRefDelegate{``0,``1})
+  name.vb: ForDelegate(Of TRow, TValue)(SetterByRefDelegate(Of TRow, TValue))
+  fullName: Cesil.Setter.ForDelegate<TRow, TValue>(Cesil.SetterByRefDelegate<TRow, TValue>)
+  fullName.vb: Cesil.Setter.ForDelegate(Of TRow, TValue)(Cesil.SetterByRefDelegate(Of TRow, TValue))
+  nameWithType: Setter.ForDelegate<TRow, TValue>(SetterByRefDelegate<TRow, TValue>)
+  nameWithType.vb: Setter.ForDelegate(Of TRow, TValue)(SetterByRefDelegate(Of TRow, TValue))
 - uid: Cesil.Setter.ForDelegate``2(Cesil.SetterDelegate{``0,``1})
   name: ForDelegate<TRow, TValue>(SetterDelegate<TRow, TValue>)
   href: api/Cesil.Setter.html#Cesil_Setter_ForDelegate__2_Cesil_SetterDelegate___0___1__
@@ -5253,6 +5300,15 @@ references:
   isSpec: "True"
   fullName: Cesil.Setter.ToString
   nameWithType: Setter.ToString
+- uid: Cesil.SetterByRefDelegate`2
+  name: SetterByRefDelegate<TRow, TValue>
+  href: api/Cesil.SetterByRefDelegate-2.html
+  commentId: T:Cesil.SetterByRefDelegate`2
+  name.vb: SetterByRefDelegate(Of TRow, TValue)
+  fullName: Cesil.SetterByRefDelegate<TRow, TValue>
+  fullName.vb: Cesil.SetterByRefDelegate(Of TRow, TValue)
+  nameWithType: SetterByRefDelegate<TRow, TValue>
+  nameWithType.vb: SetterByRefDelegate(Of TRow, TValue)
 - uid: Cesil.SetterDelegate`2
   name: SetterDelegate<TRow, TValue>
   href: api/Cesil.SetterDelegate-2.html

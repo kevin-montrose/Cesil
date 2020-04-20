@@ -289,7 +289,7 @@ namespace Cesil
                 // ignore it
                 if (setter == null) return;
 
-                setter(Current, in ctx, data);
+                setter(ref Current, in ctx, data);
             }
         }
 

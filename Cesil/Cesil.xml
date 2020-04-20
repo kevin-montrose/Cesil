@@ -1794,9 +1794,9 @@
         <member name="M:Cesil.DefaultTypeDescriber.GetInstanceProvider(System.Reflection.TypeInfo)">
             <summary>
             Gets an InstanceProvider that wraps the parameterless constructor
-              for the given type.
+              for reference types, and the zero value for value types.
               
-            Returns null if no parameterless constructor is found.
+            Returns null if no InstanceProvider can be found.
             </summary>
         </member>
         <member name="M:Cesil.DefaultTypeDescriber.EnumerateMembersToDeserialize(System.Reflection.TypeInfo)">
@@ -1904,6 +1904,16 @@
         <member name="M:Cesil.DefaultTypeDescriber.GetReset(System.Reflection.TypeInfo,System.Reflection.FieldInfo)">
             <summary>
             Returns the reset method, if any, to call prior to deserializing the given field.
+            
+            Override to tweak behavior.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultTypeDescriber.GetParser(System.Reflection.TypeInfo)">
+            <summary>
+            Returns the parser to use for the given type.
+            
+            If you do not care about the member being parsed, override just this method
+              as the other GetParser(...) methods delegate to it.
             
             Override to tweak behavior.
             </summary>
@@ -3471,6 +3481,15 @@
               but be aware that it may be called from many different contexts.
             </summary>
         </member>
+        <member name="M:Cesil.InstanceProvider.GetDefault(System.Reflection.TypeInfo)">
+            <summary>
+            Returns the default instance provider for the given type, if one exists.
+            
+            For reference types, it will use the parameterless constructor.
+            
+            For value types, it will use the all-zero (aka default) value.
+            </summary>
+        </member>
         <member name="M:Cesil.InstanceProvider.Equals(System.Object)">
             <summary>
             Returns true if this object equals the given InstanceProvider.
@@ -3734,6 +3753,11 @@
             Delegate type for setters.
             </summary>
         </member>
+        <member name="T:Cesil.SetterByRefDelegate`2">
+            <summary>
+            Delegate type for setters, where instance is passed by ref.
+            </summary>
+        </member>
         <member name="T:Cesil.Setter">
             <summary>
             Represents code used to set parsed values onto types.
@@ -3758,8 +3782,8 @@
             If the method is a static method it may:
              - take 1 parameter (the result of the parser) or
              - take 2 parameters, the result of the parser and an `in ReadContext` or
-             - take 2 parameters, the row type and the result of the parser or
-             - take 3 parameters, the row type, the result of the parser, and `in ReadContext`
+             - take 2 parameters, the row type (which may be passed by ref), and the result of the parser or
+             - take 3 parameters, the row type (which may be passed by ref), the result of the parser, and `in ReadContext`
             
             If the method is an instance method:
              - it must be on the row type, and take 1 parameter (the result of the parser) or
@@ -3779,6 +3803,11 @@
             </summary>
         </member>
         <member name="M:Cesil.Setter.ForDelegate``2(Cesil.SetterDelegate{``0,``1})">
+            <summary>
+            Create a Setter from the given delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.ForDelegate``2(Cesil.SetterByRefDelegate{``0,``1})">
             <summary>
             Create a Setter from the given delegate.
             </summary>

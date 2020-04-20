@@ -9,8 +9,8 @@ using System.Reflection.Emit;
 
 namespace Cesil
 {
-    internal delegate void ParseAndSetOnDelegate<TRow>(TRow row, in ReadContext ctx, ReadOnlySpan<char> data);
-    internal delegate void MoveFromHoldToRowDelegate<TRow, THold>(TRow row, THold hold, in ReadContext setterCtx);
+    internal delegate void ParseAndSetOnDelegate<TRow>(ref TRow row, in ReadContext ctx, ReadOnlySpan<char> data);
+    internal delegate void MoveFromHoldToRowDelegate<TRow, THold>(ref TRow row, THold hold, in ReadContext setterCtx);
     internal delegate TRow GetInstanceGivenHoldDelegate<TRow, THold>(THold hold);
     internal delegate void ClearHoldDelegate<THold>(THold hold);
 
@@ -228,7 +228,9 @@ namespace Cesil
             {
                 var statements = new List<Expression>();
 
-                var rowParam = Expression.Parameter(rowType);
+                var rowTypeByRef = rowType.MakeByRefType().GetTypeInfo();
+
+                var rowParam = Expression.Parameter(rowTypeByRef);
                 var holdParam = Expression.Parameter(holdType);
                 var setterCtxParam = Expressions.Parameter_ReadContext_ByRef;
 
@@ -263,7 +265,9 @@ namespace Cesil
         {
             var statements = new List<Expression>();
 
-            var rowParam = Expression.Parameter(rowType);
+            var rowTypeByRef = rowType.MakeByRefType().GetTypeInfo();
+
+            var rowParam = Expression.Parameter(rowTypeByRef);
             var ctxParam = Expressions.Parameter_ReadContext_ByRef;
             var dataSpanParam = Expressions.Variable_ReadOnlySpanOfChar;
 

@@ -40,6 +40,8 @@ namespace Cesil.Benchmark
         [Conditional("DEBUG")]
         private static void InitializeAndTest()
         {
+            Log(nameof(NarrowRowDynamicReadSyncBenchmark.InitializeAndTest), () => new NarrowRowDynamicReadSyncBenchmark().InitializeAndTest());
+
             Log(nameof(NameLookupBenchmark.InitializeAndTest), () => new NameLookupBenchmark().InitializeAndTest());
 
             Log(nameof(NeedsEncodeBenchmark.InitializeAndTest), () => new NeedsEncodeBenchmark().InitializeAndTest());

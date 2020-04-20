@@ -2000,6 +2000,7 @@ namespace Cesil.Tests
                     [typeof(StaticResetDelegate).GetTypeInfo()] = new[] { "del" },
                     [typeof(StaticSetterDelegate<>).GetTypeInfo()] = new[] { "del" },
                     [typeof(SetterDelegate<,>).GetTypeInfo()] = new[] { "del" },
+                    [typeof(SetterByRefDelegate<,>).GetTypeInfo()] = new[] { "del" },
                     [typeof(ShouldSerializeDelegate<>).GetTypeInfo()] = new[] { "del" },
                     [typeof(StaticShouldSerializeDelegate).GetTypeInfo()] = new[] { "del" },
                     [typeof(DynamicRowConverterDelegate<>).GetTypeInfo()] = new[] { "del" },

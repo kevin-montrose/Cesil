@@ -123,6 +123,11 @@ namespace Cesil.Tests
                 _Set = c;
             }
 
+            public static void StaticSetByRefParam(ref _ColumnSetters row, _ColumnSetters_Val c)
+            {
+                _Set = c;
+            }
+
             public static void StaticSetCtx(_ColumnSetters_Val c, in ReadContext ctx)
             {
                 _Set = c;
@@ -1518,6 +1523,7 @@ namespace Cesil.Tests
             var staticMethodSet = Setter.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticSet)));
             var staticMethodSetCtx = Setter.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticSetCtx)));
             var staticMethodSetParam = Setter.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticSetParam)));
+            var staticMethodSetByRefParam = Setter.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticSetByRefParam)));
             var staticMethodSetParamCtx = Setter.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticSetParamCtx)));
             var fieldSetter = Setter.ForField(typeof(_ColumnSetters).GetField(nameof(_ColumnSetters.Field)));
             var staticFieldSetter = Setter.ForField(typeof(_ColumnSetters).GetField(nameof(_ColumnSetters.StaticField)));
@@ -1531,7 +1537,9 @@ namespace Cesil.Tests
 
             var staticDelSetter = (Setter)(StaticSetterDelegate<_ColumnSetters_Val>)((_ColumnSetters_Val f, in ReadContext _) => { _ColumnSetters.StaticField = f; });
 
-            var setters = new[] { methodSetter, methodSetterCtx, staticMethodSet, staticMethodSetCtx, staticMethodSetParam, staticMethodSetParamCtx, fieldSetter, delSetter1, delSetter2, delSetter3, delSetter4, staticDelSetter, consSetter };
+            var byRefDelSetter = (Setter)(SetterByRefDelegate<_ColumnWriters, _ColumnWriters_Val>)((ref _ColumnWriters a, _ColumnWriters_Val v, in ReadContext _) => { a.A = v; });
+
+            var setters = new[] { methodSetter, methodSetterCtx, staticMethodSet, staticMethodSetCtx, staticMethodSetParam, staticMethodSetByRefParam, staticMethodSetParamCtx, fieldSetter, delSetter1, delSetter2, delSetter3, delSetter4, staticDelSetter, consSetter, byRefDelSetter };
 
             var notSetter = "";
 
@@ -1545,60 +1553,81 @@ namespace Cesil.Tests
                 {
                     Assert.Equal(BackingMode.Method, s1.Mode);
                     Assert.False(s1.IsStatic);
+                    Assert.False(s1.IsByRef);
                 }
                 else if (s1 == methodSetterCtx)
                 {
                     Assert.Equal(BackingMode.Method, s1.Mode);
                     Assert.False(s1.IsStatic);
+                    Assert.False(s1.IsByRef);
                 }
                 else if (s1 == staticMethodSet)
                 {
                     Assert.Equal(BackingMode.Method, s1.Mode);
                     Assert.True(s1.IsStatic);
+                    Assert.False(s1.IsByRef);
                 }
                 else if (s1 == staticMethodSetCtx)
                 {
                     Assert.Equal(BackingMode.Method, s1.Mode);
                     Assert.True(s1.IsStatic);
+                    Assert.False(s1.IsByRef);
                 }
                 else if (s1 == staticMethodSetParam)
                 {
                     Assert.Equal(BackingMode.Method, s1.Mode);
                     Assert.True(s1.IsStatic);
+                    Assert.False(s1.IsByRef);
+                } else if(s1 == staticMethodSetByRefParam)
+                {
+                    Assert.Equal(BackingMode.Method, s1.Mode);
+                    Assert.True(s1.IsStatic);
+                    Assert.True(s1.IsByRef);
                 }
                 else if (s1 == staticMethodSetParamCtx)
                 {
                     Assert.Equal(BackingMode.Method, s1.Mode);
                     Assert.True(s1.IsStatic);
+                    Assert.False(s1.IsByRef);
                 }
                 else if (s1 == fieldSetter)
                 {
                     Assert.Equal(BackingMode.Field, s1.Mode);
                     Assert.False(s1.IsStatic);
+                    Assert.False(s1.IsByRef);
                 }
                 else if (s1 == staticFieldSetter)
                 {
                     Assert.Equal(BackingMode.Field, s1.Mode);
                     Assert.True(s1.IsStatic);
+                    Assert.False(s1.IsByRef);
                 }
                 else if (s1 == delSetter1 || s1 == delSetter2 || s1 == delSetter3 || s1 == delSetter4)
                 {
                     Assert.Equal(BackingMode.Delegate, s1.Mode);
                     Assert.False(s1.IsStatic);
+                    Assert.False(s1.IsByRef);
                 }
                 else if (s1 == staticDelSetter)
                 {
                     Assert.Equal(BackingMode.Delegate, s1.Mode);
                     Assert.True(s1.IsStatic);
+                    Assert.False(s1.IsByRef);
+                }
+                else if (s1 == byRefDelSetter)
+                {
+                    Assert.Equal(BackingMode.Delegate, s1.Mode);
+                    Assert.False(s1.IsStatic);
+                    Assert.True(s1.IsByRef);
                 }
                 else if (s1 == consSetter)
                 {
                     Assert.Equal(BackingMode.ConstructorParameter, s1.Mode);
                     Assert.False(s1.IsStatic);
+                    Assert.False(s1.IsByRef);
                 }
                 else
                 {
-
                     throw new Exception();
                 }
 
@@ -1643,7 +1672,8 @@ namespace Cesil.Tests
             // ForDelegate errors
             {
                 Assert.Throws<ArgumentNullException>(() => Setter.ForDelegate<string>(null));
-                Assert.Throws<ArgumentNullException>(() => Setter.ForDelegate<string, int>(null));
+                Assert.Throws<ArgumentNullException>(() => Setter.ForDelegate(default(SetterDelegate<string, int>)));
+                Assert.Throws<ArgumentNullException>(() => Setter.ForDelegate(default(SetterByRefDelegate<string,int>)));
             }
 
             // ForParser errors
@@ -2059,7 +2089,7 @@ namespace Cesil.Tests
 
                 Assert.Throws<InvalidOperationException>(() => DynamicRowConverter.ForEmptyConstructorAndSetters(emptyCons, Array.Empty<Setter>(), ixs));
 
-                var badSetter = Setter.ForDelegate<string, string>(delegate { });
+                var badSetter = Setter.ForDelegate<string, string>((string a, string b, in ReadContext _) => { });
                 Assert.Throws<ArgumentException>(() => DynamicRowConverter.ForEmptyConstructorAndSetters(emptyCons, new[] { badSetter }, ixs));
 
                 var badIxs = new[] { Cesil.ColumnIdentifier.CreateInner(-1, "foo") };

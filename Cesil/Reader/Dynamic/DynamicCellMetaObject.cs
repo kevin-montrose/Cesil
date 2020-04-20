@@ -55,7 +55,7 @@ namespace Cesil
             var retType = binder.ReturnType.GetTypeInfo();
 
             // casting to IConvertible is always supported
-            if(binder.Type == Types.IConvertible)
+            if (binder.Type == Types.IConvertible)
             {
                 var expressionIsCellRestriction = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicCell);
                 var selfAsIConvertible = Expression.Convert(Expression, Types.IConvertible);
@@ -87,15 +87,13 @@ namespace Cesil
 
             var selfAsCell = Expression.Convert(Expression, Types.DynamicCell);
 
-            var callGetSpan = Expression.Call(selfAsCell, Methods.DynamicCell.GetDataSpan);
-            var dataSpanVar = Expressions.Variable_ReadOnlySpanOfChar;
-            var assignDataSpan = Expression.Assign(dataSpanVar, callGetSpan);
-            statements.Add(assignDataSpan);
+            var notDisposed = MakeAssertNotDisposedExpression(selfAsCell);
+            statements.Add(notDisposed);
 
-            var callMakeCtx = Expression.Call(selfAsCell, Methods.DynamicCell.GetReadContext);
+            var dataSpanVar = Expressions.Variable_ReadOnlySpanOfChar;
             var readCtxVar = Expressions.Variable_ReadContext;
-            var assignReadCtx = Expression.Assign(readCtxVar, callMakeCtx);
-            statements.Add(assignReadCtx);
+            var callGetDataAndSpan = Expression.Call(selfAsCell, Methods.DynamicCell.GetDataSpanAndReadContext, dataSpanVar, readCtxVar);
+            statements.Add(callGetDataAndSpan);
 
             var outVar = Expression.Parameter(parser.Creates);
             var resVar = Expressions.Variable_Bool;
@@ -117,6 +115,15 @@ namespace Cesil
             var block = Expression.Block(new ParameterExpression[] { outVar, dataSpanVar, readCtxVar, resVar }, statements);
 
             return new DynamicMetaObject(block, restrictions);
+        }
+
+        private static Expression MakeAssertNotDisposedExpression(Expression exp)
+        {
+            var row = Expression.Field(exp, Fields.DynamicCell.Row);
+            var cast = Expression.Convert(row, Types.ITestableDisposable);
+            var call = Expression.Call(Methods.DisposableHelper.AssertNotDisposed, cast);
+
+            return call;
         }
     }
 }

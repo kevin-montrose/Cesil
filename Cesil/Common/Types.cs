@@ -25,8 +25,12 @@ namespace Cesil
         // System structs
         internal static readonly TypeInfo Void = typeof(void).GetTypeInfo();
         internal static readonly TypeInfo DateTime = typeof(DateTime).GetTypeInfo();
+        internal static readonly TypeInfo DateTimeOffset = typeof(DateTimeOffset).GetTypeInfo();
+        internal static readonly TypeInfo TimeSpan = typeof(TimeSpan).GetTypeInfo();
         internal static readonly TypeInfo Index = typeof(Index).GetTypeInfo();
         internal static readonly TypeInfo Range = typeof(Range).GetTypeInfo();
+        internal static readonly TypeInfo Guid = typeof(Guid).GetTypeInfo();
+        internal static readonly TypeInfo Nullable = typeof(Nullable<>).GetTypeInfo();
         internal static readonly TypeInfo[] ValueTuple_Array =
            new TypeInfo[]
            {
@@ -44,6 +48,8 @@ namespace Cesil
         // System classes
         internal static readonly TypeInfo Object = typeof(object).GetTypeInfo();
         internal static readonly TypeInfo String = typeof(string).GetTypeInfo();
+        internal static readonly TypeInfo Uri = typeof(Uri).GetTypeInfo();
+        internal static readonly TypeInfo Version = typeof(Version).GetTypeInfo();
         internal static readonly TypeInfo[] Tuple_Array =
             new TypeInfo[]
             {
@@ -75,6 +81,7 @@ namespace Cesil
         // Cesil delegates
         internal static readonly TypeInfo ParserDelegate = typeof(ParserDelegate<>).GetTypeInfo();
         internal static readonly TypeInfo SetterDelegate = typeof(SetterDelegate<,>).GetTypeInfo();
+        internal static readonly TypeInfo SetterByRefDelegate = typeof(SetterByRefDelegate<,>).GetTypeInfo();
         internal static readonly TypeInfo StaticSetterDelegate = typeof(StaticSetterDelegate<>).GetTypeInfo();
         internal static readonly TypeInfo ResetDelegate = typeof(ResetDelegate<>).GetTypeInfo();
         internal static readonly TypeInfo StaticResetDelegate = typeof(StaticResetDelegate).GetTypeInfo();
@@ -107,6 +114,7 @@ namespace Cesil
         internal static readonly TypeInfo WriteContext = typeof(WriteContext).GetTypeInfo();
 
         // Cesil static classes
+        internal static readonly TypeInfo DefaultTypeInstanceProviders = typeof(DefaultTypeInstanceProviders).GetTypeInfo();
         internal static readonly TypeInfo DefaultTypeParsers = typeof(DefaultTypeParsers).GetTypeInfo();
         internal static readonly TypeInfo DefaultEnumTypeParser = typeof(DefaultTypeParsers.DefaultEnumTypeParser<>).GetTypeInfo();
         internal static readonly TypeInfo DefaultFlagsEnumTypeParser = typeof(DefaultTypeParsers.DefaultFlagsEnumTypeParser<>).GetTypeInfo();
@@ -116,6 +124,8 @@ namespace Cesil
         internal static readonly TypeInfo DisposableHelper = typeof(DisposableHelper).GetTypeInfo();
         internal static readonly TypeInfo ThrowType = typeof(Throw).GetTypeInfo();
         internal static readonly TypeInfo TupleDynamicParsers = typeof(TupleDynamicParsers<>).GetTypeInfo();
+        internal static readonly TypeInfo WellKnownRowTypes = typeof(WellKnownRowTypes).GetTypeInfo();
+        internal static readonly TypeInfo WellKnownEnumRowType = typeof(WellKnownRowTypes.WellKnownEnumRowType<>).GetTypeInfo();
 
         // Cesil interfaces
         internal static readonly TypeInfo IDynamicRowOwner = typeof(IDynamicRowOwner).GetTypeInfo();

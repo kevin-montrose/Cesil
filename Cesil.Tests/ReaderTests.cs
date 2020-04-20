@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Reflection;
@@ -16,6 +17,867 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ReaderTests
     {
+        // todo: tests for single column versions of all default supported types 
+        //       ie. Read<int>, with no wrapper
+
+        private enum _WellKnownSingleColumns
+        {
+            Foo,
+            Bar
+        }
+
+        [Flags]
+        private enum _WellKnownSingleColumns_Flags
+        {
+            Foo = 1,
+            Bar = 2,
+            Fizz = 4
+        }
+
+        [Fact]
+        public void WellKnownSingleColumns()
+        {
+            // bool
+            {
+                RunSyncReaderVariants<bool>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using(var reader = getReader("true\r\nfalse\r\ntrue"))
+                        using(var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new[] { true, false, true }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // bool?
+            {
+                RunSyncReaderVariants<bool?>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("\r\nfalse\r\ntrue"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new[] { default(bool?), false, true }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // char
+            {
+                RunSyncReaderVariants<char>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("a\r\nb\r\nc"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new[] { 'a', 'b', 'c' }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // char?
+            {
+                RunSyncReaderVariants<char?>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("\r\nb\r\nc"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new[] { default(char?), 'b', 'c' }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // byte
+            {
+                RunSyncReaderVariants<byte>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("0\r\n128\r\n255"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new byte[] { 0, 128, 255 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // byte?
+            {
+                RunSyncReaderVariants<byte?>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("0\r\n\r\n255"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new byte?[] { 0, null, 255 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // sbyte
+            {
+                RunSyncReaderVariants<sbyte>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("0\r\n-127\r\n-2"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new sbyte[] { 0, -127, -2 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // sbyte?
+            {
+                RunSyncReaderVariants<sbyte?>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("\r\n-127\r\n-2"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new sbyte?[] { null, -127, -2 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // short
+            {
+                RunSyncReaderVariants<short>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("0\r\n-9876\r\n-16000"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new short[] { 0, -9876, -16000 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // short?
+            {
+                RunSyncReaderVariants<short?>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("0\r\n\r\n-16000"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new short?[] { 0, null, -16000 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // ushort
+            {
+                RunSyncReaderVariants<ushort>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("0\r\n12345\r\n32000"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new ushort[] { 0, 12345, 32000 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // ushort?
+            {
+                RunSyncReaderVariants<ushort?>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("\r\n12345\r\n32000"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new ushort?[] { null, 12345, 32000 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // int
+            {
+                RunSyncReaderVariants<int>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("0\r\n2000000\r\n-15"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new [] { 0, 2000000, -15 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // int?
+            {
+                RunSyncReaderVariants<int?>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("\r\n2000000\r\n-15"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new int?[] { null, 2000000, -15 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // uint
+            {
+                RunSyncReaderVariants<uint>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("0\r\n2000000\r\n4000000000"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new uint[] { 0, 2000000, 4_000_000_000 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // uint?
+            {
+                RunSyncReaderVariants<uint?>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("\r\n2000000\r\n4000000000"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new uint?[] { null, 2000000, 4_000_000_000 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // long
+            {
+                RunSyncReaderVariants<long>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"0\r\n{long.MinValue}\r\n{long.MaxValue}"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new long[] { 0, long.MinValue, long.MaxValue }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // long?
+            {
+                RunSyncReaderVariants<long?>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"{long.MinValue}\r\n\r\n{long.MaxValue}"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new long?[] { long.MinValue, null, long.MaxValue }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // ulong
+            {
+                RunSyncReaderVariants<ulong>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"0\r\n123\r\n{ulong.MaxValue}"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new ulong[] { 0, 123, ulong.MaxValue }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // ulong?
+            {
+                RunSyncReaderVariants<ulong?>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"0\r\n\r\n{ulong.MaxValue}"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new ulong?[] { 0, null, ulong.MaxValue }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // float
+            {
+                RunSyncReaderVariants<float>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"0.12\r\n123456789.0123\r\n-999999.88888"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new float[] { 0.12f, 123456789.0123f, -999999.88888f }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // float?
+            {
+                RunSyncReaderVariants<float?>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"0.12\r\n\r\n-999999.88888"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new float?[] { 0.12f, null, -999999.88888f }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // double
+            {
+                RunSyncReaderVariants<double>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"0.12\r\n123456789.0123\r\n-999999.88888"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new double[] { 0.12, 123456789.0123, -999999.88888 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // double?
+            {
+                RunSyncReaderVariants<double?>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"0.12\r\n\r\n-999999.88888"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new double?[] { 0.12, null, -999999.88888 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // decimal
+            {
+                RunSyncReaderVariants<decimal>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"0.12\r\n123456789.0123\r\n-999999.88888"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new decimal[] { 0.12m, 123456789.0123m, -999999.88888m }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // decimal?
+            {
+                RunSyncReaderVariants<decimal?>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"0.12\r\n\r\n-999999.88888"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new decimal?[] { 0.12m, null, -999999.88888m }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // string
+            {
+                RunSyncReaderVariants<string>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"hello\r\n\r\nworld"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new string[] { "hello", null, "world" }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // Version
+            {
+                RunSyncReaderVariants<Version>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"1.2\r\n\r\n1.2.3.4"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new [] { new Version(1, 2), null, new Version(1, 2, 3, 4) }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // Uri
+            {
+                RunSyncReaderVariants<Uri>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"http://example.com/\r\n\r\nhttps://stackoverflow.com/questions"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new [] { new Uri("http://example.com/"), null, new Uri("https://stackoverflow.com/questions") }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // enum
+            {
+                RunSyncReaderVariants<_WellKnownSingleColumns>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"Foo\r\nBar\r\nFoo"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new[] { _WellKnownSingleColumns.Foo, _WellKnownSingleColumns.Bar, _WellKnownSingleColumns.Foo }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // enum?
+            {
+                RunSyncReaderVariants<_WellKnownSingleColumns?>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"Foo\r\nBar\r\n\r\n"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new _WellKnownSingleColumns?[] { _WellKnownSingleColumns.Foo, _WellKnownSingleColumns.Bar, null }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // flags enum
+            {
+                RunSyncReaderVariants<_WellKnownSingleColumns_Flags>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"\"Foo, Bar\"\r\nBar\r\nFizz"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new[] { _WellKnownSingleColumns_Flags.Foo | _WellKnownSingleColumns_Flags.Bar, _WellKnownSingleColumns_Flags.Bar, _WellKnownSingleColumns_Flags.Fizz }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // flags enum?
+            {
+                RunSyncReaderVariants<_WellKnownSingleColumns_Flags?>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"\"Foo, Bar\"\r\n\r\nFizz"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new _WellKnownSingleColumns_Flags?[] { _WellKnownSingleColumns_Flags.Foo | _WellKnownSingleColumns_Flags.Bar, null, _WellKnownSingleColumns_Flags.Fizz }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // DateTime
+            {
+                RunSyncReaderVariants<DateTime>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        var ci = CultureInfo.InvariantCulture;
+
+                        using (var reader = 
+                            getReader(
+                                $"\"{DateTime.MaxValue.ToString(ci)}\"\r\n\"{new DateTime(2020, 04, 23, 0, 0, 0, DateTimeKind.Unspecified).ToString(ci)}\"\r\n\"{DateTime.MinValue.ToString(ci)}\""
+                            )
+                        )
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            var shouldMatch =
+                                new[]
+                                {
+                                    DateTime.Parse(DateTime.MaxValue.ToString(ci)),
+                                    DateTime.Parse(new DateTime(2020, 04, 23, 0, 0, 0, DateTimeKind.Unspecified).ToString(ci)),
+                                    DateTime.Parse(DateTime.MinValue.ToString(ci)),
+                                };
+                            Assert.True(shouldMatch.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // DateTime?
+            {
+                RunSyncReaderVariants<DateTime?>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        var ci = CultureInfo.InvariantCulture;
+
+                        using (var reader =
+                            getReader(
+                                $"\"{DateTime.MaxValue.ToString(ci)}\"\r\n\r\n\"{DateTime.MinValue.ToString(ci)}\""
+                            )
+                        )
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            var shouldMatch =
+                                new DateTime?[]
+                                {
+                                    DateTime.Parse(DateTime.MaxValue.ToString(ci)),
+                                    null,
+                                    DateTime.Parse(DateTime.MinValue.ToString(ci)),
+                                };
+                            Assert.True(shouldMatch.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // DateTimeOffset
+            {
+                RunSyncReaderVariants<DateTimeOffset>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        var ci = CultureInfo.InvariantCulture;
+
+                        using (var reader =
+                            getReader(
+                                $"\"{DateTimeOffset.MaxValue.ToString(ci)}\"\r\n\"{new DateTimeOffset(2020, 04, 23, 0, 0, 0, TimeSpan.Zero).ToString(ci)}\"\r\n\"{DateTimeOffset.MinValue.ToString(ci)}\""
+                            )
+                        )
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            var shouldMatch =
+                                new[]
+                                {
+                                    DateTimeOffset.Parse(DateTimeOffset.MaxValue.ToString(ci)),
+                                    DateTimeOffset.Parse(new DateTimeOffset(2020, 04, 23, 0, 0, 0, TimeSpan.Zero).ToString(ci)),
+                                    DateTimeOffset.Parse(DateTimeOffset.MinValue.ToString(ci)),
+                                };
+                            Assert.True(shouldMatch.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // DateTimeOffset?
+            {
+                RunSyncReaderVariants<DateTimeOffset?>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        var ci = CultureInfo.InvariantCulture;
+
+                        using (var reader =
+                            getReader(
+                                $"\"{DateTimeOffset.MaxValue.ToString(ci)}\"\r\n\r\n\"{DateTimeOffset.MinValue.ToString(ci)}\""
+                            )
+                        )
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            var shouldMatch =
+                                new DateTimeOffset?[]
+                                {
+                                    DateTimeOffset.Parse(DateTimeOffset.MaxValue.ToString(ci)),
+                                    null,
+                                    DateTimeOffset.Parse(DateTimeOffset.MinValue.ToString(ci)),
+                                };
+                            Assert.True(shouldMatch.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // Guid
+            {
+                RunSyncReaderVariants<Guid>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"2E9348A1-C3D9-4A9C-95FF-D97591F91542\r\nECB04C56-3042-4234-B757-6AC6E53E10C2"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new[] { Guid.Parse("2E9348A1-C3D9-4A9C-95FF-D97591F91542"), Guid.Parse("ECB04C56-3042-4234-B757-6AC6E53E10C2") }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // Guid?
+            {
+                RunSyncReaderVariants<Guid?>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"2E9348A1-C3D9-4A9C-95FF-D97591F91542\r\n\r\n"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new Guid?[] { Guid.Parse("2E9348A1-C3D9-4A9C-95FF-D97591F91542"), null }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // TimeSpan
+            {
+                RunSyncReaderVariants<TimeSpan>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"\"{TimeSpan.MaxValue}\"\r\n\"{TimeSpan.FromMilliseconds(123456)}\"\r\n\"{TimeSpan.MaxValue}\""))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new[] { TimeSpan.MaxValue, TimeSpan.FromMilliseconds(123456), TimeSpan.MaxValue }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // TimeSpan?
+            {
+                RunSyncReaderVariants<TimeSpan?>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"\"{TimeSpan.MaxValue}\"\r\n\r\n\"{TimeSpan.MaxValue}\""))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new TimeSpan?[] { TimeSpan.MaxValue, null, TimeSpan.MaxValue }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // Index
+            {
+                RunSyncReaderVariants<Index>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"{^1}\r\n{(Index)2}\r\n{^3}"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new[] { ^1, (Index)2, ^3 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // Index?
+            {
+                RunSyncReaderVariants<Index?>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"{^1}\r\n\r\n{^3}"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new Index?[] { ^1, null, ^3 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // Range
+            {
+                RunSyncReaderVariants<Range>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"{1..^1}\r\n{..^2}\r\n{^3..}"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new[] { 1..^1, ..^2, ^3.. }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // Range?
+            {
+                RunSyncReaderVariants<Range?>(
+                    Options.Default,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader($"{1..^1}\r\n\r\n{^3..}"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.True(new Range?[] { 1..^1, null, ^3.. }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+        }
+
+        private struct _ByRefSetter
+        {
+            public int A { get; set; }
+            public int B { get; set; }
+            public int C { get; set; }
+        }
+
+        private static void _ByRefSetterStaticMethod(ref _ByRefSetter row, int a)
+        {
+            row.A = a * 2;
+        }
+
+        private delegate void _ByRefSetterDelegate(ref _ByRefSetter row, int c, in ReadContext ctx);
+
+        [Fact]
+        public void ByRefSetter()
+        {
+            var t = typeof(_ByRefSetter).GetTypeInfo();
+            var byMethod = Setter.ForMethod(typeof(ReaderTests).GetMethod(nameof(_ByRefSetterStaticMethod), BindingFlags.Static | BindingFlags.NonPublic));
+            var byKnownDelegate = Setter.ForDelegate((ref _ByRefSetter row, int b, in ReadContext ctx) => { row.B = b * 3; });
+
+            _ByRefSetterDelegate otherDel = (ref _ByRefSetter row, int c, in ReadContext ctx) => { row.C = c * 4; };
+            var byOtherDelegate = (Setter)otherDel;
+
+            var m = ManualTypeDescriber.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback, TypeDescribers.Default);
+            m.WithExplicitSetter(t, "A", byMethod);
+            m.WithExplicitSetter(t, "B", byKnownDelegate);
+            m.WithExplicitSetter(t, "C", byOtherDelegate);
+
+            var td = m.ToManualTypeDescriber();
+
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(td).ToOptions();
+
+            RunSyncReaderVariants<_ByRefSetter>(
+                opts,
+                (config, getReader) =>
+                {
+                    using(var reader = getReader("A,B,C\r\n1,2,3\r\n4,5,6\r\n7,8,9"))
+                    using(var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+
+                        Assert.Collection(
+                            rows,
+                            a =>
+                            {
+                                Assert.Equal(1 * 2, a.A);
+                                Assert.Equal(2 * 3, a.B);
+                                Assert.Equal(3 * 4, a.C);
+                            },
+                            b =>
+                            {
+                                Assert.Equal(4 * 2, b.A);
+                                Assert.Equal(5 * 3, b.B);
+                                Assert.Equal(6 * 4, b.C);
+                            },
+                            c =>
+                            {
+                                Assert.Equal(7 * 2, c.A);
+                                Assert.Equal(8 * 3, c.B);
+                                Assert.Equal(9 * 4, c.C);
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
         [Fact]
         public void ShallowReadContexts()
         {
@@ -4438,6 +5300,836 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     }
                 );
             }
+        }
+
+        [Fact]
+        public async Task WellKnownSingleColumnsAsync()
+        {
+            // bool
+            {
+                await RunAsyncReaderVariants<bool>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader("true\r\nfalse\r\ntrue"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new[] { true, false, true }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // bool?
+            {
+                await RunAsyncReaderVariants<bool?>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader("\r\nfalse\r\ntrue"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new[] { default(bool?), false, true }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // char
+            {
+                await RunAsyncReaderVariants<char>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader("a\r\nb\r\nc"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new[] { 'a', 'b', 'c' }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // char?
+            {
+                await RunAsyncReaderVariants<char?>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader("\r\nb\r\nc"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new[] { default(char?), 'b', 'c' }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // byte
+            {
+                await RunAsyncReaderVariants<byte>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader("0\r\n128\r\n255"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new byte[] { 0, 128, 255 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // byte?
+            {
+                await RunAsyncReaderVariants<byte?>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader("0\r\n\r\n255"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new byte?[] { 0, null, 255 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // sbyte
+            {
+                await RunAsyncReaderVariants<sbyte>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader("0\r\n-127\r\n-2"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new sbyte[] { 0, -127, -2 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // sbyte?
+            {
+                await RunAsyncReaderVariants<sbyte?>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader("\r\n-127\r\n-2"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new sbyte?[] { null, -127, -2 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // short
+            {
+                await RunAsyncReaderVariants<short>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader("0\r\n-9876\r\n-16000"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new short[] { 0, -9876, -16000 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // short?
+            {
+                await RunAsyncReaderVariants<short?>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader("0\r\n\r\n-16000"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new short?[] { 0, null, -16000 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // ushort
+            {
+                await RunAsyncReaderVariants<ushort>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader("0\r\n12345\r\n32000"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new ushort[] { 0, 12345, 32000 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // ushort?
+            {
+                await RunAsyncReaderVariants<ushort?>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader("\r\n12345\r\n32000"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new ushort?[] { null, 12345, 32000 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // int
+            {
+                await RunAsyncReaderVariants<int>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader("0\r\n2000000\r\n-15"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new[] { 0, 2000000, -15 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // int?
+            {
+                await RunAsyncReaderVariants<int?>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader("\r\n2000000\r\n-15"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new int?[] { null, 2000000, -15 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // uint
+            {
+                await RunAsyncReaderVariants<uint>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader("0\r\n2000000\r\n4000000000"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new uint[] { 0, 2000000, 4_000_000_000 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // uint?
+            {
+                await RunAsyncReaderVariants<uint?>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader("\r\n2000000\r\n4000000000"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new uint?[] { null, 2000000, 4_000_000_000 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // long
+            {
+                await RunAsyncReaderVariants<long>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"0\r\n{long.MinValue}\r\n{long.MaxValue}"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new long[] { 0, long.MinValue, long.MaxValue }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // long?
+            {
+                await RunAsyncReaderVariants<long?>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"{long.MinValue}\r\n\r\n{long.MaxValue}"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new long?[] { long.MinValue, null, long.MaxValue }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // ulong
+            {
+                await RunAsyncReaderVariants<ulong>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"0\r\n123\r\n{ulong.MaxValue}"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new ulong[] { 0, 123, ulong.MaxValue }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // ulong?
+            {
+                await RunAsyncReaderVariants<ulong?>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"0\r\n\r\n{ulong.MaxValue}"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new ulong?[] { 0, null, ulong.MaxValue }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // float
+            {
+                await RunAsyncReaderVariants<float>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"0.12\r\n123456789.0123\r\n-999999.88888"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new float[] { 0.12f, 123456789.0123f, -999999.88888f }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // float?
+            {
+                await RunAsyncReaderVariants<float?>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"0.12\r\n\r\n-999999.88888"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new float?[] { 0.12f, null, -999999.88888f }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // double
+            {
+                await RunAsyncReaderVariants<double>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"0.12\r\n123456789.0123\r\n-999999.88888"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new double[] { 0.12, 123456789.0123, -999999.88888 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // double?
+            {
+                await RunAsyncReaderVariants<double?>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"0.12\r\n\r\n-999999.88888"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new double?[] { 0.12, null, -999999.88888 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // decimal
+            {
+                await RunAsyncReaderVariants<decimal>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"0.12\r\n123456789.0123\r\n-999999.88888"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new decimal[] { 0.12m, 123456789.0123m, -999999.88888m }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // decimal?
+            {
+                await RunAsyncReaderVariants<decimal?>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"0.12\r\n\r\n-999999.88888"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new decimal?[] { 0.12m, null, -999999.88888m }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // string
+            {
+                await RunAsyncReaderVariants<string>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"hello\r\n\r\nworld"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new string[] { "hello", null, "world" }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // Version
+            {
+                await RunAsyncReaderVariants<Version>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"1.2\r\n\r\n1.2.3.4"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new[] { new Version(1, 2), null, new Version(1, 2, 3, 4) }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // Uri
+            {
+                await RunAsyncReaderVariants<Uri>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"http://example.com/\r\n\r\nhttps://stackoverflow.com/questions"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new[] { new Uri("http://example.com/"), null, new Uri("https://stackoverflow.com/questions") }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // enum
+            {
+                await RunAsyncReaderVariants<_WellKnownSingleColumns>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"Foo\r\nBar\r\nFoo"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new[] { _WellKnownSingleColumns.Foo, _WellKnownSingleColumns.Bar, _WellKnownSingleColumns.Foo }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // enum?
+            {
+                await RunAsyncReaderVariants<_WellKnownSingleColumns?>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"Foo\r\nBar\r\n\r\n"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new _WellKnownSingleColumns?[] { _WellKnownSingleColumns.Foo, _WellKnownSingleColumns.Bar, null }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // flags enum
+            {
+                await RunAsyncReaderVariants<_WellKnownSingleColumns_Flags>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"\"Foo, Bar\"\r\nBar\r\nFizz"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new[] { _WellKnownSingleColumns_Flags.Foo | _WellKnownSingleColumns_Flags.Bar, _WellKnownSingleColumns_Flags.Bar, _WellKnownSingleColumns_Flags.Fizz }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // flags enum?
+            {
+                await RunAsyncReaderVariants<_WellKnownSingleColumns_Flags?>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"\"Foo, Bar\"\r\n\r\nFizz"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new _WellKnownSingleColumns_Flags?[] { _WellKnownSingleColumns_Flags.Foo | _WellKnownSingleColumns_Flags.Bar, null, _WellKnownSingleColumns_Flags.Fizz }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // DateTime
+            {
+                await RunAsyncReaderVariants<DateTime>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        var ci = CultureInfo.InvariantCulture;
+
+                        await using (var reader =
+                            await getReader(
+                                $"\"{DateTime.MaxValue.ToString(ci)}\"\r\n\"{new DateTime(2020, 04, 23, 0, 0, 0, DateTimeKind.Unspecified).ToString(ci)}\"\r\n\"{DateTime.MinValue.ToString(ci)}\""
+                            )
+                        )
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            var shouldMatch =
+                                new[]
+                                {
+                                    DateTime.Parse(DateTime.MaxValue.ToString(ci)),
+                                    DateTime.Parse(new DateTime(2020, 04, 23, 0, 0, 0, DateTimeKind.Unspecified).ToString(ci)),
+                                    DateTime.Parse(DateTime.MinValue.ToString(ci)),
+                                };
+                            Assert.True(shouldMatch.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // DateTime?
+            {
+                await RunAsyncReaderVariants<DateTime?>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        var ci = CultureInfo.InvariantCulture;
+
+                        await using (var reader =
+                            await getReader(
+                                $"\"{DateTime.MaxValue.ToString(ci)}\"\r\n\r\n\"{DateTime.MinValue.ToString(ci)}\""
+                            )
+                        )
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            var shouldMatch =
+                                new DateTime?[]
+                                {
+                                    DateTime.Parse(DateTime.MaxValue.ToString(ci)),
+                                    null,
+                                    DateTime.Parse(DateTime.MinValue.ToString(ci)),
+                                };
+                            Assert.True(shouldMatch.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // DateTimeOffset
+            {
+                await RunAsyncReaderVariants<DateTimeOffset>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        var ci = CultureInfo.InvariantCulture;
+
+                        await using (var reader =
+                            await getReader(
+                                $"\"{DateTimeOffset.MaxValue.ToString(ci)}\"\r\n\"{new DateTimeOffset(2020, 04, 23, 0, 0, 0, TimeSpan.Zero).ToString(ci)}\"\r\n\"{DateTimeOffset.MinValue.ToString(ci)}\""
+                            )
+                        )
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            var shouldMatch =
+                                new[]
+                                {
+                                    DateTimeOffset.Parse(DateTimeOffset.MaxValue.ToString(ci)),
+                                    DateTimeOffset.Parse(new DateTimeOffset(2020, 04, 23, 0, 0, 0, TimeSpan.Zero).ToString(ci)),
+                                    DateTimeOffset.Parse(DateTimeOffset.MinValue.ToString(ci)),
+                                };
+                            Assert.True(shouldMatch.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // DateTimeOffset?
+            {
+                await RunAsyncReaderVariants<DateTimeOffset?>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        var ci = CultureInfo.InvariantCulture;
+
+                        await using (var reader =
+                            await getReader(
+                                $"\"{DateTimeOffset.MaxValue.ToString(ci)}\"\r\n\r\n\"{DateTimeOffset.MinValue.ToString(ci)}\""
+                            )
+                        )
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            var shouldMatch =
+                                new DateTimeOffset?[]
+                                {
+                                    DateTimeOffset.Parse(DateTimeOffset.MaxValue.ToString(ci)),
+                                    null,
+                                    DateTimeOffset.Parse(DateTimeOffset.MinValue.ToString(ci)),
+                                };
+                            Assert.True(shouldMatch.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // Guid
+            {
+                await RunAsyncReaderVariants<Guid>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"2E9348A1-C3D9-4A9C-95FF-D97591F91542\r\nECB04C56-3042-4234-B757-6AC6E53E10C2"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new[] { Guid.Parse("2E9348A1-C3D9-4A9C-95FF-D97591F91542"), Guid.Parse("ECB04C56-3042-4234-B757-6AC6E53E10C2") }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // Guid?
+            {
+                await RunAsyncReaderVariants<Guid?>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"2E9348A1-C3D9-4A9C-95FF-D97591F91542\r\n\r\n"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new Guid?[] { Guid.Parse("2E9348A1-C3D9-4A9C-95FF-D97591F91542"), null }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // TimeSpan
+            {
+                await RunAsyncReaderVariants<TimeSpan>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"\"{TimeSpan.MaxValue}\"\r\n\"{TimeSpan.FromMilliseconds(123456)}\"\r\n\"{TimeSpan.MaxValue}\""))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new[] { TimeSpan.MaxValue, TimeSpan.FromMilliseconds(123456), TimeSpan.MaxValue }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // TimeSpan?
+            {
+                await RunAsyncReaderVariants<TimeSpan?>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"\"{TimeSpan.MaxValue}\"\r\n\r\n\"{TimeSpan.MaxValue}\""))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new TimeSpan?[] { TimeSpan.MaxValue, null, TimeSpan.MaxValue }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // Index
+            {
+                await RunAsyncReaderVariants<Index>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"{^1}\r\n{(Index)2}\r\n{^3}"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new[] { ^1, (Index)2, ^3 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // Index?
+            {
+                await RunAsyncReaderVariants<Index?>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"{^1}\r\n\r\n{^3}"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new Index?[] { ^1, null, ^3 }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // Range
+            {
+                await RunAsyncReaderVariants<Range>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"{1..^1}\r\n{..^2}\r\n{^3..}"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new[] { 1..^1, ..^2, ^3.. }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+
+            // Range?
+            {
+                await RunAsyncReaderVariants<Range?>(
+                    Options.Default,
+                    async (config, getReader) =>
+                    {
+                        await using(var reader = await getReader($"{1..^1}\r\n\r\n{^3..}"))
+                        await using(var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.True(new Range?[] { 1..^1, null, ^3.. }.SequenceEqual(rows));
+                        }
+                    }
+                );
+            }
+        }
+
+        [Fact]
+        public async Task ByRefSetterAsync()
+        {
+            var t = typeof(_ByRefSetter).GetTypeInfo();
+            var byMethod = Setter.ForMethod(typeof(ReaderTests).GetMethod(nameof(_ByRefSetterStaticMethod), BindingFlags.Static | BindingFlags.NonPublic));
+            var byKnownDelegate = Setter.ForDelegate((ref _ByRefSetter row, int b, in ReadContext ctx) => { row.B = b * 3; });
+
+            _ByRefSetterDelegate otherDel = (ref _ByRefSetter row, int c, in ReadContext ctx) => { row.C = c * 4; };
+            var byOtherDelegate = (Setter)otherDel;
+
+            var m = ManualTypeDescriber.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback, TypeDescribers.Default);
+            m.WithExplicitSetter(t, "A", byMethod);
+            m.WithExplicitSetter(t, "B", byKnownDelegate);
+            m.WithExplicitSetter(t, "C", byOtherDelegate);
+
+            var td = m.ToManualTypeDescriber();
+
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(td).ToOptions();
+
+            await RunAsyncReaderVariants<_ByRefSetter>(
+                opts,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("A,B,C\r\n1,2,3\r\n4,5,6\r\n7,8,9"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+
+                        Assert.Collection(
+                            rows,
+                            a =>
+                            {
+                                Assert.Equal(1 * 2, a.A);
+                                Assert.Equal(2 * 3, a.B);
+                                Assert.Equal(3 * 4, a.C);
+                            },
+                            b =>
+                            {
+                                Assert.Equal(4 * 2, b.A);
+                                Assert.Equal(5 * 3, b.B);
+                                Assert.Equal(6 * 4, b.C);
+                            },
+                            c =>
+                            {
+                                Assert.Equal(7 * 2, c.A);
+                                Assert.Equal(8 * 3, c.B);
+                                Assert.Equal(9 * 4, c.C);
+                            }
+                        );
+                    }
+                }
+            );
         }
 
         [Fact]

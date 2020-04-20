@@ -15,6 +15,11 @@ namespace Cesil
     public delegate void SetterDelegate<TRow, TValue>(TRow instance, TValue value, in ReadContext context);
 
     /// <summary>
+    /// Delegate type for setters, where instance is passed by ref.
+    /// </summary>
+    public delegate void SetterByRefDelegate<TRow, TValue>(ref TRow instance, TValue value, in ReadContext context);
+
+    /// <summary>
     /// Represents code used to set parsed values onto types.
     /// 
     /// Wraps a static method, an instance method, a delegate, a field, or a constructor
@@ -54,13 +59,29 @@ namespace Cesil
         {
             get
             {
-                return 
+                return
                     Mode switch
                     {
                         BackingMode.Field => Field.Value.IsStatic,
                         BackingMode.Method => Method.Value.IsStatic,
                         BackingMode.Delegate => !RowType.HasValue,
                         BackingMode.ConstructorParameter => false,
+                        _ => Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}"),
+                    };
+            }
+        }
+
+        internal bool IsByRef
+        {
+            get
+            {
+                return
+                    Mode switch
+                    {
+                        BackingMode.Field => false,
+                        BackingMode.Method => RowType.HasValue ? RowType.Value.IsByRef : false,
+                        BackingMode.ConstructorParameter => ConstructorParameter.Value.ParameterType.IsByRef,
+                        BackingMode.Delegate => RowType.HasValue ? RowType.Value.IsByRef : false,
                         _ => Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}"),
                     };
             }
@@ -114,8 +135,6 @@ namespace Cesil
 
         internal Expression MakeExpression(ParameterExpression rowVar, ParameterExpression valVar, ParameterExpression ctxVar)
         {
-            // todo: no reason this can't be chainable?
-
             Expression selfExp;
 
             switch (Mode)
@@ -227,8 +246,8 @@ namespace Cesil
         /// If the method is a static method it may:
         ///  - take 1 parameter (the result of the parser) or
         ///  - take 2 parameters, the result of the parser and an `in ReadContext` or
-        ///  - take 2 parameters, the row type and the result of the parser or
-        ///  - take 3 parameters, the row type, the result of the parser, and `in ReadContext`
+        ///  - take 2 parameters, the row type (which may be passed by ref), and the result of the parser or
+        ///  - take 3 parameters, the row type (which may be passed by ref), the result of the parser, and `in ReadContext`
         /// 
         /// If the method is an instance method:
         ///  - it must be on the row type, and take 1 parameter (the result of the parser) or
@@ -257,31 +276,41 @@ namespace Cesil
 
                 if (args.Length == 1)
                 {
+                    // has to be a static method taking the _value_ to be set
+
                     takesType = args[0].ParameterType.GetTypeInfo();
                     takesContext = false;
                 }
                 else if (args.Length == 2)
                 {
+                    // one of three cases:
+                    //   1. static method taking the row type and the value to be set
+                    //   2. static method taking the row type _by ref_ and the value to be set
+                    //   3. static method taking the value to be set and an in ReadContext
+
                     var p0 = args[0].ParameterType.GetTypeInfo();
-
                     var p1 = args[1].ParameterType.GetTypeInfo();
-                    if (!p1.IsByRef)
-                    {
-                        onType = p0;
-                        takesType = p1;
-                        takesContext = false;
-                    }
-                    else
-                    {
-                        var p1Elem = p1.GetElementTypeNonNull();
-                        if (p1Elem != Types.ReadContext)
-                        {
-                            return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by a static method taking 2 parameters where the second parameter is by ref must have a second parameter of `in {nameof(ReadContext)}`, was not `{nameof(ReadContext)}`", nameof(method));
-                        }
 
+                    if (args[1].IsReadContextByRef(out var _))
+                    {
+                        // we're in case 3
                         onType = null;
                         takesType = p0;
                         takesContext = true;
+                    }
+                    else
+                    {
+                        // we're in case 2 or 3
+                        // so p0 may be by ref or not, but p1 must NOT be by ref
+
+                        if(p1.IsByRef)
+                        {
+                            return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by a static method taking 2 parameters cannot have a by ref second parameter unless that parameter is an `in {nameof(ReadContext)}`", nameof(method));
+                        }
+
+                        onType = p0;
+                        takesType = p1;
+                        takesContext = false;
                     }
                 }
                 else if (args.Length == 3)
@@ -381,6 +410,19 @@ namespace Cesil
         }
 
         /// <summary>
+        /// Create a Setter from the given delegate.
+        /// </summary>
+        public static Setter ForDelegate<TRow, TValue>(SetterByRefDelegate<TRow, TValue> del)
+        {
+            Utils.CheckArgumentNull(del, nameof(del));
+
+            var setOnType = typeof(TRow).GetTypeInfo().MakeByRefType().GetTypeInfo();
+            var takesType = typeof(TValue).GetTypeInfo();
+
+            return new Setter(setOnType, takesType, del);
+        }
+
+        /// <summary>
         /// Create a Setter from the given constructor parameter.
         /// </summary>
         public static Setter ForConstructorParameter(ParameterInfo parameter)
@@ -436,7 +478,7 @@ namespace Cesil
                 if (setter.RowType.HasValue) return false;
             }
 
-            return 
+            return
                 mode switch
                 {
                     BackingMode.Delegate => Delegate.Value == setter.Delegate.Value,
@@ -549,6 +591,14 @@ namespace Cesil
 
                     return new Setter(null, takesType, del);
                 }
+                else if (delGenType == Types.SetterByRefDelegate)
+                {
+                    var genArgs = delType.GetGenericArguments();
+                    var rowType = genArgs[0].GetTypeInfo().MakeByRefType().GetTypeInfo();
+                    var takesType = genArgs[1].GetTypeInfo();
+
+                    return new Setter(rowType, takesType, del);
+                }
             }
 
             var mtd = del.Method;
@@ -562,15 +612,34 @@ namespace Cesil
             var invoke = delType.GetMethodNonNull("Invoke");
             if (ps.Length == 3)
             {
+                // 2 cases
+                //  - row type, value type, in ReadContext
+                //  - ref row type, value type, in ReadContext
+
                 var rowType = ps[0].ParameterType.GetTypeInfo();
                 var takesType = ps[1].ParameterType.GetTypeInfo();
+
+                if (takesType.IsByRef)
+                {
+                    return Throw.InvalidOperationException<Setter>($"Delegate taking 3 parameters cannot have a by ref second parameter");
+                }
 
                 if (!ps[2].IsReadContextByRef(out var msg))
                 {
                     return Throw.InvalidOperationException<Setter>($"Delegate taking 3 parameters must have a third parameter of `in {nameof(ReadContext)}`; {msg}");
                 }
 
-                var setterDelType = Types.SetterDelegate.MakeGenericType(rowType, takesType);
+                var firstGenArg = rowType;
+                var secondGenArg = takesType;
+                var delegateType = Types.SetterDelegate;
+
+                if (firstGenArg.IsByRef)
+                {
+                    firstGenArg = firstGenArg.GetElementTypeNonNull();
+                    delegateType = Types.SetterByRefDelegate;
+                }
+
+                var setterDelType = delegateType.MakeGenericType(firstGenArg, secondGenArg);
 
                 var reboundDel = System.Delegate.CreateDelegate(setterDelType, del, invoke);
 

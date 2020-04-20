@@ -34,6 +34,19 @@ namespace Cesil
             return ReadContext.ReadingColumn(owner.Options, r.RowNumber, name, owner.Context);
         }
 
+        internal void GetDataSpanAndReadContext(out ReadOnlySpan<char> data, out ReadContext ctx)
+        {
+            var r = SafeRowGet();
+
+            data = r.GetDataSpan(ColumnNumber);
+
+            var name = r.Columns[ColumnNumber];
+
+            var owner = r.Owner;
+
+            ctx = ReadContext.ReadingColumn(owner.Options, r.RowNumber, name, owner.Context);
+        }
+
         internal Parser? GetParser(TypeInfo forType, out ReadContext ctx)
         {
             var row = Row;
@@ -57,7 +70,7 @@ namespace Cesil
             var ret = Row;
             ret.AssertGenerationMatch(Generation);
 
-            Cesil.DisposableHelper.AssertNotDisposed(ret);
+            DisposableHelper.AssertNotDisposedInternal(ret);
 
             return ret;
         }
@@ -69,6 +82,8 @@ namespace Cesil
 
         TypeCode IConvertible.GetTypeCode()
         {
+            DisposableHelper.AssertNotDisposed(Row);
+
             GetConversionDetails(out var describer, out var data, out var ctx);
 
             var boolConf = describer.GetDynamicCellParserFor(in ctx, Types.Bool);
@@ -154,8 +169,6 @@ namespace Cesil
             var self = this;
 
             var row = self.Row;
-            row.AssertGenerationMatch(Generation);
-
 
             describer = row.Converter;
             var owner = row.Owner;
@@ -167,6 +180,8 @@ namespace Cesil
 
         private T ToTypeImpl<T>(IFormatProvider? provider, TypeInfo? toType = null)
         {
+            DisposableHelper.AssertNotDisposed(Row);
+
             toType ??= typeof(T).GetTypeInfo();
 
             if (provider != null)

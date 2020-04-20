@@ -36,7 +36,7 @@ namespace Cesil
             }
         }
 
-        private readonly THold Hold;
+        private THold Hold;
         private readonly ClearHoldDelegate<THold> ClearHold;
 
         private readonly GetInstanceGivenHoldDelegate<TRow, THold> GetInstance;
@@ -396,11 +396,11 @@ namespace Cesil
 
                 if (CurrentPopulated)
                 {
-                    simpleCol.SetOnRow(Current, in ctx, data);
+                    simpleCol.SetOnRow(ref Current, in ctx, data);
                 }
                 else
                 {
-                    simpleCol.ParseAndHold(Hold, in ctx, data);
+                    simpleCol.ParseAndHold(ref Hold, in ctx, data);
                     SimpleSet.Add(new ShallowReadContext(in ctx));
                 }
 
@@ -424,7 +424,7 @@ namespace Cesil
                     return;
                 }
 
-                holdConfig.ParseAndHold(Hold, in ctx, data);
+                holdConfig.ParseAndHold(ref Hold, in ctx, data);
 
                 HeldCount++;
 
@@ -459,7 +459,7 @@ namespace Cesil
                             var realCtx = ReadContext.ReadingColumn(options, shallowCtx.RowNumber, realCi, context);
 
                             var moveDelegate = simple.MoveToRow;
-                            moveDelegate(Current, Hold, in realCtx);
+                            moveDelegate(ref Current, Hold, in realCtx);
                         }
                     }
                 }

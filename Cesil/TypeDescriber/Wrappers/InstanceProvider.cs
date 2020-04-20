@@ -324,6 +324,57 @@ namespace Cesil
         }
 
         /// <summary>
+        /// Returns the default instance provider for the given type, if one exists.
+        /// 
+        /// For reference types, it will use the parameterless constructor.
+        /// 
+        /// For value types, it will use the all-zero (aka default) value.
+        /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
+        public static InstanceProvider? GetDefault(TypeInfo forType)
+        {
+            Utils.CheckArgumentNull(forType, nameof(forType));
+
+            if (forType.IsByRef)
+            {
+                return Throw.ArgumentException<InstanceProvider>($"Cannot create an {nameof(InstanceProvider)} for a by ref type", nameof(forType));
+            }
+
+            if (forType.IsPointer)
+            {
+                return Throw.ArgumentException<InstanceProvider>($"Cannot create an {nameof(InstanceProvider)} for a pointer type", nameof(forType));
+            }
+
+            // any value type is constructable by definition
+            if (forType.IsValueType)
+            {
+                var underlying = Nullable.GetUnderlyingType(forType);
+                MethodInfo mtd;
+                if (underlying != null)
+                {
+                    mtd = Methods.DefaultTypeInstanceProviders.TryCreateNullableInstance.MakeGenericMethod(underlying);
+                }
+                else
+                {
+                    mtd = Methods.DefaultTypeInstanceProviders.TryCreateInstance.MakeGenericMethod(forType);
+                }
+
+                return ForMethod(mtd);
+            }
+
+            // we have special cases for well known reference types
+            if (DefaultTypeInstanceProviders.TryGetReferenceInstanceProvider(forType, out var wellKnownReferenceType))
+            {
+                return wellKnownReferenceType;
+            }
+
+            // and we can construct anything with an empty constructor
+            var cons = forType.GetConstructor(Type.EmptyTypes);
+
+            return (InstanceProvider?)cons;
+        }
+
+        /// <summary>
         /// Returns true if this object equals the given InstanceProvider.
         /// </summary>
         public override bool Equals(object? obj)
