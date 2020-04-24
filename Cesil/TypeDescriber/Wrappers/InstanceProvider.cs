@@ -345,6 +345,16 @@ namespace Cesil
                 return Throw.ArgumentException<InstanceProvider>($"Cannot create an {nameof(InstanceProvider)} for a pointer type", nameof(forType));
             }
 
+            if (forType.IsGenericTypeDefinition)
+            {
+                return Throw.ArgumentException<InstanceProvider>($"Cannot create an {nameof(InstanceProvider)} for an unbound generic type", nameof(forType));
+            }
+
+            if (forType.IsGenericTypeParameter)
+            {
+                return Throw.ArgumentException<InstanceProvider>($"Cannot create an {nameof(InstanceProvider)} for an generic parameter", nameof(forType));
+            }
+
             // any value type is constructable by definition
             if (forType.IsValueType)
             {

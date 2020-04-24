@@ -71,22 +71,6 @@ namespace Cesil
             }
         }
 
-        internal bool IsByRef
-        {
-            get
-            {
-                return
-                    Mode switch
-                    {
-                        BackingMode.Field => false,
-                        BackingMode.Method => RowType.HasValue ? RowType.Value.IsByRef : false,
-                        BackingMode.ConstructorParameter => ConstructorParameter.Value.ParameterType.IsByRef,
-                        BackingMode.Delegate => RowType.HasValue ? RowType.Value.IsByRef : false,
-                        _ => Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}"),
-                    };
-            }
-        }
-
         internal readonly NonNull<ParameterInfo> ConstructorParameter;
 
         internal readonly NonNull<MethodInfo> Method;

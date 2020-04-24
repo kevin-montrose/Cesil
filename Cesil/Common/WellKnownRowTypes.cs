@@ -25,19 +25,6 @@ namespace Cesil
             }
         }
 
-        internal static bool IsWellKnown(TypeInfo type)
-        {
-            if (type.IsEnum) return true;
-
-            var underlying = Nullable.GetUnderlyingType(type);
-            if (underlying != null)
-            {
-                return IsWellKnown(underlying.GetTypeInfo());
-            }
-
-            return Setters.ContainsKey(type);
-        }
-
         internal static bool TryGetSetter(TypeInfo type, [MaybeNullWhen(returnValue: false)]out Setter setter)
         {
             var nonNull = Nullable.GetUnderlyingType(type) ?? type;

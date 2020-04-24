@@ -17,8 +17,51 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ReaderTests
     {
-        // todo: tests for single column versions of all default supported types 
-        //       ie. Read<int>, with no wrapper
+        private sealed class _InstanceSetterWithContext
+        {
+            public int A { get; private set; }
+
+            public _InstanceSetterWithContext() { }
+
+            public void Setter(int val, in ReadContext ctx)
+            {
+                A = val * 2;
+            }
+        }
+
+        [Fact]
+        public void InstanceSetterWithContext()
+        {
+            var t = typeof(_InstanceSetterWithContext).GetTypeInfo();
+
+            var mtd = t.GetMethod(nameof(_InstanceSetterWithContext.Setter), BindingFlags.Public | BindingFlags.Instance);
+            var setter = Setter.ForMethod(mtd);
+
+            var tdb = ManualTypeDescriber.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback, TypeDescribers.Default);
+            tdb.WithExplicitSetter(t, nameof(_InstanceSetterWithContext.A), setter);
+
+            var td = tdb.ToManualTypeDescriber();
+
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(td).ToOptions();
+
+            RunSyncReaderVariants<_InstanceSetterWithContext>(
+                opts,
+                (config, getReader) =>
+                {
+                    using(var reader = getReader("A\r\n1\r\n2\r\n3"))
+                    using(var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+                        Assert.Collection(
+                            rows,
+                            a => Assert.Equal(2, a.A),
+                            b => Assert.Equal(4, b.A),
+                            c => Assert.Equal(6, c.A)
+                        );
+                    }
+                }
+            );
+        }
 
         private enum _WellKnownSingleColumns
         {
@@ -5300,6 +5343,40 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     }
                 );
             }
+        }
+
+        [Fact]
+        public async Task InstanceSetterWithContextAsync()
+        {
+            var t = typeof(_InstanceSetterWithContext).GetTypeInfo();
+
+            var mtd = t.GetMethod(nameof(_InstanceSetterWithContext.Setter), BindingFlags.Public | BindingFlags.Instance);
+            var setter = Setter.ForMethod(mtd);
+
+            var tdb = ManualTypeDescriber.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback, TypeDescribers.Default);
+            tdb.WithExplicitSetter(t, nameof(_InstanceSetterWithContext.A), setter);
+
+            var td = tdb.ToManualTypeDescriber();
+
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(td).ToOptions();
+
+            await RunAsyncReaderVariants<_InstanceSetterWithContext>(
+                opts,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("A\r\n1\r\n2\r\n3"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+                        Assert.Collection(
+                            rows,
+                            a => Assert.Equal(2, a.A),
+                            b => Assert.Equal(4, b.A),
+                            c => Assert.Equal(6, c.A)
+                        );
+                    }
+                }
+            );
         }
 
         [Fact]
