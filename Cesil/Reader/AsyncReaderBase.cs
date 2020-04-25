@@ -56,7 +56,7 @@ namespace Cesil
                     while (true)
                     {
                         T _ = default!;
-                        var resTask = TryReadInnerAsync(false, true, ref _, cancel);
+                        var resTask = TryReadInnerAsync(false, true, false, ref _, cancel);
                         if (!resTask.IsCompletedSuccessfully(this))
                         {
                             return ReadAllAsync_ContinueAfterTryReadAsync(this, resTask, into, cancel);
@@ -95,7 +95,7 @@ namespace Cesil
                         {
                             T _ = default!;
 
-                            var resTask = self.TryReadInnerAsync(false, true, ref _, cancel);
+                            var resTask = self.TryReadInnerAsync(false, true, false, ref _, cancel);
                             ReadWithCommentResult<T> res;
                             self.StateMachine.ReleasePinForAsync(resTask);
                             {
@@ -143,7 +143,7 @@ namespace Cesil
                     while (true)
                     {
                         T _ = default!;
-                        var resTask = self.TryReadInnerAsync(false, true, ref _, cancel);
+                        var resTask = self.TryReadInnerAsync(false, true, false, ref _, cancel);
                         ReadWithCommentResult<T> res;
                         self.StateMachine.ReleasePinForAsync(resTask);
                         {
@@ -188,11 +188,11 @@ namespace Cesil
                 var handleRowEndingsAndHeadersTask = HandleRowEndingsAndHeadersAsync(cancel);
                 if (!handleRowEndingsAndHeadersTask.IsCompletedSuccessfully(this))
                 {
-                    TryPreAllocateRow(ref row);
+                    TryPreAllocateRow(true, ref row);
                     return TryReadWithReuseAsync_ContinueAfterHandleRowEndingsAndHeadersAsync(this, handleRowEndingsAndHeadersTask, row, cancel);
                 }
 
-                var tryReadTask = TryReadInnerAsync(false, false, ref row, cancel);
+                var tryReadTask = TryReadInnerAsync(false, false, true, ref row, cancel);
                 if (!tryReadTask.IsCompletedSuccessfully(this))
                 {
                     return TryReadWithReuseAsync_ContinueAfterTryReadInnerAsync(this, tryReadTask, cancel);
@@ -222,7 +222,7 @@ namespace Cesil
                     await ConfigureCancellableAwait(self, waitFor, cancel);
                     CheckCancellation(self, cancel);
 
-                    var res = await ConfigureCancellableAwait(self, self.TryReadInnerAsync(false, false, ref row, cancel), cancel);
+                    var res = await ConfigureCancellableAwait(self, self.TryReadInnerAsync(false, false, true, ref row, cancel), cancel);
                     CheckCancellation(self, cancel);
 
                     switch (res.ResultType)
@@ -271,8 +271,87 @@ namespace Cesil
             AssertNotDisposed(this);
             AssertNotPoisoned(Configuration);
 
-            var record = default(T)!;
-            return TryReadWithReuseAsync(ref record, cancel);
+            try
+            {
+                T row = default!;
+                var handleRowEndingsAndHeadersTask = HandleRowEndingsAndHeadersAsync(cancel);
+                if (!handleRowEndingsAndHeadersTask.IsCompletedSuccessfully(this))
+                {
+                    return TryReadAsync_ContinueAfterHandleRowEndingsAndHeadersAsync(this, handleRowEndingsAndHeadersTask, row, cancel);
+                }
+
+                var tryReadTask = TryReadInnerAsync(false, false, false, ref row, cancel);
+                if (!tryReadTask.IsCompletedSuccessfully(this))
+                {
+                    return TryReadAsync_ContinueAfterTryReadInnerAsync(this, tryReadTask, cancel);
+                }
+
+                var res = tryReadTask.Result;
+                switch (res.ResultType)
+                {
+                    case ReadWithCommentResultType.HasValue:
+                        return new ValueTask<ReadResult<T>>(new ReadResult<T>(res.Value));
+                    case ReadWithCommentResultType.NoValue:
+                        return new ValueTask<ReadResult<T>>(ReadResult<T>.Empty);
+                    default:
+                        return Throw.InvalidOperationException<ValueTask<ReadResult<T>>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}");
+                }
+            }
+            catch (Exception e)
+            {
+                return Throw.PoisonAndRethrow<ValueTask<ReadResult<T>>>(this, e);
+            }
+
+            // wait for HandleRowEndingsAndHeadersAsync to finish, then continue
+            static async ValueTask<ReadResult<T>> TryReadAsync_ContinueAfterHandleRowEndingsAndHeadersAsync(AsyncReaderBase<T> self, ValueTask waitFor, T row, CancellationToken cancel)
+            {
+                try
+                {
+                    await ConfigureCancellableAwait(self, waitFor, cancel);
+                    CheckCancellation(self, cancel);
+
+                    var res = await ConfigureCancellableAwait(self, self.TryReadInnerAsync(false, false, false, ref row, cancel), cancel);
+                    CheckCancellation(self, cancel);
+
+                    switch (res.ResultType)
+                    {
+                        case ReadWithCommentResultType.HasValue:
+                            return new ReadResult<T>(res.Value);
+                        case ReadWithCommentResultType.NoValue:
+                            return ReadResult<T>.Empty;
+                        default:
+                            return Throw.InvalidOperationException<ReadResult<T>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}");
+                    }
+                }
+                catch (Exception e)
+                {
+                    return Throw.PoisonAndRethrow<ReadResult<T>>(self, e);
+                }
+            }
+
+            // wait for the inner call to finish
+            static async ValueTask<ReadResult<T>> TryReadAsync_ContinueAfterTryReadInnerAsync(AsyncReaderBase<T> self, ValueTask<ReadWithCommentResult<T>> waitFor, CancellationToken cancel)
+            {
+                try
+                {
+                    var res = await ConfigureCancellableAwait(self, waitFor, cancel);
+                    CheckCancellation(self, cancel);
+
+                    switch (res.ResultType)
+                    {
+                        case ReadWithCommentResultType.HasValue:
+                            return new ReadResult<T>(res.Value);
+                        case ReadWithCommentResultType.NoValue:
+                            return ReadResult<T>.Empty;
+                        default:
+                            return Throw.InvalidOperationException<ReadResult<T>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}");
+                    }
+                }
+                catch (Exception e)
+                {
+                    return Throw.PoisonAndRethrow<ReadResult<T>>(self, e);
+                }
+            }
         }
 
         public ValueTask<ReadWithCommentResult<T>> TryReadWithCommentAsync(CancellationToken cancel = default)
@@ -280,8 +359,41 @@ namespace Cesil
             AssertNotDisposed(this);
             AssertNotPoisoned(Configuration);
 
-            var record = default(T)!;
-            return TryReadWithCommentReuseAsync(ref record, cancel);
+            try
+            {
+                T record = default!;
+
+                var handleRowEndingsAndHeadersTask = HandleRowEndingsAndHeadersAsync(cancel);
+                if (!handleRowEndingsAndHeadersTask.IsCompletedSuccessfully(this))
+                {
+                    return TryReadWithCommentAsync_ContinueAfterHandleRowEndingsAndHeadersAsync(this, handleRowEndingsAndHeadersTask, record, cancel);
+                }
+
+                return TryReadInnerAsync(true, false, false, ref record, cancel);
+            }
+            catch (Exception e)
+            {
+                return Throw.PoisonAndRethrow<ValueTask<ReadWithCommentResult<T>>>(this, e);
+            }
+
+            // wait for HandleRowEndingsAndHeadersAsync and continue
+            static async ValueTask<ReadWithCommentResult<T>> TryReadWithCommentAsync_ContinueAfterHandleRowEndingsAndHeadersAsync(AsyncReaderBase<T> self, ValueTask waitFor, T record, CancellationToken cancel)
+            {
+                try
+                {
+                    await ConfigureCancellableAwait(self, waitFor, cancel);
+                    CheckCancellation(self, cancel);
+
+                    var ret = await ConfigureCancellableAwait(self, self.TryReadInnerAsync(true, false, false, ref record, cancel), cancel);
+                    CheckCancellation(self, cancel);
+
+                    return ret;
+                }
+                catch (Exception e)
+                {
+                    return Throw.PoisonAndRethrow<ReadWithCommentResult<T>>(self, e);
+                }
+            }
         }
 
         public ValueTask<ReadWithCommentResult<T>> TryReadWithCommentReuseAsync(ref T record, CancellationToken cancel = default)
@@ -297,7 +409,7 @@ namespace Cesil
                     return TryReadWithCommentReuseAsync_ContinueAfterHandleRowEndingsAndHeadersAsync(this, handleRowEndingsAndHeadersTask, record, cancel);
                 }
 
-                return TryReadInnerAsync(true, false, ref record, cancel);
+                return TryReadInnerAsync(true, false, true, ref record, cancel);
             }
             catch (Exception e)
             {
@@ -312,7 +424,7 @@ namespace Cesil
                     await ConfigureCancellableAwait(self, waitFor, cancel);
                     CheckCancellation(self, cancel);
 
-                    var ret = await ConfigureCancellableAwait(self, self.TryReadInnerAsync(true, false, ref record, cancel), cancel);
+                    var ret = await ConfigureCancellableAwait(self, self.TryReadInnerAsync(true, false, true, ref record, cancel), cancel);
                     CheckCancellation(self, cancel);
 
                     return ret;
@@ -324,7 +436,7 @@ namespace Cesil
             }
         }
 
-        internal abstract ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync(bool returnComments, bool pinAcquired, ref T record, CancellationToken cancel);
+        internal abstract ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync(bool returnComments, bool pinAcquired, bool checkRecord, ref T record, CancellationToken cancel);
 
         internal abstract ValueTask HandleRowEndingsAndHeadersAsync(CancellationToken cancel);
 

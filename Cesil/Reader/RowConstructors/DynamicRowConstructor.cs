@@ -25,10 +25,10 @@ namespace Cesil
             columns.Dispose();
         }
 
-        public bool TryPreAllocate(in ReadContext ctx, ref object prealloc)
+        public bool TryPreAllocate(in ReadContext ctx, bool checkPrealloc, ref object prealloc)
         {
             var asObj = prealloc as DynamicRow;
-            if (asObj != null)
+            if (checkPrealloc && asObj != null)
             {
                 PreAlloced = asObj;
                 asObj.Dispose();

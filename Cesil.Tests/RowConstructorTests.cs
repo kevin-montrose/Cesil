@@ -217,7 +217,7 @@ namespace Cesil.Tests
                 _Simple _ = null;
 
                 using var builder = CreateConstructor();
-                builder.TryPreAllocate(default, ref _);
+                builder.TryPreAllocate(default, false, ref _);
                 Assert.Throws<ImpossibleException>(() => builder.ColumnAvailable(Options.Default, 0, 0, null, default));
             }
 
@@ -283,7 +283,7 @@ namespace Cesil.Tests
             _Simple _ = null;
 
             // in order
-            Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+            Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
             builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
             sFooInvoked = false;
             builder.ColumnAvailable(Options.Default, 0, 0, null, "123");
@@ -299,7 +299,7 @@ namespace Cesil.Tests
 
             // reverse
             _ = null;
-            Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 1, null), ref _));
+            Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 1, null), false, ref _));
             builder.StartRow(ReadContext.ReadingRow(Options.Default, 1, null));
             sBarInvoked = false;
             builder.ColumnAvailable(Options.Default, 1, 1, null, "world");
@@ -314,7 +314,7 @@ namespace Cesil.Tests
 
             // just Foo
             _ = null;
-            Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 2, null), ref _));
+            Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 2, null), false, ref _));
             builder.StartRow(ReadContext.ReadingRow(Options.Default, 2, null));
             sFooInvoked = false;
             sBarInvoked = false;
@@ -328,7 +328,7 @@ namespace Cesil.Tests
 
             // just Bar
             _ = null;
-            Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 3, null), ref _));
+            Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 3, null), false, ref _));
             builder.StartRow(ReadContext.ReadingRow(Options.Default, 3, null));
             sFooInvoked = false;
             sBarInvoked = false;
@@ -342,7 +342,7 @@ namespace Cesil.Tests
 
             // empty
             _ = null;
-            Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 4, null), ref _));
+            Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 4, null), false, ref _));
             builder.StartRow(ReadContext.ReadingRow(Options.Default, 4, null));
             sFooInvoked = false;
             sBarInvoked = false;
@@ -384,7 +384,7 @@ namespace Cesil.Tests
                 builder.SetColumnOrder(CreateHeadersReader<_Simple>("Foo,Bar"));
 
                 _Simple _ = null;
-                Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+                Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
                 builder.ColumnAvailable(Options.Default, 0, 0, null, "123");
                 builder.ColumnAvailable(Options.Default, 0, 1, null, "hello");
@@ -400,7 +400,7 @@ namespace Cesil.Tests
                 builder.SetColumnOrder(CreateHeadersReader<_Simple>("Bar,Foo"));
 
                 _Simple _ = null;
-                Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+                Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
                 builder.ColumnAvailable(Options.Default, 0, 0, null, "world");
                 builder.ColumnAvailable(Options.Default, 0, 1, null, "456");
@@ -416,7 +416,7 @@ namespace Cesil.Tests
                 builder.SetColumnOrder(CreateHeadersReader<_Simple>("Foo"));
 
                 _Simple _ = null;
-                Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+                Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
                 builder.ColumnAvailable(Options.Default, 0, 0, null, "789");
                 var row = builder.FinishRow();
@@ -431,7 +431,7 @@ namespace Cesil.Tests
                 builder.SetColumnOrder(CreateHeadersReader<_Simple>("Bar"));
 
                 _Simple _ = null;
-                Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+                Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
                 builder.ColumnAvailable(Options.Default, 0, 0, null, "Fizz");
                 var row = builder.FinishRow();
@@ -446,7 +446,7 @@ namespace Cesil.Tests
                 builder.SetColumnOrder(CreateHeadersReader<_Simple>(""));
 
                 _Simple _ = null;
-                Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+                Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
                 var row = builder.FinishRow();
                 Assert.NotNull(row);
@@ -512,7 +512,7 @@ namespace Cesil.Tests
 
             // in order
             _ = null;
-            Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+            Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
             builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
             builder.ColumnAvailable(Options.Default, 0, 0, null, "123");
             builder.ColumnAvailable(Options.Default, 0, 1, null, "hello");
@@ -523,7 +523,7 @@ namespace Cesil.Tests
 
             // reverse
             _ = null;
-            Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 1, null), ref _));
+            Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 1, null), false, ref _));
             builder.StartRow(ReadContext.ReadingRow(Options.Default, 1, null));
             builder.ColumnAvailable(Options.Default, 1, 1, null, "world");
             builder.ColumnAvailable(Options.Default, 1, 0, null, "456");
@@ -542,7 +542,7 @@ namespace Cesil.Tests
                 builder.SetColumnOrder(CreateHeadersReader<_ConstructorParameters>("Foo,Bar"));
 
                 _ConstructorParameters _ = null;
-                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
                 builder.ColumnAvailable(Options.Default, 0, 0, null, "123");
                 builder.ColumnAvailable(Options.Default, 0, 1, null, "hello");
@@ -558,7 +558,7 @@ namespace Cesil.Tests
                 builder.SetColumnOrder(CreateHeadersReader<_ConstructorParameters>("Bar,Foo"));
 
                 _ConstructorParameters _ = null;
-                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
                 builder.ColumnAvailable(Options.Default, 0, 0, null, "world");
                 builder.ColumnAvailable(Options.Default, 0, 1, null, "456");
@@ -653,7 +653,7 @@ namespace Cesil.Tests
             // in order
             sFizzInvoked = false;
             sBuzzInvoked = false;
-            Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+            Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
             builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
             builder.ColumnAvailable(Options.Default, 0, 0, null, "123");
             builder.ColumnAvailable(Options.Default, 0, 1, null, "hello");
@@ -672,7 +672,7 @@ namespace Cesil.Tests
             _ = null;
             sFizzInvoked = false;
             sBuzzInvoked = false;
-            Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 1, null), ref _));
+            Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 1, null), false, ref _));
             builder.StartRow(ReadContext.ReadingRow(Options.Default, 1, null));
             builder.ColumnAvailable(Options.Default, 1, 3, null, "128");
             Assert.False(sFizzInvoked);
@@ -697,7 +697,7 @@ namespace Cesil.Tests
             _ = null;
             sFizzInvoked = false;
             sBuzzInvoked = false;
-            Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 2, null), ref _));
+            Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 2, null), false, ref _));
             builder.StartRow(ReadContext.ReadingRow(Options.Default, 2, null));
             builder.ColumnAvailable(Options.Default, 2, 0, null, "789");
             builder.ColumnAvailable(Options.Default, 2, 1, null, "fix");
@@ -715,7 +715,7 @@ namespace Cesil.Tests
             _ = null;
             sFizzInvoked = false;
             sBuzzInvoked = false;
-            Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 3, null), ref _));
+            Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 3, null), false, ref _));
             builder.StartRow(ReadContext.ReadingRow(Options.Default, 3, null));
             builder.ColumnAvailable(Options.Default, 3, 3, null, "16");
             Assert.False(sFizzInvoked);
@@ -737,7 +737,7 @@ namespace Cesil.Tests
             _ = null;
             sFizzInvoked = false;
             sBuzzInvoked = false;
-            Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 4, null), ref _));
+            Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 4, null), false, ref _));
             builder.StartRow(ReadContext.ReadingRow(Options.Default, 4, null));
             builder.ColumnAvailable(Options.Default, 4, 0, null, "345");
             builder.ColumnAvailable(Options.Default, 4, 1, null, "exit");
@@ -755,7 +755,7 @@ namespace Cesil.Tests
             _ = null;
             sFizzInvoked = false;
             sBuzzInvoked = false;
-            Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 5, null), ref _));
+            Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 5, null), false, ref _));
             builder.StartRow(ReadContext.ReadingRow(Options.Default, 5, null));
             builder.ColumnAvailable(Options.Default, 5, 2, null, "a");
             Assert.False(sFizzInvoked);
@@ -777,7 +777,7 @@ namespace Cesil.Tests
             _ = null;
             sFizzInvoked = false;
             sBuzzInvoked = false;
-            Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 6, null), ref _));
+            Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 6, null), false, ref _));
             builder.StartRow(ReadContext.ReadingRow(Options.Default, 6, null));
             builder.ColumnAvailable(Options.Default, 6, 0, null, "901");
             builder.ColumnAvailable(Options.Default, 6, 1, null, "wat");
@@ -794,7 +794,7 @@ namespace Cesil.Tests
             _ = null;
             sFizzInvoked = false;
             sBuzzInvoked = false;
-            Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 7, null), ref _));
+            Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 7, null), false, ref _));
             builder.StartRow(ReadContext.ReadingRow(Options.Default, 7, null));
             builder.ColumnAvailable(Options.Default, 7, 1, null, "wut");
             builder.ColumnAvailable(Options.Default, 7, 0, null, "234");
@@ -838,7 +838,7 @@ namespace Cesil.Tests
                 using var builder = MakeConstructor(out var td);
                 builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Foo,Bar,Fizz,Buzz", td));
 
-                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
                 builder.ColumnAvailable(Options.Default, 0, 0, null, "123");
                 builder.ColumnAvailable(Options.Default, 0, 1, null, "hello");
@@ -859,7 +859,7 @@ namespace Cesil.Tests
                 using var builder = MakeConstructor(out var td);
                 builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Buzz,Fizz,Bar,Foo", td));
 
-                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
                 builder.ColumnAvailable(Options.Default, 0, 0, null, "100");
                 builder.ColumnAvailable(Options.Default, 0, 1, null, "z");
@@ -880,7 +880,7 @@ namespace Cesil.Tests
                 using var builder = MakeConstructor(out var td);
                 builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Foo,Bar,Buzz", td));
 
-                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
                 builder.ColumnAvailable(Options.Default, 0, 0, null, "123");
                 builder.ColumnAvailable(Options.Default, 0, 1, null, "hello");
@@ -900,7 +900,7 @@ namespace Cesil.Tests
                 using var builder = MakeConstructor(out var td);
                 builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Buzz,Bar,Foo", td));
 
-                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
                 builder.ColumnAvailable(Options.Default, 0, 0, null, "111");
                 builder.ColumnAvailable(Options.Default, 0, 1, null, "world");
@@ -920,7 +920,7 @@ namespace Cesil.Tests
                 using var builder = MakeConstructor(out var td);
                 builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Foo,Bar,Fizz", td));
 
-                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
                 builder.ColumnAvailable(Options.Default, 0, 0, null, "123");
                 builder.ColumnAvailable(Options.Default, 0, 1, null, "hello");
@@ -940,7 +940,7 @@ namespace Cesil.Tests
                 using var builder = MakeConstructor(out var td);
                 builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Fizz,Bar,Foo", td));
 
-                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
                 builder.ColumnAvailable(Options.Default, 0, 0, null, "q");
                 builder.ColumnAvailable(Options.Default, 0, 1, null, "world");
@@ -962,7 +962,7 @@ namespace Cesil.Tests
                 using var builder = MakeConstructor(out var td);
                 builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Foo,Bar", td));
 
-                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
                 builder.ColumnAvailable(Options.Default, 0, 0, null, "123");
                 builder.ColumnAvailable(Options.Default, 0, 1, null, "hello");
@@ -981,7 +981,7 @@ namespace Cesil.Tests
                 using var builder = MakeConstructor(out var td);
                 builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Bar,Foo", td));
 
-                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
                 builder.ColumnAvailable(Options.Default, 0, 0, null, "world");
                 builder.ColumnAvailable(Options.Default, 0, 1, null, "456");
@@ -1047,7 +1047,7 @@ namespace Cesil.Tests
 
                 builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Buzz,Fizz,Bar,Foo", describer));
 
-                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
                 builder.ColumnAvailable(Options.Default, 0, 0, null, "123");
                 builder.ColumnAvailable(Options.Default, 0, 1, null, "c");
@@ -1067,7 +1067,7 @@ namespace Cesil.Tests
 
                 builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Fizz,Bar,Foo,Buzz", describer));
 
-                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), ref _));
+                Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
                 builder.ColumnAvailable(Options.Default, 0, 0, null, "c");
                 builder.ColumnAvailable(Options.Default, 0, 1, null, "foo");
@@ -1134,7 +1134,7 @@ namespace Cesil.Tests
                 using var dynamic = new DynamicRowConstructor();
                 object _ = null;
 
-                dynamic.TryPreAllocate(default, ref _);
+                dynamic.TryPreAllocate(default, false, ref _);
                 Assert.Throws<ImpossibleException>(() => dynamic.ColumnAvailable(Options.Default, 0, 0, null, default));
             }
 
@@ -1143,7 +1143,7 @@ namespace Cesil.Tests
                 using var dynamic = new DynamicRowConstructor();
                 object _ = null;
 
-                dynamic.TryPreAllocate(default, ref _);
+                dynamic.TryPreAllocate(default, false, ref _);
                 Assert.Throws<ImpossibleException>(() => dynamic.FinishRow());
             }
         }

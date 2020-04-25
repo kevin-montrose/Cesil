@@ -17,6 +17,172 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ReaderTests
     {
+        private struct _ValueTypeInstanceProviders
+        {
+            public int A { get; set; }
+        }
+
+        [Fact]
+        public void ValueTypeInstanceProviders()
+        {
+            var ip = 
+                InstanceProvider.ForDelegate(
+                    (in ReadContext _, out _ValueTypeInstanceProviders val) =>
+                    {
+                        val = new _ValueTypeInstanceProviders { A = 4 };
+                        return true;
+                    }
+                );
+            var setter =
+                Setter.ForDelegate(
+                    (ref _ValueTypeInstanceProviders row, int value, in ReadContext _) =>
+                    {
+                        row.A *= value;
+                    }
+                );
+
+            var tdb = ManualTypeDescriber.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback, TypeDescribers.Default);
+            tdb.WithInstanceProvider(ip);
+            tdb.WithExplicitSetter(typeof(_ValueTypeInstanceProviders).GetTypeInfo(), "A", setter);
+            var td = tdb.ToManualTypeDescriber();
+
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(td).WithCommentCharacter('#').ToOptions();
+
+            // always called
+            {
+                RunSyncReaderVariants<_ValueTypeInstanceProviders>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using(var reader = getReader("A\r\n1\r\n2\r\n3\r\n4"))
+                        using(var csv = config.CreateReader(reader))
+                        {
+                            Assert.True(csv.TryRead(out var r1));
+                            Assert.Equal(4, r1.A);
+                            Assert.True(csv.TryRead(out var r2));
+                            Assert.Equal(8, r2.A);
+                            Assert.True(csv.TryRead(out var r3));
+                            Assert.Equal(12, r3.A);
+                            Assert.True(csv.TryRead(out var r4));
+                            Assert.Equal(16, r4.A);
+                            
+                            Assert.False(csv.TryRead(out _));
+                        }
+                    }
+                );
+            }
+
+            // always called, comments
+            {
+                RunSyncReaderVariants<_ValueTypeInstanceProviders>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("A\r\n1\r\n2\r\n#hello\r\n3\r\n4"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var res1 = csv.TryReadWithComment();
+                            Assert.True(res1.HasValue);
+                            var r1 = res1.Value;
+                            Assert.Equal(4, r1.A);
+
+                            var res2 = csv.TryReadWithComment();
+                            Assert.True(res2.HasValue);
+                            var r2 = res2.Value;
+                            Assert.Equal(8, r2.A);
+
+                            var res3 = csv.TryReadWithComment();
+                            Assert.True(res3.HasComment);
+                            var com3 = res3.Comment;
+                            Assert.Equal("hello", com3);
+
+                            var res4 = csv.TryReadWithComment();
+                            Assert.True(res4.HasValue);
+                            var r4 = res4.Value;
+                            Assert.Equal(12, r4.A);
+
+                            var res5 = csv.TryReadWithComment();
+                            Assert.True(res5.HasValue);
+                            var r5 = res5.Value;
+                            Assert.Equal(16, r5.A);
+
+                            var res6 = csv.TryReadWithComment();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res6.ResultType);
+                        }
+                    }
+                );
+            }
+
+            // never called
+            {
+                RunSyncReaderVariants<_ValueTypeInstanceProviders>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("A\r\n1\r\n2\r\n3\r\n4"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var r = new _ValueTypeInstanceProviders { A = -2 };
+
+                            Assert.True(csv.TryReadWithReuse(ref r));
+                            Assert.Equal(-2, r.A);
+                            Assert.True(csv.TryReadWithReuse(ref r));
+                            Assert.Equal(-4, r.A);
+                            Assert.True(csv.TryReadWithReuse(ref r));
+                            Assert.Equal(-12, r.A);
+                            Assert.True(csv.TryReadWithReuse(ref r));
+                            Assert.Equal(-48, r.A);
+
+                            Assert.False(csv.TryReadWithReuse(ref r));
+                        }
+                    }
+                );
+            }
+
+            // never called, comments
+            {
+                RunSyncReaderVariants<_ValueTypeInstanceProviders>(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("A\r\n1\r\n2\r\n#hello\r\n3\r\n4"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var r = new _ValueTypeInstanceProviders { A = -2 };
+
+                            var res1 = csv.TryReadWithCommentReuse(ref r);
+                            Assert.True(res1.HasValue);
+                            r = res1.Value;
+                            Assert.Equal(-2, r.A);
+
+                            var res2 = csv.TryReadWithCommentReuse(ref r);
+                            Assert.True(res2.HasValue);
+                            r = res2.Value;
+                            Assert.Equal(-4, r.A);
+
+                            var res3 = csv.TryReadWithCommentReuse(ref r);
+                            Assert.True(res3.HasComment);
+                            var com3 = res3.Comment;
+                            Assert.Equal("hello", com3);
+
+                            var res4 = csv.TryReadWithCommentReuse(ref r);
+                            Assert.True(res4.HasValue);
+                            r = res4.Value;
+                            Assert.Equal(-12, r.A);
+
+                            var res5 = csv.TryReadWithCommentReuse(ref r);
+                            Assert.True(res5.HasValue);
+                            r = res5.Value;
+                            Assert.Equal(-48, r.A);
+
+                            var res6 = csv.TryReadWithCommentReuse(ref r);
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res6.ResultType);
+                        }
+                    }
+                );
+            }
+        }
+
         private sealed class _InstanceSetterWithContext
         {
             public int A { get; private set; }
@@ -5346,6 +5512,191 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         }
 
         [Fact]
+        public async Task ValueTypeInstanceProvidersAsync()
+        {
+            var ip =
+                InstanceProvider.ForDelegate(
+                    (in ReadContext _, out _ValueTypeInstanceProviders val) =>
+                    {
+                        val = new _ValueTypeInstanceProviders { A = 4 };
+                        return true;
+                    }
+                );
+            var setter =
+                Setter.ForDelegate(
+                    (ref _ValueTypeInstanceProviders row, int value, in ReadContext _) =>
+                    {
+                        row.A *= value;
+                    }
+                );
+
+            var tdb = ManualTypeDescriber.CreateBuilder(ManualTypeDescriberFallbackBehavior.UseFallback, TypeDescribers.Default);
+            tdb.WithInstanceProvider(ip);
+            tdb.WithExplicitSetter(typeof(_ValueTypeInstanceProviders).GetTypeInfo(), "A", setter);
+            var td = tdb.ToManualTypeDescriber();
+
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(td).WithCommentCharacter('#').ToOptions();
+
+            // always called
+            {
+                await RunAsyncReaderVariants<_ValueTypeInstanceProviders>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("A\r\n1\r\n2\r\n3\r\n4"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var res1 = await csv.TryReadAsync();
+                            Assert.True(res1.HasValue);
+                            var r1 = res1.Value;
+                            Assert.Equal(4, r1.A);
+
+                            var res2 = await csv.TryReadAsync();
+                            Assert.True(res2.HasValue);
+                            var r2 = res2.Value;
+                            Assert.Equal(8, r2.A);
+
+                            var res3 = await csv.TryReadAsync();
+                            Assert.True(res3.HasValue);
+                            var r3 = res3.Value;
+                            Assert.Equal(12, r3.A);
+
+                            var res4 = await csv.TryReadAsync();
+                            Assert.True(res4.HasValue);
+                            var r4 = res4.Value;
+                            Assert.Equal(16, r4.A);
+
+                            var res5 = await csv.TryReadAsync();
+                            Assert.False(res5.HasValue);
+                        }
+                    }
+                );
+            }
+
+            // always called, comments
+            {
+                await RunAsyncReaderVariants<_ValueTypeInstanceProviders>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("A\r\n1\r\n2\r\n#hello\r\n3\r\n4"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var res1 = await csv.TryReadWithCommentAsync();
+                            Assert.True(res1.HasValue);
+                            var r1 = res1.Value;
+                            Assert.Equal(4, r1.A);
+
+                            var res2 = await csv.TryReadWithCommentAsync();
+                            Assert.True(res2.HasValue);
+                            var r2 = res2.Value;
+                            Assert.Equal(8, r2.A);
+
+                            var res3 = await csv.TryReadWithCommentAsync();
+                            Assert.True(res3.HasComment);
+                            var com3 = res3.Comment;
+                            Assert.Equal("hello", com3);
+
+                            var res4 = await csv.TryReadWithCommentAsync();
+                            Assert.True(res4.HasValue);
+                            var r4 = res4.Value;
+                            Assert.Equal(12, r4.A);
+
+                            var res5 = await csv.TryReadWithCommentAsync();
+                            Assert.True(res5.HasValue);
+                            var r5 = res5.Value;
+                            Assert.Equal(16, r5.A);
+
+                            var res6 = await csv.TryReadWithCommentAsync();
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res6.ResultType);
+                        }
+                    }
+                );
+            }
+
+            // never called
+            {
+                await RunAsyncReaderVariants<_ValueTypeInstanceProviders>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("A\r\n1\r\n2\r\n3\r\n4"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var r = new _ValueTypeInstanceProviders { A = -2 };
+
+                            var res1 = await csv.TryReadWithReuseAsync(ref r);
+                            Assert.True(res1.HasValue);
+                            r = res1.Value;
+                            Assert.Equal(-2, r.A);
+
+                            var res2 = await csv.TryReadWithReuseAsync(ref r);
+                            Assert.True(res2.HasValue);
+                            r = res2.Value;
+                            Assert.Equal(-4, r.A);
+
+                            var res3 = await csv.TryReadWithReuseAsync(ref r);
+                            Assert.True(res3.HasValue);
+                            r = res3.Value;
+                            Assert.Equal(-12, r.A);
+
+                            var res4 = await csv.TryReadWithReuseAsync(ref r);
+                            Assert.True(res4.HasValue);
+                            r = res4.Value;
+                            Assert.Equal(-48, r.A);
+
+                            var res5 = await csv.TryReadWithReuseAsync(ref r);
+                            Assert.False(res5.HasValue);
+                        }
+                    }
+                );
+            }
+
+            // never called, comments
+            {
+                await RunAsyncReaderVariants<_ValueTypeInstanceProviders>(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("A\r\n1\r\n2\r\n#hello\r\n3\r\n4"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var r = new _ValueTypeInstanceProviders { A = -2 };
+
+                            var res1 = await csv.TryReadWithCommentReuseAsync(ref r);
+                            Assert.True(res1.HasValue);
+                            r = res1.Value;
+                            Assert.Equal(-2, r.A);
+
+                            var res2 = await csv.TryReadWithCommentReuseAsync(ref r);
+                            Assert.True(res2.HasValue);
+                            r = res2.Value;
+                            Assert.Equal(-4, r.A);
+
+                            var res3 = await csv.TryReadWithCommentReuseAsync(ref r);
+                            Assert.True(res3.HasComment);
+                            var com3 = res3.Comment;
+                            Assert.Equal("hello", com3);
+
+                            var res4 = await csv.TryReadWithCommentReuseAsync(ref r);
+                            Assert.True(res4.HasValue);
+                            r = res4.Value;
+                            Assert.Equal(-12, r.A);
+
+                            var res5 = await csv.TryReadWithCommentReuseAsync(ref r);
+                            Assert.True(res5.HasValue);
+                            r = res5.Value;
+                            Assert.Equal(-48, r.A);
+
+                            var res6 = await csv.TryReadWithCommentReuseAsync(ref r);
+                            Assert.Equal(ReadWithCommentResultType.NoValue, res6.ResultType);
+                        }
+                    }
+                );
+            }
+        }
+
+        [Fact]
         public async Task InstanceSetterWithContextAsync()
         {
             var t = typeof(_InstanceSetterWithContext).GetTypeInfo();
@@ -7648,7 +7999,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             typeDesc.WithDeserializableProperty(typeof(_RowCreationFailure).GetProperty(nameof(_RowCreationFailure.Foo)));
             typeDesc.WithInstanceProvider((InstanceProvider)builder);
 
-            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber((ITypeDescriber)typeDesc.ToManualTypeDescriber()).ToOptions();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(typeDesc.ToManualTypeDescriber()).ToOptions();
 
             await RunAsyncReaderVariants<_RowCreationFailure>(
                 opts,

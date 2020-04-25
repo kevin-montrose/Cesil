@@ -333,7 +333,7 @@ namespace Cesil
             }
         }
 
-        public bool TryPreAllocate(in ReadContext ctx, ref TRow prealloced)
+        public bool TryPreAllocate(in ReadContext ctx, bool checkPrealloc, ref TRow prealloced)
         {
             prealloced = default!;
             return false;

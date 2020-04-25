@@ -212,9 +212,9 @@ namespace Cesil
             }
         }
 
-        public bool TryPreAllocate(in ReadContext ctx, ref TRow prealloced)
+        public bool TryPreAllocate(in ReadContext ctx, bool checkPrealloc, ref TRow prealloced)
         {
-            if (prealloced != null)
+            if (checkPrealloc && prealloced != null)
             {
                 Current = prealloced;
                 CurrentPopulated = true;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Reflection;
@@ -16,8 +17,923 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class WriterTests
     {
-        // todo: tests for single column versions of all default supported types 
-        //       ie. Write<int>, with no wrapper
+        private enum _WellKnownSingleColumns
+        {
+            Foo,
+            Bar
+        }
+
+        [Flags]
+        private enum _WellKnownSingleColumns_Flags
+        {
+            Foo = 1,
+            Bar = 2,
+            Fizz = 4
+        }
+
+        [Fact]
+        public void WellKnownSingleColumns()
+        {
+            // bool
+            {
+                RunSyncWriterVariants<bool>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new[] { true, false, true });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("Boolean\r\nTrue\r\nFalse\r\nTrue", res);
+                    }
+                );
+            }
+
+            // bool?
+            {
+                RunSyncWriterVariants<bool?>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new bool?[] { true, false, null });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("NullableBoolean\r\nTrue\r\nFalse\r\n", res);
+                    }
+                );
+            }
+
+            // char
+            {
+                RunSyncWriterVariants<char>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new[] { 'a', 'b', 'c' });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("Char\r\na\r\nb\r\nc", res);
+                    }
+                );
+            }
+
+            // char?
+            {
+                RunSyncWriterVariants<char?>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new char?[] { 'a', null, 'c' });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("NullableChar\r\na\r\n\r\nc", res);
+                    }
+                );
+            }
+
+            // byte
+            {
+                RunSyncWriterVariants<byte>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new byte[] { 0, 128, 255 });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("Byte\r\n0\r\n128\r\n255", res);
+                    }
+                );
+            }
+
+            // byte?
+            {
+                RunSyncWriterVariants<byte?>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new byte?[] { 0, null, 255 });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("NullableByte\r\n0\r\n\r\n255", res);
+                    }
+                );
+            }
+
+            // sbyte
+            {
+                RunSyncWriterVariants<sbyte>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new sbyte[] { 0, -127, -2 });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("SByte\r\n0\r\n-127\r\n-2", res);
+                    }
+                );
+            }
+
+            // sbyte?
+            {
+                RunSyncWriterVariants<sbyte?>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new sbyte?[] { null, -127, -2 });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("NullableSByte\r\n\r\n-127\r\n-2", res);
+                    }
+                );
+            }
+
+            // short
+            {
+                RunSyncWriterVariants<short>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new short[] { 0, -9876, -16000 });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("Int16\r\n0\r\n-9876\r\n-16000", res);
+                    }
+                );
+            }
+
+            // short?
+            {
+                RunSyncWriterVariants<short?>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new short?[] { 0, null, -16000 });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("NullableInt16\r\n0\r\n\r\n-16000", res);
+                    }
+                );
+            }
+
+            // ushort
+            {
+                RunSyncWriterVariants<ushort>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new ushort[] { 0, 12345, 32000 });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("UInt16\r\n0\r\n12345\r\n32000", res);
+                    }
+                );
+            }
+
+            // ushort?
+            {
+                RunSyncWriterVariants<ushort?>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new ushort?[] { null, 12345, 32000 });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("NullableUInt16\r\n\r\n12345\r\n32000", res);
+                    }
+                );
+            }
+
+            // int
+            {
+                RunSyncWriterVariants<int>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new int[] { 0, 2000000, -15 });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("Int32\r\n0\r\n2000000\r\n-15", res);
+                    }
+                );
+            }
+
+            // int?
+            {
+                RunSyncWriterVariants<int?>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new int?[] { null, 2000000, -15 });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("NullableInt32\r\n\r\n2000000\r\n-15", res);
+                    }
+                );
+            }
+
+            // uint
+            {
+                RunSyncWriterVariants<uint>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new uint[] { 0, 2000000, 4_000_000_000 });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("UInt32\r\n0\r\n2000000\r\n4000000000", res);
+                    }
+                );
+            }
+
+            // uint?
+            {
+                RunSyncWriterVariants<uint?>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new uint?[] { null, 2000000, 4_000_000_000 });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("NullableUInt32\r\n\r\n2000000\r\n4000000000", res);
+                    }
+                );
+            }
+
+            // long
+            {
+                RunSyncWriterVariants<long>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new long[] { 0, long.MinValue, long.MaxValue });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"Int64\r\n0\r\n{long.MinValue}\r\n{long.MaxValue}", res);
+                    }
+                );
+            }
+
+            // long?
+            {
+                RunSyncWriterVariants<long?>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new long?[] { long.MinValue, null, long.MaxValue });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"NullableInt64\r\n{long.MinValue}\r\n\r\n{long.MaxValue}", res);
+                    }
+                );
+            }
+
+            // ulong
+            {
+                RunSyncWriterVariants<ulong>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new ulong[] { 0, 123, ulong.MaxValue });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"UInt64\r\n0\r\n123\r\n{ulong.MaxValue}", res);
+                    }
+                );
+            }
+
+            // ulong?
+            {
+                RunSyncWriterVariants<ulong?>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new ulong?[] { 0, null, ulong.MaxValue });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"NullableUInt64\r\n0\r\n\r\n{ulong.MaxValue}", res);
+                    }
+                );
+            }
+
+            // float
+            {
+                RunSyncWriterVariants<float>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new float[] { 0.12f, 123456789.0123f, -999999.88888f });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("Single\r\n0.119999997\r\n123456792\r\n-999999.875", res);
+                    }
+                );
+            }
+
+            // float?
+            {
+                RunSyncWriterVariants<float?>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new float?[] { 0.12f, null, -999999.88888f });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"NullableSingle\r\n0.119999997\r\n\r\n-999999.875", res);
+                    }
+                );
+            }
+
+            // double
+            {
+                RunSyncWriterVariants<double>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new double[] { 0.12, 123456789.0123, -999999.88888 });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("Double\r\n0.12\r\n123456789.0123\r\n-999999.88887999998", res);
+                    }
+                );
+            }
+
+            // double?
+            {
+                RunSyncWriterVariants<double?>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new double?[] { 0.12, null, -999999.88888 });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"NullableDouble\r\n0.12\r\n\r\n-999999.88887999998", res);
+                    }
+                );
+            }
+
+            // decimal
+            {
+                RunSyncWriterVariants<decimal>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new decimal[] { 0.12m, 123456789.0123m, -999999.88888m });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"Decimal\r\n0.12\r\n123456789.0123\r\n-999999.88888", res);
+                    }
+                );
+            }
+
+            // decimal?
+            {
+                RunSyncWriterVariants<decimal?>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new decimal?[] { 0.12m, null, -999999.88888m });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"NullableDecimal\r\n0.12\r\n\r\n-999999.88888", res);
+                    }
+                );
+            }
+
+            // string
+            {
+                RunSyncWriterVariants<string>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new string[] { "hello", null, "world" });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"String\r\nhello\r\n\r\nworld", res);
+                    }
+                );
+            }
+
+            // Version
+            {
+                RunSyncWriterVariants<Version>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new Version[] { new Version(1, 2), null, new Version(1, 2, 3, 4) });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"Version\r\n1.2\r\n\r\n1.2.3.4", res);
+                    }
+                );
+            }
+
+            // Uri
+            {
+                RunSyncWriterVariants<Uri>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new Uri[] { new Uri("http://example.com/"), null, new Uri("https://stackoverflow.com/questions") });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"Uri\r\nhttp://example.com/\r\n\r\nhttps://stackoverflow.com/questions", res);
+                    }
+                );
+            }
+
+            // enum
+            {
+                RunSyncWriterVariants<_WellKnownSingleColumns>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new _WellKnownSingleColumns[] { _WellKnownSingleColumns.Foo, _WellKnownSingleColumns.Bar, _WellKnownSingleColumns.Foo });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"_WellKnownSingleColumns\r\nFoo\r\nBar\r\nFoo", res);
+                    }
+                );
+            }
+
+            // enum?
+            {
+                RunSyncWriterVariants<_WellKnownSingleColumns?>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new _WellKnownSingleColumns?[] { _WellKnownSingleColumns.Foo, _WellKnownSingleColumns.Bar, null });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"Nullable_WellKnownSingleColumns\r\nFoo\r\nBar\r\n", res);
+                    }
+                );
+            }
+
+            // flags enum
+            {
+                RunSyncWriterVariants<_WellKnownSingleColumns_Flags>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new _WellKnownSingleColumns_Flags[] { _WellKnownSingleColumns_Flags.Foo | _WellKnownSingleColumns_Flags.Bar, _WellKnownSingleColumns_Flags.Bar, _WellKnownSingleColumns_Flags.Fizz });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"_WellKnownSingleColumns_Flags\r\n\"Foo, Bar\"\r\nBar\r\nFizz", res);
+                    }
+                );
+            }
+
+            // flags enum?
+            {
+                RunSyncWriterVariants<_WellKnownSingleColumns_Flags?>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(new _WellKnownSingleColumns_Flags?[] { _WellKnownSingleColumns_Flags.Foo | _WellKnownSingleColumns_Flags.Bar, null, _WellKnownSingleColumns_Flags.Fizz });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"Nullable_WellKnownSingleColumns_Flags\r\n\"Foo, Bar\"\r\n\r\nFizz", res);
+                    }
+                );
+            }
+
+            // DateTime
+            {
+                RunSyncWriterVariants<DateTime>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        var ci = CultureInfo.InvariantCulture;
+
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(
+                                new DateTime[]
+                                {
+                                    DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc),
+                                    new DateTime(2020, 04, 23, 0, 0, 0, DateTimeKind.Utc),
+                                    DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc)
+                                }
+                            );
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"DateTime\r\n{DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc).ToString("u", ci)}\r\n{new DateTime(2020, 04, 23, 0, 0, 0, DateTimeKind.Utc).ToString("u", ci)}\r\n{DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc).ToString("u", ci)}", res);
+                    }
+                );
+            }
+
+            // DateTime?
+            {
+                RunSyncWriterVariants<DateTime?>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        var ci = CultureInfo.InvariantCulture;
+
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(
+                                new DateTime?[] 
+                                {
+                                    DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc),
+                                    null,
+                                    DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc),
+                                }
+                            );
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"NullableDateTime\r\n{DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc).ToString("u", ci)}\r\n\r\n{DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc).ToString("u", ci)}", res);
+                    }
+                );
+            }
+
+            // DateTimeOffset
+            {
+                RunSyncWriterVariants<DateTimeOffset>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        var ci = CultureInfo.InvariantCulture;
+
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(
+                                new DateTimeOffset[]
+                                {
+                                    DateTimeOffset.MaxValue,
+                                    new DateTimeOffset(2020, 04, 23, 0, 0, 0, TimeSpan.Zero),
+                                    DateTimeOffset.MinValue,
+                                }
+                            );
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"DateTimeOffset\r\n{DateTimeOffset.MaxValue.ToString("u", ci)}\r\n{new DateTimeOffset(2020, 04, 23, 0, 0, 0, TimeSpan.Zero).ToString("u", ci)}\r\n{DateTimeOffset.MinValue.ToString("u", ci)}", res);
+                    }
+                );
+            }
+
+            // DateTimeOffset?
+            {
+                RunSyncWriterVariants<DateTimeOffset?>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        var ci = CultureInfo.InvariantCulture;
+
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(
+                                new DateTimeOffset?[]
+                                {
+                                    DateTimeOffset.MaxValue,
+                                    null,
+                                    DateTimeOffset.MinValue,
+                                }
+                            );
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"NullableDateTimeOffset\r\n{DateTimeOffset.MaxValue.ToString("u", ci)}\r\n\r\n{DateTimeOffset.MinValue.ToString("u", ci)}", res);
+                    }
+                );
+            }
+
+            // Guid
+            {
+                RunSyncWriterVariants<Guid>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(
+                                new Guid[]
+                                {
+                                    Guid.Parse("2E9348A1-C3D9-4A9C-95FF-D97591F91542"), 
+                                    Guid.Parse("ECB04C56-3042-4234-B757-6AC6E53E10C2")
+                                }
+                            );
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"Guid\r\n2e9348a1-c3d9-4a9c-95ff-d97591f91542\r\necb04c56-3042-4234-b757-6ac6e53e10c2", res);
+                    }
+                );
+            }
+
+            // Guid?
+            {
+                RunSyncWriterVariants<Guid?>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(
+                                new Guid?[]
+                                {
+                                    null, 
+                                    Guid.Parse("ECB04C56-3042-4234-B757-6AC6E53E10C2")
+                                }
+                            );
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"NullableGuid\r\n\r\necb04c56-3042-4234-b757-6ac6e53e10c2", res);
+                    }
+                );
+            }
+
+            // TimeSpan
+            {
+                RunSyncWriterVariants<TimeSpan>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(
+                                new TimeSpan[]
+                                {
+                                    TimeSpan.MaxValue, 
+                                    TimeSpan.FromMilliseconds(123456), 
+                                    TimeSpan.MaxValue
+                                }
+                            );
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"TimeSpan\r\n{TimeSpan.MaxValue}\r\n{TimeSpan.FromMilliseconds(123456)}\r\n{TimeSpan.MaxValue}", res);
+                    }
+                );
+            }
+
+            // TimeSpan?
+            {
+                RunSyncWriterVariants<TimeSpan?>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(
+                                new TimeSpan?[]
+                                {
+                                    TimeSpan.MaxValue,
+                                    null,
+                                    TimeSpan.MaxValue
+                                }
+                            );
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"NullableTimeSpan\r\n{TimeSpan.MaxValue}\r\n\r\n{TimeSpan.MaxValue}", res);
+                    }
+                );
+            }
+
+            // Index
+            {
+                RunSyncWriterVariants<Index>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(
+                                new Index[]
+                                {
+                                    ^1, 
+                                    (Index)2, 
+                                    ^3
+                                }
+                            );
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"Index\r\n{^1}\r\n{(Index)2}\r\n{^3}", res);
+                    }
+                );
+            }
+
+            // Index?
+            {
+                RunSyncWriterVariants<Index?>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(
+                                new Index?[]
+                                {
+                                    ^1, 
+                                    null,
+                                    ^3
+                                }
+                            );
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"NullableIndex\r\n{^1}\r\n\r\n{^3}", res);
+                    }
+                );
+            }
+
+            // Range
+            {
+                RunSyncWriterVariants<Range>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(
+                                new Range[]
+                                {
+                                    1..^1, 
+                                    ..^2, 
+                                    ^3..
+                                }
+                            );
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"Range\r\n{1..^1}\r\n{..^2}\r\n{^3..}", res);
+                    }
+                );
+            }
+
+            // Range?
+            {
+                RunSyncWriterVariants<Range?>(
+                    Options.Default,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.WriteAll(
+                                new Range?[]
+                                {
+                                    1..^1,
+                                    null,
+                                    ^3..
+                                }
+                            );
+                        }
+
+                        var res = getStr();
+                        Assert.Equal($"NullableRange\r\n{1..^1}\r\n\r\n{^3..}", res);
+                    }
+                );
+            }
+        }
 
         private sealed class _DontEmitDefaultNonTrivial_TypeDescriber : DefaultTypeDescriber
         {
@@ -3278,7 +4194,909 @@ namespace Cesil.Tests
             );
         }
 
+        [Fact]
+        public async Task WellKnownSingleColumnsAsync()
+        {
+            // bool
+            {
+                await RunAsyncWriterVariants<bool>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new[] { true, false, true });
+                        }
 
+                        var res = await getStr();
+                        Assert.Equal("Boolean\r\nTrue\r\nFalse\r\nTrue", res);
+                    }
+                );
+            }
+
+            // bool?
+            {
+                await RunAsyncWriterVariants<bool?>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new bool?[] { true, false, null });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("NullableBoolean\r\nTrue\r\nFalse\r\n", res);
+                    }
+                );
+            }
+
+            // char
+            {
+                await RunAsyncWriterVariants<char>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new[] { 'a', 'b', 'c' });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("Char\r\na\r\nb\r\nc", res);
+                    }
+                );
+            }
+
+            // char?
+            {
+                await RunAsyncWriterVariants<char?>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new char?[] { 'a', null, 'c' });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("NullableChar\r\na\r\n\r\nc", res);
+                    }
+                );
+            }
+
+            // byte
+            {
+                await RunAsyncWriterVariants<byte>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new byte[] { 0, 128, 255 });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("Byte\r\n0\r\n128\r\n255", res);
+                    }
+                );
+            }
+
+            // byte?
+            {
+                await RunAsyncWriterVariants<byte?>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new byte?[] { 0, null, 255 });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("NullableByte\r\n0\r\n\r\n255", res);
+                    }
+                );
+            }
+
+            // sbyte
+            {
+                await RunAsyncWriterVariants<sbyte>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new sbyte[] { 0, -127, -2 });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("SByte\r\n0\r\n-127\r\n-2", res);
+                    }
+                );
+            }
+
+            // sbyte?
+            {
+                await RunAsyncWriterVariants<sbyte?>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new sbyte?[] { null, -127, -2 });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("NullableSByte\r\n\r\n-127\r\n-2", res);
+                    }
+                );
+            }
+
+            // short
+            {
+                await RunAsyncWriterVariants<short>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new short[] { 0, -9876, -16000 });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("Int16\r\n0\r\n-9876\r\n-16000", res);
+                    }
+                );
+            }
+
+            // short?
+            {
+                await RunAsyncWriterVariants<short?>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new short?[] { 0, null, -16000 });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("NullableInt16\r\n0\r\n\r\n-16000", res);
+                    }
+                );
+            }
+
+            // ushort
+            {
+                await RunAsyncWriterVariants<ushort>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new ushort[] { 0, 12345, 32000 });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("UInt16\r\n0\r\n12345\r\n32000", res);
+                    }
+                );
+            }
+
+            // ushort?
+            {
+                await RunAsyncWriterVariants<ushort?>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new ushort?[] { null, 12345, 32000 });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("NullableUInt16\r\n\r\n12345\r\n32000", res);
+                    }
+                );
+            }
+
+            // int
+            {
+                await RunAsyncWriterVariants<int>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new int[] { 0, 2000000, -15 });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("Int32\r\n0\r\n2000000\r\n-15", res);
+                    }
+                );
+            }
+
+            // int?
+            {
+                await RunAsyncWriterVariants<int?>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new int?[] { null, 2000000, -15 });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("NullableInt32\r\n\r\n2000000\r\n-15", res);
+                    }
+                );
+            }
+
+            // uint
+            {
+                await RunAsyncWriterVariants<uint>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new uint[] { 0, 2000000, 4_000_000_000 });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("UInt32\r\n0\r\n2000000\r\n4000000000", res);
+                    }
+                );
+            }
+
+            // uint?
+            {
+                await RunAsyncWriterVariants<uint?>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new uint?[] { null, 2000000, 4_000_000_000 });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("NullableUInt32\r\n\r\n2000000\r\n4000000000", res);
+                    }
+                );
+            }
+
+            // long
+            {
+                await RunAsyncWriterVariants<long>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new long[] { 0, long.MinValue, long.MaxValue });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"Int64\r\n0\r\n{long.MinValue}\r\n{long.MaxValue}", res);
+                    }
+                );
+            }
+
+            // long?
+            {
+                await RunAsyncWriterVariants<long?>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new long?[] { long.MinValue, null, long.MaxValue });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"NullableInt64\r\n{long.MinValue}\r\n\r\n{long.MaxValue}", res);
+                    }
+                );
+            }
+
+            // ulong
+            {
+                await RunAsyncWriterVariants<ulong>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new ulong[] { 0, 123, ulong.MaxValue });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"UInt64\r\n0\r\n123\r\n{ulong.MaxValue}", res);
+                    }
+                );
+            }
+
+            // ulong?
+            {
+                await RunAsyncWriterVariants<ulong?>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new ulong?[] { 0, null, ulong.MaxValue });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"NullableUInt64\r\n0\r\n\r\n{ulong.MaxValue}", res);
+                    }
+                );
+            }
+
+            // float
+            {
+                await RunAsyncWriterVariants<float>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new float[] { 0.12f, 123456789.0123f, -999999.88888f });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("Single\r\n0.119999997\r\n123456792\r\n-999999.875", res);
+                    }
+                );
+            }
+
+            // float?
+            {
+                await RunAsyncWriterVariants<float?>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new float?[] { 0.12f, null, -999999.88888f });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"NullableSingle\r\n0.119999997\r\n\r\n-999999.875", res);
+                    }
+                );
+            }
+
+            // double
+            {
+                await RunAsyncWriterVariants<double>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new double[] { 0.12, 123456789.0123, -999999.88888 });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("Double\r\n0.12\r\n123456789.0123\r\n-999999.88887999998", res);
+                    }
+                );
+            }
+
+            // double?
+            {
+                await RunAsyncWriterVariants<double?>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new double?[] { 0.12, null, -999999.88888 });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"NullableDouble\r\n0.12\r\n\r\n-999999.88887999998", res);
+                    }
+                );
+            }
+
+            // decimal
+            {
+                await RunAsyncWriterVariants<decimal>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new decimal[] { 0.12m, 123456789.0123m, -999999.88888m });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"Decimal\r\n0.12\r\n123456789.0123\r\n-999999.88888", res);
+                    }
+                );
+            }
+
+            // decimal?
+            {
+                await RunAsyncWriterVariants<decimal?>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new decimal?[] { 0.12m, null, -999999.88888m });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"NullableDecimal\r\n0.12\r\n\r\n-999999.88888", res);
+                    }
+                );
+            }
+
+            // string
+            {
+                await RunAsyncWriterVariants<string>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new string[] { "hello", null, "world" });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"String\r\nhello\r\n\r\nworld", res);
+                    }
+                );
+            }
+
+            // Version
+            {
+                await RunAsyncWriterVariants<Version>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new Version[] { new Version(1, 2), null, new Version(1, 2, 3, 4) });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"Version\r\n1.2\r\n\r\n1.2.3.4", res);
+                    }
+                );
+            }
+
+            // Uri
+            {
+                await RunAsyncWriterVariants<Uri>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new Uri[] { new Uri("http://example.com/"), null, new Uri("https://stackoverflow.com/questions") });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"Uri\r\nhttp://example.com/\r\n\r\nhttps://stackoverflow.com/questions", res);
+                    }
+                );
+            }
+
+            // enum
+            {
+                await RunAsyncWriterVariants<_WellKnownSingleColumns>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new _WellKnownSingleColumns[] { _WellKnownSingleColumns.Foo, _WellKnownSingleColumns.Bar, _WellKnownSingleColumns.Foo });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"_WellKnownSingleColumns\r\nFoo\r\nBar\r\nFoo", res);
+                    }
+                );
+            }
+
+            // enum?
+            {
+                await RunAsyncWriterVariants<_WellKnownSingleColumns?>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new _WellKnownSingleColumns?[] { _WellKnownSingleColumns.Foo, _WellKnownSingleColumns.Bar, null });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"Nullable_WellKnownSingleColumns\r\nFoo\r\nBar\r\n", res);
+                    }
+                );
+            }
+
+            // flags enum
+            {
+                await RunAsyncWriterVariants<_WellKnownSingleColumns_Flags>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new _WellKnownSingleColumns_Flags[] { _WellKnownSingleColumns_Flags.Foo | _WellKnownSingleColumns_Flags.Bar, _WellKnownSingleColumns_Flags.Bar, _WellKnownSingleColumns_Flags.Fizz });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"_WellKnownSingleColumns_Flags\r\n\"Foo, Bar\"\r\nBar\r\nFizz", res);
+                    }
+                );
+            }
+
+            // flags enum?
+            {
+                await RunAsyncWriterVariants<_WellKnownSingleColumns_Flags?>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(new _WellKnownSingleColumns_Flags?[] { _WellKnownSingleColumns_Flags.Foo | _WellKnownSingleColumns_Flags.Bar, null, _WellKnownSingleColumns_Flags.Fizz });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"Nullable_WellKnownSingleColumns_Flags\r\n\"Foo, Bar\"\r\n\r\nFizz", res);
+                    }
+                );
+            }
+
+            // DateTime
+            {
+                await RunAsyncWriterVariants<DateTime>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        var ci = CultureInfo.InvariantCulture;
+
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(
+                                new DateTime[]
+                                {
+                                    DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc),
+                                    new DateTime(2020, 04, 23, 0, 0, 0, DateTimeKind.Utc),
+                                    DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc)
+                                }
+                            );
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"DateTime\r\n{DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc).ToString("u", ci)}\r\n{new DateTime(2020, 04, 23, 0, 0, 0, DateTimeKind.Utc).ToString("u", ci)}\r\n{DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc).ToString("u", ci)}", res);
+                    }
+                );
+            }
+
+            // DateTime?
+            {
+                await RunAsyncWriterVariants<DateTime?>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        var ci = CultureInfo.InvariantCulture;
+
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(
+                                new DateTime?[]
+                                {
+                                    DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc),
+                                    null,
+                                    DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc),
+                                }
+                            );
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"NullableDateTime\r\n{DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc).ToString("u", ci)}\r\n\r\n{DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc).ToString("u", ci)}", res);
+                    }
+                );
+            }
+
+            // DateTimeOffset
+            {
+                await RunAsyncWriterVariants<DateTimeOffset>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        var ci = CultureInfo.InvariantCulture;
+
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(
+                                new DateTimeOffset[]
+                                {
+                                    DateTimeOffset.MaxValue,
+                                    new DateTimeOffset(2020, 04, 23, 0, 0, 0, TimeSpan.Zero),
+                                    DateTimeOffset.MinValue,
+                                }
+                            );
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"DateTimeOffset\r\n{DateTimeOffset.MaxValue.ToString("u", ci)}\r\n{new DateTimeOffset(2020, 04, 23, 0, 0, 0, TimeSpan.Zero).ToString("u", ci)}\r\n{DateTimeOffset.MinValue.ToString("u", ci)}", res);
+                    }
+                );
+            }
+
+            // DateTimeOffset?
+            {
+                await RunAsyncWriterVariants<DateTimeOffset?>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        var ci = CultureInfo.InvariantCulture;
+
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(
+                                new DateTimeOffset?[]
+                                {
+                                    DateTimeOffset.MaxValue,
+                                    null,
+                                    DateTimeOffset.MinValue,
+                                }
+                            );
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"NullableDateTimeOffset\r\n{DateTimeOffset.MaxValue.ToString("u", ci)}\r\n\r\n{DateTimeOffset.MinValue.ToString("u", ci)}", res);
+                    }
+                );
+            }
+
+            // Guid
+            {
+                await RunAsyncWriterVariants<Guid>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(
+                                new Guid[]
+                                {
+                                    Guid.Parse("2E9348A1-C3D9-4A9C-95FF-D97591F91542"),
+                                    Guid.Parse("ECB04C56-3042-4234-B757-6AC6E53E10C2")
+                                }
+                            );
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"Guid\r\n2e9348a1-c3d9-4a9c-95ff-d97591f91542\r\necb04c56-3042-4234-b757-6ac6e53e10c2", res);
+                    }
+                );
+            }
+
+            // Guid?
+            {
+                await RunAsyncWriterVariants<Guid?>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(
+                                new Guid?[]
+                                {
+                                    null,
+                                    Guid.Parse("ECB04C56-3042-4234-B757-6AC6E53E10C2")
+                                }
+                            );
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"NullableGuid\r\n\r\necb04c56-3042-4234-b757-6ac6e53e10c2", res);
+                    }
+                );
+            }
+
+            // TimeSpan
+            {
+                await RunAsyncWriterVariants<TimeSpan>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(
+                                new TimeSpan[]
+                                {
+                                    TimeSpan.MaxValue,
+                                    TimeSpan.FromMilliseconds(123456),
+                                    TimeSpan.MaxValue
+                                }
+                            );
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"TimeSpan\r\n{TimeSpan.MaxValue}\r\n{TimeSpan.FromMilliseconds(123456)}\r\n{TimeSpan.MaxValue}", res);
+                    }
+                );
+            }
+
+            // TimeSpan?
+            {
+                await RunAsyncWriterVariants<TimeSpan?>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(
+                                new TimeSpan?[]
+                                {
+                                    TimeSpan.MaxValue,
+                                    null,
+                                    TimeSpan.MaxValue
+                                }
+                            );
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"NullableTimeSpan\r\n{TimeSpan.MaxValue}\r\n\r\n{TimeSpan.MaxValue}", res);
+                    }
+                );
+            }
+
+            // Index
+            {
+                await RunAsyncWriterVariants<Index>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(
+                                new Index[]
+                                {
+                                    ^1,
+                                    (Index)2,
+                                    ^3
+                                }
+                            );
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"Index\r\n{^1}\r\n{(Index)2}\r\n{^3}", res);
+                    }
+                );
+            }
+
+            // Index?
+            {
+                await RunAsyncWriterVariants<Index?>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(
+                                new Index?[]
+                                {
+                                    ^1,
+                                    null,
+                                    ^3
+                                }
+                            );
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"NullableIndex\r\n{^1}\r\n\r\n{^3}", res);
+                    }
+                );
+            }
+
+            // Range
+            {
+                await RunAsyncWriterVariants<Range>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(
+                                new Range[]
+                                {
+                                    1..^1,
+                                    ..^2,
+                                    ^3..
+                                }
+                            );
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"Range\r\n{1..^1}\r\n{..^2}\r\n{^3..}", res);
+                    }
+                );
+            }
+
+            // Range?
+            {
+                await RunAsyncWriterVariants<Range?>(
+                    Options.Default,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAllAsync(
+                                new Range?[]
+                                {
+                                    1..^1,
+                                    null,
+                                    ^3..
+                                }
+                            );
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal($"NullableRange\r\n{1..^1}\r\n\r\n{^3..}", res);
+                    }
+                );
+            }
+        }
 
         [Fact]
         public async Task DontEmitDefaultNonTrivialAsync()

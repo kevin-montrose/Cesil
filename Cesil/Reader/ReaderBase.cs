@@ -328,11 +328,11 @@ namespace Cesil
 
         protected internal abstract void EndedWithoutReturningRow();
 
-        internal void TryPreAllocateRow(ref T val)
+        internal void TryPreAllocateRow(bool checkVal, ref T val)
         {
             var ctx = ReadContext.ReadingRow(Configuration.Options, RowNumber, Context);
 
-            RowBuilder.TryPreAllocate(in ctx, ref val);
+            RowBuilder.TryPreAllocate(in ctx, checkVal, ref val);
         }
 
         protected void StartRow()

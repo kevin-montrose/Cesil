@@ -55,16 +55,6 @@ namespace Cesil
                 var mtd = Methods.DefaultTypeInstanceProviders.TryCreateNull.MakeGenericMethod(type);
                 var provider = InstanceProvider.ForMethod(mtd);
                 builder.Add(type, provider);
-
-                if (type.IsValueType)
-                {
-                    var isNullable = Nullable.GetUnderlyingType(type) != null;
-                    if (!isNullable)
-                    {
-                        var nullableType = Types.Nullable.MakeGenericType(type).GetTypeInfo();
-                        Add(builder, nullableType);
-                    }
-                }
             }
         }
     }

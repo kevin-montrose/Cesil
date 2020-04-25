@@ -19,7 +19,7 @@ namespace Cesil
             }
         }
 
-        internal override ReadWithCommentResult<T> TryReadInner(bool returnComments, bool pinAcquired, ref T record)
+        internal override ReadWithCommentResult<T> TryReadInner(bool returnComments, bool pinAcquired, bool checkRecord, ref T record)
         {
             ReaderStateMachine.PinHandle handle = default;
 
@@ -28,7 +28,7 @@ namespace Cesil
                 handle = StateMachine.Pin();
             }
 
-            TryPreAllocateRow(ref record);
+            TryPreAllocateRow(checkRecord, ref record);
 
             using (handle)
             {

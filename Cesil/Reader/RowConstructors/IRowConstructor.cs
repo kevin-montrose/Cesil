@@ -10,7 +10,7 @@ namespace Cesil
 
         bool RowStarted { get; }
 
-        bool TryPreAllocate(in ReadContext ctx, ref TRow prealloc);
+        bool TryPreAllocate(in ReadContext ctx, bool checkPrealloc, ref TRow prealloc);
 
         void SetColumnOrder(HeadersReader<TRow>.HeaderEnumerator columns);
 

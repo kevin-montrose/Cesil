@@ -69,7 +69,7 @@ namespace Cesil
 
             var buffer = new List<(DeserializableMember Member, int? Position)>();
 
-            if (CheckWellKnownType(forType, out var knownMember))
+            if (CheckReadingWellKnownType(forType, out var knownMember))
             {
                 buffer.Add((knownMember, null));
             }
@@ -416,40 +416,45 @@ namespace Cesil
             {
                 return Throw.InvalidOperationException<IEnumerable<SerializableMember>>($"{forType.Name} is a tuple with a Rest property, the {nameof(DefaultTypeDescriber)} cannot serialize this unambiguously.");
             }
-
             return EnumerateMembersToSerializeImpl(this, forType);
 
             static IEnumerable<SerializableMember> EnumerateMembersToSerializeImpl(DefaultTypeDescriber self, TypeInfo forType)
             {
                 var buffer = new List<(SerializableMember Member, int? Position)>();
 
-
-                foreach (var p in forType.GetProperties(BindingFlagsConstants.All))
+                if (self.CheckWritingWellKnownType(forType, out var knownMember))
                 {
-                    if (!self.ShouldSerialize(forType, p)) continue;
-
-                    var name = self.GetSerializationName(forType, p);
-                    var getter = self.GetGetter(forType, p);
-                    var shouldSerialize = self.GetShouldSerialize(forType, p);
-                    var formatter = self.GetFormatter(forType, p);
-                    var order = self.GetOrder(forType, p);
-                    var emitDefault = self.GetEmitDefaultValue(forType, p);
-
-                    buffer.Add((SerializableMember.CreateInner(forType, name, getter, formatter, shouldSerialize, emitDefault), order));
+                    buffer.Add((knownMember, null));
                 }
-
-                foreach (var f in forType.GetFields())
+                else
                 {
-                    if (!self.ShouldSerialize(forType, f)) continue;
+                    foreach (var p in forType.GetProperties(BindingFlagsConstants.All))
+                    {
+                        if (!self.ShouldSerialize(forType, p)) continue;
 
-                    var name = self.GetSerializationName(forType, f);
-                    var getter = self.GetGetter(forType, f);
-                    var shouldSerialize = self.GetShouldSerialize(forType, f);
-                    var formatter = self.GetFormatter(forType, f);
-                    var order = self.GetOrder(forType, f);
-                    var emitDefault = self.GetEmitDefaultValue(forType, f);
+                        var name = self.GetSerializationName(forType, p);
+                        var getter = self.GetGetter(forType, p);
+                        var shouldSerialize = self.GetShouldSerialize(forType, p);
+                        var formatter = self.GetFormatter(forType, p);
+                        var order = self.GetOrder(forType, p);
+                        var emitDefault = self.GetEmitDefaultValue(forType, p);
 
-                    buffer.Add((SerializableMember.CreateInner(forType, name, getter, formatter, shouldSerialize, emitDefault), order));
+                        buffer.Add((SerializableMember.CreateInner(forType, name, getter, formatter, shouldSerialize, emitDefault), order));
+                    }
+
+                    foreach (var f in forType.GetFields())
+                    {
+                        if (!self.ShouldSerialize(forType, f)) continue;
+
+                        var name = self.GetSerializationName(forType, f);
+                        var getter = self.GetGetter(forType, f);
+                        var shouldSerialize = self.GetShouldSerialize(forType, f);
+                        var formatter = self.GetFormatter(forType, f);
+                        var order = self.GetOrder(forType, f);
+                        var emitDefault = self.GetEmitDefaultValue(forType, f);
+
+                        buffer.Add((SerializableMember.CreateInner(forType, name, getter, formatter, shouldSerialize, emitDefault), order));
+                    }
                 }
 
                 buffer.Sort(TypeDescribers.SerializableComparer);
@@ -698,7 +703,17 @@ namespace Cesil
         }
 
         // common serialization defaults
-        private static Formatter? GetFormatter(TypeInfo t)
+
+        /// <summary>
+        /// Returns the formatter to use for the given type.
+        /// 
+        /// If you do not care about the member being parsed, override just this method
+        ///   as the other GetFormatter(...) methods delegate to it.
+        /// 
+        /// Override to tweak behavior.
+        /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
+        protected virtual Formatter? GetFormatter(TypeInfo t)
         => Formatter.GetDefault(t);
 
         private static int? GetOrder(MemberInfo member)
@@ -1155,15 +1170,14 @@ loopEnd:
             return new PropertyPOCOResult(emptyCons, setters, columnIndexes);
         }
 
-        private bool CheckWellKnownType(TypeInfo forType, [MaybeNullWhen(returnValue: false)]out DeserializableMember member)
+        private bool CheckReadingWellKnownType(TypeInfo forType, [MaybeNullWhen(returnValue: false)]out DeserializableMember member)
         {
-            if (!WellKnownRowTypes.TryGetSetter(forType, out var setter))
+            if (!WellKnownRowTypes.TryGetSetter(forType, out var name, out var setter))
             {
                 member = null;
                 return false;
             }
 
-            var name = forType.Name;
             var parser = GetParser(forType);
             if (parser == null)
             {
@@ -1172,6 +1186,25 @@ loopEnd:
             }
 
             member = DeserializableMember.CreateInner(forType, name, setter, parser, MemberRequired.No, null);
+            return true;
+        }
+
+        private bool CheckWritingWellKnownType(TypeInfo forType, [MaybeNullWhen(returnValue: false)]out SerializableMember member)
+        {
+            if (!WellKnownRowTypes.TryGetGetter(forType, out var name, out var getter))
+            {
+                member = null;
+                return false;
+            }
+
+            var formatter = GetFormatter(forType);
+            if (formatter == null)
+            {
+                member = null;
+                return false;
+            }
+
+            member = SerializableMember.CreateInner(forType, name, getter, formatter, null, EmitDefaultValue.Yes);
             return true;
         }
 

@@ -38,7 +38,7 @@ namespace Cesil
                     while (true)
                     {
                         T _ = default!;
-                        var res = TryReadInner(false, true, ref _);
+                        var res = TryReadInner(false, true, false, ref _);
                         if (!res.HasValue)
                         {
                             break;
@@ -73,7 +73,25 @@ namespace Cesil
             AssertNotPoisoned(Configuration);
 
             record = default!;
-            return TryReadWithReuse(ref record);
+
+            try
+            {
+                HandleRowEndingsAndHeaders();
+
+                var res = TryReadInner(false, false, false, ref record);
+                if (res.ResultType == ReadWithCommentResultType.HasValue)
+                {
+                    record = res.Value;
+                    return true;
+                }
+
+                // intentionally not clearing record here
+                return false;
+            }
+            catch (Exception e)
+            {
+                return Throw.PoisonAndRethrow<bool>(this, e);
+            }
         }
 
         public bool TryReadWithReuse(ref T record)
@@ -85,7 +103,7 @@ namespace Cesil
             {
                 HandleRowEndingsAndHeaders();
 
-                var res = TryReadInner(false, false, ref record);
+                var res = TryReadInner(false, false, true, ref record);
                 if (res.ResultType == ReadWithCommentResultType.HasValue)
                 {
                     record = res.Value;
@@ -106,8 +124,17 @@ namespace Cesil
             AssertNotDisposed(this);
             AssertNotPoisoned(Configuration);
 
-            var record = default(T)!;
-            return TryReadWithCommentReuse(ref record);
+            try
+            {
+                HandleRowEndingsAndHeaders();
+
+                var record = default(T)!;
+                return TryReadInner(true, false, false, ref record);
+            }
+            catch (Exception e)
+            {
+                return Throw.PoisonAndRethrow<ReadWithCommentResult<T>>(this, e);
+            }
         }
 
         public ReadWithCommentResult<T> TryReadWithCommentReuse(ref T record)
@@ -119,7 +146,7 @@ namespace Cesil
             {
                 HandleRowEndingsAndHeaders();
 
-                return TryReadInner(true, false, ref record);
+                return TryReadInner(true, false, true, ref record);
             }
             catch (Exception e)
             {
@@ -127,7 +154,7 @@ namespace Cesil
             }
         }
 
-        internal abstract ReadWithCommentResult<T> TryReadInner(bool returnComments, bool pinAcquired, ref T record);
+        internal abstract ReadWithCommentResult<T> TryReadInner(bool returnComments, bool pinAcquired, bool checkRecord, ref T record);
 
         internal abstract void HandleRowEndingsAndHeaders();
 

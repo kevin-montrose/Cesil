@@ -2023,6 +2023,16 @@
             Override to tweak behavior.
             </summary>
         </member>
+        <member name="M:Cesil.DefaultTypeDescriber.GetFormatter(System.Reflection.TypeInfo)">
+            <summary>
+            Returns the formatter to use for the given type.
+            
+            If you do not care about the member being parsed, override just this method
+              as the other GetFormatter(...) methods delegate to it.
+            
+            Override to tweak behavior.
+            </summary>
+        </member>
         <member name="M:Cesil.DefaultTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)">
             <summary>
             Enumerates cells on the given dynamic row.

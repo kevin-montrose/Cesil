@@ -167,6 +167,11 @@ namespace Cesil
                 1 +     // dot
                 10;     // revision
 
+            if (v == null)
+            {
+                return true;
+            }
+
             var charSpan = writer.GetSpan(MAX_CHARS);
             var ret = v.TryFormat(charSpan, out var chars);
             if (!ret) return false;
@@ -179,7 +184,7 @@ namespace Cesil
         {
             if (u == null)
             {
-                return false;
+                return true;
             }
 
             return TryFormatString(u.ToString(), in _, writer);

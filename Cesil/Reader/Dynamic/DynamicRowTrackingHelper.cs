@@ -2,11 +2,11 @@
 {
     internal static class DynamicRowTrackingHelper
     {
-        internal static void TryAllocateAndTrack<T>(T self, NonNull<string[]> columnNames, ref DynamicRow? head, ref dynamic row)
+        internal static void TryAllocateAndTrack<T>(T self, NonNull<string[]> columnNames, ref DynamicRow? head, bool checkRow, ref dynamic row)
             where T : ReaderBase<object>, IDynamicRowOwner
         {
             // after this call row _WILL_ be a disposed non-null DynamicRow
-            self.TryPreAllocateRow(ref row);
+            self.TryPreAllocateRow(checkRow, ref row);
 
             var dynRow = Utils.NonNull(row as DynamicRow);
 

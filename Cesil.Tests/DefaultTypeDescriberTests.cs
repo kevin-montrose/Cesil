@@ -3289,9 +3289,6 @@ namespace Cesil.Tests
                     var res = (bool)mtd.Invoke(null, new object[] { a, default(WriteContext), new _Formatter_Failable(i) });
                     Assert.False(res);
                 }
-
-                var nullRes = (bool)mtd.Invoke(null, new object[] { null, default(WriteContext), new _Formatter_Failable(10) });
-                Assert.False(nullRes);
             }
 
             // bool

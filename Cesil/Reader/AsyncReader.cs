@@ -51,7 +51,7 @@ namespace Cesil
             }
         }
 
-        internal override ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync(bool returnComments, bool pinAcquired, ref T record, CancellationToken cancel)
+        internal override ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync(bool returnComments, bool pinAcquired, bool checkRecord, ref T record, CancellationToken cancel)
         {
             ReaderStateMachine.PinHandle handle = default;
             var disposeHandle = true;
@@ -61,7 +61,7 @@ namespace Cesil
                 handle = StateMachine.Pin();
             }
 
-            TryPreAllocateRow(ref record);
+            TryPreAllocateRow(checkRecord, ref record);
 
             try
             {

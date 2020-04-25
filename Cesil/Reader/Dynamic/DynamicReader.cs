@@ -56,7 +56,7 @@ namespace Cesil
             }
         }
 
-        internal override ReadWithCommentResult<dynamic> TryReadInner(bool returnComments, bool pinAcquired, ref dynamic row)
+        internal override ReadWithCommentResult<dynamic> TryReadInner(bool returnComments, bool pinAcquired, bool checkRow, ref dynamic row)
         {
             ReaderStateMachine.PinHandle handle = default;
 
@@ -65,7 +65,7 @@ namespace Cesil
                 handle = StateMachine.Pin();
             }
 
-            TryAllocateAndTrack(this, ColumnNames, ref NotifyOnDisposeHead, ref row);
+            TryAllocateAndTrack(this, ColumnNames, ref NotifyOnDisposeHead, checkRow, ref row);
 
             using (handle)
             {

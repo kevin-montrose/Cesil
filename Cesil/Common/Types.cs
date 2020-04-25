@@ -78,6 +78,34 @@ namespace Cesil
         // System.Buffers interfaces
         internal static readonly TypeInfo IBufferWriterOfChar = typeof(IBufferWriter<char>).GetTypeInfo();
 
+        // System types that we consider "Well Known"
+        internal static readonly TypeInfo[] WellKnownTypes_Array =
+            new[]
+            {
+                typeof(bool).GetTypeInfo(),
+                typeof(char).GetTypeInfo(),
+                typeof(byte).GetTypeInfo(),
+                typeof(sbyte).GetTypeInfo(),
+                typeof(short).GetTypeInfo(),
+                typeof(ushort).GetTypeInfo(),
+                typeof(int).GetTypeInfo(),
+                typeof(uint).GetTypeInfo(),
+                typeof(long).GetTypeInfo(),
+                typeof(ulong).GetTypeInfo(),
+                typeof(float).GetTypeInfo(),
+                typeof(double).GetTypeInfo(),
+                typeof(decimal).GetTypeInfo(),
+                typeof(DateTime).GetTypeInfo(),
+                typeof(DateTimeOffset).GetTypeInfo(),
+                typeof(TimeSpan).GetTypeInfo(),
+                typeof(string).GetTypeInfo(),
+                typeof(Uri).GetTypeInfo(),
+                typeof(Version).GetTypeInfo(),
+                typeof(Guid).GetTypeInfo(),
+                typeof(Index).GetTypeInfo(),
+                typeof(Range).GetTypeInfo()
+            };
+
         // Cesil delegates
         internal static readonly TypeInfo ParserDelegate = typeof(ParserDelegate<>).GetTypeInfo();
         internal static readonly TypeInfo SetterDelegate = typeof(SetterDelegate<,>).GetTypeInfo();
