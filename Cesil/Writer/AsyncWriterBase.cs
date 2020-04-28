@@ -87,7 +87,7 @@ namespace Cesil
 
             Utils.CheckArgumentNull(rows, nameof(rows));
 
-            ValueTask ret;
+            ValueTask ret = default;
 
             var e = rows.GetAsyncEnumerator(cancel);
             var disposeE = true;
@@ -125,16 +125,10 @@ namespace Cesil
                     var disposeTask = e.DisposeAsync();
                     if (!disposeTask.IsCompletedSuccessfully(this))
                     {
+#pragma warning disable IDE0059 // This actually matters, but the compiler likes to say it's unnecessary
                         ret = disposeTask;
+#pragma warning restore IDE0059
                     }
-                    else
-                    {
-                        ret = default;
-                    }
-                }
-                else
-                {
-                    ret = default;
                 }
             }
 
@@ -280,7 +274,7 @@ namespace Cesil
 
                 CheckCanEncode(charMem.Span, options);
 
-                var escapedValueStartAndStop = options.EscapedValueStartAndEnd!.Value;
+                var escapedValueStartAndStop = Utils.NonNullValue(options.EscapedValueStartAndEnd);
 
                 var startEscapeTask = PlaceCharInStagingAsync(escapedValueStartAndStop, cancel);
                 if (!startEscapeTask.IsCompletedSuccessfully(this))
@@ -381,7 +375,7 @@ namespace Cesil
 
         internal ValueTask WriteEncodedAsync(ReadOnlySequence<char> head, CancellationToken cancel)
         {
-            var escapedValueStartAndStop = Configuration.Options.EscapedValueStartAndEnd!.Value;
+            var escapedValueStartAndStop = Utils.NonNullValue(Configuration.Options.EscapedValueStartAndEnd);
 
             // start with whatever the escape is
             var startEscapeTask = PlaceCharInStagingAsync(escapedValueStartAndStop, cancel);
@@ -451,7 +445,7 @@ namespace Cesil
 
         internal ValueTask WriteEncodedAsync(ReadOnlyMemory<char> charMem, CancellationToken cancel)
         {
-            var escapedValueStartAndStop = Configuration.Options.EscapedValueStartAndEnd!.Value;
+            var escapedValueStartAndStop = Utils.NonNullValue(Configuration.Options.EscapedValueStartAndEnd);
 
 
             // try and blit things in big chunks
@@ -460,7 +454,7 @@ namespace Cesil
 
             while (end != -1)
             {
-                var escapeValueEscapeChar = Configuration.Options.EscapedValueEscapeCharacter!.Value;
+                var escapeValueEscapeChar = Utils.NonNullValue(Configuration.Options.EscapedValueEscapeCharacter);
 
                 var len = end - start;
                 var toWrite = charMem.Slice(start, len);

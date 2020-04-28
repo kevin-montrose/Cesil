@@ -1120,6 +1120,28 @@
               during certain operations as a member on ReadContext.
             </summary>
         </member>
+        <member name="M:Cesil.CesilUtils.EnumerateFromString``1(System.String,Cesil.Options,System.Object)">
+            <summary>
+            Lazily enumerate rows of type TRow from the given string.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on ReadContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.EnumerateDynamicFromString(System.String,Cesil.Options,System.Object)">
+            <summary>
+            Lazily enumerate dynamic rows from the given string.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on ReadContext.
+            </summary>
+        </member>
         <member name="M:Cesil.CesilUtils.EnumerateAsync``1(System.IO.TextReader,Cesil.Options,System.Object,System.Threading.CancellationToken)">
             <summary>
             Lazily and asynchronously enumerate rows of type TRow from the given TextReader.
@@ -1164,6 +1186,32 @@
             <summary>
             Lazily and asynchronously enumerate dynamic rows from the given file.  If the file as a byte-order-marker (BOM) the indicated encoding will be used,
               otherwise utf-8 will be assumed.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on ReadContext.
+              
+            A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.EnumerateFromStringAsync``1(System.String,Cesil.Options,System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Lazily and asynchronously enumerate rows of type TRow from the given string.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on ReadContext.
+              
+            A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.EnumerateDynamicFromStringAsync(System.String,Cesil.Options,System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Lazily and asynchronously enumerate dynamic rows from the given string.
             
             An optional Options object may be used, if not provided Options.Default
               will be used.

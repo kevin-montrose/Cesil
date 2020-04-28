@@ -146,6 +146,18 @@ namespace Cesil
             return toCheck;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static T NonNullValue<T>(T? toCheck)
+            where T : struct
+        {
+            if (toCheck == null)
+            {
+                return Throw.ImpossibleException<T>("Expected non-null value, but found null");
+            }
+
+            return toCheck.Value;
+        }
+
         // won't return empty entries
         internal static ReadOnlySequence<char> Split(ReadOnlyMemory<char> str, ReadOnlyMemory<char> with)
         {

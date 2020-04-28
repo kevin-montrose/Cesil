@@ -78,14 +78,13 @@ namespace Cesil
 
         InstanceProvider IElseSupporting<InstanceProvider>.Clone(ImmutableArray<InstanceProvider> newFallbacks)
         {
-            switch (Mode)
+            return Mode switch
             {
-                case BackingMode.Constructor: return new InstanceProvider(Constructor.Value, newFallbacks);
-                case BackingMode.Delegate: return new InstanceProvider(Delegate.Value, ConstructsType, newFallbacks);
-                case BackingMode.Method: return new InstanceProvider(Method.Value, ConstructsType, newFallbacks);
-            }
-
-            return Throw.ImpossibleException<InstanceProvider>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                BackingMode.Constructor => new InstanceProvider(Constructor.Value, newFallbacks),
+                BackingMode.Delegate => new InstanceProvider(Delegate.Value, ConstructsType, newFallbacks),
+                BackingMode.Method => new InstanceProvider(Method.Value, ConstructsType, newFallbacks),
+                _ => Throw.ImpossibleException<InstanceProvider>($"Unexpected {nameof(BackingMode)}: {Mode}")
+            };
         }
 
         /// <summary>
@@ -418,13 +417,14 @@ namespace Cesil
                 if (selfF != otherF) return false;
             }
 
-            switch (Mode)
-            {
-                case BackingMode.Constructor: return instanceProvider.Constructor.Value == Constructor.Value;
-                case BackingMode.Delegate: return instanceProvider.Delegate.Value == Delegate.Value;
-                case BackingMode.Method: return instanceProvider.Method.Value == Method.Value;
-                default: return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}");
-            }
+            return 
+                Mode switch
+                {
+                    BackingMode.Constructor => instanceProvider.Constructor.Value == Constructor.Value,
+                    BackingMode.Delegate => instanceProvider.Delegate.Value == Delegate.Value,
+                    BackingMode.Method => instanceProvider.Method.Value == Method.Value,
+                    _ => Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}")
+                };
         }
 
         /// <summary>
@@ -440,17 +440,13 @@ namespace Cesil
         /// </summary>
         public override string ToString()
         {
-            switch (Mode)
+            return Mode switch
             {
-                case BackingMode.Constructor:
-                    return $"{nameof(InstanceProvider)} using parameterless constructor {Constructor} to create {ConstructsType}";
-                case BackingMode.Delegate:
-                    return $"{nameof(InstanceProvider)} using delegate {Delegate} to create {ConstructsType}";
-                case BackingMode.Method:
-                    return $"{nameof(InstanceProvider)} using method {Method} to create {ConstructsType}";
-                default:
-                    return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
-            }
+                BackingMode.Constructor => $"{nameof(InstanceProvider)} using parameterless constructor {Constructor} to create {ConstructsType}",
+                BackingMode.Delegate => $"{nameof(InstanceProvider)} using delegate {Delegate} to create {ConstructsType}",
+                BackingMode.Method => $"{nameof(InstanceProvider)} using method {Method} to create {ConstructsType}",
+                _ => Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}")
+            };
         }
 
         /// <summary>

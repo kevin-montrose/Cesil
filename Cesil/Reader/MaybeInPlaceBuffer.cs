@@ -17,7 +17,7 @@ namespace Cesil
         }
 
         public bool IsDisposed { get; private set; }
-        private MemoryPool<T> MemoryPool;
+        private readonly MemoryPool<T> MemoryPool;
 
         internal Mode CurrentMode;
         private int StartIndex;

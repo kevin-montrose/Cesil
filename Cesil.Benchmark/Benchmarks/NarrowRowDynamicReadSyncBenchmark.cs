@@ -132,12 +132,12 @@ namespace Cesil.Benchmark
         private static readonly MethodInfo CheckSameGenericMtd = typeof(NarrowRowDynamicReadSyncBenchmark).GetMethod(nameof(CheckSameGeneric), BindingFlags.NonPublic | BindingFlags.Static);
         private static void CheckSameGeneric<T>(List<T> staticRows, List<T> dynamicRows)
         {
-            if(staticRows.Count != dynamicRows.Count)
+            if (staticRows.Count != dynamicRows.Count)
             {
                 throw new Exception();
             }
 
-            for(var i = 0; i < staticRows.Count; i++)
+            for (var i = 0; i < staticRows.Count; i++)
             {
                 var s = staticRows[i];
                 var d = dynamicRows[i];

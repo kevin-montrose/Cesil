@@ -168,8 +168,8 @@ namespace Cesil
                 }
                 else
                 {
-                    var escapedValueStartAndStop = options.EscapedValueStartAndEnd!.Value;
-                    var escapeValueEscapeChar = options.EscapedValueEscapeCharacter!.Value;
+                    var escapedValueStartAndStop = Utils.NonNullValue(options.EscapedValueStartAndEnd);
+                    var escapeValueEscapeChar = Utils.NonNullValue(options.EscapedValueEscapeCharacter);
 
                     // start with the escape char
                     PlaceCharInStaging(escapedValueStartAndStop);

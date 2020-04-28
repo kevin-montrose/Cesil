@@ -201,7 +201,7 @@ namespace Cesil
                 var resTask = detector.DetectAsync(cancel);
                 if (!resTask.IsCompletedSuccessfully(this))
                 {
-                    // whelp, async time!
+                    // whelp, async time
                     disposeDetector = false;
                     return HandleLineEndingsAsync_ContinueAfterDetectAsync(this, resTask, detector, cancel);
                 }
@@ -262,14 +262,14 @@ namespace Cesil
                     SharedCharacterLookup,
                     Inner,
                     Buffer,
-                    RowEndings!.Value
+                    Utils.NonNullValue(RowEndings)
                 );
             try
             {
                 var headersTask = headerReader.ReadAsync(cancel);
                 if (!headersTask.IsCompletedSuccessfully(this))
                 {
-                    // whelp, async time!
+                    // whelp, async time
                     disposeReader = false;
                     return HandleHeadersAsync_ContinueAfterReadAsync(this, headersTask, headerReader, cancel);
                 }

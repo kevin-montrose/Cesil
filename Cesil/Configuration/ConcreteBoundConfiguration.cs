@@ -54,7 +54,7 @@ namespace Cesil
                 return;
             }
 
-            if(Options.RowEnding == RowEnding.Detect)
+            if (Options.RowEnding == RowEnding.Detect)
             {
                 Throw.InvalidOperationException<object>($"Cannot write with a format that has {nameof(RowEnding)} option of {RowEnding.Detect}");
                 return;

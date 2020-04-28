@@ -50,14 +50,13 @@ namespace Cesil
         {
             get
             {
-                switch (Mode)
+                return Mode switch
                 {
-                    case BackingMode.Field: return Field.Value.IsStatic;
-                    case BackingMode.Method: return Method.Value.IsStatic;
-                    case BackingMode.Delegate: return !RowType.HasValue;
-                    default:
-                        return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}");
-                }
+                    BackingMode.Field => Field.Value.IsStatic,
+                    BackingMode.Method => Method.Value.IsStatic,
+                    BackingMode.Delegate => !RowType.HasValue,
+                    _ => Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}")
+                };
             }
         }
 
@@ -426,17 +425,14 @@ namespace Cesil
             var otherMode = getter.Mode;
             if (otherMode != Mode) return false;
 
-            switch (otherMode)
-            {
-                case BackingMode.Field:
-                    return getter.Field.Value == Field.Value;
-                case BackingMode.Method:
-                    return getter.Method.Value == Method.Value;
-                case BackingMode.Delegate:
-                    return getter.Delegate.Value == Delegate.Value;
-                default:
-                    return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {otherMode}");
-            }
+            return 
+                otherMode switch
+                {
+                    BackingMode.Field => getter.Field.Value == Field.Value,
+                    BackingMode.Method => getter.Method.Value == Method.Value,
+                    BackingMode.Delegate => getter.Delegate.Value == Delegate.Value,
+                    _ => Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {otherMode}")
+                };
         }
 
         /// <summary>

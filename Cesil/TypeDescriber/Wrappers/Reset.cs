@@ -37,14 +37,13 @@ namespace Cesil
         {
             get
             {
-                switch (Mode)
-                {
-                    case BackingMode.Method: return Method.Value.IsStatic;
-                    case BackingMode.Delegate: return !RowType.HasValue;
-
-                    default:
-                        return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}");
-                }
+                return 
+                    Mode switch
+                    {
+                        BackingMode.Method => Method.Value.IsStatic,
+                        BackingMode.Delegate => !RowType.HasValue,
+                        _ => Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}")
+                    };
             }
         }
 
@@ -303,17 +302,13 @@ namespace Cesil
                 if (reset.RowType.HasValue) return false;
             }
 
-            switch (mode)
-            {
-                case BackingMode.Delegate:
-                    return reset.Delegate.Value == Delegate.Value;
-                case BackingMode.Method:
-                    return reset.Method.Value == Method.Value;
-
-                default:
-                    return Throw.ImpossibleException<bool>($"Unexpected {nameof(BackingMode)}: {mode}");
-
-            }
+            return 
+                mode switch
+                {
+                    BackingMode.Delegate => reset.Delegate.Value == Delegate.Value,
+                    BackingMode.Method => reset.Method.Value == Method.Value,
+                    _ => Throw.ImpossibleException<bool>($"Unexpected {nameof(BackingMode)}: {mode}")
+                };
         }
 
         /// <summary>

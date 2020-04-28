@@ -55,7 +55,7 @@ namespace Cesil
             if (!emitDefaultValue)
             {
                 ConstantExpression defValue;
-                if(columnType.IsValueType)
+                if (columnType.IsValueType)
                 {
                     defValue = Expression.Constant(Activator.CreateInstance(columnType));
                 }

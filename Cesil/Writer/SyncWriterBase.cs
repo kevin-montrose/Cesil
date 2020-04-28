@@ -77,7 +77,7 @@ namespace Cesil
 
                 CheckCanEncode(charSpan, options);
 
-                var escapedValueStartAndStop = options.EscapedValueStartAndEnd!.Value;
+                var escapedValueStartAndStop = Utils.NonNullValue(options.EscapedValueStartAndEnd);
 
                 PlaceCharInStaging(escapedValueStartAndStop);
 
@@ -113,7 +113,7 @@ namespace Cesil
 
         internal void WriteEncoded(ReadOnlySequence<char> head)
         {
-            var escapedValueStartAndStop = Configuration.Options.EscapedValueEscapeCharacter!.Value;
+            var escapedValueStartAndStop = Utils.NonNullValue(Configuration.Options.EscapedValueEscapeCharacter);
 
             // start with whatever the escape is
             PlaceCharInStaging(escapedValueStartAndStop);
@@ -129,7 +129,7 @@ namespace Cesil
 
         internal void WriteEncoded(ReadOnlySpan<char> charSpan)
         {
-            var escapedValueStartAndStop = Configuration.Options.EscapedValueStartAndEnd!.Value;
+            var escapedValueStartAndStop = Utils.NonNullValue(Configuration.Options.EscapedValueStartAndEnd);
 
             // try and blit things in big chunks
             var start = 0;
@@ -137,7 +137,7 @@ namespace Cesil
 
             while (end != -1)
             {
-                var escapeValueEscapeChar = Configuration.Options.EscapedValueEscapeCharacter!.Value;
+                var escapeValueEscapeChar = Utils.NonNullValue(Configuration.Options.EscapedValueEscapeCharacter);
 
                 var len = end - start;
                 var toWrite = charSpan.Slice(start, len);

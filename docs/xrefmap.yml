@@ -97,6 +97,32 @@ references:
   isSpec: "True"
   fullName: Cesil.CesilUtils.EnumerateDynamicFromFileAsync
   nameWithType: CesilUtils.EnumerateDynamicFromFileAsync
+- uid: Cesil.CesilUtils.EnumerateDynamicFromString(System.String,Cesil.Options,System.Object)
+  name: EnumerateDynamicFromString(String, Options, Object)
+  href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_EnumerateDynamicFromString_System_String_Cesil_Options_System_Object_
+  commentId: M:Cesil.CesilUtils.EnumerateDynamicFromString(System.String,Cesil.Options,System.Object)
+  fullName: Cesil.CesilUtils.EnumerateDynamicFromString(System.String, Cesil.Options, System.Object)
+  nameWithType: CesilUtils.EnumerateDynamicFromString(String, Options, Object)
+- uid: Cesil.CesilUtils.EnumerateDynamicFromString*
+  name: EnumerateDynamicFromString
+  href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_EnumerateDynamicFromString_
+  commentId: Overload:Cesil.CesilUtils.EnumerateDynamicFromString
+  isSpec: "True"
+  fullName: Cesil.CesilUtils.EnumerateDynamicFromString
+  nameWithType: CesilUtils.EnumerateDynamicFromString
+- uid: Cesil.CesilUtils.EnumerateDynamicFromStringAsync(System.String,Cesil.Options,System.Object,CancellationToken)
+  name: EnumerateDynamicFromStringAsync(String, Options, Object, CancellationToken)
+  href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_EnumerateDynamicFromStringAsync_System_String_Cesil_Options_System_Object_CancellationToken_
+  commentId: M:Cesil.CesilUtils.EnumerateDynamicFromStringAsync(System.String,Cesil.Options,System.Object,CancellationToken)
+  fullName: Cesil.CesilUtils.EnumerateDynamicFromStringAsync(System.String, Cesil.Options, System.Object, CancellationToken)
+  nameWithType: CesilUtils.EnumerateDynamicFromStringAsync(String, Options, Object, CancellationToken)
+- uid: Cesil.CesilUtils.EnumerateDynamicFromStringAsync*
+  name: EnumerateDynamicFromStringAsync
+  href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_EnumerateDynamicFromStringAsync_
+  commentId: Overload:Cesil.CesilUtils.EnumerateDynamicFromStringAsync
+  isSpec: "True"
+  fullName: Cesil.CesilUtils.EnumerateDynamicFromStringAsync
+  nameWithType: CesilUtils.EnumerateDynamicFromStringAsync
 - uid: Cesil.CesilUtils.EnumerateFromFile*
   name: EnumerateFromFile
   href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_EnumerateFromFile_
@@ -129,6 +155,38 @@ references:
   fullName.vb: Cesil.CesilUtils.EnumerateFromFileAsync(Of TRow)(System.String, Cesil.Options, System.Object, CancellationToken)
   nameWithType: CesilUtils.EnumerateFromFileAsync<TRow>(String, Options, Object, CancellationToken)
   nameWithType.vb: CesilUtils.EnumerateFromFileAsync(Of TRow)(String, Options, Object, CancellationToken)
+- uid: Cesil.CesilUtils.EnumerateFromString*
+  name: EnumerateFromString
+  href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_EnumerateFromString_
+  commentId: Overload:Cesil.CesilUtils.EnumerateFromString
+  isSpec: "True"
+  fullName: Cesil.CesilUtils.EnumerateFromString
+  nameWithType: CesilUtils.EnumerateFromString
+- uid: Cesil.CesilUtils.EnumerateFromString``1(System.String,Cesil.Options,System.Object)
+  name: EnumerateFromString<T>(String, Options, Object)
+  href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_EnumerateFromString__1_System_String_Cesil_Options_System_Object_
+  commentId: M:Cesil.CesilUtils.EnumerateFromString``1(System.String,Cesil.Options,System.Object)
+  name.vb: EnumerateFromString(Of T)(String, Options, Object)
+  fullName: Cesil.CesilUtils.EnumerateFromString<T>(System.String, Cesil.Options, System.Object)
+  fullName.vb: Cesil.CesilUtils.EnumerateFromString(Of T)(System.String, Cesil.Options, System.Object)
+  nameWithType: CesilUtils.EnumerateFromString<T>(String, Options, Object)
+  nameWithType.vb: CesilUtils.EnumerateFromString(Of T)(String, Options, Object)
+- uid: Cesil.CesilUtils.EnumerateFromStringAsync*
+  name: EnumerateFromStringAsync
+  href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_EnumerateFromStringAsync_
+  commentId: Overload:Cesil.CesilUtils.EnumerateFromStringAsync
+  isSpec: "True"
+  fullName: Cesil.CesilUtils.EnumerateFromStringAsync
+  nameWithType: CesilUtils.EnumerateFromStringAsync
+- uid: Cesil.CesilUtils.EnumerateFromStringAsync``1(System.String,Cesil.Options,System.Object,CancellationToken)
+  name: EnumerateFromStringAsync<TRow>(String, Options, Object, CancellationToken)
+  href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_EnumerateFromStringAsync__1_System_String_Cesil_Options_System_Object_CancellationToken_
+  commentId: M:Cesil.CesilUtils.EnumerateFromStringAsync``1(System.String,Cesil.Options,System.Object,CancellationToken)
+  name.vb: EnumerateFromStringAsync(Of TRow)(String, Options, Object, CancellationToken)
+  fullName: Cesil.CesilUtils.EnumerateFromStringAsync<TRow>(System.String, Cesil.Options, System.Object, CancellationToken)
+  fullName.vb: Cesil.CesilUtils.EnumerateFromStringAsync(Of TRow)(System.String, Cesil.Options, System.Object, CancellationToken)
+  nameWithType: CesilUtils.EnumerateFromStringAsync<TRow>(String, Options, Object, CancellationToken)
+  nameWithType.vb: CesilUtils.EnumerateFromStringAsync(Of TRow)(String, Options, Object, CancellationToken)
 - uid: Cesil.CesilUtils.Write*
   name: Write
   href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_Write_
@@ -637,6 +695,12 @@ references:
   isSpec: "True"
   fullName: Cesil.DefaultTypeDescriber.GetEmitDefaultValue
   nameWithType: DefaultTypeDescriber.GetEmitDefaultValue
+- uid: Cesil.DefaultTypeDescriber.GetFormatter(TypeInfo)
+  name: GetFormatter(TypeInfo)
+  href: api/Cesil.DefaultTypeDescriber.html#Cesil_DefaultTypeDescriber_GetFormatter_TypeInfo_
+  commentId: M:Cesil.DefaultTypeDescriber.GetFormatter(TypeInfo)
+  fullName: Cesil.DefaultTypeDescriber.GetFormatter(TypeInfo)
+  nameWithType: DefaultTypeDescriber.GetFormatter(TypeInfo)
 - uid: Cesil.DefaultTypeDescriber.GetFormatter(TypeInfo,FieldInfo)
   name: GetFormatter(TypeInfo, FieldInfo)
   href: api/Cesil.DefaultTypeDescriber.html#Cesil_DefaultTypeDescriber_GetFormatter_TypeInfo_FieldInfo_

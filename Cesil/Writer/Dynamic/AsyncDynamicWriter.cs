@@ -853,8 +853,8 @@ end:
                     return Throw.InvalidOperationException<IEnumerable<DynamicCellValue>>("Too many cells returned, could not place in desired order");
                 }
 
-                var expectedName = columnNamesValue[i];
-                if (!expectedName.Name.Equals(x.Name))
+                var (name, _) = columnNamesValue[i];
+                if (!name.Equals(x.Name))
                 {
                     inOrder = false;
                     break;

@@ -128,7 +128,7 @@ namespace Cesil
             }
 
             // we're only in trouble if the value contains EscapedValueStartAndStop
-            var escapeStartIx = Utils.FindChar(chars, 0, escapedValueStartAndEnd!.Value);
+            var escapeStartIx = Utils.FindChar(chars, 0, Utils.NonNullValue(escapedValueStartAndEnd));
             if (escapeStartIx == -1) return;
 
             Throw.InvalidOperationException<object>($"Tried to write a value contain '{escapedValueStartAndEnd}' which requires escaping the character in an escaped value, but no way to escape inside an escaped value is configured");
@@ -177,7 +177,7 @@ namespace Cesil
             }
 
             // we're only in trouble if the value contains EscapedValueStartAndStop
-            var escapeStartIx = Utils.FindChar(chars, 0, escapedValueStartAndEnd!.Value);
+            var escapeStartIx = Utils.FindChar(chars, 0, Utils.NonNullValue(escapedValueStartAndEnd));
             if (escapeStartIx == -1) return;
 
             Throw.InvalidOperationException<object>($"Tried to write a value contain '{escapedValueStartAndEnd}' which requires escaping the character in an escaped value, but no way to escape inside an escaped value is configured");

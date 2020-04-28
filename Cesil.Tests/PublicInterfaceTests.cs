@@ -1059,7 +1059,7 @@ namespace Cesil.Tests
                 {
                     msg = InvokeToString_PassthroughRowEnumerator();
                 }
-                else if(t == typeof(ImpossibleException))
+                else if (t == typeof(ImpossibleException))
                 {
                     msg = InvokeToString_ImpossibleException();
                 }

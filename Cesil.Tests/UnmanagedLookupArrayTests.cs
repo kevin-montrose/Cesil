@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Xunit;
@@ -216,8 +215,8 @@ namespace Cesil.Tests
             }
         }
 
-        [StructLayout(LayoutKind.Explicit, Pack=1, Size = 3)]
-        private readonly struct _OddSize: IEquatable<_OddSize>
+        [StructLayout(LayoutKind.Explicit, Pack = 1, Size = 3)]
+        private readonly struct _OddSize : IEquatable<_OddSize>
         {
             [FieldOffset(0)]
             public readonly byte A;
@@ -240,7 +239,7 @@ namespace Cesil.Tests
 
             public override bool Equals(object obj)
             {
-                if(obj is _OddSize other)
+                if (obj is _OddSize other)
                 {
                     return Equals(other);
                 }
@@ -345,7 +344,7 @@ namespace Cesil.Tests
             {
                 for (var j = 0; j < 4; j++)
                 {
-                    mem.Set(j, j*2);
+                    mem.Set(j, j * 2);
                 }
 
                 for (var j = 0; j < 4; j++)

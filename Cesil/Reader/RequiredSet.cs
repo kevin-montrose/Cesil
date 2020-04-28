@@ -110,7 +110,7 @@ namespace Cesil
                         while ((cur & 0x1) == 0)
                         {
                             missingIx++;
-                            cur = cur >> 1;
+                            cur >>= 1;
                         }
 
                         Set.Span.Clear();
@@ -140,7 +140,7 @@ namespace Cesil
                         while ((cur & 0x1) == 0)
                         {
                             missingIx++;
-                            cur = cur >> 1;
+                            cur >>= 1;
                         }
 
                         Set.Span.Clear();
@@ -168,7 +168,7 @@ namespace Cesil
                         while ((cur & 0x1) == 0)
                         {
                             missingIx++;
-                            cur = cur >> 1;
+                            cur >>= 1;
                         }
 
                         Set.Span.Clear();

@@ -25,7 +25,7 @@ namespace Cesil.Tests
         [Fact]
         public void ValueTypeInstanceProviders()
         {
-            var ip = 
+            var ip =
                 InstanceProvider.ForDelegate(
                     (in ReadContext _, out _ValueTypeInstanceProviders val) =>
                     {
@@ -54,8 +54,8 @@ namespace Cesil.Tests
                     opts,
                     (config, getReader) =>
                     {
-                        using(var reader = getReader("A\r\n1\r\n2\r\n3\r\n4"))
-                        using(var csv = config.CreateReader(reader))
+                        using (var reader = getReader("A\r\n1\r\n2\r\n3\r\n4"))
+                        using (var csv = config.CreateReader(reader))
                         {
                             Assert.True(csv.TryRead(out var r1));
                             Assert.Equal(4, r1.A);
@@ -65,7 +65,7 @@ namespace Cesil.Tests
                             Assert.Equal(12, r3.A);
                             Assert.True(csv.TryRead(out var r4));
                             Assert.Equal(16, r4.A);
-                            
+
                             Assert.False(csv.TryRead(out _));
                         }
                     }
@@ -214,8 +214,8 @@ namespace Cesil.Tests
                 opts,
                 (config, getReader) =>
                 {
-                    using(var reader = getReader("A\r\n1\r\n2\r\n3"))
-                    using(var csv = config.CreateReader(reader))
+                    using (var reader = getReader("A\r\n1\r\n2\r\n3"))
+                    using (var csv = config.CreateReader(reader))
                     {
                         var rows = csv.ReadAll();
                         Assert.Collection(
@@ -252,8 +252,8 @@ namespace Cesil.Tests
                     Options.Default,
                     (config, getReader) =>
                     {
-                        using(var reader = getReader("true\r\nfalse\r\ntrue"))
-                        using(var csv = config.CreateReader(reader))
+                        using (var reader = getReader("true\r\nfalse\r\ntrue"))
+                        using (var csv = config.CreateReader(reader))
                         {
                             var rows = csv.ReadAll();
                             Assert.True(new[] { true, false, true }.SequenceEqual(rows));
@@ -448,7 +448,7 @@ namespace Cesil.Tests
                         using (var csv = config.CreateReader(reader))
                         {
                             var rows = csv.ReadAll();
-                            Assert.True(new [] { 0, 2000000, -15 }.SequenceEqual(rows));
+                            Assert.True(new[] { 0, 2000000, -15 }.SequenceEqual(rows));
                         }
                     }
                 );
@@ -688,7 +688,7 @@ namespace Cesil.Tests
                         using (var csv = config.CreateReader(reader))
                         {
                             var rows = csv.ReadAll();
-                            Assert.True(new [] { new Version(1, 2), null, new Version(1, 2, 3, 4) }.SequenceEqual(rows));
+                            Assert.True(new[] { new Version(1, 2), null, new Version(1, 2, 3, 4) }.SequenceEqual(rows));
                         }
                     }
                 );
@@ -704,7 +704,7 @@ namespace Cesil.Tests
                         using (var csv = config.CreateReader(reader))
                         {
                             var rows = csv.ReadAll();
-                            Assert.True(new [] { new Uri("http://example.com/"), null, new Uri("https://stackoverflow.com/questions") }.SequenceEqual(rows));
+                            Assert.True(new[] { new Uri("http://example.com/"), null, new Uri("https://stackoverflow.com/questions") }.SequenceEqual(rows));
                         }
                     }
                 );
@@ -782,7 +782,7 @@ namespace Cesil.Tests
                     {
                         var ci = CultureInfo.InvariantCulture;
 
-                        using (var reader = 
+                        using (var reader =
                             getReader(
                                 $"\"{DateTime.MaxValue.ToString(ci)}\"\r\n\"{new DateTime(2020, 04, 23, 0, 0, 0, DateTimeKind.Unspecified).ToString(ci)}\"\r\n\"{DateTime.MinValue.ToString(ci)}\""
                             )
@@ -1056,8 +1056,8 @@ namespace Cesil.Tests
                 opts,
                 (config, getReader) =>
                 {
-                    using(var reader = getReader("A,B,C\r\n1,2,3\r\n4,5,6\r\n7,8,9"))
-                    using(var csv = config.CreateReader(reader))
+                    using (var reader = getReader("A,B,C\r\n1,2,3\r\n4,5,6\r\n7,8,9"))
+                    using (var csv = config.CreateReader(reader))
                     {
                         var rows = csv.ReadAll();
 
@@ -5739,8 +5739,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader("true\r\nfalse\r\ntrue"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader("true\r\nfalse\r\ntrue"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new[] { true, false, true }.SequenceEqual(rows));
@@ -5755,8 +5755,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader("\r\nfalse\r\ntrue"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader("\r\nfalse\r\ntrue"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new[] { default(bool?), false, true }.SequenceEqual(rows));
@@ -5771,8 +5771,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader("a\r\nb\r\nc"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader("a\r\nb\r\nc"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new[] { 'a', 'b', 'c' }.SequenceEqual(rows));
@@ -5787,8 +5787,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader("\r\nb\r\nc"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader("\r\nb\r\nc"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new[] { default(char?), 'b', 'c' }.SequenceEqual(rows));
@@ -5803,8 +5803,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader("0\r\n128\r\n255"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader("0\r\n128\r\n255"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new byte[] { 0, 128, 255 }.SequenceEqual(rows));
@@ -5819,8 +5819,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader("0\r\n\r\n255"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader("0\r\n\r\n255"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new byte?[] { 0, null, 255 }.SequenceEqual(rows));
@@ -5835,8 +5835,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader("0\r\n-127\r\n-2"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader("0\r\n-127\r\n-2"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new sbyte[] { 0, -127, -2 }.SequenceEqual(rows));
@@ -5851,8 +5851,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader("\r\n-127\r\n-2"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader("\r\n-127\r\n-2"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new sbyte?[] { null, -127, -2 }.SequenceEqual(rows));
@@ -5867,8 +5867,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader("0\r\n-9876\r\n-16000"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader("0\r\n-9876\r\n-16000"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new short[] { 0, -9876, -16000 }.SequenceEqual(rows));
@@ -5883,8 +5883,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader("0\r\n\r\n-16000"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader("0\r\n\r\n-16000"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new short?[] { 0, null, -16000 }.SequenceEqual(rows));
@@ -5899,8 +5899,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader("0\r\n12345\r\n32000"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader("0\r\n12345\r\n32000"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new ushort[] { 0, 12345, 32000 }.SequenceEqual(rows));
@@ -5915,8 +5915,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader("\r\n12345\r\n32000"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader("\r\n12345\r\n32000"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new ushort?[] { null, 12345, 32000 }.SequenceEqual(rows));
@@ -5931,8 +5931,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader("0\r\n2000000\r\n-15"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader("0\r\n2000000\r\n-15"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new[] { 0, 2000000, -15 }.SequenceEqual(rows));
@@ -5947,8 +5947,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader("\r\n2000000\r\n-15"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader("\r\n2000000\r\n-15"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new int?[] { null, 2000000, -15 }.SequenceEqual(rows));
@@ -5963,8 +5963,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader("0\r\n2000000\r\n4000000000"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader("0\r\n2000000\r\n4000000000"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new uint[] { 0, 2000000, 4_000_000_000 }.SequenceEqual(rows));
@@ -5979,8 +5979,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader("\r\n2000000\r\n4000000000"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader("\r\n2000000\r\n4000000000"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new uint?[] { null, 2000000, 4_000_000_000 }.SequenceEqual(rows));
@@ -5995,8 +5995,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"0\r\n{long.MinValue}\r\n{long.MaxValue}"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"0\r\n{long.MinValue}\r\n{long.MaxValue}"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new long[] { 0, long.MinValue, long.MaxValue }.SequenceEqual(rows));
@@ -6011,8 +6011,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"{long.MinValue}\r\n\r\n{long.MaxValue}"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"{long.MinValue}\r\n\r\n{long.MaxValue}"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new long?[] { long.MinValue, null, long.MaxValue }.SequenceEqual(rows));
@@ -6027,8 +6027,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"0\r\n123\r\n{ulong.MaxValue}"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"0\r\n123\r\n{ulong.MaxValue}"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new ulong[] { 0, 123, ulong.MaxValue }.SequenceEqual(rows));
@@ -6043,8 +6043,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"0\r\n\r\n{ulong.MaxValue}"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"0\r\n\r\n{ulong.MaxValue}"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new ulong?[] { 0, null, ulong.MaxValue }.SequenceEqual(rows));
@@ -6059,8 +6059,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"0.12\r\n123456789.0123\r\n-999999.88888"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"0.12\r\n123456789.0123\r\n-999999.88888"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new float[] { 0.12f, 123456789.0123f, -999999.88888f }.SequenceEqual(rows));
@@ -6075,8 +6075,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"0.12\r\n\r\n-999999.88888"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"0.12\r\n\r\n-999999.88888"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new float?[] { 0.12f, null, -999999.88888f }.SequenceEqual(rows));
@@ -6091,8 +6091,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"0.12\r\n123456789.0123\r\n-999999.88888"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"0.12\r\n123456789.0123\r\n-999999.88888"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new double[] { 0.12, 123456789.0123, -999999.88888 }.SequenceEqual(rows));
@@ -6107,8 +6107,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"0.12\r\n\r\n-999999.88888"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"0.12\r\n\r\n-999999.88888"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new double?[] { 0.12, null, -999999.88888 }.SequenceEqual(rows));
@@ -6123,8 +6123,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"0.12\r\n123456789.0123\r\n-999999.88888"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"0.12\r\n123456789.0123\r\n-999999.88888"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new decimal[] { 0.12m, 123456789.0123m, -999999.88888m }.SequenceEqual(rows));
@@ -6139,8 +6139,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"0.12\r\n\r\n-999999.88888"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"0.12\r\n\r\n-999999.88888"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new decimal?[] { 0.12m, null, -999999.88888m }.SequenceEqual(rows));
@@ -6155,8 +6155,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"hello\r\n\r\nworld"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"hello\r\n\r\nworld"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new string[] { "hello", null, "world" }.SequenceEqual(rows));
@@ -6171,8 +6171,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"1.2\r\n\r\n1.2.3.4"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"1.2\r\n\r\n1.2.3.4"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new[] { new Version(1, 2), null, new Version(1, 2, 3, 4) }.SequenceEqual(rows));
@@ -6187,8 +6187,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"http://example.com/\r\n\r\nhttps://stackoverflow.com/questions"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"http://example.com/\r\n\r\nhttps://stackoverflow.com/questions"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new[] { new Uri("http://example.com/"), null, new Uri("https://stackoverflow.com/questions") }.SequenceEqual(rows));
@@ -6203,8 +6203,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"Foo\r\nBar\r\nFoo"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"Foo\r\nBar\r\nFoo"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new[] { _WellKnownSingleColumns.Foo, _WellKnownSingleColumns.Bar, _WellKnownSingleColumns.Foo }.SequenceEqual(rows));
@@ -6219,8 +6219,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"Foo\r\nBar\r\n\r\n"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"Foo\r\nBar\r\n\r\n"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new _WellKnownSingleColumns?[] { _WellKnownSingleColumns.Foo, _WellKnownSingleColumns.Bar, null }.SequenceEqual(rows));
@@ -6235,8 +6235,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"\"Foo, Bar\"\r\nBar\r\nFizz"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"\"Foo, Bar\"\r\nBar\r\nFizz"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new[] { _WellKnownSingleColumns_Flags.Foo | _WellKnownSingleColumns_Flags.Bar, _WellKnownSingleColumns_Flags.Bar, _WellKnownSingleColumns_Flags.Fizz }.SequenceEqual(rows));
@@ -6251,8 +6251,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"\"Foo, Bar\"\r\n\r\nFizz"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"\"Foo, Bar\"\r\n\r\nFizz"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new _WellKnownSingleColumns_Flags?[] { _WellKnownSingleColumns_Flags.Foo | _WellKnownSingleColumns_Flags.Bar, null, _WellKnownSingleColumns_Flags.Fizz }.SequenceEqual(rows));
@@ -6274,7 +6274,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                                 $"\"{DateTime.MaxValue.ToString(ci)}\"\r\n\"{new DateTime(2020, 04, 23, 0, 0, 0, DateTimeKind.Unspecified).ToString(ci)}\"\r\n\"{DateTime.MinValue.ToString(ci)}\""
                             )
                         )
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             var shouldMatch =
@@ -6303,7 +6303,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                                 $"\"{DateTime.MaxValue.ToString(ci)}\"\r\n\r\n\"{DateTime.MinValue.ToString(ci)}\""
                             )
                         )
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             var shouldMatch =
@@ -6332,7 +6332,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                                 $"\"{DateTimeOffset.MaxValue.ToString(ci)}\"\r\n\"{new DateTimeOffset(2020, 04, 23, 0, 0, 0, TimeSpan.Zero).ToString(ci)}\"\r\n\"{DateTimeOffset.MinValue.ToString(ci)}\""
                             )
                         )
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             var shouldMatch =
@@ -6361,7 +6361,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                                 $"\"{DateTimeOffset.MaxValue.ToString(ci)}\"\r\n\r\n\"{DateTimeOffset.MinValue.ToString(ci)}\""
                             )
                         )
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             var shouldMatch =
@@ -6383,8 +6383,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"2E9348A1-C3D9-4A9C-95FF-D97591F91542\r\nECB04C56-3042-4234-B757-6AC6E53E10C2"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"2E9348A1-C3D9-4A9C-95FF-D97591F91542\r\nECB04C56-3042-4234-B757-6AC6E53E10C2"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new[] { Guid.Parse("2E9348A1-C3D9-4A9C-95FF-D97591F91542"), Guid.Parse("ECB04C56-3042-4234-B757-6AC6E53E10C2") }.SequenceEqual(rows));
@@ -6399,8 +6399,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"2E9348A1-C3D9-4A9C-95FF-D97591F91542\r\n\r\n"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"2E9348A1-C3D9-4A9C-95FF-D97591F91542\r\n\r\n"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new Guid?[] { Guid.Parse("2E9348A1-C3D9-4A9C-95FF-D97591F91542"), null }.SequenceEqual(rows));
@@ -6415,8 +6415,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"\"{TimeSpan.MaxValue}\"\r\n\"{TimeSpan.FromMilliseconds(123456)}\"\r\n\"{TimeSpan.MaxValue}\""))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"\"{TimeSpan.MaxValue}\"\r\n\"{TimeSpan.FromMilliseconds(123456)}\"\r\n\"{TimeSpan.MaxValue}\""))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new[] { TimeSpan.MaxValue, TimeSpan.FromMilliseconds(123456), TimeSpan.MaxValue }.SequenceEqual(rows));
@@ -6431,8 +6431,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"\"{TimeSpan.MaxValue}\"\r\n\r\n\"{TimeSpan.MaxValue}\""))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"\"{TimeSpan.MaxValue}\"\r\n\r\n\"{TimeSpan.MaxValue}\""))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new TimeSpan?[] { TimeSpan.MaxValue, null, TimeSpan.MaxValue }.SequenceEqual(rows));
@@ -6447,8 +6447,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"{^1}\r\n{(Index)2}\r\n{^3}"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"{^1}\r\n{(Index)2}\r\n{^3}"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new[] { ^1, (Index)2, ^3 }.SequenceEqual(rows));
@@ -6463,8 +6463,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"{^1}\r\n\r\n{^3}"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"{^1}\r\n\r\n{^3}"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new Index?[] { ^1, null, ^3 }.SequenceEqual(rows));
@@ -6479,8 +6479,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"{1..^1}\r\n{..^2}\r\n{^3..}"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"{1..^1}\r\n{..^2}\r\n{^3..}"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new[] { 1..^1, ..^2, ^3.. }.SequenceEqual(rows));
@@ -6495,8 +6495,8 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     Options.Default,
                     async (config, getReader) =>
                     {
-                        await using(var reader = await getReader($"{1..^1}\r\n\r\n{^3..}"))
-                        await using(var csv = config.CreateAsyncReader(reader))
+                        await using (var reader = await getReader($"{1..^1}\r\n\r\n{^3..}"))
+                        await using (var csv = config.CreateAsyncReader(reader))
                         {
                             var rows = await csv.ReadAllAsync();
                             Assert.True(new Range?[] { 1..^1, null, ^3.. }.SequenceEqual(rows));

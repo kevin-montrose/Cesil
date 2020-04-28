@@ -50,24 +50,16 @@ namespace Cesil
 
             Options = options;
 
-            switch (Options.RowEnding)
-            {
-                case RowEnding.CarriageReturn:
-                    RowEndingMemory = CarriageReturn;
-                    break;
-                case RowEnding.CarriageReturnLineFeed:
-                    RowEndingMemory = CarriageReturnLineFeed;
-                    break;
-                case RowEnding.LineFeed:
-                    RowEndingMemory = LineFeed;
-                    break;
-                default:
+            RowEndingMemory = 
+                Options.RowEnding switch
+                {
+                    RowEnding.CarriageReturn => CarriageReturn,
+                    RowEnding.CarriageReturnLineFeed => CarriageReturnLineFeed,
+                    RowEnding.LineFeed => LineFeed,
                     // for cases like detecting headers, actually trying to write is NO GOOD...
                     //     but construction is fine
-                    RowEndingMemory = default;
-                    break;
-            }
-
+                    _ => default
+                };
             NeedsEncode = new NeedsEncodeHelper(options.ValueSeparator, options.EscapedValueStartAndEnd, options.CommentCharacter);
         }
 
@@ -87,24 +79,16 @@ namespace Cesil
 
             Options = options;
 
-            switch (Options.RowEnding)
-            {
-                case RowEnding.CarriageReturn:
-                    RowEndingMemory = CarriageReturn;
-                    break;
-                case RowEnding.CarriageReturnLineFeed:
-                    RowEndingMemory = CarriageReturnLineFeed;
-                    break;
-                case RowEnding.LineFeed:
-                    RowEndingMemory = LineFeed;
-                    break;
-                default:
+            RowEndingMemory = 
+                Options.RowEnding switch
+                {
+                    RowEnding.CarriageReturn => CarriageReturn,
+                    RowEnding.CarriageReturnLineFeed => CarriageReturnLineFeed,
+                    RowEnding.LineFeed => LineFeed,
                     // for cases like detecting headers, actually trying to write is NO GOOD...
                     //     but construction is fine
-                    RowEndingMemory = default;
-                    break;
-            }
-
+                    _ => default
+                };
             NeedsEncode = new NeedsEncodeHelper(options.ValueSeparator, options.EscapedValueStartAndEnd, options.CommentCharacter);
         }
 

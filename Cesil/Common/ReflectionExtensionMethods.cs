@@ -17,7 +17,7 @@ namespace Cesil
                 type = type.GetGenericTypeDefinition().GetTypeInfo();
             }
 
-            return type == Types.Tuple_Array[Types.Tuple_Array.Length - 1];
+            return type == Types.Tuple_Array[^1];
         }
 
         internal static bool IsBigValueTuple(this TypeInfo type)
@@ -29,7 +29,7 @@ namespace Cesil
                 type = type.GetGenericTypeDefinition().GetTypeInfo();
             }
 
-            return type == Types.ValueTuple_Array[Types.ValueTuple_Array.Length - 1];
+            return type == Types.ValueTuple_Array[^1];
         }
 
         internal static bool IsValueTuple(this TypeInfo type)

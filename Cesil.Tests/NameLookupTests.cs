@@ -11,7 +11,7 @@ namespace Cesil.Tests
     {
         private sealed class _FailIfMemoryNotAvailable : MemoryPool<char>
         {
-            private sealed class Owner: IMemoryOwner<char>
+            private sealed class Owner : IMemoryOwner<char>
             {
                 public Memory<char> Memory { get; }
 

@@ -179,9 +179,9 @@ namespace Cesil
             RowEnding = copy.RowEnding;
             ReadHeader = copy.ReadHeader;
             WriteHeader = copy.WriteHeader;
-            TypeDescriber = copy.TypeDescriber!;
+            TypeDescriber = Utils.NonNull(copy.TypeDescriber);
             WriteTrailingRowEnding = copy.WriteTrailingRowEnding;
-            MemoryPool = copy.MemoryPool!;
+            MemoryPool = Utils.NonNull(copy.MemoryPool);
             CommentCharacter = copy.CommentCharacter;
             WriteBufferSizeHint = copy.WriteBufferSizeHint;
             ReadBufferSizeHint = copy.ReadBufferSizeHint;

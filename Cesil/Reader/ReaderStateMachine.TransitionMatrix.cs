@@ -500,7 +500,7 @@ namespace Cesil
                     RowEnding.CarriageReturnLineFeed => commentCharacterTreatment,
                     // ends the comment
                     RowEnding.LineFeed => commentEndTreatment,
-                    _ =>  Invalid_Exception_UnexpectedLineEnding
+                    _ => Invalid_Exception_UnexpectedLineEnding
                 };
             innerRet[(int)CharacterType.LineFeed] = forLineFeed;
 
@@ -621,7 +621,7 @@ namespace Cesil
             innerRet[(int)CharacterType.CarriageReturn] = forCarriageReturn;
 
             // \n
-            var forLineFeed = 
+            var forLineFeed =
                 rowEndings switch
                 {
                     // ends header
@@ -675,7 +675,7 @@ namespace Cesil
             innerRet[(int)CharacterType.CarriageReturn] = forCarriageReturn;
 
             // "df"\n
-            var forLineFeed = 
+            var forLineFeed =
                 rowEndings switch
                 {
                     // ends header
@@ -1266,8 +1266,8 @@ namespace Cesil
             var forCarriageReturn =
                 rowEndings switch
                 {
-                     // may end record, if followed by a \n
-                    RowEnding.CarriageReturnLineFeed =>Record_ExpectingEndOfRecord_Skip_Character,
+                    // may end record, if followed by a \n
+                    RowEnding.CarriageReturnLineFeed => Record_ExpectingEndOfRecord_Skip_Character,
                     // ends record
                     RowEnding.CarriageReturn => Record_Start_Finished_LastValueUnescaped_Record,
                     // does not end record
@@ -1336,7 +1336,7 @@ namespace Cesil
             innerRet[(int)CharacterType.ValueSeparator] = Record_Unescaped_NoValue_Finished_Unescaped_Value;
 
             // \r
-            var forCarriageReturn = 
+            var forCarriageReturn =
                 rowEndings switch
                 {
                     // may end record, if followed by \n
@@ -1350,7 +1350,7 @@ namespace Cesil
             innerRet[(int)CharacterType.CarriageReturn] = forCarriageReturn;
 
             // \n
-            var forLineFeed = 
+            var forLineFeed =
                 rowEndings switch
                 {
                     // does not end record

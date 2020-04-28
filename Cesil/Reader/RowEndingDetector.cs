@@ -86,7 +86,7 @@ namespace Cesil
                 var continueScan = true;
                 while (continueScan)
                 {
-                    var mem = BufferOwner.Memory.Slice(BufferStart, BufferOwner.Memory.Length - BufferStart);
+                    var mem = BufferOwner.Memory[BufferStart..];
                     var endTask = InnerAsync.Value.ReadAsync(mem, cancel);
 
                     if (!endTask.IsCompletedSuccessfully(this))
@@ -211,7 +211,7 @@ namespace Cesil
 loopStart:
                     while (continueScan)
                     {
-                        var mem = self.BufferOwner.Memory.Slice(self.BufferStart, self.BufferOwner.Memory.Length - self.BufferStart);
+                        var mem = self.BufferOwner.Memory[self.BufferStart..];
 
                         var readTask = self.InnerAsync.Value.ReadAsync(mem, cancel);
                         self.State.ReleasePinForAsync(readTask);
@@ -278,7 +278,7 @@ end:
                 var continueScan = true;
                 while (continueScan)
                 {
-                    var end = Inner.Value.Read(buffSpan.Slice(BufferStart, buffSpan.Length - BufferStart));
+                    var end = Inner.Value.Read(buffSpan[BufferStart..]);
                     if (end == 0)
                     {
                         if (BufferStart > 0)
@@ -344,7 +344,7 @@ end:
 
                 Pushback.CopyTo(newOwner.Memory);
                 pushbackOwnerValue.Dispose();
-                PushbackOwner.Value = pushbackOwnerValue = newOwner;
+                PushbackOwner.Value = newOwner;
             }
 
             span.CopyTo(Pushback.Span.Slice(PushbackLength));

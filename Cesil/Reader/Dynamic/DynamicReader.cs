@@ -112,10 +112,10 @@ namespace Cesil
 
             var allowColumnsByName = options.ReadHeader == ReadHeader.Always;
 
-            using (var reader = new HeadersReader<object>(StateMachine, Configuration, SharedCharacterLookup, Inner, Buffer, RowEndings!.Value))
+            using (var reader = new HeadersReader<object>(StateMachine, Configuration, SharedCharacterLookup, Inner, Buffer, Utils.NonNullValue(RowEndings)))
             {
-                var res = reader.Read();
-                ColumnCount = res.Headers.Count;
+                var (headers, isHeader, pushBack) = reader.Read();
+                ColumnCount = headers.Count;
 
                 if (ColumnCount == 0)
                 {
@@ -130,7 +130,7 @@ namespace Cesil
                         columnNamesValue = new string[ColumnCount];
                         ColumnNames.Value = columnNamesValue;
 
-                        using (var e = res.Headers)
+                        using (var e = headers)
                         {
                             var ix = 0;
                             while (e.MoveNext())
@@ -149,10 +149,10 @@ namespace Cesil
                         NameLookup = NameLookup.Create(columnNamesValue, Configuration.Options.MemoryPool);
                     }
 
-                    RowBuilder.SetColumnOrder(res.Headers);
+                    RowBuilder.SetColumnOrder(headers);
                 }
 
-                Buffer.PushBackFromOutsideBuffer(res.PushBack);
+                Buffer.PushBackFromOutsideBuffer(pushBack);
             }
 
             TryMakeStateMachine();

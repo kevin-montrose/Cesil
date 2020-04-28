@@ -128,7 +128,7 @@ namespace Cesil
             {
                 HandleRowEndingsAndHeaders();
 
-                var record = default(T)!;
+                T record = default!;
                 return TryReadInner(true, false, false, ref record);
             }
             catch (Exception e)

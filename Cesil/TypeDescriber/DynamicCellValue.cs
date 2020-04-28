@@ -102,10 +102,9 @@ namespace Cesil
                 if (value.HasName) return false;
             }
 
-            var selfAsObj = Value as object;
             var dAsObj = value.Value as object;
 
-            if (selfAsObj == null)
+            if (!(Value is object selfAsObj))
             {
                 return dAsObj == null;
             }

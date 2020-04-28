@@ -287,7 +287,7 @@ namespace Cesil
                         // we're in case 2 or 3
                         // so p0 may be by ref or not, but p1 must NOT be by ref
 
-                        if(p1.IsByRef)
+                        if (p1.IsByRef)
                         {
                             return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by a static method taking 2 parameters cannot have a by ref second parameter unless that parameter is an `in {nameof(ReadContext)}`", nameof(method));
                         }
@@ -416,7 +416,7 @@ namespace Cesil
             var mem = parameter.Member;
             if (mem is ConstructorInfo cons)
             {
-                return new Setter(cons.DeclaringType!.GetTypeInfo(), parameter.ParameterType.GetTypeInfo(), parameter);
+                return new Setter(cons.DeclaringTypeNonNull(), parameter.ParameterType.GetTypeInfo(), parameter);
             }
             else
             {

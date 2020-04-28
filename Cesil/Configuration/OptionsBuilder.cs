@@ -351,7 +351,7 @@ namespace Cesil
         /// </summary>
         public OptionsBuilder WithTypeDescriber(ITypeDescriber typeDescriber)
         {
-            typeDescriber = typeDescriber ?? TypeDescribers.Default;
+            typeDescriber ??= TypeDescribers.Default;
 
             TypeDescriber = typeDescriber;
             return this;
@@ -382,7 +382,7 @@ namespace Cesil
         /// </summary>
         public OptionsBuilder WithMemoryPool(MemoryPool<char> memoryPool)
         {
-            memoryPool = memoryPool ?? MemoryPool<char>.Shared;
+            memoryPool ??= MemoryPool<char>.Shared;
 
             MemoryPool = memoryPool;
             return this;

@@ -6,8 +6,6 @@ namespace Cesil
 {
     internal static class Methods
     {
-
-
         internal static class ReadContext
         {
             internal static readonly MethodInfo ConvertingRow = Types.ReadContext.GetMethodNonNull(nameof(Cesil.ReadContext.ConvertingRow), InternalStatic);

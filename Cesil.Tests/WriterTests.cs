@@ -667,7 +667,7 @@ namespace Cesil.Tests
                         using (var csv = config.CreateWriter(writer))
                         {
                             csv.WriteAll(
-                                new DateTime?[] 
+                                new DateTime?[]
                                 {
                                     DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc),
                                     null,
@@ -748,7 +748,7 @@ namespace Cesil.Tests
                             csv.WriteAll(
                                 new Guid[]
                                 {
-                                    Guid.Parse("2E9348A1-C3D9-4A9C-95FF-D97591F91542"), 
+                                    Guid.Parse("2E9348A1-C3D9-4A9C-95FF-D97591F91542"),
                                     Guid.Parse("ECB04C56-3042-4234-B757-6AC6E53E10C2")
                                 }
                             );
@@ -772,7 +772,7 @@ namespace Cesil.Tests
                             csv.WriteAll(
                                 new Guid?[]
                                 {
-                                    null, 
+                                    null,
                                     Guid.Parse("ECB04C56-3042-4234-B757-6AC6E53E10C2")
                                 }
                             );
@@ -796,8 +796,8 @@ namespace Cesil.Tests
                             csv.WriteAll(
                                 new TimeSpan[]
                                 {
-                                    TimeSpan.MaxValue, 
-                                    TimeSpan.FromMilliseconds(123456), 
+                                    TimeSpan.MaxValue,
+                                    TimeSpan.FromMilliseconds(123456),
                                     TimeSpan.MaxValue
                                 }
                             );
@@ -846,8 +846,8 @@ namespace Cesil.Tests
                             csv.WriteAll(
                                 new Index[]
                                 {
-                                    ^1, 
-                                    (Index)2, 
+                                    ^1,
+                                    (Index)2,
                                     ^3
                                 }
                             );
@@ -871,7 +871,7 @@ namespace Cesil.Tests
                             csv.WriteAll(
                                 new Index?[]
                                 {
-                                    ^1, 
+                                    ^1,
                                     null,
                                     ^3
                                 }
@@ -896,8 +896,8 @@ namespace Cesil.Tests
                             csv.WriteAll(
                                 new Range[]
                                 {
-                                    1..^1, 
-                                    ..^2, 
+                                    1..^1,
+                                    ..^2,
                                     ^3..
                                 }
                             );
@@ -987,8 +987,8 @@ namespace Cesil.Tests
         [Fact]
         public void DontEmitDefaultNonTrivial()
         {
-            var data = 
-                new []
+            var data =
+                new[]
                 {
                     new _DontEmitDefaultNonTrivial("a"),
                     new _DontEmitDefaultNonTrivial(null),

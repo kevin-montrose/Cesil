@@ -295,7 +295,7 @@ namespace Cesil
                 c = "<end of data>";
             }
 
-            return 
+            return
                 res switch
                 {
                     ReaderStateMachine.AdvanceResult.Exception_ExpectedEndOfRecord => Throw.InvalidOperationException<ReadWithCommentResultType>($"Encountered '{c}' when expecting end of record"),
@@ -339,7 +339,7 @@ namespace Cesil
         {
             var ctx = ReadContext.ReadingRow(Configuration.Options, RowNumber, Context);
             RowBuilder.StartRow(ctx);
-            Partial.ResetColumn(false);
+            Partial.ResetColumn();
         }
 
         private void PushPendingCharactersToValue(bool wasEscaped)

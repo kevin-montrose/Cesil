@@ -394,7 +394,7 @@ namespace Cesil
             return member.Name;
         }
 
-        
+
 
         private static MemberRequired GetIsRequired(MemberInfo member)
         {
@@ -1087,7 +1087,6 @@ namespace Cesil
                 var consPs = cons.GetParameters();
                 if (consPs.Length != width) continue;
 
-                var selectedCons = cons;
                 var columnIndexes = new ColumnIdentifier[consPs.Length];
                 for (var i = 0; i < columnIndexes.Length; i++)
                 {

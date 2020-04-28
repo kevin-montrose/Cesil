@@ -31,7 +31,7 @@ namespace Cesil
                 var parsingClass = GetParsingClass();
 
                 var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseFlagsEnum), BindingFlagsConstants.InternalStatic);
-                return  Parser.ForMethod(enumParsingMtd);
+                return Parser.ForMethod(enumParsingMtd);
             }
 
             private static Parser CreateTryParseNullableFlagsEnumParser()

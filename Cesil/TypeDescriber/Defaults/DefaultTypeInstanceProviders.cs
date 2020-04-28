@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
@@ -14,7 +13,7 @@ namespace Cesil
 
         // any struct can be backed by this
         internal static bool TryCreateInstance<T>(in ReadContext _, out T val)
-            where T: struct
+            where T : struct
         {
             val = default;
             return true;
@@ -31,7 +30,7 @@ namespace Cesil
         // we actually need this to be generic because of the out parameter, we
         //    can't just use an object
         internal static bool TryCreateNull<T>(in ReadContext _, out T? val)
-            where T: class
+            where T : class
         {
             val = null;
             return true;

@@ -18,6 +18,8 @@ namespace Cesil
     /// </summary>
     public static class CesilUtils
     {
+        // todo: write to string methods
+
         // sync read methods
 
         /// <summary>
@@ -99,7 +101,7 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(path, nameof(path));
 
-            // reader will be disposed in the Read call
+            // reader will be disposed in the Enumerate call
             var reader = new StreamReader(path, true);
             return Enumerate<TRow>(reader, options, context);
         }
@@ -124,8 +126,56 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(path, nameof(path));
 
-            // reader will be disposed in the Read call
+            // reader will be disposed in the Enumerate call
             var reader = new StreamReader(path, true);
+            return EnumerateDynamic(reader, options, context);
+        }
+
+        /// <summary>
+        /// Lazily enumerate rows of type TRow from the given string.
+        /// 
+        /// An optional Options object may be used, if not provided Options.Default
+        ///   will be used.
+        ///   
+        /// Takes an optional context object which is made available
+        ///   during certain operations as a member on ReadContext.
+        /// </summary>
+        public static IEnumerable<T> EnumerateFromString<T>(
+            string data,
+            [NullableExposed("options will default to Options.Default")]
+            Options? options = null,
+            [NullableExposed("context is truly optional")]
+            object? context = null
+        )
+        {
+            Utils.CheckArgumentNull(data, nameof(data));
+
+            var reader = new StringReader(data);
+            // reader will be disposed in the Enumerate call
+            return Enumerate<T>(reader, options, context);
+        }
+
+        /// <summary>
+        /// Lazily enumerate dynamic rows from the given string.
+        /// 
+        /// An optional Options object may be used, if not provided Options.Default
+        ///   will be used.
+        ///   
+        /// Takes an optional context object which is made available
+        ///   during certain operations as a member on ReadContext.
+        /// </summary>
+        public static IEnumerable<dynamic> EnumerateDynamicFromString(
+            string data,
+            [NullableExposed("options will default to Options.Default")]
+            Options? options = null,
+            [NullableExposed("context is truly optional")]
+            object? context = null
+        )
+        {
+            Utils.CheckArgumentNull(data, nameof(data));
+
+            var reader = new StringReader(data);
+            // reader will be disposed in the Enumerate call
             return EnumerateDynamic(reader, options, context);
         }
 
@@ -222,7 +272,7 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(path, nameof(path));
 
-            // reader will be disposed in the ReadAsync call
+            // reader will be disposed in the EnumerateAsync call
             var reader = new StreamReader(path, true);
             return EnumerateAsync<TRow>(reader, options, context, cancel);
         }
@@ -250,8 +300,62 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(path, nameof(path));
 
-            // reader will be disposed in the ReadAsync call
+            // reader will be disposed in the EnumerateAsync call
             var reader = new StreamReader(path, true);
+            return EnumerateDynamicAsync(reader, options, context, cancel);
+        }
+
+        /// <summary>
+        /// Lazily and asynchronously enumerate rows of type TRow from the given string.
+        /// 
+        /// An optional Options object may be used, if not provided Options.Default
+        ///   will be used.
+        ///   
+        /// Takes an optional context object which is made available
+        ///   during certain operations as a member on ReadContext.
+        ///   
+        /// A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+        /// </summary>
+        public static IAsyncEnumerable<TRow> EnumerateFromStringAsync<TRow>(
+            string data,
+            [NullableExposed("options will default to Options.Default")]
+            Options? options = null,
+            [NullableExposed("context is truly optional")]
+            object? context = null,
+            CancellationToken cancel = default
+        )
+        {
+            Utils.CheckArgumentNull(data, nameof(data));
+
+            // reader will be disposed in the EnumerateAsync call
+            var reader = new StringReader(data);
+            return EnumerateAsync<TRow>(reader, options, context, cancel);
+        }
+
+        /// <summary>
+        /// Lazily and asynchronously enumerate dynamic rows from the given string.
+        /// 
+        /// An optional Options object may be used, if not provided Options.Default
+        ///   will be used.
+        ///   
+        /// Takes an optional context object which is made available
+        ///   during certain operations as a member on ReadContext.
+        ///   
+        /// A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+        /// </summary>
+        public static IAsyncEnumerable<dynamic> EnumerateDynamicFromStringAsync(
+            string data,
+            [NullableExposed("options will default to Options.Default")]
+            Options? options = null,
+            [NullableExposed("context is truly optional")]
+            object? context = null,
+            CancellationToken cancel = default
+        )
+        {
+            Utils.CheckArgumentNull(data, nameof(data));
+
+            // reader will be disposed in the EnumerateDynamicAsync call
+            var reader = new StringReader(data);
             return EnumerateDynamicAsync(reader, options, context, cancel);
         }
 

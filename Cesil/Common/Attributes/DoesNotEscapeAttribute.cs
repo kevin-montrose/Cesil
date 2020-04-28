@@ -10,6 +10,7 @@ namespace Cesil
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
     internal sealed class DoesNotEscapeAttribute : Attribute
     {
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "For documentation, not use")]
         internal DoesNotEscapeAttribute(string explanation) : base() { }
     }
 }

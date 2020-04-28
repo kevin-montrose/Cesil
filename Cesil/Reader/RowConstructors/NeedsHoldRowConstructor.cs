@@ -17,17 +17,17 @@ namespace Cesil
             {
                 for (var i = 0; i < MemberLookup.Length; i++)
                 {
-                    var t = LookupColumn(i);
+                    var (simpleMember, heldMember) = LookupColumn(i);
 
-                    if (t.SimpleMember != null)
+                    if (simpleMember != null)
                     {
-                        yield return SimpleMembers[t.SimpleMember.Value].Name;
+                        yield return SimpleMembers[simpleMember.Value].Name;
                         continue;
                     }
 
-                    if (t.HeldMember != null)
+                    if (heldMember != null)
                     {
-                        yield return HeldMembers[t.HeldMember.Value].Name;
+                        yield return HeldMembers[heldMember.Value].Name;
                         continue;
                     }
 
@@ -59,7 +59,7 @@ namespace Cesil
         private bool _RowStarted;
         public bool RowStarted => _RowStarted;
 
-        private bool HasSimple;
+        private readonly bool HasSimple;
         private UnmanagedLookupArray<ShallowReadContext> SimpleSet;
 
         private bool CurrentPopulated;
@@ -189,12 +189,12 @@ namespace Cesil
 
                 for (var i = 0; i < MemberLookup.Length; i++)
                 {
-                    var l = LookupColumn(i);
+                    var (simpleMember, heldMember) = LookupColumn(i);
 
-                    if (l.SimpleMember != null)
+                    if (simpleMember != null)
                     {
-                        var config = SimpleMembers[l.SimpleMember.Value];
-                        if (config.Required == MemberRequired.Yes)
+                        var (_, required, _, _, _) = SimpleMembers[simpleMember.Value];
+                        if (required == MemberRequired.Yes)
                         {
                             tracker.SetIsRequired(i);
                         }
@@ -202,10 +202,10 @@ namespace Cesil
                         continue;
                     }
 
-                    if (l.HeldMember != null)
+                    if (heldMember != null)
                     {
-                        var config = HeldMembers[l.HeldMember.Value];
-                        if (config.Required == MemberRequired.Yes)
+                        var (_, required, _) = HeldMembers[heldMember.Value];
+                        if (required == MemberRequired.Yes)
                         {
                             tracker.SetIsRequired(i);
                         }
@@ -286,12 +286,12 @@ namespace Cesil
 
                     for (var simpleIx = 0; simpleIx < SimpleMembers.Length; simpleIx++)
                     {
-                        var simple = SimpleMembers[simpleIx];
-                        if (Utils.AreEqual(ci, simple.Name.AsMemory()))
+                        var (name, required, _, _, _) = SimpleMembers[simpleIx];
+                        if (Utils.AreEqual(ci, name.AsMemory()))
                         {
                             lookupOverride.Set(ix, (simpleIx, null));
 
-                            if (simple.Required == MemberRequired.Yes)
+                            if (required == MemberRequired.Yes)
                             {
                                 RequiredTracker.SetIsRequired(ix);
                             }
@@ -305,12 +305,12 @@ namespace Cesil
                     {
                         for (var heldIx = 0; heldIx < HeldMembers.Length; heldIx++)
                         {
-                            var held = HeldMembers[heldIx];
-                            if (Utils.AreEqual(ci, held.Name.AsMemory()))
+                            var (name, required, _) = HeldMembers[heldIx];
+                            if (Utils.AreEqual(ci, name.AsMemory()))
                             {
                                 lookupOverride.Set(ix, (null, heldIx));
 
-                                if (held.Required == MemberRequired.Yes)
+                                if (required == MemberRequired.Yes)
                                 {
                                     RequiredTracker.SetIsRequired(ix);
                                 }
@@ -375,20 +375,20 @@ namespace Cesil
                 return;
             }
 
-            var res = LookupColumn(columnNumber);
-            if (res.SimpleMember != null)
+            var (simpleMember, heldMember) = LookupColumn(columnNumber);
+            if (simpleMember != null)
             {
-                var simpleCol = SimpleMembers[res.SimpleMember.Value];
+                var (name, required, parseAndHold, moveToRow, setOnRow) = SimpleMembers[simpleMember.Value];
 
-                if (simpleCol.Required == MemberRequired.Yes)
+                if (required == MemberRequired.Yes)
                 {
                     RequiredTracker.MarkSet(columnNumber);
                 }
 
-                var ci = ColumnIdentifier.CreateInner(columnNumber, simpleCol.Name);
+                var ci = ColumnIdentifier.CreateInner(columnNumber, name);
                 var ctx = ReadContext.ReadingColumn(options, rowNumber, ci, context);
 
-                if (simpleCol.Required == MemberRequired.Yes && data.Length == 0)
+                if (required == MemberRequired.Yes && data.Length == 0)
                 {
                     Throw.SerializationException<object>($"Column [{ctx.Column}] is required, but was not found in row");
                     return;
@@ -396,35 +396,35 @@ namespace Cesil
 
                 if (CurrentPopulated)
                 {
-                    simpleCol.SetOnRow(ref Current, in ctx, data);
+                    setOnRow(ref Current, in ctx, data);
                 }
                 else
                 {
-                    simpleCol.ParseAndHold(ref Hold, in ctx, data);
+                    parseAndHold(ref Hold, in ctx, data);
                     SimpleSet.Add(new ShallowReadContext(in ctx));
                 }
 
                 return;
             }
-            else if (res.HeldMember != null)
+            else if (heldMember != null)
             {
-                var holdConfig = HeldMembers[res.HeldMember.Value];
+                var (name, required, parseAndHold) = HeldMembers[heldMember.Value];
 
-                if (holdConfig.Required == MemberRequired.Yes)
+                if (required == MemberRequired.Yes)
                 {
                     RequiredTracker.MarkSet(columnNumber);
                 }
 
-                var ci = ColumnIdentifier.CreateInner(columnNumber, holdConfig.Name);
+                var ci = ColumnIdentifier.CreateInner(columnNumber, name);
                 var ctx = ReadContext.ReadingColumn(options, rowNumber, ci, context);
 
-                if (holdConfig.Required == MemberRequired.Yes && data.Length == 0)
+                if (required == MemberRequired.Yes && data.Length == 0)
                 {
                     Throw.SerializationException<object>($"Column [{ctx.Column}] is required, but was not found in row");
                     return;
                 }
 
-                holdConfig.ParseAndHold(ref Hold, in ctx, data);
+                parseAndHold(ref Hold, in ctx, data);
 
                 HeldCount++;
 
@@ -445,20 +445,20 @@ namespace Cesil
                                 return;
                             }
 
-                            var lookup = LookupColumn(shallowCtx.ColumnIndex);
-                            if (lookup.SimpleMember == null)
+                            var (simpleMemberInner, _) = LookupColumn(shallowCtx.ColumnIndex);
+                            if (simpleMemberInner == null)
                             {
                                 Throw.ImpossibleException<object>($"Column [{shallowCtx.ColumnIndex}] recorded as a previously set simple column, but could not be found when creating row");
                                 return;
                             }
 
-                            var simple = SimpleMembers[lookup.SimpleMember.Value];
+                            var (nameInner, _, _, moveToRow, _) = SimpleMembers[simpleMemberInner.Value];
 
-                            var realCi = ColumnIdentifier.CreateInner(shallowCtx.ColumnIndex, simple.Name);
+                            var realCi = ColumnIdentifier.CreateInner(shallowCtx.ColumnIndex, nameInner);
 
                             var realCtx = ReadContext.ReadingColumn(options, shallowCtx.RowNumber, realCi, context);
 
-                            var moveDelegate = simple.MoveToRow;
+                            var moveDelegate = moveToRow;
                             moveDelegate(ref Current, Hold, in realCtx);
                         }
                     }
@@ -482,11 +482,11 @@ namespace Cesil
 
             if (!RequiredTracker.CheckRequiredAndClear(out var missingIx))
             {
-                var lookup = LookupColumn(missingIx);
-                if (lookup.SimpleMember != null)
+                var (simpleMember, _) = LookupColumn(missingIx);
+                if (simpleMember != null)
                 {
-                    var simpleDetails = SimpleMembers[lookup.SimpleMember.Value];
-                    return Throw.SerializationException<TRow>($"Column [{simpleDetails.Name}] is required, but was not found in row");
+                    var (name, _, _, _, _) = SimpleMembers[simpleMember.Value];
+                    return Throw.SerializationException<TRow>($"Column [{name}] is required, but was not found in row");
                 }
                 else
                 {

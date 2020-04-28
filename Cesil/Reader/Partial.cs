@@ -35,7 +35,7 @@ namespace Cesil
             PendingCharacters = new MaybeInPlaceBuffer<char>(memoryPool);
         }
 
-        internal void ResetColumn(bool setHasPending)
+        internal void ResetColumn()
         {
             CurrentColumnIndex = 0;
         }

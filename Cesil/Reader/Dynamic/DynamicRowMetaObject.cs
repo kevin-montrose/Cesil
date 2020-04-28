@@ -22,20 +22,20 @@ namespace Cesil
             var expressionIsDynamicRowRestriction = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRow);
 
             // only supported operation is .Dispose()
-            if(binder.Name == nameof(DynamicRow.Dispose) && args.Length == 0)
+            if (binder.Name == nameof(DynamicRow.Dispose) && args.Length == 0)
             {
                 var castToRow = Expression.Convert(Expression, Types.DynamicRow);
                 var callDispose = Expression.Call(castToRow, Methods.DynamicRow.Dispose);
 
                 Expression final;
 
-                if(binder.ReturnType == Types.Void)
+                if (binder.ReturnType == Types.Void)
                 {
                     final = callDispose;
                 }
                 else
                 {
-                    if(binder.ReturnType == Types.Object)
+                    if (binder.ReturnType == Types.Object)
                     {
                         final = Expression.Block(callDispose, Expressions.Constant_Null);
                     }

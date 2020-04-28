@@ -183,17 +183,14 @@ namespace Cesil
         /// </summary>
         public override string ToString()
         {
-            switch (Mode)
-            {
-                case WriteContextMode.DiscoveringCells:
-                    return $"{nameof(WriteContext)} with {nameof(Mode)}={Mode}, {nameof(RowNumber)}={RowNumber}, {nameof(Options)}={Options}";
-                case WriteContextMode.DiscoveringColumns:
-                    return $"{nameof(WriteContext)} with {nameof(Mode)}={Mode}, {nameof(Options)}={Options}";
-                case WriteContextMode.WritingColumn:
-                    return $"{nameof(WriteContext)} with {nameof(Mode)}={Mode}, {nameof(RowNumber)}={RowNumber}, {nameof(Column)}={Column}, {nameof(Options)}={Options}";
-                default:
-                    return Throw.InvalidOperationException<string>($"Unexpected {nameof(WriteContextMode)}: {Mode}");
-            }
+            return 
+                Mode switch
+                {
+                    WriteContextMode.DiscoveringCells => $"{nameof(WriteContext)} with {nameof(Mode)}={Mode}, {nameof(RowNumber)}={RowNumber}, {nameof(Options)}={Options}",
+                    WriteContextMode.DiscoveringColumns => $"{nameof(WriteContext)} with {nameof(Mode)}={Mode}, {nameof(Options)}={Options}",
+                    WriteContextMode.WritingColumn => $"{nameof(WriteContext)} with {nameof(Mode)}={Mode}, {nameof(RowNumber)}={RowNumber}, {nameof(Column)}={Column}, {nameof(Options)}={Options}",
+                    _ => Throw.InvalidOperationException<string>($"Unexpected {nameof(WriteContextMode)}: {Mode}")
+                };
         }
 
         /// <summary>

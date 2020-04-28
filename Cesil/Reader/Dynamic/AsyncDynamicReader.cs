@@ -219,7 +219,7 @@ namespace Cesil
 
         public void Remove(DynamicRow row)
         {
-            NotifyOnDisposeHead!.Remove(ref NotifyOnDisposeHead, row);
+            NotifyOnDisposeHead.Remove(ref NotifyOnDisposeHead, row);
         }
 
         private ValueTask HandleHeadersAsync(CancellationToken cancel)
@@ -230,7 +230,7 @@ namespace Cesil
 
             var allowColumnsByName = options.ReadHeader == ReadHeader.Always;
 
-            var reader = new HeadersReader<object>(StateMachine, Configuration, SharedCharacterLookup, Inner, Buffer, RowEndings!.Value);
+            var reader = new HeadersReader<object>(StateMachine, Configuration, SharedCharacterLookup, Inner, Buffer, Utils.NonNullValue(RowEndings));
             var disposeReader = true;
             try
             {
@@ -241,9 +241,9 @@ namespace Cesil
                     return HandleHeadersAsync_WaitForRead(this, resTask, allowColumnsByName, reader, cancel);
                 }
 
-                var res = resTask.Result;
+                var (headers, isHeader, pushBack) = resTask.Result;
 
-                ColumnCount = res.Headers.Count;
+                ColumnCount = headers.Count;
 
                 if (ColumnCount == 0)
                 {
@@ -258,7 +258,7 @@ namespace Cesil
                         columnNamesValue = new string[ColumnCount];
                         ColumnNames.Value = columnNamesValue;
 
-                        using (var e = res.Headers)
+                        using (var e = headers)
                         {
                             var ix = 0;
                             while (e.MoveNext())
@@ -277,11 +277,11 @@ namespace Cesil
                         NameLookup = NameLookup.Create(columnNamesValue, Configuration.Options.MemoryPool);
                     }
 
-                    RowBuilder.SetColumnOrder(res.Headers);
+                    RowBuilder.SetColumnOrder(headers);
 
                 }
 
-                Buffer.PushBackFromOutsideBuffer(res.PushBack);
+                Buffer.PushBackFromOutsideBuffer(pushBack);
 
                 TryMakeStateMachine();
 
@@ -300,10 +300,10 @@ namespace Cesil
             {
                 try
                 {
-                    var res = await ConfigureCancellableAwait(self, toAwait, cancel);
+                    var (headers, isHeader, pushBack) = await ConfigureCancellableAwait(self, toAwait, cancel);
                     CheckCancellation(self, cancel);
 
-                    self.ColumnCount = res.Headers.Count;
+                    self.ColumnCount = headers.Count;
                     if (self.ColumnCount == 0)
                     {
                         // rare, but possible if the file is empty or all comments or something like that
@@ -317,7 +317,7 @@ namespace Cesil
                             columnNamesValue = new string[self.ColumnCount];
                             self.ColumnNames.Value = columnNamesValue;
 
-                            using (var e = res.Headers)
+                            using (var e = headers)
                             {
                                 var ix = 0;
                                 while (e.MoveNext())
@@ -336,10 +336,10 @@ namespace Cesil
                             self.NameLookup = NameLookup.Create(columnNamesValue, self.Configuration.Options.MemoryPool);
                         }
 
-                        self.RowBuilder.SetColumnOrder(res.Headers);
+                        self.RowBuilder.SetColumnOrder(headers);
                     }
 
-                    self.Buffer.PushBackFromOutsideBuffer(res.PushBack);
+                    self.Buffer.PushBackFromOutsideBuffer(pushBack);
                     self.TryMakeStateMachine();
                 }
                 catch (Exception e)

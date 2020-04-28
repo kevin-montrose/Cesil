@@ -103,7 +103,7 @@ namespace Cesil
                 return true;
             }
 
-            if(Getters.TryGetValue(type, out getter))
+            if (Getters.TryGetValue(type, out getter))
             {
                 name = Names[type];
                 return true;
@@ -126,7 +126,7 @@ namespace Cesil
         {
             var builder = ImmutableDictionary.CreateBuilder<TypeInfo, Setter>();
 
-            foreach(var type in Types.WellKnownTypes_Array)
+            foreach (var type in Types.WellKnownTypes_Array)
             {
                 Add(builder, type);
             }

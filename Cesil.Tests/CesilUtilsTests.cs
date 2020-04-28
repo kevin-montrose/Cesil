@@ -125,6 +125,52 @@ namespace Cesil.Tests
         }
 
         [Fact]
+        public void EnumerateFromString()
+        {
+            const string DATA = "Foo,Bar\r\nHello,World";
+
+            var e = CesilUtils.EnumerateFromString<_Enumerate>(DATA);
+            Assert.Collection(
+                e,
+                row =>
+                {
+                    Assert.Equal("Hello", row.Foo);
+                    Assert.Equal("World", row.Bar);
+                }
+            );
+
+            // errors
+            Assert.Throws<ArgumentNullException>(() => CesilUtils.EnumerateFromString<_Enumerate>(default));
+        }
+
+        [Fact]
+        public void EnumerateDynamicFromString()
+        {
+            const string DATA = "Foo,Bar\r\nHello,World";
+            
+            var e = CesilUtils.EnumerateDynamicFromString(DATA);
+            var ix = 0;
+            foreach (var row in e)
+            {
+                switch (ix)
+                {
+                    case 0:
+                        Assert.Equal("Hello", (string)row.Foo);
+                        Assert.Equal("World", (string)row.Bar);
+                        break;
+                    default: throw new Exception();
+                }
+
+                ix++;
+            }
+
+            Assert.Equal(1, ix);
+
+            // errors
+            Assert.Throws<ArgumentNullException>(() => CesilUtils.EnumerateDynamicFromString(default));
+        }
+
+        [Fact]
         public async Task EnumerateAsync()
         {
             using (var reader = new StringReader("Foo,Bar\r\nHello,World"))
@@ -239,6 +285,57 @@ namespace Cesil.Tests
 
             // errors
             Assert.Throws<ArgumentNullException>(() => CesilUtils.EnumerateDynamicFromFileAsync(default));
+        }
+
+        [Fact]
+        public async Task EnumerateFromStringAsync()
+        {
+            const string DATA = "Foo,Bar\r\nHello,World";
+
+            var rows = new List<_Enumerate>();
+            await foreach (var row in CesilUtils.EnumerateFromStringAsync<_Enumerate>(DATA))
+            {
+                rows.Add(row);
+            }
+
+            Assert.Collection(
+                rows,
+                row =>
+                {
+                    Assert.Equal("Hello", row.Foo);
+                    Assert.Equal("World", row.Bar);
+                }
+            );
+
+            // errors
+            Assert.Throws<ArgumentNullException>(() => CesilUtils.EnumerateFromStringAsync<_Enumerate>(default));
+        }
+
+        [Fact]
+        public async Task EnumerateDynamicFromStringAsync()
+        {
+            const string DATA = "Foo,Bar\r\nHello,World";
+
+            var e = CesilUtils.EnumerateDynamicFromStringAsync(DATA);
+            var ix = 0;
+            await foreach (var row in e)
+            {
+                switch (ix)
+                {
+                    case 0:
+                        Assert.Equal("Hello", (string)row.Foo);
+                        Assert.Equal("World", (string)row.Bar);
+                        break;
+                    default: throw new Exception();
+                }
+
+                ix++;
+            }
+
+            Assert.Equal(1, ix);
+
+            // errors
+            Assert.Throws<ArgumentNullException>(() => CesilUtils.EnumerateDynamicFromStringAsync(default));
         }
 
         private sealed class _Write

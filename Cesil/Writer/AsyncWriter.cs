@@ -632,8 +632,8 @@ namespace Cesil
                 var options = Configuration.Options;
 
                 // try and blit everything in relatively few calls
-                var escapedValueStartAndStop = options.EscapedValueStartAndEnd!.Value;
-                var escapeValueEscapeChar = options.EscapedValueEscapeCharacter!.Value;
+                var escapedValueStartAndStop = Utils.NonNullValue(options.EscapedValueStartAndEnd);
+                var escapeValueEscapeChar = Utils.NonNullValue(options.EscapedValueEscapeCharacter);
 
                 var colMem = colName.AsMemory();
 

@@ -1894,7 +1894,7 @@ namespace Cesil.Tests
                     Assert.False(s1.IsStatic);
                     Assert.False(s1.TakesContext);
                 }
-                else if(s1 == methodShouldSerialize2)
+                else if (s1 == methodShouldSerialize2)
                 {
                     Assert.Equal(BackingMode.Method, s1.Mode);
                     Assert.Equal(typeof(_ColumnWriters2).GetTypeInfo(), s1.Takes.Value);

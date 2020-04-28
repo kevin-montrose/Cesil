@@ -27,8 +27,7 @@ namespace Cesil
 
         public bool TryPreAllocate(in ReadContext ctx, bool checkPrealloc, ref object prealloc)
         {
-            var asObj = prealloc as DynamicRow;
-            if (checkPrealloc && asObj != null)
+            if (checkPrealloc && prealloc is DynamicRow asObj)
             {
                 PreAlloced = asObj;
                 asObj.Dispose();

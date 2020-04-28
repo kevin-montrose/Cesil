@@ -149,8 +149,8 @@ mapTypes:
             if (toTake != allocSize)
             {
                 var rest = ConvertToTuple(types, data, from + 7, tupleTypes);
-                ps[ps.Length - 1] = rest;
-                ts[ts.Length - 1] = rest.GetType().GetTypeInfo();
+                ps[^1] = rest;
+                ts[^1] = rest.GetType().GetTypeInfo();
             }
 
             var tupleType = tupleTypes[allocSize - 1].MakeGenericType(ts).GetTypeInfo();

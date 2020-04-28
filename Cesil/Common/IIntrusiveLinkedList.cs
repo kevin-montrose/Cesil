@@ -48,6 +48,7 @@
             head = item;
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Necessary to make this an extension method, which is good for ergonomics")]
         internal static void Remove<T>(this T? linkedList, ref T? head, T item)
             where T : class, IIntrusiveLinkedList<T>
         {

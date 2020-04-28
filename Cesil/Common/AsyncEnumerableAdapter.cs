@@ -17,7 +17,7 @@ namespace Cesil
 
         private bool Enumerated;
         private readonly IEnumerable<T> Rows;
-        private IEnumerator<T> Enumerator;
+        private readonly IEnumerator<T> Enumerator;
         private CancellationToken Token;
 
         private bool _IsDisposed;

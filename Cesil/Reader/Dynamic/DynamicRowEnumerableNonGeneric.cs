@@ -6,7 +6,7 @@ namespace Cesil
 {
     internal sealed class DynamicRowEnumerableNonGeneric : IEnumerable
     {
-        private DynamicRow Row;
+        private readonly DynamicRow Row;
 
         internal DynamicRowEnumerableNonGeneric(object row)
         {

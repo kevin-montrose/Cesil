@@ -204,7 +204,7 @@ end:
         {
             var columnNamesValue = ColumnNames.Value;
 
-            // no headers mean we write whatever we're given!
+            // no headers mean we write whatever we're given
             if (columnNamesValue.Length == 0) return raw;
 
             var inOrder = true;
@@ -217,8 +217,8 @@ end:
                     return Throw.InvalidOperationException<IEnumerable<DynamicCellValue>>("Too many cells returned, could not place in desired order");
                 }
 
-                var expectedName = columnNamesValue[i];
-                if (!expectedName.Name.Equals(x.Name))
+                var (name, _) = columnNamesValue[i];
+                if (!name.Equals(x.Name))
                 {
                     inOrder = false;
                     break;

@@ -199,15 +199,13 @@ namespace Cesil
                 }
 
                 var res = tryReadTask.Result;
-                switch (res.ResultType)
-                {
-                    case ReadWithCommentResultType.HasValue:
-                        return new ValueTask<ReadResult<T>>(new ReadResult<T>(res.Value));
-                    case ReadWithCommentResultType.NoValue:
-                        return new ValueTask<ReadResult<T>>(ReadResult<T>.Empty);
-                    default:
-                        return Throw.InvalidOperationException<ValueTask<ReadResult<T>>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}");
-                }
+                return 
+                    res.ResultType switch
+                    {
+                        ReadWithCommentResultType.HasValue => new ValueTask<ReadResult<T>>(new ReadResult<T>(res.Value)),
+                        ReadWithCommentResultType.NoValue => new ValueTask<ReadResult<T>>(ReadResult<T>.Empty),
+                        _ => Throw.InvalidOperationException<ValueTask<ReadResult<T>>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}")
+                    };
             }
             catch (Exception e)
             {
@@ -225,15 +223,13 @@ namespace Cesil
                     var res = await ConfigureCancellableAwait(self, self.TryReadInnerAsync(false, false, true, ref row, cancel), cancel);
                     CheckCancellation(self, cancel);
 
-                    switch (res.ResultType)
-                    {
-                        case ReadWithCommentResultType.HasValue:
-                            return new ReadResult<T>(res.Value);
-                        case ReadWithCommentResultType.NoValue:
-                            return ReadResult<T>.Empty;
-                        default:
-                            return Throw.InvalidOperationException<ReadResult<T>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}");
-                    }
+                    return 
+                        res.ResultType switch
+                        {
+                            ReadWithCommentResultType.HasValue => new ReadResult<T>(res.Value),
+                            ReadWithCommentResultType.NoValue => ReadResult<T>.Empty,
+                            _ => Throw.InvalidOperationException<ReadResult<T>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}")
+                        };
                 }
                 catch (Exception e)
                 {
@@ -249,15 +245,13 @@ namespace Cesil
                     var res = await ConfigureCancellableAwait(self, waitFor, cancel);
                     CheckCancellation(self, cancel);
 
-                    switch (res.ResultType)
-                    {
-                        case ReadWithCommentResultType.HasValue:
-                            return new ReadResult<T>(res.Value);
-                        case ReadWithCommentResultType.NoValue:
-                            return ReadResult<T>.Empty;
-                        default:
-                            return Throw.InvalidOperationException<ReadResult<T>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}");
-                    }
+                    return 
+                        res.ResultType switch
+                        {
+                            ReadWithCommentResultType.HasValue => new ReadResult<T>(res.Value),
+                            ReadWithCommentResultType.NoValue => ReadResult<T>.Empty,
+                            _ => Throw.InvalidOperationException<ReadResult<T>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}")
+                        };
                 }
                 catch (Exception e)
                 {
@@ -287,15 +281,13 @@ namespace Cesil
                 }
 
                 var res = tryReadTask.Result;
-                switch (res.ResultType)
-                {
-                    case ReadWithCommentResultType.HasValue:
-                        return new ValueTask<ReadResult<T>>(new ReadResult<T>(res.Value));
-                    case ReadWithCommentResultType.NoValue:
-                        return new ValueTask<ReadResult<T>>(ReadResult<T>.Empty);
-                    default:
-                        return Throw.InvalidOperationException<ValueTask<ReadResult<T>>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}");
-                }
+                return 
+                    res.ResultType switch
+                    {
+                        ReadWithCommentResultType.HasValue => new ValueTask<ReadResult<T>>(new ReadResult<T>(res.Value)),
+                        ReadWithCommentResultType.NoValue => new ValueTask<ReadResult<T>>(ReadResult<T>.Empty),
+                        _ => Throw.InvalidOperationException<ValueTask<ReadResult<T>>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}")
+                    };
             }
             catch (Exception e)
             {
@@ -313,15 +305,13 @@ namespace Cesil
                     var res = await ConfigureCancellableAwait(self, self.TryReadInnerAsync(false, false, false, ref row, cancel), cancel);
                     CheckCancellation(self, cancel);
 
-                    switch (res.ResultType)
-                    {
-                        case ReadWithCommentResultType.HasValue:
-                            return new ReadResult<T>(res.Value);
-                        case ReadWithCommentResultType.NoValue:
-                            return ReadResult<T>.Empty;
-                        default:
-                            return Throw.InvalidOperationException<ReadResult<T>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}");
-                    }
+                    return 
+                        res.ResultType switch
+                        {
+                            ReadWithCommentResultType.HasValue => new ReadResult<T>(res.Value),
+                            ReadWithCommentResultType.NoValue => ReadResult<T>.Empty,
+                            _ => Throw.InvalidOperationException<ReadResult<T>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}")
+                        };
                 }
                 catch (Exception e)
                 {
@@ -337,15 +327,13 @@ namespace Cesil
                     var res = await ConfigureCancellableAwait(self, waitFor, cancel);
                     CheckCancellation(self, cancel);
 
-                    switch (res.ResultType)
-                    {
-                        case ReadWithCommentResultType.HasValue:
-                            return new ReadResult<T>(res.Value);
-                        case ReadWithCommentResultType.NoValue:
-                            return ReadResult<T>.Empty;
-                        default:
-                            return Throw.InvalidOperationException<ReadResult<T>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}");
-                    }
+                    return 
+                        res.ResultType switch
+                        {
+                            ReadWithCommentResultType.HasValue => new ReadResult<T>(res.Value),
+                            ReadWithCommentResultType.NoValue => ReadResult<T>.Empty,
+                            _ => Throw.InvalidOperationException<ReadResult<T>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}")
+                        };
                 }
                 catch (Exception e)
                 {
