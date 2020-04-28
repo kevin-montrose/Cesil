@@ -46,6 +46,22 @@ namespace Cesil
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void AssertCanMakeWriter()
+        {
+            if (SerializeColumns.Length == 0)
+            {
+                Throw.InvalidOperationException<object>($"No columns configured to write for {typeof(T).FullName}");
+                return;
+            }
+
+            if(Options.RowEnding == RowEnding.Detect)
+            {
+                Throw.InvalidOperationException<object>($"Cannot write with a format that has {nameof(RowEnding)} option of {RowEnding.Detect}");
+                return;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private IRowConstructor<T> GetMutableRowBuilder()
         => RowBuilder.Value.Clone();
 
@@ -65,20 +81,14 @@ namespace Cesil
 
         internal override IWriter<T> CreateWriter(IWriterAdapter inner, object? context = null)
         {
-            if (SerializeColumns.Length == 0)
-            {
-                return Throw.InvalidOperationException<IWriter<T>>($"No columns configured to write for {typeof(T).FullName}");
-            }
+            AssertCanMakeWriter();
 
             return new Writer<T>(this, inner, context);
         }
 
         internal override IAsyncWriter<T> CreateAsyncWriter(IAsyncWriterAdapter inner, object? context = null)
         {
-            if (SerializeColumns.Length == 0)
-            {
-                return Throw.InvalidOperationException<IAsyncWriter<T>>($"No columns configured to write for {typeof(T).FullName}");
-            }
+            AssertCanMakeWriter();
 
             return new AsyncWriter<T>(this, inner, context);
         }

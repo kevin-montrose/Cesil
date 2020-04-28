@@ -600,38 +600,60 @@ namespace Cesil.Tests
         {
             // concrete types
             {
-                var opts = Configuration.For<_BadCreateCalls>();
+                var defaultConfig = Configuration.For<_BadCreateCalls>();
 
-                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncReader(null));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncReader(default, Encoding.UTF8));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncReader(new Pipe().Reader, null));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncWriter(null));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncWriter(default, Encoding.UTF8));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncWriter(new Pipe().Writer, null));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateReader(null));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateReader(default, null));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateWriter(default(TextWriter)));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateWriter(default(IBufferWriter<char>)));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateWriter(null, Encoding.UTF8));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateWriter(new Pipe().Writer, null));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateAsyncReader(null));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateAsyncReader(default, Encoding.UTF8));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateAsyncReader(new Pipe().Reader, null));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateAsyncWriter(null));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateAsyncWriter(default, Encoding.UTF8));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateAsyncWriter(new Pipe().Writer, null));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateReader(null));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateReader(default, null));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateWriter(default(TextWriter)));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateWriter(default(IBufferWriter<char>)));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateWriter(null, Encoding.UTF8));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateWriter(new Pipe().Writer, null));
             }
 
             // dynamic
             {
-                var opts = Configuration.ForDynamic();
+                var defaultConfig = Configuration.ForDynamic();
 
-                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncReader(null));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncReader(default, Encoding.UTF8));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncReader(new Pipe().Reader, null));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncWriter(null));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncWriter(default, Encoding.UTF8));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateAsyncWriter(new Pipe().Writer, null));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateReader(null));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateReader(default, null));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateWriter(default(TextWriter)));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateWriter(default(IBufferWriter<char>)));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateWriter(null, Encoding.UTF8));
-                Assert.Throws<ArgumentNullException>(() => opts.CreateWriter(new Pipe().Writer, null));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateAsyncReader(null));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateAsyncReader(default, Encoding.UTF8));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateAsyncReader(new Pipe().Reader, null));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateAsyncWriter(null));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateAsyncWriter(default, Encoding.UTF8));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateAsyncWriter(new Pipe().Writer, null));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateReader(null));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateReader(default, null));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateWriter(default(TextWriter)));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateWriter(default(IBufferWriter<char>)));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateWriter(null, Encoding.UTF8));
+                Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateWriter(new Pipe().Writer, null));
+            }
+        }
+
+        [Fact]
+        public void RowEndingDetectWhileWriting()
+        {
+            // concrete
+            {
+                var detectOpts = Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.Detect).ToOptions();
+                var detectConfig = Configuration.For<_BadCreateCalls>(detectOpts);
+
+                Assert.Throws<InvalidOperationException>(() => detectConfig.CreateWriter(TextWriter.Null));
+                Assert.Throws<InvalidOperationException>(() => detectConfig.CreateAsyncWriter(TextWriter.Null));
+            }
+
+            // dynamic
+            {
+                var detectOpts = Options.CreateBuilder(Options.DynamicDefault).WithRowEnding(RowEnding.Detect).ToOptions();
+                var detectConfig = Configuration.ForDynamic(detectOpts);
+
+                Assert.Throws<InvalidOperationException>(() => detectConfig.CreateWriter(TextWriter.Null));
+                Assert.Throws<InvalidOperationException>(() => detectConfig.CreateAsyncWriter(TextWriter.Null));
             }
         }
     }
