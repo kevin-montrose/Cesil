@@ -163,14 +163,14 @@ references:
   fullName: Cesil.CesilUtils.EnumerateFromString
   nameWithType: CesilUtils.EnumerateFromString
 - uid: Cesil.CesilUtils.EnumerateFromString``1(System.String,Cesil.Options,System.Object)
-  name: EnumerateFromString<T>(String, Options, Object)
+  name: EnumerateFromString<TRow>(String, Options, Object)
   href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_EnumerateFromString__1_System_String_Cesil_Options_System_Object_
   commentId: M:Cesil.CesilUtils.EnumerateFromString``1(System.String,Cesil.Options,System.Object)
-  name.vb: EnumerateFromString(Of T)(String, Options, Object)
-  fullName: Cesil.CesilUtils.EnumerateFromString<T>(System.String, Cesil.Options, System.Object)
-  fullName.vb: Cesil.CesilUtils.EnumerateFromString(Of T)(System.String, Cesil.Options, System.Object)
-  nameWithType: CesilUtils.EnumerateFromString<T>(String, Options, Object)
-  nameWithType.vb: CesilUtils.EnumerateFromString(Of T)(String, Options, Object)
+  name.vb: EnumerateFromString(Of TRow)(String, Options, Object)
+  fullName: Cesil.CesilUtils.EnumerateFromString<TRow>(System.String, Cesil.Options, System.Object)
+  fullName.vb: Cesil.CesilUtils.EnumerateFromString(Of TRow)(System.String, Cesil.Options, System.Object)
+  nameWithType: CesilUtils.EnumerateFromString<TRow>(String, Options, Object)
+  nameWithType.vb: CesilUtils.EnumerateFromString(Of TRow)(String, Options, Object)
 - uid: Cesil.CesilUtils.EnumerateFromStringAsync*
   name: EnumerateFromStringAsync
   href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_EnumerateFromStringAsync_
@@ -310,6 +310,47 @@ references:
   isSpec: "True"
   fullName: Cesil.CesilUtils.WriteDynamicToFileAsync
   nameWithType: CesilUtils.WriteDynamicToFileAsync
+- uid: Cesil.CesilUtils.WriteDynamicToString(System.Collections.Generic.IEnumerable{System.Object},Cesil.Options,System.Object)
+  name: WriteDynamicToString(IEnumerable<Object>, Options, Object)
+  href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_WriteDynamicToString_System_Collections_Generic_IEnumerable_System_Object__Cesil_Options_System_Object_
+  commentId: M:Cesil.CesilUtils.WriteDynamicToString(System.Collections.Generic.IEnumerable{System.Object},Cesil.Options,System.Object)
+  name.vb: WriteDynamicToString(IEnumerable(Of Object), Options, Object)
+  fullName: Cesil.CesilUtils.WriteDynamicToString(System.Collections.Generic.IEnumerable<System.Object>, Cesil.Options, System.Object)
+  fullName.vb: Cesil.CesilUtils.WriteDynamicToString(System.Collections.Generic.IEnumerable(Of System.Object), Cesil.Options, System.Object)
+  nameWithType: CesilUtils.WriteDynamicToString(IEnumerable<Object>, Options, Object)
+  nameWithType.vb: CesilUtils.WriteDynamicToString(IEnumerable(Of Object), Options, Object)
+- uid: Cesil.CesilUtils.WriteDynamicToString*
+  name: WriteDynamicToString
+  href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_WriteDynamicToString_
+  commentId: Overload:Cesil.CesilUtils.WriteDynamicToString
+  isSpec: "True"
+  fullName: Cesil.CesilUtils.WriteDynamicToString
+  nameWithType: CesilUtils.WriteDynamicToString
+- uid: Cesil.CesilUtils.WriteDynamicToStringAsync(IAsyncEnumerable{System.Object},Cesil.Options,System.Object,CancellationToken)
+  name: WriteDynamicToStringAsync(IAsyncEnumerable<Object>, Options, Object, CancellationToken)
+  href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_WriteDynamicToStringAsync_IAsyncEnumerable_System_Object__Cesil_Options_System_Object_CancellationToken_
+  commentId: M:Cesil.CesilUtils.WriteDynamicToStringAsync(IAsyncEnumerable{System.Object},Cesil.Options,System.Object,CancellationToken)
+  name.vb: WriteDynamicToStringAsync(IAsyncEnumerable(Of Object), Options, Object, CancellationToken)
+  fullName: Cesil.CesilUtils.WriteDynamicToStringAsync(IAsyncEnumerable<System.Object>, Cesil.Options, System.Object, CancellationToken)
+  fullName.vb: Cesil.CesilUtils.WriteDynamicToStringAsync(IAsyncEnumerable(Of System.Object), Cesil.Options, System.Object, CancellationToken)
+  nameWithType: CesilUtils.WriteDynamicToStringAsync(IAsyncEnumerable<Object>, Options, Object, CancellationToken)
+  nameWithType.vb: CesilUtils.WriteDynamicToStringAsync(IAsyncEnumerable(Of Object), Options, Object, CancellationToken)
+- uid: Cesil.CesilUtils.WriteDynamicToStringAsync(System.Collections.Generic.IEnumerable{System.Object},Cesil.Options,System.Object,CancellationToken)
+  name: WriteDynamicToStringAsync(IEnumerable<Object>, Options, Object, CancellationToken)
+  href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_WriteDynamicToStringAsync_System_Collections_Generic_IEnumerable_System_Object__Cesil_Options_System_Object_CancellationToken_
+  commentId: M:Cesil.CesilUtils.WriteDynamicToStringAsync(System.Collections.Generic.IEnumerable{System.Object},Cesil.Options,System.Object,CancellationToken)
+  name.vb: WriteDynamicToStringAsync(IEnumerable(Of Object), Options, Object, CancellationToken)
+  fullName: Cesil.CesilUtils.WriteDynamicToStringAsync(System.Collections.Generic.IEnumerable<System.Object>, Cesil.Options, System.Object, CancellationToken)
+  fullName.vb: Cesil.CesilUtils.WriteDynamicToStringAsync(System.Collections.Generic.IEnumerable(Of System.Object), Cesil.Options, System.Object, CancellationToken)
+  nameWithType: CesilUtils.WriteDynamicToStringAsync(IEnumerable<Object>, Options, Object, CancellationToken)
+  nameWithType.vb: CesilUtils.WriteDynamicToStringAsync(IEnumerable(Of Object), Options, Object, CancellationToken)
+- uid: Cesil.CesilUtils.WriteDynamicToStringAsync*
+  name: WriteDynamicToStringAsync
+  href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_WriteDynamicToStringAsync_
+  commentId: Overload:Cesil.CesilUtils.WriteDynamicToStringAsync
+  isSpec: "True"
+  fullName: Cesil.CesilUtils.WriteDynamicToStringAsync
+  nameWithType: CesilUtils.WriteDynamicToStringAsync
 - uid: Cesil.CesilUtils.WriteToFile*
   name: WriteToFile
   href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_WriteToFile_
@@ -351,6 +392,47 @@ references:
   fullName.vb: Cesil.CesilUtils.WriteToFileAsync(Of TRow)(System.Collections.Generic.IEnumerable(Of TRow), System.String, Cesil.Options, System.Object, CancellationToken)
   nameWithType: CesilUtils.WriteToFileAsync<TRow>(IEnumerable<TRow>, String, Options, Object, CancellationToken)
   nameWithType.vb: CesilUtils.WriteToFileAsync(Of TRow)(IEnumerable(Of TRow), String, Options, Object, CancellationToken)
+- uid: Cesil.CesilUtils.WriteToString*
+  name: WriteToString
+  href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_WriteToString_
+  commentId: Overload:Cesil.CesilUtils.WriteToString
+  isSpec: "True"
+  fullName: Cesil.CesilUtils.WriteToString
+  nameWithType: CesilUtils.WriteToString
+- uid: Cesil.CesilUtils.WriteToString``1(System.Collections.Generic.IEnumerable{``0},Cesil.Options,System.Object)
+  name: WriteToString<TRow>(IEnumerable<TRow>, Options, Object)
+  href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_WriteToString__1_System_Collections_Generic_IEnumerable___0__Cesil_Options_System_Object_
+  commentId: M:Cesil.CesilUtils.WriteToString``1(System.Collections.Generic.IEnumerable{``0},Cesil.Options,System.Object)
+  name.vb: WriteToString(Of TRow)(IEnumerable(Of TRow), Options, Object)
+  fullName: Cesil.CesilUtils.WriteToString<TRow>(System.Collections.Generic.IEnumerable<TRow>, Cesil.Options, System.Object)
+  fullName.vb: Cesil.CesilUtils.WriteToString(Of TRow)(System.Collections.Generic.IEnumerable(Of TRow), Cesil.Options, System.Object)
+  nameWithType: CesilUtils.WriteToString<TRow>(IEnumerable<TRow>, Options, Object)
+  nameWithType.vb: CesilUtils.WriteToString(Of TRow)(IEnumerable(Of TRow), Options, Object)
+- uid: Cesil.CesilUtils.WriteToStringAsync*
+  name: WriteToStringAsync
+  href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_WriteToStringAsync_
+  commentId: Overload:Cesil.CesilUtils.WriteToStringAsync
+  isSpec: "True"
+  fullName: Cesil.CesilUtils.WriteToStringAsync
+  nameWithType: CesilUtils.WriteToStringAsync
+- uid: Cesil.CesilUtils.WriteToStringAsync``1(IAsyncEnumerable{``0},Cesil.Options,System.Object,CancellationToken)
+  name: WriteToStringAsync<TRow>(IAsyncEnumerable<TRow>, Options, Object, CancellationToken)
+  href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_WriteToStringAsync__1_IAsyncEnumerable___0__Cesil_Options_System_Object_CancellationToken_
+  commentId: M:Cesil.CesilUtils.WriteToStringAsync``1(IAsyncEnumerable{``0},Cesil.Options,System.Object,CancellationToken)
+  name.vb: WriteToStringAsync(Of TRow)(IAsyncEnumerable(Of TRow), Options, Object, CancellationToken)
+  fullName: Cesil.CesilUtils.WriteToStringAsync<TRow>(IAsyncEnumerable<TRow>, Cesil.Options, System.Object, CancellationToken)
+  fullName.vb: Cesil.CesilUtils.WriteToStringAsync(Of TRow)(IAsyncEnumerable(Of TRow), Cesil.Options, System.Object, CancellationToken)
+  nameWithType: CesilUtils.WriteToStringAsync<TRow>(IAsyncEnumerable<TRow>, Options, Object, CancellationToken)
+  nameWithType.vb: CesilUtils.WriteToStringAsync(Of TRow)(IAsyncEnumerable(Of TRow), Options, Object, CancellationToken)
+- uid: Cesil.CesilUtils.WriteToStringAsync``1(System.Collections.Generic.IEnumerable{``0},Cesil.Options,System.Object,CancellationToken)
+  name: WriteToStringAsync<TRow>(IEnumerable<TRow>, Options, Object, CancellationToken)
+  href: api/Cesil.CesilUtils.html#Cesil_CesilUtils_WriteToStringAsync__1_System_Collections_Generic_IEnumerable___0__Cesil_Options_System_Object_CancellationToken_
+  commentId: M:Cesil.CesilUtils.WriteToStringAsync``1(System.Collections.Generic.IEnumerable{``0},Cesil.Options,System.Object,CancellationToken)
+  name.vb: WriteToStringAsync(Of TRow)(IEnumerable(Of TRow), Options, Object, CancellationToken)
+  fullName: Cesil.CesilUtils.WriteToStringAsync<TRow>(System.Collections.Generic.IEnumerable<TRow>, Cesil.Options, System.Object, CancellationToken)
+  fullName.vb: Cesil.CesilUtils.WriteToStringAsync(Of TRow)(System.Collections.Generic.IEnumerable(Of TRow), Cesil.Options, System.Object, CancellationToken)
+  nameWithType: CesilUtils.WriteToStringAsync<TRow>(IEnumerable<TRow>, Options, Object, CancellationToken)
+  nameWithType.vb: CesilUtils.WriteToStringAsync(Of TRow)(IEnumerable(Of TRow), Options, Object, CancellationToken)
 - uid: Cesil.ColumnIdentifier
   name: ColumnIdentifier
   href: api/Cesil.ColumnIdentifier.html

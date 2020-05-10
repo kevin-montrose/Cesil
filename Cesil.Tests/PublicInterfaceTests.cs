@@ -1927,7 +1927,7 @@ namespace Cesil.Tests
                     [typeof(object).GetTypeInfo()] = new[] { "obj", "context", "row", "value" },
                     [typeof(int).GetTypeInfo()] = new[] { "index", "sizeHint" },
                     [typeof(int?).GetTypeInfo()] = new[] { "sizeHint" },
-                    [typeof(string).GetTypeInfo()] = new[] { "name", "comment", "path" },
+                    [typeof(string).GetTypeInfo()] = new[] { "name", "comment", "path", "data" },
                     [typeof(char).GetTypeInfo()] = new[] { "valueSeparator" },
                     [typeof(char?).GetTypeInfo()] = new[] { "commentStart", "escapeStart", "escape" },
 

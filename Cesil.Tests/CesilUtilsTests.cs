@@ -147,7 +147,7 @@ namespace Cesil.Tests
         public void EnumerateDynamicFromString()
         {
             const string DATA = "Foo,Bar\r\nHello,World";
-            
+
             var e = CesilUtils.EnumerateDynamicFromString(DATA);
             var ix = 0;
             foreach (var row in e)
@@ -428,6 +428,28 @@ namespace Cesil.Tests
             Assert.Throws<ArgumentNullException>(() => CesilUtils.WriteDynamicToFile(default, tempFile));
         }
 
+        [Fact]
+        public void WriteToString()
+        {
+            var txt = CesilUtils.WriteToString(new[] { new _Write { Foo = "hello", Bar = "world" } });
+
+            Assert.Equal("Foo,Bar\r\nhello,world", txt);
+
+            // errors
+            Assert.Throws<ArgumentNullException>(() => CesilUtils.WriteToString<_Write>(default));
+        }
+
+        [Fact]
+        public void WriteDynamicToString()
+        {
+            var txt = CesilUtils.WriteDynamicToString(new object[] { new _Write { Foo = "hello", Bar = "world" } });
+
+            Assert.Equal("Foo,Bar\r\nhello,world", txt);
+
+            // errors
+            Assert.Throws<ArgumentNullException>(() => CesilUtils.WriteDynamicToString(default));
+        }
+
         private static async IAsyncEnumerable<T> MakeAsync<T>(IEnumerable<T> rows)
         {
             foreach (var r in rows)
@@ -587,6 +609,57 @@ namespace Cesil.Tests
             // errors
             Assert.Throws<ArgumentNullException>(() => CesilUtils.WriteDynamicToFileAsync(MakeAsync(new object[0]), default));
             Assert.Throws<ArgumentNullException>(() => CesilUtils.WriteDynamicToFileAsync(default(IAsyncEnumerable<dynamic>), tempFile));
+        }
+
+        [Fact]
+        public async Task WriteToStringAsync()
+        {
+            var tempFile = Path.GetTempFileName();
+            File.Delete(tempFile);
+
+            // IEnumerable
+            {
+                var txt = await CesilUtils.WriteToStringAsync(new[] { new _Write { Foo = "hello", Bar = "world" } });
+
+                Assert.Equal("Foo,Bar\r\nhello,world", txt);
+            }
+
+            // errors
+            Assert.Throws<ArgumentNullException>(() => CesilUtils.WriteToStringAsync(default(IEnumerable<_Write>)));
+
+            // IAsyncEnumerable
+            {
+                var txt = await CesilUtils.WriteToStringAsync(MakeAsync(new[] { new _Write { Foo = "hello", Bar = "world" } }));
+
+                Assert.Equal("Foo,Bar\r\nhello,world", txt);
+            }
+
+            // errors
+            Assert.Throws<ArgumentNullException>(() => CesilUtils.WriteToStringAsync(default(IAsyncEnumerable<_Write>)));
+        }
+
+        [Fact]
+        public async Task WriteDynamicToStringAsync()
+        {
+            // IEnumerable
+            {
+                var txt = await CesilUtils.WriteDynamicToStringAsync(new object[] { new _Write { Foo = "hello", Bar = "world" } });
+
+                Assert.Equal("Foo,Bar\r\nhello,world", txt);
+            }
+
+            // errors
+            Assert.Throws<ArgumentNullException>(() => CesilUtils.WriteDynamicToStringAsync(default(IEnumerable<dynamic>)));
+
+            // IAsyncEnumerable
+            {
+                var txt = await CesilUtils.WriteDynamicToStringAsync(MakeAsync(new object[] { new _Write { Foo = "hello", Bar = "world" } }));
+
+                Assert.Equal("Foo,Bar\r\nhello,world", txt);
+            }
+
+            // errors
+            Assert.Throws<ArgumentNullException>(() => CesilUtils.WriteDynamicToStringAsync(default(IAsyncEnumerable<dynamic>)));
         }
     }
 }

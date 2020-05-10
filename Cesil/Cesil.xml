@@ -1270,6 +1270,28 @@
               during certain operations as a member on WriteContext.
             </summary>
         </member>
+        <member name="M:Cesil.CesilUtils.WriteToString``1(System.Collections.Generic.IEnumerable{``0},Cesil.Options,System.Object)">
+            <summary>
+            Write a collection of rows of TRow to a string.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.WriteDynamicToString(System.Collections.Generic.IEnumerable{System.Object},Cesil.Options,System.Object)">
+            <summary>
+            Write a collection of dynamic rows to a string.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
+            </summary>
+        </member>
         <member name="M:Cesil.CesilUtils.WriteAsync``1(System.Collections.Generic.IEnumerable{``0},System.IO.TextWriter,Cesil.Options,System.Object,System.Threading.CancellationToken)">
             <summary>
             Write a collection of rows of TRow to the given TextWriter asynchronously.
@@ -1372,6 +1394,58 @@
             Write a collection of dynamic rows to the given path asynchronously.
             
             The file be created if it does not existing, overwritten if it does, and the encoding used will be utf-8.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
+              
+            A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.WriteToStringAsync``1(System.Collections.Generic.IEnumerable{``0},Cesil.Options,System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Write a collection of rows of TRow to a string asynchronously.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
+              
+            A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.WriteDynamicToStringAsync(System.Collections.Generic.IEnumerable{System.Object},Cesil.Options,System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Write a collection of dynamic rows to a string asynchronously.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
+              
+            A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.WriteToStringAsync``1(System.Collections.Generic.IAsyncEnumerable{``0},Cesil.Options,System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Write a collection of rows of TRow to a string asynchronously.
+            
+            An optional Options object may be used, if not provided Options.Default
+              will be used.
+              
+            Takes an optional context object which is made available
+              during certain operations as a member on WriteContext.
+              
+            A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+            </summary>
+        </member>
+        <member name="M:Cesil.CesilUtils.WriteDynamicToStringAsync(System.Collections.Generic.IAsyncEnumerable{System.Object},Cesil.Options,System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Write a collection of dynamic rows to a string asynchronously.
             
             An optional Options object may be used, if not provided Options.Default
               will be used.

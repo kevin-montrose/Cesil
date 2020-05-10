@@ -18,8 +18,6 @@ namespace Cesil
     /// </summary>
     public static class CesilUtils
     {
-        // todo: write to string methods
-
         // sync read methods
 
         /// <summary>
@@ -140,7 +138,7 @@ namespace Cesil
         /// Takes an optional context object which is made available
         ///   during certain operations as a member on ReadContext.
         /// </summary>
-        public static IEnumerable<T> EnumerateFromString<T>(
+        public static IEnumerable<TRow> EnumerateFromString<TRow>(
             string data,
             [NullableExposed("options will default to Options.Default")]
             Options? options = null,
@@ -152,7 +150,7 @@ namespace Cesil
 
             var reader = new StringReader(data);
             // reader will be disposed in the Enumerate call
-            return Enumerate<T>(reader, options, context);
+            return Enumerate<TRow>(reader, options, context);
         }
 
         /// <summary>
@@ -479,6 +477,60 @@ namespace Cesil
             }
         }
 
+        /// <summary>
+        /// Write a collection of rows of TRow to a string.
+        /// 
+        /// An optional Options object may be used, if not provided Options.Default
+        ///   will be used.
+        ///   
+        /// Takes an optional context object which is made available
+        ///   during certain operations as a member on WriteContext.
+        /// </summary>
+        public static string WriteToString<TRow>(
+            IEnumerable<TRow> rows,
+            [NullableExposed("options will default to Options.Default")]
+            Options? options = null,
+            [NullableExposed("context is truly optional")]
+            object? context = null
+        )
+        {
+            Utils.CheckArgumentNull(rows, nameof(rows));
+
+            using (var writer = new StringWriter())
+            {
+                Write(rows, writer, options, context);
+
+                return writer.ToString();
+            }
+        }
+
+        /// <summary>
+        /// Write a collection of dynamic rows to a string.
+        /// 
+        /// An optional Options object may be used, if not provided Options.Default
+        ///   will be used.
+        ///   
+        /// Takes an optional context object which is made available
+        ///   during certain operations as a member on WriteContext.
+        /// </summary>
+        public static string WriteDynamicToString(
+            IEnumerable<dynamic> rows,
+            [NullableExposed("options will default to Options.Default")]
+            Options? options = null,
+            [NullableExposed("context is truly optional")]
+            object? context = null
+        )
+        {
+            Utils.CheckArgumentNull(rows, nameof(rows));
+
+            using (var writer = new StringWriter())
+            {
+                WriteDynamic(rows, writer, options, context);
+
+                return writer.ToString();
+            }
+        }
+
         // async write methods
 
         /// <summary>
@@ -731,6 +783,142 @@ namespace Cesil
                 using (var writer = new StreamWriter(stream, Encoding.UTF8))
                 {
                     await WriteDynamicAsync(rows, writer, options, context, cancel);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Write a collection of rows of TRow to a string asynchronously.
+        /// 
+        /// An optional Options object may be used, if not provided Options.Default
+        ///   will be used.
+        ///   
+        /// Takes an optional context object which is made available
+        ///   during certain operations as a member on WriteContext.
+        ///   
+        /// A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+        /// </summary>
+        public static ValueTask<string> WriteToStringAsync<TRow>(
+            IEnumerable<TRow> rows,
+            [NullableExposed("options will default to Options.Default")]
+            Options? options = null,
+            [NullableExposed("context is truly optional")]
+            object? context = null,
+            CancellationToken cancel = default
+        )
+        {
+            Utils.CheckArgumentNull(rows, nameof(rows));
+
+            return WriteToStringImplAsync(rows, options, context, cancel);
+
+            static async ValueTask<string> WriteToStringImplAsync(IEnumerable<TRow> rows, Options? options, object? context, CancellationToken cancel)
+            {
+                using (var writer = new StringWriter())
+                {
+                    await WriteAsync(rows, writer, options, context, cancel);
+                    return writer.ToString();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Write a collection of dynamic rows to a string asynchronously.
+        /// 
+        /// An optional Options object may be used, if not provided Options.Default
+        ///   will be used.
+        ///   
+        /// Takes an optional context object which is made available
+        ///   during certain operations as a member on WriteContext.
+        ///   
+        /// A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+        /// </summary>
+        public static ValueTask<string> WriteDynamicToStringAsync(
+            IEnumerable<dynamic> rows,
+            [NullableExposed("options will default to Options.Default")]
+            Options? options = null,
+            [NullableExposed("context is truly optional")]
+            object? context = null,
+            CancellationToken cancel = default
+        )
+        {
+            Utils.CheckArgumentNull(rows, nameof(rows));
+
+            return WriteDynamicToStringImplAsync(rows, options, context, cancel);
+
+            static async ValueTask<string> WriteDynamicToStringImplAsync(IEnumerable<dynamic> rows, Options? options, object? context, CancellationToken cancel)
+            {
+                using (var writer = new StringWriter())
+                {
+                    await WriteDynamicAsync(rows, writer, options, context, cancel);
+                    return writer.ToString();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Write a collection of rows of TRow to a string asynchronously.
+        /// 
+        /// An optional Options object may be used, if not provided Options.Default
+        ///   will be used.
+        ///   
+        /// Takes an optional context object which is made available
+        ///   during certain operations as a member on WriteContext.
+        ///   
+        /// A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+        /// </summary>
+        public static ValueTask<string> WriteToStringAsync<TRow>(
+            IAsyncEnumerable<TRow> rows,
+            [NullableExposed("options will default to Options.Default")]
+            Options? options = null,
+            [NullableExposed("context is truly optional")]
+            object? context = null,
+            CancellationToken cancel = default
+        )
+        {
+            Utils.CheckArgumentNull(rows, nameof(rows));
+
+            return WriteToStringImplAsync(rows, options, context, cancel);
+
+            static async ValueTask<string> WriteToStringImplAsync(IAsyncEnumerable<TRow> rows, Options? options, object? context, CancellationToken cancel)
+            {
+                using (var writer = new StringWriter())
+                {
+                    await WriteAsync(rows, writer, options, context, cancel);
+                    return writer.ToString();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Write a collection of dynamic rows to a string asynchronously.
+        /// 
+        /// An optional Options object may be used, if not provided Options.Default
+        ///   will be used.
+        ///   
+        /// Takes an optional context object which is made available
+        ///   during certain operations as a member on WriteContext.
+        ///   
+        /// A CancellationToken may also be provided, CancellationToken.None will be used otherwise.
+        /// </summary>
+        public static ValueTask<string> WriteDynamicToStringAsync(
+            IAsyncEnumerable<dynamic> rows,
+            [NullableExposed("options will default to Options.Default")]
+            Options? options = null,
+            [NullableExposed("context is truly optional")]
+            object? context = null,
+            CancellationToken cancel = default
+        )
+        {
+            Utils.CheckArgumentNull(rows, nameof(rows));
+
+            return WriteDynamicToStringImplAsync(rows, options, context, cancel);
+
+            static async ValueTask<string> WriteDynamicToStringImplAsync(IAsyncEnumerable<dynamic> rows, Options? options, object? context, CancellationToken cancel)
+            {
+                using (var writer = new StringWriter())
+                {
+                    await WriteDynamicAsync(rows, writer, options, context, cancel);
+                    return writer.ToString();
                 }
             }
         }
