@@ -11,21 +11,20 @@ namespace Cesil.Benchmark
 {
     internal class Program
     {
-        private class Row
-        {
-            public long CreationDate { get; set; }
-            public string Url { get; set; }
-            public string Referer { get; set; }
-            public string UserIdentifier { get; set; }
-            public string EventTarget { get; set; }
-            public string EventSource { get; set; }
-        }
-
         public static void Main()
         {
             InitializeAndTest();
 
             RunBenchmarks();
+
+            //    var foo = new WideRowDynamicWriteSyncBenchmark();
+            //    foo.RowSet = "ShallowRows";
+            //    foo.Initialize();
+
+            //    for (var i = 0; i < 1_000; i++)
+            //    {
+            //        foo.Dynamic_Static();
+            //    }
         }
 
         private static void Log(string value, Action act)
@@ -40,19 +39,23 @@ namespace Cesil.Benchmark
         [Conditional("DEBUG")]
         private static void InitializeAndTest()
         {
-            Log(nameof(NarrowRowDynamicReadSyncBenchmark.InitializeAndTest), () => new NarrowRowDynamicReadSyncBenchmark().InitializeAndTest());
+            Log(nameof(NarrowRowDynamicReadSyncBenchmark), () => new NarrowRowDynamicReadSyncBenchmark().InitializeAndTest());
 
-            Log(nameof(NameLookupBenchmark.InitializeAndTest), () => new NameLookupBenchmark().InitializeAndTest());
+            Log(nameof(WideRowDynamicWriteSyncBenchmark), () => new WideRowDynamicWriteSyncBenchmark().InitializeAndTest());
 
-            Log(nameof(NeedsEncodeBenchmark.InitializeAndTest), () => new NeedsEncodeBenchmark().InitializeAndTest());
 
-            Log(nameof(WideRowWriteSyncBenchmark.InitializeAndTest), () => new WideRowWriteSyncBenchmark().InitializeAndTest());
-            Log(nameof(NarrowRowWriteSyncBenchmark.InitializeAndTest), () => new NarrowRowWriteSyncBenchmark().InitializeAndTest());
 
-            Log(nameof(WideRowReadSyncBenchmark.InitializeAndTest), () => new WideRowReadSyncBenchmark().InitializeAndTest());
-            Log(nameof(NarrowRowReadSyncBenchmark.InitializeAndTest), () => new NarrowRowReadSyncBenchmark().InitializeAndTest());
+            Log(nameof(NameLookupBenchmark), () => new NameLookupBenchmark().InitializeAndTest());
 
-            Log(nameof(WideRowDynamicReadSyncBenchmark.InitializeAndTest), () => new WideRowDynamicReadSyncBenchmark().InitializeAndTest());
+            Log(nameof(NeedsEncodeBenchmark), () => new NeedsEncodeBenchmark().InitializeAndTest());
+
+            Log(nameof(WideRowWriteSyncBenchmark), () => new WideRowWriteSyncBenchmark().InitializeAndTest());
+            Log(nameof(NarrowRowWriteSyncBenchmark), () => new NarrowRowWriteSyncBenchmark().InitializeAndTest());
+
+            Log(nameof(WideRowReadSyncBenchmark), () => new WideRowReadSyncBenchmark().InitializeAndTest());
+            Log(nameof(NarrowRowReadSyncBenchmark), () => new NarrowRowReadSyncBenchmark().InitializeAndTest());
+
+            Log(nameof(WideRowDynamicReadSyncBenchmark), () => new WideRowDynamicReadSyncBenchmark().InitializeAndTest());
         }
 
         private static void RunBenchmarks()
@@ -74,7 +77,8 @@ namespace Cesil.Benchmark
                 )
             );
 
-            BenchmarkRunner.Run(typeof(Program).Assembly, config);
+            //BenchmarkRunner.Run(typeof(Program).Assembly, config);
+            BenchmarkRunner.Run<WideRowDynamicWriteSyncBenchmark>(config);
         }
     }
 }

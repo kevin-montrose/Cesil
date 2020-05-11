@@ -8,8 +8,6 @@
 
         public object? Context => Throw.ImpossibleException<object?>("Shouldn't be possible");
 
-        public int MinimumExpectedColumns => Throw.ImpossibleException<int>("Shouldn't be possible");
-
         private EmptyDynamicRowOwner() { }
 
         public void Remove(DynamicRow row)

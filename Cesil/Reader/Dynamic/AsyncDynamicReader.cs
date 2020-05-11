@@ -19,8 +19,6 @@ namespace Cesil
 
         object? IDynamicRowOwner.Context => Context;
 
-        int IDynamicRowOwner.MinimumExpectedColumns => ColumnCount;
-
         private int NameLookupReferenceCount;
         private NameLookup NameLookup;
 

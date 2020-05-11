@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 
 namespace Cesil
 {
+    // todo: combine this and DefaultTypeDescriberMemberCache
     internal sealed class DefaultTypeDescriberDelegateCache : IDelegateCache
     {
         internal static readonly IDelegateCache Instance = new DefaultTypeDescriberDelegateCache();

@@ -145,10 +145,8 @@ namespace Cesil
         internal static readonly TypeInfo DefaultTypeInstanceProviders = typeof(DefaultTypeInstanceProviders).GetTypeInfo();
         internal static readonly TypeInfo DefaultTypeParsers = typeof(DefaultTypeParsers).GetTypeInfo();
         internal static readonly TypeInfo DefaultEnumTypeParser = typeof(DefaultTypeParsers.DefaultEnumTypeParser<>).GetTypeInfo();
-        internal static readonly TypeInfo DefaultFlagsEnumTypeParser = typeof(DefaultTypeParsers.DefaultFlagsEnumTypeParser<>).GetTypeInfo();
         internal static readonly TypeInfo DefaultTypeFormatters = typeof(DefaultTypeFormatters).GetTypeInfo();
         internal static readonly TypeInfo DefaultEnumTypeFormatter = typeof(DefaultTypeFormatters.DefaultEnumTypeFormatter<>).GetTypeInfo();
-        internal static readonly TypeInfo DefaultFlagsEnumTypeFormatter = typeof(DefaultTypeFormatters.DefaultFlagsEnumTypeFormatter<>).GetTypeInfo();
         internal static readonly TypeInfo DisposableHelper = typeof(DisposableHelper).GetTypeInfo();
         internal static readonly TypeInfo ThrowType = typeof(Throw).GetTypeInfo();
         internal static readonly TypeInfo TupleDynamicParsers = typeof(TupleDynamicParsers<>).GetTypeInfo();

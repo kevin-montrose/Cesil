@@ -367,13 +367,13 @@ tryAgain:
             // init shallow
             {
                 var r = MakeRandom();
-                ShallowRows = Enumerable.Range(0, NUM_SHALLOW).Select(_ => Create(r)).ToArray();
+                ShallowRows = Enumerable.Range(0, NUM_SHALLOW).Select(_ => Create(r)).ToList();
             }
 
             // init deep
             {
                 var r = MakeRandom();
-                DeepRows = Enumerable.Range(0, NUM_DEEP).Select(_ => Create(r)).ToArray();
+                DeepRows = Enumerable.Range(0, NUM_DEEP).Select(_ => Create(r)).ToList();
             }
 
             static Random MakeRandom()

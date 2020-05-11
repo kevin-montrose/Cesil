@@ -59,7 +59,6 @@ namespace Cesil
 
             try
             {
-
                 var rowAsObj = row as object;
 
                 var options = Configuration.Options;

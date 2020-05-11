@@ -8,6 +8,13 @@ namespace Cesil
 {
     internal static class ReflectionExtensionMethods
     {
+        internal static bool IsFlagsEnum(this TypeInfo type)
+        {
+            if (!type.IsEnum) return false;
+
+            return type.GetCustomAttribute<FlagsAttribute>() != null;
+        }
+
         internal static bool IsBigTuple(this TypeInfo type)
         {
             if (!type.IsGenericType) return false;

@@ -9,21 +9,83 @@ namespace Cesil
     [SuppressMessage("", "IDE0051", Justification = "Used via reflection")]
     internal static class DefaultTypeParsers
     {
-        internal static class DefaultFlagsEnumTypeParser<T>
+
+        internal static class DefaultEnumTypeParser<T>
             where T : struct, Enum
         {
-            private static readonly string[] Names = Enum.GetNames(typeof(T).GetTypeInfo());
+            private static readonly T[] Values = CreateValues();
+            private static readonly string[] Names = CreateNames();
 
-            internal static readonly Parser TryParseFlagsEnumParser = CreateTryParseFlagsEnumParser();
-            internal static readonly Parser TryParseNullableFlagsEnumParser = CreateTryParseNullableFlagsEnumParser();
+            internal static readonly Parser TryParseEnumParser = CreateTryParseEnumParser();
+            internal static readonly Parser TryParseNullableEnumParser = CreateTryParseNullableEnumParser();
+
+            private static T[] CreateValues()
+            {
+                var enumType = typeof(T).GetTypeInfo();
+
+                if (enumType.IsFlagsEnum())
+                {
+                    // we don't use Values for [Flags] enums
+                    return Array.Empty<T>();
+                }
+
+                return Enum.GetValues(typeof(T).GetTypeInfo()).Cast<T>().ToArray();
+            }
+
+            private static string[] CreateNames()
+            {
+                var enumType = typeof(T).GetTypeInfo();
+
+                return Enum.GetNames(enumType);
+            }
 
             private static TypeInfo GetParsingClass()
             {
                 var enumType = typeof(T).GetTypeInfo();
 
-                var parsingClass = Types.DefaultFlagsEnumTypeParser.MakeGenericType(enumType).GetTypeInfo();
+                var parsingClass = Types.DefaultEnumTypeParser.MakeGenericType(enumType).GetTypeInfo();
 
                 return parsingClass;
+            }
+
+            private static Parser CreateTryParseEnumParser()
+            {
+                var enumType = typeof(T).GetTypeInfo();
+
+                if (enumType.IsFlagsEnum())
+                {
+                    return CreateTryParseFlagsEnumParser();
+                }
+
+                return CreateTryParseBasicEnumParser();
+            }
+
+            private static Parser CreateTryParseNullableEnumParser()
+            {
+                var enumType = typeof(T).GetTypeInfo();
+
+                if (enumType.IsFlagsEnum())
+                {
+                    return CreateTryParseNullableFlagsEnumParser();
+                }
+
+                return CreateTryParseNullableBasicEnumParser();
+            }
+
+            private static Parser CreateTryParseBasicEnumParser()
+            {
+                var parsingClass = GetParsingClass();
+
+                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseEnum), BindingFlagsConstants.InternalStatic);
+                return Parser.ForMethod(enumParsingMtd);
+            }
+
+            private static Parser CreateTryParseNullableBasicEnumParser()
+            {
+                var parsingClass = GetParsingClass();
+
+                var nullableEnumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseNullableEnum), BindingFlagsConstants.InternalStatic);
+                return Parser.ForMethod(nullableEnumParsingMtd);
             }
 
             private static Parser CreateTryParseFlagsEnumParser()
@@ -38,8 +100,44 @@ namespace Cesil
             {
                 var parsingClass = GetParsingClass();
 
-                var nullableEnumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseNullableFlagsEnum), BindingFlagsConstants.InternalStatic);
-                return Parser.ForMethod(nullableEnumParsingMtd);
+                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseNullableFlagsEnum), BindingFlagsConstants.InternalStatic);
+                return Parser.ForMethod(enumParsingMtd);
+            }
+
+            private static bool TryParseEnum(ReadOnlySpan<char> span, in ReadContext _, out T val)
+            {
+                // doing this instead of a .TryParse because we don't want to accept ints
+                for (var i = 0; i < Names.Length; i++)
+                {
+                    var name = Names[i];
+                    var cmp = span.CompareTo(name.AsSpan(), StringComparison.InvariantCulture);
+                    if (cmp == 0)
+                    {
+                        val = Values[i];
+                        return true;
+                    }
+                }
+
+                val = default;
+                return false;
+            }
+
+            private static bool TryParseNullableEnum(ReadOnlySpan<char> data, in ReadContext _, out T? val)
+            {
+                if (data.Length == 0)
+                {
+                    val = null;
+                    return true;
+                }
+
+                if (!TryParseEnum(data, _, out var pVal))
+                {
+                    val = null;
+                    return false;
+                }
+
+                val = pVal;
+                return true;
             }
 
             private static bool TryParseFlagsEnum(ReadOnlySpan<char> data, in ReadContext _, out T val)
@@ -72,6 +170,7 @@ namespace Cesil
 
                     if (!found)
                     {
+                        val = default!;
                         return false;
                     }
                 }
@@ -88,77 +187,6 @@ namespace Cesil
                 }
 
                 if (!TryParseFlagsEnum(data, _, out var pVal))
-                {
-                    val = null;
-                    return false;
-                }
-
-                val = pVal;
-                return true;
-            }
-        }
-
-        internal static class DefaultEnumTypeParser<T>
-            where T : struct, Enum
-        {
-            private static readonly T[] Values = Enum.GetValues(typeof(T).GetTypeInfo()).Cast<T>().ToArray();
-            private static readonly string[] Names = Enum.GetNames(typeof(T).GetTypeInfo());
-
-            internal static readonly Parser TryParseEnumParser = CreateTryParseEnumParser();
-            internal static readonly Parser TryParseNullableEnumParser = CreateTryParseNullableEnumParser();
-
-            private static TypeInfo GetParsingClass()
-            {
-                var enumType = typeof(T).GetTypeInfo();
-
-                var parsingClass = Types.DefaultEnumTypeParser.MakeGenericType(enumType).GetTypeInfo();
-
-                return parsingClass;
-            }
-
-            private static Parser CreateTryParseEnumParser()
-            {
-                var parsingClass = GetParsingClass();
-
-                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseEnum), BindingFlagsConstants.InternalStatic);
-                return Parser.ForMethod(enumParsingMtd);
-            }
-
-            private static Parser CreateTryParseNullableEnumParser()
-            {
-                var parsingClass = GetParsingClass();
-
-                var nullableEnumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseNullableEnum), BindingFlagsConstants.InternalStatic);
-                return Parser.ForMethod(nullableEnumParsingMtd);
-            }
-
-            private static bool TryParseEnum(ReadOnlySpan<char> span, in ReadContext _, out T val)
-            {
-                // doing this instead of a .TryParse because we don't want to accept ints
-                for (var i = 0; i < Names.Length; i++)
-                {
-                    var name = Names[i];
-                    var cmp = span.CompareTo(name.AsSpan(), StringComparison.InvariantCulture);
-                    if (cmp == 0)
-                    {
-                        val = Values[i];
-                        return true;
-                    }
-                }
-
-                val = default;
-                return false;
-            }
-
-            private static bool TryParseNullableEnum(ReadOnlySpan<char> data, in ReadContext _, out T? val)
-            {
-                if (data.Length == 0)
-                {
-                    val = null;
-                    return true;
-                }
-
-                if (!TryParseEnum(data, _, out var pVal))
                 {
                     val = null;
                     return false;

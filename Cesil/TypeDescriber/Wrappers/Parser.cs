@@ -336,43 +336,21 @@ namespace Cesil
 
             if (forType.IsEnum)
             {
-                if (forType.GetCustomAttribute<FlagsAttribute>() == null)
-                {
-                    var parsingClass = Types.DefaultEnumTypeParser.MakeGenericType(forType).GetTypeInfo();
-                    var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultEnumTypeParser<StringComparison>.TryParseEnumParser), BindingFlagsConstants.InternalStatic);
-                    var parser = (Parser?)parserField.GetValue(null);
+                var parsingClass = Types.DefaultEnumTypeParser.MakeGenericType(forType).GetTypeInfo();
+                var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultEnumTypeParser<StringComparison>.TryParseEnumParser), BindingFlagsConstants.InternalStatic);
+                var parser = (Parser?)parserField.GetValue(null);
 
-                    return parser;
-                }
-                else
-                {
-                    var parsingClass = Types.DefaultFlagsEnumTypeParser.MakeGenericType(forType).GetTypeInfo();
-                    var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultFlagsEnumTypeParser<StringComparison>.TryParseFlagsEnumParser), BindingFlagsConstants.InternalStatic);
-                    var parser = (Parser?)parserField.GetValue(null);
-
-                    return parser;
-                }
+                return parser;
             }
 
             var nullableElem = Nullable.GetUnderlyingType(forType)?.GetTypeInfo();
             if (nullableElem != null && nullableElem.IsEnum)
             {
-                if (nullableElem.GetCustomAttribute<FlagsAttribute>() == null)
-                {
-                    var parsingClass = Types.DefaultEnumTypeParser.MakeGenericType(nullableElem).GetTypeInfo();
-                    var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultEnumTypeParser<StringComparison>.TryParseNullableEnumParser), BindingFlagsConstants.InternalStatic);
-                    var parser = (Parser?)parserField.GetValue(null);
+                var parsingClass = Types.DefaultEnumTypeParser.MakeGenericType(nullableElem).GetTypeInfo();
+                var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultEnumTypeParser<StringComparison>.TryParseNullableEnumParser), BindingFlagsConstants.InternalStatic);
+                var parser = (Parser?)parserField.GetValue(null);
 
-                    return parser;
-                }
-                else
-                {
-                    var parsingClass = Types.DefaultFlagsEnumTypeParser.MakeGenericType(nullableElem).GetTypeInfo();
-                    var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultFlagsEnumTypeParser<StringComparison>.TryParseNullableFlagsEnumParser), BindingFlagsConstants.InternalStatic);
-                    var parser = (Parser?)parserField.GetValue(null);
-
-                    return parser;
-                }
+                return parser;
             }
 
             if (!TypeParsers.TryGetValue(forType, out var ret))

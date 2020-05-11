@@ -227,43 +227,21 @@ namespace Cesil
 
             if (forType.IsEnum)
             {
-                if (forType.GetCustomAttribute<FlagsAttribute>() == null)
-                {
-                    var formattingClass = Types.DefaultEnumTypeFormatter.MakeGenericType(forType).GetTypeInfo();
-                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryEnumFormatter), BindingFlagsConstants.InternalStatic);
-                    var formatter = (Formatter?)formatterField.GetValue(null);
+                var formattingClass = Types.DefaultEnumTypeFormatter.MakeGenericType(forType).GetTypeInfo();
+                var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryEnumFormatter), BindingFlagsConstants.InternalStatic);
+                var formatter = (Formatter?)formatterField.GetValue(null);
 
-                    return formatter;
-                }
-                else
-                {
-                    var formattingClass = Types.DefaultFlagsEnumTypeFormatter.MakeGenericType(forType).GetTypeInfo();
-                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultFlagsEnumTypeFormatter<StringComparison>.TryFlagsEnumFormatter), BindingFlagsConstants.InternalStatic);
-                    var formatter = (Formatter?)formatterField.GetValue(null);
-
-                    return formatter;
-                }
+                return formatter;
             }
 
             var nullableElem = Nullable.GetUnderlyingType(forType)?.GetTypeInfo();
             if (nullableElem != null && nullableElem.IsEnum)
             {
-                if (nullableElem.GetCustomAttribute<FlagsAttribute>() == null)
-                {
-                    var formattingClass = Types.DefaultEnumTypeFormatter.MakeGenericType(nullableElem).GetTypeInfo();
-                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryNullableEnumFormatter), BindingFlagsConstants.InternalStatic);
-                    var formatter = (Formatter?)formatterField.GetValue(null);
+                var formattingClass = Types.DefaultEnumTypeFormatter.MakeGenericType(nullableElem).GetTypeInfo();
+                var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryNullableEnumFormatter), BindingFlagsConstants.InternalStatic);
+                var formatter = (Formatter?)formatterField.GetValue(null);
 
-                    return formatter;
-                }
-                else
-                {
-                    var formattingClass = Types.DefaultFlagsEnumTypeFormatter.MakeGenericType(nullableElem).GetTypeInfo();
-                    var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultFlagsEnumTypeFormatter<StringComparison>.TryNullableFlagsEnumFormatter), BindingFlagsConstants.InternalStatic);
-                    var formatter = (Formatter?)formatterField.GetValue(null);
-
-                    return formatter;
-                }
+                return formatter;
             }
 
             if (!TypeFormatters.TryGetValue(forType, out var ret))

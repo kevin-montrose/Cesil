@@ -15,13 +15,16 @@ namespace Cesil
 
         public bool RowStarted => CurrentRow != null;
 
+        private int? ExpectedColumnCount;
+
         internal DynamicRowConstructor() { }
 
         public IRowConstructor<object> Clone() => new DynamicRowConstructor();
 
         public void SetColumnOrder(HeadersReader<object>.HeaderEnumerator columns)
         {
-            // took ownership, have to dispose
+            ExpectedColumnCount = columns.Count;
+
             columns.Dispose();
         }
 
@@ -69,6 +72,17 @@ namespace Cesil
             if (ret == null)
             {
                 return Throw.ImpossibleException<object>($"Row not initialized, ending a row unexpected");
+            }
+
+            // IF there was a header, make sure the returned row has the appropriate
+            //    number of entries
+            if (ExpectedColumnCount != null)
+            {
+                var missing = ExpectedColumnCount.Value - ret.Width;
+                if(missing > 0)
+                {
+                    ret.PadWithNulls(missing);
+                }
             }
 
             CurrentRow = null;

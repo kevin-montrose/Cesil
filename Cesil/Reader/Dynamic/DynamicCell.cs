@@ -21,7 +21,16 @@ namespace Cesil
         }
 
         internal ReadOnlySpan<char> GetDataSpan()
-        => SafeRowGet().GetDataSpan(ColumnNumber);
+        {
+            var row = SafeRowGet();
+            if(!row.TryGetDataSpan(ColumnNumber, out var ret))
+            {
+                Throw.InvalidOperationException<object>($"{nameof(DynamicCell)} unexpectedly backed by null span");
+                return default;
+            }
+
+            return ret;
+        }
 
         internal ReadContext GetReadContext()
         {
@@ -38,7 +47,13 @@ namespace Cesil
         {
             var r = SafeRowGet();
 
-            data = r.GetDataSpan(ColumnNumber);
+            if(!r.TryGetDataSpan(ColumnNumber, out data))
+            {
+                data = default;
+                ctx = default;
+                Throw.InvalidOperationException<object>($"{nameof(DynamicCell)} unexpectedly backed by null span");
+                return;
+            }
 
             var name = r.Columns[ColumnNumber];
 

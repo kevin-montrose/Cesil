@@ -134,7 +134,7 @@ namespace Cesil
 
         internal uint Generation;
 
-        private int Width;
+        internal int Width;
 
         public bool IsDisposed { get; private set; }
 
@@ -278,11 +278,77 @@ namespace Cesil
             StoreDataIndex(index, CurrentDataOffset);
         }
 
-        internal ReadOnlySpan<char> GetDataSpan(int forCellNumber)
+        internal void SetNull(int index)
+        {
+            AssertNotDisposedInternal(this);
+
+            if (!HasData)
+            {
+                var initialSize = (index + 1) * CHARS_PER_INT;
+
+                var dataValue = MemoryPool.Rent(initialSize);
+                HasData = true;
+                Data = dataValue;
+                DataMemory = Data.Memory;
+                CurrentDataOffset = DataMemory.Length;
+            }
+
+            Width = Math.Max(Width, index + 1);
+
+            StoreDataSpan(ReadOnlySpan<char>.Empty);
+            StoreDataIndex(index, -1);
+        }
+
+        internal void PadWithNulls(int trailingCount)
+        {
+            AssertNotDisposedInternal(this);
+
+            if (!HasData)
+            {
+                var initialSize = trailingCount * CHARS_PER_INT;
+
+                var dataValue = MemoryPool.Rent(initialSize);
+                HasData = true;
+                Data = dataValue;
+                DataMemory = Data.Memory;
+                CurrentDataOffset = DataMemory.Length;
+            }
+            else
+            {
+                var startOfNulls = Width * CHARS_PER_INT;
+                var neededSpace = trailingCount * CHARS_PER_INT;
+
+                var endOfNulls = startOfNulls + neededSpace;
+
+                checkSize:
+
+                if(CurrentDataOffset < endOfNulls)
+                {
+                    var minSize = Data.Memory.Length + (endOfNulls - CurrentDataOffset);
+                    ResizeData(minSize);
+
+                    goto checkSize;
+                }
+            }
+
+            for(var i = 0; i < trailingCount; i++)
+            {
+                StoreDataIndex(Width + i, -1);
+            }
+
+            Width += trailingCount;
+        }
+
+        internal bool TryGetDataSpan(int forCellNumber, out ReadOnlySpan<char> span)
         {
             AssertNotDisposedInternal(this);
 
             var dataIx = GetDataIndex(forCellNumber);
+            if(dataIx == -1)
+            {
+                span = default;
+                return false;
+            }
 
             var fromOffset = DataMemory.Span.Slice(dataIx);
             var asIntSpan = MemoryMarshal.Cast<char, int>(fromOffset);
@@ -291,7 +357,8 @@ namespace Cesil
 
             var ret = fromData.Slice(0, length);
 
-            return ret;
+            span = ret;
+            return true;
         }
 
         internal object? GetAt(int index)
@@ -467,8 +534,14 @@ namespace Cesil
             var copyFrom = rawStart;
             for (var writeTo = 0; writeTo < width; writeTo++)
             {
-                var span = GetDataSpan(copyFrom);
-                newRow.SetValue(writeTo, span);
+                if(TryGetDataSpan(copyFrom, out var span))
+                {
+                    newRow.SetValue(writeTo, span);
+                }
+                else
+                {
+                    newRow.SetNull(writeTo);
+                }
                 copyFrom++;
             }
 
@@ -492,7 +565,7 @@ namespace Cesil
 
         private bool TryGetIndex(int index, out object? result)
         {
-            var maxWidth = Math.Max(Width, Owner.MinimumExpectedColumns);
+            var maxWidth = Width;
 
             if (index < 0 || index >= maxWidth)
             {
@@ -520,6 +593,13 @@ namespace Cesil
                     //   in which case _our_ index is a bit different from
                     //   the outer index
                     var adjuestedIndex = index + NamesIndexOffset;
+
+                    // trying to access a column that isn't part of this subset?
+                    if(adjuestedIndex < 0 || adjuestedIndex >= Width)
+                    {
+                        result = null;
+                        return false;
+                    }
 
                     if (!IsSet(adjuestedIndex))
                     {

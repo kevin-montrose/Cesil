@@ -15,6 +15,237 @@ namespace Cesil.Tests
     public class DynamicReaderTests
     {
         [Fact]
+        public void NullStringColumn()
+        {
+            RunSyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                (config, getReader) =>
+                {
+                    const string DATA = "A\r\nfoo\r\n\r\nbar\r\n\r\n";
+
+                    using (var reader = getReader(DATA))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+                        var asStrings = rows.Select(d => (string)d.A).ToList();
+
+                        Assert.True(
+                            new[]
+                            {
+                                "foo",
+                                null,
+                                "bar",
+                                null
+                            }
+                            .SequenceEqual(asStrings)
+                        );
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public void RangeAccessOutOfBounds()
+        {
+            RunSyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                (config, getReader) =>
+                {
+                    const string DATA = "A,B,C,D\r\n1,,,4\r\n,,5,6\r\n7,8,,";
+
+                    using (var reader = getReader(DATA))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+                        Assert.Collection(
+                            rows,
+                            r1 =>
+                            {
+                                Assert.Equal(1, (int?)r1.A);
+                                Assert.Null((int?)r1.B);
+                                Assert.Null((int?)r1.C);
+                                Assert.Equal(4, (int?)r1.D);
+
+                                var subR1_1 = r1[0..2];
+                                Assert.Equal(1, (int?)subR1_1.A);
+                                Assert.Null((int?)subR1_1.B);
+                                Assert.Throws<KeyNotFoundException>(() => subR1_1.C);
+                                Assert.Throws<KeyNotFoundException>(() => subR1_1.D);
+                                Assert.Throws<ArgumentOutOfRangeException>(() => subR1_1[-1]);
+                                Assert.Throws<ArgumentOutOfRangeException>(() => subR1_1[2]);
+
+                                var subR1_2 = r1[2..];
+                                Assert.Null((int?)subR1_2.C);
+                                Assert.Equal(4, (int?)subR1_2.D);
+                                Assert.Throws<KeyNotFoundException>(() => subR1_2.A);
+                                Assert.Throws<KeyNotFoundException>(() => subR1_2.B);
+                                Assert.Throws<ArgumentOutOfRangeException>(() => subR1_2[-1]);
+                                Assert.Throws<ArgumentOutOfRangeException>(() => subR1_2[2]);
+                            },
+                            r2 =>
+                            {
+                                Assert.Null((int?)r2.A);
+                                Assert.Null((int?)r2.B);
+                                Assert.Equal(5, (int?)r2.C);
+                                Assert.Equal(6, (int?)r2.D);
+
+                                var subR2 = r2[1..3];
+                                Assert.Null((int?)subR2.B);
+                                Assert.Equal(5, (int?)subR2.C);
+                                Assert.Throws<KeyNotFoundException>(() => subR2.A);
+                                Assert.Throws<KeyNotFoundException>(() => subR2.D);
+                                Assert.Throws<ArgumentOutOfRangeException>(() => subR2[-1]);
+                                Assert.Throws<ArgumentOutOfRangeException>(() => subR2[2]);
+                            },
+                            r3 =>
+                            {
+                                Assert.Equal(7, (int?)r3.A);
+                                Assert.Equal(8, (int?)r3.B);
+                                Assert.Null((int?)r3.C);
+                                Assert.Null((int?)r3.D);
+
+                                var subR3_1 = r3[1..3];
+                                Assert.Equal(8, (int?)subR3_1.B);
+                                Assert.Null((int?)subR3_1.C);
+                                Assert.Throws<KeyNotFoundException>(() => subR3_1.A);
+                                Assert.Throws<KeyNotFoundException>(() => subR3_1.D);
+                                Assert.Throws<ArgumentOutOfRangeException>(() => subR3_1[-1]);
+                                Assert.Throws<ArgumentOutOfRangeException>(() => subR3_1[2]);
+
+                                var subR3_2 = r3[2..];
+                                Assert.Null((int?)subR3_2.C);
+                                Assert.Null((int?)subR3_2.D);
+                                Assert.Throws<KeyNotFoundException>(() => subR3_2.A);
+                                Assert.Throws<KeyNotFoundException>(() => subR3_2.B);
+                                Assert.Throws<ArgumentOutOfRangeException>(() => subR3_2[-1]);
+                                Assert.Throws<ArgumentOutOfRangeException>(() => subR3_2[2]);
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public void RangeWithSubNulls()
+        {
+            RunSyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                (config, getReader) =>
+                {
+                    const string DATA = "A,B,C,D\r\n1,,,4\r\n,,5,6\r\n7,8,,";
+
+                    using (var reader = getReader(DATA))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+                        Assert.Collection(
+                            rows,
+                            r1 =>
+                            {
+                                Assert.Equal(1, (int?)r1.A);
+                                Assert.Null((int?)r1.B);
+                                Assert.Null((int?)r1.C);
+                                Assert.Equal(4, (int?)r1.D);
+
+                                var subR1_1 = r1[0..2];
+                                Assert.Equal(1, (int?)subR1_1.A);
+                                Assert.Null((int?)subR1_1.B);
+
+                                var subR1_2 = r1[2..];
+                                Assert.Null((int?)subR1_2.C);
+                                Assert.Equal(4, (int?)subR1_2.D);
+                            },
+                            r2 =>
+                            {
+                                Assert.Null((int?)r2.A);
+                                Assert.Null((int?)r2.B);
+                                Assert.Equal(5, (int?)r2.C);
+                                Assert.Equal(6, (int?)r2.D);
+
+                                var subR2 = r2[1..3];
+                                Assert.Null((int?)subR2.B);
+                                Assert.Equal(5, (int?)subR2.C);
+                            },
+                            r3 =>
+                            {
+                                Assert.Equal(7, (int?)r3.A);
+                                Assert.Equal(8, (int?)r3.B);
+                                Assert.Null((int?)r3.C);
+                                Assert.Null((int?)r3.D);
+
+                                var subR3_1 = r3[1..3];
+                                Assert.Equal(8, (int?)subR3_1.B);
+                                Assert.Null((int?)subR3_1.C);
+
+                                var subR3_2 = r3[2..];
+                                Assert.Null((int?)subR3_2.C);
+                                Assert.Null((int?)subR3_2.D);
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public void NullRoundTrips()
+        {
+            RunSyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                (config, getReader) =>
+                {
+                    const string DATA = "A,B,C\r\n1,2,3\r\n4,,5\r\n6,7,\r\n,8,9";
+
+                    using (var reader = getReader(DATA))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+                        Assert.Collection(
+                            rows,
+                            r1 =>
+                            {
+                                Assert.Equal(1, (int?)r1.A);
+                                Assert.Equal(2, (int?)r1.B);
+                                Assert.Equal(3, (int?)r1.C);
+                            },
+                            r2 =>
+                            {
+                                Assert.Equal(4, (int?)r2.A);
+                                Assert.Null((int?)r2.B);
+                                Assert.Equal(5, (int?)r2.C);
+                            },
+                            r3 =>
+                            {
+                                Assert.Equal(6, (int?)r3.A);
+                                Assert.Equal(7, (int?)r3.B);
+                                Assert.Null((int?)r3.C);
+                            },
+                            r4 =>
+                            {
+                                Assert.Null((int?)r4.A);
+                                Assert.Equal(8, (int?)r4.B);
+                                Assert.Equal(9, (int?)r4.C);
+                            }
+                        );
+
+                        string roundTripped;
+                        using (var writer = new StringWriter())
+                        {
+                            using (var writerCsv = config.CreateWriter(writer))
+                            {
+                                writerCsv.WriteAll(rows);
+                            }
+                            roundTripped = writer.ToString();
+                        }
+
+                        Assert.Equal(DATA, roundTripped);
+                    }
+                }
+            );
+        }
+
+        [Fact]
         public void DynamicRowAsObject()
         {
             RunSyncDynamicReaderVariants(
@@ -309,8 +540,6 @@ namespace Cesil.Tests
                     }
                 }
             );
-
-            // todo: async
         }
 
         [Fact]
@@ -5559,6 +5788,397 @@ loop:
         }
 
         // async tests
+
+        [Fact]
+        public async Task MissingTrailingColumnsAsync()
+        {
+            // with headers
+            await RunAsyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("A,B,C\r\n1,2,3\r\n4,5\r\n6\r\n\r\n"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+
+                        Assert.Collection(
+                            rows,
+                            r1 =>
+                            {
+                                int a1 = r1.A;
+                                int a2 = r1[0];
+                                int b1 = r1.B;
+                                int b2 = r1[1];
+                                int c1 = r1.C;
+                                int c2 = r1[2];
+
+                                Assert.Equal(1, a1);
+                                Assert.Equal(1, a2);
+
+                                Assert.Equal(2, b1);
+                                Assert.Equal(2, b2);
+
+                                Assert.Equal(3, c1);
+                                Assert.Equal(3, c2);
+                            },
+                            r2 =>
+                            {
+                                int a1 = r2.A;
+                                int a2 = r2[0];
+                                int b1 = r2.B;
+                                int b2 = r2[1];
+                                int? c1 = r2.C;
+                                int? c2 = r2[2];
+
+                                Assert.Equal(4, a1);
+                                Assert.Equal(4, a2);
+
+                                Assert.Equal(5, b1);
+                                Assert.Equal(5, b2);
+
+                                Assert.False(c1.HasValue);
+                                Assert.False(c2.HasValue);
+                            },
+                            r3 =>
+                            {
+                                int a1 = r3.A;
+                                int a2 = r3[0];
+                                int? b1 = r3.B;
+                                int? b2 = r3[1];
+                                int? c1 = r3.C;
+                                int? c2 = r3[2];
+
+                                Assert.Equal(6, a1);
+                                Assert.Equal(6, a2);
+
+                                Assert.False(b1.HasValue);
+                                Assert.False(b2.HasValue);
+
+                                Assert.False(c1.HasValue);
+                                Assert.False(c2.HasValue);
+                            },
+                            r4 =>
+                            {
+                                int? a1 = r4.A;
+                                int? a2 = r4[0];
+                                int? b1 = r4.B;
+                                int? b2 = r4[1];
+                                int? c1 = r4.C;
+                                int? c2 = r4[2];
+
+                                Assert.False(a1.HasValue);
+                                Assert.False(a2.HasValue);
+
+                                Assert.False(b1.HasValue);
+                                Assert.False(b2.HasValue);
+
+                                Assert.False(c1.HasValue);
+                                Assert.False(c2.HasValue);
+                            }
+                        );
+                    }
+                }
+            );
+
+            var noHeadersOpts = Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions();
+
+            // without headers
+            await RunAsyncDynamicReaderVariants(
+                noHeadersOpts,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("1,2,3\r\n4,5\r\n6\r\n\r\n"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+
+                        Assert.Collection(
+                            rows,
+                            r1 =>
+                            {
+                                int a2 = r1[0];
+                                int b2 = r1[1];
+                                int c2 = r1[2];
+
+                                Assert.Equal(1, a2);
+
+                                Assert.Equal(2, b2);
+
+                                Assert.Equal(3, c2);
+                            },
+                            r2 =>
+                            {
+                                int a2 = r2[0];
+                                int b2 = r2[1];
+                                int? c2 = r2[2];
+
+                                Assert.Equal(4, a2);
+
+                                Assert.Equal(5, b2);
+
+                                Assert.False(c2.HasValue);
+                            },
+                            r3 =>
+                            {
+                                int a2 = r3[0];
+                                int? b2 = r3[1];
+                                int? c2 = r3[2];
+
+                                Assert.Equal(6, a2);
+
+                                Assert.False(b2.HasValue);
+
+                                Assert.False(c2.HasValue);
+                            },
+                            r4 =>
+                            {
+                                int? a2 = r4[0];
+                                int? b2 = r4[1];
+                                int? c2 = r4[2];
+
+                                Assert.False(a2.HasValue);
+
+                                Assert.False(b2.HasValue);
+
+                                Assert.False(c2.HasValue);
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public async Task NullStringColumnAsync()
+        {
+            await RunAsyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                async (config, getReader) =>
+                {
+                    const string DATA = "A\r\nfoo\r\n\r\nbar\r\n\r\n";
+
+                    await using (var reader = await getReader(DATA))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+                        var asStrings = rows.Select(d => (string)d.A).ToList();
+
+                        Assert.True(
+                            new[]
+                            {
+                                "foo",
+                                null,
+                                "bar",
+                                null
+                            }
+                            .SequenceEqual(asStrings)
+                        );
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public async Task RangeAccessOutOfBoundsAsync()
+        {
+            await RunAsyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                async (config, getReader) =>
+                {
+                    const string DATA = "A,B,C,D\r\n1,,,4\r\n,,5,6\r\n7,8,,";
+
+                    await using (var reader = await getReader(DATA))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+                        Assert.Collection(
+                            rows,
+                            r1 =>
+                            {
+                                Assert.Equal(1, (int?)r1.A);
+                                Assert.Null((int?)r1.B);
+                                Assert.Null((int?)r1.C);
+                                Assert.Equal(4, (int?)r1.D);
+
+                                var subR1_1 = r1[0..2];
+                                Assert.Equal(1, (int?)subR1_1.A);
+                                Assert.Null((int?)subR1_1.B);
+                                Assert.Throws<KeyNotFoundException>(() => subR1_1.C);
+                                Assert.Throws<KeyNotFoundException>(() => subR1_1.D);
+                                Assert.Throws<ArgumentOutOfRangeException>(() => subR1_1[-1]);
+                                Assert.Throws<ArgumentOutOfRangeException>(() => subR1_1[2]);
+
+                                var subR1_2 = r1[2..];
+                                Assert.Null((int?)subR1_2.C);
+                                Assert.Equal(4, (int?)subR1_2.D);
+                                Assert.Throws<KeyNotFoundException>(() => subR1_2.A);
+                                Assert.Throws<KeyNotFoundException>(() => subR1_2.B);
+                                Assert.Throws<ArgumentOutOfRangeException>(() => subR1_2[-1]);
+                                Assert.Throws<ArgumentOutOfRangeException>(() => subR1_2[2]);
+                            },
+                            r2 =>
+                            {
+                                Assert.Null((int?)r2.A);
+                                Assert.Null((int?)r2.B);
+                                Assert.Equal(5, (int?)r2.C);
+                                Assert.Equal(6, (int?)r2.D);
+
+                                var subR2 = r2[1..3];
+                                Assert.Null((int?)subR2.B);
+                                Assert.Equal(5, (int?)subR2.C);
+                                Assert.Throws<KeyNotFoundException>(() => subR2.A);
+                                Assert.Throws<KeyNotFoundException>(() => subR2.D);
+                                Assert.Throws<ArgumentOutOfRangeException>(() => subR2[-1]);
+                                Assert.Throws<ArgumentOutOfRangeException>(() => subR2[2]);
+                            },
+                            r3 =>
+                            {
+                                Assert.Equal(7, (int?)r3.A);
+                                Assert.Equal(8, (int?)r3.B);
+                                Assert.Null((int?)r3.C);
+                                Assert.Null((int?)r3.D);
+
+                                var subR3_1 = r3[1..3];
+                                Assert.Equal(8, (int?)subR3_1.B);
+                                Assert.Null((int?)subR3_1.C);
+                                Assert.Throws<KeyNotFoundException>(() => subR3_1.A);
+                                Assert.Throws<KeyNotFoundException>(() => subR3_1.D);
+                                Assert.Throws<ArgumentOutOfRangeException>(() => subR3_1[-1]);
+                                Assert.Throws<ArgumentOutOfRangeException>(() => subR3_1[2]);
+
+                                var subR3_2 = r3[2..];
+                                Assert.Null((int?)subR3_2.C);
+                                Assert.Null((int?)subR3_2.D);
+                                Assert.Throws<KeyNotFoundException>(() => subR3_2.A);
+                                Assert.Throws<KeyNotFoundException>(() => subR3_2.B);
+                                Assert.Throws<ArgumentOutOfRangeException>(() => subR3_2[-1]);
+                                Assert.Throws<ArgumentOutOfRangeException>(() => subR3_2[2]);
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public async Task RangeWithSubNullsAsync()
+        {
+            await RunAsyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                async (config, getReader) =>
+                {
+                    const string DATA = "A,B,C,D\r\n1,,,4\r\n,,5,6\r\n7,8,,";
+
+                    await using (var reader = await getReader(DATA))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+                        Assert.Collection(
+                            rows,
+                            r1 =>
+                            {
+                                Assert.Equal(1, (int?)r1.A);
+                                Assert.Null((int?)r1.B);
+                                Assert.Null((int?)r1.C);
+                                Assert.Equal(4, (int?)r1.D);
+
+                                var subR1_1 = r1[0..2];
+                                Assert.Equal(1, (int?)subR1_1.A);
+                                Assert.Null((int?)subR1_1.B);
+
+                                var subR1_2 = r1[2..];
+                                Assert.Null((int?)subR1_2.C);
+                                Assert.Equal(4, (int?)subR1_2.D);
+                            },
+                            r2 =>
+                            {
+                                Assert.Null((int?)r2.A);
+                                Assert.Null((int?)r2.B);
+                                Assert.Equal(5, (int?)r2.C);
+                                Assert.Equal(6, (int?)r2.D);
+
+                                var subR2 = r2[1..3];
+                                Assert.Null((int?)subR2.B);
+                                Assert.Equal(5, (int?)subR2.C);
+                            },
+                            r3 =>
+                            {
+                                Assert.Equal(7, (int?)r3.A);
+                                Assert.Equal(8, (int?)r3.B);
+                                Assert.Null((int?)r3.C);
+                                Assert.Null((int?)r3.D);
+
+                                var subR3_1 = r3[1..3];
+                                Assert.Equal(8, (int?)subR3_1.B);
+                                Assert.Null((int?)subR3_1.C);
+
+                                var subR3_2 = r3[2..];
+                                Assert.Null((int?)subR3_2.C);
+                                Assert.Null((int?)subR3_2.D);
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public async Task NullRoundTripsAsync()
+        {
+            await RunAsyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                async (config, getReader) =>
+                {
+                    const string DATA = "A,B,C\r\n1,2,3\r\n4,,5\r\n6,7,\r\n,8,9";
+
+                    await using (var reader = await getReader(DATA))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+                        Assert.Collection(
+                            rows,
+                            r1 =>
+                            {
+                                Assert.Equal(1, (int?)r1.A);
+                                Assert.Equal(2, (int?)r1.B);
+                                Assert.Equal(3, (int?)r1.C);
+                            },
+                            r2 =>
+                            {
+                                Assert.Equal(4, (int?)r2.A);
+                                Assert.Null((int?)r2.B);
+                                Assert.Equal(5, (int?)r2.C);
+                            },
+                            r3 =>
+                            {
+                                Assert.Equal(6, (int?)r3.A);
+                                Assert.Equal(7, (int?)r3.B);
+                                Assert.Null((int?)r3.C);
+                            },
+                            r4 =>
+                            {
+                                Assert.Null((int?)r4.A);
+                                Assert.Equal(8, (int?)r4.B);
+                                Assert.Equal(9, (int?)r4.C);
+                            }
+                        );
+
+                        string roundTripped;
+                        using (var writer = new StringWriter())
+                        {
+                            await using (var writerCsv = config.CreateAsyncWriter(writer))
+                            {
+                                await writerCsv.WriteAllAsync(rows);
+                            }
+                            roundTripped = writer.ToString();
+                        }
+
+                        Assert.Equal(DATA, roundTripped);
+                    }
+                }
+            );
+        }
 
         [Fact]
         public async Task IEnumerableOfDynamicAsync()

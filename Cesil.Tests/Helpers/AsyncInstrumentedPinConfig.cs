@@ -24,7 +24,7 @@ namespace Cesil.Tests
         }
 
         internal override IAsyncWriter<T> CreateAsyncWriter(IAsyncWriterAdapter writer, object context = null)
-        => throw new NotImplementedException();
+        => Inner.CreateAsyncWriter(writer, context);
 
         internal override IReader<T> CreateReader(IReaderAdapter reader, object context = null)
         => throw new NotImplementedException();

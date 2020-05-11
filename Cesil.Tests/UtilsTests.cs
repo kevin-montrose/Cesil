@@ -42,7 +42,6 @@ namespace Cesil.Tests
             var e = EmptyDynamicRowOwner.Singleton;
             Assert.Throws<ImpossibleException>(() => e.AcquireNameLookup());
             Assert.Throws<ImpossibleException>(() => e.Context);
-            Assert.Throws<ImpossibleException>(() => e.MinimumExpectedColumns);
             Assert.Throws<ImpossibleException>(() => e.Options);
             Assert.Throws<ImpossibleException>(() => e.ReleaseNameLookup());
             Assert.Throws<ImpossibleException>(() => e.Remove(new DynamicRow()));

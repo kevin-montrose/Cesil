@@ -11,21 +11,63 @@ namespace Cesil
     {
         internal static readonly char[] COMMA_AND_SPACE = new[] { ',', ' ' };
 
-        internal static class DefaultFlagsEnumTypeFormatter<T>
+        internal static class DefaultEnumTypeFormatter<T>
             where T : struct, Enum
         {
-            private static readonly string[] Names = Enum.GetNames(typeof(T).GetTypeInfo());
+            private static readonly string[] Names = CreateNames();
 
-            internal static readonly Formatter TryFlagsEnumFormatter = CreateTryFlagsEnumFormatter();
-            internal static readonly Formatter TryNullableFlagsEnumFormatter = CreateTryNullableFlagsEnumFormatter();
+            internal static readonly Formatter TryEnumFormatter = CreateTryEnumFormatter();
+            internal static readonly Formatter TryNullableEnumFormatter = CreateTryNullableEnumFormatter();
 
             private static TypeInfo GetFormattingClass()
             {
                 var enumType = typeof(T).GetTypeInfo();
 
-                var formattingClass = Types.DefaultFlagsEnumTypeFormatter.MakeGenericType(enumType).GetTypeInfo();
+                var formattingClass = Types.DefaultEnumTypeFormatter.MakeGenericType(enumType).GetTypeInfo();
 
                 return formattingClass;
+            }
+
+            private static string[] CreateNames()
+            {
+                var enumType = typeof(T).GetTypeInfo();
+                if (enumType.IsFlagsEnum())
+                {
+                    // only need the actual names if we're in Flags mode
+                    return Enum.GetNames(typeof(T).GetTypeInfo());
+                }
+
+                return Array.Empty<string>();
+            }
+
+            private static Formatter CreateTryEnumFormatter()
+            {
+                var enumType = typeof(T).GetTypeInfo();
+                if(enumType.IsFlagsEnum())
+                {
+                    return CreateTryFlagsEnumFormatter();
+                }
+
+                return CreateTryBasicEnumFormatter();
+            }
+
+            private static Formatter CreateTryNullableEnumFormatter()
+            {
+                var enumType = typeof(T).GetTypeInfo();
+                if (enumType.IsFlagsEnum())
+                {
+                    return CreateTryNullableFlagsEnumFormatter();
+                }
+
+                return CreateTryNullableBasicEnumFormatter();
+            }
+
+            private static Formatter CreateTryBasicEnumFormatter()
+            {
+                var formattingClass = GetFormattingClass();
+
+                var enumParsingMtd = formattingClass.GetMethodNonNull(nameof(TryFormatBasicEnum), BindingFlagsConstants.InternalStatic);
+                return Formatter.ForMethod(enumParsingMtd);
             }
 
             private static Formatter CreateTryFlagsEnumFormatter()
@@ -36,12 +78,43 @@ namespace Cesil
                 return Formatter.ForMethod(enumParsingMtd);
             }
 
+            private static Formatter CreateTryNullableBasicEnumFormatter()
+            {
+                var formattingClass = GetFormattingClass();
+
+                var nullableEnumParsingMtd = formattingClass.GetMethodNonNull(nameof(TryFormatNullableBasicEnum), BindingFlagsConstants.InternalStatic);
+                return Formatter.ForMethod(nullableEnumParsingMtd);
+            }
+
             private static Formatter CreateTryNullableFlagsEnumFormatter()
             {
                 var formattingClass = GetFormattingClass();
 
                 var nullableEnumParsingMtd = formattingClass.GetMethodNonNull(nameof(TryFormatNullableFlagsEnum), BindingFlagsConstants.InternalStatic);
                 return Formatter.ForMethod(nullableEnumParsingMtd);
+            }
+
+            private static bool TryFormatBasicEnum(T e, in WriteContext _, IBufferWriter<char> writer)
+            {
+                if (!Enum.IsDefined(typeof(T), e)) return false;
+
+                // this shouldn't allocate
+                var valStr = e.ToString();
+
+                var charSpan = writer.GetSpan(valStr.Length);
+                if (charSpan.Length < valStr.Length) return false;
+
+                valStr.AsSpan().CopyTo(charSpan);
+                writer.Advance(valStr.Length);
+
+                return true;
+            }
+
+            private static bool TryFormatNullableBasicEnum(T? e, in WriteContext _, IBufferWriter<char> writer)
+            {
+                if (e == null) return true;
+
+                return TryFormatBasicEnum(e.Value, _, writer);
             }
 
             private static bool TryFormatFlagsEnum(T e, in WriteContext _, IBufferWriter<char> writer)
@@ -82,61 +155,6 @@ namespace Cesil
                 if (e == null) return true;
 
                 return TryFormatFlagsEnum(e.Value, _, writer);
-            }
-        }
-
-        internal static class DefaultEnumTypeFormatter<T>
-            where T : struct, Enum
-        {
-            internal static readonly Formatter TryEnumFormatter = CreateTryEnumFormatter();
-            internal static readonly Formatter TryNullableEnumFormatter = CreateTryNullableEnumFormatter();
-
-            private static TypeInfo GetFormattingClass()
-            {
-                var enumType = typeof(T).GetTypeInfo();
-
-                var formattingClass = Types.DefaultEnumTypeFormatter.MakeGenericType(enumType).GetTypeInfo();
-
-                return formattingClass;
-            }
-
-            private static Formatter CreateTryEnumFormatter()
-            {
-                var formattingClass = GetFormattingClass();
-
-                var enumParsingMtd = formattingClass.GetMethodNonNull(nameof(TryFormatEnum), BindingFlagsConstants.InternalStatic);
-                return Formatter.ForMethod(enumParsingMtd);
-            }
-
-            private static Formatter CreateTryNullableEnumFormatter()
-            {
-                var formattingClass = GetFormattingClass();
-
-                var nullableEnumParsingMtd = formattingClass.GetMethodNonNull(nameof(TryFormatNullableEnum), BindingFlagsConstants.InternalStatic);
-                return Formatter.ForMethod(nullableEnumParsingMtd);
-            }
-
-            private static bool TryFormatEnum(T e, in WriteContext _, IBufferWriter<char> writer)
-            {
-                if (!Enum.IsDefined(typeof(T), e)) return false;
-
-                // this shouldn't allocate
-                var valStr = e.ToString();
-
-                var charSpan = writer.GetSpan(valStr.Length);
-                if (charSpan.Length < valStr.Length) return false;
-
-                valStr.AsSpan().CopyTo(charSpan);
-                writer.Advance(valStr.Length);
-
-                return true;
-            }
-
-            private static bool TryFormatNullableEnum(T? e, in WriteContext _, IBufferWriter<char> writer)
-            {
-                if (e == null) return true;
-
-                return TryFormatEnum(e.Value, _, writer);
             }
         }
 

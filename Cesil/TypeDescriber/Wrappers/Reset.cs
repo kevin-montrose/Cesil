@@ -71,8 +71,6 @@ namespace Cesil
 
         internal Expression MakeExpression(ParameterExpression rowVar, ParameterExpression contextVar)
         {
-            // todo: no reason not to support chaining?
-
             Expression selfExp;
             switch (Mode)
             {

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
@@ -67,6 +68,16 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(forType, nameof(forType));
 
+            var canUseMemberCache = ReferenceEquals(this, TypeDescribers.Default);
+
+            if (canUseMemberCache)
+            {
+                if (DefaultTypeDescriberMemberCache.Instance.TryGetDeserializableMembers(forType, out var earlyRet))
+                {
+                    return earlyRet;
+                }
+            }
+
             var buffer = new List<(DeserializableMember Member, int? Position)>();
 
             if (CheckReadingWellKnownType(forType, out var knownMember))
@@ -106,7 +117,14 @@ namespace Cesil
                 buffer.Sort(TypeDescribers.DeserializableComparer);
             }
 
-            return Map(buffer);
+            var ret = Map(buffer);
+
+            if (canUseMemberCache)
+            {
+                DefaultTypeDescriberMemberCache.Instance.Add(forType, ret);
+            }
+
+            return ret;
 
             static IEnumerable<DeserializableMember> Map(List<(DeserializableMember Member, int? Position)> ret)
             {
@@ -416,50 +434,70 @@ namespace Cesil
             {
                 return Throw.InvalidOperationException<IEnumerable<SerializableMember>>($"{forType.Name} is a tuple with a Rest property, the {nameof(DefaultTypeDescriber)} cannot serialize this unambiguously.");
             }
-            return EnumerateMembersToSerializeImpl(this, forType);
 
-            static IEnumerable<SerializableMember> EnumerateMembersToSerializeImpl(DefaultTypeDescriber self, TypeInfo forType)
+            var canUseMemberCache = ReferenceEquals(this, TypeDescribers.Default);
+
+            if (canUseMemberCache)
             {
-                var buffer = new List<(SerializableMember Member, int? Position)>();
-
-                if (self.CheckWritingWellKnownType(forType, out var knownMember))
+                // we _know_ this isn't a subclass, so we know what our behavior will be
+                //    and therefore we can optimize this to avoid pointless repeated lookups
+                if (DefaultTypeDescriberMemberCache.Instance.TryGetSerializableMembers(forType, out var earlyRet))
                 {
-                    buffer.Add((knownMember, null));
+                    return earlyRet;
                 }
-                else
+            }
+
+            var buffer = new List<(SerializableMember Member, int? Position)>();
+
+            if (CheckWritingWellKnownType(forType, out var knownMember))
+            {
+                buffer.Add((knownMember, null));
+            }
+            else
+            {
+                foreach (var p in forType.GetProperties(BindingFlagsConstants.All))
                 {
-                    foreach (var p in forType.GetProperties(BindingFlagsConstants.All))
-                    {
-                        if (!self.ShouldSerialize(forType, p)) continue;
+                    if (!ShouldSerialize(forType, p)) continue;
 
-                        var name = self.GetSerializationName(forType, p);
-                        var getter = self.GetGetter(forType, p);
-                        var shouldSerialize = self.GetShouldSerialize(forType, p);
-                        var formatter = self.GetFormatter(forType, p);
-                        var order = self.GetOrder(forType, p);
-                        var emitDefault = self.GetEmitDefaultValue(forType, p);
+                    var name = GetSerializationName(forType, p);
+                    var getter = GetGetter(forType, p);
+                    var shouldSerialize = GetShouldSerialize(forType, p);
+                    var formatter = GetFormatter(forType, p);
+                    var order = GetOrder(forType, p);
+                    var emitDefault = GetEmitDefaultValue(forType, p);
 
-                        buffer.Add((SerializableMember.CreateInner(forType, name, getter, formatter, shouldSerialize, emitDefault), order));
-                    }
-
-                    foreach (var f in forType.GetFields())
-                    {
-                        if (!self.ShouldSerialize(forType, f)) continue;
-
-                        var name = self.GetSerializationName(forType, f);
-                        var getter = self.GetGetter(forType, f);
-                        var shouldSerialize = self.GetShouldSerialize(forType, f);
-                        var formatter = self.GetFormatter(forType, f);
-                        var order = self.GetOrder(forType, f);
-                        var emitDefault = self.GetEmitDefaultValue(forType, f);
-
-                        buffer.Add((SerializableMember.CreateInner(forType, name, getter, formatter, shouldSerialize, emitDefault), order));
-                    }
+                    buffer.Add((SerializableMember.CreateInner(forType, name, getter, formatter, shouldSerialize, emitDefault), order));
                 }
 
-                buffer.Sort(TypeDescribers.SerializableComparer);
+                foreach (var f in forType.GetFields(BindingFlagsConstants.All))
+                {
+                    if (!ShouldSerialize(forType, f)) continue;
 
-                foreach (var (member, _) in buffer)
+                    var name = GetSerializationName(forType, f);
+                    var getter = GetGetter(forType, f);
+                    var shouldSerialize = GetShouldSerialize(forType, f);
+                    var formatter = GetFormatter(forType, f);
+                    var order = GetOrder(forType, f);
+                    var emitDefault = GetEmitDefaultValue(forType, f);
+
+                    buffer.Add((SerializableMember.CreateInner(forType, name, getter, formatter, shouldSerialize, emitDefault), order));
+                }
+            }
+
+            buffer.Sort(TypeDescribers.SerializableComparer);
+
+            var ret = Map(buffer);
+
+            if (canUseMemberCache)
+            {
+                DefaultTypeDescriberMemberCache.Instance.Add(forType, ret);
+            }
+
+            return ret;
+
+            static IEnumerable<SerializableMember> Map(List<(SerializableMember Member, int? Position)> raw)
+            {
+                foreach (var (member, _) in raw)
                 {
                     yield return member;
                 }
@@ -608,10 +646,13 @@ namespace Cesil
             Utils.CheckArgumentNull(forType, nameof(forType));
             Utils.CheckArgumentNull(field, nameof(field));
 
-            var dataMember = field.GetCustomAttribute<DataMemberAttribute>();
-            if (dataMember != null)
+            if (field.IsPublic && !field.IsStatic)
             {
-                return true;
+                var dataMember = field.GetCustomAttribute<DataMemberAttribute>();
+                if (dataMember != null)
+                {
+                    return true;
+                }
             }
 
             if (forType.IsValueTuple())
@@ -767,30 +808,69 @@ namespace Cesil
 
             var rowObj = row as object;
 
+            var canUseCache = ReferenceEquals(this, TypeDescribers.Default);
+
             // handle serializing our own dynamic types
             if (row is DynamicRow asOwnRow)
             {
                 var cols = asOwnRow.Columns;
 
                 var ret = new DynamicCellValue[cols.Count];
+                var nextRetIx = 0;
 
                 var ix = 0;
                 foreach (var col in cols)
                 {
                     var name = col.Name;
-                    if (!ShouldIncludeCell(name, in context, rowObj)) continue;
+                    if (!canUseCache && !ShouldIncludeCell(name, in context, rowObj))
+                    {
+                        goto endLoop;
+                    }
 
-                    var valueRaw = asOwnRow.GetDataSpan(ix);
-                    var value = new string(valueRaw);
+                    string? value;
+                    if (asOwnRow.TryGetDataSpan(ix, out var valueRaw))
+                    {
+                        value = new string(valueRaw);
+                    }
+                    else
+                    {
+                        value = null;
+                    }
 
-                    var formatter = GetFormatter(Types.String, name, in context, rowObj);
+                    Formatter? formatter;
+                    if (canUseCache)
+                    {
+                        var cache = DefaultTypeDescriberMemberCache.Instance;
+
+                        if (!cache.TryGetFormatter(Types.String, out formatter))
+                        {
+                            formatter = GetFormatter(Types.String, name, in context, rowObj);
+                            if (formatter != null)
+                            {
+                                cache.Add(Types.String, formatter);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        formatter = GetFormatter(Types.String, name, in context, rowObj);
+                    }
+
                     if (formatter == null)
                     {
                         return Throw.InvalidOperationException<IEnumerable<DynamicCellValue>>($"No formatter returned by {nameof(GetFormatter)}");
                     }
 
-                    ret[ix] = DynamicCellValue.Create(name, value, formatter);
+                    ret[nextRetIx] = DynamicCellValue.Create(name, value, formatter);
+                    nextRetIx++;
+
+endLoop:
                     ix++;
+                }
+
+                if (nextRetIx != ret.Length)
+                {
+                    return ret.Take(nextRetIx);
                 }
 
                 return ret;
@@ -799,7 +879,8 @@ namespace Cesil
             // special case the most convenient dynamic type
             if (row is ExpandoObject asExpando)
             {
-                var ret = new List<DynamicCellValue>();
+                var ret = new DynamicCellValue[((ICollection<KeyValuePair<string, object>>)asExpando).Count];
+                var nextRetIx = 0;
 
                 foreach (var kv in asExpando)
                 {
@@ -807,7 +888,7 @@ namespace Cesil
                     var value = kv.Value;
                     Formatter? formatter;
 
-                    if (!ShouldIncludeCell(name, in context, rowObj)) continue;
+                    if (!canUseCache && !ShouldIncludeCell(name, in context, rowObj)) continue;
 
                     if (value == null)
                     {
@@ -816,7 +897,25 @@ namespace Cesil
                     else
                     {
                         var valueType = value.GetType().GetTypeInfo();
-                        formatter = GetFormatter(valueType, name, in context, rowObj);
+
+                        if (canUseCache)
+                        {
+                            var cache = DefaultTypeDescriberMemberCache.Instance;
+
+                            if (!cache.TryGetFormatter(valueType, out formatter))
+                            {
+                                formatter = GetFormatter(valueType, name, in context, rowObj);
+                                if (formatter != null)
+                                {
+                                    cache.Add(valueType, formatter);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            formatter = GetFormatter(valueType, name, in context, rowObj);
+                        }
+
                         if (formatter == null)
                         {
                             // try and coerce into a string?
@@ -837,7 +936,13 @@ namespace Cesil
                     // skip anything that isn't formattable
                     if (formatter == null) continue;
 
-                    ret.Add(DynamicCellValue.Create(name, value, formatter));
+                    ret[nextRetIx] = DynamicCellValue.Create(name, value, formatter);
+                    nextRetIx++;
+                }
+
+                if (nextRetIx != ret.Length)
+                {
+                    return ret.Take(nextRetIx);
                 }
 
                 return ret;
@@ -848,12 +953,14 @@ namespace Cesil
             // now the least convenient dynamic type
             if (rowObj is IDynamicMetaObjectProvider asDynamic)
             {
-                var ret = new List<DynamicCellValue>();
-
                 var arg = Expressions.Parameter_Object;
                 var metaObj = asDynamic.GetMetaObject(arg);
 
                 var names = metaObj.GetDynamicMemberNames();
+
+                var ret = new DynamicCellValue[names.Count()];
+                var nextRetIx = 0;
+
                 foreach (var name in names)
                 {
                     var args = new[] { CSharpArgumentInfo.Create(default, null) };
@@ -876,7 +983,7 @@ namespace Cesil
                     // skip it, access failed
                     if (skip) continue;
 
-                    if (!ShouldIncludeCell(name, in context, rowObj)) continue;
+                    if (!canUseCache && !ShouldIncludeCell(name, in context, rowObj)) continue;
 
                     if (value == null)
                     {
@@ -885,7 +992,24 @@ namespace Cesil
                     else
                     {
                         var valueType = value.GetType().GetTypeInfo();
-                        formatter = GetFormatter(valueType, name, in context, rowObj);
+
+                        if (canUseCache)
+                        {
+                            var cache = DefaultTypeDescriberMemberCache.Instance;
+
+                            if (!cache.TryGetFormatter(valueType, out formatter))
+                            {
+                                formatter = GetFormatter(valueType, name, in context, rowObj);
+                                if (formatter != null)
+                                {
+                                    cache.Add(valueType, formatter);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            formatter = GetFormatter(valueType, name, in context, rowObj);
+                        }
 
                         if (formatter == null)
                         {
@@ -907,7 +1031,13 @@ namespace Cesil
                     // skip it, can't serialize it
                     if (formatter == null) continue;
 
-                    ret.Add(DynamicCellValue.Create(name, value, formatter));
+                    ret[nextRetIx] = DynamicCellValue.Create(name, value, formatter);
+                    nextRetIx++;
+                }
+
+                if (nextRetIx != ret.Length)
+                {
+                    return ret.Take(nextRetIx);
                 }
 
                 return ret;
@@ -915,17 +1045,37 @@ namespace Cesil
 
             // now just plain old types
             {
-                var ret = new List<DynamicCellValue>();
-
                 var toSerialize = EnumerateMembersToSerialize(rowObjType);
+
+                var ret = new DynamicCellValue[toSerialize.Count()];
+                var nextRetIx = 0;
+
                 foreach (var mem in toSerialize)
                 {
                     var name = mem.Name;
-                    if (!ShouldIncludeCell(name, in context, rowObj)) continue;
+                    if (!canUseCache && !ShouldIncludeCell(name, in context, rowObj)) continue;
 
                     var getter = mem.Getter;
 
-                    var formatter = GetFormatter(getter.Returns, name, in context, rowObj);
+                    Formatter? formatter;
+                    if (canUseCache)
+                    {
+                        var cache = DefaultTypeDescriberMemberCache.Instance;
+
+                        if (!cache.TryGetFormatter(getter.Returns, out formatter))
+                        {
+                            formatter = GetFormatter(getter.Returns, name, in context, rowObj);
+                            if (formatter != null)
+                            {
+                                cache.Add(getter.Returns, formatter);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        formatter = GetFormatter(getter.Returns, name, in context, rowObj);
+                    }
+
                     if (formatter == null)
                     {
                         return Throw.InvalidOperationException<IEnumerable<DynamicCellValue>>($"No formatter returned by {nameof(GetFormatter)}");
@@ -935,7 +1085,13 @@ namespace Cesil
                     delProvider.Guarantee(DefaultTypeDescriberDelegateCache.Instance);
                     var value = delProvider.CachedDelegate.Value(rowObj, in context);
 
-                    ret.Add(DynamicCellValue.Create(name, value, formatter));
+                    ret[nextRetIx] = DynamicCellValue.Create(name, value, formatter);
+                    nextRetIx++;
+                }
+
+                if(nextRetIx != ret.Length)
+                {
+                    return ret.Take(nextRetIx);
                 }
 
                 return ret;

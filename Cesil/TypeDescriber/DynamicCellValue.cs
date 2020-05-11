@@ -45,7 +45,7 @@ namespace Cesil
         /// <summary>
         /// Create a DynamicCellValue to format the given value of the given column.
         /// 
-        /// It's permissible for both name and val to be null.
+        /// It's permissible for both name and value to be null.
         /// </summary>
         public static DynamicCellValue Create(
             [NullableExposed("May be purely positional, in which case it has no name")]
@@ -61,11 +61,14 @@ namespace Cesil
 
             Utils.CheckArgumentNull(formatter, nameof(formatter));
 
-            var valType = (value as object)?.GetType().GetTypeInfo();
-
-            if (valType != null && !formatter.Takes.IsAssignableFrom(valType))
+            if (value is object valObj)
             {
-                return Throw.ArgumentException<DynamicCellValue>($"Formatter must accept an object assignable from {valType}", nameof(formatter));
+                var valType = valObj.GetType().GetTypeInfo();
+
+                if (!formatter.Takes.IsAssignableFrom(valType))
+                {
+                    return Throw.ArgumentException<DynamicCellValue>($"Formatter must accept an object assignable from {valType}", nameof(formatter));
+                }
             }
 
             return new DynamicCellValue(name, value, formatter);
