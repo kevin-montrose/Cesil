@@ -67,13 +67,12 @@ namespace Cesil
                     return Throw.InvalidOperationException<object[]>($"No parser found to convert cell at index={i} to {colType}");
                 }
 
-                var del = (ICreatesCacheableDelegate<Parser.DynamicParserDelegate>)parser;
+                var delProvider = (ICreatesCacheableDelegate<Parser.DynamicParserDelegate>)parser;
 
-                del.Guarantee(DefaultTypeDescriberDelegateCache.Instance);
-                var r = del.CachedDelegate.Value;
+                var del = delProvider.Guarantee(DefaultTypeDescriberCache.Instance);
 
                 var data = cell.GetDataSpan();
-                if (!r(data, ctx, out var res))
+                if (!del(data, ctx, out var res))
                 {
                     return Throw.InvalidOperationException<object[]>($"{nameof(Parser)} {parser} returned false");
                 }

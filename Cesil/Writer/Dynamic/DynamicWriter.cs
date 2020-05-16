@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
-
+using System.Diagnostics.CodeAnalysis;
 using static Cesil.DisposableHelper;
 
 namespace Cesil
@@ -24,23 +24,25 @@ namespace Cesil
 
         internal DynamicWriter(DynamicBoundConfiguration config, IWriterAdapter inner, object? context) : base(config, inner, context) { }
 
-        CachedDelegate<V> IDelegateCache.TryGet<T, V>(T key)
-            where V : class
+        bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)]out V del)
         {
             if (DelegateCache == null)
             {
-                return CachedDelegate<V>.Empty;
+                del = default;
+                return false;
             }
 
-            if (DelegateCache.TryGetValue(key, out var cached))
+            if (DelegateCache.TryGetValue(key, out var untypedDel))
             {
-                return new CachedDelegate<V>(cached as V);
+                del = (V)untypedDel;
+                return true;
             }
 
-            return CachedDelegate<V>.Empty;
+            del = default;
+            return false;
         }
 
-        void IDelegateCache.Add<T, V>(T key, V cached)
+        void IDelegateCache.AddDelegate<T, V>(T key, V cached)
         {
             if (DelegateCache == null)
             {
@@ -89,8 +91,7 @@ namespace Cesil
 
                     var formatter = cell.Formatter;
                     var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
-                    delProvider.Guarantee(this);
-                    var del = delProvider.CachedDelegate.Value;
+                    var del = delProvider.Guarantee(this);
 
                     var val = cell.Value as object;
                     if (!del(val, in ctx, Buffer))

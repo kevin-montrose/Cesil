@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using static Cesil.AwaitHelper;
@@ -26,30 +27,33 @@ namespace Cesil
 
         internal AsyncDynamicWriter(DynamicBoundConfiguration config, IAsyncWriterAdapter inner, object? context) : base(config, inner, context) { }
 
-        CachedDelegate<V> IDelegateCache.TryGet<T, V>(T key)
+        bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)] out V del)
             where V : class
         {
             if (DelegateCache == null)
             {
-                return CachedDelegate<V>.Empty;
+                del = default;
+                return false;
             }
 
-            if (DelegateCache.TryGetValue(key, out var cached))
+            if(DelegateCache.TryGetValue(key, out var untypedDel))
             {
-                return new CachedDelegate<V>(cached as V);
+                del = (V)untypedDel;
+                return true;
             }
 
-            return CachedDelegate<V>.Empty;
+            del = default;
+            return false;
         }
 
-        void IDelegateCache.Add<T, V>(T key, V cached)
+        void IDelegateCache.AddDelegate<T, V>(T key, V cached)
         {
             if (DelegateCache == null)
             {
                 DelegateCache = new Dictionary<object, Delegate>();
             }
 
-            DelegateCache.Add(key, cached);
+            DelegateCache.Add(key, (Delegate)(object)cached);
         }
 
         public override ValueTask WriteAsync(dynamic row, CancellationToken cancel = default)
@@ -112,8 +116,7 @@ namespace Cesil
 
                         var formatter = cell.Formatter;
                         var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
-                        delProvider.Guarantee(this);
-                        var del = delProvider.CachedDelegate.Value;
+                        var del = delProvider.Guarantee(this);
 
                         var val = cell.Value as object;
                         if (!del(val, in ctx, Buffer))
@@ -198,8 +201,7 @@ end:
 
                         var formatter = cell.Formatter;
                         var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
-                        delProvider.Guarantee(self);
-                        var del = delProvider.CachedDelegate.Value;
+                        var del = delProvider.Guarantee(self);
 
                         var val = cell.Value as object;
                         if (!del(val, in ctx, self.Buffer))
@@ -261,8 +263,7 @@ end:
 
                             var formatter = cell.Formatter;
                             var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
-                            delProvider.Guarantee(self);
-                            var del = delProvider.CachedDelegate.Value;
+                            var del = delProvider.Guarantee(self);
 
                             var val = cell.Value as object;
                             if (!del(val, in ctx, self.Buffer))
@@ -314,8 +315,7 @@ end:
 
                             var formatter = cell.Formatter;
                             var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
-                            delProvider.Guarantee(self);
-                            var del = delProvider.CachedDelegate.Value;
+                            var del = delProvider.Guarantee(self);
 
                             var val = cell.Value as object;
                             if (!del(val, in ctx, self.Buffer))
@@ -400,8 +400,7 @@ end:
 
                             var formatter = cell.Formatter;
                             var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
-                            delProvider.Guarantee(self);
-                            var del = delProvider.CachedDelegate.Value;
+                            var del = delProvider.Guarantee(self);
 
                             var val = cell.Value as object;
                             if (!del(val, in ctx, self.Buffer))

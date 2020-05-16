@@ -4,25 +4,27 @@ namespace Cesil
 {
     internal static class IDelegateCacheHelpers
     {
-        internal static void GuaranteeImpl<TSelf, TDelegate>(TSelf inst, IDelegateCache cache)
+        internal static TDelegate GuaranteeImpl<TSelf, TDelegate>(TSelf inst, IDelegateCache cache)
             where TSelf : ICreatesCacheableDelegate<TDelegate>, IEquatable<TSelf>
-            where TDelegate : Delegate
+            where TDelegate : class, Delegate
         {
-            if (inst.CachedDelegate.HasValue) return;
+            var del = inst.CachedDelegate;
 
-            ref var del = ref inst.CachedDelegate;
-
-            var cachedRes = cache.TryGet<TSelf, TDelegate>(inst);
-
-            if (cachedRes.Value.HasValue)
+            if (del != null)
             {
-                del.Value = cachedRes.Value.Value;
-                return;
+                return del;
             }
 
-            var newDel = inst.CreateDelegate();
-            cache.Add(inst, newDel);
-            del.Value = newDel;
+            if(cache.TryGetDelegate<TSelf, TDelegate>(inst, out var cached))
+            {
+                inst.CachedDelegate = cached;
+                return cached;
+            }
+
+            del = inst.CreateDelegate();
+            cache.AddDelegate(inst, del);
+            inst.CachedDelegate = del;
+            return del;
         }
     }
 }

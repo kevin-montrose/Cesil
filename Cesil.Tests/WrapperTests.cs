@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Reflection;
@@ -23,17 +24,19 @@ namespace Cesil.Tests
         {
             private readonly Dictionary<object, Delegate> Cache = new Dictionary<object, Delegate>();
 
-            void IDelegateCache.Add<T, V>(T key, V cached)
+            void IDelegateCache.AddDelegate<T, V>(T key, V cached)
             => Cache.Add(key, cached);
 
-            CachedDelegate<V> IDelegateCache.TryGet<T, V>(T key)
+            bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)]out V del)
             {
                 if (!Cache.TryGetValue(key, out var obj))
                 {
-                    return CachedDelegate<V>.Empty;
+                    del = default;
+                    return false;
                 }
 
-                return new CachedDelegate<V>(obj as V);
+                del = (V)obj;
+                return true;
             }
         }
 
@@ -47,26 +50,26 @@ namespace Cesil.Tests
 
             {
                 var getterI = (ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)getter;
-                getterI.CachedDelegate.Clear();
+                getterI.CachedDelegate = null;
                 getterI.Guarantee(cache);
-                var a = getterI.CachedDelegate.Value;
+                var a = getterI.CachedDelegate;
                 Assert.NotNull(a);
-                getterI.CachedDelegate.Clear();
+                getterI.CachedDelegate = null;
                 getterI.Guarantee(cache);
-                var b = getterI.CachedDelegate.Value;
+                var b = getterI.CachedDelegate;
                 Assert.NotNull(b);
                 Assert.True(ReferenceEquals(a, b));
             }
 
             {
                 var formatterI = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
-                formatterI.CachedDelegate.Clear();
+                formatterI.CachedDelegate = null;
                 formatterI.Guarantee(cache);
-                var a = formatterI.CachedDelegate.Value;
+                var a = formatterI.CachedDelegate;
                 Assert.NotNull(a);
-                formatterI.CachedDelegate.Clear();
+                formatterI.CachedDelegate = null;
                 formatterI.Guarantee(cache);
-                var b = formatterI.CachedDelegate.Value;
+                var b = formatterI.CachedDelegate;
                 Assert.NotNull(b);
                 Assert.True(ReferenceEquals(a, b));
             }
@@ -474,17 +477,19 @@ namespace Cesil.Tests
         {
             private readonly Dictionary<object, object> Cache = new Dictionary<object, object>();
 
-            void IDelegateCache.Add<T, V>(T key, V cached)
+            void IDelegateCache.AddDelegate<T, V>(T key, V cached)
             => Cache.Add(key, cached);
 
-            CachedDelegate<V> IDelegateCache.TryGet<T, V>(T key)
+            bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)]out V del)
             {
                 if (!Cache.TryGetValue(key, out var obj))
                 {
-                    return CachedDelegate<V>.Empty;
+                    del = default;
+                    return false;
                 }
 
-                return new CachedDelegate<V>(obj as V);
+                del = (V)obj;
+                return true;
             }
         }
 
@@ -552,10 +557,10 @@ namespace Cesil.Tests
             {
                 var cache = new _IDelegateCache();
                 ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)methodFormatter).Guarantee(cache);
-                var a = ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)methodFormatter).CachedDelegate.Value;
+                var a = ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)methodFormatter).CachedDelegate;
                 Assert.NotNull(a);
                 ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)methodFormatter).Guarantee(cache);
-                var b = ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)methodFormatter).CachedDelegate.Value;
+                var b = ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)methodFormatter).CachedDelegate;
                 Assert.Equal(a, b);
 
                 {
@@ -573,11 +578,11 @@ namespace Cesil.Tests
                 }
 
                 ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)delFormatter).Guarantee(cache);
-                var c = ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)delFormatter).CachedDelegate.Value;
+                var c = ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)delFormatter).CachedDelegate;
                 Assert.NotNull(c);
                 Assert.NotEqual(a, c);
                 ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)delFormatter).Guarantee(cache);
-                var d = ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)delFormatter).CachedDelegate.Value;
+                var d = ((ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)delFormatter).CachedDelegate;
                 Assert.Equal(c, d);
                 Assert.NotEqual(a, d);
 
@@ -923,46 +928,46 @@ namespace Cesil.Tests
             {
                 var cache = new _IDelegateCache();
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)methodGetter).Guarantee(cache);
-                var a = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)methodGetter).CachedDelegate.Value;
+                var a = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)methodGetter).CachedDelegate;
                 Assert.NotNull(a);
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)methodGetter).Guarantee(cache);
-                var b = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)methodGetter).CachedDelegate.Value;
+                var b = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)methodGetter).CachedDelegate;
                 Assert.Equal(a, b);
 
                 var aRes = (_ColumnWriters_Val)a(new _ColumnWriters(), default);
                 Assert.Equal("A", aRes.Value);
 
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticMethodGetter).Guarantee(cache);
-                var c = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticMethodGetter).CachedDelegate.Value;
+                var c = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticMethodGetter).CachedDelegate;
                 Assert.NotNull(c);
                 Assert.NotEqual(a, c);
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticMethodGetter).Guarantee(cache);
-                var d = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticMethodGetter).CachedDelegate.Value;
+                var d = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticMethodGetter).CachedDelegate;
                 Assert.Equal(c, d);
 
                 var cRes = (_ColumnWriters_Val)c(new _ColumnWriters(), default);
                 Assert.Equal("static", cRes.Value);
 
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)fieldGetter).Guarantee(cache);
-                var e = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)fieldGetter).CachedDelegate.Value;
+                var e = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)fieldGetter).CachedDelegate;
                 Assert.NotNull(e);
                 Assert.NotEqual(a, e);
                 Assert.NotEqual(c, e);
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)fieldGetter).Guarantee(cache);
-                var f = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)fieldGetter).CachedDelegate.Value;
+                var f = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)fieldGetter).CachedDelegate;
                 Assert.Equal(e, f);
 
                 var eRes = (_ColumnWriters_Val)e(new _ColumnWriters { A = new _ColumnWriters_Val { Value = "asdf" } }, default);
                 Assert.Equal("asdf", eRes.Value);
 
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticFieldGetter).Guarantee(cache);
-                var g = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticFieldGetter).CachedDelegate.Value;
+                var g = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticFieldGetter).CachedDelegate;
                 Assert.NotNull(g);
                 Assert.NotEqual(a, g);
                 Assert.NotEqual(c, g);
                 Assert.NotEqual(e, g);
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticFieldGetter).Guarantee(cache);
-                var h = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticFieldGetter).CachedDelegate.Value;
+                var h = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticFieldGetter).CachedDelegate;
                 Assert.Equal(g, h);
 
                 _ColumnWriters.StaticA = new _ColumnWriters_Val { Value = "qwerty" };
@@ -970,21 +975,21 @@ namespace Cesil.Tests
                 Assert.Equal("qwerty", gRes.Value);
 
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter).Guarantee(cache);
-                var i = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter).CachedDelegate.Value;
+                var i = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter).CachedDelegate;
                 Assert.NotNull(i);
                 Assert.NotEqual(a, i);
                 Assert.NotEqual(c, i);
                 Assert.NotEqual(e, i);
                 Assert.NotEqual(g, i);
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter).Guarantee(cache);
-                var j = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter).CachedDelegate.Value;
+                var j = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter).CachedDelegate;
                 Assert.Equal(i, j);
 
                 var iRes = (_ColumnWriters_Val)i(new _ColumnWriters { A = new _ColumnWriters_Val { Value = "xxxxx" } }, default);
                 Assert.Equal("xxxxx", iRes.Value);
 
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticDelGetter).Guarantee(cache);
-                var k = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticDelGetter).CachedDelegate.Value;
+                var k = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticDelGetter).CachedDelegate;
                 Assert.NotNull(k);
                 Assert.NotEqual(a, k);
                 Assert.NotEqual(c, k);
@@ -992,7 +997,7 @@ namespace Cesil.Tests
                 Assert.NotEqual(g, k);
                 Assert.NotEqual(i, k);
                 ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticDelGetter).Guarantee(cache);
-                var l = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticDelGetter).CachedDelegate.Value;
+                var l = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)staticDelGetter).CachedDelegate;
                 Assert.Equal(k, l);
 
                 var lRes = (_ColumnWriters_Val)l(new _ColumnWriters(), default);

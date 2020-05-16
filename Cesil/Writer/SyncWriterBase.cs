@@ -189,35 +189,23 @@ namespace Cesil
             }
         }
 
-        // returns true if we need to flush stating, sets remaining to what wasn't placed in staging
+        // returns true if we need to flush staging, sets remaining to what wasn't placed in staging
         internal bool PlaceInStaging(ReadOnlySpan<char> c, out ReadOnlySpan<char> remaining)
         {
             var stagingSpan = StagingMemory.Span;
+            var stagingLen = stagingSpan.Length;
 
-            var ix = 0;
-            while (ix < c.Length)
-            {
-                var leftInC = c.Length - ix;
+            var left = Math.Min(c.Length, stagingLen - InStaging);
 
-                var left = Math.Min(leftInC, stagingSpan.Length - InStaging);
+            var subC = c[0..left];
+            var subStaging = stagingSpan[InStaging..];
 
-                var subC = c.Slice(ix, left);
-                var subStaging = stagingSpan.Slice(InStaging);
+            subC.CopyTo(subStaging);
 
-                subC.CopyTo(subStaging);
+            InStaging += left;
 
-                ix += left;
-                InStaging += left;
-
-                if (InStaging == stagingSpan.Length)
-                {
-                    remaining = c.Slice(ix);
-                    return true;
-                }
-            }
-
-            remaining = default;
-            return false;
+            remaining = c[left..];
+            return InStaging == stagingLen;
         }
 
         internal void WriteCharDirectly(char c)
@@ -234,7 +222,7 @@ namespace Cesil
         {
             var span = StagingMemory.Span;
 
-            Inner.Write(span.Slice(0, InStaging));
+            Inner.Write(span[0..InStaging]);
 
             InStaging = 0;
         }

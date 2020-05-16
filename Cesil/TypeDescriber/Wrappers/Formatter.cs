@@ -58,8 +58,7 @@ namespace Cesil
 
         internal readonly TypeInfo Takes;
 
-        private NonNull<DynamicFormatterDelegate> _CachedDelegate;
-        ref NonNull<DynamicFormatterDelegate> ICreatesCacheableDelegate<DynamicFormatterDelegate>.CachedDelegate => ref _CachedDelegate;
+        DynamicFormatterDelegate? ICreatesCacheableDelegate<DynamicFormatterDelegate>.CachedDelegate { get; set; }
 
         private readonly ImmutableArray<Formatter> _Fallbacks;
         ImmutableArray<Formatter> IElseSupporting<Formatter>.Fallbacks => _Fallbacks;
@@ -141,7 +140,7 @@ namespace Cesil
             return ret;
         }
 
-        void ICreatesCacheableDelegate<DynamicFormatterDelegate>.Guarantee(IDelegateCache cache)
+        DynamicFormatterDelegate ICreatesCacheableDelegate<DynamicFormatterDelegate>.Guarantee(IDelegateCache cache)
         => IDelegateCacheHelpers.GuaranteeImpl<Formatter, DynamicFormatterDelegate>(this, cache);
 
         /// <summary>

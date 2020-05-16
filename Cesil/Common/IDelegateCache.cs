@@ -1,15 +1,16 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Cesil
 {
     internal interface IDelegateCache
     {
-        CachedDelegate<V> TryGet<T, V>(T key)
+        bool TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue:false)]out V del)
             where T : IEquatable<T>
-            where V : Delegate;
+            where V : class, Delegate;
 
-        void Add<T, V>(T key, V cached)
+        void AddDelegate<T, V>(T key, V cached)
             where T : IEquatable<T>
-            where V : Delegate;
+            where V : class, Delegate;
     }
 }

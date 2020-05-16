@@ -17,14 +17,14 @@ namespace Cesil.Benchmark
 
             RunBenchmarks();
 
-            //    var foo = new WideRowDynamicWriteSyncBenchmark();
-            //    foo.RowSet = "ShallowRows";
-            //    foo.Initialize();
+            //var foo = new WideRowDynamicWriteSyncBenchmark();
+            //foo.RowSet = "ShallowRows";
+            //foo.Initialize();
 
-            //    for (var i = 0; i < 1_000; i++)
-            //    {
-            //        foo.Dynamic_Static();
-            //    }
+            //for(var i = 0; i < 1_000; i++)
+            //{
+            //    foo.Dynamic_Static();
+            //}
         }
 
         private static void Log(string value, Action act)
@@ -39,11 +39,11 @@ namespace Cesil.Benchmark
         [Conditional("DEBUG")]
         private static void InitializeAndTest()
         {
+            Log(nameof(MemberOrderHelperBenchmark), () => new MemberOrderHelperBenchmark().InitializeAndTest());
+
             Log(nameof(NarrowRowDynamicReadSyncBenchmark), () => new NarrowRowDynamicReadSyncBenchmark().InitializeAndTest());
 
             Log(nameof(WideRowDynamicWriteSyncBenchmark), () => new WideRowDynamicWriteSyncBenchmark().InitializeAndTest());
-
-
 
             Log(nameof(NameLookupBenchmark), () => new NameLookupBenchmark().InitializeAndTest());
 

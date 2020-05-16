@@ -3080,7 +3080,7 @@ namespace Cesil.Tests
                     }
 
                     var res = getStr();
-                    Assert.Equal("Bar,Foo\r\n,hello\r\n2,world", res);
+                    Assert.Equal("Foo,Bar\r\nhello,\r\nworld,2", res);
                 }
             );
 
@@ -3099,7 +3099,7 @@ namespace Cesil.Tests
                     }
 
                     var res = getStr();
-                    Assert.Equal("Bar,Foo\r\n,hello\r\n2,world", res);
+                    Assert.Equal("Foo,Bar\r\nhello,\r\nworld,2", res);
                     Assert.Equal(2, _UserDefinedEmitDefaultValue_ValueType_Equatable.EqualsCallCount);
                 }
             );
@@ -3119,7 +3119,7 @@ namespace Cesil.Tests
                     }
 
                     var res = getStr();
-                    Assert.Equal("Bar,Foo\r\n,hello\r\n2,world", res);
+                    Assert.Equal("Foo,Bar\r\nhello,\r\nworld,2", res);
                     Assert.Equal(2, _UserDefinedEmitDefaultValue_ValueType_Operator.OperatorCallCount);
                 }
             );
@@ -6540,7 +6540,7 @@ namespace Cesil.Tests
                     }
 
                     var res = await getStr();
-                    Assert.Equal("Bar,Foo\r\n,hello\r\n2,world", res);
+                    Assert.Equal("Foo,Bar\r\nhello,\r\nworld,2", res);
                 }
             );
 
@@ -6559,7 +6559,7 @@ namespace Cesil.Tests
                     }
 
                     var res = await getStr();
-                    Assert.Equal("Bar,Foo\r\n,hello\r\n2,world", res);
+                    Assert.Equal("Foo,Bar\r\nhello,\r\nworld,2", res);
                     Assert.Equal(2, _UserDefinedEmitDefaultValue_ValueType_Equatable.EqualsCallCount);
                 }
             );
@@ -6579,7 +6579,7 @@ namespace Cesil.Tests
                     }
 
                     var res = await getStr();
-                    Assert.Equal("Bar,Foo\r\n,hello\r\n2,world", res);
+                    Assert.Equal("Foo,Bar\r\nhello,\r\nworld,2", res);
                     Assert.Equal(2, _UserDefinedEmitDefaultValue_ValueType_Operator.OperatorCallCount);
                 }
             );

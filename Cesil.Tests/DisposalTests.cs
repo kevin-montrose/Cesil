@@ -262,6 +262,12 @@ namespace Cesil.Tests
                     // intentionally NOT testing, this is ref counted so this
                     //   test wouldn't be sufficient
                 }
+                else if(t == typeof(MemberOrderHelper<>))
+                {
+                    // intentionally NOT testing, this is exposed just because
+                    //   it implements IEnumerable as a necessary part of being
+                    //   an ICollection
+                }
                 else
                 {
                     throw new XunitException($"No test configured for .Dispose() on {t.Name}");

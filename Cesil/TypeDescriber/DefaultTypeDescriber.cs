@@ -72,20 +72,28 @@ namespace Cesil
 
             if (canUseMemberCache)
             {
-                if (DefaultTypeDescriberMemberCache.Instance.TryGetDeserializableMembers(forType, out var earlyRet))
+                if (DefaultTypeDescriberCache.Instance.TryGetDeserializableMembers(forType, out var earlyRet))
                 {
                     return earlyRet;
                 }
             }
 
-            var buffer = new List<(DeserializableMember Member, int? Position)>();
+            IEnumerable<DeserializableMember> ret;
 
             if (CheckReadingWellKnownType(forType, out var knownMember))
             {
-                buffer.Add((knownMember, null));
+                // no need to create something fancy for a single member
+                ret = new[] { knownMember };
             }
             else
             {
+                // use something slightly fancy so we don't have to sort at the end
+                // 
+                // note that this will handle the "actually, order is always null"
+                //      optimization case, it won't bother to track ordering
+                //      until a non-null is found
+                var buffer = MemberOrderHelper<DeserializableMember>.Create();
+
                 foreach (var p in forType.GetProperties(BindingFlagsConstants.All))
                 {
                     if (!ShouldDeserialize(forType, p)) continue;
@@ -97,7 +105,7 @@ namespace Cesil
                     var isRequired = GetIsRequired(forType, p);
                     var reset = GetReset(forType, p);
 
-                    buffer.Add((DeserializableMember.CreateInner(forType, name, setter, parser, isRequired, reset), order));
+                    buffer.Add(order, DeserializableMember.CreateInner(forType, name, setter, parser, isRequired, reset));
                 }
 
                 foreach (var f in forType.GetFields())
@@ -111,28 +119,18 @@ namespace Cesil
                     var isRequired = GetIsRequired(forType, f);
                     var reset = GetReset(forType, f);
 
-                    buffer.Add((DeserializableMember.CreateInner(forType, name, setter, parser, isRequired, reset), order));
+                    buffer.Add(order, DeserializableMember.CreateInner(forType, name, setter, parser, isRequired, reset));
                 }
 
-                buffer.Sort(TypeDescribers.DeserializableComparer);
+                ret = buffer;
             }
-
-            var ret = Map(buffer);
 
             if (canUseMemberCache)
             {
-                DefaultTypeDescriberMemberCache.Instance.Add(forType, ret);
+                DefaultTypeDescriberCache.Instance.AddDeserializableMembers(forType, ret);
             }
 
             return ret;
-
-            static IEnumerable<DeserializableMember> Map(List<(DeserializableMember Member, int? Position)> ret)
-            {
-                foreach (var (member, _) in ret)
-                {
-                    yield return member;
-                }
-            }
         }
 
         // property deserialization defaults
@@ -441,20 +439,23 @@ namespace Cesil
             {
                 // we _know_ this isn't a subclass, so we know what our behavior will be
                 //    and therefore we can optimize this to avoid pointless repeated lookups
-                if (DefaultTypeDescriberMemberCache.Instance.TryGetSerializableMembers(forType, out var earlyRet))
+                if (DefaultTypeDescriberCache.Instance.TryGetSerializableMembers(forType, out var earlyRet))
                 {
                     return earlyRet;
                 }
             }
 
-            var buffer = new List<(SerializableMember Member, int? Position)>();
+            IEnumerable<SerializableMember> ret;
 
             if (CheckWritingWellKnownType(forType, out var knownMember))
             {
-                buffer.Add((knownMember, null));
+                // no need to spin up something big for a single member
+                ret = new[] { knownMember };
             }
             else
             {
+                var buffer = MemberOrderHelper<SerializableMember>.Create();
+
                 foreach (var p in forType.GetProperties(BindingFlagsConstants.All))
                 {
                     if (!ShouldSerialize(forType, p)) continue;
@@ -466,7 +467,7 @@ namespace Cesil
                     var order = GetOrder(forType, p);
                     var emitDefault = GetEmitDefaultValue(forType, p);
 
-                    buffer.Add((SerializableMember.CreateInner(forType, name, getter, formatter, shouldSerialize, emitDefault), order));
+                    buffer.Add(order, SerializableMember.CreateInner(forType, name, getter, formatter, shouldSerialize, emitDefault));
                 }
 
                 foreach (var f in forType.GetFields(BindingFlagsConstants.All))
@@ -480,28 +481,18 @@ namespace Cesil
                     var order = GetOrder(forType, f);
                     var emitDefault = GetEmitDefaultValue(forType, f);
 
-                    buffer.Add((SerializableMember.CreateInner(forType, name, getter, formatter, shouldSerialize, emitDefault), order));
+                    buffer.Add(order, SerializableMember.CreateInner(forType, name, getter, formatter, shouldSerialize, emitDefault));
                 }
+
+                ret = buffer;
             }
-
-            buffer.Sort(TypeDescribers.SerializableComparer);
-
-            var ret = Map(buffer);
 
             if (canUseMemberCache)
             {
-                DefaultTypeDescriberMemberCache.Instance.Add(forType, ret);
+                DefaultTypeDescriberCache.Instance.AddSerializableMembers(forType, ret);
             }
 
             return ret;
-
-            static IEnumerable<SerializableMember> Map(List<(SerializableMember Member, int? Position)> raw)
-            {
-                foreach (var (member, _) in raw)
-                {
-                    yield return member;
-                }
-            }
         }
 
         // property serialization defaults
@@ -762,7 +753,18 @@ namespace Cesil
             var dataMember = member.GetCustomAttribute<DataMemberAttribute>();
             if (dataMember != null)
             {
-                return dataMember.Order;
+                var ret = dataMember.Order;
+
+                if (ret < 0)
+                {
+                    // can't actually find this in the documentation, _but_ 
+                    //   the setter throws on values < 0 and the default
+                    //   value is -1... so < 0 means not set
+                    // weird behavior from predating nullable value types
+                    return null;
+                }
+
+                return ret;
             }
 
             return null;
@@ -840,14 +842,14 @@ namespace Cesil
                     Formatter? formatter;
                     if (canUseCache)
                     {
-                        var cache = DefaultTypeDescriberMemberCache.Instance;
+                        var cache = DefaultTypeDescriberCache.Instance;
 
                         if (!cache.TryGetFormatter(Types.String, out formatter))
                         {
                             formatter = GetFormatter(Types.String, name, in context, rowObj);
                             if (formatter != null)
                             {
-                                cache.Add(Types.String, formatter);
+                                cache.AddFormatter(Types.String, formatter);
                             }
                         }
                     }
@@ -900,14 +902,14 @@ endLoop:
 
                         if (canUseCache)
                         {
-                            var cache = DefaultTypeDescriberMemberCache.Instance;
+                            var cache = DefaultTypeDescriberCache.Instance;
 
                             if (!cache.TryGetFormatter(valueType, out formatter))
                             {
                                 formatter = GetFormatter(valueType, name, in context, rowObj);
                                 if (formatter != null)
                                 {
-                                    cache.Add(valueType, formatter);
+                                    cache.AddFormatter(valueType, formatter);
                                 }
                             }
                         }
@@ -995,14 +997,14 @@ endLoop:
 
                         if (canUseCache)
                         {
-                            var cache = DefaultTypeDescriberMemberCache.Instance;
+                            var cache = DefaultTypeDescriberCache.Instance;
 
                             if (!cache.TryGetFormatter(valueType, out formatter))
                             {
                                 formatter = GetFormatter(valueType, name, in context, rowObj);
                                 if (formatter != null)
                                 {
-                                    cache.Add(valueType, formatter);
+                                    cache.AddFormatter(valueType, formatter);
                                 }
                             }
                         }
@@ -1060,14 +1062,14 @@ endLoop:
                     Formatter? formatter;
                     if (canUseCache)
                     {
-                        var cache = DefaultTypeDescriberMemberCache.Instance;
+                        var cache = DefaultTypeDescriberCache.Instance;
 
                         if (!cache.TryGetFormatter(getter.Returns, out formatter))
                         {
                             formatter = GetFormatter(getter.Returns, name, in context, rowObj);
                             if (formatter != null)
                             {
-                                cache.Add(getter.Returns, formatter);
+                                cache.AddFormatter(getter.Returns, formatter);
                             }
                         }
                     }
@@ -1082,14 +1084,14 @@ endLoop:
                     }
 
                     var delProvider = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)getter);
-                    delProvider.Guarantee(DefaultTypeDescriberDelegateCache.Instance);
-                    var value = delProvider.CachedDelegate.Value(rowObj, in context);
+                    var del = delProvider.Guarantee(DefaultTypeDescriberCache.Instance);
+                    var value = del(rowObj, in context);
 
                     ret[nextRetIx] = DynamicCellValue.Create(name, value, formatter);
                     nextRetIx++;
                 }
 
-                if(nextRetIx != ret.Length)
+                if (nextRetIx != ret.Length)
                 {
                     return ret.Take(nextRetIx);
                 }

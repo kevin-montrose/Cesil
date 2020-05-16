@@ -72,8 +72,7 @@ namespace Cesil
 
         internal readonly bool TakesContext;
 
-        private NonNull<DynamicGetterDelegate> _CachedDelegate;
-        ref NonNull<DynamicGetterDelegate> ICreatesCacheableDelegate<DynamicGetterDelegate>.CachedDelegate => ref _CachedDelegate;
+        DynamicGetterDelegate? ICreatesCacheableDelegate<DynamicGetterDelegate>.CachedDelegate { get; set; }
 
         private Getter(TypeInfo? rowType, TypeInfo returns, MethodInfo method, bool takesContext)
         {
@@ -137,7 +136,7 @@ namespace Cesil
             return del;
         }
 
-        void ICreatesCacheableDelegate<DynamicGetterDelegate>.Guarantee(IDelegateCache cache)
+        DynamicGetterDelegate ICreatesCacheableDelegate<DynamicGetterDelegate>.Guarantee(IDelegateCache cache)
         => IDelegateCacheHelpers.GuaranteeImpl<Getter, DynamicGetterDelegate>(this, cache);
 
         internal Expression MakeExpression(ParameterExpression rowVar, ParameterExpression ctxVar)

@@ -1063,6 +1063,10 @@ namespace Cesil.Tests
                 {
                     msg = InvokeToString_ImpossibleException();
                 }
+                else if (t == typeof(MemberOrderHelper<>))
+                {
+                    msg = InvokeToString_MemberOrderHelper();
+                }
                 else
                 {
                     Assert.True(false, $"No test for ToString() on {t}");
@@ -1087,6 +1091,13 @@ namespace Cesil.Tests
                 {
                     Assert.StartsWith(shouldStartWith, msg2);
                 }
+            }
+
+            static string InvokeToString_MemberOrderHelper()
+            {
+                var a = MemberOrderHelper<string>.Create();
+
+                return a.ToString();
             }
 
             static string InvokeToString_ImpossibleException()

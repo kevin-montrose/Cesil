@@ -67,8 +67,7 @@ namespace Cesil
         private readonly ImmutableArray<Parser> _Fallbacks;
         ImmutableArray<Parser> IElseSupporting<Parser>.Fallbacks => _Fallbacks;
 
-        private NonNull<DynamicParserDelegate> _CachedDelegate;
-        ref NonNull<DynamicParserDelegate> ICreatesCacheableDelegate<DynamicParserDelegate>.CachedDelegate => ref _CachedDelegate;
+        DynamicParserDelegate? ICreatesCacheableDelegate<DynamicParserDelegate>.CachedDelegate { get; set; }
 
         private Parser(MethodInfo method, TypeInfo creates, ImmutableArray<Parser> fallbacks)
         {
@@ -123,7 +122,7 @@ namespace Cesil
             return del;
         }
 
-        void ICreatesCacheableDelegate<DynamicParserDelegate>.Guarantee(IDelegateCache cache)
+        DynamicParserDelegate ICreatesCacheableDelegate<DynamicParserDelegate>.Guarantee(IDelegateCache cache)
         => IDelegateCacheHelpers.GuaranteeImpl<Parser, DynamicParserDelegate>(this, cache);
 
         Parser IElseSupporting<Parser>.Clone(ImmutableArray<Parser> newFallbacks)
