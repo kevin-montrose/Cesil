@@ -4,27 +4,17 @@ using BenchmarkDotNet.Attributes;
 
 namespace Cesil.Benchmark
 {
+    [BenchmarkCategory("Internals")]
     public class NeedsEncodeBenchmark
     {
-        [ParamsSource(nameof(Implementations))]
-        public string Implementation { get; set; }
-
         [ParamsSource(nameof(StringLengths))]
         public int StringLength { get; set; }
 
         [ParamsSource(nameof(PercentsNeedEncoding))]
         public int PercentNeedEncoding { get; set; }
 
-        public IEnumerable<int> StringLengths => new[] { /*0, 1, 2, 4, 5, 10, 16, 20, 64, 65, 100,*/ 1, 10, 16, 100, 112, 1_000, 1_008, 10_000 };
-        public IEnumerable<int> PercentsNeedEncoding => new[] { 0, /*10,*/ 50, 100 };
-        public IEnumerable<string> Implementations =>
-            new[]
-            {
-                nameof(BasicContains),
-                nameof(Probabilistic),
-                nameof(Avx2),
-                nameof(Combo)
-            };
+        public IEnumerable<int> StringLengths => new[] { 1, 10, 16, 100, 112, 1_000, 1_008, 10_000 };
+        public IEnumerable<int> PercentsNeedEncoding => new[] { 0, 10, 50, 100 };
 
         private List<string> Strings;
 
@@ -108,6 +98,7 @@ namespace Cesil.Benchmark
             }
         }
 
+        // called via reflection
         public void InitializeAndTest()
         {
             foreach (var len in StringLengths)
@@ -119,54 +110,60 @@ namespace Cesil.Benchmark
                     StringLength = len;
                     Initialize();
 
-                    var expected = new Dictionary<int, int>();
-
-                    foreach (var impl in Implementations)
+                    for (var i = 0; i < Strings.Count; i++)
                     {
-                        var func = GetFunc(impl);
-                        for (var i = 0; i < Strings.Count; i++)
-                        {
-                            var span = Strings[i].AsSpan();
-                            var val = func(span);
+                        var span = Strings[i].AsSpan();
 
-                            if (!expected.ContainsKey(i))
-                            {
-                                expected[i] = val;
-                            }
+                        var bc = BasicContains(span);
+                        var p = Probabilistic(span);
+                        var a = Avx2(span);
+                        var c = Combo(span);
 
-                            if (expected[i] != val)
-                            {
-                                throw new Exception();
-                            }
-                        }
+                        if (bc != p) throw new Exception();
+                        if (bc != a) throw new Exception();
+                        if (bc != c) throw new Exception();
                     }
                 }
             }
         }
 
-        [Benchmark]
-        public void Run()
+        [Benchmark(Baseline = true)]
+        public void BasicContains()
         {
-            var func = GetFunc(Implementation);
-
             foreach (var str in Strings)
             {
                 var span = str.AsSpan();
-                func(span);
+                BasicContains(span);
             }
         }
 
-        private delegate int ContainsDelegate(ReadOnlySpan<char> data);
-
-        private ContainsDelegate GetFunc(string impl)
+        [Benchmark]
+        public void Probabilistic()
         {
-            switch (impl)
+            foreach (var str in Strings)
             {
-                case nameof(BasicContains): return BasicContains;
-                case nameof(Probabilistic): return Probabilistic;
-                case nameof(Avx2): return Avx2;
-                case nameof(Combo): return Combo;
-                default: throw new Exception();
+                var span = str.AsSpan();
+                Probabilistic(span);
+            }
+        }
+
+        [Benchmark]
+        public void Avx2()
+        {
+            foreach (var str in Strings)
+            {
+                var span = str.AsSpan();
+                Avx2(span);
+            }
+        }
+
+        [Benchmark]
+        public void Combo()
+        {
+            foreach (var str in Strings)
+            {
+                var span = str.AsSpan();
+                Combo(span);
             }
         }
 

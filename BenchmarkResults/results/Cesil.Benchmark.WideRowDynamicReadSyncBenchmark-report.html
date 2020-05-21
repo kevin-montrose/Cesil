@@ -2,7 +2,7 @@
 <html lang='en'>
 <head>
 <meta charset='utf-8' />
-<title>Cesil.Benchmark.WideRowDynamicReadSyncBenchmark-20200326-234542</title>
+<title>Cesil.Benchmark.WideRowDynamicReadSyncBenchmark-20200524-151710</title>
 
 <style type="text/css">
 	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
@@ -13,22 +13,22 @@
 </head>
 <body>
 <pre><code>
-BenchmarkDotNet=v0.12.0, OS=Windows 8.1 (6.3.9600.0)
+BenchmarkDotNet=v0.12.1, OS=Windows 8.1 (6.3.9600.0)
 Intel Core i7-4960HQ CPU 2.60GHz (Haswell), 1 CPU, 8 logical and 4 physical cores
-Frequency=2533206 Hz, Resolution=394.7567 ns, Timer=TSC
-.NET Core SDK=3.0.100
+Frequency=2533200 Hz, Resolution=394.7576 ns, Timer=TSC
+.NET Core SDK=3.1.201
   [Host]     : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
   DefaultJob : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
 </code></pre>
 <pre><code></code></pre>
 
 <table>
-<thead><tr><th>Method</th><th>RowSet</th><th>  Mean</th><th> Error</th><th>StdDev</th><th>Ratio</th><th>RatioSD</th><th>Gen 0</th><th>Gen 1</th><th>Gen 2</th><th>Allocated</th>
+<thead><tr><th>Method</th><th>RowSet</th><th>  Mean</th><th> Error</th><th> StdDev</th><th>Median</th><th>Ratio</th><th>RatioSD</th><th>Gen 0</th><th>Gen 1</th><th>Gen 2</th><th>Allocated</th>
 </tr>
-</thead><tbody><tr><td>Static</td><td>DeepRows</td><td>225,350.7 us</td><td>915.42 us</td><td>811.50 us</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>15695.03 KB</td>
-</tr><tr><td>Dynamic</td><td>DeepRows</td><td>702,238.6 us</td><td>10,128.76 us</td><td>8,978.89 us</td><td>3.12</td><td>0.04</td><td>1000.0000</td><td>-</td><td>-</td><td>94764.73 KB</td>
-</tr><tr><td>Static</td><td>ShallowRows</td><td>261.7 us</td><td>3.01 us</td><td>2.81 us</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>17.9 KB</td>
-</tr><tr><td>Dynamic</td><td>ShallowRows</td><td>724.4 us</td><td>3.01 us</td><td>2.67 us</td><td>2.77</td><td>0.04</td><td>0.9766</td><td>-</td><td>-</td><td>84.94 KB</td>
+</thead><tbody><tr><td>Static</td><td>DeepRows</td><td>237,870.4 &mu;s</td><td>4,130.24 &mu;s</td><td>4,056.44 &mu;s</td><td>236,144.8 &mu;s</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>15693.72 KB</td>
+</tr><tr><td>Dynamic</td><td>DeepRows</td><td>729,676.3 &mu;s</td><td>38,098.75 &mu;s</td><td>111,135.84 &mu;s</td><td>697,297.7 &mu;s</td><td>3.51</td><td>0.48</td><td>1000.0000</td><td>-</td><td>-</td><td>84466.9 KB</td>
+</tr><tr><td>Static</td><td>ShallowRows</td><td>273.9 &mu;s</td><td>1.58 &mu;s</td><td>1.40 &mu;s</td><td>273.6 &mu;s</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>17.91 KB</td>
+</tr><tr><td>Dynamic</td><td>ShallowRows</td><td>597.6 &mu;s</td><td>1.88 &mu;s</td><td>1.67 &mu;s</td><td>597.0 &mu;s</td><td>2.18</td><td>0.01</td><td>0.9766</td><td>-</td><td>-</td><td>74.46 KB</td>
 </tr></tbody></table>
 </body>
 </html>

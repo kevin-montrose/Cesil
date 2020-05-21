@@ -2,7 +2,7 @@
 <html lang='en'>
 <head>
 <meta charset='utf-8' />
-<title>Cesil.Benchmark.WideRowWriteSyncBenchmark-20200326-234749</title>
+<title>Cesil.Benchmark.WideRowWriteSyncBenchmark-20200524-191246</title>
 
 <style type="text/css">
 	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
@@ -13,22 +13,22 @@
 </head>
 <body>
 <pre><code>
-BenchmarkDotNet=v0.12.0, OS=Windows 8.1 (6.3.9600.0)
+BenchmarkDotNet=v0.12.1, OS=Windows 8.1 (6.3.9600.0)
 Intel Core i7-4960HQ CPU 2.60GHz (Haswell), 1 CPU, 8 logical and 4 physical cores
-Frequency=2533206 Hz, Resolution=394.7567 ns, Timer=TSC
-.NET Core SDK=3.0.100
+Frequency=2533200 Hz, Resolution=394.7576 ns, Timer=TSC
+.NET Core SDK=3.1.201
   [Host]     : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
   DefaultJob : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
 </code></pre>
 <pre><code></code></pre>
 
 <table>
-<thead><tr><th>Method</th><th>RowSet</th><th>Library</th><th>  Mean</th><th>Error</th><th>StdDev</th><th>Gen 0</th><th>Gen 1</th><th>Gen 2</th><th>Allocated</th>
+<thead><tr><th>Method</th><th>RowSet</th><th>  Mean</th><th>Error</th><th>StdDev</th><th>Ratio</th><th>Gen 0</th><th>Gen 1</th><th>Gen 2</th><th>Allocated</th>
 </tr>
-</thead><tbody><tr><td>Run</td><td>DeepRows</td><td>Cesil</td><td>100,460.3 us</td><td>243.41 us</td><td>203.26 us</td><td>-</td><td>-</td><td>-</td><td>2635.35 KB</td>
-</tr><tr><td>Run</td><td>DeepRows</td><td>CsvHelper</td><td>144,204.5 us</td><td>1,979.82 us</td><td>1,851.92 us</td><td>500.0000</td><td>-</td><td>-</td><td>38707.59 KB</td>
-</tr><tr><td>Run</td><td>ShallowRows</td><td>Cesil</td><td>101.6 us</td><td>0.41 us</td><td>0.36 us</td><td>-</td><td>-</td><td>-</td><td>5.41 KB</td>
-</tr><tr><td>Run</td><td>ShallowRows</td><td>CsvHelper</td><td>16,150.1 us</td><td>35.07 us</td><td>32.81 us</td><td>-</td><td>-</td><td>-</td><td>322.3 KB</td>
+</thead><tbody><tr><td>CsvHelper</td><td>DeepRows</td><td>144,105.0 &mu;s</td><td>1,072.40 &mu;s</td><td>1,003.13 &mu;s</td><td>1.00</td><td>500.0000</td><td>-</td><td>-</td><td>38941.69 KB</td>
+</tr><tr><td>Cesil</td><td>DeepRows</td><td>102,160.3 &mu;s</td><td>594.50 &mu;s</td><td>527.01 &mu;s</td><td>0.71</td><td>-</td><td>-</td><td>-</td><td>2634.09 KB</td>
+</tr><tr><td>CsvHelper</td><td>ShallowRows</td><td>16,248.6 &mu;s</td><td>104.10 &mu;s</td><td>97.37 &mu;s</td><td>1.000</td><td>-</td><td>-</td><td>-</td><td>322.51 KB</td>
+</tr><tr><td>Cesil</td><td>ShallowRows</td><td>102.7 &mu;s</td><td>1.65 &mu;s</td><td>1.46 &mu;s</td><td>0.006</td><td>-</td><td>-</td><td>-</td><td>5.36 KB</td>
 </tr></tbody></table>
 </body>
 </html>

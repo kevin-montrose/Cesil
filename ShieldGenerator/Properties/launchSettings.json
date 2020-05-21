@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ShieldGenerator": {
+      "commandName": "Project",
+      "commandLineArgs": "coverage"
+    }
+  }
+}

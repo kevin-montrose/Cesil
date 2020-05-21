@@ -2,7 +2,7 @@
 <html lang='en'>
 <head>
 <meta charset='utf-8' />
-<title>Cesil.Benchmark.NeedsEncodeBenchmark-20200326-231500</title>
+<title>Cesil.Benchmark.NeedsEncodeBenchmark-20200524-121047</title>
 
 <style type="text/css">
 	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
@@ -13,114 +13,146 @@
 </head>
 <body>
 <pre><code>
-BenchmarkDotNet=v0.12.0, OS=Windows 8.1 (6.3.9600.0)
+BenchmarkDotNet=v0.12.1, OS=Windows 8.1 (6.3.9600.0)
 Intel Core i7-4960HQ CPU 2.60GHz (Haswell), 1 CPU, 8 logical and 4 physical cores
-Frequency=2533206 Hz, Resolution=394.7567 ns, Timer=TSC
-.NET Core SDK=3.0.100
+Frequency=2533200 Hz, Resolution=394.7576 ns, Timer=TSC
+.NET Core SDK=3.1.201
   [Host]     : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
   DefaultJob : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
 </code></pre>
 <pre><code></code></pre>
 
 <table>
-<thead><tr><th>Method</th><th>Implementation</th><th>StringLength</th><th>PercentNeedEncoding</th><th>  Mean</th><th>Error</th><th>StdDev</th><th>Median</th><th>Gen 0</th><th>Gen 1</th><th>Gen 2</th><th>Allocated</th>
+<thead><tr><th> Method</th><th>StringLength</th><th>PercentNeedEncoding</th><th>    Mean</th><th> Error</th><th>StdDev</th><th>  Median</th><th>Ratio</th><th>RatioSD</th><th>Gen 0</th><th>Gen 1</th><th>Gen 2</th><th>Allocated</th>
 </tr>
-</thead><tbody><tr><td>Run</td><td>Avx2</td><td>1</td><td>0</td><td>1.509 us</td><td>0.0300 us</td><td>0.0509 us</td><td>1.497 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>1</td><td>50</td><td>1.508 us</td><td>0.0117 us</td><td>0.0104 us</td><td>1.513 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>1</td><td>100</td><td>1.630 us</td><td>0.0316 us</td><td>0.0296 us</td><td>1.638 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>10</td><td>0</td><td>1.936 us</td><td>0.0021 us</td><td>0.0018 us</td><td>1.935 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>10</td><td>50</td><td>2.465 us</td><td>0.0489 us</td><td>0.0502 us</td><td>2.485 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>10</td><td>100</td><td>2.000 us</td><td>0.0481 us</td><td>0.0450 us</td><td>1.976 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>16</td><td>0</td><td>1.602 us</td><td>0.0232 us</td><td>0.0194 us</td><td>1.609 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>16</td><td>50</td><td>1.779 us</td><td>0.0346 us</td><td>0.0411 us</td><td>1.773 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>16</td><td>100</td><td>1.550 us</td><td>0.0252 us</td><td>0.0223 us</td><td>1.557 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>100</td><td>0</td><td>3.050 us</td><td>0.0604 us</td><td>0.0719 us</td><td>3.056 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>100</td><td>50</td><td>2.622 us</td><td>0.0126 us</td><td>0.0105 us</td><td>2.625 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>100</td><td>100</td><td>2.081 us</td><td>0.0347 us</td><td>0.0324 us</td><td>2.095 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>112</td><td>0</td><td>2.552 us</td><td>0.0300 us</td><td>0.0280 us</td><td>2.564 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>112</td><td>50</td><td>2.559 us</td><td>0.0493 us</td><td>0.0624 us</td><td>2.597 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>112</td><td>100</td><td>2.260 us</td><td>0.0339 us</td><td>0.0317 us</td><td>2.249 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>1000</td><td>0</td><td>14.316 us</td><td>0.0526 us</td><td>0.0492 us</td><td>14.328 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>1000</td><td>50</td><td>10.972 us</td><td>0.1609 us</td><td>0.1256 us</td><td>11.043 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>1000</td><td>100</td><td>7.971 us</td><td>0.0858 us</td><td>0.0803 us</td><td>7.968 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>1008</td><td>0</td><td>13.723 us</td><td>0.1930 us</td><td>0.1806 us</td><td>13.827 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>1008</td><td>50</td><td>11.056 us</td><td>0.0842 us</td><td>0.0657 us</td><td>11.040 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>1008</td><td>100</td><td>8.593 us</td><td>0.0640 us</td><td>0.0598 us</td><td>8.609 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>10000</td><td>0</td><td>115.692 us</td><td>1.0662 us</td><td>0.9973 us</td><td>115.389 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>10000</td><td>50</td><td>85.441 us</td><td>1.0335 us</td><td>0.9667 us</td><td>85.987 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Avx2</td><td>10000</td><td>100</td><td>58.027 us</td><td>0.8294 us</td><td>0.7758 us</td><td>57.967 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>1</td><td>0</td><td>2.042 us</td><td>0.0167 us</td><td>0.0156 us</td><td>2.049 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>1</td><td>50</td><td>1.945 us</td><td>0.0122 us</td><td>0.0114 us</td><td>1.945 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>1</td><td>100</td><td>1.650 us</td><td>0.0260 us</td><td>0.0230 us</td><td>1.659 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>10</td><td>0</td><td>3.342 us</td><td>0.0325 us</td><td>0.0288 us</td><td>3.339 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>10</td><td>50</td><td>3.108 us</td><td>0.0207 us</td><td>0.0173 us</td><td>3.113 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>10</td><td>100</td><td>2.057 us</td><td>0.0189 us</td><td>0.0177 us</td><td>2.060 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>16</td><td>0</td><td>4.517 us</td><td>0.0523 us</td><td>0.0437 us</td><td>4.537 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>16</td><td>50</td><td>3.774 us</td><td>0.0250 us</td><td>0.0234 us</td><td>3.781 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>16</td><td>100</td><td>2.647 us</td><td>0.0270 us</td><td>0.0253 us</td><td>2.646 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>100</td><td>0</td><td>5.163 us</td><td>0.1024 us</td><td>0.1096 us</td><td>5.124 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>100</td><td>50</td><td>4.351 us</td><td>0.0624 us</td><td>0.0583 us</td><td>4.378 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>100</td><td>100</td><td>3.615 us</td><td>0.0379 us</td><td>0.0355 us</td><td>3.609 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>112</td><td>0</td><td>5.783 us</td><td>0.0424 us</td><td>0.0396 us</td><td>5.798 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>112</td><td>50</td><td>4.696 us</td><td>0.0416 us</td><td>0.0369 us</td><td>4.709 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>112</td><td>100</td><td>3.704 us</td><td>0.0674 us</td><td>0.0631 us</td><td>3.721 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>1000</td><td>0</td><td>20.210 us</td><td>0.1810 us</td><td>0.1511 us</td><td>20.275 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>1000</td><td>50</td><td>15.197 us</td><td>0.2370 us</td><td>0.2217 us</td><td>15.126 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>1000</td><td>100</td><td>11.254 us</td><td>0.0507 us</td><td>0.0450 us</td><td>11.268 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>1008</td><td>0</td><td>20.648 us</td><td>0.1481 us</td><td>0.1385 us</td><td>20.713 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>1008</td><td>50</td><td>16.436 us</td><td>0.0844 us</td><td>0.0705 us</td><td>16.454 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>1008</td><td>100</td><td>11.871 us</td><td>0.0867 us</td><td>0.0811 us</td><td>11.890 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>10000</td><td>0</td><td>144.514 us</td><td>0.1063 us</td><td>0.0995 us</td><td>144.533 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>10000</td><td>50</td><td>113.637 us</td><td>0.2308 us</td><td>0.2046 us</td><td>113.566 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>BasicContains</td><td>10000</td><td>100</td><td>78.312 us</td><td>1.6417 us</td><td>1.6859 us</td><td>77.296 us</td><td>-</td><td>-</td><td>-</td><td>65 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>1</td><td>0</td><td>1.037 us</td><td>0.0151 us</td><td>0.0134 us</td><td>1.040 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>1</td><td>50</td><td>1.278 us</td><td>0.0072 us</td><td>0.0068 us</td><td>1.279 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>1</td><td>100</td><td>1.391 us</td><td>0.0120 us</td><td>0.0112 us</td><td>1.386 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>10</td><td>0</td><td>2.434 us</td><td>0.0139 us</td><td>0.0116 us</td><td>2.437 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>10</td><td>50</td><td>2.368 us</td><td>0.0193 us</td><td>0.0180 us</td><td>2.376 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>10</td><td>100</td><td>1.745 us</td><td>0.0240 us</td><td>0.0225 us</td><td>1.753 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>16</td><td>0</td><td>1.852 us</td><td>0.0339 us</td><td>0.0317 us</td><td>1.863 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>16</td><td>50</td><td>1.961 us</td><td>0.0175 us</td><td>0.0164 us</td><td>1.955 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>16</td><td>100</td><td>1.648 us</td><td>0.0314 us</td><td>0.0309 us</td><td>1.661 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>100</td><td>0</td><td>3.143 us</td><td>0.0620 us</td><td>0.0637 us</td><td>3.113 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>100</td><td>50</td><td>2.897 us</td><td>0.0330 us</td><td>0.0309 us</td><td>2.908 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>100</td><td>100</td><td>2.283 us</td><td>0.0299 us</td><td>0.0279 us</td><td>2.283 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>112</td><td>0</td><td>2.832 us</td><td>0.0551 us</td><td>0.0566 us</td><td>2.855 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>112</td><td>50</td><td>2.755 us</td><td>0.0333 us</td><td>0.0311 us</td><td>2.750 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>112</td><td>100</td><td>2.224 us</td><td>0.0411 us</td><td>0.0384 us</td><td>2.237 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>1000</td><td>0</td><td>14.079 us</td><td>0.0629 us</td><td>0.0558 us</td><td>14.073 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>1000</td><td>50</td><td>11.121 us</td><td>0.1732 us</td><td>0.1620 us</td><td>11.058 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>1000</td><td>100</td><td>8.180 us</td><td>0.0665 us</td><td>0.0589 us</td><td>8.200 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>1008</td><td>0</td><td>13.548 us</td><td>0.1114 us</td><td>0.0930 us</td><td>13.576 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>1008</td><td>50</td><td>11.136 us</td><td>0.0188 us</td><td>0.0157 us</td><td>11.129 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>1008</td><td>100</td><td>8.547 us</td><td>0.1062 us</td><td>0.0993 us</td><td>8.596 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>10000</td><td>0</td><td>114.875 us</td><td>0.1198 us</td><td>0.1000 us</td><td>114.844 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>10000</td><td>50</td><td>85.831 us</td><td>0.8127 us</td><td>0.7602 us</td><td>85.979 us</td><td>-</td><td>-</td><td>-</td><td>65 B</td>
-</tr><tr><td>Run</td><td>Combo</td><td>10000</td><td>100</td><td>58.131 us</td><td>0.6029 us</td><td>0.5345 us</td><td>57.982 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>1</td><td>0</td><td>1.019 us</td><td>0.0069 us</td><td>0.0061 us</td><td>1.022 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>1</td><td>50</td><td>1.188 us</td><td>0.0098 us</td><td>0.0087 us</td><td>1.187 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>1</td><td>100</td><td>1.260 us</td><td>0.0067 us</td><td>0.0063 us</td><td>1.261 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>10</td><td>0</td><td>2.454 us</td><td>0.0333 us</td><td>0.0311 us</td><td>2.448 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>10</td><td>50</td><td>2.319 us</td><td>0.0179 us</td><td>0.0167 us</td><td>2.321 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>10</td><td>100</td><td>1.745 us</td><td>0.0141 us</td><td>0.0118 us</td><td>1.749 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>16</td><td>0</td><td>3.259 us</td><td>0.0609 us</td><td>0.0625 us</td><td>3.246 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>16</td><td>50</td><td>3.005 us</td><td>0.0272 us</td><td>0.0255 us</td><td>3.008 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>16</td><td>100</td><td>2.179 us</td><td>0.0164 us</td><td>0.0145 us</td><td>2.177 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>100</td><td>0</td><td>15.342 us</td><td>0.1197 us</td><td>0.1120 us</td><td>15.318 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>100</td><td>50</td><td>12.720 us</td><td>0.1118 us</td><td>0.0873 us</td><td>12.757 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>100</td><td>100</td><td>9.203 us</td><td>0.0589 us</td><td>0.0551 us</td><td>9.217 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>112</td><td>0</td><td>17.253 us</td><td>0.0270 us</td><td>0.0253 us</td><td>17.249 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>112</td><td>50</td><td>13.924 us</td><td>0.2609 us</td><td>0.2441 us</td><td>13.858 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>112</td><td>100</td><td>10.279 us</td><td>0.0179 us</td><td>0.0167 us</td><td>10.285 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>1000</td><td>0</td><td>141.894 us</td><td>2.9317 us</td><td>2.7423 us</td><td>140.877 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>1000</td><td>50</td><td>101.828 us</td><td>0.5457 us</td><td>0.4838 us</td><td>101.982 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>1000</td><td>100</td><td>69.125 us</td><td>1.6576 us</td><td>1.5505 us</td><td>68.270 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>1008</td><td>0</td><td>141.672 us</td><td>0.1257 us</td><td>0.1176 us</td><td>141.683 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>1008</td><td>50</td><td>108.189 us</td><td>0.6149 us</td><td>0.5451 us</td><td>108.261 us</td><td>-</td><td>-</td><td>-</td><td>64 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>1008</td><td>100</td><td>72.716 us</td><td>0.4680 us</td><td>0.4378 us</td><td>72.763 us</td><td>-</td><td>-</td><td>-</td><td>65 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>10000</td><td>0</td><td>1,406.901 us</td><td>27.1561 us</td><td>27.8874 us</td><td>1,392.577 us</td><td>-</td><td>-</td><td>-</td><td>84 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>10000</td><td>50</td><td>1,006.603 us</td><td>5.8676 us</td><td>5.2015 us</td><td>1,008.670 us</td><td>-</td><td>-</td><td>-</td><td>67 B</td>
-</tr><tr><td>Run</td><td>Probabilistic</td><td>10000</td><td>100</td><td>664.482 us</td><td>5.8690 us</td><td>5.4898 us</td><td>667.067 us</td><td>-</td><td>-</td><td>-</td><td>69 B</td>
+</thead><tbody><tr><td>BasicContains</td><td>1</td><td>0</td><td>2,016.7 ns</td><td>14.85 ns</td><td>13.89 ns</td><td>2,018.5 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1</td><td>0</td><td>845.4 ns</td><td>17.95 ns</td><td>16.79 ns</td><td>852.0 ns</td><td>0.42</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1</td><td>0</td><td>1,377.7 ns</td><td>7.69 ns</td><td>6.42 ns</td><td>1,379.3 ns</td><td>0.68</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1</td><td>0</td><td>896.7 ns</td><td>17.75 ns</td><td>18.22 ns</td><td>905.2 ns</td><td>0.44</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1</td><td>10</td><td>2,093.9 ns</td><td>3.61 ns</td><td>3.01 ns</td><td>2,095.1 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1</td><td>10</td><td>878.9 ns</td><td>6.13 ns</td><td>5.12 ns</td><td>881.3 ns</td><td>0.42</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1</td><td>10</td><td>1,482.8 ns</td><td>4.16 ns</td><td>3.89 ns</td><td>1,482.9 ns</td><td>0.71</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1</td><td>10</td><td>975.2 ns</td><td>19.48 ns</td><td>27.94 ns</td><td>966.5 ns</td><td>0.46</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1</td><td>50</td><td>2,039.1 ns</td><td>35.20 ns</td><td>32.93 ns</td><td>2,037.6 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1</td><td>50</td><td>911.6 ns</td><td>14.45 ns</td><td>13.52 ns</td><td>914.5 ns</td><td>0.45</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1</td><td>50</td><td>1,394.3 ns</td><td>27.76 ns</td><td>28.51 ns</td><td>1,379.2 ns</td><td>0.69</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1</td><td>50</td><td>979.1 ns</td><td>19.54 ns</td><td>20.90 ns</td><td>981.2 ns</td><td>0.48</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1</td><td>100</td><td>1,622.2 ns</td><td>15.01 ns</td><td>12.54 ns</td><td>1,624.1 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1</td><td>100</td><td>1,271.4 ns</td><td>19.06 ns</td><td>16.89 ns</td><td>1,270.1 ns</td><td>0.78</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1</td><td>100</td><td>1,597.2 ns</td><td>27.15 ns</td><td>22.67 ns</td><td>1,605.2 ns</td><td>0.98</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1</td><td>100</td><td>998.6 ns</td><td>10.12 ns</td><td>8.45 ns</td><td>1,000.8 ns</td><td>0.62</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>10</td><td>0</td><td>3,541.5 ns</td><td>58.45 ns</td><td>54.67 ns</td><td>3,572.3 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>10</td><td>0</td><td>2,244.0 ns</td><td>31.60 ns</td><td>29.56 ns</td><td>2,239.3 ns</td><td>0.63</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>10</td><td>0</td><td>1,950.2 ns</td><td>38.89 ns</td><td>58.21 ns</td><td>1,983.0 ns</td><td>0.55</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>10</td><td>0</td><td>2,247.4 ns</td><td>7.79 ns</td><td>6.51 ns</td><td>2,248.4 ns</td><td>0.64</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>10</td><td>10</td><td>3,463.7 ns</td><td>49.23 ns</td><td>46.05 ns</td><td>3,463.7 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>10</td><td>10</td><td>2,275.4 ns</td><td>6.27 ns</td><td>5.55 ns</td><td>2,275.2 ns</td><td>0.66</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>10</td><td>10</td><td>2,076.5 ns</td><td>14.20 ns</td><td>12.58 ns</td><td>2,079.8 ns</td><td>0.60</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>10</td><td>10</td><td>2,259.3 ns</td><td>37.10 ns</td><td>32.89 ns</td><td>2,258.6 ns</td><td>0.65</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>10</td><td>50</td><td>3,259.7 ns</td><td>47.73 ns</td><td>42.31 ns</td><td>3,283.8 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>10</td><td>50</td><td>2,069.6 ns</td><td>20.58 ns</td><td>19.25 ns</td><td>2,068.9 ns</td><td>0.63</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>10</td><td>50</td><td>2,279.7 ns</td><td>43.48 ns</td><td>44.65 ns</td><td>2,269.9 ns</td><td>0.70</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>10</td><td>50</td><td>2,138.3 ns</td><td>9.07 ns</td><td>8.48 ns</td><td>2,137.0 ns</td><td>0.66</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>10</td><td>100</td><td>2,114.6 ns</td><td>40.76 ns</td><td>53.00 ns</td><td>2,103.5 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>10</td><td>100</td><td>1,587.3 ns</td><td>20.40 ns</td><td>15.93 ns</td><td>1,593.2 ns</td><td>0.75</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>10</td><td>100</td><td>1,764.9 ns</td><td>7.90 ns</td><td>6.60 ns</td><td>1,764.6 ns</td><td>0.83</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>10</td><td>100</td><td>1,570.1 ns</td><td>16.74 ns</td><td>13.98 ns</td><td>1,570.6 ns</td><td>0.74</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>16</td><td>0</td><td>4,446.6 ns</td><td>72.92 ns</td><td>68.21 ns</td><td>4,460.0 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>16</td><td>0</td><td>3,092.9 ns</td><td>16.80 ns</td><td>13.11 ns</td><td>3,095.4 ns</td><td>0.70</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>16</td><td>0</td><td>1,409.2 ns</td><td>26.68 ns</td><td>28.55 ns</td><td>1,398.8 ns</td><td>0.32</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>16</td><td>0</td><td>1,491.7 ns</td><td>9.99 ns</td><td>8.86 ns</td><td>1,493.6 ns</td><td>0.34</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>16</td><td>10</td><td>4,345.8 ns</td><td>11.48 ns</td><td>9.59 ns</td><td>4,350.3 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>16</td><td>10</td><td>3,036.1 ns</td><td>19.09 ns</td><td>16.93 ns</td><td>3,031.6 ns</td><td>0.70</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>16</td><td>10</td><td>1,523.3 ns</td><td>3.77 ns</td><td>3.15 ns</td><td>1,523.4 ns</td><td>0.35</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>16</td><td>10</td><td>1,579.3 ns</td><td>3.10 ns</td><td>2.90 ns</td><td>1,578.7 ns</td><td>0.36</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>16</td><td>50</td><td>3,887.6 ns</td><td>52.77 ns</td><td>49.36 ns</td><td>3,870.5 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>16</td><td>50</td><td>2,799.5 ns</td><td>28.88 ns</td><td>24.12 ns</td><td>2,805.2 ns</td><td>0.72</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>16</td><td>50</td><td>1,596.5 ns</td><td>31.64 ns</td><td>41.14 ns</td><td>1,577.2 ns</td><td>0.41</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>16</td><td>50</td><td>1,622.5 ns</td><td>7.79 ns</td><td>6.50 ns</td><td>1,623.2 ns</td><td>0.42</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>16</td><td>100</td><td>2,754.0 ns</td><td>52.05 ns</td><td>55.69 ns</td><td>2,783.0 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>16</td><td>100</td><td>1,977.4 ns</td><td>13.47 ns</td><td>11.94 ns</td><td>1,977.3 ns</td><td>0.72</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>16</td><td>100</td><td>1,461.9 ns</td><td>28.99 ns</td><td>53.74 ns</td><td>1,469.7 ns</td><td>0.53</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>16</td><td>100</td><td>1,431.7 ns</td><td>16.86 ns</td><td>14.08 ns</td><td>1,428.2 ns</td><td>0.52</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>100</td><td>0</td><td>6,115.0 ns</td><td>117.59 ns</td><td>120.76 ns</td><td>6,136.2 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>100</td><td>0</td><td>15,495.4 ns</td><td>44.65 ns</td><td>41.77 ns</td><td>15,498.6 ns</td><td>2.53</td><td>0.06</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>100</td><td>0</td><td>3,051.9 ns</td><td>58.99 ns</td><td>90.08 ns</td><td>3,097.3 ns</td><td>0.50</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>100</td><td>0</td><td>2,904.1 ns</td><td>9.20 ns</td><td>8.15 ns</td><td>2,903.4 ns</td><td>0.47</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>100</td><td>10</td><td>5,421.7 ns</td><td>64.99 ns</td><td>57.61 ns</td><td>5,417.2 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>100</td><td>10</td><td>14,850.9 ns</td><td>32.37 ns</td><td>28.69 ns</td><td>14,853.7 ns</td><td>2.74</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>100</td><td>10</td><td>2,884.7 ns</td><td>8.26 ns</td><td>6.45 ns</td><td>2,884.9 ns</td><td>0.53</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>100</td><td>10</td><td>3,038.5 ns</td><td>60.36 ns</td><td>84.61 ns</td><td>3,055.5 ns</td><td>0.57</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>100</td><td>50</td><td>4,592.4 ns</td><td>19.78 ns</td><td>17.53 ns</td><td>4,588.3 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>100</td><td>50</td><td>13,061.8 ns</td><td>148.25 ns</td><td>138.67 ns</td><td>13,039.6 ns</td><td>2.85</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>100</td><td>50</td><td>2,527.1 ns</td><td>46.58 ns</td><td>43.57 ns</td><td>2,499.0 ns</td><td>0.55</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>100</td><td>50</td><td>2,673.4 ns</td><td>49.01 ns</td><td>45.84 ns</td><td>2,693.3 ns</td><td>0.58</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>100</td><td>100</td><td>3,541.9 ns</td><td>19.96 ns</td><td>18.67 ns</td><td>3,544.8 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>100</td><td>100</td><td>9,336.4 ns</td><td>53.51 ns</td><td>47.44 ns</td><td>9,344.0 ns</td><td>2.63</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>100</td><td>100</td><td>1,904.9 ns</td><td>24.04 ns</td><td>20.08 ns</td><td>1,897.0 ns</td><td>0.54</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>100</td><td>100</td><td>2,071.0 ns</td><td>29.56 ns</td><td>27.65 ns</td><td>2,078.7 ns</td><td>0.58</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>112</td><td>0</td><td>5,972.7 ns</td><td>41.48 ns</td><td>38.80 ns</td><td>5,979.3 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>112</td><td>0</td><td>17,204.9 ns</td><td>162.56 ns</td><td>144.11 ns</td><td>17,245.7 ns</td><td>2.88</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>112</td><td>0</td><td>2,503.4 ns</td><td>31.63 ns</td><td>29.59 ns</td><td>2,510.1 ns</td><td>0.42</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>112</td><td>0</td><td>2,492.3 ns</td><td>49.01 ns</td><td>54.47 ns</td><td>2,477.7 ns</td><td>0.42</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>112</td><td>10</td><td>5,655.1 ns</td><td>41.16 ns</td><td>34.37 ns</td><td>5,646.3 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>112</td><td>10</td><td>16,263.2 ns</td><td>315.73 ns</td><td>410.54 ns</td><td>16,243.3 ns</td><td>2.85</td><td>0.07</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>112</td><td>10</td><td>2,523.4 ns</td><td>50.05 ns</td><td>71.78 ns</td><td>2,499.6 ns</td><td>0.44</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>112</td><td>10</td><td>2,500.4 ns</td><td>48.79 ns</td><td>69.97 ns</td><td>2,461.1 ns</td><td>0.44</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>112</td><td>50</td><td>5,099.7 ns</td><td>65.69 ns</td><td>61.45 ns</td><td>5,100.1 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>112</td><td>50</td><td>14,320.7 ns</td><td>271.34 ns</td><td>290.33 ns</td><td>14,247.3 ns</td><td>2.81</td><td>0.06</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>112</td><td>50</td><td>2,368.4 ns</td><td>15.38 ns</td><td>13.64 ns</td><td>2,365.2 ns</td><td>0.46</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>112</td><td>50</td><td>2,524.6 ns</td><td>47.36 ns</td><td>73.73 ns</td><td>2,540.9 ns</td><td>0.49</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>112</td><td>100</td><td>3,867.2 ns</td><td>76.93 ns</td><td>138.72 ns</td><td>3,934.2 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>112</td><td>100</td><td>10,733.1 ns</td><td>212.65 ns</td><td>253.14 ns</td><td>10,764.7 ns</td><td>2.77</td><td>0.12</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>112</td><td>100</td><td>2,173.4 ns</td><td>42.90 ns</td><td>68.05 ns</td><td>2,169.2 ns</td><td>0.56</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>112</td><td>100</td><td>2,010.5 ns</td><td>39.34 ns</td><td>40.40 ns</td><td>2,003.2 ns</td><td>0.52</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1000</td><td>0</td><td>22,326.5 ns</td><td>443.81 ns</td><td>936.15 ns</td><td>22,577.3 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1000</td><td>0</td><td>145,252.2 ns</td><td>2,277.59 ns</td><td>2,437.00 ns</td><td>144,769.6 ns</td><td>6.52</td><td>0.33</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1000</td><td>0</td><td>14,960.5 ns</td><td>293.60 ns</td><td>586.35 ns</td><td>15,004.8 ns</td><td>0.67</td><td>0.04</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1000</td><td>0</td><td>13,956.8 ns</td><td>131.45 ns</td><td>109.76 ns</td><td>13,945.0 ns</td><td>0.62</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1000</td><td>10</td><td>21,403.7 ns</td><td>418.64 ns</td><td>639.31 ns</td><td>21,629.7 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1000</td><td>10</td><td>138,844.6 ns</td><td>1,953.14 ns</td><td>1,826.97 ns</td><td>139,498.4 ns</td><td>6.53</td><td>0.21</td><td>-</td><td>-</td><td>-</td><td>4 B</td>
+</tr><tr><td>Avx2</td><td>1000</td><td>10</td><td>14,386.9 ns</td><td>255.84 ns</td><td>448.09 ns</td><td>14,343.3 ns</td><td>0.68</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1000</td><td>10</td><td>13,682.9 ns</td><td>260.79 ns</td><td>256.13 ns</td><td>13,571.7 ns</td><td>0.64</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1000</td><td>50</td><td>16,199.4 ns</td><td>312.84 ns</td><td>438.56 ns</td><td>16,455.3 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1000</td><td>50</td><td>103,838.4 ns</td><td>1,356.15 ns</td><td>1,268.54 ns</td><td>103,461.7 ns</td><td>6.45</td><td>0.21</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1000</td><td>50</td><td>10,918.5 ns</td><td>200.44 ns</td><td>177.68 ns</td><td>10,874.0 ns</td><td>0.68</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1000</td><td>50</td><td>10,905.6 ns</td><td>120.05 ns</td><td>106.42 ns</td><td>10,872.1 ns</td><td>0.68</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1000</td><td>100</td><td>11,508.4 ns</td><td>174.30 ns</td><td>145.55 ns</td><td>11,546.5 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1000</td><td>100</td><td>71,377.7 ns</td><td>806.34 ns</td><td>754.25 ns</td><td>71,368.4 ns</td><td>6.19</td><td>0.08</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1000</td><td>100</td><td>8,137.5 ns</td><td>153.61 ns</td><td>157.75 ns</td><td>8,089.1 ns</td><td>0.71</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1000</td><td>100</td><td>7,986.3 ns</td><td>94.70 ns</td><td>88.58 ns</td><td>8,013.5 ns</td><td>0.70</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1008</td><td>0</td><td>21,296.2 ns</td><td>404.13 ns</td><td>728.74 ns</td><td>21,023.9 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1008</td><td>0</td><td>145,982.8 ns</td><td>2,255.95 ns</td><td>2,110.22 ns</td><td>146,241.9 ns</td><td>6.74</td><td>0.25</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1008</td><td>0</td><td>14,264.2 ns</td><td>275.52 ns</td><td>395.14 ns</td><td>14,414.7 ns</td><td>0.66</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1008</td><td>0</td><td>13,727.6 ns</td><td>127.95 ns</td><td>113.42 ns</td><td>13,751.0 ns</td><td>0.63</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1008</td><td>10</td><td>21,035.9 ns</td><td>416.46 ns</td><td>905.35 ns</td><td>21,306.5 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1008</td><td>10</td><td>139,125.7 ns</td><td>1,556.68 ns</td><td>1,379.96 ns</td><td>139,712.9 ns</td><td>6.42</td><td>0.24</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1008</td><td>10</td><td>13,920.3 ns</td><td>268.19 ns</td><td>308.85 ns</td><td>14,049.2 ns</td><td>0.65</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1008</td><td>10</td><td>13,642.0 ns</td><td>172.76 ns</td><td>153.15 ns</td><td>13,700.7 ns</td><td>0.63</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1008</td><td>50</td><td>17,555.3 ns</td><td>349.98 ns</td><td>851.89 ns</td><td>17,188.4 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1008</td><td>50</td><td>113,599.7 ns</td><td>1,830.25 ns</td><td>1,528.34 ns</td><td>113,444.6 ns</td><td>6.24</td><td>0.41</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1008</td><td>50</td><td>11,627.3 ns</td><td>228.58 ns</td><td>312.89 ns</td><td>11,687.0 ns</td><td>0.66</td><td>0.04</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1008</td><td>50</td><td>11,296.8 ns</td><td>223.08 ns</td><td>305.35 ns</td><td>11,232.3 ns</td><td>0.64</td><td>0.04</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1008</td><td>100</td><td>12,598.2 ns</td><td>251.50 ns</td><td>612.18 ns</td><td>12,298.8 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1008</td><td>100</td><td>75,882.2 ns</td><td>928.13 ns</td><td>724.63 ns</td><td>75,989.6 ns</td><td>6.02</td><td>0.30</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1008</td><td>100</td><td>9,482.9 ns</td><td>189.40 ns</td><td>502.26 ns</td><td>9,647.0 ns</td><td>0.75</td><td>0.06</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1008</td><td>100</td><td>8,549.5 ns</td><td>169.68 ns</td><td>455.83 ns</td><td>8,319.0 ns</td><td>0.68</td><td>0.05</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>10000</td><td>0</td><td>148,878.9 ns</td><td>2,928.91 ns</td><td>3,255.48 ns</td><td>148,549.6 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>10000</td><td>0</td><td>1,457,446.4 ns</td><td>25,246.94 ns</td><td>23,616.00 ns</td><td>1,461,319.5 ns</td><td>9.79</td><td>0.33</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>10000</td><td>0</td><td>121,229.3 ns</td><td>2,414.86 ns</td><td>3,614.45 ns</td><td>119,812.8 ns</td><td>0.82</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>10000</td><td>0</td><td>119,271.6 ns</td><td>1,836.40 ns</td><td>1,803.59 ns</td><td>118,770.0 ns</td><td>0.80</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>10000</td><td>10</td><td>142,831.8 ns</td><td>2,314.07 ns</td><td>1,932.35 ns</td><td>142,517.7 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>10000</td><td>10</td><td>1,382,627.3 ns</td><td>11,494.15 ns</td><td>10,751.64 ns</td><td>1,381,639.3 ns</td><td>9.69</td><td>0.12</td><td>-</td><td>-</td><td>-</td><td>3 B</td>
+</tr><tr><td>Avx2</td><td>10000</td><td>10</td><td>114,944.4 ns</td><td>2,211.61 ns</td><td>2,716.06 ns</td><td>116,005.5 ns</td><td>0.81</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>10000</td><td>10</td><td>116,804.9 ns</td><td>1,703.03 ns</td><td>1,593.02 ns</td><td>116,989.6 ns</td><td>0.82</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>10000</td><td>50</td><td>120,762.6 ns</td><td>2,397.43 ns</td><td>5,925.85 ns</td><td>118,264.2 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>10000</td><td>50</td><td>1,102,162.4 ns</td><td>21,652.29 ns</td><td>20,253.57 ns</td><td>1,098,028.3 ns</td><td>9.29</td><td>0.29</td><td>-</td><td>-</td><td>-</td><td>1 B</td>
+</tr><tr><td>Avx2</td><td>10000</td><td>50</td><td>87,405.3 ns</td><td>771.61 ns</td><td>644.33 ns</td><td>87,587.0 ns</td><td>0.74</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>10000</td><td>50</td><td>90,241.2 ns</td><td>1,794.20 ns</td><td>2,573.19 ns</td><td>90,799.6 ns</td><td>0.76</td><td>0.04</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>10000</td><td>100</td><td>85,317.5 ns</td><td>1,693.23 ns</td><td>2,481.92 ns</td><td>85,951.8 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>10000</td><td>100</td><td>697,653.8 ns</td><td>9,853.85 ns</td><td>9,217.30 ns</td><td>698,056.4 ns</td><td>8.12</td><td>0.22</td><td>-</td><td>-</td><td>-</td><td>1 B</td>
+</tr><tr><td>Avx2</td><td>10000</td><td>100</td><td>60,427.8 ns</td><td>1,089.20 ns</td><td>2,018.90 ns</td><td>59,835.0 ns</td><td>0.71</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>10000</td><td>100</td><td>59,676.7 ns</td><td>592.72 ns</td><td>494.95 ns</td><td>59,469.6 ns</td><td>0.69</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
 </tr></tbody></table>
 </body>
 </html>

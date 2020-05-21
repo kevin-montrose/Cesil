@@ -8,6 +8,7 @@ using BenchmarkDotNet.Attributes;
 
 namespace Cesil.Benchmark
 {
+    [BenchmarkCategory("Write")]
     public class NarrowRowWriteSyncBenchmark
     {
         [ParamsSource(nameof(KnownTypes))]
@@ -16,17 +17,12 @@ namespace Cesil.Benchmark
         [ParamsSource(nameof(KnownRowSet))]
         public string RowSet { get; set; }
 
-        [ParamsSource(nameof(KnownLibraries))]
-        public string Library { get; set; }
-
         public IEnumerable<string> KnownRowSet =>
             new[]
             {
                 "ShallowRows",
                 "DeepRows"
             };
-
-        public IEnumerable<string> KnownLibraries => new[] { nameof(Cesil), nameof(CsvHelper) };
 
         public IEnumerable<Type> KnownTypes =>
             new[]
@@ -96,12 +92,14 @@ namespace Cesil.Benchmark
                 typeof(NarrowRowFlagsEnum?)
             };
 
-        private Action<TextWriter> DoRun;
+        private Action<TextWriter> DoCsvHelper;
+        private Action<TextWriter> DoCesil;
 
         [GlobalSetup]
         public void Initialize()
         {
-            DoRun = MakeRun(Type, RowSet, Library);
+            DoCsvHelper = MakeRun(Type, RowSet, nameof(CsvHelper));
+            DoCesil = MakeRun(Type, RowSet, nameof(Cesil));
         }
 
         private static Action<TextWriter> MakeRun(Type type, string rowSet, string library)
@@ -187,73 +185,39 @@ namespace Cesil.Benchmark
             {
                 foreach (var type in KnownTypes)
                 {
-                    var shouldMatch =
-                        KnownLibraries
-                            .Select(
-                                lib =>
-                                {
-                                    var act = MakeRun(type, row, lib);
+                    RowSet = row;
+                    Type = type;
 
-                                    using (var str = new StringWriter())
-                                    {
-                                        act(str);
+                    Initialize();
 
-                                        var res = str.ToString();
+                    var csvHelper = GetText(DoCsvHelper);
+                    var cesil = GetText(DoCesil);
 
-                                        return (Library: lib, Text: res);
-                                    }
-                                }
-                            )
-                            .ToList();
+                    if (csvHelper != cesil) throw new Exception();
+                }
+            }
 
-                    var allSame = shouldMatch.Select(x => x.Text).Distinct();
+            static string GetText(Action<TextWriter> del)
+            {
+                using (var str = new StringWriter())
+                {
+                    del(str);
 
-                    if (allSame.Count() > 1)
-                    {
-                        var cesil = shouldMatch.Single(s => s.Library == nameof(Cesil)).Text;
-
-                        foreach (var other in shouldMatch)
-                        {
-                            if (other.Library == nameof(Cesil)) continue;
-
-                            var otherText = other.Text;
-
-                            var firstDiff = -1;
-
-                            for (var i = 0; i < Math.Min(otherText.Length, cesil.Length); i++)
-                            {
-                                var cC = cesil[i];
-                                var oC = otherText[i];
-
-                                if (cC != oC)
-                                {
-                                    firstDiff = i;
-                                    break;
-                                }
-                            }
-
-                            if (firstDiff != -1)
-                            {
-                                var beforeDiff = Math.Max(firstDiff - 20, 0);
-                                var afterDiff = Math.Min(Math.Min(otherText.Length, cesil.Length), firstDiff + 20);
-
-                                var segmentInOther = otherText.Substring(beforeDiff, afterDiff - beforeDiff);
-                                var segmentInCesil = cesil.Substring(beforeDiff, afterDiff - beforeDiff);
-
-                                throw new InvalidCastException($"Different libraries are configured to produce different CSV, benchmark isn't valid\r\n{segmentInCesil}\r\n\r\nvs\r\n\r\n{segmentInOther}");
-                            }
-                        }
-
-                        throw new InvalidOperationException($"Different libraries are configured to produce different CSV, benchmark isn't valid");
-                    }
+                    return str.ToString();
                 }
             }
         }
 
-        [Benchmark]
-        public void Run()
+        [Benchmark(Baseline = true)]
+        public void CsvHelper()
         {
-            DoRun(TextWriter.Null);
+            DoCsvHelper(TextWriter.Null);
+        }
+
+        [Benchmark]
+        public void Cesil()
+        {
+            DoCsvHelper(TextWriter.Null);
         }
     }
 }

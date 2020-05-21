@@ -8,6 +8,7 @@ using BenchmarkDotNet.Attributes;
 
 namespace Cesil.Benchmark
 {
+    [BenchmarkCategory("Read")]
     public class NarrowRowReadSyncBenchmark
     {
         [ParamsSource(nameof(KnownTypes))]
@@ -16,17 +17,12 @@ namespace Cesil.Benchmark
         [ParamsSource(nameof(KnownRowSet))]
         public string RowSet { get; set; }
 
-        [ParamsSource(nameof(KnownLibraries))]
-        public string Library { get; set; }
-
         public IEnumerable<string> KnownRowSet =>
             new[]
             {
                 "ShallowRows",
                 "DeepRows"
             };
-
-        public IEnumerable<string> KnownLibraries => new[] { nameof(Cesil), nameof(CsvHelper) };
 
         public IEnumerable<Type> KnownTypes =>
             new[]
@@ -96,12 +92,14 @@ namespace Cesil.Benchmark
                 typeof(NarrowRowFlagsEnum?)
             };
 
-        private Func<IEnumerable<object>> DoRun;
+        private Func<IEnumerable<object>> DoCsvHelper;
+        private Func<IEnumerable<object>> DoCesil;
 
         [GlobalSetup]
         public void Initialize()
         {
-            DoRun = MakeRun(Type, RowSet, Library);
+            DoCsvHelper = MakeRun(Type, RowSet, nameof(CsvHelper));
+            DoCesil = MakeRun(Type, RowSet, nameof(Cesil));
         }
 
         public void InitializeAndTest()
@@ -110,56 +108,53 @@ namespace Cesil.Benchmark
             {
                 foreach (var row in KnownRowSet)
                 {
-                    var sets =
-                        KnownLibraries
-                            .Select(
-                                lib =>
-                                {
-                                    var del = MakeRun(type, row, lib);
+                    Type = type;
+                    RowSet = row;
 
-                                    return (Rows: del(), Library: lib);
-                                }
-                            )
-                            .ToList();
+                    Initialize();
 
+                    var csvHelper = DoCsvHelper();
+                    var cesil = DoCesil();
 
-                    for (var i = 1; i < sets.Count; i++)
+                    if (csvHelper.Count() != cesil.Count()) throw new Exception();
+
+                    var rowCount = csvHelper.Count();
+
+                    for (var j = 0; j < rowCount; j++)
                     {
-                        var first = sets[0];
-                        var second = sets[i];
+                        var fRow = csvHelper.ElementAt(j);
+                        var sRow = cesil.ElementAt(j);
 
-                        if (first.Rows.Count() != second.Rows.Count()) throw new Exception();
-
-                        for (var j = 0; j < first.Rows.Count(); j++)
+                        if (fRow is NarrowRow<string> fStrRow)
                         {
-                            var fRow = first.Rows.ElementAt(j);
-                            var sRow = second.Rows.ElementAt(j);
+                            // have to special case this, CsvHelper doesn't have a built in way to make "" be null
 
-                            if (fRow is NarrowRow<string> fStrRow)
-                            {
-                                // have to special case this, CsvHelper doesn't have a built in way to make "" be null
+                            var sStrRow = (NarrowRow<string>)sRow;
 
-                                var sStrRow = (NarrowRow<string>)sRow;
+                            var fStr = fStrRow.Column ?? "";
+                            var sStr = sStrRow.Column ?? "";
 
-                                var fStr = fStrRow.Column ?? "";
-                                var sStr = sStrRow.Column ?? "";
-
-                                if (!fStr.Equals(sStr)) throw new Exception();
-                            }
-                            else
-                            {
-                                if (!fRow.Equals(sRow)) throw new Exception();
-                            }
+                            if (!fStr.Equals(sStr)) throw new Exception();
+                        }
+                        else
+                        {
+                            if (!fRow.Equals(sRow)) throw new Exception();
                         }
                     }
                 }
             }
         }
 
-        [Benchmark]
-        public void Run()
+        [Benchmark(Baseline = true)]
+        public void CsvHelper()
         {
-            DoRun();
+            DoCsvHelper();
+        }
+
+        [Benchmark]
+        public void Cesil()
+        {
+            DoCesil();
         }
 
         private Func<IEnumerable<object>> MakeRun(Type type, string rowSet, string lib)
@@ -225,7 +220,6 @@ namespace Cesil.Benchmark
 
                                     return ret;
                                 }
-
                             };
                     }
                 case nameof(CsvHelper):

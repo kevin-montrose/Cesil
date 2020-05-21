@@ -116,7 +116,7 @@ namespace Cesil
         /// </summary>
         public static IEnumerable<dynamic> EnumerateDynamicFromFile(
             string path,
-            [NullableExposed("options will default to Options.Default")]
+            [NullableExposed("options will default to Options.DynamicDefault")]
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null
@@ -164,7 +164,7 @@ namespace Cesil
         /// </summary>
         public static IEnumerable<dynamic> EnumerateDynamicFromString(
             string data,
-            [NullableExposed("options will default to Options.Default")]
+            [NullableExposed("options will default to Options.DynamicDefault")]
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null
@@ -219,7 +219,7 @@ namespace Cesil
         /// </summary>
         public static IAsyncEnumerable<dynamic> EnumerateDynamicAsync(
             TextReader reader,
-            [NullableExposed("options will default to Options.Default")]
+            [NullableExposed("options will default to Options.DynamicDefault")]
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
@@ -289,7 +289,7 @@ namespace Cesil
         /// </summary>
         public static IAsyncEnumerable<dynamic> EnumerateDynamicFromFileAsync(
             string path,
-            [NullableExposed("options will default to Options.Default")]
+            [NullableExposed("options will default to Options.DynamicDefault")]
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
@@ -343,7 +343,7 @@ namespace Cesil
         /// </summary>
         public static IAsyncEnumerable<dynamic> EnumerateDynamicFromStringAsync(
             string data,
-            [NullableExposed("options will default to Options.Default")]
+            [NullableExposed("options will default to Options.DynamicDefault")]
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
@@ -396,7 +396,7 @@ namespace Cesil
         public static void WriteDynamic(
             IEnumerable<dynamic> rows,
             TextWriter writer,
-            [NullableExposed("options will default to Options.Default")]
+            [NullableExposed("options will default to Options.DynamicDefault")]
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null
@@ -461,7 +461,7 @@ namespace Cesil
         public static void WriteDynamicToFile(
             IEnumerable<dynamic> rows,
             string path,
-            [NullableExposed("options will default to Options.Default")]
+            [NullableExposed("options will default to Options.DynamicDefault")]
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null
@@ -515,7 +515,7 @@ namespace Cesil
         /// </summary>
         public static string WriteDynamicToString(
             IEnumerable<dynamic> rows,
-            [NullableExposed("options will default to Options.Default")]
+            [NullableExposed("options will default to Options.DynamicDefault")]
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null
@@ -574,7 +574,7 @@ namespace Cesil
         public static ValueTask WriteDynamicAsync(
             IEnumerable<dynamic> rows,
             TextWriter writer,
-            [NullableExposed("options will default to Options.Default")]
+            [NullableExposed("options will default to Options.DynamicDefault")]
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
@@ -630,7 +630,7 @@ namespace Cesil
         public static ValueTask WriteDynamicAsync(
             IAsyncEnumerable<dynamic> rows,
             TextWriter writer,
-            [NullableExposed("options will default to Options.Default")]
+            [NullableExposed("options will default to Options.DynamicDefault")]
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
@@ -698,7 +698,7 @@ namespace Cesil
         public static ValueTask WriteDynamicToFileAsync(
             IEnumerable<dynamic> rows,
             string path,
-            [NullableExposed("options will default to Options.Default")]
+            [NullableExposed("options will default to Options.DynamicDefault")]
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
@@ -765,7 +765,7 @@ namespace Cesil
         public static ValueTask WriteDynamicToFileAsync(
             IAsyncEnumerable<dynamic> rows,
             string path,
-            [NullableExposed("options will default to Options.Default")]
+            [NullableExposed("options will default to Options.DynamicDefault")]
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
@@ -834,7 +834,7 @@ namespace Cesil
         /// </summary>
         public static ValueTask<string> WriteDynamicToStringAsync(
             IEnumerable<dynamic> rows,
-            [NullableExposed("options will default to Options.Default")]
+            [NullableExposed("options will default to Options.DynamicDefault")]
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
@@ -902,7 +902,7 @@ namespace Cesil
         /// </summary>
         public static ValueTask<string> WriteDynamicToStringAsync(
             IAsyncEnumerable<dynamic> rows,
-            [NullableExposed("options will default to Options.Default")]
+            [NullableExposed("options will default to Options.DynamicDefault")]
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,

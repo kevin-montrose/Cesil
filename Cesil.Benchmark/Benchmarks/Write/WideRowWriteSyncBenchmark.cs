@@ -2,33 +2,31 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using BenchmarkDotNet.Attributes;
 
 namespace Cesil.Benchmark
 {
+    [BenchmarkCategory("Write")]
     public class WideRowWriteSyncBenchmark
     {
         [ParamsSource(nameof(KnownRowSet))]
         public string RowSet { get; set; }
 
-        [ParamsSource(nameof(KnownLibraries))]
-        public string Library { get; set; }
-
         public IEnumerable<string> KnownRowSet => new[] { nameof(WideRow.ShallowRows), nameof(WideRow.DeepRows) };
-
-        public IEnumerable<string> KnownLibraries => new[] { nameof(Cesil), nameof(CsvHelper) };
 
         private IBoundConfiguration<WideRow> CesilConfig;
 
         private CsvHelper.Configuration.CsvConfiguration CsvHelperConfig;
 
+        private Action<IEnumerable<WideRow>, TextWriter> DoCsvHelper;
+        private Action<IEnumerable<WideRow>, TextWriter> DoCesil;
+
+        private IEnumerable<WideRow> Rows;
+
         [GlobalSetup]
         public void Initialize()
         {
             WideRow.Initialize();
-
-            if (CesilConfig != null && CsvHelperConfig != null) return;
 
             // Configure Cesil
             {
@@ -41,83 +39,47 @@ namespace Cesil.Benchmark
                 CsvHelperConfig = new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture);
                 CsvHelperConfig.RegisterClassMap<WideRowMapping>();
             }
+
+            DoCsvHelper = GetWriter(nameof(CsvHelper));
+            DoCesil = GetWriter(nameof(Cesil));
+
+            Rows = GetRows(RowSet);
         }
 
         public void InitializeAndTest()
         {
-            Initialize();
-
             foreach (var row in KnownRowSet)
             {
-                var rows = GetRows(row);
+                RowSet = row;
+                Initialize();
 
-                var shouldMatch =
-                    KnownLibraries
-                        .Select(
-                            x =>
-                            {
-                                using (var str = new StringWriter())
-                                {
-                                    GetWriter(x)(rows, str);
+                var csvHelper = GetText(Rows, DoCsvHelper);
+                var cesil = GetText(Rows, DoCesil);
 
-                                    var res = str.ToString();
+                if (csvHelper != cesil) throw new Exception();
+            }
 
-                                    return (Library: x, Text: res);
-                                }
-                            }
-                        )
-                        .ToList();
-
-                var allSame = shouldMatch.Select(x => x.Text).Distinct();
-
-                if (allSame.Count() > 1)
+            static string GetText(IEnumerable<WideRow> rows, Action<IEnumerable<WideRow>, TextWriter> del)
+            {
+                using (var str = new StringWriter())
                 {
-                    var cesil = shouldMatch.Single(s => s.Library == nameof(Cesil)).Text;
+                    del(rows, str);
 
-                    foreach (var other in shouldMatch)
-                    {
-                        if (other.Library == nameof(Cesil)) continue;
-
-                        var otherText = other.Text;
-
-                        var firstDiff = -1;
-
-                        for (var i = 0; i < Math.Min(otherText.Length, cesil.Length); i++)
-                        {
-                            var cC = cesil[i];
-                            var oC = otherText[i];
-
-                            if (cC != oC)
-                            {
-                                firstDiff = i;
-                                break;
-                            }
-                        }
-
-                        if (firstDiff != -1)
-                        {
-                            var beforeDiff = Math.Max(firstDiff - 20, 0);
-                            var afterDiff = Math.Min(Math.Min(otherText.Length, cesil.Length), firstDiff + 20);
-
-                            var segmentInOther = otherText.Substring(beforeDiff, afterDiff - beforeDiff);
-                            var segmentInCesil = cesil.Substring(beforeDiff, afterDiff - beforeDiff);
-
-                            throw new InvalidCastException($"Different libraries are configured to produce different CSV, benchmark isn't valid\r\n{segmentInCesil}\r\n\r\nvs\r\n\r\n{segmentInOther}");
-                        }
-                    }
-
-                    throw new InvalidOperationException($"Different libraries are configured to produce different CSV, benchmark isn't valid");
+                    return str.ToString();
                 }
             }
         }
 
-        [Benchmark]
-        public void Run()
+        [Benchmark(Baseline = true)]
+        public void CsvHelper()
         {
-            var rows = GetRows(RowSet);
-            var writerRows = GetWriter(Library);
+            DoCsvHelper(Rows, TextWriter.Null);
+        }
 
-            writerRows(rows, TextWriter.Null);
+        [Benchmark]
+        public void Cesil()
+        {
+            DoCesil(Rows, TextWriter.Null);
         }
 
         private Action<IEnumerable<WideRow>, TextWriter> GetWriter(string forLibrary)

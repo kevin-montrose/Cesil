@@ -7,17 +7,13 @@ using BenchmarkDotNet.Attributes;
 
 namespace Cesil.Benchmark
 {
+    [BenchmarkCategory("Read")]
     public class WideRowReadSyncBenchmark
     {
         [ParamsSource(nameof(KnownRowSet))]
         public string RowSet { get; set; }
 
-        [ParamsSource(nameof(KnownLibraries))]
-        public string Library { get; set; }
-
         public IEnumerable<string> KnownRowSet => new[] { nameof(WideRow.ShallowRows), nameof(WideRow.DeepRows) };
-
-        public IEnumerable<string> KnownLibraries => new[] { nameof(Cesil), nameof(CsvHelper) };
 
         private IBoundConfiguration<WideRow> CesilConfig;
 
@@ -25,12 +21,13 @@ namespace Cesil.Benchmark
 
         private string CSV;
 
+        private Func<TextReader, IEnumerable<WideRow>> DoCsvHelper;
+        private Func<TextReader, IEnumerable<WideRow>> DoCesil;
+
         [GlobalSetup]
         public void Initialize()
         {
             WideRow.Initialize();
-
-            if (CesilConfig != null && CsvHelperConfig != null) return;
 
             // Configure Cesil
             {
@@ -45,6 +42,9 @@ namespace Cesil.Benchmark
             }
 
             CSV = MakeCSV();
+
+            DoCsvHelper = GetReadFunc(nameof(CsvHelper));
+            DoCesil = GetReadFunc(nameof(Cesil));
         }
 
         public void InitializeAndTest()
@@ -52,53 +52,50 @@ namespace Cesil.Benchmark
             foreach (var set in KnownRowSet)
             {
                 RowSet = set;
-                Library = nameof(Cesil);
-
                 Initialize();
 
                 var toRead = CSV;
 
-                var res =
-                    KnownLibraries
-                        .Select(
-                            lib =>
-                            {
-                                var f = GetReadFunc(lib);
-                                using (var str = new StringReader(toRead))
-                                {
-                                    var rows = f(str);
-
-                                    return (Library: lib, Rows: rows);
-                                }
-                            }
-                        )
-                        .ToList();
-
-                for (var i = 1; i < res.Count; i++)
+                IEnumerable<WideRow> csvHelper, cesil;
+                using (var str = new StringReader(toRead))
                 {
-                    var first = res[0];
-                    var second = res[i];
-
-                    if (first.Rows.Count() != second.Rows.Count()) throw new Exception();
-
-                    for (var j = 0; j < first.Rows.Count(); j++)
-                    {
-                        var fRow = first.Rows.ElementAt(j);
-                        var sRow = second.Rows.ElementAt(j);
-
-                        if (!fRow.Equals(sRow)) throw new Exception();
-                    }
+                    csvHelper = DoCsvHelper(str);
                 }
+                using (var str = new StringReader(toRead))
+                {
+                    cesil = DoCesil(str);
+                }
+
+                if (csvHelper.Count() != cesil.Count()) throw new Exception();
+
+                var rowCount = csvHelper.Count();
+
+                for (var j = 0; j < rowCount; j++)
+                {
+                    var fRow = csvHelper.ElementAt(j);
+                    var sRow = cesil.ElementAt(j);
+
+                    if (!fRow.Equals(sRow)) throw new Exception();
+                }
+
+            }
+        }
+
+        [Benchmark(Baseline = true)]
+        public void CsvHelper()
+        {
+            using (var str = new StringReader(CSV))
+            {
+                DoCsvHelper(str);
             }
         }
 
         [Benchmark]
-        public void Run()
+        public void Cesil()
         {
-            var f = GetReadFunc(Library);
             using (var str = new StringReader(CSV))
             {
-                f(str);
+                DoCesil(str);
             }
         }
 

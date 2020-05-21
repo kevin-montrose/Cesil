@@ -7,6 +7,7 @@ using BenchmarkDotNet.Attributes;
 
 namespace Cesil.Benchmark
 {
+    [BenchmarkCategory("Read", "Dynamic")]
     public class NarrowRowDynamicReadSyncBenchmark
     {
         [ParamsSource(nameof(KnownTypes))]

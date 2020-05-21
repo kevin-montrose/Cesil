@@ -1,84 +1,189 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
+using System.Reflection;
+using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Diagnosers;
+using BenchmarkDotNet.Exporters;
 using BenchmarkDotNet.Exporters.Csv;
+using BenchmarkDotNet.Reports;
 using BenchmarkDotNet.Running;
 using BenchmarkDotNet.Validators;
+using Perfolizer.Horology;
 
 namespace Cesil.Benchmark
 {
     internal class Program
     {
-        public static void Main()
+        public static void Main(string[] args)
         {
-            InitializeAndTest();
+            // real dumb way to select benchmarks
+            // 
+            // can include by BenchmarkCategory by just passing the name
+            //     or exclude by passing -<name>
+            //
+            // empty is treated as include all
+            //
+            // * matches everything and -* excludes everything
+            //
+            // exclusions trump inclusions
+            args = args.Length == 0 ? new[] { "*" } : args;
 
-            RunBenchmarks();
+            var include = new List<string>();
+            var exclude = new List<string>();
 
-            //var foo = new WideRowDynamicWriteSyncBenchmark();
-            //foo.RowSet = "ShallowRows";
-            //foo.Initialize();
+            foreach (var arg in args)
+            {
+                if (arg.StartsWith("-"))
+                {
+                    exclude.Add(arg.Substring(1));
+                }
+                else
+                {
+                    include.Add(arg);
+                }
+            }
 
-            //for(var i = 0; i < 1_000; i++)
-            //{
-            //    foo.Dynamic_Static();
-            //}
+            var benchmarks = FindBenchmarks(include, exclude);
+
+            InitializeAndTest(benchmarks);
+
+            RunBenchmarks(benchmarks);
         }
 
         private static void Log(string value, Action act)
         {
-            Console.WriteLine($"[{DateTime.UtcNow:u}] {value} starting...");
+            Log($"{value} starting...");
             var sw = Stopwatch.StartNew();
             act();
             sw.Stop();
-            Console.WriteLine($"[{DateTime.UtcNow:u}] \tFinished (duration {sw.Elapsed})");
+            Log($" \tFinished (duration {sw.Elapsed})");
+        }
+
+        private static void Log(string value)
+        {
+            Console.WriteLine($"[{DateTime.UtcNow:u}] {value}");
+        }
+
+        private static IEnumerable<Type> FindBenchmarks(IEnumerable<string> matchCategories, IEnumerable<string> dontMatchCategories)
+        {
+            var benchmarks = typeof(Program).Assembly.GetTypes().Where(t => t.IsClass && t.GetMethods().Any(m => m.GetCustomAttribute<BenchmarkAttribute>() != null)).ToList();
+
+            foreach (var benchmark in benchmarks)
+            {
+                var category = benchmark.GetCustomAttribute<BenchmarkCategoryAttribute>();
+
+                var keep = false;
+                if (category != null)
+                {
+                    foreach (var c in matchCategories)
+                    {
+                        if (c == "*")
+                        {
+                            keep = true;
+                            break;
+                        }
+
+                        if (category.Categories.Any(x => x.Equals(c, StringComparison.InvariantCultureIgnoreCase)))
+                        {
+                            keep = true;
+                            break;
+                        }
+                    }
+
+                    foreach (var c in dontMatchCategories)
+                    {
+                        if (c == "*")
+                        {
+                            keep = false;
+                            break;
+                        }
+
+                        if (category.Categories.Any(x => x.Equals(c, StringComparison.InvariantCultureIgnoreCase)))
+                        {
+                            keep = false;
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    keep = true;
+                }
+
+                if (!keep) continue;
+
+                var withAttrs = benchmark.GetMethods().Where(m => m.GetCustomAttribute<BenchmarkAttribute>() != null).ToList();
+                var baselines = withAttrs.Where(m => m.GetCustomAttribute<BenchmarkAttribute>()?.Baseline ?? false).ToList();
+
+                if (baselines.Count == 0)
+                {
+                    throw new Exception($"Benchmark {benchmark.Name} does not have a {nameof(BenchmarkAttribute.Baseline)}");
+                }
+
+                if (baselines.Count > 1)
+                {
+                    throw new Exception($"Benchmark {benchmark.Name} has multiple {nameof(BenchmarkAttribute.Baseline)} = true");
+                }
+            }
+
+            return benchmarks;
         }
 
         [Conditional("DEBUG")]
-        private static void InitializeAndTest()
+        private static void InitializeAndTest(IEnumerable<Type> needChecking)
         {
-            Log(nameof(MemberOrderHelperBenchmark), () => new MemberOrderHelperBenchmark().InitializeAndTest());
+            const string TEST_METHOD_NAME = "InitializeAndTest";
 
-            Log(nameof(NarrowRowDynamicReadSyncBenchmark), () => new NarrowRowDynamicReadSyncBenchmark().InitializeAndTest());
+            foreach (var b in needChecking)
+            {
+                var name = b.Name;
+                var test = b.GetMethod("InitializeAndTest");
+                if (test == null)
+                {
+                    throw new Exception($"Benchmark {name} doesn't have a {TEST_METHOD_NAME} method");
+                }
 
-            Log(nameof(WideRowDynamicWriteSyncBenchmark), () => new WideRowDynamicWriteSyncBenchmark().InitializeAndTest());
+                if (test.GetParameters().Length != 0)
+                {
+                    throw new Exception($"Benchmark {name} has a {TEST_METHOD_NAME} that takes parameters");
+                }
 
-            Log(nameof(NameLookupBenchmark), () => new NameLookupBenchmark().InitializeAndTest());
+                var inst = Activator.CreateInstance(b);
+                var del = (Action)Delegate.CreateDelegate(typeof(Action), inst, test);
 
-            Log(nameof(NeedsEncodeBenchmark), () => new NeedsEncodeBenchmark().InitializeAndTest());
-
-            Log(nameof(WideRowWriteSyncBenchmark), () => new WideRowWriteSyncBenchmark().InitializeAndTest());
-            Log(nameof(NarrowRowWriteSyncBenchmark), () => new NarrowRowWriteSyncBenchmark().InitializeAndTest());
-
-            Log(nameof(WideRowReadSyncBenchmark), () => new WideRowReadSyncBenchmark().InitializeAndTest());
-            Log(nameof(NarrowRowReadSyncBenchmark), () => new NarrowRowReadSyncBenchmark().InitializeAndTest());
-
-            Log(nameof(WideRowDynamicReadSyncBenchmark), () => new WideRowDynamicReadSyncBenchmark().InitializeAndTest());
+                Log($"Test of {name}", del);
+            }
         }
 
-        private static void RunBenchmarks()
+        private static void RunBenchmarks(IEnumerable<Type> benchmarks)
         {
             var config = ManualConfig.CreateEmpty();
-            config.Add(JitOptimizationsValidator.DontFailOnError); // ALLOW NON-OPTIMIZED DLLS
-            config.Add(DefaultConfig.Instance.GetLoggers().ToArray()); // manual config has no loggers by default
-            config.Add(DefaultConfig.Instance.GetExporters().ToArray()); // manual config has no exporters by default
-            config.Add(DefaultConfig.Instance.GetColumnProviders().ToArray()); // manual config has no columns by default
-            config.Add(MemoryDiagnoser.Default); // include GC columns
-            config.Add(
+            config.AddValidator(JitOptimizationsValidator.DontFailOnError); // ALLOW NON-OPTIMIZED DLLS
+            config.AddLogger(DefaultConfig.Instance.GetLoggers().ToArray()); // manual config has no loggers by default
+            config.AddColumnProvider(DefaultConfig.Instance.GetColumnProviders().ToArray()); // manual config has no columns by default
+            config.AddDiagnoser(MemoryDiagnoser.Default); // include GC columns
+            config.AddExporter(
                 new CsvExporter(
                     CsvSeparator.CurrentCulture,
-                    new BenchmarkDotNet.Reports.SummaryStyle(
+                    new SummaryStyle(
+                        CultureInfo.InvariantCulture,
                         true,
-                        BenchmarkDotNet.Columns.SizeUnit.B,
-                        BenchmarkDotNet.Horology.TimeUnit.Nanosecond
+                        SizeUnit.B,
+                        TimeUnit.Nanosecond
                     )
                 )
             );
+            config.AddExporter(HtmlExporter.Default);
 
-            //BenchmarkRunner.Run(typeof(Program).Assembly, config);
-            BenchmarkRunner.Run<WideRowDynamicWriteSyncBenchmark>(config);
+            foreach (var b in benchmarks)
+            {
+                BenchmarkRunner.Run(b, config);
+            }
         }
     }
 }

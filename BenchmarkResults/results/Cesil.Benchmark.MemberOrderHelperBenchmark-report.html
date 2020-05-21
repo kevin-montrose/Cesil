@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>Cesil.Benchmark.MemberOrderHelperBenchmark-20200524-104936</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet=v0.12.1, OS=Windows 8.1 (6.3.9600.0)
+Intel Core i7-4960HQ CPU 2.60GHz (Haswell), 1 CPU, 8 logical and 4 physical cores
+Frequency=2533200 Hz, Resolution=394.7576 ns, Timer=TSC
+.NET Core SDK=3.1.201
+  [Host]     : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
+  DefaultJob : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
+</code></pre>
+<pre><code></code></pre>
+
+<table>
+<thead><tr><th>Method</th><th> DataSet</th><th>DataSetSize</th><th>NoOrderPrecent</th><th>Mean</th><th>Error</th><th>StdDev</th><th>Median</th><th>Ratio</th><th>RatioSD</th><th>Gen 0</th><th>Gen 1</th><th>Gen 2</th><th>Allocated</th>
+</tr>
+</thead><tbody><tr><td>Naive</td><td>InOrder</td><td>1</td><td>0</td><td>313.0 ns</td><td>14.99 ns</td><td>43.50 ns</td><td>297.0 ns</td><td>1.00</td><td>0.00</td><td>0.0048</td><td>-</td><td>-</td><td>328 B</td>
+</tr><tr><td>Helper</td><td>InOrder</td><td>1</td><td>0</td><td>152.8 ns</td><td>0.99 ns</td><td>0.83 ns</td><td>152.9 ns</td><td>0.49</td><td>0.05</td><td>0.0041</td><td>-</td><td>-</td><td>272 B</td>
+</tr><tr><td>Naive</td><td>InOrder</td><td>1</td><td>0.25</td><td>284.6 ns</td><td>5.46 ns</td><td>6.50 ns</td><td>286.6 ns</td><td>1.00</td><td>0.00</td><td>0.0048</td><td>-</td><td>-</td><td>328 B</td>
+</tr><tr><td>Helper</td><td>InOrder</td><td>1</td><td>0.25</td><td>146.1 ns</td><td>1.20 ns</td><td>0.94 ns</td><td>146.2 ns</td><td>0.51</td><td>0.02</td><td>0.0041</td><td>-</td><td>-</td><td>272 B</td>
+</tr><tr><td>Naive</td><td>InOrder</td><td>1</td><td>0.5</td><td>283.1 ns</td><td>3.42 ns</td><td>3.03 ns</td><td>283.9 ns</td><td>1.00</td><td>0.00</td><td>0.0048</td><td>-</td><td>-</td><td>328 B</td>
+</tr><tr><td>Helper</td><td>InOrder</td><td>1</td><td>0.5</td><td>153.6 ns</td><td>2.85 ns</td><td>2.38 ns</td><td>152.7 ns</td><td>0.54</td><td>0.01</td><td>0.0041</td><td>-</td><td>-</td><td>272 B</td>
+</tr><tr><td>Naive</td><td>InOrder</td><td>1</td><td>0.75</td><td>277.3 ns</td><td>5.46 ns</td><td>8.50 ns</td><td>281.1 ns</td><td>1.00</td><td>0.00</td><td>0.0048</td><td>-</td><td>-</td><td>328 B</td>
+</tr><tr><td>Helper</td><td>InOrder</td><td>1</td><td>0.75</td><td>118.2 ns</td><td>2.37 ns</td><td>4.46 ns</td><td>115.7 ns</td><td>0.43</td><td>0.02</td><td>0.0027</td><td>-</td><td>-</td><td>184 B</td>
+</tr><tr><td>Naive</td><td>InOrder</td><td>1</td><td>1</td><td>274.5 ns</td><td>5.45 ns</td><td>9.10 ns</td><td>278.2 ns</td><td>1.00</td><td>0.00</td><td>0.0048</td><td>-</td><td>-</td><td>328 B</td>
+</tr><tr><td>Helper</td><td>InOrder</td><td>1</td><td>1</td><td>120.5 ns</td><td>2.41 ns</td><td>3.82 ns</td><td>121.7 ns</td><td>0.44</td><td>0.02</td><td>0.0026</td><td>-</td><td>-</td><td>184 B</td>
+</tr><tr><td>Naive</td><td>InOrder</td><td>5</td><td>0</td><td>652.5 ns</td><td>1.26 ns</td><td>1.05 ns</td><td>652.7 ns</td><td>1.00</td><td>0.00</td><td>0.0067</td><td>-</td><td>-</td><td>480 B</td>
+</tr><tr><td>Helper</td><td>InOrder</td><td>5</td><td>0</td><td>435.2 ns</td><td>8.72 ns</td><td>16.17 ns</td><td>434.7 ns</td><td>0.67</td><td>0.03</td><td>0.0052</td><td>-</td><td>-</td><td>360 B</td>
+</tr><tr><td>Naive</td><td>InOrder</td><td>5</td><td>0.25</td><td>654.0 ns</td><td>11.35 ns</td><td>9.48 ns</td><td>649.2 ns</td><td>1.00</td><td>0.00</td><td>0.0067</td><td>-</td><td>-</td><td>480 B</td>
+</tr><tr><td>Helper</td><td>InOrder</td><td>5</td><td>0.25</td><td>428.5 ns</td><td>8.57 ns</td><td>13.59 ns</td><td>426.8 ns</td><td>0.67</td><td>0.02</td><td>0.0052</td><td>-</td><td>-</td><td>360 B</td>
+</tr><tr><td>Naive</td><td>InOrder</td><td>5</td><td>0.5</td><td>669.8 ns</td><td>3.53 ns</td><td>2.76 ns</td><td>669.5 ns</td><td>1.00</td><td>0.00</td><td>0.0067</td><td>-</td><td>-</td><td>480 B</td>
+</tr><tr><td>Helper</td><td>InOrder</td><td>5</td><td>0.5</td><td>431.1 ns</td><td>4.51 ns</td><td>4.82 ns</td><td>429.8 ns</td><td>0.64</td><td>0.01</td><td>0.0052</td><td>-</td><td>-</td><td>360 B</td>
+</tr><tr><td>Naive</td><td>InOrder</td><td>5</td><td>0.75</td><td>710.6 ns</td><td>14.00 ns</td><td>23.39 ns</td><td>711.1 ns</td><td>1.00</td><td>0.00</td><td>0.0067</td><td>-</td><td>-</td><td>480 B</td>
+</tr><tr><td>Helper</td><td>InOrder</td><td>5</td><td>0.75</td><td>376.5 ns</td><td>7.52 ns</td><td>12.56 ns</td><td>379.5 ns</td><td>0.53</td><td>0.02</td><td>0.0052</td><td>-</td><td>-</td><td>360 B</td>
+</tr><tr><td>Naive</td><td>InOrder</td><td>5</td><td>1</td><td>635.8 ns</td><td>2.77 ns</td><td>2.32 ns</td><td>635.3 ns</td><td>1.00</td><td>0.00</td><td>0.0067</td><td>-</td><td>-</td><td>480 B</td>
+</tr><tr><td>Helper</td><td>InOrder</td><td>5</td><td>1</td><td>296.2 ns</td><td>5.89 ns</td><td>12.03 ns</td><td>298.0 ns</td><td>0.47</td><td>0.02</td><td>0.0038</td><td>-</td><td>-</td><td>272 B</td>
+</tr><tr><td>Naive</td><td>InOrder</td><td>10</td><td>0</td><td>1,147.9 ns</td><td>8.01 ns</td><td>6.69 ns</td><td>1,148.7 ns</td><td>1.00</td><td>0.00</td><td>0.0095</td><td>-</td><td>-</td><td>760 B</td>
+</tr><tr><td>Helper</td><td>InOrder</td><td>10</td><td>0</td><td>854.8 ns</td><td>21.12 ns</td><td>61.27 ns</td><td>822.5 ns</td><td>0.76</td><td>0.06</td><td>0.0086</td><td>-</td><td>-</td><td>576 B</td>
+</tr><tr><td>Naive</td><td>InOrder</td><td>10</td><td>0.25</td><td>1,140.2 ns</td><td>5.05 ns</td><td>3.94 ns</td><td>1,141.1 ns</td><td>1.00</td><td>0.00</td><td>0.0095</td><td>-</td><td>-</td><td>760 B</td>
+</tr><tr><td>Helper</td><td>InOrder</td><td>10</td><td>0.25</td><td>844.8 ns</td><td>15.78 ns</td><td>42.12 ns</td><td>844.2 ns</td><td>0.76</td><td>0.02</td><td>0.0086</td><td>-</td><td>-</td><td>576 B</td>
+</tr><tr><td>Naive</td><td>InOrder</td><td>10</td><td>0.5</td><td>1,178.5 ns</td><td>3.55 ns</td><td>2.97 ns</td><td>1,178.6 ns</td><td>1.00</td><td>0.00</td><td>0.0095</td><td>-</td><td>-</td><td>760 B</td>
+</tr><tr><td>Helper</td><td>InOrder</td><td>10</td><td>0.5</td><td>869.8 ns</td><td>25.76 ns</td><td>74.73 ns</td><td>851.1 ns</td><td>0.76</td><td>0.07</td><td>0.0086</td><td>-</td><td>-</td><td>576 B</td>
+</tr><tr><td>Naive</td><td>InOrder</td><td>10</td><td>0.75</td><td>1,160.0 ns</td><td>22.84 ns</td><td>27.19 ns</td><td>1,153.3 ns</td><td>1.00</td><td>0.00</td><td>0.0095</td><td>-</td><td>-</td><td>760 B</td>
+</tr><tr><td>Helper</td><td>InOrder</td><td>10</td><td>0.75</td><td>736.3 ns</td><td>26.66 ns</td><td>77.35 ns</td><td>704.5 ns</td><td>0.63</td><td>0.07</td><td>0.0086</td><td>-</td><td>-</td><td>576 B</td>
+</tr><tr><td>Naive</td><td>InOrder</td><td>10</td><td>1</td><td>1,128.8 ns</td><td>21.11 ns</td><td>25.93 ns</td><td>1,133.5 ns</td><td>1.00</td><td>0.00</td><td>0.0095</td><td>-</td><td>-</td><td>760 B</td>
+</tr><tr><td>Helper</td><td>InOrder</td><td>10</td><td>1</td><td>500.5 ns</td><td>9.86 ns</td><td>7.70 ns</td><td>497.3 ns</td><td>0.44</td><td>0.01</td><td>0.0057</td><td>-</td><td>-</td><td>424 B</td>
+</tr><tr><td>Naive</td><td>InOrder</td><td>50</td><td>0</td><td>5,306.3 ns</td><td>79.60 ns</td><td>66.47 ns</td><td>5,285.3 ns</td><td>1.00</td><td>0.00</td><td>0.0305</td><td>-</td><td>-</td><td>2344 B</td>
+</tr><tr><td>Helper</td><td>InOrder</td><td>50</td><td>0</td><td>3,477.5 ns</td><td>68.21 ns</td><td>93.37 ns</td><td>3,430.0 ns</td><td>0.66</td><td>0.02</td><td>0.0267</td><td>-</td><td>-</td><td>1776 B</td>
+</tr><tr><td>Naive</td><td>InOrder</td><td>50</td><td>0.25</td><td>6,243.7 ns</td><td>33.06 ns</td><td>25.81 ns</td><td>6,249.2 ns</td><td>1.00</td><td>0.00</td><td>0.0305</td><td>-</td><td>-</td><td>2344 B</td>
+</tr><tr><td>Helper</td><td>InOrder</td><td>50</td><td>0.25</td><td>3,988.3 ns</td><td>77.34 ns</td><td>89.06 ns</td><td>4,011.2 ns</td><td>0.64</td><td>0.02</td><td>0.0229</td><td>-</td><td>-</td><td>1776 B</td>
+</tr><tr><td>Naive</td><td>InOrder</td><td>50</td><td>0.5</td><td>5,908.9 ns</td><td>36.78 ns</td><td>32.60 ns</td><td>5,893.2 ns</td><td>1.00</td><td>0.00</td><td>0.0305</td><td>-</td><td>-</td><td>2344 B</td>
+</tr><tr><td>Helper</td><td>InOrder</td><td>50</td><td>0.5</td><td>3,743.5 ns</td><td>74.17 ns</td><td>121.86 ns</td><td>3,766.0 ns</td><td>0.64</td><td>0.03</td><td>0.0267</td><td>-</td><td>-</td><td>1776 B</td>
+</tr><tr><td>Naive</td><td>InOrder</td><td>50</td><td>0.75</td><td>5,609.3 ns</td><td>28.35 ns</td><td>26.52 ns</td><td>5,600.0 ns</td><td>1.00</td><td>0.00</td><td>0.0305</td><td>-</td><td>-</td><td>2344 B</td>
+</tr><tr><td>Helper</td><td>InOrder</td><td>50</td><td>0.75</td><td>3,450.0 ns</td><td>106.17 ns</td><td>306.31 ns</td><td>3,317.8 ns</td><td>0.63</td><td>0.05</td><td>0.0267</td><td>-</td><td>-</td><td>1776 B</td>
+</tr><tr><td>Naive</td><td>InOrder</td><td>50</td><td>1</td><td>5,934.3 ns</td><td>247.34 ns</td><td>709.66 ns</td><td>5,575.5 ns</td><td>1.00</td><td>0.00</td><td>0.0305</td><td>-</td><td>-</td><td>2344 B</td>
+</tr><tr><td>Helper</td><td>InOrder</td><td>50</td><td>1</td><td>1,966.1 ns</td><td>26.19 ns</td><td>21.87 ns</td><td>1,962.8 ns</td><td>0.32</td><td>0.04</td><td>0.0153</td><td>-</td><td>-</td><td>1240 B</td>
+</tr><tr><td>Naive</td><td>InReverseOrder</td><td>1</td><td>0</td><td>277.3 ns</td><td>9.77 ns</td><td>27.56 ns</td><td>268.8 ns</td><td>1.00</td><td>0.00</td><td>0.0048</td><td>-</td><td>-</td><td>328 B</td>
+</tr><tr><td>Helper</td><td>InReverseOrder</td><td>1</td><td>0</td><td>148.9 ns</td><td>2.38 ns</td><td>2.11 ns</td><td>148.5 ns</td><td>0.50</td><td>0.05</td><td>0.0041</td><td>-</td><td>-</td><td>272 B</td>
+</tr><tr><td>Naive</td><td>InReverseOrder</td><td>1</td><td>0.25</td><td>286.9 ns</td><td>11.56 ns</td><td>33.90 ns</td><td>273.2 ns</td><td>1.00</td><td>0.00</td><td>0.0048</td><td>-</td><td>-</td><td>328 B</td>
+</tr><tr><td>Helper</td><td>InReverseOrder</td><td>1</td><td>0.25</td><td>146.5 ns</td><td>0.77 ns</td><td>0.60 ns</td><td>146.5 ns</td><td>0.53</td><td>0.05</td><td>0.0041</td><td>-</td><td>-</td><td>272 B</td>
+</tr><tr><td>Naive</td><td>InReverseOrder</td><td>1</td><td>0.5</td><td>288.4 ns</td><td>10.07 ns</td><td>28.89 ns</td><td>280.2 ns</td><td>1.00</td><td>0.00</td><td>0.0048</td><td>-</td><td>-</td><td>328 B</td>
+</tr><tr><td>Helper</td><td>InReverseOrder</td><td>1</td><td>0.5</td><td>150.9 ns</td><td>3.00 ns</td><td>3.21 ns</td><td>151.0 ns</td><td>0.54</td><td>0.04</td><td>0.0041</td><td>-</td><td>-</td><td>272 B</td>
+</tr><tr><td>Naive</td><td>InReverseOrder</td><td>1</td><td>0.75</td><td>265.7 ns</td><td>5.09 ns</td><td>4.76 ns</td><td>266.8 ns</td><td>1.00</td><td>0.00</td><td>0.0048</td><td>-</td><td>-</td><td>328 B</td>
+</tr><tr><td>Helper</td><td>InReverseOrder</td><td>1</td><td>0.75</td><td>116.1 ns</td><td>2.33 ns</td><td>6.11 ns</td><td>115.5 ns</td><td>0.46</td><td>0.02</td><td>0.0027</td><td>-</td><td>-</td><td>184 B</td>
+</tr><tr><td>Naive</td><td>InReverseOrder</td><td>1</td><td>1</td><td>262.7 ns</td><td>4.99 ns</td><td>5.12 ns</td><td>265.1 ns</td><td>1.00</td><td>0.00</td><td>0.0048</td><td>-</td><td>-</td><td>328 B</td>
+</tr><tr><td>Helper</td><td>InReverseOrder</td><td>1</td><td>1</td><td>111.3 ns</td><td>2.22 ns</td><td>2.64 ns</td><td>110.7 ns</td><td>0.42</td><td>0.01</td><td>0.0026</td><td>-</td><td>-</td><td>184 B</td>
+</tr><tr><td>Naive</td><td>InReverseOrder</td><td>5</td><td>0</td><td>727.8 ns</td><td>13.40 ns</td><td>12.53 ns</td><td>731.8 ns</td><td>1.00</td><td>0.00</td><td>0.0067</td><td>-</td><td>-</td><td>480 B</td>
+</tr><tr><td>Helper</td><td>InReverseOrder</td><td>5</td><td>0</td><td>518.3 ns</td><td>4.98 ns</td><td>4.66 ns</td><td>519.4 ns</td><td>0.71</td><td>0.01</td><td>0.0048</td><td>-</td><td>-</td><td>360 B</td>
+</tr><tr><td>Naive</td><td>InReverseOrder</td><td>5</td><td>0.25</td><td>774.1 ns</td><td>28.33 ns</td><td>81.74 ns</td><td>736.0 ns</td><td>1.00</td><td>0.00</td><td>0.0067</td><td>-</td><td>-</td><td>480 B</td>
+</tr><tr><td>Helper</td><td>InReverseOrder</td><td>5</td><td>0.25</td><td>693.9 ns</td><td>40.10 ns</td><td>116.33 ns</td><td>662.7 ns</td><td>0.90</td><td>0.17</td><td>0.0048</td><td>-</td><td>-</td><td>360 B</td>
+</tr><tr><td>Naive</td><td>InReverseOrder</td><td>5</td><td>0.5</td><td>742.0 ns</td><td>14.77 ns</td><td>35.39 ns</td><td>733.1 ns</td><td>1.00</td><td>0.00</td><td>0.0067</td><td>-</td><td>-</td><td>480 B</td>
+</tr><tr><td>Helper</td><td>InReverseOrder</td><td>5</td><td>0.5</td><td>482.6 ns</td><td>4.59 ns</td><td>3.83 ns</td><td>483.1 ns</td><td>0.65</td><td>0.02</td><td>0.0048</td><td>-</td><td>-</td><td>360 B</td>
+</tr><tr><td>Naive</td><td>InReverseOrder</td><td>5</td><td>0.75</td><td>734.9 ns</td><td>13.20 ns</td><td>34.76 ns</td><td>723.9 ns</td><td>1.00</td><td>0.00</td><td>0.0067</td><td>-</td><td>-</td><td>480 B</td>
+</tr><tr><td>Helper</td><td>InReverseOrder</td><td>5</td><td>0.75</td><td>355.0 ns</td><td>4.04 ns</td><td>3.37 ns</td><td>354.7 ns</td><td>0.49</td><td>0.03</td><td>0.0052</td><td>-</td><td>-</td><td>360 B</td>
+</tr><tr><td>Naive</td><td>InReverseOrder</td><td>5</td><td>1</td><td>677.4 ns</td><td>12.60 ns</td><td>12.37 ns</td><td>679.1 ns</td><td>1.00</td><td>0.00</td><td>0.0067</td><td>-</td><td>-</td><td>480 B</td>
+</tr><tr><td>Helper</td><td>InReverseOrder</td><td>5</td><td>1</td><td>284.0 ns</td><td>1.74 ns</td><td>1.36 ns</td><td>284.5 ns</td><td>0.42</td><td>0.01</td><td>0.0038</td><td>-</td><td>-</td><td>272 B</td>
+</tr><tr><td>Naive</td><td>InReverseOrder</td><td>10</td><td>0</td><td>1,572.2 ns</td><td>31.44 ns</td><td>76.53 ns</td><td>1,557.9 ns</td><td>1.00</td><td>0.00</td><td>0.0095</td><td>-</td><td>-</td><td>760 B</td>
+</tr><tr><td>Helper</td><td>InReverseOrder</td><td>10</td><td>0</td><td>1,065.3 ns</td><td>20.95 ns</td><td>35.01 ns</td><td>1,065.9 ns</td><td>0.69</td><td>0.04</td><td>0.0076</td><td>-</td><td>-</td><td>576 B</td>
+</tr><tr><td>Naive</td><td>InReverseOrder</td><td>10</td><td>0.25</td><td>1,323.4 ns</td><td>21.91 ns</td><td>18.29 ns</td><td>1,328.0 ns</td><td>1.00</td><td>0.00</td><td>0.0095</td><td>-</td><td>-</td><td>760 B</td>
+</tr><tr><td>Helper</td><td>InReverseOrder</td><td>10</td><td>0.25</td><td>1,103.3 ns</td><td>39.73 ns</td><td>112.72 ns</td><td>1,064.3 ns</td><td>0.79</td><td>0.06</td><td>0.0076</td><td>-</td><td>-</td><td>576 B</td>
+</tr><tr><td>Naive</td><td>InReverseOrder</td><td>10</td><td>0.5</td><td>1,346.7 ns</td><td>25.94 ns</td><td>21.66 ns</td><td>1,346.5 ns</td><td>1.00</td><td>0.00</td><td>0.0095</td><td>-</td><td>-</td><td>760 B</td>
+</tr><tr><td>Helper</td><td>InReverseOrder</td><td>10</td><td>0.5</td><td>880.3 ns</td><td>12.35 ns</td><td>12.13 ns</td><td>878.5 ns</td><td>0.65</td><td>0.01</td><td>0.0086</td><td>-</td><td>-</td><td>576 B</td>
+</tr><tr><td>Naive</td><td>InReverseOrder</td><td>10</td><td>0.75</td><td>1,204.0 ns</td><td>23.96 ns</td><td>37.31 ns</td><td>1,217.3 ns</td><td>1.00</td><td>0.00</td><td>0.0095</td><td>-</td><td>-</td><td>760 B</td>
+</tr><tr><td>Helper</td><td>InReverseOrder</td><td>10</td><td>0.75</td><td>669.0 ns</td><td>5.02 ns</td><td>3.92 ns</td><td>668.6 ns</td><td>0.56</td><td>0.02</td><td>0.0086</td><td>-</td><td>-</td><td>576 B</td>
+</tr><tr><td>Naive</td><td>InReverseOrder</td><td>10</td><td>1</td><td>1,173.3 ns</td><td>22.95 ns</td><td>25.51 ns</td><td>1,175.7 ns</td><td>1.00</td><td>0.00</td><td>0.0095</td><td>-</td><td>-</td><td>760 B</td>
+</tr><tr><td>Helper</td><td>InReverseOrder</td><td>10</td><td>1</td><td>506.4 ns</td><td>6.00 ns</td><td>5.01 ns</td><td>508.0 ns</td><td>0.43</td><td>0.01</td><td>0.0057</td><td>-</td><td>-</td><td>424 B</td>
+</tr><tr><td>Naive</td><td>InReverseOrder</td><td>50</td><td>0</td><td>6,355.5 ns</td><td>118.72 ns</td><td>116.59 ns</td><td>6,338.5 ns</td><td>1.00</td><td>0.00</td><td>0.0305</td><td>-</td><td>-</td><td>2344 B</td>
+</tr><tr><td>Helper</td><td>InReverseOrder</td><td>50</td><td>0</td><td>5,263.2 ns</td><td>103.73 ns</td><td>155.26 ns</td><td>5,210.5 ns</td><td>0.83</td><td>0.03</td><td>0.0229</td><td>-</td><td>-</td><td>1776 B</td>
+</tr><tr><td>Naive</td><td>InReverseOrder</td><td>50</td><td>0.25</td><td>6,557.1 ns</td><td>121.00 ns</td><td>249.90 ns</td><td>6,475.9 ns</td><td>1.00</td><td>0.00</td><td>0.0305</td><td>-</td><td>-</td><td>2344 B</td>
+</tr><tr><td>Helper</td><td>InReverseOrder</td><td>50</td><td>0.25</td><td>4,761.0 ns</td><td>91.10 ns</td><td>108.45 ns</td><td>4,804.9 ns</td><td>0.71</td><td>0.04</td><td>0.0229</td><td>-</td><td>-</td><td>1776 B</td>
+</tr><tr><td>Naive</td><td>InReverseOrder</td><td>50</td><td>0.5</td><td>6,145.5 ns</td><td>120.22 ns</td><td>143.11 ns</td><td>6,155.6 ns</td><td>1.00</td><td>0.00</td><td>0.0305</td><td>-</td><td>-</td><td>2344 B</td>
+</tr><tr><td>Helper</td><td>InReverseOrder</td><td>50</td><td>0.5</td><td>4,814.6 ns</td><td>242.82 ns</td><td>715.97 ns</td><td>4,500.3 ns</td><td>0.70</td><td>0.05</td><td>0.0229</td><td>-</td><td>-</td><td>1776 B</td>
+</tr><tr><td>Naive</td><td>InReverseOrder</td><td>50</td><td>0.75</td><td>5,813.1 ns</td><td>115.35 ns</td><td>208.00 ns</td><td>5,707.2 ns</td><td>1.00</td><td>0.00</td><td>0.0305</td><td>-</td><td>-</td><td>2344 B</td>
+</tr><tr><td>Helper</td><td>InReverseOrder</td><td>50</td><td>0.75</td><td>3,420.8 ns</td><td>16.30 ns</td><td>12.73 ns</td><td>3,417.3 ns</td><td>0.58</td><td>0.03</td><td>0.0267</td><td>-</td><td>-</td><td>1776 B</td>
+</tr><tr><td>Naive</td><td>InReverseOrder</td><td>50</td><td>1</td><td>5,392.9 ns</td><td>86.52 ns</td><td>80.94 ns</td><td>5,392.8 ns</td><td>1.00</td><td>0.00</td><td>0.0305</td><td>-</td><td>-</td><td>2344 B</td>
+</tr><tr><td>Helper</td><td>InReverseOrder</td><td>50</td><td>1</td><td>2,018.9 ns</td><td>40.21 ns</td><td>44.69 ns</td><td>2,021.7 ns</td><td>0.38</td><td>0.01</td><td>0.0153</td><td>-</td><td>-</td><td>1240 B</td>
+</tr><tr><td>Naive</td><td>RandomOrder</td><td>1</td><td>0</td><td>254.6 ns</td><td>3.13 ns</td><td>2.62 ns</td><td>254.3 ns</td><td>1.00</td><td>0.00</td><td>0.0048</td><td>-</td><td>-</td><td>328 B</td>
+</tr><tr><td>Helper</td><td>RandomOrder</td><td>1</td><td>0</td><td>165.1 ns</td><td>4.17 ns</td><td>11.75 ns</td><td>160.1 ns</td><td>0.66</td><td>0.05</td><td>0.0041</td><td>-</td><td>-</td><td>272 B</td>
+</tr><tr><td>Naive</td><td>RandomOrder</td><td>1</td><td>0.25</td><td>268.0 ns</td><td>5.22 ns</td><td>13.94 ns</td><td>262.9 ns</td><td>1.00</td><td>0.00</td><td>0.0048</td><td>-</td><td>-</td><td>328 B</td>
+</tr><tr><td>Helper</td><td>RandomOrder</td><td>1</td><td>0.25</td><td>161.7 ns</td><td>3.24 ns</td><td>4.65 ns</td><td>163.0 ns</td><td>0.60</td><td>0.04</td><td>0.0041</td><td>-</td><td>-</td><td>272 B</td>
+</tr><tr><td>Naive</td><td>RandomOrder</td><td>1</td><td>0.5</td><td>258.0 ns</td><td>3.70 ns</td><td>2.89 ns</td><td>257.2 ns</td><td>1.00</td><td>0.00</td><td>0.0048</td><td>-</td><td>-</td><td>328 B</td>
+</tr><tr><td>Helper</td><td>RandomOrder</td><td>1</td><td>0.5</td><td>158.4 ns</td><td>3.19 ns</td><td>7.46 ns</td><td>160.6 ns</td><td>0.62</td><td>0.03</td><td>0.0041</td><td>-</td><td>-</td><td>272 B</td>
+</tr><tr><td>Naive</td><td>RandomOrder</td><td>1</td><td>0.75</td><td>254.1 ns</td><td>2.28 ns</td><td>1.91 ns</td><td>254.0 ns</td><td>1.00</td><td>0.00</td><td>0.0048</td><td>-</td><td>-</td><td>328 B</td>
+</tr><tr><td>Helper</td><td>RandomOrder</td><td>1</td><td>0.75</td><td>122.7 ns</td><td>3.07 ns</td><td>8.55 ns</td><td>120.3 ns</td><td>0.50</td><td>0.03</td><td>0.0026</td><td>-</td><td>-</td><td>184 B</td>
+</tr><tr><td>Naive</td><td>RandomOrder</td><td>1</td><td>1</td><td>269.0 ns</td><td>7.10 ns</td><td>19.31 ns</td><td>260.3 ns</td><td>1.00</td><td>0.00</td><td>0.0048</td><td>-</td><td>-</td><td>328 B</td>
+</tr><tr><td>Helper</td><td>RandomOrder</td><td>1</td><td>1</td><td>125.0 ns</td><td>2.91 ns</td><td>7.97 ns</td><td>123.0 ns</td><td>0.47</td><td>0.05</td><td>0.0026</td><td>-</td><td>-</td><td>184 B</td>
+</tr><tr><td>Naive</td><td>RandomOrder</td><td>5</td><td>0</td><td>699.2 ns</td><td>10.65 ns</td><td>11.84 ns</td><td>696.9 ns</td><td>1.00</td><td>0.00</td><td>0.0067</td><td>-</td><td>-</td><td>480 B</td>
+</tr><tr><td>Helper</td><td>RandomOrder</td><td>5</td><td>0</td><td>524.2 ns</td><td>10.06 ns</td><td>20.77 ns</td><td>520.9 ns</td><td>0.75</td><td>0.03</td><td>0.0048</td><td>-</td><td>-</td><td>360 B</td>
+</tr><tr><td>Naive</td><td>RandomOrder</td><td>5</td><td>0.25</td><td>689.6 ns</td><td>13.78 ns</td><td>19.32 ns</td><td>680.7 ns</td><td>1.00</td><td>0.00</td><td>0.0067</td><td>-</td><td>-</td><td>480 B</td>
+</tr><tr><td>Helper</td><td>RandomOrder</td><td>5</td><td>0.25</td><td>469.7 ns</td><td>9.07 ns</td><td>19.72 ns</td><td>474.0 ns</td><td>0.69</td><td>0.03</td><td>0.0052</td><td>-</td><td>-</td><td>360 B</td>
+</tr><tr><td>Naive</td><td>RandomOrder</td><td>5</td><td>0.5</td><td>681.6 ns</td><td>13.43 ns</td><td>14.37 ns</td><td>687.0 ns</td><td>1.00</td><td>0.00</td><td>0.0067</td><td>-</td><td>-</td><td>480 B</td>
+</tr><tr><td>Helper</td><td>RandomOrder</td><td>5</td><td>0.5</td><td>389.1 ns</td><td>2.45 ns</td><td>2.05 ns</td><td>389.8 ns</td><td>0.57</td><td>0.01</td><td>0.0052</td><td>-</td><td>-</td><td>360 B</td>
+</tr><tr><td>Naive</td><td>RandomOrder</td><td>5</td><td>0.75</td><td>677.3 ns</td><td>6.23 ns</td><td>5.83 ns</td><td>678.0 ns</td><td>1.00</td><td>0.00</td><td>0.0067</td><td>-</td><td>-</td><td>480 B</td>
+</tr><tr><td>Helper</td><td>RandomOrder</td><td>5</td><td>0.75</td><td>343.1 ns</td><td>0.88 ns</td><td>0.74 ns</td><td>342.9 ns</td><td>0.51</td><td>0.00</td><td>0.0052</td><td>-</td><td>-</td><td>360 B</td>
+</tr><tr><td>Naive</td><td>RandomOrder</td><td>5</td><td>1</td><td>639.1 ns</td><td>4.74 ns</td><td>4.21 ns</td><td>639.0 ns</td><td>1.00</td><td>0.00</td><td>0.0067</td><td>-</td><td>-</td><td>480 B</td>
+</tr><tr><td>Helper</td><td>RandomOrder</td><td>5</td><td>1</td><td>271.0 ns</td><td>0.79 ns</td><td>0.70 ns</td><td>271.2 ns</td><td>0.42</td><td>0.00</td><td>0.0038</td><td>-</td><td>-</td><td>272 B</td>
+</tr><tr><td>Naive</td><td>RandomOrder</td><td>10</td><td>0</td><td>1,325.6 ns</td><td>25.19 ns</td><td>26.95 ns</td><td>1,335.7 ns</td><td>1.00</td><td>0.00</td><td>0.0095</td><td>-</td><td>-</td><td>760 B</td>
+</tr><tr><td>Helper</td><td>RandomOrder</td><td>10</td><td>0</td><td>940.4 ns</td><td>14.08 ns</td><td>13.17 ns</td><td>931.2 ns</td><td>0.71</td><td>0.02</td><td>0.0086</td><td>-</td><td>-</td><td>576 B</td>
+</tr><tr><td>Naive</td><td>RandomOrder</td><td>10</td><td>0.25</td><td>1,244.3 ns</td><td>21.46 ns</td><td>20.08 ns</td><td>1,256.5 ns</td><td>1.00</td><td>0.00</td><td>0.0095</td><td>-</td><td>-</td><td>760 B</td>
+</tr><tr><td>Helper</td><td>RandomOrder</td><td>10</td><td>0.25</td><td>783.6 ns</td><td>15.36 ns</td><td>17.07 ns</td><td>779.0 ns</td><td>0.63</td><td>0.01</td><td>0.0086</td><td>-</td><td>-</td><td>576 B</td>
+</tr><tr><td>Naive</td><td>RandomOrder</td><td>10</td><td>0.5</td><td>1,138.6 ns</td><td>3.39 ns</td><td>3.17 ns</td><td>1,138.7 ns</td><td>1.00</td><td>0.00</td><td>0.0095</td><td>-</td><td>-</td><td>760 B</td>
+</tr><tr><td>Helper</td><td>RandomOrder</td><td>10</td><td>0.5</td><td>769.6 ns</td><td>12.51 ns</td><td>11.70 ns</td><td>773.3 ns</td><td>0.68</td><td>0.01</td><td>0.0086</td><td>-</td><td>-</td><td>576 B</td>
+</tr><tr><td>Naive</td><td>RandomOrder</td><td>10</td><td>0.75</td><td>1,120.3 ns</td><td>8.85 ns</td><td>8.28 ns</td><td>1,124.1 ns</td><td>1.00</td><td>0.00</td><td>0.0095</td><td>-</td><td>-</td><td>760 B</td>
+</tr><tr><td>Helper</td><td>RandomOrder</td><td>10</td><td>0.75</td><td>652.3 ns</td><td>10.67 ns</td><td>9.98 ns</td><td>655.8 ns</td><td>0.58</td><td>0.01</td><td>0.0086</td><td>-</td><td>-</td><td>576 B</td>
+</tr><tr><td>Naive</td><td>RandomOrder</td><td>10</td><td>1</td><td>1,073.2 ns</td><td>9.62 ns</td><td>9.00 ns</td><td>1,074.9 ns</td><td>1.00</td><td>0.00</td><td>0.0095</td><td>-</td><td>-</td><td>760 B</td>
+</tr><tr><td>Helper</td><td>RandomOrder</td><td>10</td><td>1</td><td>522.6 ns</td><td>4.74 ns</td><td>4.43 ns</td><td>523.8 ns</td><td>0.49</td><td>0.01</td><td>0.0057</td><td>-</td><td>-</td><td>424 B</td>
+</tr><tr><td>Naive</td><td>RandomOrder</td><td>50</td><td>0</td><td>6,655.8 ns</td><td>118.39 ns</td><td>162.05 ns</td><td>6,587.0 ns</td><td>1.00</td><td>0.00</td><td>0.0305</td><td>-</td><td>-</td><td>2344 B</td>
+</tr><tr><td>Helper</td><td>RandomOrder</td><td>50</td><td>0</td><td>4,946.0 ns</td><td>97.30 ns</td><td>99.92 ns</td><td>4,950.6 ns</td><td>0.74</td><td>0.03</td><td>0.0229</td><td>-</td><td>-</td><td>1776 B</td>
+</tr><tr><td>Naive</td><td>RandomOrder</td><td>50</td><td>0.25</td><td>6,318.0 ns</td><td>19.62 ns</td><td>17.39 ns</td><td>6,317.1 ns</td><td>1.00</td><td>0.00</td><td>0.0305</td><td>-</td><td>-</td><td>2344 B</td>
+</tr><tr><td>Helper</td><td>RandomOrder</td><td>50</td><td>0.25</td><td>4,366.5 ns</td><td>84.37 ns</td><td>93.78 ns</td><td>4,411.1 ns</td><td>0.69</td><td>0.02</td><td>0.0229</td><td>-</td><td>-</td><td>1776 B</td>
+</tr><tr><td>Naive</td><td>RandomOrder</td><td>50</td><td>0.5</td><td>6,025.9 ns</td><td>27.29 ns</td><td>24.19 ns</td><td>6,028.7 ns</td><td>1.00</td><td>0.00</td><td>0.0305</td><td>-</td><td>-</td><td>2344 B</td>
+</tr><tr><td>Helper</td><td>RandomOrder</td><td>50</td><td>0.5</td><td>3,770.8 ns</td><td>75.11 ns</td><td>89.42 ns</td><td>3,785.3 ns</td><td>0.62</td><td>0.01</td><td>0.0267</td><td>-</td><td>-</td><td>1776 B</td>
+</tr><tr><td>Naive</td><td>RandomOrder</td><td>50</td><td>0.75</td><td>5,761.2 ns</td><td>19.07 ns</td><td>16.91 ns</td><td>5,757.1 ns</td><td>1.00</td><td>0.00</td><td>0.0305</td><td>-</td><td>-</td><td>2344 B</td>
+</tr><tr><td>Helper</td><td>RandomOrder</td><td>50</td><td>0.75</td><td>3,000.8 ns</td><td>57.46 ns</td><td>56.44 ns</td><td>3,006.5 ns</td><td>0.52</td><td>0.01</td><td>0.0267</td><td>-</td><td>-</td><td>1776 B</td>
+</tr><tr><td>Naive</td><td>RandomOrder</td><td>50</td><td>1</td><td>5,283.2 ns</td><td>12.37 ns</td><td>10.96 ns</td><td>5,282.8 ns</td><td>1.00</td><td>0.00</td><td>0.0305</td><td>-</td><td>-</td><td>2344 B</td>
+</tr><tr><td>Helper</td><td>RandomOrder</td><td>50</td><td>1</td><td>2,014.8 ns</td><td>33.86 ns</td><td>31.67 ns</td><td>2,028.0 ns</td><td>0.38</td><td>0.01</td><td>0.0153</td><td>-</td><td>-</td><td>1240 B</td>
+</tr></tbody></table>
+</body>
+</html>

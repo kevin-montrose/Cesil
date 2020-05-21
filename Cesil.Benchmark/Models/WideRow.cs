@@ -391,10 +391,10 @@ tryAgain:
             var c = this.DateTime == other.DateTime;
             var d = this.DateTimeOffset == other.DateTimeOffset;
             var e = this.Decimal == other.Decimal;
-            var f = this.Double == other.Double;
+            var f = DoublesEquivalent(this.Double, other.Double);
             var g = this.Enum == other.Enum;
             var h = this.FlagsEnum == other.FlagsEnum;
-            var i = this.Float == other.Float;
+            var i = FloatsEquivalent(this.Float, other.Float);
             var j = this.Guid == other.Guid;
             var k = this.Int == other.Int;
             var l = this.Long == other.Long;
@@ -403,10 +403,10 @@ tryAgain:
             var o = this.NullableDateTime == other.NullableDateTime;
             var p = this.NullableDateTimeOffset == other.NullableDateTimeOffset;
             var q = this.NullableDecimal == other.NullableDecimal;
-            var r = this.NullableDouble == other.NullableDouble;
+            var r = NullablesEquivalent(this.NullableDouble, other.NullableDouble, DoublesEquivalent);
             var s = this.NullableEnum == other.NullableEnum;
             var t = this.NullableFlagsEnum == other.NullableFlagsEnum;
-            var u = this.NullableFloat == other.NullableFloat;
+            var u = NullablesEquivalent(this.NullableFloat, other.NullableFloat, FloatsEquivalent);
             var v = this.NullableGuid == other.NullableGuid;
             var w = this.NullableInt == other.NullableInt;
             var x = this.NullableLong == other.NullableLong;
@@ -425,6 +425,73 @@ tryAgain:
 
             return a && b && c && d && e && f && g && h && i && j && k && l && m && n && o && p && q && r && s && t && u && v && w && x && y && z &&
                   aa && ab && ac && ad && ae && af && ag && ah && ai && aj;
+        }
+
+        private static bool NullablesEquivalent<T>(T? a, T? b, Func<T, T, bool> nonNull)
+            where T : struct
+        {
+            if (a == null)
+            {
+                if (b == null)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+            else
+            {
+                if (b == null)
+                {
+                    return false;
+                }
+
+                return nonNull(a.Value, b.Value);
+            }
+        }
+
+        private static bool FloatsEquivalent(float a, float b)
+        {
+            if (float.IsNaN(a))
+            {
+                if (float.IsNaN(b))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+            else
+            {
+                if (float.IsNaN(b))
+                {
+                    return false;
+                }
+
+                return a == b;
+            }
+        }
+
+        private static bool DoublesEquivalent(double a, double b)
+        {
+            if (double.IsNaN(a))
+            {
+                if (double.IsNaN(b))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+            else
+            {
+                if (double.IsNaN(b))
+                {
+                    return false;
+                }
+
+                return a == b;
+            }
         }
 
         public override bool Equals(object obj)

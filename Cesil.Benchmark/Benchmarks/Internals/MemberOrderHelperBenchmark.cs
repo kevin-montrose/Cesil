@@ -1,11 +1,11 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using BenchmarkDotNet.Attributes;
 
 namespace Cesil.Benchmark
 {
+    [BenchmarkCategory("Internals")]
     public class MemberOrderHelperBenchmark
     {
         [ParamsSource(nameof(DataSets))]
@@ -127,7 +127,7 @@ namespace Cesil.Benchmark
             }
         }
 
-        [Benchmark]
+        [Benchmark(Baseline = true)]
         public void Naive()
         {
             Benchmark(DoNaive());
