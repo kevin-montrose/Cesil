@@ -1,6 +1,8 @@
 # Cesil
 Modern CSV (De)Serializer
 
+![Run Tests (Debug)](https://github.com/kevin-montrose/Cesil/workflows/Run%20Tests%20(Debug)/badge.svg)
+
 # PRE-RELEASE
 
 This code isn't well tested yet, **YOU PROBABLY DON'T WANT TO USE IT!!!**
