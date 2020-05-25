@@ -21,6 +21,9 @@ namespace Cesil.Tests
             var ts = typeof(Configuration).Assembly.GetTypes();
             foreach (var t in ts)
             {
+                // skip things generated for code coverage
+                if (t.FullName.StartsWith("Coverlet")) continue;
+
                 yield return t.GetTypeInfo();
             }
         }
