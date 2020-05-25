@@ -1,7 +1,7 @@
 # Cesil
 Modern CSV (De)Serializer
 
-[![Run Tests (Debug)](https://github.com/kevin-montrose/Cesil/workflows/Run%20Tests%20(Debug)/badge.svg)](https://github.com/kevin-montrose/Cesil/actions?query=workflow%3A%22Run+Tests+%28Debug%29%22)
+[![Run Tests (Debug)](https://github.com/kevin-montrose/Cesil/workflows/Run%20Tests%20(Debug)/badge.svg)](https://github.com/kevin-montrose/Cesil/actions?query=workflow%3A%22Run+Tests+%28Debug%29%22) [![Line Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/kevin-montrose/Cesil/shields/shields/linesCovered.json)](https://github.com/kevin-montrose/Cesil/actions?query=workflow%3A%22Code+Coverage+Badges%22) [![Branch Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/kevin-montrose/Cesil/shields/shields/branchesCovered.json)](https://github.com/kevin-montrose/Cesil/actions?query=workflow%3A%22Code+Coverage+Badges%22)
 
 # PRE-RELEASE
 
