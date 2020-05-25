@@ -205,22 +205,7 @@ namespace Cesil
             Utils.CheckArgumentNull(forType, nameof(forType));
             Utils.CheckArgumentNull(property, nameof(property));
 
-            var set = property.SetMethod;
-            if (set == null)
-            {
-                return Throw.ArgumentException<Parser?>("Property has no setter", nameof(property));
-            }
-
-            var ps = set.GetParameters();
-            if (ps.Length != 1)
-            {
-                return Throw.ArgumentException<Parser?>($"Setter takes {ps.Length} parameters, but must take 1", nameof(property));
-            }
-
-            var p = ps[0];
-            var propertyType = p.ParameterType.GetTypeInfo();
-
-            return GetParser(propertyType);
+            return GetParser(property.PropertyType.GetTypeInfo());
         }
 
         /// <summary>
@@ -526,10 +511,7 @@ namespace Cesil
             if (!getMtd.IsPublic || getMtd.IsStatic) return false;
             if (getMtd.GetParameters().Length != 0) return false;
 
-            var propType = getMtd.ReturnType.GetTypeInfo();
-            if (propType == Types.Void) return false;
-
-            if (Formatter.GetDefault(propType) == null) return false;
+            if (GetFormatter(forType, property) == null) return false;
 
             return true;
         }

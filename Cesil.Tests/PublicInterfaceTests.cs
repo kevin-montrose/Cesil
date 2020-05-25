@@ -2359,5 +2359,24 @@ namespace Cesil.Tests
                 );
             }
         }
+
+        [Fact]
+        public void Attributes()
+        {
+            new NullableExposedAttribute("shouldn't throw");
+            Assert.Throws<ArgumentNullException>(() => new NullableExposedAttribute(null));
+
+            new DoesNotEscapeAttribute("shouldn't throw");
+            Assert.Throws<ArgumentNullException>(() => new DoesNotEscapeAttribute(null));
+
+            new IntentionallyExposedPrimitiveAttribute("shouldn't throw");
+            Assert.Throws<ArgumentNullException>(() => new IntentionallyExposedPrimitiveAttribute(null));
+
+            new IntentionallyExtensibleAttribute("shouldn't throw");
+            Assert.Throws<ArgumentNullException>(() => new IntentionallyExtensibleAttribute(null));
+
+            new NotEquatableAttribute("shouldn't throw");
+            Assert.Throws<ArgumentNullException>(() => new NotEquatableAttribute(null));
+        }
     }
 }

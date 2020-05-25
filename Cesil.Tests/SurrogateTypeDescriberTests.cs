@@ -14,7 +14,12 @@ namespace Cesil.Tests
         public void Equality()
         {
             var behaviors = new[] { SurrogateTypeDescriberFallbackBehavior.Throw, SurrogateTypeDescriberFallbackBehavior.UseFallback };
-            var types = new[] { new[] { typeof(string).GetTypeInfo(), typeof(int).GetTypeInfo() }, new[] { typeof(object).GetTypeInfo(), typeof(long).GetTypeInfo() } };
+            var types = new[] { 
+                new[] { typeof(string).GetTypeInfo(), typeof(int).GetTypeInfo() }, 
+                new[] { typeof(object).GetTypeInfo(), typeof(long).GetTypeInfo() },
+                new[] { typeof(string).GetTypeInfo(), typeof(long).GetTypeInfo() },
+                new[] { typeof(object).GetTypeInfo(), typeof(long).GetTypeInfo(), typeof(string).GetTypeInfo(), typeof(int).GetTypeInfo() }
+            };
             var describers = new[] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() };
             var fallbacks = new[] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() };
 
@@ -24,12 +29,19 @@ namespace Cesil.Tests
             {
                 foreach (var b in types)
                 {
+                    var pairs = b.Length / 2;
+
                     foreach (var c in describers)
                     {
                         foreach (var d in fallbacks)
                         {
                             var x = SurrogateTypeDescriberBuilder.CreateBuilder(a);
-                            x.WithSurrogateType(b[0], b[1]);
+
+                            for (var pair = 0; pair < pairs; pair++)
+                            {
+                                x.WithSurrogateType(b[pair * 2 + 0], b[pair * 2 + 1]);
+                            }
+
                             x.WithTypeDescriber(c);
                             x.WithFallbackTypeDescriber(d);
 
@@ -76,6 +88,12 @@ namespace Cesil.Tests
             Assert.Throws<ArgumentNullException>(() => SurrogateTypeDescriberBuilder.CreateBuilder(SurrogateTypeDescriberFallbackBehavior.UseFallback, null));
             Assert.Throws<ArgumentNullException>(() => SurrogateTypeDescriberBuilder.CreateBuilder(SurrogateTypeDescriberFallbackBehavior.UseFallback, null, TypeDescribers.Default));
             Assert.Throws<ArgumentNullException>(() => SurrogateTypeDescriberBuilder.CreateBuilder(SurrogateTypeDescriberFallbackBehavior.UseFallback, TypeDescribers.Default, null));
+
+            Assert.Throws<ArgumentException>(() => SurrogateTypeDescriber.CreateBuilder((SurrogateTypeDescriberFallbackBehavior)0));
+            Assert.Throws<ArgumentNullException>(() => SurrogateTypeDescriber.CreateBuilder(null));
+            Assert.Throws<ArgumentNullException>(() => SurrogateTypeDescriber.CreateBuilder(SurrogateTypeDescriberFallbackBehavior.UseFallback, null));
+            Assert.Throws<ArgumentNullException>(() => SurrogateTypeDescriber.CreateBuilder(SurrogateTypeDescriberFallbackBehavior.UseFallback, null, TypeDescribers.Default));
+            Assert.Throws<ArgumentNullException>(() => SurrogateTypeDescriber.CreateBuilder(SurrogateTypeDescriberFallbackBehavior.UseFallback, TypeDescribers.Default, null));
         }
 
         [Fact]
@@ -494,6 +512,28 @@ namespace Cesil.Tests
             public _InstanceBuilders_Surrogate() { }
         }
 
+        private sealed class _InstanceBuilders_Surrogate2
+        {
+            public string Foo { get; set; }
+
+            public _InstanceBuilders_Surrogate2() { }
+            public _InstanceBuilders_Surrogate2(string f)
+            {
+                Foo = f;
+            }
+        }
+
+        private sealed class _InstanceBuilders_Real2
+        {
+            public string Foo { get; set; }
+
+            public _InstanceBuilders_Real2() { }
+            public _InstanceBuilders_Real2(string f)
+            {
+                Foo = f;
+            }
+        }
+
         private static bool _InstanceBuilders_Mtd(in ReadContext ctx, out _InstanceBuilders_Surrogate val)
         {
             val = new _InstanceBuilders_Surrogate();
@@ -543,6 +583,50 @@ namespace Cesil.Tests
                 badSurrogate.WithSurrogateType(typeof(_InstanceBuilders_Real).GetTypeInfo(), typeof(_InstanceBuilders_Surrogate).GetTypeInfo());
 
                 Assert.Throws<InvalidOperationException>(() => badSurrogate.ToSurrogateTypeDescriber().GetInstanceProvider(typeof(_InstanceBuilders_Real).GetTypeInfo()));
+            }
+
+            // chained, but chain is bad
+            {
+                var manual = ManualTypeDescriberBuilder.CreateBuilder();
+                var ip = (InstanceProvider)typeof(_InstanceBuilders_Surrogate).GetConstructor(Type.EmptyTypes);
+                InstanceProviderDelegate<_InstanceBuilders_Surrogate> del =
+                    (in ReadContext _, out _InstanceBuilders_Surrogate res) =>
+                    {
+                        res = new _InstanceBuilders_Surrogate();
+                        return true;
+                    };
+                ip = ip.Else((InstanceProvider)del);
+                manual.WithInstanceProvider(ip);
+
+                var m = manual.ToManualTypeDescriber();
+
+                var sB = SurrogateTypeDescriber.CreateBuilder(SurrogateTypeDescriberFallbackBehavior.UseFallback, m);
+                sB.WithSurrogateType(typeof(_InstanceBuilders_Real).GetTypeInfo(), typeof(_InstanceBuilders_Surrogate).GetTypeInfo());
+                var s = sB.ToSurrogateTypeDescriber();
+
+                Assert.Throws<InvalidOperationException>(() => s.GetInstanceProvider(typeof(_InstanceBuilders_Real).GetTypeInfo()));
+            }
+
+            // chained, but chain is good
+            {
+                var manual = ManualTypeDescriberBuilder.CreateBuilder();
+                var ip = (InstanceProvider)typeof(_InstanceBuilders_Surrogate2).GetConstructor(Type.EmptyTypes);
+                var ip2 = (InstanceProvider)typeof(_InstanceBuilders_Surrogate2).GetConstructor(new[] { typeof(string) });
+                ip = ip.Else(ip2);
+                manual.WithInstanceProvider(ip);
+
+                var m = manual.ToManualTypeDescriber();
+
+                var sB = SurrogateTypeDescriber.CreateBuilder(SurrogateTypeDescriberFallbackBehavior.UseFallback, m);
+                sB.WithSurrogateType(typeof(_InstanceBuilders_Real2).GetTypeInfo(), typeof(_InstanceBuilders_Surrogate2).GetTypeInfo());
+                var s = sB.ToSurrogateTypeDescriber();
+
+                var mappedIp = s.GetInstanceProvider(typeof(_InstanceBuilders_Real2).GetTypeInfo());
+                var c1 = mappedIp.Constructor.Value;
+                var c2 = ((IElseSupporting<InstanceProvider>)mappedIp).Fallbacks.Single().Constructor.Value;
+
+                Assert.Equal(typeof(_InstanceBuilders_Real2).GetConstructor(Type.EmptyTypes), c1);
+                Assert.Equal(typeof(_InstanceBuilders_Real2).GetConstructor(new[] { typeof(string) }), c2);
             }
         }
 
@@ -741,6 +825,28 @@ namespace Cesil.Tests
             public static string GetVal(_Errors_ExplicitStaticGetter row) => "";
         }
 
+        private class _Errors_NoInstanceProvider: DefaultTypeDescriber
+        {
+            public override InstanceProvider GetInstanceProvider(TypeInfo forType)
+            => null;
+        }
+
+        private class _Errors_StaticShouldSerializeTakingRow_Real
+        {
+            public int A { get; set; }
+
+            public static bool ShouldSerialize(_Errors_StaticShouldSerializeTakingRow_Real row)
+            => true;
+        }
+
+        private class _Errors_StaticShouldSerializeTakingRow_Surrogate
+        {
+            public int A { get; set; }
+
+            public static bool ShouldSerialize(_Errors_StaticShouldSerializeTakingRow_Surrogate row)
+            => true;
+        }
+
         [Fact]
         public void Errors()
         {
@@ -884,6 +990,34 @@ namespace Cesil.Tests
                 var s = sB.ToSurrogateTypeDescriber();
                 Assert.Throws<ArgumentException>(() => s.EnumerateMembersToSerialize(typeof(_Errors_ExplicitStaticGetter).GetTypeInfo()));
             }
+
+            // no instance provider
+            {
+                var i = new _Errors_NoInstanceProvider();
+                var sB = SurrogateTypeDescriber.CreateBuilder(SurrogateTypeDescriberFallbackBehavior.UseFallback, i);
+                sB.WithSurrogateType(typeof(_Simple_Real).GetTypeInfo(), typeof(_Simple_Surrogate).GetTypeInfo());
+                var s = sB.ToSurrogateTypeDescriber();
+                Assert.Throws<InvalidOperationException>(() => s.GetInstanceProvider(typeof(_Simple_Real).GetTypeInfo()));
+            }
+
+            // static should serialize taking value
+            {
+                var mB = ManualTypeDescriberBuilder.CreateBuilder();
+                mB.WithSerializableProperty(
+                    typeof(_Errors_StaticShouldSerializeTakingRow_Surrogate).GetTypeInfo(),
+                    typeof(_Errors_StaticShouldSerializeTakingRow_Surrogate).GetProperty(nameof(_Errors_StaticShouldSerializeTakingRow_Surrogate.A)),
+                    nameof(_Errors_StaticShouldSerializeTakingRow_Surrogate.A),
+                    Formatter.GetDefault(typeof(int).GetTypeInfo()),
+                    (ShouldSerialize)typeof(_Errors_StaticShouldSerializeTakingRow_Surrogate).GetMethod(nameof(_Errors_StaticShouldSerializeTakingRow_Surrogate.ShouldSerialize))
+                );
+                var m = mB.ToManualTypeDescriber();
+                
+                var sB = SurrogateTypeDescriber.CreateBuilder(SurrogateTypeDescriberFallbackBehavior.UseFallback, m);
+                sB.WithSurrogateType(typeof(_Errors_StaticShouldSerializeTakingRow_Real).GetTypeInfo(), typeof(_Errors_StaticShouldSerializeTakingRow_Surrogate).GetTypeInfo());
+                var s = sB.ToSurrogateTypeDescriber();
+
+                Assert.Throws<InvalidOperationException>(() => s.EnumerateMembersToSerialize(typeof(_Errors_StaticShouldSerializeTakingRow_Real).GetTypeInfo()));
+            }
         }
 
         private sealed class _ToStrings1 { }
@@ -992,6 +1126,70 @@ namespace Cesil.Tests
 
             Assert.Equal(MemberRequired.Yes, SurrogateTypeDescriber.GetEquivalentRequiredFor(true));
             Assert.Equal(MemberRequired.No, SurrogateTypeDescriber.GetEquivalentRequiredFor(false));
+        }
+
+
+
+        private class _MapResetWithContext_Real
+        {
+            private int _B;
+            public int B
+            {
+                get
+                {
+                    return _B;
+                }
+                set
+                {
+                    if (value > 5) return;
+
+                    _B = value;
+                }
+            }
+
+            public void ResetB(in ReadContext ctx)
+            {
+                _B = (int)ctx.Context;
+            }
+        }
+
+        private class _MapResetWithContext_Surrogate
+        {
+            public int B { get; set; }
+
+            public void ResetB(in ReadContext ctx)
+            {
+                throw new Exception();
+            }
+        }
+
+        [Fact]
+        public void MapResetWithContext()
+        {
+            var mB = ManualTypeDescriberBuilder.CreateBuilder();
+            mB.WithInstanceProvider((InstanceProvider)typeof(_MapResetWithContext_Surrogate).GetConstructor(Type.EmptyTypes));
+            mB.WithDeserializableProperty(
+                typeof(_MapResetWithContext_Surrogate).GetTypeInfo(),
+                typeof(_MapResetWithContext_Surrogate).GetProperty(nameof(_MapResetWithContext_Surrogate.B)),
+                nameof(_MapResetWithContext_Surrogate.B),
+                Parser.GetDefault(typeof(int).GetTypeInfo()),
+                MemberRequired.Yes,
+                Reset.ForMethod(typeof(_MapResetWithContext_Surrogate).GetMethod(nameof(_MapResetWithContext_Surrogate.ResetB)))
+            );
+            var m = mB.ToManualTypeDescriber();
+
+            var sB = SurrogateTypeDescriber.CreateBuilder(SurrogateTypeDescriberFallbackBehavior.UseFallback, m);
+            sB.WithSurrogateType(typeof(_MapResetWithContext_Real).GetTypeInfo(), typeof(_MapResetWithContext_Surrogate).GetTypeInfo());
+            var s = sB.ToSurrogateTypeDescriber();
+
+            var mapped = s.EnumerateMembersToDeserialize(typeof(_MapResetWithContext_Real).GetTypeInfo()).Single();
+
+            Assert.True(mapped.Reset.HasValue);
+            var res = mapped.Reset.Value;
+            Assert.Equal(BackingMode.Method, res.Mode);
+            Assert.False(res.IsStatic);
+            var mtd = res.Method.Value;
+            Assert.Equal(typeof(_MapResetWithContext_Real).GetMethod(nameof(_MapResetWithContext_Surrogate.ResetB)), mtd);
         }
     }
 #pragma warning restore IDE1006

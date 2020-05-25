@@ -6,7 +6,7 @@ del .\TestCoverageResults\* /Q
 
 echo This folder is here to receive code coverage results.  Ignore this file.>.\TestCoverageResults\README.txt
 
-dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=.\..\TestCoverageResults\Coverage.xml
+dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=.\..\TestCoverageResults\Coverage.xml /p:SingleHit=true
 
 echo Coverage complete
 

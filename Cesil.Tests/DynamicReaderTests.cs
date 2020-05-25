@@ -257,11 +257,16 @@ namespace Cesil.Tests
                     {
                         var row = csv.EnumerateAll().Single();
 
-                        var obj = (object)row;
+                        var obj = _DynamicRowAsObject<object>(row);
                         Assert.NotNull(obj);
                     }
                 }
             );
+        }
+
+        private static T _DynamicRowAsObject<T>(dynamic r)
+        {
+            return (T)r;
         }
 
         [Fact]
@@ -545,428 +550,502 @@ namespace Cesil.Tests
         [Fact]
         public void DynamicCellsIConvertible()
         {
-            var csvString =
-                "a,b,c,d,e,f,g,h,i,j,k,l,m\r\n" +
-                $"{sbyte.MinValue},{byte.MaxValue},{short.MinValue},{ushort.MaxValue},{int.MinValue},{uint.MaxValue},{long.MinValue},{ulong.MaxValue},123.45,-456.789,2020-03-15,f,hello world";
-
-            var conf = Configuration.ForDynamic();
-            using (var reader = new StringReader(csvString))
-            using (var csv = conf.CreateReader(reader))
+            // normal
             {
-                var rows = csv.ReadAll();
-                var row = rows.Single();
-                var cells = (IEnumerable<dynamic>)row;
+                var csvString =
+                    "a,b,c,d,e,f,g,h,i,j,k,l,m,n\r\n" +
+                    $"{sbyte.MinValue},{byte.MaxValue},{short.MinValue},{ushort.MaxValue},{int.MinValue},{uint.MaxValue},{long.MinValue},{ulong.MaxValue},123.45,-456.789,2020-03-15,f,hello world,True";
 
-                Assert.Collection(
-                    cells,
-                    // sbyte.MinValue
-                    a =>
-                    {
-                        var c = a as IConvertible;
-                        Assert.NotNull(c);
-                        Assert.Equal(TypeCode.SByte, c.GetTypeCode());
+                var conf = Configuration.ForDynamic();
+                using (var reader = new StringReader(csvString))
+                using (var csv = conf.CreateReader(reader))
+                {
+                    var rows = csv.ReadAll();
+                    var row = rows.Single();
+                    var cells = (IEnumerable<dynamic>)row;
 
-                        Assert.Throws<ArgumentException>(() => c.ToSByte(CultureInfo.InvariantCulture));
+                    // everything actually goes through what's below
+                    //  but prove out this, worse, approach too
+                    var firstCell = cells.First() as IConvertible;
+                    var mapped = firstCell.ToType(typeof(sbyte), null);
+                    Assert.Equal(sbyte.MinValue, (sbyte)mapped);
+
+                    Assert.Collection(
+                        cells,
+                        // sbyte.MinValue
+                        a =>
+                        {
+                            var c = a as IConvertible;
+                            Assert.NotNull(c);
+                            Assert.Equal(TypeCode.SByte, c.GetTypeCode());
+
+                            Assert.Throws<ArgumentException>(() => c.ToSByte(CultureInfo.InvariantCulture));
 
                         // all valid conversions
                         Assert.Equal(sbyte.MinValue, c.ToSByte(null));
-                        Assert.Equal(sbyte.MinValue, Convert.ToSByte(a as object));
-                        Assert.Equal(sbyte.MinValue, c.ToInt16(null));
-                        Assert.Equal(sbyte.MinValue, c.ToInt32(null));
-                        Assert.Equal(sbyte.MinValue, c.ToInt64(null));
-                        Assert.Equal(sbyte.MinValue, c.ToSingle(null));
-                        Assert.Equal(sbyte.MinValue, c.ToDouble(null));
-                        Assert.Equal(sbyte.MinValue, c.ToDecimal(null));
-                        Assert.Equal(sbyte.MinValue.ToString(), c.ToString(null));
+                            Assert.Equal(sbyte.MinValue, Convert.ToSByte(a as object));
+                            Assert.Equal(sbyte.MinValue, c.ToInt16(null));
+                            Assert.Equal(sbyte.MinValue, c.ToInt32(null));
+                            Assert.Equal(sbyte.MinValue, c.ToInt64(null));
+                            Assert.Equal(sbyte.MinValue, c.ToSingle(null));
+                            Assert.Equal(sbyte.MinValue, c.ToDouble(null));
+                            Assert.Equal(sbyte.MinValue, c.ToDecimal(null));
+                            Assert.Equal(sbyte.MinValue.ToString(), c.ToString(null));
 
                         // not valid for signed
                         Assert.Throws<InvalidOperationException>(() => c.ToByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt32(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt64(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt32(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt64(null));
 
                         // not valid because too small
                         Assert.Throws<InvalidOperationException>(() => c.ToChar(null));
 
                         // not valid because bad form
                         Assert.Throws<InvalidOperationException>(() => c.ToDateTime(null));
-                    },
-                    // byte.MaxValue
-                    b =>
-                    {
-                        var c = b as IConvertible;
-                        Assert.NotNull(c);
-                        Assert.Equal(TypeCode.Byte, c.GetTypeCode());
+                        },
+                        // byte.MaxValue
+                        b =>
+                        {
+                            var c = b as IConvertible;
+                            Assert.NotNull(c);
+                            Assert.Equal(TypeCode.Byte, c.GetTypeCode());
 
-                        Assert.Throws<ArgumentException>(() => c.ToByte(CultureInfo.InvariantCulture));
+                            Assert.Throws<ArgumentException>(() => c.ToByte(CultureInfo.InvariantCulture));
 
                         // all valid conversions
                         Assert.Equal(byte.MaxValue, c.ToByte(null));
-                        Assert.Equal(byte.MaxValue, Convert.ToByte(b as object));
-                        Assert.Equal(byte.MaxValue, c.ToInt16(null));
-                        Assert.Equal(byte.MaxValue, c.ToUInt16(null));
-                        Assert.Equal(byte.MaxValue, c.ToInt32(null));
-                        Assert.Equal(byte.MaxValue, c.ToUInt32(null));
-                        Assert.Equal(byte.MaxValue, c.ToInt64(null));
-                        Assert.Equal(byte.MaxValue, c.ToUInt64(null));
-                        Assert.Equal(byte.MaxValue, c.ToSingle(null));
-                        Assert.Equal(byte.MaxValue, c.ToDouble(null));
-                        Assert.Equal(byte.MaxValue, c.ToDecimal(null));
-                        Assert.Equal(byte.MaxValue.ToString(), c.ToString(null));
+                            Assert.Equal(byte.MaxValue, Convert.ToByte(b as object));
+                            Assert.Equal(byte.MaxValue, c.ToInt16(null));
+                            Assert.Equal(byte.MaxValue, c.ToUInt16(null));
+                            Assert.Equal(byte.MaxValue, c.ToInt32(null));
+                            Assert.Equal(byte.MaxValue, c.ToUInt32(null));
+                            Assert.Equal(byte.MaxValue, c.ToInt64(null));
+                            Assert.Equal(byte.MaxValue, c.ToUInt64(null));
+                            Assert.Equal(byte.MaxValue, c.ToSingle(null));
+                            Assert.Equal(byte.MaxValue, c.ToDouble(null));
+                            Assert.Equal(byte.MaxValue, c.ToDecimal(null));
+                            Assert.Equal(byte.MaxValue.ToString(), c.ToString(null));
 
                         // not valid because too small
                         Assert.Throws<InvalidOperationException>(() => c.ToChar(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToSByte(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToSByte(null));
 
                         // not valid because bad form
                         Assert.Throws<InvalidOperationException>(() => c.ToDateTime(null));
-                    },
-                    // short.MinValue
-                    cc =>
-                    {
-                        var c = cc as IConvertible;
-                        Assert.NotNull(c);
-                        Assert.Equal(TypeCode.Int16, c.GetTypeCode());
+                        },
+                        // short.MinValue
+                        cc =>
+                        {
+                            var c = cc as IConvertible;
+                            Assert.NotNull(c);
+                            Assert.Equal(TypeCode.Int16, c.GetTypeCode());
 
-                        Assert.Throws<ArgumentException>(() => c.ToInt16(CultureInfo.InvariantCulture));
+                            Assert.Throws<ArgumentException>(() => c.ToInt16(CultureInfo.InvariantCulture));
 
                         // all valid conversions
                         Assert.Equal(short.MinValue, c.ToInt16(null));
-                        Assert.Equal(short.MinValue, Convert.ToInt16(cc as object));
-                        Assert.Equal(short.MinValue, c.ToInt32(null));
-                        Assert.Equal(short.MinValue, c.ToInt64(null));
-                        Assert.Equal(short.MinValue, c.ToSingle(null));
-                        Assert.Equal(short.MinValue, c.ToDouble(null));
-                        Assert.Equal(short.MinValue, c.ToDecimal(null));
-                        Assert.Equal(short.MinValue.ToString(), c.ToString(null));
+                            Assert.Equal(short.MinValue, Convert.ToInt16(cc as object));
+                            Assert.Equal(short.MinValue, c.ToInt32(null));
+                            Assert.Equal(short.MinValue, c.ToInt64(null));
+                            Assert.Equal(short.MinValue, c.ToSingle(null));
+                            Assert.Equal(short.MinValue, c.ToDouble(null));
+                            Assert.Equal(short.MinValue, c.ToDecimal(null));
+                            Assert.Equal(short.MinValue.ToString(), c.ToString(null));
 
                         // not valid for signed
                         Assert.Throws<InvalidOperationException>(() => c.ToByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt32(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt64(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt32(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt64(null));
 
                         // not valid because too small
                         Assert.Throws<InvalidOperationException>(() => c.ToSByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToChar(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToChar(null));
 
                         // not valid because bad form
                         Assert.Throws<InvalidOperationException>(() => c.ToDateTime(null));
-                    },
-                    // ushort.MaxValue
-                    d =>
-                    {
-                        var c = d as IConvertible;
-                        Assert.NotNull(c);
-                        Assert.Equal(TypeCode.UInt16, c.GetTypeCode());
+                        },
+                        // ushort.MaxValue
+                        d =>
+                        {
+                            var c = d as IConvertible;
+                            Assert.NotNull(c);
+                            Assert.Equal(TypeCode.UInt16, c.GetTypeCode());
 
-                        Assert.Throws<ArgumentException>(() => c.ToByte(CultureInfo.InvariantCulture));
+                            Assert.Throws<ArgumentException>(() => c.ToByte(CultureInfo.InvariantCulture));
 
                         // all valid conversions
                         Assert.Equal(ushort.MaxValue, c.ToUInt16(null));
-                        Assert.Equal(ushort.MaxValue, Convert.ToUInt16(d as object));
-                        Assert.Equal(ushort.MaxValue, c.ToInt32(null));
-                        Assert.Equal(ushort.MaxValue, c.ToUInt32(null));
-                        Assert.Equal(ushort.MaxValue, c.ToInt64(null));
-                        Assert.Equal(ushort.MaxValue, c.ToUInt64(null));
-                        Assert.Equal(ushort.MaxValue, c.ToSingle(null));
-                        Assert.Equal(ushort.MaxValue, c.ToDouble(null));
-                        Assert.Equal(ushort.MaxValue, c.ToDecimal(null));
-                        Assert.Equal(ushort.MaxValue.ToString(), c.ToString(null));
+                            Assert.Equal(ushort.MaxValue, Convert.ToUInt16(d as object));
+                            Assert.Equal(ushort.MaxValue, c.ToInt32(null));
+                            Assert.Equal(ushort.MaxValue, c.ToUInt32(null));
+                            Assert.Equal(ushort.MaxValue, c.ToInt64(null));
+                            Assert.Equal(ushort.MaxValue, c.ToUInt64(null));
+                            Assert.Equal(ushort.MaxValue, c.ToSingle(null));
+                            Assert.Equal(ushort.MaxValue, c.ToDouble(null));
+                            Assert.Equal(ushort.MaxValue, c.ToDecimal(null));
+                            Assert.Equal(ushort.MaxValue.ToString(), c.ToString(null));
 
                         // not valid because too small
                         Assert.Throws<InvalidOperationException>(() => c.ToChar(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToSByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToSByte(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToByte(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt16(null));
 
                         // not valid because bad form
                         Assert.Throws<InvalidOperationException>(() => c.ToDateTime(null));
-                    },
-                    // int.MinValue
-                    e =>
-                    {
-                        var c = e as IConvertible;
-                        Assert.NotNull(c);
-                        Assert.Equal(TypeCode.Int32, c.GetTypeCode());
+                        },
+                        // int.MinValue
+                        e =>
+                        {
+                            var c = e as IConvertible;
+                            Assert.NotNull(c);
+                            Assert.Equal(TypeCode.Int32, c.GetTypeCode());
 
-                        Assert.Throws<ArgumentException>(() => c.ToInt32(CultureInfo.InvariantCulture));
+                            Assert.Throws<ArgumentException>(() => c.ToInt32(CultureInfo.InvariantCulture));
 
                         // all valid conversions
                         Assert.Equal(int.MinValue, c.ToInt32(null));
-                        Assert.Equal(int.MinValue, Convert.ToInt32(e as object));
-                        Assert.Equal(int.MinValue, c.ToInt64(null));
-                        Assert.Equal(int.MinValue, c.ToSingle(null));
-                        Assert.Equal(int.MinValue, c.ToDouble(null));
-                        Assert.Equal(int.MinValue, c.ToDecimal(null));
-                        Assert.Equal(int.MinValue.ToString(), c.ToString(null));
+                            Assert.Equal(int.MinValue, Convert.ToInt32(e as object));
+                            Assert.Equal(int.MinValue, c.ToInt64(null));
+                            Assert.Equal(int.MinValue, c.ToSingle(null));
+                            Assert.Equal(int.MinValue, c.ToDouble(null));
+                            Assert.Equal(int.MinValue, c.ToDecimal(null));
+                            Assert.Equal(int.MinValue.ToString(), c.ToString(null));
 
                         // not valid for signed
                         Assert.Throws<InvalidOperationException>(() => c.ToByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt32(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt64(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt32(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt64(null));
 
                         // not valid because too small
                         Assert.Throws<InvalidOperationException>(() => c.ToSByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt16(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToChar(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToChar(null));
 
                         // not valid because bad form
                         Assert.Throws<InvalidOperationException>(() => c.ToDateTime(null));
-                    },
-                    // uint.MaxValue
-                    f =>
-                    {
-                        var c = f as IConvertible;
-                        Assert.NotNull(c);
-                        Assert.Equal(TypeCode.UInt32, c.GetTypeCode());
+                        },
+                        // uint.MaxValue
+                        f =>
+                        {
+                            var c = f as IConvertible;
+                            Assert.NotNull(c);
+                            Assert.Equal(TypeCode.UInt32, c.GetTypeCode());
 
-                        Assert.Throws<ArgumentException>(() => c.ToUInt32(CultureInfo.InvariantCulture));
+                            Assert.Throws<ArgumentException>(() => c.ToUInt32(CultureInfo.InvariantCulture));
 
                         // all valid conversions
                         Assert.Equal(uint.MaxValue, c.ToUInt32(null));
-                        Assert.Equal(uint.MaxValue, Convert.ToUInt32(f as object));
-                        Assert.Equal(uint.MaxValue, c.ToInt64(null));
-                        Assert.Equal(uint.MaxValue, c.ToUInt64(null));
-                        Assert.Equal(uint.MaxValue, c.ToSingle(null));
-                        Assert.Equal(uint.MaxValue, c.ToDouble(null));
-                        Assert.Equal(uint.MaxValue, c.ToDecimal(null));
-                        Assert.Equal(uint.MaxValue.ToString(), c.ToString(null));
+                            Assert.Equal(uint.MaxValue, Convert.ToUInt32(f as object));
+                            Assert.Equal(uint.MaxValue, c.ToInt64(null));
+                            Assert.Equal(uint.MaxValue, c.ToUInt64(null));
+                            Assert.Equal(uint.MaxValue, c.ToSingle(null));
+                            Assert.Equal(uint.MaxValue, c.ToDouble(null));
+                            Assert.Equal(uint.MaxValue, c.ToDecimal(null));
+                            Assert.Equal(uint.MaxValue.ToString(), c.ToString(null));
 
                         // not valid because too small
                         Assert.Throws<InvalidOperationException>(() => c.ToChar(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToSByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt16(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt32(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToSByte(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToByte(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt32(null));
 
                         // not valid because bad form
                         Assert.Throws<InvalidOperationException>(() => c.ToDateTime(null));
-                    },
-                    // long.MinValue
-                    g =>
-                    {
-                        var c = g as IConvertible;
-                        Assert.NotNull(c);
-                        Assert.Equal(TypeCode.Int64, c.GetTypeCode());
+                        },
+                        // long.MinValue
+                        g =>
+                        {
+                            var c = g as IConvertible;
+                            Assert.NotNull(c);
+                            Assert.Equal(TypeCode.Int64, c.GetTypeCode());
 
-                        Assert.Throws<ArgumentException>(() => c.ToInt64(CultureInfo.InvariantCulture));
+                            Assert.Throws<ArgumentException>(() => c.ToInt64(CultureInfo.InvariantCulture));
 
                         // all valid conversions
                         Assert.Equal(long.MinValue, c.ToInt64(null));
-                        Assert.Equal(long.MinValue, Convert.ToInt64(g as object));
-                        Assert.Equal(long.MinValue, c.ToSingle(null));
-                        Assert.Equal(long.MinValue, c.ToDouble(null));
-                        Assert.Equal(long.MinValue, c.ToDecimal(null));
-                        Assert.Equal(long.MinValue.ToString(), c.ToString(null));
+                            Assert.Equal(long.MinValue, Convert.ToInt64(g as object));
+                            Assert.Equal(long.MinValue, c.ToSingle(null));
+                            Assert.Equal(long.MinValue, c.ToDouble(null));
+                            Assert.Equal(long.MinValue, c.ToDecimal(null));
+                            Assert.Equal(long.MinValue.ToString(), c.ToString(null));
 
                         // not valid for signed
                         Assert.Throws<InvalidOperationException>(() => c.ToByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt32(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt64(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt32(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt64(null));
 
                         // not valid because too small
                         Assert.Throws<InvalidOperationException>(() => c.ToSByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt16(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt32(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToChar(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt32(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToChar(null));
 
                         // not valid because bad form
                         Assert.Throws<InvalidOperationException>(() => c.ToDateTime(null));
-                    },
-                    // ulong.MaxValue
-                    h =>
-                    {
-                        var c = h as IConvertible;
-                        Assert.NotNull(c);
-                        Assert.Equal(TypeCode.UInt64, c.GetTypeCode());
+                        },
+                        // ulong.MaxValue
+                        h =>
+                        {
+                            var c = h as IConvertible;
+                            Assert.NotNull(c);
+                            Assert.Equal(TypeCode.UInt64, c.GetTypeCode());
 
-                        Assert.Throws<ArgumentException>(() => c.ToUInt64(CultureInfo.InvariantCulture));
+                            Assert.Throws<ArgumentException>(() => c.ToUInt64(CultureInfo.InvariantCulture));
 
                         // all valid conversions
                         Assert.Equal(ulong.MaxValue, c.ToUInt64(null));
-                        Assert.Equal(ulong.MaxValue, Convert.ToUInt64(h as object));
-                        Assert.Equal(ulong.MaxValue, c.ToSingle(null));
-                        Assert.Equal(ulong.MaxValue, c.ToDouble(null));
-                        Assert.Equal(ulong.MaxValue, c.ToDecimal(null));
-                        Assert.Equal(ulong.MaxValue.ToString(), c.ToString(null));
+                            Assert.Equal(ulong.MaxValue, Convert.ToUInt64(h as object));
+                            Assert.Equal(ulong.MaxValue, c.ToSingle(null));
+                            Assert.Equal(ulong.MaxValue, c.ToDouble(null));
+                            Assert.Equal(ulong.MaxValue, c.ToDecimal(null));
+                            Assert.Equal(ulong.MaxValue.ToString(), c.ToString(null));
 
                         // not valid because too small
                         Assert.Throws<InvalidOperationException>(() => c.ToChar(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToSByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt16(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt32(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt32(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt64(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToSByte(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToByte(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt32(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt32(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt64(null));
 
                         // not valid because bad form
                         Assert.Throws<InvalidOperationException>(() => c.ToDateTime(null));
-                    },
-                    // 123.45
-                    i =>
-                    {
-                        var c = i as IConvertible;
-                        Assert.NotNull(c);
-                        Assert.Equal(TypeCode.Double, c.GetTypeCode());
+                        },
+                        // 123.45
+                        i =>
+                        {
+                            var c = i as IConvertible;
+                            Assert.NotNull(c);
+                            Assert.Equal(TypeCode.Double, c.GetTypeCode());
 
-                        Assert.Throws<ArgumentException>(() => c.ToDouble(CultureInfo.InvariantCulture));
+                            Assert.Throws<ArgumentException>(() => c.ToDouble(CultureInfo.InvariantCulture));
 
                         // all valid conversions
                         Assert.Equal(123.45f, c.ToSingle(null));
-                        Assert.Equal(123.45, c.ToDouble(null));
-                        Assert.Equal(123.45, Convert.ToDouble(i as object));
-                        Assert.Equal(123.45, (double)c.ToDecimal(null));
-                        Assert.Equal("123.45", c.ToString(null));
+                            Assert.Equal(123.45, c.ToDouble(null));
+                            Assert.Equal(123.45, Convert.ToDouble(i as object));
+                            Assert.Equal(123.45, (double)c.ToDecimal(null));
+                            Assert.Equal("123.45", c.ToString(null));
 
                         // not valid because too small
                         Assert.Throws<InvalidOperationException>(() => c.ToChar(null));
 
                         // not valid because not integer
                         Assert.Throws<InvalidOperationException>(() => c.ToSByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt16(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt32(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt32(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt64(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt64(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToByte(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt32(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt32(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt64(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt64(null));
 
                         // not valid because bad form
                         Assert.Throws<InvalidOperationException>(() => c.ToDateTime(null));
-                    },
-                    // -456.789
-                    j =>
-                    {
-                        var c = j as IConvertible;
-                        Assert.NotNull(c);
-                        Assert.Equal(TypeCode.Double, c.GetTypeCode());
+                        },
+                        // -456.789
+                        j =>
+                        {
+                            var c = j as IConvertible;
+                            Assert.NotNull(c);
+                            Assert.Equal(TypeCode.Double, c.GetTypeCode());
 
-                        Assert.Throws<ArgumentException>(() => c.ToDouble(CultureInfo.InvariantCulture));
+                            Assert.Throws<ArgumentException>(() => c.ToDouble(CultureInfo.InvariantCulture));
 
                         // all valid conversions
                         Assert.Equal(-456.789f, c.ToSingle(null));
-                        Assert.Equal(-456.789, c.ToDouble(null));
-                        Assert.Equal(-456.789, Convert.ToDouble(j as object));
-                        Assert.Equal(-456.789, (double)c.ToDecimal(null));
-                        Assert.Equal("-456.789", c.ToString(null));
+                            Assert.Equal(-456.789, c.ToDouble(null));
+                            Assert.Equal(-456.789, Convert.ToDouble(j as object));
+                            Assert.Equal(-456.789, (double)c.ToDecimal(null));
+                            Assert.Equal("-456.789", c.ToString(null));
 
                         // not valid because too small
                         Assert.Throws<InvalidOperationException>(() => c.ToChar(null));
 
                         // not valid because not integer
                         Assert.Throws<InvalidOperationException>(() => c.ToSByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt16(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt32(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt32(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt64(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt64(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToByte(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt32(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt32(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt64(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt64(null));
 
                         // not valid because bad form
                         Assert.Throws<InvalidOperationException>(() => c.ToDateTime(null));
-                    },
-                    // 2020-03-15
-                    k =>
-                    {
-                        var c = k as IConvertible;
-                        Assert.NotNull(c);
-                        Assert.Equal(TypeCode.DateTime, c.GetTypeCode());
+                        },
+                        // 2020-03-15
+                        k =>
+                        {
+                            var c = k as IConvertible;
+                            Assert.NotNull(c);
+                            Assert.Equal(TypeCode.DateTime, c.GetTypeCode());
 
-                        Assert.Throws<ArgumentException>(() => c.ToDateTime(CultureInfo.InvariantCulture));
+                            Assert.Throws<ArgumentException>(() => c.ToDateTime(CultureInfo.InvariantCulture));
 
                         // all valid conversions
                         Assert.Equal(new DateTime(2020, 03, 15, 0, 0, 0, DateTimeKind.Utc), c.ToDateTime(null));
-                        Assert.Equal(new DateTime(2020, 03, 15, 0, 0, 0, DateTimeKind.Utc), Convert.ToDateTime(k as object));
-                        Assert.Equal("2020-03-15", c.ToString(null));
+                            Assert.Equal(new DateTime(2020, 03, 15, 0, 0, 0, DateTimeKind.Utc), Convert.ToDateTime(k as object));
+                            Assert.Equal("2020-03-15", c.ToString(null));
 
                         // not valid because too small
                         Assert.Throws<InvalidOperationException>(() => c.ToChar(null));
 
                         // not valid because not number
                         Assert.Throws<InvalidOperationException>(() => c.ToSByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt16(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt32(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt32(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt64(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt64(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToSingle(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToDouble(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToDecimal(null));
-                    },
-                    // f
-                    l =>
-                    {
-                        var c = l as IConvertible;
-                        Assert.NotNull(c);
-                        Assert.Equal(TypeCode.Char, c.GetTypeCode());
+                            Assert.Throws<InvalidOperationException>(() => c.ToByte(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt32(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt32(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt64(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt64(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToSingle(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToDouble(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToDecimal(null));
+                        },
+                        // f
+                        l =>
+                        {
+                            var c = l as IConvertible;
+                            Assert.NotNull(c);
+                            Assert.Equal(TypeCode.Char, c.GetTypeCode());
 
-                        Assert.Throws<ArgumentException>(() => c.ToChar(CultureInfo.InvariantCulture));
+                            Assert.Throws<ArgumentException>(() => c.ToChar(CultureInfo.InvariantCulture));
 
                         // all valid conversions
                         Assert.Equal('f', c.ToChar(null));
-                        Assert.Equal('f', Convert.ToChar(l as object));
-                        Assert.Equal("f", c.ToString(null));
+                            Assert.Equal('f', Convert.ToChar(l as object));
+                            Assert.Equal("f", c.ToString(null));
 
                         // not valid because not number
                         Assert.Throws<InvalidOperationException>(() => c.ToSByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt16(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt32(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt32(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt64(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt64(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToSingle(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToDouble(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToDecimal(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToByte(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt32(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt32(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt64(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt64(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToSingle(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToDouble(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToDecimal(null));
 
                         // not valid because bad form
                         Assert.Throws<InvalidOperationException>(() => c.ToDateTime(null));
-                    },
-                    // hello world
-                    m =>
-                    {
-                        var c = m as IConvertible;
-                        Assert.NotNull(c);
-                        Assert.Equal(TypeCode.String, c.GetTypeCode());
+                        },
+                        // hello world
+                        m =>
+                        {
+                            var c = m as IConvertible;
+                            Assert.NotNull(c);
+                            Assert.Equal(TypeCode.String, c.GetTypeCode());
 
-                        Assert.Throws<ArgumentException>(() => c.ToString(CultureInfo.InvariantCulture));
+                            Assert.Throws<ArgumentException>(() => c.ToString(CultureInfo.InvariantCulture));
 
                         // all valid conversions
                         Assert.Equal("hello world", c.ToString(null));
-                        Assert.Equal("hello world", Convert.ToString(m as object));
+                            Assert.Equal("hello world", Convert.ToString(m as object));
 
                         // not valid because too small
                         Assert.Throws<InvalidOperationException>(() => c.ToChar(null));
 
                         // not valid because not number
                         Assert.Throws<InvalidOperationException>(() => c.ToSByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToByte(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt16(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt32(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt32(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToInt64(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToUInt64(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToSingle(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToDouble(null));
-                        Assert.Throws<InvalidOperationException>(() => c.ToDecimal(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToByte(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt32(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt32(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt64(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt64(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToSingle(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToDouble(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToDecimal(null));
 
                         // not valid because bad form
                         Assert.Throws<InvalidOperationException>(() => c.ToDateTime(null));
-                    }
-                );
+                        },
+                        // True
+                        n =>
+                        {
+                            var c = n as IConvertible;
+                            Assert.NotNull(c);
+                            Assert.Equal(TypeCode.Boolean, c.GetTypeCode());
+
+                            Assert.Throws<ArgumentException>(() => c.ToString(CultureInfo.InvariantCulture));
+
+                        // all valid conversions
+                        Assert.True(c.ToBoolean(null));
+                            Assert.Equal("True", c.ToString(null));
+                            Assert.True(Convert.ToBoolean(n as object));
+                            Assert.Equal("True", Convert.ToString(n as object));
+
+                        // not valid because not boolean
+                        Assert.Throws<InvalidOperationException>(() => c.ToChar(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToSByte(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToByte(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt16(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt32(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt32(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToInt64(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToUInt64(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToSingle(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToDouble(null));
+                            Assert.Throws<InvalidOperationException>(() => c.ToDecimal(null));
+
+                        // not valid because bad form
+                        Assert.Throws<InvalidOperationException>(() => c.ToDateTime(null));
+                        }
+                    );
+                }
+            }
+
+            // null Parsers
+            {
+                var csvString =
+                    "a,b,c,d,e,f,g,h,i,j,k,l,m,n\r\n" +
+                    $"{sbyte.MinValue},{byte.MaxValue},{short.MinValue},{ushort.MaxValue},{int.MinValue},{uint.MaxValue},{long.MinValue},{ulong.MaxValue},123.45,-456.789,2020-03-15,f,hello world,True";
+
+                var td = new _DynamicCellsIConvertible();
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithTypeDescriber(td).ToOptions();
+
+                var conf = Configuration.ForDynamic(opts);
+                using (var reader = new StringReader(csvString))
+                using (var csv = conf.CreateReader(reader))
+                {
+                    var rows = csv.ReadAll();
+                    var row = rows.Single();
+                    var cells = (IEnumerable<dynamic>)row;
+
+                    // everything actually goes through what's below
+                    //  but prove out this, worse, approach too
+                    var firstCell = cells.First() as IConvertible;
+                    Assert.Equal(TypeCode.Object, firstCell.GetTypeCode());
+
+                    Assert.Throws<InvalidOperationException>(() => firstCell.ToSByte(null));
+                    Assert.Throws<InvalidOperationException>(() => Convert.ToSByte(firstCell, null));
+                }
             }
 
             // doesn't need an async equivalent
+        }
+
+        private sealed class _DynamicCellsIConvertible: DefaultTypeDescriber
+        {
+            public override Parser GetDynamicCellParserFor(in ReadContext context, TypeInfo targetType)
+            => null;
         }
 
         [Fact]

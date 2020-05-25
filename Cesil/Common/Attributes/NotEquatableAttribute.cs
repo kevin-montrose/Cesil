@@ -7,6 +7,7 @@ namespace Cesil
     internal sealed class NotEquatableAttribute : Attribute
     {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "For documentation, not use")]
-        internal NotEquatableAttribute(string reason) { }
+        internal NotEquatableAttribute(string reason)
+        => Utils.CheckArgumentNull(reason, nameof(reason));
     }
 }

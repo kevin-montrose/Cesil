@@ -156,23 +156,38 @@ namespace Cesil
                 // we can't cache these because converter may not be the default type converter
                 //   thus we can't use any of the ICreatesCacheableDelegate infrastructure
                 //   that we use in other dynamic dispatch
-                var parserDel = MakeFromParser<T>(p);
+                var parserDel = MakeFromParser<T>(null, p);
 
                 return parserDel(data, in ctx, out _);
             }
         }
 
-        private static ParserDelegate<T> MakeFromParser<T>(Parser p)
+        private static ParserDelegate<T> MakeFromParser<T>(TypeInfo? outType, Parser p)
         {
-            var outType = typeof(T).MakeByRefType().GetTypeInfo();
+            outType ??= typeof(T).GetTypeInfo();
+
+            var tType = typeof(T).GetTypeInfo();
+            var tByRef = tType.MakeByRefType().GetTypeInfo();
 
             var spanVar = Expressions.Parameter_ReadOnlySpanOfChar;
             var ctxVar = Expressions.Parameter_ReadContext_ByRef;
-            var outVar = Expression.Parameter(outType);
+            var parserResultVar = Expression.Variable(outType);
+            
+            var outVar = Expression.Parameter(tByRef);
 
-            var delBody = p.MakeExpression(spanVar, ctxVar, outVar);
+            var parserExp = p.MakeExpression(spanVar, ctxVar, parserResultVar);
 
-            var del = Expression.Lambda<ParserDelegate<T>>(delBody, spanVar, ctxVar, outVar);
+            var parserBoolVar = Expressions.Variable_Bool;
+            var assignToBool = Expression.Assign(parserBoolVar, parserExp);
+
+            var convertToOut = Expression.Convert(parserResultVar, tType);
+            var assignOut = Expression.Assign(outVar, convertToOut);
+
+            var ifExp = Expression.IfThen(parserBoolVar, assignOut);
+
+            var wholeBody = Expression.Block(new[] { parserResultVar, parserBoolVar }, assignToBool, ifExp, parserBoolVar);
+
+            var del = Expression.Lambda<ParserDelegate<T>>(wholeBody, spanVar, ctxVar, outVar);
 
             var parserDel = del.Compile();
 
@@ -212,7 +227,7 @@ namespace Cesil
                 return Throw.InvalidOperationException<T>($"{nameof(Parser)} returned from {nameof(ITypeDescriber.GetDynamicCellParserFor)} for {toType} was null, cannot convert");
             }
 
-            var del = MakeFromParser<T>(conf);
+            var del = MakeFromParser<T>(toType, conf);
             if (!del(data, in ctx, out var ret))
             {
                 return Throw.InvalidOperationException<T>($"{nameof(Parser)} for {toType} returned false, cannot convert");

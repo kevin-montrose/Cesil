@@ -207,7 +207,7 @@ namespace Cesil
                 Type[] resetTakesTypes;
                 if (surrogateResetWrapper.TakesContext)
                 {
-                    resetTakesTypes = new[] { Types.ReadContext };
+                    resetTakesTypes = new[] { Types.ReadContext.MakeByRefType() };
                 }
                 else
                 {
@@ -400,7 +400,14 @@ handleMethod:
                         var surrogateCons = builder.Constructor.Value;
                         var surrogateConsBinding = GetEquivalentFlagsFor(surrogateCons.IsPublic, false);
 
-                        var consOnType = ontoType.GetConstructor(surrogateConsBinding, null, Type.EmptyTypes, null);
+                        var consPs = surrogateCons.GetParameters();
+                        var consTypes = new Type[consPs.Length];
+                        for(var i = 0; i < consPs.Length; i++)
+                        {
+                            consTypes[i] = consPs[i].ParameterType;
+                        }
+
+                        var consOnType = ontoType.GetConstructor(surrogateConsBinding, null, consTypes, null);
                         if (consOnType == null)
                         {
                             return Throw.InvalidOperationException<InstanceProvider>($"No equivalent to {surrogateCons} found on {ontoType}");

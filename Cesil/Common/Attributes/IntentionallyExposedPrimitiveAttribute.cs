@@ -7,6 +7,7 @@ namespace Cesil
     internal sealed class IntentionallyExposedPrimitiveAttribute : Attribute
     {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "For documentation, not use")]
-        internal IntentionallyExposedPrimitiveAttribute(string reason) { }
+        internal IntentionallyExposedPrimitiveAttribute(string reason)
+        => Utils.CheckArgumentNull(reason, nameof(reason));
     }
 }

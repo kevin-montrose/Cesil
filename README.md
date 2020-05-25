@@ -5,7 +5,7 @@ Modern CSV (De)Serializer
 
 # PRE-RELEASE
 
-This code isn't well tested yet, **YOU PROBABLY DON'T WANT TO USE IT!!!**
+This code hasn't seen much production use, please use with caution and [report any issues](https://github.com/kevin-montrose/Cesil/issues/new) you encounter.
 
 # Documentation
 
@@ -37,10 +37,7 @@ using Cesil;
 
 // ...
 
-using(TextReader reader = /* some TextReader */)
-{
-	IEnumerable<MyType> rows = CesilUtils.Enumerate<MyType>(reader);
-}
+IEnumerable<MyType> rows = CesilUtils.Enumerate<MyType>(/*Some TextReader*/);
 ```
 
 In a more explicit, and configurable, way using [explicit configuration](https://github.com/kevin-montrose/Cesil/wiki/Configurations) and [options](https://github.com/kevin-montrose/Cesil/wiki/Options).
@@ -56,7 +53,7 @@ IBoundConfiguration<MyType> myConfig = Configuration.For<MyType>(myOptions);
 using(TextReader reader = /* ... */)
 using(IReader<MyType> csv = myConfig.CreateReader(reader))
 {
-	IEnumerable<MyType> rows = csv.EnumerateAll();
+    IEnumerable<MyType> rows = csv.EnumerateAll();
 }
 ```
 
@@ -71,10 +68,7 @@ using Cesil;
 
 // ...
 
-using(TextReader reader = /* some TextReader */)
-{
-	IAsyncEnumerable<MyType> rows = CesilUtils.EnumerateAsync<MyType>(reader);
-}
+IAsyncEnumerable<MyType> rows = CesilUtils.EnumerateAsync<MyType>(/*Some TextReader*/);
 ```
 
 In a more explicit, and configurable, way using [explicit configuration](https://github.com/kevin-montrose/Cesil/wiki/Configurations) and [options](https://github.com/kevin-montrose/Cesil/wiki/Options).
@@ -90,7 +84,7 @@ IBoundConfiguration<MyType> myConfig = Configuration.For<MyType>(myOptions);
 using(TextReader reader = /* ... */)
 await using(IAsyncReader<MyType> csv = myConfig.CreateAsyncReader(reader))
 {
-	IAsyncReader<MyType> rows = csv.EnumerateAllAsync();
+    IAsyncReader<MyType> rows = csv.EnumerateAllAsync();
 }
 ```
 
@@ -109,7 +103,7 @@ IEnumerable<MyType> myRows = /* ... */
 
 using(TextWriter writer = /* .. */)
 {
-	CesilUtilities.Write(myRows, writer);
+    CesilUtilities.Write(myRows, writer);
 }
 ```
 
@@ -128,7 +122,7 @@ IBoundConfiguration<MyType> myConfig = Configuration.For<MyType>(myOptions);
 using(TextWriter writer = /* ... */)
 using(IWriter<MyType> csv = myConfig.CreateWriter(writer))
 {
-	csv.WriteAll(myRows);
+    csv.WriteAll(myRows);
 }
 ```
 
@@ -148,7 +142,7 @@ IEnumerable<MyType> myRows = /* ... */
 
 using(TextWriter writer = /* .. */)
 {
-	await CesilUtilities.WriteAsync(myRows, writer);
+    await CesilUtilities.WriteAsync(myRows, writer);
 }
 ```
 
@@ -168,7 +162,7 @@ IBoundConfiguration<MyType> myConfig = Configuration.For<MyType>(myOptions);
 using(TextWriter writer = /* ... */)
 await using(IWriter<MyType> csv = myConfig.CreateAsyncWriter(writer))
 {
-	await csv.WriteAllAsync(myRows);
+    await csv.WriteAllAsync(myRows);
 }
 ```
 

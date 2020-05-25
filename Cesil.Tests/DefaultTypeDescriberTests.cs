@@ -15,6 +15,122 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class DefaultTypeDescriberTests
     {
+        private sealed class _IgnoredShouldSerializes
+        {
+            public string Prop1 { get; set; }
+            public bool ShouldSerializeProp1()
+            => true;
+            
+            // ignore, not a bool
+            public string Prop2 { get; set; }
+            public int ShouldSerializeProp2()
+            => 4;
+
+            // ignore, instance and takes a param
+            public string Prop3 { get; set; }
+            public bool ShouldSerializeProp3(_IgnoredShouldSerializes _)
+            => true;
+
+            public string Prop4 { get; set; }
+            public static bool ShouldSerializeProp4()
+            => true;
+
+            public string Prop5 { get; set; }
+            public static bool ShouldSerializeProp5(_IgnoredShouldSerializes row)
+            => true;
+
+            // ignore, instance and takes 2 params
+            public string Prop6 { get; set; }
+            public static bool ShouldSerializeProp6(_IgnoredShouldSerializes row, string _)
+            => true;
+        }
+
+        [Fact]
+        public void IgnoredShouldSerializes()
+        {
+            var members = TypeDescribers.Default.EnumerateMembersToSerialize(typeof(_IgnoredShouldSerializes).GetTypeInfo());
+
+            Assert.Equal(6, members.Count());
+
+            foreach (var mem in members)
+            {
+                var hasShouldSerialize = mem.ShouldSerialize.HasValue;
+                var canHaveShouldSerialize = !(mem.Name == nameof(_IgnoredShouldSerializes.Prop2) || mem.Name == nameof(_IgnoredShouldSerializes.Prop3) || mem.Name == nameof(_IgnoredShouldSerializes.Prop6));
+
+                Assert.True(canHaveShouldSerialize == hasShouldSerialize, mem.Name);
+            }
+        }
+
+        private sealed class _ShouldntSerializeWeirdProperties
+        {
+            public string this[int index]
+            {
+                get
+                {
+                    return index.ToString();
+                }
+            }
+
+            public string SetOnly
+            {
+                set { }
+            }
+
+            public int Normal { get; set; }
+        }
+
+        [Fact]
+        public void ShouldntSerializeWeirdProperties()
+        {
+            var members = TypeDescribers.Default.EnumerateMembersToSerialize(typeof(_ShouldntSerializeWeirdProperties).GetTypeInfo());
+
+            Assert.Collection(
+                members,
+                m =>
+                {
+                    Assert.Equal(nameof(_ShouldntSerializeWeirdProperties.Normal), m.Name);
+                }
+            );
+        }
+
+#pragma warning disable IDE0051
+        private sealed class _IgnoredResets
+        {
+            public string Prop1 { get; set; }
+            private void ResetProp1() { }
+
+            // no reset, takes an arg as an instance method
+            public string Prop2 { get; set; }
+            private void ResetProp2(string arg) { }
+
+            public string Prop3 { get; set; }
+            private static void ResetProp3() { }
+
+            public string Prop4 { get; set; }
+            private static void ResetProp4(_IgnoredResets _) { }
+
+            // no reset, takes two args as an instance method
+            public string Prop5 { get; set; }
+            private static void ResetProp5(_IgnoredResets _, string __) { }
+        }
+#pragma warning restore IDE0051
+
+        [Fact]
+        public void IgnoredResets()
+        {
+            var members = TypeDescribers.Default.EnumerateMembersToDeserialize(typeof(_IgnoredResets).GetTypeInfo());
+
+            Assert.Equal(5, members.Count());
+
+            foreach(var mem in members)
+            {
+                var hasReset = mem.Reset.HasValue;
+                var canHaveReset = !(mem.Name == nameof(_IgnoredResets.Prop2) || mem.Name == nameof(_IgnoredResets.Prop5));
+
+                Assert.True(canHaveReset == hasReset, mem.Name);
+            }
+        }
+
         [Fact]
         public void DefaultParserFormatterSymmetry()
         {
