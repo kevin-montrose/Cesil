@@ -89,16 +89,18 @@ namespace ShieldGenerator
 
             var linesCoverageJSON = $@"{{
   ""schemaVersion"": 1,
-  ""label"": ""line coverage"",
+  ""label"": ""Line Coverage"",
   ""message"": ""{lineCoverage}%"",
-  ""color"": ""{GetColor(lineCoverage)}""
+  ""color"": ""{GetColor(lineCoverage)}"",
+  ""namedLogo"": ""GitHub""
 }}";
 
             var branchCoverageJSON = $@"{{
   ""schemaVersion"": 1,
-  ""label"": ""branch coverage"",
+  ""label"": ""Branch Coverage"",
   ""message"": ""{branchCoverage}%"",
-  ""color"": ""{GetColor(branchCoverage)}""
+  ""color"": ""{GetColor(branchCoverage)}"",
+  ""namedLogo"": ""GitHub""
 }}";
 
             File.WriteAllText(linesBadgePath, linesCoverageJSON);
