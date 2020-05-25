@@ -22,8 +22,8 @@ jobs:
     - name: Code coverage
       shell: cmd
       run: |
-        regsvr32 \s .\OpenCover\x64\OpenCover.Profiler.dll
-        regsvr32 \s .\OpenCover\x86\OpenCover.Profiler.dll
+        regsvr32 /s .\OpenCover\x64\OpenCover.Profiler.dll
+        regsvr32 /s .\OpenCover\x86\OpenCover.Profiler.dll
         RunCodeCoverage.bat silent none
     - name: Generate Shields JSON
       shell: cmd
