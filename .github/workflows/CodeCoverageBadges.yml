@@ -21,7 +21,10 @@ jobs:
       run: dotnet build --configuration Debug --no-restore
     - name: Code coverage
       shell: cmd
-      run: RunCodeCoverage.bat silent path64
+      run: |
+        regsvr32 .\OpenCover\x64\OpenCover.Profiler.dll
+        regsvr32 .\OpenCover\x86\OpenCover.Profiler.dll
+        RunCodeCoverage.bat silent none
     - name: Generate Shields JSON
       shell: cmd
       working-directory: .\ShieldGenerator\bin\Debug\netcoreapp3.1
