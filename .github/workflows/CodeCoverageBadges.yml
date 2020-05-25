@@ -23,8 +23,8 @@ jobs:
       shell: cmd
       run: |
         regsvr32 /s /n /i:user .\OpenCover\x64\OpenCover.Profiler.dll
-        regsvr32 /s /n /i:user .\OpenCover\x86\OpenCover.Profiler.dll
-        RunCodeCoverage.bat silent
+        # regsvr32 /s /n /i:user .\OpenCover\x86\OpenCover.Profiler.dll
+        RunCodeCoverage.bat silent none
     - name: Generate Shields JSON
       shell: cmd
       working-directory: .\ShieldGenerator\bin\Debug\netcoreapp3.1
