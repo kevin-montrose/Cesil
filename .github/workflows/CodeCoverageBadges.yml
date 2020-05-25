@@ -19,7 +19,7 @@ jobs:
       run: dotnet restore
     - name: Build
       run: dotnet build --configuration Debug --no-restore
-    - name: Code Coverage
+    - name: Code coverage
       shell: cmd
       run: RunCodeCoverage.bat silent path64
     - name: Generate Shields JSON
@@ -28,4 +28,15 @@ jobs:
       run: ShieldGenerator.exe coverage
     - name: Copy JSON
       shell: cmd
-      run: cp .\TestCoverageResults\*.json .\shields
+      run: copy .\TestCoverageResults\*.json .\shields
+    - name: Add shields branch
+      run: |
+        git config --local user.name CodeCoverageBadges-Action
+        git add .\shields\*.json
+        git commit -m "update shields"
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: shields
+        force: true 
