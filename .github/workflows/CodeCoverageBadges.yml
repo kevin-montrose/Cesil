@@ -31,7 +31,8 @@ jobs:
       run: copy .\TestCoverageResults\*.json .\shields
     - name: Add shields branch
       run: |
-        git config --local user.name CodeCoverageBadges-Action
+        git config --local user.name "CodeCoverageBadges-Action"
+        git config --local user.email "action@github.com"
         git add .\shields\*.json
         git commit -m "update shields"
     - name: Push changes
