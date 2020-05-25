@@ -72,6 +72,17 @@ namespace ShieldGenerator
             var totalBranches = double.Parse(lines[coverableBranchesIx]);
             var totalVisitedBranches = double.Parse(lines[coveredBranchesIx]);
 
+            if(totalLines == 0)
+            {
+                Console.WriteLine("Couldn't find any profiled lines");
+                return -1;
+            }
+
+            if (totalBranches == 0)
+            {
+                Console.WriteLine("Couldn't find any profiled branches");
+                return -1;
+            }
 
             var lineCoverage = Math.Round(totalVisitedLines / totalLines * 100.0, 1);
             var branchCoverage = Math.Round(totalVisitedBranches / totalBranches * 100.0, 1);
