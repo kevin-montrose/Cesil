@@ -24,10 +24,16 @@ if "%2" == "" (
 
 echo Registration method: %register%
 
+echo Target directory contents
+dir .\Cesil.Tests\bin\Debug\netcoreapp3.0
+
 .\OpenCover\OpenCover.Console.exe -target:"%dotnetpath%" -targetargs:"test" -output:".\TestCoverageResults\Coverage.xml" %register% -threshold:1 -filter:"+[Cesil]* -[Cesil]*Attribute" -searchdirs:".\Cesil.Tests\bin\Debug\netcoreapp3.0"
 if %errorlevel% neq 0 exit /b %errorlevel%
 
 echo Coverage complete
+
+echo results
+type .\TestCoverageResults\Coverage.xml
 
 dotnet .\ReportGenerator\ReportGenerator.dll -reports:.\TestCoverageResults\Coverage.xml -targetdir:.\TestCoverageResults\ 
 if %errorlevel% neq 0 exit /b %errorlevel%
