@@ -12,7 +12,15 @@ FOR /F "tokens=* USEBACKQ" %%F IN (`where dotnet`) DO (
 
 echo Path to dotnet: %dotnetpath%
 
-.\OpenCover\OpenCover.Console.exe -target:"%dotnetpath%" -targetargs:"test" -output:".\TestCoverageResults\Coverage.xml" -register:path64 -threshold:1 -filter:"+[Cesil]* -[Cesil]*Attribute" -searchdirs:".\Cesil.Tests\bin\Debug\netcoreapp3.0"
+if "%2" == "" (
+  SET register=user
+) ELSE (
+  SET register=%2
+)
+
+echo Registration method: %register%
+
+.\OpenCover\OpenCover.Console.exe -target:"%dotnetpath%" -targetargs:"test" -output:".\TestCoverageResults\Coverage.xml" -register:%register% -threshold:1 -filter:"+[Cesil]* -[Cesil]*Attribute" -searchdirs:".\Cesil.Tests\bin\Debug\netcoreapp3.0"
 if %errorlevel% neq 0 exit /b %errorlevel%
 
 echo Coverage complete
