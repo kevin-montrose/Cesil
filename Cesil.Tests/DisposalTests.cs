@@ -130,7 +130,7 @@ namespace Cesil.Tests
 
             void IDelegateCache.AddDelegate<T, V>(T key, V cached) { }
 
-            bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue:false)]out V del)
+            bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)]out V del)
             {
                 del = default;
                 return false;
@@ -271,7 +271,7 @@ namespace Cesil.Tests
                     // intentionally NOT testing, this is ref counted so this
                     //   test wouldn't be sufficient
                 }
-                else if(t == typeof(MemberOrderHelper<>))
+                else if (t == typeof(MemberOrderHelper<>))
                 {
                     // intentionally NOT testing, this is exposed just because
                     //   it implements IEnumerable as a necessary part of being

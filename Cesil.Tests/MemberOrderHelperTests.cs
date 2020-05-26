@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -131,7 +130,7 @@ namespace Cesil.Tests
             var random = new Random(2020_05_19);
 
             // all ordered
-            for(var i = 0; i < 10_000; i++)
+            for (var i = 0; i < 10_000; i++)
             {
                 var items = new List<(int Order, string Value)>();
                 var length = random.Next(20) + 1;
@@ -203,7 +202,7 @@ namespace Cesil.Tests
                     items.Sort(
                         (a, b) =>
                         {
-                            if(a.Order == null)
+                            if (a.Order == null)
                             {
                                 if (b.Order == null)
                                 {

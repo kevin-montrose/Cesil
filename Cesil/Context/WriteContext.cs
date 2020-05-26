@@ -183,7 +183,7 @@ namespace Cesil
         /// </summary>
         public override string ToString()
         {
-            return 
+            return
                 Mode switch
                 {
                     WriteContextMode.DiscoveringCells => $"{nameof(WriteContext)} with {nameof(Mode)}={Mode}, {nameof(RowNumber)}={RowNumber}, {nameof(Options)}={Options}",

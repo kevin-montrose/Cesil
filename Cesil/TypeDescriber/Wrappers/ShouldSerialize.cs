@@ -36,7 +36,7 @@ namespace Cesil
         {
             get
             {
-                return 
+                return
                     Mode switch
                     {
                         BackingMode.Method => Method.Value.IsStatic,
@@ -295,7 +295,7 @@ namespace Cesil
                 if (shouldSerialize.Takes.HasValue) return false;
             }
 
-            return 
+            return
                 mode switch
                 {
                     BackingMode.Delegate => Delegate.Value == shouldSerialize.Delegate.Value,

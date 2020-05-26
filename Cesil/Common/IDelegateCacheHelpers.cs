@@ -15,7 +15,7 @@ namespace Cesil
                 return del;
             }
 
-            if(cache.TryGetDelegate<TSelf, TDelegate>(inst, out var cached))
+            if (cache.TryGetDelegate<TSelf, TDelegate>(inst, out var cached))
             {
                 inst.CachedDelegate = cached;
                 return cached;

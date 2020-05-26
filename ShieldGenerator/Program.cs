@@ -72,7 +72,7 @@ namespace ShieldGenerator
             var totalBranches = double.Parse(lines[coverableBranchesIx]);
             var totalVisitedBranches = double.Parse(lines[coveredBranchesIx]);
 
-            if(totalLines == 0)
+            if (totalLines == 0)
             {
                 Console.WriteLine("Couldn't find any profiled lines");
                 return -1;

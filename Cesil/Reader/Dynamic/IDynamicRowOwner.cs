@@ -1,6 +1,6 @@
 ﻿namespace Cesil
 {
-    internal interface IDynamicRowOwner: IDelegateCache
+    internal interface IDynamicRowOwner : IDelegateCache
     {
         Options Options { get; }
 

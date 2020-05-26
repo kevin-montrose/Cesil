@@ -94,12 +94,12 @@
         /// Only for debugging, this value is not guaranteed to be stable.
         /// </summary>
         public override string ToString()
-        =>  ResultType switch
-            {
-                ReadWithCommentResultType.NoValue => $"{nameof(ReadWithCommentResult<TRow>)} which is empty)",
-                ReadWithCommentResultType.HasValue => $"{nameof(ReadWithCommentResult<TRow>)} with {Value}",
-                ReadWithCommentResultType.HasComment => $"{nameof(ReadWithCommentResult<TRow>)} with comment: {Comment}",
-                _ => Throw.InvalidOperationException<string>($"Unexpected {nameof(ReadWithCommentResultType)}: {ResultType}")
-            };   
+        => ResultType switch
+        {
+            ReadWithCommentResultType.NoValue => $"{nameof(ReadWithCommentResult<TRow>)} which is empty)",
+            ReadWithCommentResultType.HasValue => $"{nameof(ReadWithCommentResult<TRow>)} with {Value}",
+            ReadWithCommentResultType.HasComment => $"{nameof(ReadWithCommentResult<TRow>)} with comment: {Comment}",
+            _ => Throw.InvalidOperationException<string>($"Unexpected {nameof(ReadWithCommentResultType)}: {ResultType}")
+        };
     }
 }

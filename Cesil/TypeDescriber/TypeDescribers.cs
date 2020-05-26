@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Cesil
+﻿namespace Cesil
 {
     /// <summary>
     /// Holds references to pre-allocated TypeDescibers.

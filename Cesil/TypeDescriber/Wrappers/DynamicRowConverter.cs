@@ -208,13 +208,13 @@ namespace Cesil
                             var createType = Expression.New(zeroCons);
                             var assignToVar = Expression.Assign(retVar, createType);
 
-                            var statements = 
+                            var statements =
                                 new List<Expression>
                                 {
                                     assignToVar
                                 };
 
-                            var locals = 
+                            var locals =
                                 new List<ParameterExpression>
                                 {
                                     retVar

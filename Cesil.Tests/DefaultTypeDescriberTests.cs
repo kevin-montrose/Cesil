@@ -20,7 +20,7 @@ namespace Cesil.Tests
             public string Prop1 { get; set; }
             public bool ShouldSerializeProp1()
             => true;
-            
+
             // ignore, not a bool
             public string Prop2 { get; set; }
             public int ShouldSerializeProp2()
@@ -122,7 +122,7 @@ namespace Cesil.Tests
 
             Assert.Equal(5, members.Count());
 
-            foreach(var mem in members)
+            foreach (var mem in members)
             {
                 var hasReset = mem.Reset.HasValue;
                 var canHaveReset = !(mem.Name == nameof(_IgnoredResets.Prop2) || mem.Name == nameof(_IgnoredResets.Prop5));

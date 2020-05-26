@@ -320,9 +320,9 @@ namespace Cesil
 
                 var endOfNulls = startOfNulls + neededSpace;
 
-                checkSize:
+checkSize:
 
-                if(CurrentDataOffset < endOfNulls)
+                if (CurrentDataOffset < endOfNulls)
                 {
                     var minSize = Data.Memory.Length + (endOfNulls - CurrentDataOffset);
                     ResizeData(minSize);
@@ -331,7 +331,7 @@ namespace Cesil
                 }
             }
 
-            for(var i = 0; i < trailingCount; i++)
+            for (var i = 0; i < trailingCount; i++)
             {
                 StoreDataIndex(Width + i, -1);
             }
@@ -344,7 +344,7 @@ namespace Cesil
             AssertNotDisposedInternal(this);
 
             var dataIx = GetDataIndex(forCellNumber);
-            if(dataIx == -1)
+            if (dataIx == -1)
             {
                 span = default;
                 return false;
@@ -534,7 +534,7 @@ namespace Cesil
             var copyFrom = rawStart;
             for (var writeTo = 0; writeTo < width; writeTo++)
             {
-                if(TryGetDataSpan(copyFrom, out var span))
+                if (TryGetDataSpan(copyFrom, out var span))
                 {
                     newRow.SetValue(writeTo, span);
                 }
@@ -595,7 +595,7 @@ namespace Cesil
                     var adjuestedIndex = index + NamesIndexOffset;
 
                     // trying to access a column that isn't part of this subset?
-                    if(adjuestedIndex < 0 || adjuestedIndex >= Width)
+                    if (adjuestedIndex < 0 || adjuestedIndex >= Width)
                     {
                         result = null;
                         return false;

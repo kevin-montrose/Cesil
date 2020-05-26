@@ -14,8 +14,8 @@ namespace Cesil.Tests
         public void Equality()
         {
             var behaviors = new[] { SurrogateTypeDescriberFallbackBehavior.Throw, SurrogateTypeDescriberFallbackBehavior.UseFallback };
-            var types = new[] { 
-                new[] { typeof(string).GetTypeInfo(), typeof(int).GetTypeInfo() }, 
+            var types = new[] {
+                new[] { typeof(string).GetTypeInfo(), typeof(int).GetTypeInfo() },
                 new[] { typeof(object).GetTypeInfo(), typeof(long).GetTypeInfo() },
                 new[] { typeof(string).GetTypeInfo(), typeof(long).GetTypeInfo() },
                 new[] { typeof(object).GetTypeInfo(), typeof(long).GetTypeInfo(), typeof(string).GetTypeInfo(), typeof(int).GetTypeInfo() }
@@ -825,7 +825,7 @@ namespace Cesil.Tests
             public static string GetVal(_Errors_ExplicitStaticGetter row) => "";
         }
 
-        private class _Errors_NoInstanceProvider: DefaultTypeDescriber
+        private class _Errors_NoInstanceProvider : DefaultTypeDescriber
         {
             public override InstanceProvider GetInstanceProvider(TypeInfo forType)
             => null;
@@ -1011,7 +1011,7 @@ namespace Cesil.Tests
                     (ShouldSerialize)typeof(_Errors_StaticShouldSerializeTakingRow_Surrogate).GetMethod(nameof(_Errors_StaticShouldSerializeTakingRow_Surrogate.ShouldSerialize))
                 );
                 var m = mB.ToManualTypeDescriber();
-                
+
                 var sB = SurrogateTypeDescriber.CreateBuilder(SurrogateTypeDescriberFallbackBehavior.UseFallback, m);
                 sB.WithSurrogateType(typeof(_Errors_StaticShouldSerializeTakingRow_Real).GetTypeInfo(), typeof(_Errors_StaticShouldSerializeTakingRow_Surrogate).GetTypeInfo());
                 var s = sB.ToSurrogateTypeDescriber();

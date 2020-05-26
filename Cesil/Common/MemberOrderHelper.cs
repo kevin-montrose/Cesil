@@ -113,7 +113,7 @@ namespace Cesil
 
             // give us a gap to write into            
             MakeSpaceForInsert(insertionIx);
-            
+
             // actually store the order and data
             InsertWithOrder(insertionIx, orderVal, Data.Count);
             Data.Add(data);

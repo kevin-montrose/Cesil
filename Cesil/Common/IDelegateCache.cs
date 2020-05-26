@@ -5,7 +5,7 @@ namespace Cesil
 {
     internal interface IDelegateCache
     {
-        bool TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue:false)]out V del)
+        bool TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)]out V del)
             where T : IEquatable<T>
             where V : class, Delegate;
 

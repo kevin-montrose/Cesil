@@ -116,10 +116,10 @@ namespace Cesil.Benchmark
 
         public void InitializeAndTest()
         {
-            foreach(var type in KnownTypes)
+            foreach (var type in KnownTypes)
             {
                 Type = type;
-                foreach(var rows in KnownRowSets)
+                foreach (var rows in KnownRowSets)
                 {
                     RowSet = rows;
 
@@ -216,7 +216,7 @@ namespace Cesil.Benchmark
                 var staticConfig = Configuration.For<NarrowRow<T>>();
 
                 string csvTxt;
-                
+
                 using (var txt = new StringWriter())
                 {
                     using (var csv = staticConfig.CreateWriter(txt))
@@ -256,7 +256,7 @@ namespace Cesil.Benchmark
 
                 var expandos = new List<ExpandoObject>();
 
-                foreach(var row in staticRows)
+                foreach (var row in staticRows)
                 {
                     var expandoObj = new ExpandoObject();
                     var expando = (IDictionary<string, dynamic>)expandoObj;

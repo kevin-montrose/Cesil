@@ -43,7 +43,7 @@ namespace Cesil
             private static Formatter CreateTryEnumFormatter()
             {
                 var enumType = typeof(T).GetTypeInfo();
-                if(enumType.IsFlagsEnum())
+                if (enumType.IsFlagsEnum())
                 {
                     return CreateTryFlagsEnumFormatter();
                 }

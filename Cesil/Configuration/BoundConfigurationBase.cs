@@ -50,7 +50,7 @@ namespace Cesil
 
             Options = options;
 
-            RowEndingMemory = 
+            RowEndingMemory =
                 Options.RowEnding switch
                 {
                     RowEnding.CarriageReturn => CarriageReturn,
@@ -79,7 +79,7 @@ namespace Cesil
 
             Options = options;
 
-            RowEndingMemory = 
+            RowEndingMemory =
                 Options.RowEnding switch
                 {
                     RowEnding.CarriageReturn => CarriageReturn,

@@ -36,7 +36,7 @@ namespace Cesil
                 return false;
             }
 
-            if(DelegateCache.TryGetValue(key, out var untypedDel))
+            if (DelegateCache.TryGetValue(key, out var untypedDel))
             {
                 del = (V)untypedDel;
                 return true;

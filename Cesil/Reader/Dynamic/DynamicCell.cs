@@ -23,7 +23,7 @@ namespace Cesil
         internal ReadOnlySpan<char> GetDataSpan()
         {
             var row = SafeRowGet();
-            if(!row.TryGetDataSpan(ColumnNumber, out var ret))
+            if (!row.TryGetDataSpan(ColumnNumber, out var ret))
             {
                 Throw.InvalidOperationException<object>($"{nameof(DynamicCell)} unexpectedly backed by null span");
                 return default;
@@ -47,7 +47,7 @@ namespace Cesil
         {
             var r = SafeRowGet();
 
-            if(!r.TryGetDataSpan(ColumnNumber, out data))
+            if (!r.TryGetDataSpan(ColumnNumber, out data))
             {
                 data = default;
                 ctx = default;
@@ -172,7 +172,7 @@ namespace Cesil
             var spanVar = Expressions.Parameter_ReadOnlySpanOfChar;
             var ctxVar = Expressions.Parameter_ReadContext_ByRef;
             var parserResultVar = Expression.Variable(outType);
-            
+
             var outVar = Expression.Parameter(tByRef);
 
             var parserExp = p.MakeExpression(spanVar, ctxVar, parserResultVar);

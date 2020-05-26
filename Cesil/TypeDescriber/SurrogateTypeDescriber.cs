@@ -402,7 +402,7 @@ handleMethod:
 
                         var consPs = surrogateCons.GetParameters();
                         var consTypes = new Type[consPs.Length];
-                        for(var i = 0; i < consPs.Length; i++)
+                        for (var i = 0; i < consPs.Length; i++)
                         {
                             consTypes[i] = consPs[i].ParameterType;
                         }

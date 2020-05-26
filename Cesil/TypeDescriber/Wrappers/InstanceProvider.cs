@@ -417,7 +417,7 @@ namespace Cesil
                 if (selfF != otherF) return false;
             }
 
-            return 
+            return
                 Mode switch
                 {
                     BackingMode.Constructor => instanceProvider.Constructor.Value == Constructor.Value,

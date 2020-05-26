@@ -79,7 +79,7 @@ namespace Cesil
             if (ExpectedColumnCount != null)
             {
                 var missing = ExpectedColumnCount.Value - ret.Width;
-                if(missing > 0)
+                if (missing > 0)
                 {
                     ret.PadWithNulls(missing);
                 }

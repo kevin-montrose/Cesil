@@ -14,7 +14,7 @@ namespace Cesil
 
         internal ReadOnlyCharSegment Append(ReadOnlyMemory<char> allocation, int bytesUsed)
         {
-            var ret = 
+            var ret =
                 new ReadOnlyCharSegment(allocation, bytesUsed)
                 {
                     RunningIndex = RunningIndex + Memory.Length

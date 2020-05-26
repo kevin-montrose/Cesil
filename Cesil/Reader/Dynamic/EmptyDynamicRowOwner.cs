@@ -21,7 +21,7 @@ namespace Cesil
         public void ReleaseNameLookup()
         => Throw.ImpossibleException<object>("Shouldn't be possible");
 
-        bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue:false)]out V del)
+        bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)]out V del)
         {
             del = default;
             return Throw.ImpossibleException<bool>("Shouldn't be possible");

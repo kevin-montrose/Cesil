@@ -37,7 +37,7 @@ namespace Cesil
         {
             get
             {
-                return 
+                return
                     Mode switch
                     {
                         BackingMode.Method => Method.Value.IsStatic,
@@ -300,7 +300,7 @@ namespace Cesil
                 if (reset.RowType.HasValue) return false;
             }
 
-            return 
+            return
                 mode switch
                 {
                     BackingMode.Delegate => reset.Delegate.Value == Delegate.Value,

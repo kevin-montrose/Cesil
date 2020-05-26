@@ -424,7 +424,7 @@ namespace Cesil
             var otherMode = getter.Mode;
             if (otherMode != Mode) return false;
 
-            return 
+            return
                 otherMode switch
                 {
                     BackingMode.Field => getter.Field.Value == Field.Value,

@@ -11,7 +11,7 @@ namespace Cesil
     // these are actually members (instead of a separate instance)
     //   so that consumers can control the cache by chosing an
     //   instance of the DefaultTypeDescriber to use.
-    public partial class DefaultTypeDescriber: IDelegateCache
+    public partial class DefaultTypeDescriber : IDelegateCache
     {
         private readonly bool CanCache;
 

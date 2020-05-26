@@ -199,7 +199,7 @@ namespace Cesil
                 }
 
                 var res = tryReadTask.Result;
-                return 
+                return
                     res.ResultType switch
                     {
                         ReadWithCommentResultType.HasValue => new ValueTask<ReadResult<T>>(new ReadResult<T>(res.Value)),
@@ -223,7 +223,7 @@ namespace Cesil
                     var res = await ConfigureCancellableAwait(self, self.TryReadInnerAsync(false, false, true, ref row, cancel), cancel);
                     CheckCancellation(self, cancel);
 
-                    return 
+                    return
                         res.ResultType switch
                         {
                             ReadWithCommentResultType.HasValue => new ReadResult<T>(res.Value),
@@ -245,7 +245,7 @@ namespace Cesil
                     var res = await ConfigureCancellableAwait(self, waitFor, cancel);
                     CheckCancellation(self, cancel);
 
-                    return 
+                    return
                         res.ResultType switch
                         {
                             ReadWithCommentResultType.HasValue => new ReadResult<T>(res.Value),
@@ -281,7 +281,7 @@ namespace Cesil
                 }
 
                 var res = tryReadTask.Result;
-                return 
+                return
                     res.ResultType switch
                     {
                         ReadWithCommentResultType.HasValue => new ValueTask<ReadResult<T>>(new ReadResult<T>(res.Value)),
@@ -305,7 +305,7 @@ namespace Cesil
                     var res = await ConfigureCancellableAwait(self, self.TryReadInnerAsync(false, false, false, ref row, cancel), cancel);
                     CheckCancellation(self, cancel);
 
-                    return 
+                    return
                         res.ResultType switch
                         {
                             ReadWithCommentResultType.HasValue => new ReadResult<T>(res.Value),
@@ -327,7 +327,7 @@ namespace Cesil
                     var res = await ConfigureCancellableAwait(self, waitFor, cancel);
                     CheckCancellation(self, cancel);
 
-                    return 
+                    return
                         res.ResultType switch
                         {
                             ReadWithCommentResultType.HasValue => new ReadResult<T>(res.Value),
