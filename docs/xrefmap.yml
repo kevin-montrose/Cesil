@@ -665,6 +665,19 @@ references:
   isSpec: "True"
   fullName: Cesil.DefaultTypeDescriber.DefaultTypeDescriber
   nameWithType: DefaultTypeDescriber.DefaultTypeDescriber
+- uid: Cesil.DefaultTypeDescriber.ClearCache
+  name: ClearCache()
+  href: api/Cesil.DefaultTypeDescriber.html#Cesil_DefaultTypeDescriber_ClearCache
+  commentId: M:Cesil.DefaultTypeDescriber.ClearCache
+  fullName: Cesil.DefaultTypeDescriber.ClearCache()
+  nameWithType: DefaultTypeDescriber.ClearCache()
+- uid: Cesil.DefaultTypeDescriber.ClearCache*
+  name: ClearCache
+  href: api/Cesil.DefaultTypeDescriber.html#Cesil_DefaultTypeDescriber_ClearCache_
+  commentId: Overload:Cesil.DefaultTypeDescriber.ClearCache
+  isSpec: "True"
+  fullName: Cesil.DefaultTypeDescriber.ClearCache
+  nameWithType: DefaultTypeDescriber.ClearCache
 - uid: Cesil.DefaultTypeDescriber.EnumerateMembersToDeserialize(TypeInfo)
   name: EnumerateMembersToDeserialize(TypeInfo)
   href: api/Cesil.DefaultTypeDescriber.html#Cesil_DefaultTypeDescriber_EnumerateMembersToDeserialize_TypeInfo_

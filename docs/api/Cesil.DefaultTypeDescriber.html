@@ -114,7 +114,7 @@ POCOs, ValueTuples, Tuples, and IEnumerables.</p>
   <h6><strong>Assembly</strong>: Cesil.dll</h6>
   <h5 id="Cesil_DefaultTypeDescriber_syntax">Syntax</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public class DefaultTypeDescriber : ITypeDescriber</code></pre>
+    <pre><code class="lang-csharp hljs">public class DefaultTypeDescriber : IDelegateCache, ITypeDescriber</code></pre>
   </div>
   <h3 id="constructors">Constructors
   </h3>
@@ -123,7 +123,7 @@ POCOs, ValueTuples, Tuples, and IEnumerables.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber__ctor.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.%23ctor%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L51">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L53">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber__ctor_" data-uid="Cesil.DefaultTypeDescriber.#ctor*"></a>
   <h4 id="Cesil_DefaultTypeDescriber__ctor" data-uid="Cesil.DefaultTypeDescriber.#ctor">DefaultTypeDescriber()</h4>
@@ -139,10 +139,30 @@ POCOs, ValueTuples, Tuples, and IEnumerables.</p>
   </h3>
   <span class="small pull-right mobile-hide">
     <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_ClearCache.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.ClearCache%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.Cache.cs/#L66">View Source</a>
+  </span>
+  <a id="Cesil_DefaultTypeDescriber_ClearCache_" data-uid="Cesil.DefaultTypeDescriber.ClearCache*"></a>
+  <h4 id="Cesil_DefaultTypeDescriber_ClearCache" data-uid="Cesil.DefaultTypeDescriber.ClearCache">ClearCache()</h4>
+  <div class="markdown level1 summary"><p>Clears any internal caches this instance has created.</p>
+<p>Caches may be used to accelerate member lookup or dynamic
+operations.</p>
+<p>Clearing caches is not necessary for correct functioning,
+but may be useful to manage memory use.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void ClearCache()</code></pre>
+  </div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_EnumerateMembersToDeserialize_TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.EnumerateMembersToDeserialize(TypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L66">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L78">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_EnumerateMembersToDeserialize_" data-uid="Cesil.DefaultTypeDescriber.EnumerateMembersToDeserialize*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_EnumerateMembersToDeserialize_TypeInfo_" data-uid="Cesil.DefaultTypeDescriber.EnumerateMembersToDeserialize(TypeInfo)">EnumerateMembersToDeserialize(TypeInfo)</h4>
@@ -190,7 +210,7 @@ POCOs, ValueTuples, Tuples, and IEnumerables.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_EnumerateMembersToSerialize_TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.EnumerateMembersToSerialize(TypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L413">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L423">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_EnumerateMembersToSerialize_" data-uid="Cesil.DefaultTypeDescriber.EnumerateMembersToSerialize*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_EnumerateMembersToSerialize_TypeInfo_" data-uid="Cesil.DefaultTypeDescriber.EnumerateMembersToSerialize(TypeInfo)">EnumerateMembersToSerialize(TypeInfo)</h4>
@@ -238,7 +258,7 @@ POCOs, ValueTuples, Tuples, and IEnumerables.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext%40%2CSystem.Object)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L760">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L792">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetCellsForDynamicRow_" data-uid="Cesil.DefaultTypeDescriber.GetCellsForDynamicRow*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_" data-uid="Cesil.DefaultTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)">GetCellsForDynamicRow(WriteContext, Object)</h4>
@@ -296,7 +316,7 @@ actual type (if a formatter is available) or as a string.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetDeserializationName_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetDeserializationName(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L293">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L303">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetDeserializationName_" data-uid="Cesil.DefaultTypeDescriber.GetDeserializationName*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetDeserializationName_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.GetDeserializationName(TypeInfo,FieldInfo)">GetDeserializationName(TypeInfo, FieldInfo)</h4>
@@ -350,7 +370,7 @@ actual type (if a formatter is available) or as a string.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetDeserializationName_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetDeserializationName(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L159">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L184">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetDeserializationName_" data-uid="Cesil.DefaultTypeDescriber.GetDeserializationName*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetDeserializationName_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetDeserializationName(TypeInfo,PropertyInfo)">GetDeserializationName(TypeInfo, PropertyInfo)</h4>
@@ -404,7 +424,7 @@ actual type (if a formatter is available) or as a string.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetDynamicCellParserFor_Cesil_ReadContext__TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetDynamicCellParserFor(Cesil.ReadContext%40%2CTypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L967">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L1106">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetDynamicCellParserFor_" data-uid="Cesil.DefaultTypeDescriber.GetDynamicCellParserFor*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetDynamicCellParserFor_Cesil_ReadContext__TypeInfo_" data-uid="Cesil.DefaultTypeDescriber.GetDynamicCellParserFor(Cesil.ReadContext@,TypeInfo)">GetDynamicCellParserFor(ReadContext, TypeInfo)</h4>
@@ -458,7 +478,7 @@ actual type (if a formatter is available) or as a string.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetDynamicRowConverter_Cesil_ReadContext__System_Collections_Generic_IEnumerable_Cesil_ColumnIdentifier__TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetDynamicRowConverter(Cesil.ReadContext%40%2CSystem.Collections.Generic.IEnumerable%7BCesil.ColumnIdentifier%7D%2CTypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L993">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L1132">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetDynamicRowConverter_" data-uid="Cesil.DefaultTypeDescriber.GetDynamicRowConverter*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetDynamicRowConverter_Cesil_ReadContext__System_Collections_Generic_IEnumerable_Cesil_ColumnIdentifier__TypeInfo_" data-uid="Cesil.DefaultTypeDescriber.GetDynamicRowConverter(Cesil.ReadContext@,System.Collections.Generic.IEnumerable{Cesil.ColumnIdentifier},TypeInfo)">GetDynamicRowConverter(ReadContext, IEnumerable&lt;ColumnIdentifier&gt;, TypeInfo)</h4>
@@ -519,7 +539,7 @@ the type.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetEmitDefaultValue_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetEmitDefaultValue(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L697">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L718">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetEmitDefaultValue_" data-uid="Cesil.DefaultTypeDescriber.GetEmitDefaultValue*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetEmitDefaultValue_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.GetEmitDefaultValue(TypeInfo,FieldInfo)">GetEmitDefaultValue(TypeInfo, FieldInfo)</h4>
@@ -576,7 +596,7 @@ values.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetEmitDefaultValue_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetEmitDefaultValue(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L591">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L609">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetEmitDefaultValue_" data-uid="Cesil.DefaultTypeDescriber.GetEmitDefaultValue*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetEmitDefaultValue_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetEmitDefaultValue(TypeInfo,PropertyInfo)">GetEmitDefaultValue(TypeInfo, PropertyInfo)</h4>
@@ -633,7 +653,7 @@ values.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetFormatter_TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetFormatter(TypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L715">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L736">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetFormatter_" data-uid="Cesil.DefaultTypeDescriber.GetFormatter*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetFormatter_TypeInfo_" data-uid="Cesil.DefaultTypeDescriber.GetFormatter(TypeInfo)">GetFormatter(TypeInfo)</h4>
@@ -684,7 +704,7 @@ as the other GetFormatter(...) methods delegate to it.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetFormatter_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetFormatter(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L679">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L700">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetFormatter_" data-uid="Cesil.DefaultTypeDescriber.GetFormatter*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetFormatter_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.GetFormatter(TypeInfo,FieldInfo)">GetFormatter(TypeInfo, FieldInfo)</h4>
@@ -738,7 +758,7 @@ as the other GetFormatter(...) methods delegate to it.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetFormatter_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetFormatter(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L573">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L591">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetFormatter_" data-uid="Cesil.DefaultTypeDescriber.GetFormatter*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetFormatter_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetFormatter(TypeInfo,PropertyInfo)">GetFormatter(TypeInfo, PropertyInfo)</h4>
@@ -792,7 +812,7 @@ as the other GetFormatter(...) methods delegate to it.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetFormatter_TypeInfo_System_String_Cesil_WriteContext__System_Object_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetFormatter(TypeInfo%2CSystem.String%2CCesil.WriteContext%40%2CSystem.Object)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L958">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L1097">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetFormatter_" data-uid="Cesil.DefaultTypeDescriber.GetFormatter*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetFormatter_TypeInfo_System_String_Cesil_WriteContext__System_Object_" data-uid="Cesil.DefaultTypeDescriber.GetFormatter(TypeInfo,System.String,Cesil.WriteContext@,System.Object)">GetFormatter(TypeInfo, String, WriteContext, Object)</h4>
@@ -856,7 +876,7 @@ as the other GetFormatter(...) methods delegate to it.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetGetter_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetGetter(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L634">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L655">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetGetter_" data-uid="Cesil.DefaultTypeDescriber.GetGetter*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetGetter_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.GetGetter(TypeInfo,FieldInfo)">GetGetter(TypeInfo, FieldInfo)</h4>
@@ -910,7 +930,7 @@ as the other GetFormatter(...) methods delegate to it.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetGetter_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetGetter(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L526">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L544">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetGetter_" data-uid="Cesil.DefaultTypeDescriber.GetGetter*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetGetter_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetGetter(TypeInfo,PropertyInfo)">GetGetter(TypeInfo, PropertyInfo)</h4>
@@ -964,7 +984,7 @@ as the other GetFormatter(...) methods delegate to it.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetInstanceProvider_TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetInstanceProvider(TypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L59">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L71">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetInstanceProvider_" data-uid="Cesil.DefaultTypeDescriber.GetInstanceProvider*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetInstanceProvider_TypeInfo_" data-uid="Cesil.DefaultTypeDescriber.GetInstanceProvider(TypeInfo)">GetInstanceProvider(TypeInfo)</h4>
@@ -1014,7 +1034,7 @@ for reference types, and the zero value for value types.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetIsRequired_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetIsRequired(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L350">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L360">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetIsRequired_" data-uid="Cesil.DefaultTypeDescriber.GetIsRequired*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetIsRequired_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.GetIsRequired(TypeInfo,FieldInfo)">GetIsRequired(TypeInfo, FieldInfo)</h4>
@@ -1068,7 +1088,7 @@ for reference types, and the zero value for value types.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetIsRequired_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetIsRequired(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L231">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L241">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetIsRequired_" data-uid="Cesil.DefaultTypeDescriber.GetIsRequired*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetIsRequired_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetIsRequired(TypeInfo,PropertyInfo)">GetIsRequired(TypeInfo, PropertyInfo)</h4>
@@ -1122,7 +1142,7 @@ for reference types, and the zero value for value types.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetOrder_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetOrder(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L337">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L347">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetOrder_" data-uid="Cesil.DefaultTypeDescriber.GetOrder*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetOrder_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.GetOrder(TypeInfo,FieldInfo)">GetOrder(TypeInfo, FieldInfo)</h4>
@@ -1178,7 +1198,7 @@ can change this during deserialization.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetOrder_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetOrder(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L218">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L228">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetOrder_" data-uid="Cesil.DefaultTypeDescriber.GetOrder*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetOrder_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetOrder(TypeInfo,PropertyInfo)">GetOrder(TypeInfo, PropertyInfo)</h4>
@@ -1234,7 +1254,7 @@ can change this during deserialization.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetParser_TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetParser(TypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L382">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L392">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetParser_" data-uid="Cesil.DefaultTypeDescriber.GetParser*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetParser_TypeInfo_" data-uid="Cesil.DefaultTypeDescriber.GetParser(TypeInfo)">GetParser(TypeInfo)</h4>
@@ -1285,7 +1305,7 @@ as the other GetParser(...) methods delegate to it.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetParser_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetParser(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L320">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L330">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetParser_" data-uid="Cesil.DefaultTypeDescriber.GetParser*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetParser_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.GetParser(TypeInfo,FieldInfo)">GetParser(TypeInfo, FieldInfo)</h4>
@@ -1339,7 +1359,7 @@ as the other GetParser(...) methods delegate to it.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetParser_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetParser(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L186">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L211">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetParser_" data-uid="Cesil.DefaultTypeDescriber.GetParser*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetParser_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetParser(TypeInfo,PropertyInfo)">GetParser(TypeInfo, PropertyInfo)</h4>
@@ -1393,7 +1413,7 @@ as the other GetParser(...) methods delegate to it.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetReset_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetReset(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L363">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L373">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetReset_" data-uid="Cesil.DefaultTypeDescriber.GetReset*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetReset_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.GetReset(TypeInfo,FieldInfo)">GetReset(TypeInfo, FieldInfo)</h4>
@@ -1447,7 +1467,7 @@ as the other GetParser(...) methods delegate to it.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetReset_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetReset(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L244">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L254">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetReset_" data-uid="Cesil.DefaultTypeDescriber.GetReset*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetReset_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetReset(TypeInfo,PropertyInfo)">GetReset(TypeInfo, PropertyInfo)</h4>
@@ -1501,7 +1521,7 @@ as the other GetParser(...) methods delegate to it.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetSerializationName_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetSerializationName(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L648">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L669">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetSerializationName_" data-uid="Cesil.DefaultTypeDescriber.GetSerializationName*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetSerializationName_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.GetSerializationName(TypeInfo,FieldInfo)">GetSerializationName(TypeInfo, FieldInfo)</h4>
@@ -1555,7 +1575,7 @@ as the other GetParser(...) methods delegate to it.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetSerializationName_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetSerializationName(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L513">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L531">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetSerializationName_" data-uid="Cesil.DefaultTypeDescriber.GetSerializationName*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetSerializationName_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetSerializationName(TypeInfo,PropertyInfo)">GetSerializationName(TypeInfo, PropertyInfo)</h4>
@@ -1609,7 +1629,7 @@ as the other GetParser(...) methods delegate to it.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetSetter_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetSetter(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L306">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L316">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetSetter_" data-uid="Cesil.DefaultTypeDescriber.GetSetter*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetSetter_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.GetSetter(TypeInfo,FieldInfo)">GetSetter(TypeInfo, FieldInfo)</h4>
@@ -1663,7 +1683,7 @@ as the other GetParser(...) methods delegate to it.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetSetter_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetSetter(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L172">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L197">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetSetter_" data-uid="Cesil.DefaultTypeDescriber.GetSetter*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetSetter_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetSetter(TypeInfo,PropertyInfo)">GetSetter(TypeInfo, PropertyInfo)</h4>
@@ -1717,7 +1737,7 @@ as the other GetParser(...) methods delegate to it.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetShouldSerialize_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetShouldSerialize(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L665">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L686">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetShouldSerialize_" data-uid="Cesil.DefaultTypeDescriber.GetShouldSerialize*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetShouldSerialize_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.GetShouldSerialize(TypeInfo,FieldInfo)">GetShouldSerialize(TypeInfo, FieldInfo)</h4>
@@ -1774,7 +1794,7 @@ the field.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_GetShouldSerialize_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.GetShouldSerialize(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L544">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L562">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_GetShouldSerialize_" data-uid="Cesil.DefaultTypeDescriber.GetShouldSerialize*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_GetShouldSerialize_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.GetShouldSerialize(TypeInfo,PropertyInfo)">GetShouldSerialize(TypeInfo, PropertyInfo)</h4>
@@ -1831,7 +1851,7 @@ the property.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_ShouldDeserialize_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.ShouldDeserialize(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L274">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L284">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_ShouldDeserialize_" data-uid="Cesil.DefaultTypeDescriber.ShouldDeserialize*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_ShouldDeserialize_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.ShouldDeserialize(TypeInfo,FieldInfo)">ShouldDeserialize(TypeInfo, FieldInfo)</h4>
@@ -1885,7 +1905,7 @@ the property.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_ShouldDeserialize_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.ShouldDeserialize(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L127">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L152">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_ShouldDeserialize_" data-uid="Cesil.DefaultTypeDescriber.ShouldDeserialize*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_ShouldDeserialize_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.ShouldDeserialize(TypeInfo,PropertyInfo)">ShouldDeserialize(TypeInfo, PropertyInfo)</h4>
@@ -1939,7 +1959,7 @@ the property.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_ShouldIncludeCell_System_String_Cesil_WriteContext__System_Object_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.ShouldIncludeCell(System.String%2CCesil.WriteContext%40%2CSystem.Object)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L950">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L1089">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_ShouldIncludeCell_" data-uid="Cesil.DefaultTypeDescriber.ShouldIncludeCell*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_ShouldIncludeCell_System_String_Cesil_WriteContext__System_Object_" data-uid="Cesil.DefaultTypeDescriber.ShouldIncludeCell(System.String,Cesil.WriteContext@,System.Object)">ShouldIncludeCell(String, WriteContext, Object)</h4>
@@ -1998,7 +2018,7 @@ the property.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_ShouldSerialize_TypeInfo_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.ShouldSerialize(TypeInfo%2CFieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L606">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L624">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_ShouldSerialize_" data-uid="Cesil.DefaultTypeDescriber.ShouldSerialize*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_ShouldSerialize_TypeInfo_FieldInfo_" data-uid="Cesil.DefaultTypeDescriber.ShouldSerialize(TypeInfo,FieldInfo)">ShouldSerialize(TypeInfo, FieldInfo)</h4>
@@ -2052,7 +2072,7 @@ the property.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_ShouldSerialize_TypeInfo_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.ShouldSerialize(TypeInfo%2CPropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L477">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L498">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_ShouldSerialize_" data-uid="Cesil.DefaultTypeDescriber.ShouldSerialize*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_ShouldSerialize_TypeInfo_PropertyInfo_" data-uid="Cesil.DefaultTypeDescriber.ShouldSerialize(TypeInfo,PropertyInfo)">ShouldSerialize(TypeInfo, PropertyInfo)</h4>
@@ -2106,7 +2126,7 @@ the property.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber_ToString.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber.ToString%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L1215">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L1354">View Source</a>
   </span>
   <a id="Cesil_DefaultTypeDescriber_ToString_" data-uid="Cesil.DefaultTypeDescriber.ToString*"></a>
   <h4 id="Cesil_DefaultTypeDescriber_ToString" data-uid="Cesil.DefaultTypeDescriber.ToString">ToString()</h4>
@@ -2150,7 +2170,7 @@ the property.</p>
                     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_DefaultTypeDescriber.md&amp;value=---%0Auid%3A%20Cesil.DefaultTypeDescriber%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
                   </li>
                   <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L33" class="contribution-link">View Source</a>
+                    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/DefaultTypeDescriber.cs/#L35" class="contribution-link">View Source</a>
                   </li>
                 </ul>
               </div>
