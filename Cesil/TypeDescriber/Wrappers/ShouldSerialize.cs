@@ -274,7 +274,7 @@ namespace Cesil
         /// <summary>
         /// Returns true if this object equals the given ShouldSerialize.
         /// </summary>
-        public bool Equals(ShouldSerialize shouldSerialize)
+        public bool Equals(ShouldSerialize? shouldSerialize)
         {
             if (ReferenceEquals(shouldSerialize, null)) return false;
 

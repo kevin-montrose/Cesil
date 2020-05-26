@@ -440,7 +440,7 @@ namespace Cesil
         /// <summary>
         /// Returns true if this object equals the given Setter.
         /// </summary>
-        public bool Equals(Setter setter)
+        public bool Equals(Setter? setter)
         {
             if (ReferenceEquals(setter, null)) return false;
 

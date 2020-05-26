@@ -399,7 +399,7 @@ namespace Cesil
         /// <summary>
         /// Returns true if this object equals the given InstanceProvider.
         /// </summary>
-        public bool Equals(InstanceProvider instanceProvider)
+        public bool Equals(InstanceProvider? instanceProvider)
         {
             if (ReferenceEquals(instanceProvider, null)) return false;
 

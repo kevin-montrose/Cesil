@@ -402,7 +402,7 @@ namespace Cesil
         /// <summary>
         /// Compares for equality to another Getter.
         /// </summary>
-        public bool Equals(Getter getter)
+        public bool Equals(Getter? getter)
         {
             if (ReferenceEquals(getter, null)) return false;
 

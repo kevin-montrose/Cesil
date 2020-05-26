@@ -278,7 +278,7 @@ namespace Cesil
         /// <summary>
         /// Returns true if this object equals the given Reset.
         /// </summary>
-        public bool Equals(Reset reset)
+        public bool Equals(Reset? reset)
         {
             if (ReferenceEquals(reset, null)) return false;
 

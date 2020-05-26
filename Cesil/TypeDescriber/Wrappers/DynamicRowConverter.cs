@@ -603,7 +603,7 @@ namespace Cesil
         /// <summary>
         /// Returns true if the given DynamicRowConverter is equivalent to this one
         /// </summary>
-        public bool Equals(DynamicRowConverter rowConverter)
+        public bool Equals(DynamicRowConverter? rowConverter)
         {
             if (ReferenceEquals(rowConverter, null)) return false;
 

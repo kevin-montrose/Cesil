@@ -219,7 +219,7 @@ namespace Cesil
         /// <summary>
         /// Returns true if this Options equals the given Options.
         /// </summary>
-        public bool Equals(Options options)
+        public bool Equals(Options? options)
         {
             if (ReferenceEquals(options, null)) return false;
 

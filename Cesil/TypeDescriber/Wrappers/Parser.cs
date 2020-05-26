@@ -380,7 +380,7 @@ namespace Cesil
         /// <summary>
         /// Returns true if the given Parser is equivalent to this one
         /// </summary>
-        public bool Equals(Parser parser)
+        public bool Equals(Parser? parser)
         {
             if (ReferenceEquals(parser, null)) return false;
 

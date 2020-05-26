@@ -206,7 +206,7 @@ namespace Cesil
         /// <summary>
         /// Returns true if this object equals the given DeserializableMember.
         /// </summary>
-        public bool Equals(DeserializableMember deserializableMember)
+        public bool Equals(DeserializableMember? deserializableMember)
         {
             if (ReferenceEquals(deserializableMember, null)) return false;
 

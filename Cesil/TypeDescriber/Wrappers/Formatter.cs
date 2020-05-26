@@ -267,7 +267,7 @@ namespace Cesil
         /// <summary>
         /// Compares for equality to another Formatter.
         /// </summary>
-        public bool Equals(Formatter formatter)
+        public bool Equals(Formatter? formatter)
         {
             if (ReferenceEquals(formatter, null)) return false;
 

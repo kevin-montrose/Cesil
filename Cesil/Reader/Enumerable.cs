@@ -68,7 +68,13 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
-            return Reader.TryRead(out _Current);
+            if(Reader.TryRead(out var c))
+            {
+                _Current = c;
+                return true;
+            }
+
+            return false;
         }
 
         void IEnumerator.Reset()
