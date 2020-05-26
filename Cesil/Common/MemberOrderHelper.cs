@@ -5,8 +5,6 @@ using System.Runtime.CompilerServices;
 
 namespace Cesil
 {
-    // todo: test
-
     // helper for getting a list to be in order while it's built up incrementally
     //   with the ordering rules for DefaultTypeDescribers.GetOrder method
     //

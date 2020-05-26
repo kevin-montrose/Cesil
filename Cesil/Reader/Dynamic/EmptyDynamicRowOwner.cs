@@ -1,4 +1,6 @@
-﻿namespace Cesil
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace Cesil
 {
     internal sealed class EmptyDynamicRowOwner : IDynamicRowOwner
     {
@@ -17,6 +19,15 @@
         => Throw.ImpossibleException<NameLookup>("Shouldn't be possible");
 
         public void ReleaseNameLookup()
+        => Throw.ImpossibleException<object>("Shouldn't be possible");
+
+        bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue:false)]out V del)
+        {
+            del = default;
+            return Throw.ImpossibleException<bool>("Shouldn't be possible");
+        }
+
+        void IDelegateCache.AddDelegate<T, V>(T key, V cached)
         => Throw.ImpossibleException<object>("Shouldn't be possible");
     }
 }

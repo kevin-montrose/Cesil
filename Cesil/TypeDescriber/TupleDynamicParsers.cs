@@ -69,7 +69,7 @@ namespace Cesil
 
                 var delProvider = (ICreatesCacheableDelegate<Parser.DynamicParserDelegate>)parser;
 
-                var del = delProvider.Guarantee(DefaultTypeDescriberCache.Instance);
+                var del = delProvider.Guarantee(row.Owner);
 
                 var data = cell.GetDataSpan();
                 if (!del(data, ctx, out var res))

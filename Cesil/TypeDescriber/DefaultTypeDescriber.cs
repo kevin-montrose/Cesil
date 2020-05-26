@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
@@ -32,7 +33,7 @@ namespace Cesil
     /// This type is unsealed to allow for easy extension of it's behavior.
     /// </summary>
     [IntentionallyExtensible("Does 'what is expected' so minor tweaks can be handled with inheritance.")]
-    public class DefaultTypeDescriber : ITypeDescriber
+    public partial class DefaultTypeDescriber : ITypeDescriber
     {
         private static readonly DynamicRowConverter PassthroughEnumerable = DynamicRowConverter.ForConstructorTakingDynamic(Constructors.PassthroughRowEnumerable);
         private static readonly DynamicRowConverter Identity =
@@ -49,7 +50,17 @@ namespace Cesil
         /// 
         /// A pre-allocated instance is available on TypeDescribers.Default.
         /// </summary>
-        public DefaultTypeDescriber() { }
+        public DefaultTypeDescriber()
+        {
+            // only use the caches if we're not in a subclass
+            CanCache = GetType() == typeof(DefaultTypeDescriber);
+
+            // todo: it'd be nice to avoid these allocations if CanCache == false
+            DelegateCache = new ConcurrentDictionary<object, Delegate>();
+            DeserializableMembers = new ConcurrentDictionary<TypeInfo, IEnumerable<DeserializableMember>>();
+            SerializableMembers = new ConcurrentDictionary<TypeInfo, IEnumerable<SerializableMember>>();
+            Formatters = new ConcurrentDictionary<TypeInfo, Formatter>();
+        }
 
         /// <summary>
         /// Gets an InstanceProvider that wraps the parameterless constructor
@@ -68,11 +79,9 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(forType, nameof(forType));
 
-            var canUseMemberCache = ReferenceEquals(this, TypeDescribers.Default);
-
-            if (canUseMemberCache)
+            if (CanCache)
             {
-                if (DefaultTypeDescriberCache.Instance.TryGetDeserializableMembers(forType, out var earlyRet))
+                if (TryGetDeserializableMembers(forType, out var earlyRet))
                 {
                     return earlyRet;
                 }
@@ -125,9 +134,9 @@ namespace Cesil
                 ret = buffer;
             }
 
-            if (canUseMemberCache)
+            if (CanCache)
             {
-                DefaultTypeDescriberCache.Instance.AddDeserializableMembers(forType, ret);
+                AddDeserializableMembers(forType, ret);
             }
 
             return ret;
@@ -418,13 +427,11 @@ namespace Cesil
                 return Throw.InvalidOperationException<IEnumerable<SerializableMember>>($"{forType.Name} is a tuple with a Rest property, the {nameof(DefaultTypeDescriber)} cannot serialize this unambiguously.");
             }
 
-            var canUseMemberCache = ReferenceEquals(this, TypeDescribers.Default);
-
-            if (canUseMemberCache)
+            if (CanCache)
             {
                 // we _know_ this isn't a subclass, so we know what our behavior will be
                 //    and therefore we can optimize this to avoid pointless repeated lookups
-                if (DefaultTypeDescriberCache.Instance.TryGetSerializableMembers(forType, out var earlyRet))
+                if (TryGetSerializableMembers(forType, out var earlyRet))
                 {
                     return earlyRet;
                 }
@@ -472,9 +479,9 @@ namespace Cesil
                 ret = buffer;
             }
 
-            if (canUseMemberCache)
+            if (CanCache)
             {
-                DefaultTypeDescriberCache.Instance.AddSerializableMembers(forType, ret);
+                AddSerializableMembers(forType, ret);
             }
 
             return ret;
@@ -792,8 +799,6 @@ namespace Cesil
 
             var rowObj = row as object;
 
-            var canUseCache = ReferenceEquals(this, TypeDescribers.Default);
-
             // handle serializing our own dynamic types
             if (row is DynamicRow asOwnRow)
             {
@@ -806,7 +811,7 @@ namespace Cesil
                 foreach (var col in cols)
                 {
                     var name = col.Name;
-                    if (!canUseCache && !ShouldIncludeCell(name, in context, rowObj))
+                    if (!CanCache && !ShouldIncludeCell(name, in context, rowObj))
                     {
                         goto endLoop;
                     }
@@ -822,9 +827,9 @@ namespace Cesil
                     }
 
                     Formatter? formatter;
-                    if (canUseCache)
+                    if (CanCache)
                     {
-                        var cache = DefaultTypeDescriberCache.Instance;
+                        var cache = this;
 
                         if (!cache.TryGetFormatter(Types.String, out formatter))
                         {
@@ -872,7 +877,7 @@ endLoop:
                     var value = kv.Value;
                     Formatter? formatter;
 
-                    if (!canUseCache && !ShouldIncludeCell(name, in context, rowObj)) continue;
+                    if (!CanCache && !ShouldIncludeCell(name, in context, rowObj)) continue;
 
                     if (value == null)
                     {
@@ -882,16 +887,14 @@ endLoop:
                     {
                         var valueType = value.GetType().GetTypeInfo();
 
-                        if (canUseCache)
+                        if (CanCache)
                         {
-                            var cache = DefaultTypeDescriberCache.Instance;
-
-                            if (!cache.TryGetFormatter(valueType, out formatter))
+                            if (!TryGetFormatter(valueType, out formatter))
                             {
                                 formatter = GetFormatter(valueType, name, in context, rowObj);
                                 if (formatter != null)
                                 {
-                                    cache.AddFormatter(valueType, formatter);
+                                    AddFormatter(valueType, formatter);
                                 }
                             }
                         }
@@ -967,7 +970,7 @@ endLoop:
                     // skip it, access failed
                     if (skip) continue;
 
-                    if (!canUseCache && !ShouldIncludeCell(name, in context, rowObj)) continue;
+                    if (!CanCache && !ShouldIncludeCell(name, in context, rowObj)) continue;
 
                     if (value == null)
                     {
@@ -977,16 +980,14 @@ endLoop:
                     {
                         var valueType = value.GetType().GetTypeInfo();
 
-                        if (canUseCache)
+                        if (CanCache)
                         {
-                            var cache = DefaultTypeDescriberCache.Instance;
-
-                            if (!cache.TryGetFormatter(valueType, out formatter))
+                            if (!TryGetFormatter(valueType, out formatter))
                             {
                                 formatter = GetFormatter(valueType, name, in context, rowObj);
                                 if (formatter != null)
                                 {
-                                    cache.AddFormatter(valueType, formatter);
+                                    AddFormatter(valueType, formatter);
                                 }
                             }
                         }
@@ -1037,21 +1038,19 @@ endLoop:
                 foreach (var mem in toSerialize)
                 {
                     var name = mem.Name;
-                    if (!canUseCache && !ShouldIncludeCell(name, in context, rowObj)) continue;
+                    if (!CanCache && !ShouldIncludeCell(name, in context, rowObj)) continue;
 
                     var getter = mem.Getter;
 
                     Formatter? formatter;
-                    if (canUseCache)
+                    if (CanCache)
                     {
-                        var cache = DefaultTypeDescriberCache.Instance;
-
-                        if (!cache.TryGetFormatter(getter.Returns, out formatter))
+                        if (!TryGetFormatter(getter.Returns, out formatter))
                         {
                             formatter = GetFormatter(getter.Returns, name, in context, rowObj);
                             if (formatter != null)
                             {
-                                cache.AddFormatter(getter.Returns, formatter);
+                                AddFormatter(getter.Returns, formatter);
                             }
                         }
                     }
@@ -1066,7 +1065,7 @@ endLoop:
                     }
 
                     var delProvider = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)getter);
-                    var del = delProvider.Guarantee(DefaultTypeDescriberCache.Instance);
+                    var del = delProvider.Guarantee(this);
                     var value = del(rowObj, in context);
 
                     ret[nextRetIx] = DynamicCellValue.Create(name, value, formatter);

@@ -1906,6 +1906,17 @@
             This type is unsealed to allow for easy extension of it's behavior.
             </summary>
         </member>
+        <member name="M:Cesil.DefaultTypeDescriber.ClearCache">
+            <summary>
+            Clears any internal caches this instance has created.
+            
+            Caches may be used to accelerate member lookup or dynamic
+              operations.
+              
+            Clearing caches is not necessary for correct functioning, 
+              but may be useful to manage memory use.
+            </summary>
+        </member>
         <member name="M:Cesil.DefaultTypeDescriber.#ctor">
             <summary>
             Construct a new DefaultTypeDesciber.

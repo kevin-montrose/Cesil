@@ -5,22 +5,36 @@ namespace Cesil.Tests
 {
     public class PoisonableTests
     {
-        private sealed class SimplePoisonable : PoisonableBase
+        private sealed class _Asserts : PoisonableBase
         {
-            public void InvokeAssert()
-            {
-                var config = Configuration.For<SimplePoisonable>();
-
-                AssertNotPoisoned(config);
-            }
+            public string Foo { get; set; }
         }
 
         [Fact]
-        public void WeirdAggregate()
+        public void Asserts()
         {
-            var a = new SimplePoisonable();
-            a.SetPoison(new AggregateException("Foo"));
-            Assert.Throws<InvalidOperationException>(() => a.InvokeAssert());
+            var config = Configuration.For<_Asserts>();
+
+            // weird aggregate
+            {
+                var a = new _Asserts();
+                a.SetPoison(new AggregateException("Foo"));
+                Assert.Throws<InvalidOperationException>(() => a.AssertNotPoisoned(config));
+            }
+
+            // cancellation
+            {
+                var a = new _Asserts();
+                a.SetPoison(new OperationCanceledException("Foo"));
+                Assert.Throws<InvalidOperationException>(() => a.AssertNotPoisoned(config));
+            }
+
+            // normal aggregate
+            {
+                var a = new _Asserts();
+                a.SetPoison(new AggregateException("Foo", new InvalidOperationException()));
+                Assert.Throws<InvalidOperationException>(() => a.AssertNotPoisoned(config));
+            }
         }
     }
 }

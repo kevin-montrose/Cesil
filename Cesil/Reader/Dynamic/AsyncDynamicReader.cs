@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -37,11 +39,29 @@ namespace Cesil
             }
         }
 
+        private ConcurrentDictionary<object, Delegate> DelegateCache;
+
+        bool IDelegateCache.TryGetDelegate<TKey, TDelegate>(TKey key, [MaybeNullWhen(returnValue: false)]out TDelegate del)
+        {
+            if(!DelegateCache.TryGetValue(key, out var untyped))
+            {
+                del = default;
+                return false;
+            }
+
+            del = (TDelegate)untyped;
+            return true;
+        }
+
+        void IDelegateCache.AddDelegate<TKey, TDelegate>(TKey key, TDelegate cached)
+        => DelegateCache.TryAdd(key, cached);
+
         internal AsyncDynamicReader(IAsyncReaderAdapter reader, DynamicBoundConfiguration config, object? context)
             : base(reader, config, context, new DynamicRowConstructor(), config.Options.ExtraColumnTreatment)
         {
             NameLookupReferenceCount = 0;
             NameLookup = NameLookup.Empty;
+            DelegateCache = new ConcurrentDictionary<object, Delegate>();
         }
 
         internal override ValueTask HandleRowEndingsAndHeadersAsync(CancellationToken cancel)

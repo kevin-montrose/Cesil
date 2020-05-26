@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
@@ -126,6 +127,14 @@ namespace Cesil.Tests
             public void ReleaseNameLookup() { }
 
             public void Remove(DynamicRow row) { }
+
+            void IDelegateCache.AddDelegate<T, V>(T key, V cached) { }
+
+            bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue:false)]out V del)
+            {
+                del = default;
+                return false;
+            }
         }
 
         private class _IDisposable

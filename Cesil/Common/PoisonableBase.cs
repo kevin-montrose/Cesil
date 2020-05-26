@@ -33,7 +33,7 @@ namespace Cesil
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void AssertNotPoisoned<T>(IBoundConfiguration<T> self)
+        internal void AssertNotPoisoned<T>(IBoundConfiguration<T> self)
         {
             if (Poison != null)
             {

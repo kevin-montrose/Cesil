@@ -22,7 +22,7 @@ namespace Cesil
         }
 
         public ValueTask<TCollection> ReadAllAsync<TCollection>(TCollection into, CancellationToken cancel = default)
-        where TCollection : class, ICollection<T>
+            where TCollection : class, ICollection<T>
         {
             AssertNotDisposed(this);
             AssertNotPoisoned(Configuration);
