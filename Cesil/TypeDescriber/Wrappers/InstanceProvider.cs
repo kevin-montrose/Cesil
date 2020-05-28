@@ -236,21 +236,10 @@ namespace Cesil
             }
 
             var t = constructor.DeclaringTypeNonNull();
-            if (t.IsInterface)
-            {
-                // todo: is this possible?  if so, can we test it?
-                return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found an interface", nameof(constructor));
-            }
-
+           
             if (t.IsAbstract)
             {
                 return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found an abstract class", nameof(constructor));
-            }
-
-            if (t.IsGenericTypeParameter)
-            {
-                // todo: is this possible?  if so, can we test it?
-                return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found a generic parameter", nameof(constructor));
             }
 
             if (t.IsGenericTypeDefinition)
@@ -284,21 +273,9 @@ namespace Cesil
             }
 
             var t = constructor.DeclaringTypeNonNull();
-            if (t.IsInterface)
-            {
-                // todo: is this possible?  if so, can we test it?
-                return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found an interface", nameof(constructor));
-            }
-
             if (t.IsAbstract)
             {
                 return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found an abstract class", nameof(constructor));
-            }
-
-            if (t.IsGenericTypeParameter)
-            {
-                // todo: is this possible?  if so, can we test it?
-                return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found a generic parameter", nameof(constructor));
             }
 
             if (t.IsGenericTypeDefinition)

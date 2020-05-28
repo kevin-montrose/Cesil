@@ -89,7 +89,6 @@ namespace Cesil
                 return true;
             }
 
-            // todo: is there a way to test that this won't read out of bounds?
             fixed (char* requiredCharPtrConst = Required.Span)
             fixed (char* setCharPtrConst = Set.Span)
             {

@@ -119,6 +119,8 @@ namespace Cesil
 
             private static bool TryFormatFlagsEnum(T e, in WriteContext _, IBufferWriter<char> writer)
             {
+                // todo: remove allocations in this code (tracking issue: https://github.com/kevin-montrose/Cesil/issues/8)
+
                 // this will allocate, but we don't really have a choice?
                 var valStr = e.ToString();
 

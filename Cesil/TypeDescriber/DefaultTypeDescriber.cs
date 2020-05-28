@@ -55,7 +55,6 @@ namespace Cesil
             // only use the caches if we're not in a subclass
             CanCache = GetType() == typeof(DefaultTypeDescriber);
 
-            // todo: it'd be nice to avoid these allocations if CanCache == false
             DelegateCache = new ConcurrentDictionary<object, Delegate>();
             DeserializableMembers = new ConcurrentDictionary<TypeInfo, IEnumerable<DeserializableMember>>();
             SerializableMembers = new ConcurrentDictionary<TypeInfo, IEnumerable<SerializableMember>>();

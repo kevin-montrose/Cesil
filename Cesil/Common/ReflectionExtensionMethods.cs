@@ -131,7 +131,7 @@ namespace Cesil
             var declNull = cons.DeclaringType;
 
             // technically possible, but fantastically hard to do in C#
-            // todo: find a way to test this?
+            // todo: find a way to test this? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/3)
             if (declNull == null)
             {
                 return Throw.InvalidOperationException<TypeInfo>($"Could not find declaring type for {cons}");
@@ -145,7 +145,7 @@ namespace Cesil
             var declNull = mtd.DeclaringType;
 
             // technically possible, but fantastically hard to do in C#
-            // todo: find a way to test this?
+            // todo: find a way to test this? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/3)
             if (declNull == null)
             {
                 return Throw.InvalidOperationException<TypeInfo>($"Could not find declaring type for {mtd}");
@@ -159,7 +159,7 @@ namespace Cesil
             var declNull = field.DeclaringType;
 
             // technically possible, but fantastically hard to do in C#
-            // todo: find a way to test this?
+            // todo: find a way to test this? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/3)
             if (declNull == null)
             {
                 return Throw.InvalidOperationException<TypeInfo>($"Could not find declaring type for {field}");
@@ -243,7 +243,7 @@ namespace Cesil
             var type = builder.CreateTypeInfo();
 
             // is this ever really possible?
-            // todo: find a way to test
+            // todo: find a way to test (tracking issue: https://github.com/kevin-montrose/Cesil/issues/3)
             if (type == null)
             {
                 return Throw.InvalidOperationException<TypeInfo>($"Created type was null");

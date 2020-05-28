@@ -50,7 +50,7 @@ namespace Cesil
         [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         DynamicRowConverter? GetDynamicRowConverter(in ReadContext context, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType);
 
-        // todo: IEnumerable on GetCellsForDynamicRows is... less than ideal?
+        // todo: IEnumerable on GetCellsForDynamicRows is... less than ideal? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/6)
         //       an allocation per row is crummy, even if you're already in
         //       dynamic land
 

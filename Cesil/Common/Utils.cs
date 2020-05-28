@@ -457,7 +457,7 @@ tryAgain:
                         }
                         else
                         {
-                            // todo: figure out how to test this, and implement?
+                            // todo: figure out how to test this, and implement? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/2)
                             throw new NotImplementedException();
                         }
                     }
@@ -499,7 +499,7 @@ tryAgain:
                         }
                         else
                         {
-                            // todo: figure out how to test this, and implement?
+                            // todo: figure out how to test this, and implement? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/2)
                             throw new NotImplementedException();
                         }
                     }

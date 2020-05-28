@@ -76,7 +76,7 @@ namespace Cesil
                 // The state machine will skip leading values outside of values, so we only need to do any trimming IN the values
                 //
                 // Technically we could probably have the state machine skip leading inside too...
-                // todo: do that ^^^
+                // todo: do that ^^^ (tracking issue: https://github.com/kevin-montrose/Cesil/issues/5)
                 var needsLeadingTrim = WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimLeadingInValues);
                 if (needsLeadingTrim)
                 {

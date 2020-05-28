@@ -434,7 +434,7 @@ processPrefixGroup:
 
         internal static NameLookup Create(IEnumerable<string> names, MemoryPool<char> memoryPool)
         {
-            // todo: can we do this in a less allocate-y way?
+            // todo: can we do this in a less allocate-y way? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/4)
             // sort 'em, so we can more easily find common prefixes
             var inOrder = names.Select((n, ix) => (Name: n, Index: ix)).OrderBy(t => t.Name, StringComparer.Ordinal);
 
@@ -454,7 +454,7 @@ processPrefixGroup:
         // internal for testing purposes
         internal static bool TryCreateBinarySearch(IOrderedEnumerable<(string Name, int Index)> inOrder, MemoryPool<char> memoryPool, out IMemoryOwner<char> memOwner, out ReadOnlyMemory<char> mem)
         {
-            // todo: don't love allocating here?
+            // todo: don't love allocating here? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/4)
             var sortedNames = new List<ReadOnlyMemory<char>>();
             var sortedNamesValues = new List<int>();
 
@@ -522,7 +522,7 @@ processPrefixGroup:
 
         internal static bool TryCreateAdaptiveRadixTrie(IOrderedEnumerable<(string Name, int Index)> inOrder, MemoryPool<char> memoryPool, out IMemoryOwner<char> memOwner, out ReadOnlyMemory<char> mem)
         {
-            // todo: don't love allocating here?
+            // todo: don't love allocating here? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/4)
             var sortedNames = new List<ReadOnlyMemory<char>>();
             var sortedNamesValues = new List<ushort>();
 

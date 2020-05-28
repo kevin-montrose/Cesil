@@ -2362,6 +2362,8 @@ namespace Cesil.Tests
         private delegate bool _InstanceProvidersBadArgs1(in WriteContext ctx, out _InstanceBuilders val);
         private delegate bool _InstanceProvidersBadArgs2(in ReadContext ctx, _InstanceBuilders val);
 
+        private class _InstanceProviders_GenericCons<T> where T : new() { }
+
         [Fact]
         public void InstanceProviders()
         {

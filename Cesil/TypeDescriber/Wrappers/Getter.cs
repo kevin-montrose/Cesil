@@ -141,8 +141,6 @@ namespace Cesil
 
         internal Expression MakeExpression(ParameterExpression rowVar, ParameterExpression ctxVar)
         {
-            // todo: there's no particular reason this couldn't be chain-able?
-
             Expression selfExp;
 
             switch (Mode)

@@ -106,6 +106,9 @@ namespace Cesil
 
             private static bool TryParseEnum(ReadOnlySpan<char> span, in ReadContext _, out T val)
             {
+                // todo: use a better method when one is available (tracking issue: https://github.com/kevin-montrose/Cesil/issues/7)
+                //       maybe after https://github.com/dotnet/corefx/issues/15453 lands?
+
                 // doing this instead of a .TryParse because we don't want to accept ints
                 for (var i = 0; i < Names.Length; i++)
                 {
@@ -143,7 +146,7 @@ namespace Cesil
             private static bool TryParseFlagsEnum(ReadOnlySpan<char> data, in ReadContext _, out T val)
             {
                 // no real choice but to make a copy
-                // todo: get rid of this allocation once https://github.com/dotnet/corefx/issues/15453
+                // todo: get rid of this allocation once https://github.com/dotnet/corefx/issues/15453 (tracking issue: https://github.com/kevin-montrose/Cesil/issues/7)
                 //       is fixed, introducing a ReadOnlySpan<char> taking TryParse
                 var str = new string(data);
 

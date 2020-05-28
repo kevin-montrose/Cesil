@@ -524,7 +524,7 @@ checkSize:
 
             newRow.Init(Owner, RowNumber, Context, Converter, HasNames, names, NamesIndexOffset - rawStart, MemoryPool);
 
-            // todo: it would be _nice_ to avoid a copy here
+            // todo: it would be _nice_ to avoid a copy here (tracking issue: https://github.com/kevin-montrose/Cesil/issues/9)
             //   we might be able to, if we are informed when THIS
             //   row is being disposed
             //
