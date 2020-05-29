@@ -217,7 +217,7 @@ namespace Cesil.Benchmark
         [Benchmark]
         public void Cesil()
         {
-            DoCsvHelper(TextWriter.Null);
+            DoCesil(TextWriter.Null);
         }
     }
 }
