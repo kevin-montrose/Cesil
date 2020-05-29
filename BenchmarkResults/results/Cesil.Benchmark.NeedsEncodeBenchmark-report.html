@@ -2,7 +2,7 @@
 <html lang='en'>
 <head>
 <meta charset='utf-8' />
-<title>Cesil.Benchmark.NeedsEncodeBenchmark-20200524-121047</title>
+<title>Cesil.Benchmark.NeedsEncodeBenchmark-20200528-235130</title>
 
 <style type="text/css">
 	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
@@ -16,7 +16,7 @@
 BenchmarkDotNet=v0.12.1, OS=Windows 8.1 (6.3.9600.0)
 Intel Core i7-4960HQ CPU 2.60GHz (Haswell), 1 CPU, 8 logical and 4 physical cores
 Frequency=2533200 Hz, Resolution=394.7576 ns, Timer=TSC
-.NET Core SDK=3.1.201
+.NET Core SDK=3.1.300
   [Host]     : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
   DefaultJob : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
 </code></pre>
@@ -25,134 +25,134 @@ Frequency=2533200 Hz, Resolution=394.7576 ns, Timer=TSC
 <table>
 <thead><tr><th> Method</th><th>StringLength</th><th>PercentNeedEncoding</th><th>    Mean</th><th> Error</th><th>StdDev</th><th>  Median</th><th>Ratio</th><th>RatioSD</th><th>Gen 0</th><th>Gen 1</th><th>Gen 2</th><th>Allocated</th>
 </tr>
-</thead><tbody><tr><td>BasicContains</td><td>1</td><td>0</td><td>2,016.7 ns</td><td>14.85 ns</td><td>13.89 ns</td><td>2,018.5 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>1</td><td>0</td><td>845.4 ns</td><td>17.95 ns</td><td>16.79 ns</td><td>852.0 ns</td><td>0.42</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>1</td><td>0</td><td>1,377.7 ns</td><td>7.69 ns</td><td>6.42 ns</td><td>1,379.3 ns</td><td>0.68</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>1</td><td>0</td><td>896.7 ns</td><td>17.75 ns</td><td>18.22 ns</td><td>905.2 ns</td><td>0.44</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>1</td><td>10</td><td>2,093.9 ns</td><td>3.61 ns</td><td>3.01 ns</td><td>2,095.1 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>1</td><td>10</td><td>878.9 ns</td><td>6.13 ns</td><td>5.12 ns</td><td>881.3 ns</td><td>0.42</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>1</td><td>10</td><td>1,482.8 ns</td><td>4.16 ns</td><td>3.89 ns</td><td>1,482.9 ns</td><td>0.71</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>1</td><td>10</td><td>975.2 ns</td><td>19.48 ns</td><td>27.94 ns</td><td>966.5 ns</td><td>0.46</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>1</td><td>50</td><td>2,039.1 ns</td><td>35.20 ns</td><td>32.93 ns</td><td>2,037.6 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>1</td><td>50</td><td>911.6 ns</td><td>14.45 ns</td><td>13.52 ns</td><td>914.5 ns</td><td>0.45</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>1</td><td>50</td><td>1,394.3 ns</td><td>27.76 ns</td><td>28.51 ns</td><td>1,379.2 ns</td><td>0.69</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>1</td><td>50</td><td>979.1 ns</td><td>19.54 ns</td><td>20.90 ns</td><td>981.2 ns</td><td>0.48</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>1</td><td>100</td><td>1,622.2 ns</td><td>15.01 ns</td><td>12.54 ns</td><td>1,624.1 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>1</td><td>100</td><td>1,271.4 ns</td><td>19.06 ns</td><td>16.89 ns</td><td>1,270.1 ns</td><td>0.78</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>1</td><td>100</td><td>1,597.2 ns</td><td>27.15 ns</td><td>22.67 ns</td><td>1,605.2 ns</td><td>0.98</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>1</td><td>100</td><td>998.6 ns</td><td>10.12 ns</td><td>8.45 ns</td><td>1,000.8 ns</td><td>0.62</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>10</td><td>0</td><td>3,541.5 ns</td><td>58.45 ns</td><td>54.67 ns</td><td>3,572.3 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>10</td><td>0</td><td>2,244.0 ns</td><td>31.60 ns</td><td>29.56 ns</td><td>2,239.3 ns</td><td>0.63</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>10</td><td>0</td><td>1,950.2 ns</td><td>38.89 ns</td><td>58.21 ns</td><td>1,983.0 ns</td><td>0.55</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>10</td><td>0</td><td>2,247.4 ns</td><td>7.79 ns</td><td>6.51 ns</td><td>2,248.4 ns</td><td>0.64</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>10</td><td>10</td><td>3,463.7 ns</td><td>49.23 ns</td><td>46.05 ns</td><td>3,463.7 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>10</td><td>10</td><td>2,275.4 ns</td><td>6.27 ns</td><td>5.55 ns</td><td>2,275.2 ns</td><td>0.66</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>10</td><td>10</td><td>2,076.5 ns</td><td>14.20 ns</td><td>12.58 ns</td><td>2,079.8 ns</td><td>0.60</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>10</td><td>10</td><td>2,259.3 ns</td><td>37.10 ns</td><td>32.89 ns</td><td>2,258.6 ns</td><td>0.65</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>10</td><td>50</td><td>3,259.7 ns</td><td>47.73 ns</td><td>42.31 ns</td><td>3,283.8 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>10</td><td>50</td><td>2,069.6 ns</td><td>20.58 ns</td><td>19.25 ns</td><td>2,068.9 ns</td><td>0.63</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>10</td><td>50</td><td>2,279.7 ns</td><td>43.48 ns</td><td>44.65 ns</td><td>2,269.9 ns</td><td>0.70</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>10</td><td>50</td><td>2,138.3 ns</td><td>9.07 ns</td><td>8.48 ns</td><td>2,137.0 ns</td><td>0.66</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>10</td><td>100</td><td>2,114.6 ns</td><td>40.76 ns</td><td>53.00 ns</td><td>2,103.5 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>10</td><td>100</td><td>1,587.3 ns</td><td>20.40 ns</td><td>15.93 ns</td><td>1,593.2 ns</td><td>0.75</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>10</td><td>100</td><td>1,764.9 ns</td><td>7.90 ns</td><td>6.60 ns</td><td>1,764.6 ns</td><td>0.83</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>10</td><td>100</td><td>1,570.1 ns</td><td>16.74 ns</td><td>13.98 ns</td><td>1,570.6 ns</td><td>0.74</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>16</td><td>0</td><td>4,446.6 ns</td><td>72.92 ns</td><td>68.21 ns</td><td>4,460.0 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>16</td><td>0</td><td>3,092.9 ns</td><td>16.80 ns</td><td>13.11 ns</td><td>3,095.4 ns</td><td>0.70</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>16</td><td>0</td><td>1,409.2 ns</td><td>26.68 ns</td><td>28.55 ns</td><td>1,398.8 ns</td><td>0.32</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>16</td><td>0</td><td>1,491.7 ns</td><td>9.99 ns</td><td>8.86 ns</td><td>1,493.6 ns</td><td>0.34</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>16</td><td>10</td><td>4,345.8 ns</td><td>11.48 ns</td><td>9.59 ns</td><td>4,350.3 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>16</td><td>10</td><td>3,036.1 ns</td><td>19.09 ns</td><td>16.93 ns</td><td>3,031.6 ns</td><td>0.70</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>16</td><td>10</td><td>1,523.3 ns</td><td>3.77 ns</td><td>3.15 ns</td><td>1,523.4 ns</td><td>0.35</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>16</td><td>10</td><td>1,579.3 ns</td><td>3.10 ns</td><td>2.90 ns</td><td>1,578.7 ns</td><td>0.36</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>16</td><td>50</td><td>3,887.6 ns</td><td>52.77 ns</td><td>49.36 ns</td><td>3,870.5 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>16</td><td>50</td><td>2,799.5 ns</td><td>28.88 ns</td><td>24.12 ns</td><td>2,805.2 ns</td><td>0.72</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>16</td><td>50</td><td>1,596.5 ns</td><td>31.64 ns</td><td>41.14 ns</td><td>1,577.2 ns</td><td>0.41</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>16</td><td>50</td><td>1,622.5 ns</td><td>7.79 ns</td><td>6.50 ns</td><td>1,623.2 ns</td><td>0.42</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>16</td><td>100</td><td>2,754.0 ns</td><td>52.05 ns</td><td>55.69 ns</td><td>2,783.0 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>16</td><td>100</td><td>1,977.4 ns</td><td>13.47 ns</td><td>11.94 ns</td><td>1,977.3 ns</td><td>0.72</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>16</td><td>100</td><td>1,461.9 ns</td><td>28.99 ns</td><td>53.74 ns</td><td>1,469.7 ns</td><td>0.53</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>16</td><td>100</td><td>1,431.7 ns</td><td>16.86 ns</td><td>14.08 ns</td><td>1,428.2 ns</td><td>0.52</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>100</td><td>0</td><td>6,115.0 ns</td><td>117.59 ns</td><td>120.76 ns</td><td>6,136.2 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>100</td><td>0</td><td>15,495.4 ns</td><td>44.65 ns</td><td>41.77 ns</td><td>15,498.6 ns</td><td>2.53</td><td>0.06</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>100</td><td>0</td><td>3,051.9 ns</td><td>58.99 ns</td><td>90.08 ns</td><td>3,097.3 ns</td><td>0.50</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>100</td><td>0</td><td>2,904.1 ns</td><td>9.20 ns</td><td>8.15 ns</td><td>2,903.4 ns</td><td>0.47</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>100</td><td>10</td><td>5,421.7 ns</td><td>64.99 ns</td><td>57.61 ns</td><td>5,417.2 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>100</td><td>10</td><td>14,850.9 ns</td><td>32.37 ns</td><td>28.69 ns</td><td>14,853.7 ns</td><td>2.74</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>100</td><td>10</td><td>2,884.7 ns</td><td>8.26 ns</td><td>6.45 ns</td><td>2,884.9 ns</td><td>0.53</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>100</td><td>10</td><td>3,038.5 ns</td><td>60.36 ns</td><td>84.61 ns</td><td>3,055.5 ns</td><td>0.57</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>100</td><td>50</td><td>4,592.4 ns</td><td>19.78 ns</td><td>17.53 ns</td><td>4,588.3 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>100</td><td>50</td><td>13,061.8 ns</td><td>148.25 ns</td><td>138.67 ns</td><td>13,039.6 ns</td><td>2.85</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>100</td><td>50</td><td>2,527.1 ns</td><td>46.58 ns</td><td>43.57 ns</td><td>2,499.0 ns</td><td>0.55</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>100</td><td>50</td><td>2,673.4 ns</td><td>49.01 ns</td><td>45.84 ns</td><td>2,693.3 ns</td><td>0.58</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>100</td><td>100</td><td>3,541.9 ns</td><td>19.96 ns</td><td>18.67 ns</td><td>3,544.8 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>100</td><td>100</td><td>9,336.4 ns</td><td>53.51 ns</td><td>47.44 ns</td><td>9,344.0 ns</td><td>2.63</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>100</td><td>100</td><td>1,904.9 ns</td><td>24.04 ns</td><td>20.08 ns</td><td>1,897.0 ns</td><td>0.54</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>100</td><td>100</td><td>2,071.0 ns</td><td>29.56 ns</td><td>27.65 ns</td><td>2,078.7 ns</td><td>0.58</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>112</td><td>0</td><td>5,972.7 ns</td><td>41.48 ns</td><td>38.80 ns</td><td>5,979.3 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>112</td><td>0</td><td>17,204.9 ns</td><td>162.56 ns</td><td>144.11 ns</td><td>17,245.7 ns</td><td>2.88</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>112</td><td>0</td><td>2,503.4 ns</td><td>31.63 ns</td><td>29.59 ns</td><td>2,510.1 ns</td><td>0.42</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>112</td><td>0</td><td>2,492.3 ns</td><td>49.01 ns</td><td>54.47 ns</td><td>2,477.7 ns</td><td>0.42</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>112</td><td>10</td><td>5,655.1 ns</td><td>41.16 ns</td><td>34.37 ns</td><td>5,646.3 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>112</td><td>10</td><td>16,263.2 ns</td><td>315.73 ns</td><td>410.54 ns</td><td>16,243.3 ns</td><td>2.85</td><td>0.07</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>112</td><td>10</td><td>2,523.4 ns</td><td>50.05 ns</td><td>71.78 ns</td><td>2,499.6 ns</td><td>0.44</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>112</td><td>10</td><td>2,500.4 ns</td><td>48.79 ns</td><td>69.97 ns</td><td>2,461.1 ns</td><td>0.44</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>112</td><td>50</td><td>5,099.7 ns</td><td>65.69 ns</td><td>61.45 ns</td><td>5,100.1 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>112</td><td>50</td><td>14,320.7 ns</td><td>271.34 ns</td><td>290.33 ns</td><td>14,247.3 ns</td><td>2.81</td><td>0.06</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>112</td><td>50</td><td>2,368.4 ns</td><td>15.38 ns</td><td>13.64 ns</td><td>2,365.2 ns</td><td>0.46</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>112</td><td>50</td><td>2,524.6 ns</td><td>47.36 ns</td><td>73.73 ns</td><td>2,540.9 ns</td><td>0.49</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>112</td><td>100</td><td>3,867.2 ns</td><td>76.93 ns</td><td>138.72 ns</td><td>3,934.2 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>112</td><td>100</td><td>10,733.1 ns</td><td>212.65 ns</td><td>253.14 ns</td><td>10,764.7 ns</td><td>2.77</td><td>0.12</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>112</td><td>100</td><td>2,173.4 ns</td><td>42.90 ns</td><td>68.05 ns</td><td>2,169.2 ns</td><td>0.56</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>112</td><td>100</td><td>2,010.5 ns</td><td>39.34 ns</td><td>40.40 ns</td><td>2,003.2 ns</td><td>0.52</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>1000</td><td>0</td><td>22,326.5 ns</td><td>443.81 ns</td><td>936.15 ns</td><td>22,577.3 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>1000</td><td>0</td><td>145,252.2 ns</td><td>2,277.59 ns</td><td>2,437.00 ns</td><td>144,769.6 ns</td><td>6.52</td><td>0.33</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>1000</td><td>0</td><td>14,960.5 ns</td><td>293.60 ns</td><td>586.35 ns</td><td>15,004.8 ns</td><td>0.67</td><td>0.04</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>1000</td><td>0</td><td>13,956.8 ns</td><td>131.45 ns</td><td>109.76 ns</td><td>13,945.0 ns</td><td>0.62</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>1000</td><td>10</td><td>21,403.7 ns</td><td>418.64 ns</td><td>639.31 ns</td><td>21,629.7 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>1000</td><td>10</td><td>138,844.6 ns</td><td>1,953.14 ns</td><td>1,826.97 ns</td><td>139,498.4 ns</td><td>6.53</td><td>0.21</td><td>-</td><td>-</td><td>-</td><td>4 B</td>
-</tr><tr><td>Avx2</td><td>1000</td><td>10</td><td>14,386.9 ns</td><td>255.84 ns</td><td>448.09 ns</td><td>14,343.3 ns</td><td>0.68</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>1000</td><td>10</td><td>13,682.9 ns</td><td>260.79 ns</td><td>256.13 ns</td><td>13,571.7 ns</td><td>0.64</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>1000</td><td>50</td><td>16,199.4 ns</td><td>312.84 ns</td><td>438.56 ns</td><td>16,455.3 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>1000</td><td>50</td><td>103,838.4 ns</td><td>1,356.15 ns</td><td>1,268.54 ns</td><td>103,461.7 ns</td><td>6.45</td><td>0.21</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>1000</td><td>50</td><td>10,918.5 ns</td><td>200.44 ns</td><td>177.68 ns</td><td>10,874.0 ns</td><td>0.68</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>1000</td><td>50</td><td>10,905.6 ns</td><td>120.05 ns</td><td>106.42 ns</td><td>10,872.1 ns</td><td>0.68</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>1000</td><td>100</td><td>11,508.4 ns</td><td>174.30 ns</td><td>145.55 ns</td><td>11,546.5 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>1000</td><td>100</td><td>71,377.7 ns</td><td>806.34 ns</td><td>754.25 ns</td><td>71,368.4 ns</td><td>6.19</td><td>0.08</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>1000</td><td>100</td><td>8,137.5 ns</td><td>153.61 ns</td><td>157.75 ns</td><td>8,089.1 ns</td><td>0.71</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>1000</td><td>100</td><td>7,986.3 ns</td><td>94.70 ns</td><td>88.58 ns</td><td>8,013.5 ns</td><td>0.70</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>1008</td><td>0</td><td>21,296.2 ns</td><td>404.13 ns</td><td>728.74 ns</td><td>21,023.9 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>1008</td><td>0</td><td>145,982.8 ns</td><td>2,255.95 ns</td><td>2,110.22 ns</td><td>146,241.9 ns</td><td>6.74</td><td>0.25</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>1008</td><td>0</td><td>14,264.2 ns</td><td>275.52 ns</td><td>395.14 ns</td><td>14,414.7 ns</td><td>0.66</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>1008</td><td>0</td><td>13,727.6 ns</td><td>127.95 ns</td><td>113.42 ns</td><td>13,751.0 ns</td><td>0.63</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>1008</td><td>10</td><td>21,035.9 ns</td><td>416.46 ns</td><td>905.35 ns</td><td>21,306.5 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>1008</td><td>10</td><td>139,125.7 ns</td><td>1,556.68 ns</td><td>1,379.96 ns</td><td>139,712.9 ns</td><td>6.42</td><td>0.24</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>1008</td><td>10</td><td>13,920.3 ns</td><td>268.19 ns</td><td>308.85 ns</td><td>14,049.2 ns</td><td>0.65</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>1008</td><td>10</td><td>13,642.0 ns</td><td>172.76 ns</td><td>153.15 ns</td><td>13,700.7 ns</td><td>0.63</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>1008</td><td>50</td><td>17,555.3 ns</td><td>349.98 ns</td><td>851.89 ns</td><td>17,188.4 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>1008</td><td>50</td><td>113,599.7 ns</td><td>1,830.25 ns</td><td>1,528.34 ns</td><td>113,444.6 ns</td><td>6.24</td><td>0.41</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>1008</td><td>50</td><td>11,627.3 ns</td><td>228.58 ns</td><td>312.89 ns</td><td>11,687.0 ns</td><td>0.66</td><td>0.04</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>1008</td><td>50</td><td>11,296.8 ns</td><td>223.08 ns</td><td>305.35 ns</td><td>11,232.3 ns</td><td>0.64</td><td>0.04</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>1008</td><td>100</td><td>12,598.2 ns</td><td>251.50 ns</td><td>612.18 ns</td><td>12,298.8 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>1008</td><td>100</td><td>75,882.2 ns</td><td>928.13 ns</td><td>724.63 ns</td><td>75,989.6 ns</td><td>6.02</td><td>0.30</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>1008</td><td>100</td><td>9,482.9 ns</td><td>189.40 ns</td><td>502.26 ns</td><td>9,647.0 ns</td><td>0.75</td><td>0.06</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>1008</td><td>100</td><td>8,549.5 ns</td><td>169.68 ns</td><td>455.83 ns</td><td>8,319.0 ns</td><td>0.68</td><td>0.05</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>10000</td><td>0</td><td>148,878.9 ns</td><td>2,928.91 ns</td><td>3,255.48 ns</td><td>148,549.6 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>10000</td><td>0</td><td>1,457,446.4 ns</td><td>25,246.94 ns</td><td>23,616.00 ns</td><td>1,461,319.5 ns</td><td>9.79</td><td>0.33</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Avx2</td><td>10000</td><td>0</td><td>121,229.3 ns</td><td>2,414.86 ns</td><td>3,614.45 ns</td><td>119,812.8 ns</td><td>0.82</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>10000</td><td>0</td><td>119,271.6 ns</td><td>1,836.40 ns</td><td>1,803.59 ns</td><td>118,770.0 ns</td><td>0.80</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>10000</td><td>10</td><td>142,831.8 ns</td><td>2,314.07 ns</td><td>1,932.35 ns</td><td>142,517.7 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>10000</td><td>10</td><td>1,382,627.3 ns</td><td>11,494.15 ns</td><td>10,751.64 ns</td><td>1,381,639.3 ns</td><td>9.69</td><td>0.12</td><td>-</td><td>-</td><td>-</td><td>3 B</td>
-</tr><tr><td>Avx2</td><td>10000</td><td>10</td><td>114,944.4 ns</td><td>2,211.61 ns</td><td>2,716.06 ns</td><td>116,005.5 ns</td><td>0.81</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>10000</td><td>10</td><td>116,804.9 ns</td><td>1,703.03 ns</td><td>1,593.02 ns</td><td>116,989.6 ns</td><td>0.82</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>10000</td><td>50</td><td>120,762.6 ns</td><td>2,397.43 ns</td><td>5,925.85 ns</td><td>118,264.2 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>10000</td><td>50</td><td>1,102,162.4 ns</td><td>21,652.29 ns</td><td>20,253.57 ns</td><td>1,098,028.3 ns</td><td>9.29</td><td>0.29</td><td>-</td><td>-</td><td>-</td><td>1 B</td>
-</tr><tr><td>Avx2</td><td>10000</td><td>50</td><td>87,405.3 ns</td><td>771.61 ns</td><td>644.33 ns</td><td>87,587.0 ns</td><td>0.74</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>10000</td><td>50</td><td>90,241.2 ns</td><td>1,794.20 ns</td><td>2,573.19 ns</td><td>90,799.6 ns</td><td>0.76</td><td>0.04</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>BasicContains</td><td>10000</td><td>100</td><td>85,317.5 ns</td><td>1,693.23 ns</td><td>2,481.92 ns</td><td>85,951.8 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Probabilistic</td><td>10000</td><td>100</td><td>697,653.8 ns</td><td>9,853.85 ns</td><td>9,217.30 ns</td><td>698,056.4 ns</td><td>8.12</td><td>0.22</td><td>-</td><td>-</td><td>-</td><td>1 B</td>
-</tr><tr><td>Avx2</td><td>10000</td><td>100</td><td>60,427.8 ns</td><td>1,089.20 ns</td><td>2,018.90 ns</td><td>59,835.0 ns</td><td>0.71</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Combo</td><td>10000</td><td>100</td><td>59,676.7 ns</td><td>592.72 ns</td><td>494.95 ns</td><td>59,469.6 ns</td><td>0.69</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</thead><tbody><tr><td>BasicContains</td><td>1</td><td>0</td><td>2,033.0 ns</td><td>39.83 ns</td><td>74.82 ns</td><td>2,014.7 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1</td><td>0</td><td>766.8 ns</td><td>12.33 ns</td><td>9.63 ns</td><td>764.4 ns</td><td>0.37</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1</td><td>0</td><td>1,408.6 ns</td><td>28.11 ns</td><td>59.90 ns</td><td>1,421.6 ns</td><td>0.69</td><td>0.04</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1</td><td>0</td><td>851.4 ns</td><td>16.78 ns</td><td>26.13 ns</td><td>852.6 ns</td><td>0.42</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1</td><td>10</td><td>1,999.5 ns</td><td>28.61 ns</td><td>23.89 ns</td><td>1,987.8 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1</td><td>10</td><td>938.3 ns</td><td>17.86 ns</td><td>22.59 ns</td><td>946.8 ns</td><td>0.47</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1</td><td>10</td><td>1,388.4 ns</td><td>24.34 ns</td><td>34.13 ns</td><td>1,371.8 ns</td><td>0.70</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1</td><td>10</td><td>934.3 ns</td><td>16.58 ns</td><td>14.69 ns</td><td>930.3 ns</td><td>0.47</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1</td><td>50</td><td>1,997.0 ns</td><td>36.62 ns</td><td>55.92 ns</td><td>1,969.0 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1</td><td>50</td><td>879.7 ns</td><td>17.31 ns</td><td>23.11 ns</td><td>881.2 ns</td><td>0.44</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1</td><td>50</td><td>1,406.4 ns</td><td>27.68 ns</td><td>43.10 ns</td><td>1,384.5 ns</td><td>0.71</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1</td><td>50</td><td>912.9 ns</td><td>14.48 ns</td><td>13.54 ns</td><td>911.0 ns</td><td>0.45</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1</td><td>100</td><td>1,599.4 ns</td><td>31.04 ns</td><td>36.95 ns</td><td>1,589.5 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1</td><td>100</td><td>1,300.7 ns</td><td>24.77 ns</td><td>26.50 ns</td><td>1,311.5 ns</td><td>0.81</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1</td><td>100</td><td>1,561.4 ns</td><td>30.59 ns</td><td>42.88 ns</td><td>1,558.9 ns</td><td>0.98</td><td>0.04</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1</td><td>100</td><td>1,050.3 ns</td><td>19.61 ns</td><td>19.26 ns</td><td>1,059.0 ns</td><td>0.66</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>10</td><td>0</td><td>3,287.9 ns</td><td>64.07 ns</td><td>62.93 ns</td><td>3,258.9 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>10</td><td>0</td><td>2,267.7 ns</td><td>43.03 ns</td><td>47.83 ns</td><td>2,290.8 ns</td><td>0.69</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>10</td><td>0</td><td>1,838.1 ns</td><td>36.79 ns</td><td>60.44 ns</td><td>1,825.8 ns</td><td>0.56</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>10</td><td>0</td><td>2,181.5 ns</td><td>31.69 ns</td><td>29.64 ns</td><td>2,172.5 ns</td><td>0.66</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>10</td><td>10</td><td>3,237.9 ns</td><td>10.15 ns</td><td>8.48 ns</td><td>3,235.3 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>10</td><td>10</td><td>2,185.8 ns</td><td>31.93 ns</td><td>28.31 ns</td><td>2,179.4 ns</td><td>0.68</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>10</td><td>10</td><td>1,999.3 ns</td><td>39.29 ns</td><td>74.75 ns</td><td>1,979.8 ns</td><td>0.61</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>10</td><td>10</td><td>2,168.3 ns</td><td>5.91 ns</td><td>5.24 ns</td><td>2,168.9 ns</td><td>0.67</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>10</td><td>50</td><td>3,089.9 ns</td><td>20.51 ns</td><td>18.18 ns</td><td>3,080.3 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>10</td><td>50</td><td>2,201.1 ns</td><td>11.14 ns</td><td>9.31 ns</td><td>2,200.6 ns</td><td>0.71</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>10</td><td>50</td><td>2,059.2 ns</td><td>11.33 ns</td><td>8.85 ns</td><td>2,058.1 ns</td><td>0.67</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>10</td><td>50</td><td>2,067.1 ns</td><td>33.78 ns</td><td>31.60 ns</td><td>2,063.2 ns</td><td>0.67</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>10</td><td>100</td><td>2,025.0 ns</td><td>18.29 ns</td><td>17.11 ns</td><td>2,018.4 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>10</td><td>100</td><td>1,511.3 ns</td><td>17.64 ns</td><td>16.50 ns</td><td>1,502.7 ns</td><td>0.75</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>10</td><td>100</td><td>1,765.6 ns</td><td>34.65 ns</td><td>61.58 ns</td><td>1,752.7 ns</td><td>0.88</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>10</td><td>100</td><td>1,537.1 ns</td><td>30.13 ns</td><td>30.94 ns</td><td>1,530.6 ns</td><td>0.76</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>16</td><td>0</td><td>4,376.6 ns</td><td>83.14 ns</td><td>85.38 ns</td><td>4,363.5 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>16</td><td>0</td><td>3,197.3 ns</td><td>37.62 ns</td><td>33.35 ns</td><td>3,198.5 ns</td><td>0.73</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>16</td><td>0</td><td>1,389.9 ns</td><td>27.71 ns</td><td>47.06 ns</td><td>1,395.2 ns</td><td>0.32</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>16</td><td>0</td><td>1,417.9 ns</td><td>27.66 ns</td><td>35.96 ns</td><td>1,403.5 ns</td><td>0.32</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>16</td><td>10</td><td>4,435.5 ns</td><td>45.34 ns</td><td>42.41 ns</td><td>4,453.9 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>16</td><td>10</td><td>3,110.9 ns</td><td>31.48 ns</td><td>29.45 ns</td><td>3,115.2 ns</td><td>0.70</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>16</td><td>10</td><td>1,536.0 ns</td><td>30.47 ns</td><td>37.42 ns</td><td>1,552.0 ns</td><td>0.34</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>16</td><td>10</td><td>1,500.6 ns</td><td>29.20 ns</td><td>27.31 ns</td><td>1,490.2 ns</td><td>0.34</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>16</td><td>50</td><td>3,795.6 ns</td><td>15.51 ns</td><td>12.11 ns</td><td>3,794.6 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>16</td><td>50</td><td>2,919.4 ns</td><td>28.28 ns</td><td>25.07 ns</td><td>2,913.4 ns</td><td>0.77</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>16</td><td>50</td><td>1,569.4 ns</td><td>22.89 ns</td><td>20.29 ns</td><td>1,566.2 ns</td><td>0.41</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>16</td><td>50</td><td>1,613.3 ns</td><td>32.29 ns</td><td>37.19 ns</td><td>1,600.5 ns</td><td>0.43</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>16</td><td>100</td><td>2,611.7 ns</td><td>51.36 ns</td><td>52.74 ns</td><td>2,598.9 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>16</td><td>100</td><td>2,004.0 ns</td><td>38.26 ns</td><td>42.52 ns</td><td>2,002.7 ns</td><td>0.77</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>16</td><td>100</td><td>1,308.9 ns</td><td>25.50 ns</td><td>35.75 ns</td><td>1,292.4 ns</td><td>0.51</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>16</td><td>100</td><td>1,449.6 ns</td><td>28.69 ns</td><td>59.88 ns</td><td>1,454.4 ns</td><td>0.57</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>100</td><td>0</td><td>5,439.2 ns</td><td>47.86 ns</td><td>37.37 ns</td><td>5,423.2 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>100</td><td>0</td><td>15,276.5 ns</td><td>266.97 ns</td><td>249.73 ns</td><td>15,271.2 ns</td><td>2.80</td><td>0.05</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>100</td><td>0</td><td>2,862.5 ns</td><td>56.56 ns</td><td>79.29 ns</td><td>2,841.2 ns</td><td>0.53</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>100</td><td>0</td><td>3,006.3 ns</td><td>60.01 ns</td><td>84.12 ns</td><td>3,038.0 ns</td><td>0.55</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>100</td><td>10</td><td>5,325.5 ns</td><td>97.75 ns</td><td>91.43 ns</td><td>5,287.4 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>100</td><td>10</td><td>14,515.6 ns</td><td>273.86 ns</td><td>293.03 ns</td><td>14,411.8 ns</td><td>2.73</td><td>0.07</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>100</td><td>10</td><td>2,787.2 ns</td><td>16.55 ns</td><td>14.67 ns</td><td>2,781.5 ns</td><td>0.52</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>100</td><td>10</td><td>2,958.5 ns</td><td>58.48 ns</td><td>94.43 ns</td><td>2,970.1 ns</td><td>0.55</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>100</td><td>50</td><td>4,489.3 ns</td><td>86.26 ns</td><td>105.94 ns</td><td>4,424.9 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>100</td><td>50</td><td>12,698.7 ns</td><td>191.77 ns</td><td>179.38 ns</td><td>12,780.2 ns</td><td>2.82</td><td>0.08</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>100</td><td>50</td><td>2,438.9 ns</td><td>47.60 ns</td><td>46.74 ns</td><td>2,425.1 ns</td><td>0.54</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>100</td><td>50</td><td>2,627.3 ns</td><td>51.34 ns</td><td>48.03 ns</td><td>2,627.8 ns</td><td>0.58</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>100</td><td>100</td><td>3,488.8 ns</td><td>69.17 ns</td><td>89.95 ns</td><td>3,465.9 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>100</td><td>100</td><td>8,864.3 ns</td><td>69.48 ns</td><td>65.00 ns</td><td>8,855.9 ns</td><td>2.53</td><td>0.07</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>100</td><td>100</td><td>1,828.6 ns</td><td>36.50 ns</td><td>48.73 ns</td><td>1,799.8 ns</td><td>0.52</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>100</td><td>100</td><td>1,968.1 ns</td><td>38.63 ns</td><td>68.66 ns</td><td>1,997.5 ns</td><td>0.57</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>112</td><td>0</td><td>5,867.7 ns</td><td>116.04 ns</td><td>138.14 ns</td><td>5,815.5 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>112</td><td>0</td><td>16,923.5 ns</td><td>178.62 ns</td><td>167.08 ns</td><td>16,879.9 ns</td><td>2.89</td><td>0.07</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>112</td><td>0</td><td>2,366.1 ns</td><td>13.76 ns</td><td>15.84 ns</td><td>2,363.1 ns</td><td>0.40</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>112</td><td>0</td><td>2,550.6 ns</td><td>31.22 ns</td><td>27.67 ns</td><td>2,544.0 ns</td><td>0.43</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>112</td><td>10</td><td>5,408.3 ns</td><td>34.58 ns</td><td>28.87 ns</td><td>5,400.3 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>112</td><td>10</td><td>15,599.5 ns</td><td>242.95 ns</td><td>227.26 ns</td><td>15,549.1 ns</td><td>2.89</td><td>0.05</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>112</td><td>10</td><td>2,356.6 ns</td><td>32.66 ns</td><td>25.50 ns</td><td>2,348.0 ns</td><td>0.44</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>112</td><td>10</td><td>2,508.7 ns</td><td>48.84 ns</td><td>56.25 ns</td><td>2,508.0 ns</td><td>0.46</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>112</td><td>50</td><td>4,994.5 ns</td><td>88.65 ns</td><td>108.87 ns</td><td>4,948.9 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>112</td><td>50</td><td>13,461.5 ns</td><td>145.08 ns</td><td>135.70 ns</td><td>13,390.0 ns</td><td>2.68</td><td>0.07</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>112</td><td>50</td><td>2,246.1 ns</td><td>43.48 ns</td><td>59.51 ns</td><td>2,278.0 ns</td><td>0.45</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>112</td><td>50</td><td>2,220.7 ns</td><td>18.94 ns</td><td>21.06 ns</td><td>2,214.2 ns</td><td>0.44</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>112</td><td>100</td><td>3,613.4 ns</td><td>70.20 ns</td><td>72.09 ns</td><td>3,647.1 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>112</td><td>100</td><td>9,889.5 ns</td><td>76.36 ns</td><td>71.42 ns</td><td>9,855.8 ns</td><td>2.74</td><td>0.06</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>112</td><td>100</td><td>1,931.4 ns</td><td>38.64 ns</td><td>55.42 ns</td><td>1,938.1 ns</td><td>0.53</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>112</td><td>100</td><td>1,956.6 ns</td><td>38.87 ns</td><td>46.27 ns</td><td>1,938.0 ns</td><td>0.54</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1000</td><td>0</td><td>19,808.9 ns</td><td>109.58 ns</td><td>91.50 ns</td><td>19,777.9 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1000</td><td>0</td><td>139,503.9 ns</td><td>1,059.33 ns</td><td>990.90 ns</td><td>139,775.5 ns</td><td>7.05</td><td>0.07</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1000</td><td>0</td><td>13,544.2 ns</td><td>270.53 ns</td><td>253.05 ns</td><td>13,427.3 ns</td><td>0.68</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1000</td><td>0</td><td>13,990.4 ns</td><td>273.90 ns</td><td>365.65 ns</td><td>14,064.4 ns</td><td>0.70</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1000</td><td>10</td><td>19,296.6 ns</td><td>230.76 ns</td><td>236.97 ns</td><td>19,243.7 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1000</td><td>10</td><td>133,760.7 ns</td><td>1,600.56 ns</td><td>1,497.16 ns</td><td>133,152.3 ns</td><td>6.93</td><td>0.10</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1000</td><td>10</td><td>12,989.7 ns</td><td>152.89 ns</td><td>119.36 ns</td><td>12,970.4 ns</td><td>0.67</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1000</td><td>10</td><td>13,567.9 ns</td><td>267.80 ns</td><td>286.54 ns</td><td>13,613.6 ns</td><td>0.70</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1000</td><td>50</td><td>14,853.6 ns</td><td>90.72 ns</td><td>70.83 ns</td><td>14,831.4 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1000</td><td>50</td><td>100,306.9 ns</td><td>528.26 ns</td><td>494.13 ns</td><td>100,434.9 ns</td><td>6.76</td><td>0.04</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1000</td><td>50</td><td>10,496.3 ns</td><td>117.30 ns</td><td>97.95 ns</td><td>10,463.3 ns</td><td>0.71</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1000</td><td>50</td><td>10,701.7 ns</td><td>209.81 ns</td><td>233.20 ns</td><td>10,733.7 ns</td><td>0.72</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1000</td><td>100</td><td>10,979.4 ns</td><td>148.80 ns</td><td>165.39 ns</td><td>10,917.9 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1000</td><td>100</td><td>67,412.0 ns</td><td>586.10 ns</td><td>519.56 ns</td><td>67,468.7 ns</td><td>6.13</td><td>0.11</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1000</td><td>100</td><td>7,678.6 ns</td><td>150.18 ns</td><td>189.94 ns</td><td>7,583.5 ns</td><td>0.70</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1000</td><td>100</td><td>8,057.2 ns</td><td>156.91 ns</td><td>214.79 ns</td><td>8,085.3 ns</td><td>0.73</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1008</td><td>0</td><td>20,242.7 ns</td><td>400.64 ns</td><td>476.94 ns</td><td>19,969.3 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1008</td><td>0</td><td>142,987.1 ns</td><td>2,577.73 ns</td><td>2,411.21 ns</td><td>143,833.4 ns</td><td>7.04</td><td>0.19</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1008</td><td>0</td><td>13,111.3 ns</td><td>150.31 ns</td><td>133.24 ns</td><td>13,066.7 ns</td><td>0.65</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1008</td><td>0</td><td>13,813.9 ns</td><td>272.00 ns</td><td>334.04 ns</td><td>13,947.9 ns</td><td>0.68</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1008</td><td>10</td><td>19,232.0 ns</td><td>379.61 ns</td><td>355.09 ns</td><td>19,007.3 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1008</td><td>10</td><td>132,787.9 ns</td><td>1,024.76 ns</td><td>958.56 ns</td><td>132,687.7 ns</td><td>6.91</td><td>0.11</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1008</td><td>10</td><td>13,254.5 ns</td><td>149.91 ns</td><td>140.22 ns</td><td>13,191.7 ns</td><td>0.69</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1008</td><td>10</td><td>12,792.2 ns</td><td>226.28 ns</td><td>188.95 ns</td><td>12,699.6 ns</td><td>0.67</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1008</td><td>50</td><td>17,006.6 ns</td><td>334.16 ns</td><td>279.04 ns</td><td>17,074.0 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1008</td><td>50</td><td>106,203.0 ns</td><td>648.29 ns</td><td>574.70 ns</td><td>106,190.8 ns</td><td>6.24</td><td>0.12</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1008</td><td>50</td><td>11,002.5 ns</td><td>214.74 ns</td><td>200.87 ns</td><td>11,017.8 ns</td><td>0.65</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1008</td><td>50</td><td>10,818.0 ns</td><td>181.23 ns</td><td>169.53 ns</td><td>10,774.1 ns</td><td>0.63</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>1008</td><td>100</td><td>12,274.3 ns</td><td>244.31 ns</td><td>365.67 ns</td><td>12,428.5 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>1008</td><td>100</td><td>71,086.7 ns</td><td>297.68 ns</td><td>248.58 ns</td><td>71,069.6 ns</td><td>5.84</td><td>0.21</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Avx2</td><td>1008</td><td>100</td><td>8,186.5 ns</td><td>138.65 ns</td><td>122.91 ns</td><td>8,213.3 ns</td><td>0.67</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>1008</td><td>100</td><td>8,198.0 ns</td><td>161.81 ns</td><td>173.13 ns</td><td>8,131.9 ns</td><td>0.68</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>10000</td><td>0</td><td>149,122.3 ns</td><td>2,943.94 ns</td><td>3,023.21 ns</td><td>148,399.8 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>10000</td><td>0</td><td>1,363,048.2 ns</td><td>7,449.94 ns</td><td>6,604.18 ns</td><td>1,362,295.8 ns</td><td>9.14</td><td>0.21</td><td>-</td><td>-</td><td>-</td><td>1 B</td>
+</tr><tr><td>Avx2</td><td>10000</td><td>0</td><td>115,518.2 ns</td><td>2,180.65 ns</td><td>2,141.69 ns</td><td>115,271.6 ns</td><td>0.77</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>10000</td><td>0</td><td>114,945.1 ns</td><td>2,150.08 ns</td><td>2,111.67 ns</td><td>115,227.2 ns</td><td>0.77</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>10000</td><td>10</td><td>141,068.6 ns</td><td>1,150.82 ns</td><td>960.99 ns</td><td>141,266.1 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>10000</td><td>10</td><td>1,282,789.7 ns</td><td>8,862.13 ns</td><td>8,289.64 ns</td><td>1,283,075.6 ns</td><td>9.10</td><td>0.05</td><td>-</td><td>-</td><td>-</td><td>3 B</td>
+</tr><tr><td>Avx2</td><td>10000</td><td>10</td><td>108,368.3 ns</td><td>2,138.87 ns</td><td>2,100.66 ns</td><td>107,812.8 ns</td><td>0.77</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>2 B</td>
+</tr><tr><td>Combo</td><td>10000</td><td>10</td><td>107,946.8 ns</td><td>2,132.31 ns</td><td>2,189.72 ns</td><td>107,021.8 ns</td><td>0.76</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>10000</td><td>50</td><td>114,704.6 ns</td><td>1,586.28 ns</td><td>1,324.62 ns</td><td>115,041.9 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>10000</td><td>50</td><td>994,847.7 ns</td><td>11,933.29 ns</td><td>10,578.55 ns</td><td>990,971.9 ns</td><td>8.67</td><td>0.16</td><td>-</td><td>-</td><td>-</td><td>3 B</td>
+</tr><tr><td>Avx2</td><td>10000</td><td>50</td><td>83,929.7 ns</td><td>1,573.61 ns</td><td>1,394.97 ns</td><td>83,826.4 ns</td><td>0.73</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>10000</td><td>50</td><td>86,068.2 ns</td><td>680.84 ns</td><td>636.86 ns</td><td>85,779.0 ns</td><td>0.75</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>BasicContains</td><td>10000</td><td>100</td><td>77,180.8 ns</td><td>1,539.79 ns</td><td>2,257.00 ns</td><td>75,885.2 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Probabilistic</td><td>10000</td><td>100</td><td>662,822.0 ns</td><td>9,894.19 ns</td><td>9,255.04 ns</td><td>659,386.3 ns</td><td>8.53</td><td>0.32</td><td>-</td><td>-</td><td>-</td><td>1 B</td>
+</tr><tr><td>Avx2</td><td>10000</td><td>100</td><td>57,140.7 ns</td><td>922.22 ns</td><td>817.52 ns</td><td>56,884.6 ns</td><td>0.74</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Combo</td><td>10000</td><td>100</td><td>58,788.3 ns</td><td>1,121.71 ns</td><td>1,101.66 ns</td><td>59,134.1 ns</td><td>0.76</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>1 B</td>
 </tr></tbody></table>
 </body>
 </html>

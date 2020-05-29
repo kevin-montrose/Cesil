@@ -2,7 +2,7 @@
 <html lang='en'>
 <head>
 <meta charset='utf-8' />
-<title>Cesil.Benchmark.NameLookupBenchmark_LookupSuccess-20200524-120647</title>
+<title>Cesil.Benchmark.NameLookupBenchmark_LookupSuccess-20200528-234541</title>
 
 <style type="text/css">
 	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
@@ -16,27 +16,27 @@
 BenchmarkDotNet=v0.12.1, OS=Windows 8.1 (6.3.9600.0)
 Intel Core i7-4960HQ CPU 2.60GHz (Haswell), 1 CPU, 8 logical and 4 physical cores
 Frequency=2533200 Hz, Resolution=394.7576 ns, Timer=TSC
-.NET Core SDK=3.1.201
+.NET Core SDK=3.1.300
   [Host]     : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
   DefaultJob : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
 </code></pre>
 <pre><code></code></pre>
 
 <table>
-<thead><tr><th>                Method</th><th>NameSet</th><th>  Mean</th><th>Error</th><th>StdDev</th><th>Ratio</th><th>RatioSD</th><th>Gen 0</th><th>Gen 1</th><th>Gen 2</th><th>Allocated</th>
+<thead><tr><th>                Method</th><th>NameSet</th><th>  Mean</th><th>Error</th><th>StdDev</th><th>Median</th><th>Ratio</th><th>RatioSD</th><th>Gen 0</th><th>Gen 1</th><th>Gen 2</th><th>Allocated</th>
 </tr>
-</thead><tbody><tr><td>Dictionary</td><td>CommonEnglish</td><td>242.758 &mu;s</td><td>3.0028 &mu;s</td><td>2.8089 &mu;s</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>1 B</td>
-</tr><tr><td>Array</td><td>CommonEnglish</td><td>3,720.863 &mu;s</td><td>72.0092 &mu;s</td><td>67.3574 &mu;s</td><td>15.33</td><td>0.32</td><td>-</td><td>-</td><td>-</td><td>22 B</td>
-</tr><tr><td>NameLookup_BinarySearch</td><td>CommonEnglish</td><td>464.271 &mu;s</td><td>4.7617 &mu;s</td><td>4.4541 &mu;s</td><td>1.91</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>NameLookup_AdaptiveRadixTrie</td><td>CommonEnglish</td><td>716.492 &mu;s</td><td>7.6173 &mu;s</td><td>6.7525 &mu;s</td><td>2.95</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>9 B</td>
-</tr><tr><td>Dictionary</td><td>NarrowRow</td><td>1.955 &mu;s</td><td>0.0199 &mu;s</td><td>0.0186 &mu;s</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Array</td><td>NarrowRow</td><td>1.525 &mu;s</td><td>0.0114 &mu;s</td><td>0.0089 &mu;s</td><td>0.78</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>NameLookup_BinarySearch</td><td>NarrowRow</td><td>1.675 &mu;s</td><td>0.0030 &mu;s</td><td>0.0027 &mu;s</td><td>0.86</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>NameLookup_AdaptiveRadixTrie</td><td>NarrowRow</td><td>1.335 &mu;s</td><td>0.0135 &mu;s</td><td>0.0119 &mu;s</td><td>0.68</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>Dictionary</td><td>WideRow</td><td>77.673 &mu;s</td><td>0.2576 &mu;s</td><td>0.2011 &mu;s</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>1 B</td>
-</tr><tr><td>Array</td><td>WideRow</td><td>343.833 &mu;s</td><td>2.2938 &mu;s</td><td>2.1456 &mu;s</td><td>4.42</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
-</tr><tr><td>NameLookup_BinarySearch</td><td>WideRow</td><td>169.695 &mu;s</td><td>2.6911 &mu;s</td><td>2.5172 &mu;s</td><td>2.19</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>3 B</td>
-</tr><tr><td>NameLookup_AdaptiveRadixTrie</td><td>WideRow</td><td>176.505 &mu;s</td><td>1.0129 &mu;s</td><td>0.9474 &mu;s</td><td>2.27</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>1 B</td>
+</thead><tbody><tr><td>Dictionary</td><td>CommonEnglish</td><td>240.211 &mu;s</td><td>4.3288 &mu;s</td><td>9.7709 &mu;s</td><td>236.328 &mu;s</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Array</td><td>CommonEnglish</td><td>3,364.785 &mu;s</td><td>30.6447 &mu;s</td><td>25.5897 &mu;s</td><td>3,354.885 &mu;s</td><td>13.86</td><td>0.52</td><td>-</td><td>-</td><td>-</td><td>12 B</td>
+</tr><tr><td>NameLookup_BinarySearch</td><td>CommonEnglish</td><td>448.424 &mu;s</td><td>4.9131 &mu;s</td><td>4.3554 &mu;s</td><td>446.911 &mu;s</td><td>1.85</td><td>0.06</td><td>-</td><td>-</td><td>-</td><td>2 B</td>
+</tr><tr><td>NameLookup_AdaptiveRadixTrie</td><td>CommonEnglish</td><td>673.573 &mu;s</td><td>6.8167 &mu;s</td><td>6.3763 &mu;s</td><td>674.089 &mu;s</td><td>2.78</td><td>0.10</td><td>-</td><td>-</td><td>-</td><td>1 B</td>
+</tr><tr><td>Dictionary</td><td>NarrowRow</td><td>1.863 &mu;s</td><td>0.0350 &mu;s</td><td>0.0327 &mu;s</td><td>1.852 &mu;s</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Array</td><td>NarrowRow</td><td>1.536 &mu;s</td><td>0.0304 &mu;s</td><td>0.0698 &mu;s</td><td>1.516 &mu;s</td><td>0.88</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>NameLookup_BinarySearch</td><td>NarrowRow</td><td>1.655 &mu;s</td><td>0.0327 &mu;s</td><td>0.0377 &mu;s</td><td>1.644 &mu;s</td><td>0.89</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>NameLookup_AdaptiveRadixTrie</td><td>NarrowRow</td><td>1.342 &mu;s</td><td>0.0267 &mu;s</td><td>0.0495 &mu;s</td><td>1.329 &mu;s</td><td>0.73</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Dictionary</td><td>WideRow</td><td>74.629 &mu;s</td><td>1.3603 &mu;s</td><td>1.2724 &mu;s</td><td>74.124 &mu;s</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>Array</td><td>WideRow</td><td>340.489 &mu;s</td><td>6.7884 &mu;s</td><td>10.9619 &mu;s</td><td>336.303 &mu;s</td><td>4.67</td><td>0.17</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>NameLookup_BinarySearch</td><td>WideRow</td><td>163.293 &mu;s</td><td>3.0514 &mu;s</td><td>3.1336 &mu;s</td><td>162.259 &mu;s</td><td>2.19</td><td>0.04</td><td>-</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>NameLookup_AdaptiveRadixTrie</td><td>WideRow</td><td>170.617 &mu;s</td><td>0.7472 &mu;s</td><td>0.6990 &mu;s</td><td>170.404 &mu;s</td><td>2.29</td><td>0.04</td><td>-</td><td>-</td><td>-</td><td>3 B</td>
 </tr></tbody></table>
 </body>
 </html>
