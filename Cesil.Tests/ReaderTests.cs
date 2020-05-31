@@ -3911,7 +3911,7 @@ namespace Cesil.Tests
             const string TSV = @"Foo	Bar
 ""hello""""world""	123
 ";
-            var opts = Options.CreateBuilder(Options.Default).WithEscapedValueStartAndEnd('"').WithValueSeparator('\t').ToOptions();
+            var opts = Options.CreateBuilder(Options.Default).WithEscapedValueStartAndEnd('"').WithValueSeparator("\t").ToOptions();
 
             RunSyncReaderVariants<_TabSeparator>(
                 opts,
@@ -10265,7 +10265,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             const string TSV = @"Foo	Bar
 ""hello""""world""	123
 ";
-            var opts = Options.CreateBuilder(Options.Default).WithEscapedValueStartAndEnd('"').WithValueSeparator('\t').ToOptions();
+            var opts = Options.CreateBuilder(Options.Default).WithEscapedValueStartAndEnd('"').WithValueSeparator("\t").ToOptions();
 
             await RunAsyncReaderVariants<_TabSeparator>(
                 opts,

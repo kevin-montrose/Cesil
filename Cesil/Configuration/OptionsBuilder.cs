@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Linq;
 using System.Text;
 
 namespace Cesil
@@ -18,7 +19,7 @@ namespace Cesil
         /// 
         /// Typically a comma.
         /// </summary>
-        public char ValueSeparator { get; private set; }
+        public string ValueSeparator { get; private set; }
 
         /// <summary>
         /// Character used to start an escaped value.
@@ -102,7 +103,10 @@ namespace Cesil
         /// </summary>
         public ExtraColumnTreatment ExtraColumnTreatment { get; private set; }
 
-        internal OptionsBuilder() { }
+        internal OptionsBuilder()
+        {
+            ValueSeparator = "";
+        }
 
         internal OptionsBuilder(Options copy)
         {
@@ -146,13 +150,18 @@ namespace Cesil
         /// </summary>
         public Options ToOptions()
         {
+            if (string.IsNullOrEmpty(ValueSeparator))
+            {
+                return Throw.InvalidOperationException<Options>($"{nameof(ValueSeparator)} cannot be empty");
+            }
+
             // can't distinguish between the start of a value and an empty value
-            if (ValueSeparator == EscapedValueStartAndEnd)
+            if (ValueSeparator.Length == 1 && ValueSeparator[0] == EscapedValueStartAndEnd)
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(ValueSeparator)} cannot equal {nameof(EscapedValueStartAndEnd)}, both are '{ValueSeparator}'");
             }
             // can't distinguish between the start of a comment and an empty value
-            if (ValueSeparator == CommentCharacter)
+            if (ValueSeparator.Length == 1 && ValueSeparator[0] == CommentCharacter)
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(ValueSeparator)} cannot equal {nameof(CommentCharacter)}, both are '{ValueSeparator}'");
             }
@@ -240,7 +249,7 @@ namespace Cesil
                     return Throw.InvalidOperationException<Options>($"Cannot use a whitespace removing {nameof(WhitespaceTreatment)} ({WhitespaceTreatment}) with a whitespace {nameof(EscapedValueStartAndEnd)} ('{EscapedValueStartAndEnd}')");
                 }
 
-                if (char.IsWhiteSpace(ValueSeparator))
+                if (ValueSeparator.Any(c => char.IsWhiteSpace(c)))
                 {
                     return Throw.InvalidOperationException<Options>($"Cannot use a whitespace removing {nameof(WhitespaceTreatment)} ({WhitespaceTreatment}) with a whitespace {nameof(ValueSeparator)} ('{ValueSeparator}')");
                 }
@@ -256,8 +265,14 @@ namespace Cesil
         /// <summary>
         /// Set the character used to separate two values in a row.
         /// </summary>
-        public OptionsBuilder WithValueSeparator(char valueSeparator)
+        public OptionsBuilder WithValueSeparator(string valueSeparator)
         {
+            Utils.CheckArgumentNull(valueSeparator, nameof(valueSeparator));
+            if (valueSeparator.Length == 0)
+            {
+                return Throw.ArgumentException<OptionsBuilder>($"{nameof(valueSeparator)} cannot be empty", nameof(valueSeparator));
+            }
+
             ValueSeparator = valueSeparator;
             return this;
         }

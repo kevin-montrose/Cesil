@@ -61,7 +61,12 @@ namespace Cesil
         {
             var memoryPool = options.MemoryPool;
             var escapeStartChar = options.EscapedValueStartAndEnd;
-            var valueSeparatorChar = options.ValueSeparator;
+            var valueSeparatorChar = options.ValueSeparator[0];
+            // todo: implement multi-char value separators
+            if(options.ValueSeparator.Length > 1)
+            {
+                throw new NotImplementedException();
+            }
             var escapeChar = options.EscapedValueEscapeCharacter;
             var commentChar = options.CommentCharacter;
 

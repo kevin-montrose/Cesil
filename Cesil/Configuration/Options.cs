@@ -33,7 +33,7 @@ namespace Cesil
         /// </summary>
         public static readonly Options Default =
             CreateBuilder()
-                .WithValueSeparator(',')
+                .WithValueSeparator(",")
                 .WithRowEnding(RowEnding.CarriageReturnLineFeed)
                 .WithEscapedValueStartAndEnd('"')
                 .WithEscapedValueEscapeCharacter('"')
@@ -69,7 +69,7 @@ namespace Cesil
         /// </summary>
         public static readonly Options DynamicDefault =
             CreateBuilder()
-                .WithValueSeparator(',')
+                .WithValueSeparator(",")
                 .WithRowEnding(RowEnding.CarriageReturnLineFeed)
                 .WithEscapedValueStartAndEnd('"')
                 .WithEscapedValueEscapeCharacter('"')
@@ -91,7 +91,7 @@ namespace Cesil
         /// 
         /// Typically a comma.
         /// </summary>
-        public char ValueSeparator { get; }
+        public string ValueSeparator { get; }
         /// <summary>
         /// Character used to start an escaped value.
         /// 
