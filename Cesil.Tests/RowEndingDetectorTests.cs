@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -52,7 +53,7 @@ namespace Cesil.Tests
             {
                 using (var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, out _))
                 {
-                    var detector = new RowEndingDetector(new ReaderStateMachine(), config.Options, charLookup, new TextReaderAdapter(str));
+                    var detector = new RowEndingDetector(new ReaderStateMachine(), config.Options, charLookup, new TextReaderAdapter(str), config.Options.ValueSeparator.AsMemory());
                     var detect = detector.Detect();
                     Assert.True(detect.HasValue);
                     Assert.Equal(expected, detect.Value.Ending);
@@ -104,7 +105,7 @@ namespace Cesil.Tests
                         {
                             var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
                             using (var charLookup = CharacterLookup.MakeCharacterLookup(cInner.Options, out _))
-                            using (var detector = new RowEndingDetector(stateMachine, cInner.Options, charLookup, str))
+                            using (var detector = new RowEndingDetector(stateMachine, cInner.Options, charLookup, str, cInner.Options.ValueSeparator.AsMemory()))
                             {
                                 if (configForced != null)
                                 {

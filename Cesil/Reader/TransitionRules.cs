@@ -22,6 +22,7 @@ namespace Cesil
         internal static readonly TransitionRule Record_ExpectingEndOfRecord_Skip_Character = (State.Record_ExpectingEndOfRecord, AdvanceResult.Skip_Character);
         internal static readonly TransitionRule Invalid_Exception_InvalidState = (State.Invalid, AdvanceResult.Exception_InvalidState);
         internal static readonly TransitionRule Record_InEscapedValue_Append_Character = (State.Record_InEscapedValue, AdvanceResult.Append_Character);
+        internal static readonly TransitionRule Record_InEscapedValue_Append_ValueSeparator = (State.Record_InEscapedValue, AdvanceResult.Append_ValueSeparator);
         internal static readonly TransitionRule Header_InEscapedValue_Skip_Character = (State.Header_InEscapedValue, AdvanceResult.Skip_Character);
 
         internal static readonly TransitionRule Header_Unescaped_NoValue_Skip_Character = (State.Header_Unescaped_NoValue, AdvanceResult.Skip_Character);
@@ -45,7 +46,10 @@ namespace Cesil
         internal static readonly TransitionRule Comment_BeforeRecord_Skip_Character = (State.Comment_BeforeRecord, AdvanceResult.Skip_Character);
 
         internal static readonly TransitionRule Comment_BeforeHeader_Append_Character = (State.Comment_BeforeHeader, AdvanceResult.Append_Character);
+        internal static readonly TransitionRule Comment_BeforeHeader_Append_ValueSeparator = (State.Comment_BeforeHeader, AdvanceResult.Append_ValueSeparator);
+
         internal static readonly TransitionRule Comment_BeforeRecord_Append_Character = (State.Comment_BeforeRecord, AdvanceResult.Append_Character);
+        internal static readonly TransitionRule Comment_BeforeRecord_Append_ValueSeparator = (State.Comment_BeforeRecord, AdvanceResult.Append_ValueSeparator);
 
         internal static readonly TransitionRule Header_Start_Skip_Character = (State.Header_Start, AdvanceResult.Skip_Character);
         internal static readonly TransitionRule Header_Start_Finished_Comment = (State.Header_Start, AdvanceResult.Finished_Comment);
@@ -59,7 +63,10 @@ namespace Cesil
         internal static readonly TransitionRule Comment_BeforeRecord_ExpectingEndOfComment_Append_Character = (State.Comment_BeforeRecord_ExpectingEndOfComment, AdvanceResult.Append_Character);
 
         internal static readonly TransitionRule Comment_BeforeHeader_Append_CarriageReturn_And_Current_Character = (State.Comment_BeforeHeader, AdvanceResult.Append_CarriageReturnAndCurrentCharacter);
+        internal static readonly TransitionRule Comment_BeforeHeader_Append_CarriageReturn_And_ValueSeparator = (State.Comment_BeforeHeader, AdvanceResult.Append_CarriageReturnAndValueSeparator);
+
         internal static readonly TransitionRule Comment_BeforeRecord_Append_CarriageReturn_And_Current_Character = (State.Comment_BeforeRecord, AdvanceResult.Append_CarriageReturnAndCurrentCharacter);
+        internal static readonly TransitionRule Comment_BeforeRecord_Append_CarriageReturn_And_ValueSeparator = (State.Comment_BeforeRecord, AdvanceResult.Append_CarriageReturnAndValueSeparator);
 
         internal static readonly TransitionRule Data_Ended_Skip_Character = (State.DataEnded, AdvanceResult.Skip_Character);
         internal static readonly TransitionRule Data_Ended_Finished_LastValueUnescaped_Record = (State.DataEnded, AdvanceResult.Finished_LastValueUnescaped_Record);

@@ -457,6 +457,12 @@ namespace Cesil.Tests
         [Fact]
         public void OptionsValidation()
         {
+            Assert.Throws<ArgumentNullException>(() => Options.CreateBuilder(Options.Default).WithValueSeparator(null));
+            Assert.Throws<ArgumentException>(() => Options.CreateBuilder(Options.Default).WithValueSeparator(""));
+
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithValueSeparatorInternal(null).ToOptions());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithValueSeparatorInternal("").ToOptions());
+
             Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithValueSeparator(','.ToString()).WithEscapedValueStartAndEnd(',').ToOptions());
 
             Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithValueSeparator(','.ToString()).WithCommentCharacter(',').ToOptions());

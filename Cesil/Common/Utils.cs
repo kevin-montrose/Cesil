@@ -307,16 +307,19 @@ tryAgain:
         private const int CHARS_PER_LONG = sizeof(long) / sizeof(char);
         private const int CHARS_PER_INT = sizeof(int) / sizeof(char);
 
-        internal static unsafe bool AreEqual(ReadOnlyMemory<char> a, ReadOnlyMemory<char> b)
+        internal static bool AreEqual(ReadOnlyMemory<char> a, ReadOnlyMemory<char> b)
+        => AreEqual(a.Span, b.Span);
+
+        internal static unsafe bool AreEqual(ReadOnlySpan<char> a, ReadOnlySpan<char> b)
         {
             var aLen = a.Length;
             var bLen = b.Length;
             if (aLen != bLen) return false;
 
-            using (var aPin = a.Pin())
-            using (var bPin = b.Pin())
+            fixed (char* aPin = a)
+            fixed (char* bPin = b)
             {
-                return AreEqual(aLen, aPin.Pointer, bPin.Pointer);
+                return AreEqual(aLen, aPin, bPin);
             }
         }
 

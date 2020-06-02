@@ -156,12 +156,12 @@ namespace Cesil
             }
 
             // can't distinguish between the start of a value and an empty value
-            if (ValueSeparator.Length == 1 && ValueSeparator[0] == EscapedValueStartAndEnd)
+            if (ValueSeparator[0] == EscapedValueStartAndEnd)
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(ValueSeparator)} cannot equal {nameof(EscapedValueStartAndEnd)}, both are '{ValueSeparator}'");
             }
             // can't distinguish between the start of a comment and an empty value
-            if (ValueSeparator.Length == 1 && ValueSeparator[0] == CommentCharacter)
+            if (ValueSeparator[0] == CommentCharacter)
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(ValueSeparator)} cannot equal {nameof(CommentCharacter)}, both are '{ValueSeparator}'");
             }
@@ -273,6 +273,11 @@ namespace Cesil
                 return Throw.ArgumentException<OptionsBuilder>($"{nameof(valueSeparator)} cannot be empty", nameof(valueSeparator));
             }
 
+            return WithValueSeparatorInternal(valueSeparator);
+        }
+
+        internal OptionsBuilder WithValueSeparatorInternal(string valueSeparator)
+        {
             ValueSeparator = valueSeparator;
             return this;
         }
