@@ -255,6 +255,22 @@ namespace Cesil
                 }
             }
 
+            // ValueSeparator can't be the same as the expected row ending
+            var valSepFirstChar = ValueSeparator[0];
+            var valSepIsCR = valSepFirstChar == '\r';
+            var valSepIsLF = valSepFirstChar == '\n';
+            var valSepIsRowEnding = valSepIsCR || valSepIsLF;
+
+            var valueSeparatorMatchesRowEnding =
+                (RowEnding == RowEnding.CarriageReturn && valSepIsCR) ||
+                (RowEnding == RowEnding.CarriageReturnLineFeed && valSepIsCR) ||    // only the first character matters, so valSepIsCR is what we want here
+                (RowEnding == RowEnding.LineFeed && valSepIsLF) ||
+                (RowEnding == RowEnding.Detect && valSepIsRowEnding);
+            if (valueSeparatorMatchesRowEnding)
+            {
+                return Throw.InvalidOperationException<Options>($"{nameof(ValueSeparator)} cannot match the expected (or potential for {nameof(RowEnding.Detect)}) {nameof(RowEnding)}");
+            }
+
             return BuildInternal();
         }
 

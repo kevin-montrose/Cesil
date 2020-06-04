@@ -594,6 +594,78 @@ namespace Cesil.Tests
                         .WithEscapedValueEscapeCharacter('\\')
                         .ToOptions()
             );
+
+            // \r clashing
+            {
+                Options.CreateBuilder(Options.Default).WithValueSeparator("\r").WithRowEnding(RowEnding.LineFeed).ToOptions();
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\r")
+                            .WithRowEnding(RowEnding.CarriageReturn)
+                            .ToOptions()
+                );
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\r")
+                            .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                            .ToOptions()
+                );
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\r")
+                            .WithRowEnding(RowEnding.Detect)
+                            .ToOptions()
+                );
+            }
+
+            // \n clashing
+            {
+                Options.CreateBuilder(Options.Default).WithValueSeparator("\n").WithRowEnding(RowEnding.CarriageReturn).ToOptions();
+                Options.CreateBuilder(Options.Default).WithValueSeparator("\n").WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\n")
+                            .WithRowEnding(RowEnding.LineFeed)
+                            .ToOptions()
+                );
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\n")
+                            .WithRowEnding(RowEnding.Detect)
+                            .ToOptions()
+                );
+            }
+
+            // \r\n clashing
+            {
+                Options.CreateBuilder(Options.Default).WithValueSeparator("\n").WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\r\n")
+                            .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                            .ToOptions()
+                );
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\r")
+                            .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                            .ToOptions()
+                );
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\r\n")
+                            .WithRowEnding(RowEnding.Detect)
+                            .ToOptions()
+                );
+            }
         }
 
         private class _BadCreateCalls
