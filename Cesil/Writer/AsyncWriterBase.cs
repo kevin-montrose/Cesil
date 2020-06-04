@@ -26,7 +26,7 @@ namespace Cesil
             Inner = inner;
         }
 
-        public ValueTask WriteAllAsync(IEnumerable<T> rows, CancellationToken cancel = default)
+        public ValueTask<int> WriteAllAsync(IEnumerable<T> rows, CancellationToken cancel = default)
         {
             AssertNotDisposed(this);
 
@@ -55,10 +55,10 @@ namespace Cesil
                 }
             }
 
-            return default;
+            return new ValueTask<int>(RowNumber);
 
             // waits for write to finish, then completes asynchronously
-            static async ValueTask WriteAllAsync_CompleteAsync(AsyncWriterBase<T> self, ValueTask waitFor, IEnumerator<T> e, CancellationToken cancel)
+            static async ValueTask<int> WriteAllAsync_CompleteAsync(AsyncWriterBase<T> self, ValueTask waitFor, IEnumerator<T> e, CancellationToken cancel)
             {
                 try
                 {
@@ -78,16 +78,18 @@ namespace Cesil
                 {
                     e.Dispose();
                 }
+
+                return self.RowNumber;
             }
         }
 
-        public ValueTask WriteAllAsync(IAsyncEnumerable<T> rows, CancellationToken cancel = default)
+        public ValueTask<int> WriteAllAsync(IAsyncEnumerable<T> rows, CancellationToken cancel = default)
         {
             AssertNotDisposed(this);
 
             Utils.CheckArgumentNull(rows, nameof(rows));
 
-            ValueTask ret = default;
+            ValueTask cleanupTask = default;
 
             var e = rows.GetAsyncEnumerator(cancel);
             var disposeE = true;
@@ -126,23 +128,31 @@ namespace Cesil
                     if (!disposeTask.IsCompletedSuccessfully(this))
                     {
 #pragma warning disable IDE0059 // This actually matters, but the compiler likes to say it's unnecessary
-                        ret = disposeTask;
+                        cleanupTask = disposeTask;
 #pragma warning restore IDE0059
                     }
                 }
             }
 
-            return ret;
+            if(!cleanupTask.IsCompletedSuccessfully(this))
+            {
+                return WriteAllAsync_ContinueAfterCleanupAsync(this, cleanupTask);
+            }
+
+            return new ValueTask<int>(RowNumber);
 
             // wait for a move next to complete, then continue asynchronously
-            static async ValueTask WriteAllAsync_ContinueAfterNextAsync(AsyncWriterBase<T> self, ValueTask<bool> waitFor, IAsyncEnumerator<T> e, CancellationToken cancel)
+            static async ValueTask<int> WriteAllAsync_ContinueAfterNextAsync(AsyncWriterBase<T> self, ValueTask<bool> waitFor, IAsyncEnumerator<T> e, CancellationToken cancel)
             {
                 try
                 {
                     var res = await ConfigureCancellableAwait(self, waitFor, cancel);
                     CheckCancellation(self, cancel);
 
-                    if (!res) return;
+                    if (!res)
+                    {
+                        return self.RowNumber;
+                    }
 
                     var row = e.Current;
                     var writeAsyncTask = self.WriteAsync(row, cancel);
@@ -163,10 +173,12 @@ namespace Cesil
                     await ConfigureCancellableAwait(self, disposeTask, cancel);
                     CheckCancellation(self, cancel);
                 }
+
+                return self.RowNumber;
             }
 
             // wait for a write to complete, then continue asynchronously
-            static async ValueTask WriteAllAsync_ContinueAfterWriteAsync(AsyncWriterBase<T> self, ValueTask waitFor, IAsyncEnumerator<T> e, CancellationToken cancel)
+            static async ValueTask<int> WriteAllAsync_ContinueAfterWriteAsync(AsyncWriterBase<T> self, ValueTask waitFor, IAsyncEnumerator<T> e, CancellationToken cancel)
             {
                 try
                 {
@@ -187,6 +199,16 @@ namespace Cesil
                     await ConfigureCancellableAwait(self, disposeTask, cancel);
                     CheckCancellation(self, cancel);
                 }
+
+                return self.RowNumber;
+            }
+
+            // wait for the given task to finish, then return a row count
+            static async ValueTask<int> WriteAllAsync_ContinueAfterCleanupAsync(AsyncWriterBase<T> self, ValueTask waitFor)
+            {
+                await waitFor;
+
+                return self.RowNumber;
             }
         }
 
