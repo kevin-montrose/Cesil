@@ -143,7 +143,7 @@ namespace Cesil
 
             if (!cleanupTask.IsCompletedSuccessfully(this))
             {
-                return WriteAllAsync_ContinueAfterCleanupAsync(this, cleanupTask, oldRowNumber);
+                return WriteAllAsync_ContinueAfterCleanupAsync(this, cleanupTask, oldRowNumber, cancel);
             }
 
             var ret = RowNumber - oldRowNumber;
@@ -217,9 +217,9 @@ namespace Cesil
             }
 
             // wait for the given task to finish, then return a row count
-            static async ValueTask<int> WriteAllAsync_ContinueAfterCleanupAsync(AsyncWriterBase<T> self, ValueTask waitFor, int oldRowNumber)
+            static async ValueTask<int> WriteAllAsync_ContinueAfterCleanupAsync(AsyncWriterBase<T> self, ValueTask waitFor, int oldRowNumber, CancellationToken cancel)
             {
-                await waitFor;
+                await ConfigureCancellableAwait(self, waitFor, cancel);
 
                 var ret = self.RowNumber - oldRowNumber;
 
