@@ -32,6 +32,8 @@ namespace Cesil
 
             Utils.CheckArgumentNull(rows, nameof(rows));
 
+            var oldRowNumber = RowNumber;
+
             var e = rows.GetEnumerator();
             var disposeE = true;
             try
@@ -43,7 +45,7 @@ namespace Cesil
                     if (!writeTask.IsCompletedSuccessfully(this))
                     {
                         disposeE = false;
-                        return WriteAllAsync_CompleteAsync(this, writeTask, e, cancel);
+                        return WriteAllAsync_CompleteAsync(this, writeTask, oldRowNumber, e, cancel);
                     }
                 }
             }
@@ -55,10 +57,11 @@ namespace Cesil
                 }
             }
 
-            return new ValueTask<int>(RowNumber);
+            var ret = RowNumber - oldRowNumber;
+            return new ValueTask<int>(ret);
 
             // waits for write to finish, then completes asynchronously
-            static async ValueTask<int> WriteAllAsync_CompleteAsync(AsyncWriterBase<T> self, ValueTask waitFor, IEnumerator<T> e, CancellationToken cancel)
+            static async ValueTask<int> WriteAllAsync_CompleteAsync(AsyncWriterBase<T> self, ValueTask waitFor, int oldRowNumber, IEnumerator<T> e, CancellationToken cancel)
             {
                 try
                 {
@@ -79,7 +82,9 @@ namespace Cesil
                     e.Dispose();
                 }
 
-                return self.RowNumber;
+                var ret = self.RowNumber - oldRowNumber;
+
+                return ret;
             }
         }
 
@@ -91,6 +96,8 @@ namespace Cesil
 
             ValueTask cleanupTask = default;
 
+            var oldRowNumber = RowNumber;
+
             var e = rows.GetAsyncEnumerator(cancel);
             var disposeE = true;
             try
@@ -101,7 +108,7 @@ namespace Cesil
                     if (!nextTask.IsCompletedSuccessfully(this))
                     {
                         disposeE = false;
-                        return WriteAllAsync_ContinueAfterNextAsync(this, nextTask, e, cancel);
+                        return WriteAllAsync_ContinueAfterNextAsync(this, nextTask, oldRowNumber, e, cancel);
                     }
 
                     var res = nextTask.Result;
@@ -116,7 +123,7 @@ namespace Cesil
                     if (!writeTask.IsCompletedSuccessfully(this))
                     {
                         disposeE = false;
-                        return WriteAllAsync_ContinueAfterWriteAsync(this, writeTask, e, cancel);
+                        return WriteAllAsync_ContinueAfterWriteAsync(this, writeTask, oldRowNumber, e, cancel);
                     }
                 }
             }
@@ -134,15 +141,17 @@ namespace Cesil
                 }
             }
 
-            if(!cleanupTask.IsCompletedSuccessfully(this))
+            if (!cleanupTask.IsCompletedSuccessfully(this))
             {
-                return WriteAllAsync_ContinueAfterCleanupAsync(this, cleanupTask);
+                return WriteAllAsync_ContinueAfterCleanupAsync(this, cleanupTask, oldRowNumber);
             }
 
-            return new ValueTask<int>(RowNumber);
+            var ret = RowNumber - oldRowNumber;
+
+            return new ValueTask<int>(ret);
 
             // wait for a move next to complete, then continue asynchronously
-            static async ValueTask<int> WriteAllAsync_ContinueAfterNextAsync(AsyncWriterBase<T> self, ValueTask<bool> waitFor, IAsyncEnumerator<T> e, CancellationToken cancel)
+            static async ValueTask<int> WriteAllAsync_ContinueAfterNextAsync(AsyncWriterBase<T> self, ValueTask<bool> waitFor, int oldRowNumber, IAsyncEnumerator<T> e, CancellationToken cancel)
             {
                 try
                 {
@@ -174,11 +183,13 @@ namespace Cesil
                     CheckCancellation(self, cancel);
                 }
 
-                return self.RowNumber;
+                var ret = self.RowNumber - oldRowNumber;
+
+                return ret;
             }
 
             // wait for a write to complete, then continue asynchronously
-            static async ValueTask<int> WriteAllAsync_ContinueAfterWriteAsync(AsyncWriterBase<T> self, ValueTask waitFor, IAsyncEnumerator<T> e, CancellationToken cancel)
+            static async ValueTask<int> WriteAllAsync_ContinueAfterWriteAsync(AsyncWriterBase<T> self, ValueTask waitFor, int oldRowNumber, IAsyncEnumerator<T> e, CancellationToken cancel)
             {
                 try
                 {
@@ -200,15 +211,19 @@ namespace Cesil
                     CheckCancellation(self, cancel);
                 }
 
-                return self.RowNumber;
+                var ret = self.RowNumber - oldRowNumber;
+
+                return ret;
             }
 
             // wait for the given task to finish, then return a row count
-            static async ValueTask<int> WriteAllAsync_ContinueAfterCleanupAsync(AsyncWriterBase<T> self, ValueTask waitFor)
+            static async ValueTask<int> WriteAllAsync_ContinueAfterCleanupAsync(AsyncWriterBase<T> self, ValueTask waitFor, int oldRowNumber)
             {
                 await waitFor;
 
-                return self.RowNumber;
+                var ret = self.RowNumber - oldRowNumber;
+
+                return ret;
             }
         }
 

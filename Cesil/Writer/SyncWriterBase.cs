@@ -25,6 +25,8 @@ namespace Cesil
             AssertNotDisposed(this);
             AssertNotPoisoned(Configuration);
 
+            var oldRowNumber = RowNumber;
+
             Utils.CheckArgumentNull(rows, nameof(rows));
 
             foreach (var row in rows)
@@ -32,7 +34,8 @@ namespace Cesil
                 WriteInner(row);
             }
 
-            return RowNumber;
+            var ret = RowNumber - oldRowNumber;
+            return ret;
         }
 
         public void Write(T row)
