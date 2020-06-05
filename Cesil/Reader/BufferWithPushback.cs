@@ -72,7 +72,7 @@ namespace Cesil
             return reader.Read(Buffer.Span);
         }
 
-        internal ValueTask<int> ReadAsync(IAsyncReaderAdapter reader, CancellationToken cancel)
+        internal ValueTask<int> ReadAsync(IAsyncReaderAdapter reader, CancellationToken cancellationToken)
         {
             if (InPushBack > 0)
             {
@@ -82,7 +82,7 @@ namespace Cesil
                 return new ValueTask<int>(ret);
             }
 
-            return reader.ReadAsync(Buffer, cancel);
+            return reader.ReadAsync(Buffer, cancellationToken);
         }
 
         internal void PushBackFromBuffer(int readCount, int pushBackCount)

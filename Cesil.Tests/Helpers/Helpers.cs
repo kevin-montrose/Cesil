@@ -324,7 +324,7 @@ namespace Cesil.Tests
                 }
             }
 
-            public async ValueTask<int> ReadAsync(Memory<char> into, CancellationToken cancel)
+            public async ValueTask<int> ReadAsync(Memory<char> into, CancellationToken cancellationToken)
             {
                 WaitingForUnpin = true;
                 var gotIt = await Semaphore.WaitAsync(TimeSpan.FromSeconds(1));
@@ -333,7 +333,7 @@ namespace Cesil.Tests
                     throw new Exception("Did not observe unpin in time, probably held a pin over an await");
                 }
 
-                return await Inner.ReadAsync(into, cancel);
+                return await Inner.ReadAsync(into, cancellationToken);
             }
         }
 

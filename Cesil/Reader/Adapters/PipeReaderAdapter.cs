@@ -19,7 +19,7 @@ namespace Cesil
             Inner = reader;
         }
 
-        public ValueTask<int> ReadAsync(Memory<char> into, CancellationToken cancel)
+        public ValueTask<int> ReadAsync(Memory<char> into, CancellationToken cancellationToken)
         {
             AssertNotDisposedInternal(this);
 
@@ -30,10 +30,10 @@ namespace Cesil
 
 tryAgain:
 
-            var readTask = Inner.ReadAsync(cancel);
+            var readTask = Inner.ReadAsync(cancellationToken);
             if (!readTask.IsCompletedSuccessfully(this))
             {
-                return ReadAsync_ContinueAfterReadAsync(this, readTask, into, cancel);
+                return ReadAsync_ContinueAfterReadAsync(this, readTask, into, cancellationToken);
             }
 
             var res = readTask.Result;
@@ -49,10 +49,10 @@ tryAgain:
             return new ValueTask<int>(handled);
 
             // continue after a ReadAsync call completes
-            static async ValueTask<int> ReadAsync_ContinueAfterReadAsync(PipeReaderAdapter self, ValueTask<ReadResult> waitFor, Memory<char> into, CancellationToken cancel)
+            static async ValueTask<int> ReadAsync_ContinueAfterReadAsync(PipeReaderAdapter self, ValueTask<ReadResult> waitFor, Memory<char> into, CancellationToken cancellationToken)
             {
 tryAgainAsync:
-                var res = await ConfigureCancellableAwait(self, waitFor, cancel);
+                var res = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
 
                 var handled = self.MapByteSequenceToChar(res, into);
 
@@ -60,7 +60,7 @@ tryAgainAsync:
                 //    incorrectly signal that the writer has finished
                 if (handled == 0 && !self.IsComplete)
                 {
-                    waitFor = self.Inner.ReadAsync(cancel);
+                    waitFor = self.Inner.ReadAsync(cancellationToken);
                     goto tryAgainAsync;
                 }
 
