@@ -53,34 +53,44 @@ namespace Cesil
             }
         }
 
-        public override void WriteComment(string comment)
+        public override void WriteComment(ReadOnlySpan<char> comment)
         {
             AssertNotDisposed(this);
             AssertNotPoisoned(Configuration);
 
-            Utils.CheckArgumentNull(comment, nameof(comment));
-
             try
             {
-
                 WriteHeadersAndEndRowIfNeeded();
 
-                var (commentChar, segments) = SplitCommentIntoLines(comment);
+                var options = Configuration.Options;
+                var commentCharNullable = options.CommentCharacter;
 
-                if (segments.IsSingleSegment)
+                if (commentCharNullable == null)
                 {
+                    Throw.InvalidOperationException<object>($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
+                    return;
+                }
+
+                var commentChar = commentCharNullable.Value;
+                var rowEndingSpan = Configuration.RowEndingMemory.Span;
+
+                var splitIx = Utils.FindNextIx(0, comment, rowEndingSpan);
+                if (splitIx == -1)
+                {
+                    // single segment
                     PlaceCharInStaging(commentChar);
-                    var segSpan = segments.First.Span;
-                    if (segSpan.Length > 0)
+                    if (comment.Length > 0)
                     {
-                        PlaceAllInStaging(segSpan);
+                        PlaceAllInStaging(comment);
                     }
                 }
                 else
                 {
-                    // we know we can write directly now
+                    // multi segment
+                    var prevIx = 0;
+
                     var isFirstRow = true;
-                    foreach (var seg in segments)
+                    while (splitIx != -1)
                     {
                         if (!isFirstRow)
                         {
@@ -88,12 +98,28 @@ namespace Cesil
                         }
 
                         PlaceCharInStaging(commentChar);
-                        var segSpan = seg.Span;
+                        var segSpan = comment[prevIx..splitIx];
                         if (segSpan.Length > 0)
                         {
                             PlaceAllInStaging(segSpan);
                         }
+
+                        prevIx = splitIx + rowEndingSpan.Length;
+                        splitIx = Utils.FindNextIx(prevIx, comment, rowEndingSpan);
+
                         isFirstRow = false;
+                    }
+
+                    if (prevIx != comment.Length)
+                    {
+                        if (!isFirstRow)
+                        {
+                            EndRecord();
+                        }
+
+                        PlaceCharInStaging(commentChar);
+                        var segSpan = comment[prevIx..];
+                        PlaceAllInStaging(segSpan);
                     }
                 }
             }

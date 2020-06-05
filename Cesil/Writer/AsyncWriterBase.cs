@@ -615,7 +615,14 @@ namespace Cesil
 
         public abstract ValueTask WriteAsync(T row, CancellationToken cancel = default);
 
-        public abstract ValueTask WriteCommentAsync(string comment, CancellationToken cancel = default);
+        public ValueTask WriteCommentAsync(string comment, CancellationToken cancel = default)
+        {
+            Utils.CheckArgumentNull(comment, nameof(comment));
+
+            return WriteCommentAsync(comment.AsMemory(), cancel);
+        }
+
+        public abstract ValueTask WriteCommentAsync(ReadOnlyMemory<char> comment, CancellationToken cancel = default);
 
         public abstract ValueTask DisposeAsync();
     }

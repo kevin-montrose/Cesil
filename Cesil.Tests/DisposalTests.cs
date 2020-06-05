@@ -941,11 +941,19 @@ namespace Cesil.Tests
                 }
 
 
-                // WriteComment
+                // WriteComment(string)
                 {
                     var w = MakeWriter();
                     w.Dispose();
                     Assert.Throws<ObjectDisposedException>(() => w.WriteComment("foo"));
+                    testCases++;
+                }
+
+                // WriteComment(ReadOnlySpan)
+                {
+                    var w = MakeWriter();
+                    w.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => w.WriteComment("foo".AsSpan()));
                     testCases++;
                 }
 
@@ -1635,11 +1643,19 @@ namespace Cesil.Tests
                     testCases++;
                 }
 
-                // WriteComment
+                // WriteComment(string)
                 {
                     var w = MakeWriter();
                     w.Dispose();
                     Assert.Throws<ObjectDisposedException>(() => w.WriteComment("foo"));
+                    testCases++;
+                }
+
+                // WriteComment(ReadOnlySpan)
+                {
+                    var w = MakeWriter();
+                    w.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => w.WriteComment("foo".AsSpan()));
                     testCases++;
                 }
 
@@ -2182,11 +2198,19 @@ namespace Cesil.Tests
                     testCases++;
                 }
 
-                // WriteCommentAsync
+                // WriteCommentAsync(string)
                 {
                     var w = MakeWriter();
                     await w.DisposeAsync();
                     Assert.Throws<ObjectDisposedException>(() => w.WriteCommentAsync(""));
+                    testCases++;
+                }
+
+                // WriteCommentAsync(ReadOnlyMemory)
+                {
+                    var w = MakeWriter();
+                    await w.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => w.WriteCommentAsync("".AsMemory()));
                     testCases++;
                 }
 
@@ -2334,11 +2358,19 @@ namespace Cesil.Tests
                     testCases++;
                 }
 
-                // WriteCommentAsync
+                // WriteCommentAsync(string)
                 {
                     var w = MakeWriter();
                     await w.DisposeAsync();
                     Assert.Throws<ObjectDisposedException>(() => w.WriteCommentAsync(""));
+                    testCases++;
+                }
+
+                // WriteCommentAsync(ReadOnlyMemory)
+                {
+                    var w = MakeWriter();
+                    await w.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => w.WriteCommentAsync("".AsMemory()));
                     testCases++;
                 }
 

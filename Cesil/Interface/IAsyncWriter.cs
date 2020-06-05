@@ -47,5 +47,18 @@ namespace Cesil
         /// if the underlying sink does not complete immediately.
         /// </summary>
         ValueTask WriteCommentAsync(string comment, CancellationToken cancel = default);
+
+        /// <summary>
+        /// Write a comment as a row.
+        /// 
+        /// Only supported if this IWriter's configuration has a way to indicate comments.
+        /// 
+        /// If the comment contains the row ending character sequence, it will be written as multiple
+        /// comment lines.
+        /// 
+        /// Will complete synchronously if possible, but will not block
+        /// if the underlying sink does not complete immediately.
+        /// </summary>
+        ValueTask WriteCommentAsync(ReadOnlyMemory<char> comment, CancellationToken cancel = default);
     }
 }

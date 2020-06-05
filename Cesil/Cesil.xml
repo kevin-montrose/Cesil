@@ -1588,6 +1588,19 @@
             if the underlying sink does not complete immediately.
             </summary>
         </member>
+        <member name="M:Cesil.IAsyncWriter`1.WriteCommentAsync(System.ReadOnlyMemory{System.Char},System.Threading.CancellationToken)">
+            <summary>
+            Write a comment as a row.
+            
+            Only supported if this IWriter's configuration has a way to indicate comments.
+            
+            If the comment contains the row ending character sequence, it will be written as multiple
+            comment lines.
+            
+            Will complete synchronously if possible, but will not block
+            if the underlying sink does not complete immediately.
+            </summary>
+        </member>
         <member name="T:Cesil.ImpossibleException">
             <summary>
             An exception that should never happen.
@@ -1685,6 +1698,16 @@
             </summary>
         </member>
         <member name="M:Cesil.IWriter`1.WriteComment(System.String)">
+            <summary>
+            Write a comment as a row.
+            
+            Only supported if this IWriter's configuration has a way to indicate comments.
+            
+            If the comment contains the row ending character sequence, it will be written as multiple
+            comment lines.
+            </summary>
+        </member>
+        <member name="M:Cesil.IWriter`1.WriteComment(System.ReadOnlySpan{System.Char})">
             <summary>
             Write a comment as a row.
             
