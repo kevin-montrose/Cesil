@@ -13,7 +13,7 @@ namespace Cesil
         private const int AVX_REGISTER_VALUES = 5;
         private const int CHARS_PER_VECTOR = 256 / (sizeof(char) * 8);
 
-        private const int END_OF_PROBILITY_MAP = PROBABILITY_MAP_SIZE * sizeof(short);
+        private const int END_OF_PROBABILITY_MAP = PROBABILITY_MAP_SIZE * sizeof(short);
 
         // array for initializing a vector mask
         //
@@ -43,18 +43,18 @@ namespace Cesil
         [FieldOffset(8)]
         internal fixed short MAP[PROBABILITY_MAP_SIZE];
 
-        [FieldOffset(8 + END_OF_PROBILITY_MAP)]
+        [FieldOffset(8 + PROBABILITY_MAP_SIZE)]
         private readonly short FirstChar;
 
-        [FieldOffset(8 + END_OF_PROBILITY_MAP + sizeof(short) * 1)]
+        [FieldOffset(8 + PROBABILITY_MAP_SIZE + sizeof(short) * 1)]
         private readonly short SecondChar;
 
-        [FieldOffset(8 + END_OF_PROBILITY_MAP + sizeof(short) * 2)]
+        [FieldOffset(8 + PROBABILITY_MAP_SIZE + sizeof(short) * 2)]
         private readonly short ThirdChar;
 
-        [FieldOffset(8 + END_OF_PROBILITY_MAP + sizeof(short) * 3)]
+        [FieldOffset(8 + PROBABILITY_MAP_SIZE + sizeof(short) * 3)]
         private readonly short Char2Mask;
-        [FieldOffset(8 + END_OF_PROBILITY_MAP + sizeof(short) * 4)]
+        [FieldOffset(8 + PROBABILITY_MAP_SIZE + sizeof(short) * 4)]
         private readonly short Char3Mask;
 
         internal NeedsEncodeHelper(string sep, char? c2, char? c3)
