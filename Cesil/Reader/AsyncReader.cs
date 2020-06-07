@@ -65,10 +65,11 @@ namespace Cesil
 
             try
             {
+                var madeProgress = true;
                 while (true)
                 {
                     PreparingToWriteToBuffer();
-                    var availableTask = Buffer.ReadAsync(Inner, cancel);
+                    var availableTask = Buffer.ReadAsync(Inner, madeProgress, cancel);
                     if (!availableTask.IsCompletedSuccessfully(this))
                     {
 
@@ -91,7 +92,7 @@ namespace Cesil
                         StartRow();
                     }
 
-                    var res = AdvanceWork(available);
+                    var res = AdvanceWork(available, out madeProgress);
                     var possibleReturn = HandleAdvanceResult(res, returnComments, ending: false);
                     if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
@@ -114,6 +115,8 @@ namespace Cesil
                 {
                     using (handle)
                     {
+                        bool madeProgress;
+
                         // finish this loop up
                         {
                             int available;
@@ -134,7 +137,7 @@ namespace Cesil
                                 self.StartRow();
                             }
 
-                            var res = self.AdvanceWork(available);
+                            var res = self.AdvanceWork(available, out madeProgress);
                             var possibleReturn = self.HandleAdvanceResult(res, returnComments, ending: false);
                             if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                             {
@@ -146,7 +149,7 @@ namespace Cesil
                         while (true)
                         {
                             self.PreparingToWriteToBuffer();
-                            var availableTask = self.Buffer.ReadAsync(self.Inner, cancel);
+                            var availableTask = self.Buffer.ReadAsync(self.Inner, madeProgress, cancel);
                             int available;
                             self.StateMachine.ReleasePinForAsync(availableTask);
                             {
@@ -165,7 +168,7 @@ namespace Cesil
                                 self.StartRow();
                             }
 
-                            var res = self.AdvanceWork(available);
+                            var res = self.AdvanceWork(available, out madeProgress);
                             var possibleReturn = self.HandleAdvanceResult(res, returnComments, ending: false);
                             if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                             {
@@ -195,7 +198,7 @@ namespace Cesil
             }
 
             var disposeDetector = true;
-            var detector = new RowEndingDetector(StateMachine, Configuration.Options, SharedCharacterLookup, Inner);
+            var detector = new RowEndingDetector(StateMachine, Configuration.Options, SharedCharacterLookup, Inner, Configuration.ValueSeparatorMemory);
             try
             {
                 var resTask = detector.DetectAsync(cancel);

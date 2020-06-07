@@ -228,16 +228,19 @@ tryAgain:
         private const int CHARS_PER_LONG = sizeof(long) / sizeof(char);
         private const int CHARS_PER_INT = sizeof(int) / sizeof(char);
 
-        internal static unsafe bool AreEqual(ReadOnlyMemory<char> a, ReadOnlyMemory<char> b)
+        internal static bool AreEqual(ReadOnlyMemory<char> a, ReadOnlyMemory<char> b)
+        => AreEqual(a.Span, b.Span);
+
+        internal static unsafe bool AreEqual(ReadOnlySpan<char> a, ReadOnlySpan<char> b)
         {
             var aLen = a.Length;
             var bLen = b.Length;
             if (aLen != bLen) return false;
 
-            using (var aPin = a.Pin())
-            using (var bPin = b.Pin())
+            fixed (char* aPin = a)
+            fixed (char* bPin = b)
             {
-                return AreEqual(aLen, aPin.Pointer, bPin.Pointer);
+                return AreEqual(aLen, aPin, bPin);
             }
         }
 
@@ -312,6 +315,50 @@ tryAgain:
             if (ret == -1) return -1;
 
             return ret + start;
+        }
+
+        internal static int Find(ReadOnlySpan<char> span, int start, string str)
+        {
+            if (str.Length == 1)
+            {
+                return FindChar(span, start, str[0]);
+            }
+
+            var c1 = str[0];
+
+            var subset = span.Slice(start);
+            var ix = 0;
+            while (true)
+            {
+                var nextIx = FindChar(subset, ix, c1);
+                if (nextIx == -1)
+                {
+                    return -1;
+                }
+
+                if (str.Length + nextIx > subset.Length)
+                {
+                    return -1;
+                }
+
+                var tryAgain = false;
+                for (var i = 1; i < str.Length; i++)
+                {
+                    if (str[i] != subset[nextIx + i])
+                    {
+                        ix = nextIx + i;
+                        tryAgain = true;
+                        break;
+                    }
+                }
+
+                if (tryAgain)
+                {
+                    continue;
+                }
+
+                return nextIx + start;
+            }
         }
 
         private static unsafe int FindChar(ReadOnlySpan<char> span, char c)
@@ -475,6 +522,31 @@ tryAgain:
                 var curSegEnd = curSegStart + cur.Length;
 
                 var inSeg = FindChar(cur.Span, c);
+                if (inSeg != -1)
+                {
+                    return curSegStart + inSeg;
+                }
+
+                curSegStart = curSegEnd;
+            }
+
+            return -1;
+        }
+
+        internal static int Find(ReadOnlySequence<char> head, string str)
+        {
+            if (head.IsSingleSegment)
+            {
+                return Find(head.First.Span, 0, str);
+            }
+
+            var curSegStart = 0;
+
+            foreach (var cur in head)
+            {
+                var curSegEnd = curSegStart + cur.Length;
+
+                var inSeg = Find(cur.Span, 0, str);
                 if (inSeg != -1)
                 {
                     return curSegStart + inSeg;

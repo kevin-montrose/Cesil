@@ -67,7 +67,7 @@ namespace Cesil
 
                 var options = Configuration.Options;
                 var typeDescriber = options.TypeDescriber;
-                var valueSeparator = options.ValueSeparator;
+                var valueSeparator = Configuration.ValueSeparatorMemory;
 
                 var writeHeadersTask = WriteHeadersAndEndRowIfNeededAsync(rowAsObj, cancel);
                 if (!writeHeadersTask.IsCompletedSuccessfully(this))
@@ -94,11 +94,11 @@ namespace Cesil
 
                         if (needsSeparator)
                         {
-                            var placeCharTask = PlaceCharInStagingAsync(valueSeparator, cancel);
-                            if (!placeCharTask.IsCompletedSuccessfully(this))
+                            var placeValueSepTask = PlaceInStagingAsync(valueSeparator, cancel);
+                            if (!placeValueSepTask.IsCompletedSuccessfully(this))
                             {
                                 disposeE = false;
-                                return WriteAsync_ContinueAfterPlaceCharAsync(this, placeCharTask, valueSeparator, cell, i, e, cancel);
+                                return WriteAsync_ContinueAfterPlaceCharAsync(this, placeValueSepTask, valueSeparator, cell, i, e, cancel);
                             }
                         }
 
@@ -161,7 +161,7 @@ end:
             }
 
             // continue after WriteHeadersAndRowIfNeededAsync completes
-            static async ValueTask WriteAsync_ContinueAfterWriteHeadersAsync(AsyncDynamicWriter self, ValueTask waitFor, dynamic row, ITypeDescriber typeDescriber, char valueSeparator, CancellationToken cancel)
+            static async ValueTask WriteAsync_ContinueAfterWriteHeadersAsync(AsyncDynamicWriter self, ValueTask waitFor, dynamic row, ITypeDescriber typeDescriber, ReadOnlyMemory<char> valueSeparator, CancellationToken cancel)
             {
                 try
                 {
@@ -182,7 +182,7 @@ end:
 
                         if (needsSeparator)
                         {
-                            var placeTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
+                            var placeTask = self.PlaceInStagingAsync(valueSeparator, cancel);
                             await ConfigureCancellableAwait(self, placeTask, cancel);
                             CheckCancellation(self, cancel);
                         }
@@ -235,7 +235,7 @@ end:
             }
 
             // continue after PlaceCharInStagingAsync completes
-            static async ValueTask WriteAsync_ContinueAfterPlaceCharAsync(AsyncDynamicWriter self, ValueTask waitFor, char valueSeparator, DynamicCellValue cell, int i, IEnumerator<DynamicCellValue> e, CancellationToken cancel)
+            static async ValueTask WriteAsync_ContinueAfterPlaceCharAsync(AsyncDynamicWriter self, ValueTask waitFor, ReadOnlyMemory<char> valueSeparator, DynamicCellValue cell, int i, IEnumerator<DynamicCellValue> e, CancellationToken cancel)
             {
                 try
                 {
@@ -296,7 +296,7 @@ end:
 
                             if (needsSeparator)
                             {
-                                var placeTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
+                                var placeTask = self.PlaceInStagingAsync(valueSeparator, cancel);
                                 await ConfigureCancellableAwait(self, placeTask, cancel);
                                 CheckCancellation(self, cancel);
                             }
@@ -354,11 +354,10 @@ end:
             }
 
             // continue after WriteValueAsync completes
-            static async ValueTask WriteAsync_ContinueAfterWriteValueAsync(AsyncDynamicWriter self, ValueTask waitFor, char valueSeparator, int i, IEnumerator<DynamicCellValue> e, CancellationToken cancel)
+            static async ValueTask WriteAsync_ContinueAfterWriteValueAsync(AsyncDynamicWriter self, ValueTask waitFor, ReadOnlyMemory<char> valueSeparator, int i, IEnumerator<DynamicCellValue> e, CancellationToken cancel)
             {
                 try
                 {
-
                     try
                     {
                         await ConfigureCancellableAwait(self, waitFor, cancel);
@@ -381,7 +380,7 @@ end:
 
                             if (needsSeparator)
                             {
-                                var placeTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
+                                var placeTask = self.PlaceInStagingAsync(valueSeparator, cancel);
                                 await ConfigureCancellableAwait(self, placeTask, cancel);
                                 CheckCancellation(self, cancel);
                             }
@@ -1231,7 +1230,7 @@ end:
 
         private ValueTask WriteHeadersAsync(CancellationToken cancel)
         {
-            var valueSeparator = Configuration.Options.ValueSeparator;
+            var valueSeparator = Configuration.ValueSeparatorMemory;
 
             var columnNamesValue = ColumnNames.Value;
             for (var i = 0; i < columnNamesValue.Length; i++)
@@ -1239,7 +1238,7 @@ end:
                 if (i != 0)
                 {
                     // first value doesn't get a separator
-                    var placeCharTask = PlaceCharInStagingAsync(valueSeparator, cancel);
+                    var placeCharTask = PlaceInStagingAsync(valueSeparator, cancel);
                     if (!placeCharTask.IsCompletedSuccessfully(this))
                     {
                         return WriteHeadersAsync_ContinueAfterStartOfForAsync(this, placeCharTask, valueSeparator, i, cancel);
@@ -1276,7 +1275,7 @@ end:
 
             // continue after a PlaceCharInStagingAsync or EndRecordAsync call
             //   we can share this because both branches go into the same next step
-            static async ValueTask WriteHeadersAsync_ContinueAfterStartOfForAsync(AsyncDynamicWriter self, ValueTask waitFor, char valueSeparator, int i, CancellationToken cancel)
+            static async ValueTask WriteHeadersAsync_ContinueAfterStartOfForAsync(AsyncDynamicWriter self, ValueTask waitFor, ReadOnlyMemory<char> valueSeparator, int i, CancellationToken cancel)
             {
                 await ConfigureCancellableAwait(self, waitFor, cancel);
                 CheckCancellation(self, cancel);
@@ -1299,7 +1298,7 @@ end:
                 for (; i < selfColumnNamesValue.Length; i++)
                 {
                     // by definition i != 0, so no need for the if
-                    var secondPlaceTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
+                    var secondPlaceTask = self.PlaceInStagingAsync(valueSeparator, cancel);
                     await ConfigureCancellableAwait(self, secondPlaceTask, cancel);
                     CheckCancellation(self, cancel);
 
@@ -1313,7 +1312,7 @@ end:
                 }
             }
 
-            static async ValueTask WriteHeadersAsync_ContinueAfterPlaceInStagingAsync(AsyncDynamicWriter self, ValueTask waitFor, char valueSeparator, int i, CancellationToken cancel)
+            static async ValueTask WriteHeadersAsync_ContinueAfterPlaceInStagingAsync(AsyncDynamicWriter self, ValueTask waitFor, ReadOnlyMemory<char> valueSeparator, int i, CancellationToken cancel)
             {
                 await ConfigureCancellableAwait(self, waitFor, cancel);
                 CheckCancellation(self, cancel);
@@ -1325,7 +1324,7 @@ end:
                 for (; i < selfColumnNamesValue.Length; i++)
                 {
                     // by definition i != 0, so no need for the if
-                    var placeTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
+                    var placeTask = self.PlaceInStagingAsync(valueSeparator, cancel);
                     await ConfigureCancellableAwait(self, placeTask, cancel);
                     CheckCancellation(self, cancel);
 

@@ -83,7 +83,7 @@ namespace Cesil
         internal AdvanceResult EndOfData()
         => AdvanceInner(CurrentState, CharacterType.DataEnd);
 
-        internal unsafe AdvanceResult Advance(char c)
+        internal unsafe AdvanceResult Advance(char c, bool knownNotValueSeparator)
         {
             var fromState = CurrentState;
 
@@ -98,8 +98,23 @@ namespace Cesil
                 cType = CharLookup[cOffset.Value];
             }
 
+            if(cType == CharacterType.MaybeValueSeparator)
+            {
+                if (!knownNotValueSeparator)
+                {
+                    return AdvanceResult.LookAhead_MultiCharacterSeparator;
+                }
+                else
+                {
+                    cType = CharacterType.Other;
+                }
+            }
+
             return AdvanceInner(fromState, cType);
         }
+
+        internal AdvanceResult AdvanceValueSeparator()
+        => AdvanceInner(CurrentState, CharacterType.ValueSeparator);
 
         // internal for testing purposes
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

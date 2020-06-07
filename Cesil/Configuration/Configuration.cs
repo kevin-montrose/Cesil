@@ -63,6 +63,10 @@ namespace Cesil
 
             var serializeColumns = CreateSerializeColumns(forType, options, serializeMembers);
 
+            char? escapeStartEnd = options.EscapedValueStartAndEnd;
+            var valueSep = options.ValueSeparator;
+            var startOfValSep = valueSep[0];
+
             // this is entirely knowable now, so go ahead and calculate
             //   and save for future use
             var needsEscape = new bool[serializeColumns.Length];
@@ -73,10 +77,37 @@ namespace Cesil
                 for (var j = 0; j < name.Length; j++)
                 {
                     var c = name[j];
-                    if (c == '\r' || c == '\n' || c == options.ValueSeparator || c == options.EscapedValueStartAndEnd)
+                    if (c == '\r' || c == '\n' || c == escapeStartEnd)
                     {
                         escape = true;
                         break;
+                    }
+
+                    if (c == startOfValSep)
+                    {
+                        var matchesSep = true;
+                        for (var k = 1; k < valueSep.Length; k++)
+                        {
+                            var nameCharIx = j + k;
+                            if (nameCharIx >= name.Length)
+                            {
+                                matchesSep = false;
+                                break;
+                            }
+
+                            var valSepChar = valueSep[k];
+                            if (valSepChar != name[nameCharIx])
+                            {
+                                matchesSep = false;
+                                break;
+                            }
+                        }
+
+                        if (matchesSep)
+                        {
+                            escape = true;
+                            break;
+                        }
                     }
                 }
 

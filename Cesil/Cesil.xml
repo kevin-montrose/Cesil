@@ -513,7 +513,7 @@
             by this builder.
             </summary>
         </member>
-        <member name="M:Cesil.OptionsBuilder.WithValueSeparator(System.Char)">
+        <member name="M:Cesil.OptionsBuilder.WithValueSeparator(System.String)">
             <summary>
             Set the character used to separate two values in a row.
             </summary>
@@ -1557,6 +1557,8 @@
             Will complete synchronously if possible, but will not block
             if all rows are not immediately available or if the underlying
             sink does not complete immediately.
+            
+            Returns the number of rows written.
             </summary>
         </member>
         <member name="M:Cesil.IAsyncWriter`1.WriteAllAsync(System.Collections.Generic.IEnumerable{`0},System.Threading.CancellationToken)">
@@ -1565,6 +1567,8 @@
             
             Will complete synchronously if possible, but will not block
             if the underlying sink does not complete immediately.
+            
+            Returns the number of rows written.
             </summary>
         </member>
         <member name="M:Cesil.IAsyncWriter`1.WriteAsync(`0,System.Threading.CancellationToken)">
@@ -1690,6 +1694,8 @@
         <member name="M:Cesil.IWriter`1.WriteAll(System.Collections.Generic.IEnumerable{`0})">
             <summary>
             Write all rows in the provided enumerable.
+            
+            Returns the number of rows written.
             </summary>
         </member>
         <member name="M:Cesil.IWriter`1.Write(`0)">

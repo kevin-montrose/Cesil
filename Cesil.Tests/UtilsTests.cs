@@ -612,5 +612,34 @@ namespace Cesil.Tests
 
             Assert.Equal(expected, ix);
         }
+
+        [Theory]
+        
+        [InlineData("hello", "world", -1)]
+        
+        [InlineData(",ello", ",", 0)]
+        [InlineData("h,llo", ",", 1)]
+        [InlineData("he,lo", ",", 2)]
+        [InlineData("hel,o", ",", 3)]
+        [InlineData("hell,", ",", 4)]
+
+        [InlineData("hello", "#*", -1)]
+        [InlineData("#ello", "#*", -1)]
+        [InlineData("*ello", "#*", -1)]
+        [InlineData("#*llo", "#*", 0)]
+        [InlineData("h#*lo", "#*", 1)]
+        [InlineData("he#*o", "#*", 2)]
+        [InlineData("hel#*", "#*", 3)]
+        [InlineData("hell#", "#*", -1)]
+
+        [InlineData("##*lo", "#*", 1)]
+        [InlineData("#e#*o", "#*", 2)]
+        [InlineData("#el#*", "#*", 3)]
+        [InlineData("#ell#", "#*", -1)]
+        public void Find(string txt, string needle, int expected)
+        {
+            var ix = Utils.Find(txt, 0, needle);
+            Assert.Equal(expected, ix);
+        }
     }
 }

@@ -181,7 +181,7 @@ namespace Cesil.Tests
             var cOpts =
                 Options.CreateBuilder(Options.Default)
                     .WithEscapedValueStartAndEnd(char.MinValue)
-                    .WithValueSeparator(char.MaxValue)
+                    .WithValueSeparator(char.MaxValue.ToString())
                     .WithEscapedValueEscapeCharacter('c')
                     .WithCommentCharacter('d')
                     .ToOptions();
@@ -189,7 +189,7 @@ namespace Cesil.Tests
             var dOpts =
                 Options.CreateBuilder(Options.Default)
                     .WithEscapedValueStartAndEnd('"')
-                    .WithValueSeparator(',')
+                    .WithValueSeparator(','.ToString())
                     .WithEscapedValueEscapeCharacter('"')
                     .WithCommentCharacter('#')
                     .ToOptions();
@@ -294,7 +294,7 @@ namespace Cesil.Tests
                                                                             .WithReadHeader(rh)
                                                                             .WithRowEnding(re)
                                                                             .WithTypeDescriber(typeDesc)
-                                                                            .WithValueSeparator(valSepChar)
+                                                                            .WithValueSeparator(valSepChar.ToString())
                                                                             .WithWriteBufferSizeHint(writeHint)
                                                                             .WithWriteHeader(wh)
                                                                             .WithWriteTrailingRowEnding(wt)
@@ -457,9 +457,15 @@ namespace Cesil.Tests
         [Fact]
         public void OptionsValidation()
         {
-            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithValueSeparator(',').WithEscapedValueStartAndEnd(',').ToOptions());
+            Assert.Throws<ArgumentNullException>(() => Options.CreateBuilder(Options.Default).WithValueSeparator(null));
+            Assert.Throws<ArgumentException>(() => Options.CreateBuilder(Options.Default).WithValueSeparator(""));
 
-            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithValueSeparator(',').WithCommentCharacter(',').ToOptions());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithValueSeparatorInternal(null).ToOptions());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithValueSeparatorInternal("").ToOptions());
+
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithValueSeparator(','.ToString()).WithEscapedValueStartAndEnd(',').ToOptions());
+
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithValueSeparator(','.ToString()).WithCommentCharacter(',').ToOptions());
 
             Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithEscapedValueStartAndEnd(',').WithCommentCharacter(',').ToOptions());
 
@@ -474,7 +480,7 @@ namespace Cesil.Tests
 
             Assert.Throws<InvalidOperationException>(
                 () =>
-                    Options.CreateBuilder().WithValueSeparator(',')
+                    Options.CreateBuilder().WithValueSeparator(','.ToString())
                     .WithRowEnding(RowEnding.CarriageReturnLineFeed)
                     .WithEscapedValueStartAndEnd('"')
                     .WithEscapedValueEscapeCharacter('"')
@@ -494,7 +500,7 @@ namespace Cesil.Tests
 
             Assert.Throws<InvalidOperationException>(
                 () =>
-                    Options.CreateBuilder().WithValueSeparator(',')
+                    Options.CreateBuilder().WithValueSeparator(','.ToString())
                     .WithRowEnding(RowEnding.CarriageReturnLineFeed)
                     .WithEscapedValueStartAndEnd('"')
                     .WithEscapedValueEscapeCharacter('"')
@@ -569,7 +575,7 @@ namespace Cesil.Tests
                () =>
                    Options.CreateBuilder(Options.Default)
                        .WithWhitespaceTreatmentInternal(WhitespaceTreatments.Trim)
-                       .WithValueSeparator(' ')
+                       .WithValueSeparator(' '.ToString())
                        .ToOptions()
            );
 
@@ -577,7 +583,7 @@ namespace Cesil.Tests
                () =>
                    Options.CreateBuilder(Options.Default)
                        .WithExtraColumnTreatmentInternal(0)
-                       .WithValueSeparator(' ')
+                       .WithValueSeparator(' '.ToString())
                        .ToOptions()
            );
 
@@ -588,6 +594,78 @@ namespace Cesil.Tests
                         .WithEscapedValueEscapeCharacter('\\')
                         .ToOptions()
             );
+
+            // \r clashing
+            {
+                Options.CreateBuilder(Options.Default).WithValueSeparator("\r").WithRowEnding(RowEnding.LineFeed).ToOptions();
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\r")
+                            .WithRowEnding(RowEnding.CarriageReturn)
+                            .ToOptions()
+                );
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\r")
+                            .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                            .ToOptions()
+                );
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\r")
+                            .WithRowEnding(RowEnding.Detect)
+                            .ToOptions()
+                );
+            }
+
+            // \n clashing
+            {
+                Options.CreateBuilder(Options.Default).WithValueSeparator("\n").WithRowEnding(RowEnding.CarriageReturn).ToOptions();
+                Options.CreateBuilder(Options.Default).WithValueSeparator("\n").WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\n")
+                            .WithRowEnding(RowEnding.LineFeed)
+                            .ToOptions()
+                );
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\n")
+                            .WithRowEnding(RowEnding.Detect)
+                            .ToOptions()
+                );
+            }
+
+            // \r\n clashing
+            {
+                Options.CreateBuilder(Options.Default).WithValueSeparator("\n").WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\r\n")
+                            .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                            .ToOptions()
+                );
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\r")
+                            .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                            .ToOptions()
+                );
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\r\n")
+                            .WithRowEnding(RowEnding.Detect)
+                            .ToOptions()
+                );
+            }
         }
 
         private class _BadCreateCalls
