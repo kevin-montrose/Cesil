@@ -3,9 +3,12 @@ using System.Buffers;
 using System.Threading;
 using System.Threading.Tasks;
 
+using static Cesil.AwaitHelper;
+
 namespace Cesil
 {
-    internal sealed class BufferWithPushback : ITestableDisposable
+    internal sealed class BufferWithPushback :
+        ITestableDisposable
     {
         private readonly MemoryPool<char> MemoryPool;
 
@@ -58,31 +61,62 @@ namespace Cesil
             PushBack = BackingOwner.Memory.Slice(halfPoint);
         }
 
-        internal int Read(IReaderAdapter reader)
+        internal int Read(IReaderAdapter reader, bool canBeServedFromPushback)
         {
             if (InPushBack > 0)
             {
-                PushBack.Slice(0, InPushBack).CopyTo(Buffer);
+                PushBack[..InPushBack].CopyTo(Buffer);
 
-                var ret = InPushBack;
+                var fromBuffer = InPushBack;
                 InPushBack = 0;
-                return ret;
+                if (canBeServedFromPushback)
+                {
+                    return fromBuffer;
+                }
+
+                var newBytes = reader.Read(Buffer.Span[fromBuffer..]);
+
+                return newBytes + fromBuffer;
             }
 
             return reader.Read(Buffer.Span);
         }
 
-        internal ValueTask<int> ReadAsync(IAsyncReaderAdapter reader, CancellationToken cancellationToken)
+        internal ValueTask<int> ReadAsync(IAsyncReaderAdapter reader, bool canBeServedFromPushback, CancellationToken cancellationToken)
         {
             if (InPushBack > 0)
             {
-                PushBack.Slice(0, InPushBack).CopyTo(Buffer);
-                var ret = InPushBack;
+                PushBack[..InPushBack].CopyTo(Buffer);
+                var fromBuffer = InPushBack;
                 InPushBack = 0;
-                return new ValueTask<int>(ret);
+
+                if (canBeServedFromPushback)
+                {
+                    return new ValueTask<int>(fromBuffer);
+                }
+
+                // this is _so_ trivial I'm intentionally not doing the ITestableAsyncProvider here
+                var readRes = reader.ReadAsync(Buffer[fromBuffer..], cancellationToken);
+                if (!readRes.IsCompletedSuccessfully)
+                {
+                    return ReadAsync_ContinueAfterReadAsync(this, readRes, fromBuffer, cancellationToken);
+                }
+
+                var newBytes = readRes.Result;
+
+                return new ValueTask<int>(newBytes + fromBuffer);
             }
 
             return reader.ReadAsync(Buffer, cancellationToken);
+
+            // wait for read to complete, then indicate total bytes available
+            static async ValueTask<int> ReadAsync_ContinueAfterReadAsync(BufferWithPushback self, ValueTask<int> waitFor, int fromBuffer, CancellationToken cancellationToken)
+            {
+                var newBytes = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
+                CheckCancellation(self, cancellationToken);
+
+                return newBytes + fromBuffer;
+            }
         }
 
         internal void PushBackFromBuffer(int readCount, int pushBackCount)

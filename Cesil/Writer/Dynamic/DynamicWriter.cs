@@ -61,6 +61,7 @@ namespace Cesil
                 var wholeRowContext = WriteContext.DiscoveringCells(Configuration.Options, RowNumber, Context);
 
                 var options = Configuration.Options;
+                var valueSeparator = Configuration.ValueSeparatorMemory.Span;
 
                 var cellValues = options.TypeDescriber.GetCellsForDynamicRow(in wholeRowContext, row as object);
                 cellValues = ForceInOrder(cellValues);
@@ -74,7 +75,7 @@ namespace Cesil
 
                     if (needsSeparator)
                     {
-                        PlaceCharInStaging(options.ValueSeparator);
+                        PlaceAllInStaging(valueSeparator);
                     }
 
                     ColumnIdentifier ci;
@@ -121,12 +122,10 @@ end:
             }
         }
 
-        public override void WriteComment(string comment)
+        public override void WriteComment(ReadOnlySpan<char> comment)
         {
             AssertNotDisposed(this);
             AssertNotPoisoned(Configuration);
-
-            Utils.CheckArgumentNull(comment, nameof(comment));
 
             try
             {
@@ -155,26 +154,67 @@ end:
                     EndRecord();
                 }
 
-                var (commentChar, segments) = SplitCommentIntoLines(comment);
+                var options = Configuration.Options;
+                var commentCharNullable = options.CommentCharacter;
 
-                // we know we can write directly now
-                var isFirstRow = true;
-                foreach (var seg in segments)
+                if (commentCharNullable == null)
                 {
-                    HasWrittenComments = true;
+                    Throw.InvalidOperationException<object>($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
+                    return;
+                }
 
-                    if (!isFirstRow)
-                    {
-                        EndRecord();
-                    }
+                HasWrittenComments = true;
 
+                var commentChar = commentCharNullable.Value;
+                var rowEndingSpan = Configuration.RowEndingMemory.Span;
+
+                var splitIx = Utils.FindNextIx(0, comment, rowEndingSpan);
+                if (splitIx == -1)
+                {
+                    // single segment
                     PlaceCharInStaging(commentChar);
-                    if (seg.Span.Length > 0)
+                    if (comment.Length > 0)
                     {
-                        PlaceAllInStaging(seg.Span);
+                        PlaceAllInStaging(comment);
+                    }
+                }
+                else
+                {
+                    // multi segment
+                    var prevIx = 0;
+
+                    var isFirstRow = true;
+                    while (splitIx != -1)
+                    {
+                        if (!isFirstRow)
+                        {
+                            EndRecord();
+                        }
+
+                        PlaceCharInStaging(commentChar);
+                        var segSpan = comment[prevIx..splitIx];
+                        if (segSpan.Length > 0)
+                        {
+                            PlaceAllInStaging(segSpan);
+                        }
+
+                        prevIx = splitIx + rowEndingSpan.Length;
+                        splitIx = Utils.FindNextIx(prevIx, comment, rowEndingSpan);
+
+                        isFirstRow = false;
                     }
 
-                    isFirstRow = false;
+                    if (prevIx != comment.Length)
+                    {
+                        if (!isFirstRow)
+                        {
+                            EndRecord();
+                        }
+
+                        PlaceCharInStaging(commentChar);
+                        var segSpan = comment[prevIx..];
+                        PlaceAllInStaging(segSpan);
+                    }
                 }
             }
             catch (Exception e)
@@ -317,13 +357,15 @@ end:
 
         private void WriteHeaders()
         {
+            var valueSeparator = Configuration.ValueSeparatorMemory.Span;
+
             var columnNamesValue = ColumnNames.Value;
             for (var i = 0; i < columnNamesValue.Length; i++)
             {
                 if (i != 0)
                 {
                     // first value doesn't get a separator
-                    PlaceCharInStaging(Configuration.Options.ValueSeparator);
+                    PlaceAllInStaging(valueSeparator);
                 }
                 else
                 {

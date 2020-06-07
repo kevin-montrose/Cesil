@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+
 using static Cesil.AwaitHelper;
 using static Cesil.DisposableHelper;
 
@@ -126,7 +127,7 @@ namespace Cesil
             => $"{nameof(HeaderEnumerator)} with {nameof(Count)}={Count}";
         }
 
-        private readonly IBoundConfiguration<T> Configuration;
+        private readonly BoundConfigurationBase<T> Configuration;
 
         private NonNull<IReaderAdapter> Inner;
         private NonNull<IAsyncReaderAdapter> InnerAsync;
@@ -233,9 +234,10 @@ namespace Cesil
         {
             using (StateMachine.Pin())
             {
+                var madeProgress = true;
                 while (true)
                 {
-                    var available = Buffer.Read(Inner.Value);
+                    var available = Buffer.Read(Inner.Value, madeProgress);
                     if (available == 0)
                     {
                         if (BuilderBacking.Length > 0)
@@ -250,7 +252,7 @@ namespace Cesil
                         AddToPushback(Buffer.Buffer.Span.Slice(0, available));
                     }
 
-                    if (AdvanceWork(available))
+                    if (AdvanceWork(available, out madeProgress))
                     {
                         break;
                     }
@@ -296,9 +298,10 @@ namespace Cesil
 
             try
             {
+                var madeProgress = true;
                 while (true)
                 {
-                    var availableTask = Buffer.ReadAsync(InnerAsync.Value, cancellationToken);
+                    var availableTask = Buffer.ReadAsync(InnerAsync.Value, madeProgress, cancellationToken);
                     if (!availableTask.IsCompletedSuccessfully(this))
                     {
                         disposeHandle = false;
@@ -320,7 +323,7 @@ namespace Cesil
                         AddToPushback(Buffer.Buffer.Span.Slice(0, available));
                     }
 
-                    if (AdvanceWork(available))
+                    if (AdvanceWork(available, out madeProgress))
                     {
                         break;
                     }
@@ -345,6 +348,8 @@ namespace Cesil
             {
                 using (handle)
                 {
+                    bool madeProgress;
+
                     int available;
                     self.StateMachine.ReleasePinForAsync(waitFor);
                     {
@@ -367,7 +372,7 @@ namespace Cesil
                         self.AddToPushback(self.Buffer.Buffer.Span.Slice(0, available));
                     }
 
-                    if (self.AdvanceWork(available))
+                    if (self.AdvanceWork(available, out madeProgress))
                     {
                         return self.IsHeaderResult();
                     }
@@ -375,7 +380,7 @@ namespace Cesil
                     // go back into the loop
                     while (true)
                     {
-                        var readTask = self.Buffer.ReadAsync(self.InnerAsync.Value, cancellationToken);
+                        var readTask = self.Buffer.ReadAsync(self.InnerAsync.Value, madeProgress, cancellationToken);
                         self.StateMachine.ReleasePinForAsync(readTask);
                         {
                             available = await ConfigureCancellableAwait(self, readTask, cancellationToken);
@@ -395,7 +400,7 @@ namespace Cesil
                             self.AddToPushback(self.Buffer.Buffer.Span.Slice(0, available));
                         }
 
-                        if (self.AdvanceWork(available))
+                        if (self.AdvanceWork(available, out madeProgress))
                         {
                             break;
                         }
@@ -432,7 +437,7 @@ finish:
             return (MakeEnumerator(), isHeader, PushBack.Slice(0, PushBackLength));
         }
 
-        private bool AdvanceWork(int numInBuffer)
+        private bool AdvanceWork(int numInBuffer, out bool madeProgress)
         {
             var res = ProcessBuffer(numInBuffer, out var pushBack);
             if (pushBack > 0)
@@ -440,6 +445,7 @@ finish:
                 Buffer.PushBackFromBuffer(numInBuffer, pushBack);
             }
 
+            madeProgress = pushBack != numInBuffer;
             return res;
         }
 
@@ -455,9 +461,52 @@ finish:
             {
                 var c = buffSpan[i];
 
-                var res = StateMachine.Advance(c);
+                var res = StateMachine.Advance(c, false);
+
+                var advanceIBy = 0;
 
                 System.Diagnostics.Debug.WriteLineIf(LogConstants.STATE_TRANSITION, $"{StateMachine.CurrentState} + {c} => {StateMachine.CurrentState } & {res}");
+
+                if (res == ReaderStateMachine.AdvanceResult.LookAhead_MultiCharacterSeparator)
+                {
+                    var valSepLen = Configuration.ValueSeparatorMemory.Length;
+
+                    // do we have enough in the buffer to look ahead?
+                    var canCheckForSeparator = bufferLen - i >= valSepLen;
+                    if (canCheckForSeparator)
+                    {
+                        var shouldMatch = buffSpan.Slice(i, valSepLen);
+                        var eq = Utils.AreEqual(shouldMatch, Configuration.ValueSeparatorMemory.Span);
+                        if (eq)
+                        {
+                            // treat it like a value separator
+                            res = StateMachine.AdvanceValueSeparator();
+                            // advance further to the last character in the separator
+                            advanceIBy = valSepLen - 1;
+                        }
+                        else
+                        {
+                            res = StateMachine.Advance(c, true);
+                        }
+                    }
+                    else
+                    {
+                        // we don't have enough in the buffer... so deal with any running batches and ask for more
+
+                        // we're batching appends, which we need to "commit" before moving on
+                        if (appendingSince != -1)
+                        {
+                            var toAppend = buffSpan[appendingSince..i];
+                            AddToBuilder(toAppend);
+
+                            appendingSince = -1;
+                        }
+
+                        // push anything we haven't gotten to back and ask for more in the buffer
+                        unprocessedCharacters = bufferLen - i;
+                        return false;
+                    }
+                }
 
                 if (res == ReaderStateMachine.AdvanceResult.Append_Character)
                 {
@@ -498,6 +547,15 @@ finish:
 
                     // case ReaderStateMachine.AdvanceResult.Append_CarriageReturn_And_Character is handled by
                     //      the above buffering logic
+
+                    case ReaderStateMachine.AdvanceResult.Append_ValueSeparator:
+                        AddToBuilder(Configuration.ValueSeparatorMemory.Span);
+                        break;
+
+                    case ReaderStateMachine.AdvanceResult.Append_CarriageReturnAndValueSeparator:
+                        AddToBuilder("\r");
+                        AddToBuilder(Configuration.ValueSeparatorMemory.Span);
+                        break;
 
                     case ReaderStateMachine.AdvanceResult.Finished_Unescaped_Value:
                         PushPendingCharactersToValue(false);
@@ -549,6 +607,8 @@ finish:
                         unprocessedCharacters = default;
                         return Throw.ImpossibleException<bool, T>($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {res}", Configuration);
                 }
+
+                i += advanceIBy;
             }
 
             if (appendingSince != -1)

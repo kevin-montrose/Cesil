@@ -227,35 +227,6 @@ namespace Cesil.Tests
             Assert.Equal(expected, trimmedStr);
         }
 
-        [Theory]
-        [InlineData("", "\r\n")]
-        [InlineData("hello\r\nworld", "\r\n")]
-        [InlineData("hello world", " ")]
-        [InlineData("hello_world__foo_+bar_+_+_+_+wooo_+", "_+")]
-        [InlineData("\r\n", "\r\n")]
-        [InlineData(" \r\n", "\r\n")]
-        [InlineData("\r\n ", "\r\n")]
-        [InlineData(" \r\n ", "\r\n")]
-        [InlineData("#", "#")]
-        [InlineData("#", "###")]
-        [InlineData("nothing to break on", "foo")]
-        public void Split(string haystack, string needle)
-        {
-            var shouldMatch = haystack.Split(needle, StringSplitOptions.RemoveEmptyEntries);
-
-            var actually = Utils.Split(haystack.AsMemory(), needle.AsMemory());
-            var actuallySegments = new List<string>();
-            foreach (var seq in actually)
-            {
-                if (seq.Length != 0)
-                {
-                    actuallySegments.Add(new string(seq.Span));
-                }
-            }
-
-            Assert.True(shouldMatch.SequenceEqual(actuallySegments));
-        }
-
         private class _Encode
         {
             public string Foo { get; set; }
@@ -639,6 +610,35 @@ namespace Cesil.Tests
             var config = (ConcreteBoundConfiguration<_FindNeedsEncode>)Configuration.For<_FindNeedsEncode>();
             var ix = Utils.FindNeedsEncode(seq, start, config);
 
+            Assert.Equal(expected, ix);
+        }
+
+        [Theory]
+        
+        [InlineData("hello", "world", -1)]
+        
+        [InlineData(",ello", ",", 0)]
+        [InlineData("h,llo", ",", 1)]
+        [InlineData("he,lo", ",", 2)]
+        [InlineData("hel,o", ",", 3)]
+        [InlineData("hell,", ",", 4)]
+
+        [InlineData("hello", "#*", -1)]
+        [InlineData("#ello", "#*", -1)]
+        [InlineData("*ello", "#*", -1)]
+        [InlineData("#*llo", "#*", 0)]
+        [InlineData("h#*lo", "#*", 1)]
+        [InlineData("he#*o", "#*", 2)]
+        [InlineData("hel#*", "#*", 3)]
+        [InlineData("hell#", "#*", -1)]
+
+        [InlineData("##*lo", "#*", 1)]
+        [InlineData("#e#*o", "#*", 2)]
+        [InlineData("#el#*", "#*", 3)]
+        [InlineData("#ell#", "#*", -1)]
+        public void Find(string txt, string needle, int expected)
+        {
+            var ix = Utils.Find(txt, 0, needle);
             Assert.Equal(expected, ix);
         }
     }

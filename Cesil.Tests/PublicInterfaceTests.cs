@@ -1941,8 +1941,7 @@ namespace Cesil.Tests
                     [typeof(object).GetTypeInfo()] = new[] { "obj", "context", "row", "value" },
                     [typeof(int).GetTypeInfo()] = new[] { "index", "sizeHint" },
                     [typeof(int?).GetTypeInfo()] = new[] { "sizeHint" },
-                    [typeof(string).GetTypeInfo()] = new[] { "name", "comment", "path", "data" },
-                    [typeof(char).GetTypeInfo()] = new[] { "valueSeparator" },
+                    [typeof(string).GetTypeInfo()] = new[] { "name", "comment", "path", "data", "valueSeparator" },
                     [typeof(char?).GetTypeInfo()] = new[] { "commentStart", "escapeStart", "escape" },
 
                     // system types
@@ -1957,7 +1956,8 @@ namespace Cesil.Tests
                     [typeof(TextReader).GetTypeInfo()] = new[] { "reader" },
                     [typeof(PipeReader).GetTypeInfo()] = new[] { "reader" },
                     [typeof(MemoryPool<char>).GetTypeInfo()] = new[] { "memoryPool" },
-                    [typeof(ReadOnlySpan<char>).GetTypeInfo()] = new[] { "data" },
+                    [typeof(ReadOnlySpan<char>).GetTypeInfo()] = new[] { "data", "comment" },
+                    [typeof(ReadOnlyMemory<char>).GetTypeInfo()] = new[] { "comment" },
                     [typeof(IEnumerable<dynamic>).GetTypeInfo()] = new[] { "rows" },
                     [typeof(IAsyncEnumerable<dynamic>).GetTypeInfo()] = new[] { "rows" },
 

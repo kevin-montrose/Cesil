@@ -158,118 +158,39 @@ namespace Cesil
             return toCheck.Value;
         }
 
-        // won't return empty entries
-        internal static ReadOnlySequence<char> Split(ReadOnlyMemory<char> str, ReadOnlyMemory<char> with)
+        internal static int FindNextIx(int startAt, ReadOnlyMemory<char> haystack, ReadOnlyMemory<char> needle)
+        => FindNextIx(startAt, haystack.Span, needle.Span);
+
+        internal static int FindNextIx(int startAt, ReadOnlySpan<char> haystack, ReadOnlySpan<char> needle)
         {
-            var strSpan = str.Span;
-            var withSpan = with.Span;
-
-            var ix = FindNextIx(0, strSpan, withSpan);
-
-            if (ix == -1)
-            {
-                return new ReadOnlySequence<char>(str);
-            }
-
-            ReadOnlyCharSegment? head = null;
-            ReadOnlyCharSegment? tail = null;
-
-            var lastIx = 0;
-            while (ix != -1)
-            {
-                var len = ix - lastIx;
-                if (len > 0)
-                {
-                    var subset = str[lastIx..ix];
-                    if (head == null)
-                    {
-                        head = new ReadOnlyCharSegment(subset, len);
-                    }
-                    else
-                    {
-                        if (tail == null)
-                        {
-                            tail = head.Append(subset, len);
-                        }
-                        else
-                        {
-                            tail = tail.Append(subset, len);
-                        }
-                    }
-                }
-
-                lastIx = ix + with.Length;
-                ix = FindNextIx(lastIx, strSpan, withSpan);
-            }
-
-            if (lastIx != str.Length)
-            {
-                var len = str.Length - lastIx;
-                var end = str.Slice(lastIx);
-                if (head == null)
-                {
-                    head = new ReadOnlyCharSegment(end, len);
-
-                }
-                else
-                {
-                    if (tail == null)
-                    {
-                        tail = head.Append(end, len);
-                    }
-                    else
-                    {
-                        tail = tail.Append(end, len);
-                    }
-                }
-            }
-
-            if (head == null)
-            {
-                return ReadOnlySequence<char>.Empty;
-            }
-
-            if (tail == null)
-            {
-                return new ReadOnlySequence<char>(head.Memory);
-            }
-
-            var ret = new ReadOnlySequence<char>(head, 0, tail, tail.Memory.Length);
-
-            return ret;
-
-            // actually figure out the next end
-            static int FindNextIx(int startAt, ReadOnlySpan<char> haystack, ReadOnlySpan<char> needle)
-            {
-                var c = needle[0];
-                var lookupFrom = startAt;
+            var c = needle[0];
+            var lookupFrom = startAt;
 
 tryAgain:
 
-                var ix = FindChar(haystack, lookupFrom, c);
-                if (ix == -1) return -1;
+            var ix = FindChar(haystack, lookupFrom, c);
+            if (ix == -1) return -1;
 
-                for (var i = 1; i < needle.Length; i++)
+            for (var i = 1; i < needle.Length; i++)
+            {
+                var readIx = ix + i;
+                if (readIx == haystack.Length)
                 {
-                    var readIx = ix + i;
-                    if (readIx == haystack.Length)
-                    {
-                        // past the end
-                        return -1;
-                    }
-
-                    var shouldMatch = needle[i];
-                    var actuallyIs = haystack[readIx];
-                    if (shouldMatch != actuallyIs)
-                    {
-                        lookupFrom = readIx;
-                        goto tryAgain;
-                    }
+                    // past the end
+                    return -1;
                 }
 
-                // actually all matched, hooray!
-                return ix;
+                var shouldMatch = needle[i];
+                var actuallyIs = haystack[readIx];
+                if (shouldMatch != actuallyIs)
+                {
+                    lookupFrom = readIx;
+                    goto tryAgain;
+                }
             }
+
+            // actually all matched, hooray!
+            return ix;
         }
 
         internal static bool NullReferenceEquality<T>(T? a, T? b)
@@ -307,16 +228,19 @@ tryAgain:
         private const int CHARS_PER_LONG = sizeof(long) / sizeof(char);
         private const int CHARS_PER_INT = sizeof(int) / sizeof(char);
 
-        internal static unsafe bool AreEqual(ReadOnlyMemory<char> a, ReadOnlyMemory<char> b)
+        internal static bool AreEqual(ReadOnlyMemory<char> a, ReadOnlyMemory<char> b)
+        => AreEqual(a.Span, b.Span);
+
+        internal static unsafe bool AreEqual(ReadOnlySpan<char> a, ReadOnlySpan<char> b)
         {
             var aLen = a.Length;
             var bLen = b.Length;
             if (aLen != bLen) return false;
 
-            using (var aPin = a.Pin())
-            using (var bPin = b.Pin())
+            fixed (char* aPin = a)
+            fixed (char* bPin = b)
             {
-                return AreEqual(aLen, aPin.Pointer, bPin.Pointer);
+                return AreEqual(aLen, aPin, bPin);
             }
         }
 
@@ -391,6 +315,50 @@ tryAgain:
             if (ret == -1) return -1;
 
             return ret + start;
+        }
+
+        internal static int Find(ReadOnlySpan<char> span, int start, string str)
+        {
+            if (str.Length == 1)
+            {
+                return FindChar(span, start, str[0]);
+            }
+
+            var c1 = str[0];
+
+            var subset = span.Slice(start);
+            var ix = 0;
+            while (true)
+            {
+                var nextIx = FindChar(subset, ix, c1);
+                if (nextIx == -1)
+                {
+                    return -1;
+                }
+
+                if (str.Length + nextIx > subset.Length)
+                {
+                    return -1;
+                }
+
+                var tryAgain = false;
+                for (var i = 1; i < str.Length; i++)
+                {
+                    if (str[i] != subset[nextIx + i])
+                    {
+                        ix = nextIx + i;
+                        tryAgain = true;
+                        break;
+                    }
+                }
+
+                if (tryAgain)
+                {
+                    continue;
+                }
+
+                return nextIx + start;
+            }
         }
 
         private static unsafe int FindChar(ReadOnlySpan<char> span, char c)
@@ -554,6 +522,31 @@ tryAgain:
                 var curSegEnd = curSegStart + cur.Length;
 
                 var inSeg = FindChar(cur.Span, c);
+                if (inSeg != -1)
+                {
+                    return curSegStart + inSeg;
+                }
+
+                curSegStart = curSegEnd;
+            }
+
+            return -1;
+        }
+
+        internal static int Find(ReadOnlySequence<char> head, string str)
+        {
+            if (head.IsSingleSegment)
+            {
+                return Find(head.First.Span, 0, str);
+            }
+
+            var curSegStart = 0;
+
+            foreach (var cur in head)
+            {
+                var curSegEnd = curSegStart + cur.Length;
+
+                var inSeg = Find(cur.Span, 0, str);
                 if (inSeg != -1)
                 {
                     return curSegStart + inSeg;
