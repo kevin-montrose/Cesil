@@ -98,6 +98,85 @@ namespace Cesil.Tests
             );
         }
 
+        class _MultiCharacterValueSeparators
+        {
+            public int A { get; set; }
+            public string B { get; set; }
+        }
+
+        class _MultiCharacterValueSeparators_Headers
+        {
+            [DataMember(Name = "A#*#Escaped")]
+            public int A { get; set; }
+            public string B { get; set; }
+        }
+
+        [Fact]
+        public void MultiCharacterValueSeparators()
+        {
+            var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#*#").ToOptions();
+
+            // no escapes
+            {
+                RunSyncWriterVariants<_MultiCharacterValueSeparators>(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.Write(new _MultiCharacterValueSeparators { A = 123, B = "foo" });
+                            csv.Write(new _MultiCharacterValueSeparators { A = 456, B = "#" });
+                            csv.Write(new _MultiCharacterValueSeparators { A = 789, B = "*" });
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("A#*#B\r\n123#*#foo\r\n456#*##\r\n789#*#*", res);
+                    }
+                );
+            }
+
+            // escapes
+            {
+                RunSyncWriterVariants<_MultiCharacterValueSeparators>(
+                   opts,
+                   (config, getWriter, getStr) =>
+                   {
+                       using (var writer = getWriter())
+                       using (var csv = config.CreateWriter(writer))
+                       {
+                           csv.Write(new _MultiCharacterValueSeparators { A = 123, B = "foo#*#bar" });
+                           csv.Write(new _MultiCharacterValueSeparators { A = 456, B = "#" });
+                           csv.Write(new _MultiCharacterValueSeparators { A = 789, B = "*" });
+                       }
+
+                       var res = getStr();
+                       Assert.Equal("A#*#B\r\n123#*#\"foo#*#bar\"\r\n456#*##\r\n789#*#*", res);
+                   }
+               );
+            }
+
+            // in headers
+            {
+                RunSyncWriterVariants<_MultiCharacterValueSeparators_Headers>(
+                  opts,
+                  (config, getWriter, getStr) =>
+                  {
+                      using (var writer = getWriter())
+                      using (var csv = config.CreateWriter(writer))
+                      {
+                          csv.Write(new _MultiCharacterValueSeparators_Headers { A = 123, B = "foo#*#bar" });
+                          csv.Write(new _MultiCharacterValueSeparators_Headers { A = 456, B = "#" });
+                          csv.Write(new _MultiCharacterValueSeparators_Headers { A = 789, B = "*" });
+                      }
+
+                      var res = getStr();
+                      Assert.Equal("\"A#*#Escaped\"#*#B\r\n123#*#\"foo#*#bar\"\r\n456#*##\r\n789#*#*", res);
+                  }
+              );
+            }
+        }
+
         private enum _WellKnownSingleColumns
         {
             Foo,
@@ -1344,7 +1423,7 @@ namespace Cesil.Tests
                 // default options can always encode
                 WriterBase<object>.CheckCanEncode("hello", Options.Default);
 
-                var tsv = Options.CreateBuilder(Options.Default).WithEscapedValueEscapeCharacter(null).WithValueSeparator('\t').ToOptions();
+                var tsv = Options.CreateBuilder(Options.Default).WithEscapedValueEscapeCharacter(null).WithValueSeparator("\t").ToOptions();
                 // but " isn't
                 var exc1 = Assert.Throws<InvalidOperationException>(() => WriterBase<object>.CheckCanEncode("\"", tsv));
                 Assert.Contains("'\"'", exc1.Message);
@@ -1355,6 +1434,24 @@ namespace Cesil.Tests
                 Assert.Contains("','", exc2.Message);
             }
 
+            // single span, multi-char
+            {
+                var opt = Options.CreateBuilder(Options.Default).WithValueSeparator("---").ToOptions();
+
+                // default options can always encode
+                WriterBase<object>.CheckCanEncode("hello", opt);
+
+                var noInnerEscape = Options.CreateBuilder(opt).WithEscapedValueEscapeCharacter(null).ToOptions();
+                // but " isn't
+                var exc1 = Assert.Throws<InvalidOperationException>(() => WriterBase<object>.CheckCanEncode("\"", noInnerEscape));
+                Assert.Contains("'\"'", exc1.Message);
+
+                var noEscape = Options.CreateBuilder(opt).WithEscapedValueEscapeCharacter(null).WithEscapedValueStartAndEnd(null).ToOptions();
+                // comma is not escapable
+                var exc2 = Assert.Throws<InvalidOperationException>(() => WriterBase<object>.CheckCanEncode("---", noEscape));
+                Assert.Contains("'---'", exc2.Message);
+            }
+
             // sequence of single span
             {
                 // default options can always encode
@@ -1362,7 +1459,7 @@ namespace Cesil.Tests
                 Assert.True(seq1.IsSingleSegment);
                 WriterBase<object>.CheckCanEncode(seq1, Options.Default);
 
-                var tsv = Options.CreateBuilder(Options.Default).WithEscapedValueEscapeCharacter(null).WithValueSeparator('\t').ToOptions();
+                var tsv = Options.CreateBuilder(Options.Default).WithEscapedValueEscapeCharacter(null).WithValueSeparator("\t").ToOptions();
                 // but " isn't
                 var seq2 = new ReadOnlySequence<char>("\"".AsMemory());
                 Assert.True(seq2.IsSingleSegment);
@@ -1377,6 +1474,30 @@ namespace Cesil.Tests
                 Assert.Contains("','", exc2.Message);
             }
 
+            // sequence of single span, multi-char
+            {
+                var opt = Options.CreateBuilder(Options.Default).WithValueSeparator("---").ToOptions();
+
+                // default options can always encode
+                var seq1 = new ReadOnlySequence<char>("hello".AsMemory());
+                Assert.True(seq1.IsSingleSegment);
+                WriterBase<object>.CheckCanEncode(seq1, opt);
+
+                var noInnerEscape = Options.CreateBuilder(opt).WithEscapedValueEscapeCharacter(null).ToOptions();
+                // but " isn't
+                var seq2 = new ReadOnlySequence<char>("\"".AsMemory());
+                Assert.True(seq2.IsSingleSegment);
+                var exc1 = Assert.Throws<InvalidOperationException>(() => WriterBase<object>.CheckCanEncode(seq2, noInnerEscape));
+                Assert.Contains("'\"'", exc1.Message);
+
+                var noEscape = Options.CreateBuilder(opt).WithEscapedValueEscapeCharacter(null).WithEscapedValueStartAndEnd(null).ToOptions();
+                // comma is not escapable
+                var seq3 = new ReadOnlySequence<char>("---".AsMemory());
+                Assert.True(seq3.IsSingleSegment);
+                var exc2 = Assert.Throws<InvalidOperationException>(() => WriterBase<object>.CheckCanEncode(seq3, noEscape));
+                Assert.Contains("'---'", exc2.Message);
+            }
+
             // sequence of multiple spans
             {
                 // default options can always encode
@@ -1384,7 +1505,7 @@ namespace Cesil.Tests
                 Assert.False(seq1.IsSingleSegment);
                 WriterBase<object>.CheckCanEncode(seq1, Options.Default);
 
-                var tsv = Options.CreateBuilder(Options.Default).WithEscapedValueEscapeCharacter(null).WithValueSeparator('\t').ToOptions();
+                var tsv = Options.CreateBuilder(Options.Default).WithEscapedValueEscapeCharacter(null).WithValueSeparator("\t").ToOptions();
                 // but " isn't
                 var seq2 = Utils.Split("\" -".AsMemory(), " ".AsMemory());
                 Assert.False(seq2.IsSingleSegment);
@@ -1397,6 +1518,30 @@ namespace Cesil.Tests
                 Assert.False(seq3.IsSingleSegment);
                 var exc2 = Assert.Throws<InvalidOperationException>(() => WriterBase<object>.CheckCanEncode(seq3, noEscape));
                 Assert.Contains("','", exc2.Message);
+            }
+
+            // sequence of multiple spans, multi-char
+            {
+                var opt = Options.CreateBuilder(Options.Default).WithValueSeparator("---").ToOptions();
+
+                // default options can always encode
+                var seq1 = Utils.Split("hel-lo".AsMemory(), "-".AsMemory());
+                Assert.False(seq1.IsSingleSegment);
+                WriterBase<object>.CheckCanEncode(seq1, opt);
+
+                var noInnerEscape = Options.CreateBuilder(opt).WithEscapedValueEscapeCharacter(null).ToOptions();
+                // but " isn't
+                var seq2 = Utils.Split("\" - ".AsMemory(), "-".AsMemory());
+                Assert.False(seq2.IsSingleSegment);
+                var exc1 = Assert.Throws<InvalidOperationException>(() => WriterBase<object>.CheckCanEncode(seq2, noInnerEscape));
+                Assert.Contains("'\"'", exc1.Message);
+
+                var noEscape = Options.CreateBuilder(opt).WithEscapedValueEscapeCharacter(null).WithEscapedValueStartAndEnd(null).ToOptions();
+                // comma is not escapable
+                var seq3 = Utils.Split("--- !".AsMemory(), " ".AsMemory());
+                Assert.False(seq3.IsSingleSegment);
+                var exc2 = Assert.Throws<InvalidOperationException>(() => WriterBase<object>.CheckCanEncode(seq3, noEscape));
+                Assert.Contains("'---'", exc2.Message);
             }
         }
 
@@ -1411,7 +1556,7 @@ namespace Cesil.Tests
         {
             // no escapes at all (TSV)
             {
-                var opts = OptionsBuilder.CreateBuilder(Options.Default).WithValueSeparator('\t').WithEscapedValueStartAndEnd(null).WithEscapedValueEscapeCharacter(null).ToOptions();
+                var opts = OptionsBuilder.CreateBuilder(Options.Default).WithValueSeparator("\t").WithEscapedValueStartAndEnd(null).WithEscapedValueEscapeCharacter(null).ToOptions();
 
                 // correct
                 RunSyncWriterVariants<_NoEscapes>(
@@ -1488,7 +1633,7 @@ namespace Cesil.Tests
 
             // escapes, but no escape for the escape start and end char
             {
-                var opts = OptionsBuilder.CreateBuilder(Options.Default).WithValueSeparator('\t').WithEscapedValueStartAndEnd('"').WithEscapedValueEscapeCharacter(null).ToOptions();
+                var opts = OptionsBuilder.CreateBuilder(Options.Default).WithValueSeparator("\t").WithEscapedValueStartAndEnd('"').WithEscapedValueEscapeCharacter(null).ToOptions();
 
                 // correct
                 RunSyncWriterVariants<_NoEscapes>(
@@ -1535,6 +1680,145 @@ namespace Cesil.Tests
                         using (var csv = config.CreateWriter(writer))
                         {
                             var inv = Assert.Throws<InvalidOperationException>(() => csv.Write(new _NoEscapes { Foo = "a\tbc", Bar = "\"" }));
+
+                            Assert.Equal("Tried to write a value contain '\"' which requires escaping the character in an escaped value, but no way to escape inside an escaped value is configured", inv.Message);
+                        }
+
+                        getStr();
+                    }
+                );
+            }
+        }
+
+        [Fact]
+        public void NoEscapesMultiCharacterSeparator()
+        {
+            // no escapes at all (TSV)
+            {
+                var opts = OptionsBuilder.CreateBuilder(Options.Default).WithValueSeparator("**").WithEscapedValueStartAndEnd(null).WithEscapedValueEscapeCharacter(null).ToOptions();
+
+                // correct
+                RunSyncWriterVariants<_NoEscapes>(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.Write(new _NoEscapes { Foo = "abc", Bar = "123" });
+                            csv.Write(new _NoEscapes { Foo = "\"", Bar = "," });
+                        }
+
+                        var str = getStr();
+                        Assert.Equal("Foo**Bar\r\nabc**123\r\n\"**,", str);
+                    }
+                );
+
+                // explodes if there's an value separator in a value, since there are no escapes
+                {
+                    // \t
+                    RunSyncWriterVariants<_NoEscapes>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                var inv = Assert.Throws<InvalidOperationException>(() => csv.Write(new _NoEscapes { Foo = "h**lo", Bar = "foo" }));
+
+                                Assert.Equal("Tried to write a value contain '**' which requires escaping a value, but no way to escape a value is configured", inv.Message);
+                            }
+
+                            getStr();
+                        }
+                    );
+
+                    // \r\n
+                    RunSyncWriterVariants<_NoEscapes>(
+                        opts,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                var inv = Assert.Throws<InvalidOperationException>(() => csv.Write(new _NoEscapes { Foo = "foo", Bar = "\r\n" }));
+
+                                Assert.Equal("Tried to write a value contain '\r' which requires escaping a value, but no way to escape a value is configured", inv.Message);
+                            }
+
+                            getStr();
+                        }
+                    );
+
+                    var optsWithComment = OptionsBuilder.CreateBuilder(opts).WithCommentCharacter('#').ToOptions();
+                    // #
+                    RunSyncWriterVariants<_NoEscapes>(
+                        optsWithComment,
+                        (config, getWriter, getStr) =>
+                        {
+                            using (var writer = getWriter())
+                            using (var csv = config.CreateWriter(writer))
+                            {
+                                var inv = Assert.Throws<InvalidOperationException>(() => csv.Write(new _NoEscapes { Foo = "#", Bar = "fizz" }));
+
+                                Assert.Equal("Tried to write a value contain '#' which requires escaping a value, but no way to escape a value is configured", inv.Message);
+                            }
+
+                            getStr();
+                        }
+                    );
+                }
+            }
+
+            // escapes, but no escape for the escape start and end char
+            {
+                var opts = OptionsBuilder.CreateBuilder(Options.Default).WithValueSeparator("**").WithEscapedValueStartAndEnd('"').WithEscapedValueEscapeCharacter(null).ToOptions();
+
+                // correct
+                RunSyncWriterVariants<_NoEscapes>(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.Write(new _NoEscapes { Foo = "a**bc", Bar = "#123" });
+                            csv.Write(new _NoEscapes { Foo = "\r", Bar = "," });
+                        }
+
+                        var str = getStr();
+                        Assert.Equal("Foo**Bar\r\n\"a**bc\"**#123\r\n\"\r\"**,", str);
+                    }
+                );
+
+                var optsWithComments = OptionsBuilder.CreateBuilder(opts).WithCommentCharacter('#').ToOptions();
+
+                // correct with comments
+                RunSyncWriterVariants<_NoEscapes>(
+                    optsWithComments,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.Write(new _NoEscapes { Foo = "a**bc", Bar = "#123" });
+                            csv.Write(new _NoEscapes { Foo = "\r", Bar = "," });
+                        }
+
+                        var str = getStr();
+                        Assert.Equal("Foo**Bar\r\n\"a**bc\"**\"#123\"\r\n\"\r\"**,", str);
+                    }
+                );
+
+                // explodes if there's an escape start character in a value, since it can't be escaped
+                RunSyncWriterVariants<_NoEscapes>(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            var inv = Assert.Throws<InvalidOperationException>(() => csv.Write(new _NoEscapes { Foo = "a**bc", Bar = "\"" }));
 
                             Assert.Equal("Tried to write a value contain '\"' which requires escaping the character in an escaped value, but no way to escape inside an escaped value is configured", inv.Message);
                         }
@@ -4386,6 +4670,211 @@ namespace Cesil.Tests
         }
 
         [Fact]
+        public async Task NoEscapesMultiCharacterSeparatorAsync()
+        {
+            // no escapes at all (TSV)
+            {
+                var opts = OptionsBuilder.CreateBuilder(Options.Default).WithValueSeparator("**").WithEscapedValueStartAndEnd(null).WithEscapedValueEscapeCharacter(null).ToOptions();
+
+                // correct
+                await RunAsyncWriterVariants<_NoEscapes>(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAsync(new _NoEscapes { Foo = "abc", Bar = "123" });
+                            await csv.WriteAsync(new _NoEscapes { Foo = "\"", Bar = "," });
+                        }
+
+                        var str = await getStr();
+                        Assert.Equal("Foo**Bar\r\nabc**123\r\n\"**,", str);
+                    }
+                );
+
+                // explodes if there's an value separator in a value, since there are no escapes
+                {
+                    // \t
+                    await RunAsyncWriterVariants<_NoEscapes>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            await using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                var inv = await Assert.ThrowsAsync<InvalidOperationException>(async () => await csv.WriteAsync(new _NoEscapes { Foo = "h**lo", Bar = "foo" }));
+
+                                Assert.Equal("Tried to write a value contain '**' which requires escaping a value, but no way to escape a value is configured", inv.Message);
+                            }
+
+                            await getStr();
+                        }
+                    );
+
+                    // \r\n
+                    await RunAsyncWriterVariants<_NoEscapes>(
+                        opts,
+                        async (config, getWriter, getStr) =>
+                        {
+                            await using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                var inv = await Assert.ThrowsAsync<InvalidOperationException>(async () => await csv.WriteAsync(new _NoEscapes { Foo = "foo", Bar = "\r\n" }));
+
+                                Assert.Equal("Tried to write a value contain '\r' which requires escaping a value, but no way to escape a value is configured", inv.Message);
+                            }
+
+                            await getStr();
+                        }
+                    );
+
+                    var optsWithComment = OptionsBuilder.CreateBuilder(opts).WithCommentCharacter('#').ToOptions();
+                    // #
+                    await RunAsyncWriterVariants<_NoEscapes>(
+                        optsWithComment,
+                        async (config, getWriter, getStr) =>
+                        {
+                            await using (var writer = getWriter())
+                            await using (var csv = config.CreateAsyncWriter(writer))
+                            {
+                                var inv = await Assert.ThrowsAsync<InvalidOperationException>(async () => await csv.WriteAsync(new _NoEscapes { Foo = "#", Bar = "fizz" }));
+
+                                Assert.Equal("Tried to write a value contain '#' which requires escaping a value, but no way to escape a value is configured", inv.Message);
+                            }
+
+                            await getStr();
+                        }
+                    );
+                }
+            }
+
+            // escapes, but no escape for the escape start and end char
+            {
+                var opts = OptionsBuilder.CreateBuilder(Options.Default).WithValueSeparator("**").WithEscapedValueStartAndEnd('"').WithEscapedValueEscapeCharacter(null).ToOptions();
+
+                // correct
+                await RunAsyncWriterVariants<_NoEscapes>(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAsync(new _NoEscapes { Foo = "a**bc", Bar = "#123" });
+                            await csv.WriteAsync(new _NoEscapes { Foo = "\r", Bar = "," });
+                        }
+
+                        var str = await getStr();
+                        Assert.Equal("Foo**Bar\r\n\"a**bc\"**#123\r\n\"\r\"**,", str);
+                    }
+                );
+
+                var optsWithComments = OptionsBuilder.CreateBuilder(opts).WithCommentCharacter('#').ToOptions();
+
+                // correct with comments
+                await RunAsyncWriterVariants<_NoEscapes>(
+                    optsWithComments,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAsync(new _NoEscapes { Foo = "a**bc", Bar = "#123" });
+                            await csv.WriteAsync(new _NoEscapes { Foo = "\r", Bar = "," });
+                        }
+
+                        var str = await getStr();
+                        Assert.Equal("Foo**Bar\r\n\"a**bc\"**\"#123\"\r\n\"\r\"**,", str);
+                    }
+                );
+
+                // explodes if there's an escape start character in a value, since it can't be escaped
+                await RunAsyncWriterVariants<_NoEscapes>(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            var inv = await Assert.ThrowsAsync<InvalidOperationException>(async () => await csv.WriteAsync(new _NoEscapes { Foo = "a**bc", Bar = "\"" }));
+
+                            Assert.Equal("Tried to write a value contain '\"' which requires escaping the character in an escaped value, but no way to escape inside an escaped value is configured", inv.Message);
+                        }
+
+                        await getStr();
+                    }
+                );
+            }
+        }
+
+        [Fact]
+        public async Task MultiCharacterValueSeparatorsAsync()
+        {
+            var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#*#").ToOptions();
+
+            // no escapes
+            {
+                await RunAsyncWriterVariants<_MultiCharacterValueSeparators>(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAsync(new _MultiCharacterValueSeparators { A = 123, B = "foo" });
+                            await csv.WriteAsync(new _MultiCharacterValueSeparators { A = 456, B = "#" });
+                            await csv.WriteAsync(new _MultiCharacterValueSeparators { A = 789, B = "*" });
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("A#*#B\r\n123#*#foo\r\n456#*##\r\n789#*#*", res);
+                    }
+                );
+            }
+
+            // escapes
+            {
+                await RunAsyncWriterVariants<_MultiCharacterValueSeparators>(
+                   opts,
+                   async (config, getWriter, getStr) =>
+                   {
+                       await using (var writer = getWriter())
+                       await using (var csv = config.CreateAsyncWriter(writer))
+                       {
+                           await csv.WriteAsync(new _MultiCharacterValueSeparators { A = 123, B = "foo#*#bar" });
+                           await csv.WriteAsync(new _MultiCharacterValueSeparators { A = 456, B = "#" });
+                           await csv.WriteAsync(new _MultiCharacterValueSeparators { A = 789, B = "*" });
+                       }
+
+                       var res = await getStr();
+                       Assert.Equal("A#*#B\r\n123#*#\"foo#*#bar\"\r\n456#*##\r\n789#*#*", res);
+                   }
+               );
+            }
+
+            // in headers
+            {
+                await RunAsyncWriterVariants<_MultiCharacterValueSeparators_Headers>(
+                  opts,
+                  async (config, getWriter, getStr) =>
+                  {
+                      await using (var writer = getWriter())
+                      await using (var csv = config.CreateAsyncWriter(writer))
+                      {
+                          await csv.WriteAsync(new _MultiCharacterValueSeparators_Headers { A = 123, B = "foo#*#bar" });
+                          await csv.WriteAsync(new _MultiCharacterValueSeparators_Headers { A = 456, B = "#" });
+                          await csv.WriteAsync(new _MultiCharacterValueSeparators_Headers { A = 789, B = "*" });
+                      }
+
+                      var res = await getStr();
+                      Assert.Equal("\"A#*#Escaped\"#*#B\r\n123#*#\"foo#*#bar\"\r\n456#*##\r\n789#*#*", res);
+                  }
+              );
+            }
+        }
+
+        [Fact]
         public async Task WellKnownSingleColumnsAsync()
         {
             // bool
@@ -5531,7 +6020,7 @@ namespace Cesil.Tests
         {
             // no escapes at all (TSV)
             {
-                var opts = OptionsBuilder.CreateBuilder(Options.Default).WithValueSeparator('\t').WithEscapedValueStartAndEnd(null).WithEscapedValueEscapeCharacter(null).ToOptions();
+                var opts = OptionsBuilder.CreateBuilder(Options.Default).WithValueSeparator("\t").WithEscapedValueStartAndEnd(null).WithEscapedValueEscapeCharacter(null).ToOptions();
 
                 // correct
                 await RunAsyncWriterVariants<_NoEscapes>(
@@ -5608,7 +6097,7 @@ namespace Cesil.Tests
 
             // escapes, but no escape for the escape start and end char
             {
-                var opts = OptionsBuilder.CreateBuilder(Options.Default).WithValueSeparator('\t').WithEscapedValueStartAndEnd('"').WithEscapedValueEscapeCharacter(null).ToOptions();
+                var opts = OptionsBuilder.CreateBuilder(Options.Default).WithValueSeparator("\t").WithEscapedValueStartAndEnd('"').WithEscapedValueEscapeCharacter(null).ToOptions();
 
                 // correct
                 await RunAsyncWriterVariants<_NoEscapes>(

@@ -41,13 +41,15 @@ namespace Cesil
 
         private Memory<char> Pushback => PushbackOwner.Value.Memory;
 
-        internal RowEndingDetector(ReaderStateMachine stateMachine, Options options, CharacterLookup charLookup, IReaderAdapter inner)
-            : this(stateMachine, options, charLookup, inner, null) { }
+        private readonly ReadOnlyMemory<char> ValueSeparatorMemory;
 
-        internal RowEndingDetector(ReaderStateMachine stateMachine, Options options, CharacterLookup charLookup, IAsyncReaderAdapter innerAsync)
-            : this(stateMachine, options, charLookup, null, innerAsync) { }
+        internal RowEndingDetector(ReaderStateMachine stateMachine, Options options, CharacterLookup charLookup, IReaderAdapter inner, ReadOnlyMemory<char> valueSeparatorMemory)
+            : this(stateMachine, options, charLookup, inner, null, valueSeparatorMemory) { }
 
-        private RowEndingDetector(ReaderStateMachine stateMachine, Options options, CharacterLookup charLookup, IReaderAdapter? inner, IAsyncReaderAdapter? innerAsync)
+        internal RowEndingDetector(ReaderStateMachine stateMachine, Options options, CharacterLookup charLookup, IAsyncReaderAdapter innerAsync, ReadOnlyMemory<char> valueSeparatorMemory)
+            : this(stateMachine, options, charLookup, null, innerAsync, valueSeparatorMemory) { }
+
+        private RowEndingDetector(ReaderStateMachine stateMachine, Options options, CharacterLookup charLookup, IReaderAdapter? inner, IAsyncReaderAdapter? innerAsync, ReadOnlyMemory<char> valueSeparatorMemory)
         {
             Inner.SetAllowNull(inner);
             InnerAsync.SetAllowNull(innerAsync);
@@ -74,6 +76,8 @@ namespace Cesil
 
             BufferOwner = MemoryPool.Rent(BufferSizeHint);
             BufferStart = 0;
+
+            ValueSeparatorMemory = valueSeparatorMemory;
         }
 
         internal ValueTask<(RowEnding Ending, Memory<char> PushBack)?> DetectAsync(CancellationToken cancel)
@@ -272,7 +276,6 @@ end:
         {
             using (State.Pin())
             {
-
                 var buffSpan = BufferOwner.Memory.Span;
 
                 var continueScan = true;
@@ -355,7 +358,9 @@ end:
         {
             State.EnsurePinned();
 
-            for (var i = 0; i < buffer.Length; i++)
+            var bufferLen = buffer.Length;
+
+            for (var i = 0; i < bufferLen; i++)
             {
                 var cc = buffer[i];
 
@@ -394,7 +399,39 @@ end:
                     }
                 }
 
-                var res = State.Advance(cc);
+                int advanceIBy = 0;
+
+                var res = State.Advance(cc, false);
+
+                if (res == ReaderStateMachine.AdvanceResult.LookAhead_MultiCharacterSeparator)
+                {
+                    var valSepLen = ValueSeparatorMemory.Length;
+
+                    // do we have enough in the buffer to look ahead?
+                    var canCheckForSeparator = bufferLen - i >= valSepLen;
+                    if (canCheckForSeparator)
+                    {
+                        var shouldMatch = buffer.Slice(i, valSepLen);
+                        var eq = Utils.AreEqual(shouldMatch, ValueSeparatorMemory.Span);
+                        if (eq)
+                        {
+                            // treat it like a value separator
+                            res = State.AdvanceValueSeparator();
+                            // advance further to the last character in the separator
+                            advanceIBy = valSepLen - 1;
+                        }
+                        else
+                        {
+                            res = State.Advance(cc, true);
+                        }
+                    }
+                    else
+                    {
+                        // we need to read more into the buffer before we can tell if we've got a separatore
+                        return AdvanceResult.Continue_PushBackOne;
+                    }
+                }
+
                 switch (res)
                 {
                     case ReaderStateMachine.AdvanceResult.Append_Character:
@@ -402,11 +439,15 @@ end:
                     case ReaderStateMachine.AdvanceResult.Finished_Unescaped_Value:
                     case ReaderStateMachine.AdvanceResult.Finished_Escaped_Value:
                     case ReaderStateMachine.AdvanceResult.Skip_Character:
+                    case ReaderStateMachine.AdvanceResult.Append_CarriageReturnAndValueSeparator:
+                    case ReaderStateMachine.AdvanceResult.Append_ValueSeparator:
                         break;
 
                     default:
                         return AdvanceResult.Exception_UnexpectedState;
                 }
+
+                i += advanceIBy;
             }
 
             return AdvanceResult.Continue;

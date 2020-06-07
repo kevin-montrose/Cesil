@@ -87,11 +87,11 @@ namespace Cesil
 
             using (handle)
             {
-
+                var madeProgress = true;
                 while (true)
                 {
                     PreparingToWriteToBuffer();
-                    var available = Buffer.Read(Inner);
+                    var available = Buffer.Read(Inner, madeProgress);
                     if (available == 0)
                     {
                         var endRes = EndOfData();
@@ -104,7 +104,7 @@ namespace Cesil
                         StartRow();
                     }
 
-                    var res = AdvanceWork(available);
+                    var res = AdvanceWork(available, out madeProgress);
                     var possibleReturn = HandleAdvanceResult(res, returnComments, ending: false);
                     if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
@@ -187,7 +187,7 @@ namespace Cesil
                 return;
             }
 
-            using (var detector = new RowEndingDetector(StateMachine, options, SharedCharacterLookup, Inner))
+            using (var detector = new RowEndingDetector(StateMachine, options, SharedCharacterLookup, Inner, Configuration.ValueSeparatorMemory))
             {
                 var res = detector.Detect();
                 HandleLineEndingsDetectionResult(res);

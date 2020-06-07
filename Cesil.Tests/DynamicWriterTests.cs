@@ -102,6 +102,84 @@ namespace Cesil.Tests
         }
 
         [Fact]
+        public void MultiCharacterValueSeparators()
+        {
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#*#").ToOptions();
+
+            // no escapes
+            {
+                var r1 = MakeDynamicRow("A,B\r\n123,foo");
+                var r2 = MakeDynamicRow("A,B\r\n456,#");
+                var r3 = MakeDynamicRow("A,B\r\n789,*");
+
+                RunSyncDynamicWriterVariants(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.Write(r1);
+                            csv.Write(r2);
+                            csv.Write(r3);
+                        }
+
+                        var res = getStr();
+                        Assert.Equal("A#*#B\r\n123#*#foo\r\n456#*##\r\n789#*#*", res);
+                    }
+                );
+            }
+
+            // escapes
+            {
+                var r1 = MakeDynamicRow("A,B\r\n123,foo#*#bar");
+                var r2 = MakeDynamicRow("A,B\r\n456,#");
+                var r3 = MakeDynamicRow("A,B\r\n789,*");
+
+                RunSyncDynamicWriterVariants(
+                   opts,
+                   (config, getWriter, getStr) =>
+                   {
+                       using (var writer = getWriter())
+                       using (var csv = config.CreateWriter(writer))
+                       {
+                           csv.Write(r1);
+                           csv.Write(r2);
+                           csv.Write(r3);
+                       }
+
+                       var res = getStr();
+                       Assert.Equal("A#*#B\r\n123#*#\"foo#*#bar\"\r\n456#*##\r\n789#*#*", res);
+                   }
+               );
+            }
+
+            // in headers
+            {
+                var r1 = MakeDynamicRow("A#*#Escaped,B\r\n123,foo#*#bar");
+                var r2 = MakeDynamicRow("A#*#Escaped,B\r\n456,#");
+                var r3 = MakeDynamicRow("A#*#Escaped,B\r\n789,*");
+
+                RunSyncDynamicWriterVariants(
+                  opts,
+                  (config, getWriter, getStr) =>
+                  {
+                      using (var writer = getWriter())
+                      using (var csv = config.CreateWriter(writer))
+                      {
+                          csv.Write(r1);
+                          csv.Write(r2);
+                          csv.Write(r3);
+                      }
+
+                      var res = getStr();
+                      Assert.Equal("\"A#*#Escaped\"#*#B\r\n123#*#\"foo#*#bar\"\r\n456#*##\r\n789#*#*", res);
+                  }
+              );
+            }
+        }
+
+        [Fact]
         public void WriteCommentBeforeRow()
         {
             // no headers
@@ -381,7 +459,7 @@ namespace Cesil.Tests
         {
             // no escapes at all (TSV)
             {
-                var opts = OptionsBuilder.CreateBuilder(Options.DynamicDefault).WithValueSeparator('\t').WithEscapedValueStartAndEnd(null).WithEscapedValueEscapeCharacter(null).ToOptions();
+                var opts = OptionsBuilder.CreateBuilder(Options.DynamicDefault).WithValueSeparator("\t").WithEscapedValueStartAndEnd(null).WithEscapedValueEscapeCharacter(null).ToOptions();
 
                 // correct
                 RunSyncDynamicWriterVariants(
@@ -458,7 +536,7 @@ namespace Cesil.Tests
 
             // escapes, but no escape for the escape start and end char
             {
-                var opts = OptionsBuilder.CreateBuilder(Options.DynamicDefault).WithValueSeparator('\t').WithEscapedValueStartAndEnd('"').WithEscapedValueEscapeCharacter(null).ToOptions();
+                var opts = OptionsBuilder.CreateBuilder(Options.DynamicDefault).WithValueSeparator("\t").WithEscapedValueStartAndEnd('"').WithEscapedValueEscapeCharacter(null).ToOptions();
 
                 // correct
                 RunSyncDynamicWriterVariants(
@@ -2002,6 +2080,84 @@ namespace Cesil.Tests
         }
 
         [Fact]
+        public async Task MultiCharacterValueSeparatorsAsync()
+        {
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#*#").ToOptions();
+
+            // no escapes
+            {
+                var r1 = MakeDynamicRow("A,B\r\n123,foo");
+                var r2 = MakeDynamicRow("A,B\r\n456,#");
+                var r3 = MakeDynamicRow("A,B\r\n789,*");
+
+                await RunAsyncDynamicWriterVariants(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAsync(r1);
+                            await csv.WriteAsync(r2);
+                            await csv.WriteAsync(r3);
+                        }
+
+                        var res = await getStr();
+                        Assert.Equal("A#*#B\r\n123#*#foo\r\n456#*##\r\n789#*#*", res);
+                    }
+                );
+            }
+
+            // escapes
+            {
+                var r1 = MakeDynamicRow("A,B\r\n123,foo#*#bar");
+                var r2 = MakeDynamicRow("A,B\r\n456,#");
+                var r3 = MakeDynamicRow("A,B\r\n789,*");
+
+                await RunAsyncDynamicWriterVariants(
+                   opts,
+                   async (config, getWriter, getStr) =>
+                   {
+                       await using (var writer = getWriter())
+                       await using (var csv = config.CreateAsyncWriter(writer))
+                       {
+                           await csv.WriteAsync(r1);
+                           await csv.WriteAsync(r2);
+                           await csv.WriteAsync(r3);
+                       }
+
+                       var res = await getStr();
+                       Assert.Equal("A#*#B\r\n123#*#\"foo#*#bar\"\r\n456#*##\r\n789#*#*", res);
+                   }
+               );
+            }
+
+            // in headers
+            {
+                var r1 = MakeDynamicRow("A#*#Escaped,B\r\n123,foo#*#bar");
+                var r2 = MakeDynamicRow("A#*#Escaped,B\r\n456,#");
+                var r3 = MakeDynamicRow("A#*#Escaped,B\r\n789,*");
+
+                await RunAsyncDynamicWriterVariants(
+                  opts,
+                  async (config, getWriter, getStr) =>
+                  {
+                      await using (var writer = getWriter())
+                      await using (var csv = config.CreateAsyncWriter(writer))
+                      {
+                          await csv.WriteAsync(r1);
+                          await csv.WriteAsync(r2);
+                          await csv.WriteAsync(r3);
+                      }
+
+                      var res = await getStr();
+                      Assert.Equal("\"A#*#Escaped\"#*#B\r\n123#*#\"foo#*#bar\"\r\n456#*##\r\n789#*#*", res);
+                  }
+              );
+            }
+        }
+
+        [Fact]
         public async Task WriteCommentBeforeRowAsync()
         {
             // no headers
@@ -2255,7 +2411,7 @@ namespace Cesil.Tests
         {
             // no escapes at all (TSV)
             {
-                var opts = OptionsBuilder.CreateBuilder(Options.DynamicDefault).WithValueSeparator('\t').WithEscapedValueStartAndEnd(null).WithEscapedValueEscapeCharacter(null).ToOptions();
+                var opts = OptionsBuilder.CreateBuilder(Options.DynamicDefault).WithValueSeparator("\t").WithEscapedValueStartAndEnd(null).WithEscapedValueEscapeCharacter(null).ToOptions();
 
                 // correct
                 await RunAsyncDynamicWriterVariants(
@@ -2332,7 +2488,7 @@ namespace Cesil.Tests
 
             // escapes, but no escape for the escape start and end char
             {
-                var opts = OptionsBuilder.CreateBuilder(Options.DynamicDefault).WithValueSeparator('\t').WithEscapedValueStartAndEnd('"').WithEscapedValueEscapeCharacter(null).ToOptions();
+                var opts = OptionsBuilder.CreateBuilder(Options.DynamicDefault).WithValueSeparator("\t").WithEscapedValueStartAndEnd('"').WithEscapedValueEscapeCharacter(null).ToOptions();
 
                 // correct
                 await RunAsyncDynamicWriterVariants(

@@ -18,7 +18,7 @@ namespace Cesil.Benchmark
 
         private List<string> Strings;
 
-        private char BasicContains_C1;
+        private string BasicContains_C1;
         private char? BasicContains_C2;
         private char? BasicContains_C3;
 
@@ -40,7 +40,7 @@ namespace Cesil.Benchmark
 
             Strings = strRet;
 
-            BasicContains_C1 = ',';
+            BasicContains_C1 = ",";
             BasicContains_C2 = '"';
             BasicContains_C3 = null;
 

@@ -437,7 +437,7 @@ namespace Cesil
         {
             if (needsSeparator)
             {
-                var sepTask = PlaceCharInStagingAsync(Configuration.Options.ValueSeparator, cancel);
+                var sepTask = PlaceInStagingAsync(Configuration.ValueSeparatorMemory, cancel);
                 if (!sepTask.IsCompletedSuccessfully(this))
                 {
                     return WriteColumnAsync_ContinueAfterSeparatorAsync(this, sepTask, row, colIx, col, cancel);
@@ -544,14 +544,14 @@ namespace Cesil
             var needsEscape = Configuration.SerializeColumnsNeedEscape;
 
             var columnsValue = Columns;
-            var valueSeparator = Configuration.Options.ValueSeparator;
+            var valueSeparator = Configuration.ValueSeparatorMemory;
 
             for (var i = 0; i < columnsValue.Length; i++)
             {
                 // for the separator
                 if (i != 0)
                 {
-                    var sepTask = PlaceCharInStagingAsync(valueSeparator, cancel);
+                    var sepTask = PlaceInStagingAsync(valueSeparator, cancel);
                     if (!sepTask.IsCompletedSuccessfully(this))
                     {
                         return WriteHeadersAsync_CompleteAfterFlushAsync(this, sepTask, needsEscape, valueSeparator, i, cancel);
@@ -568,7 +568,7 @@ namespace Cesil
             return default;
 
             // waits for a flush to finish, then proceeds with writing headers
-            static async ValueTask WriteHeadersAsync_CompleteAfterFlushAsync(AsyncWriter<T> self, ValueTask waitFor, bool[] needsEscape, char valueSeparator, int i, CancellationToken cancel)
+            static async ValueTask WriteHeadersAsync_CompleteAfterFlushAsync(AsyncWriter<T> self, ValueTask waitFor, bool[] needsEscape, ReadOnlyMemory<char> valueSeparator, int i, CancellationToken cancel)
             {
                 await ConfigureCancellableAwait(self, waitFor, cancel);
                 CheckCancellation(self, cancel);
@@ -584,7 +584,7 @@ namespace Cesil
                 for (; i < selfColumnsValue.Length; i++)
                 {
                     // by definition we've always wrote at least one column here
-                    var placeTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
+                    var placeTask = self.PlaceInStagingAsync(valueSeparator, cancel);
                     await ConfigureCancellableAwait(self, placeTask, cancel);
                     CheckCancellation(self, cancel);
 
@@ -595,7 +595,7 @@ namespace Cesil
             }
 
             // waits for a header write to finish, then proceeds with the rest
-            static async ValueTask WriteHeadersAsync_CompleteAfterHeaderWriteAsync(AsyncWriter<T> self, ValueTask waitFor, bool[] needsEscape, char valueSeparator, int i, CancellationToken cancel)
+            static async ValueTask WriteHeadersAsync_CompleteAfterHeaderWriteAsync(AsyncWriter<T> self, ValueTask waitFor, bool[] needsEscape, ReadOnlyMemory<char> valueSeparator, int i, CancellationToken cancel)
             {
                 await ConfigureCancellableAwait(self, waitFor, cancel);
                 CheckCancellation(self, cancel);
@@ -607,7 +607,7 @@ namespace Cesil
                 for (; i < selfColumnsValue.Length; i++)
                 {
                     // by definition we've always wrote at least one column here
-                    var placeTask = self.PlaceCharInStagingAsync(valueSeparator, cancel);
+                    var placeTask = self.PlaceInStagingAsync(valueSeparator, cancel);
                     await ConfigureCancellableAwait(self, placeTask, cancel);
                     CheckCancellation(self, cancel);
 
