@@ -160,7 +160,8 @@ namespace Cesil
 
                     if (!res)
                     {
-                        return self.RowNumber;
+                        var innerRet = self.RowNumber - oldRowNumber;
+                        return innerRet;
                     }
 
                     var row = e.Current;
