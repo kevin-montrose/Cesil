@@ -16,16 +16,22 @@ namespace Cesil
         /// Will complete synchronously if possible, but will not block
         /// if all rows are not immediately available or if the underlying
         /// sink does not complete immediately.
+        /// 
+        /// Returns the number of rows written.
         /// </summary>
-        ValueTask WriteAllAsync(IAsyncEnumerable<TRow> rows, CancellationToken cancel = default);
+        [return: IntentionallyExposedPrimitive("count is best represented as an int")]
+        ValueTask<int> WriteAllAsync(IAsyncEnumerable<TRow> rows, CancellationToken cancel = default);
 
         /// <summary>
         /// Writes all rows enumerated by the given IEnumerable.
         /// 
         /// Will complete synchronously if possible, but will not block
         /// if the underlying sink does not complete immediately.
+        /// 
+        /// Returns the number of rows written.
         /// </summary>
-        ValueTask WriteAllAsync(IEnumerable<TRow> rows, CancellationToken cancel = default);
+        [return: IntentionallyExposedPrimitive("count is best represented as an int")]
+        ValueTask<int> WriteAllAsync(IEnumerable<TRow> rows, CancellationToken cancel = default);
 
         /// <summary>
         /// Write a single row.

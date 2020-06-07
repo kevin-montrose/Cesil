@@ -20,10 +20,12 @@ namespace Cesil
             Inner = inner;
         }
 
-        public void WriteAll(IEnumerable<T> rows)
+        public int WriteAll(IEnumerable<T> rows)
         {
             AssertNotDisposed(this);
             AssertNotPoisoned(Configuration);
+
+            var oldRowNumber = RowNumber;
 
             Utils.CheckArgumentNull(rows, nameof(rows));
 
@@ -31,6 +33,9 @@ namespace Cesil
             {
                 WriteInner(row);
             }
+
+            var ret = RowNumber - oldRowNumber;
+            return ret;
         }
 
         public void Write(T row)
