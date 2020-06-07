@@ -23,7 +23,7 @@ namespace Cesil.Tests
                         MemoryPool<char>.Shared,
                         500
                     );
-                var bytes = buf.Read(new TextReaderAdapter(str));
+                var bytes = buf.Read(new TextReaderAdapter(str), true);
                 Assert.Equal(TEXT.Length, bytes);
 
                 var shouldMatch = new string(buf.Buffer.Span.Slice(0, bytes));
@@ -50,7 +50,7 @@ namespace Cesil.Tests
                                 MemoryPool<char>.Shared,
                                 500
                             );
-                        var bytes = await buf.ReadAsync(str, CancellationToken.None);
+                        var bytes = await buf.ReadAsync(str, true, CancellationToken.None);
                         Assert.Equal(TEXT.Length, bytes);
 
                         var shouldMatch = new string(buf.Buffer.Span.Slice(0, bytes));
@@ -76,7 +76,7 @@ namespace Cesil.Tests
                         MemoryPool<char>.Shared,
                         500
                     );
-                var bytes = buf.Read(new TextReaderAdapter(str));
+                var bytes = buf.Read(new TextReaderAdapter(str), true);
                 Assert.Equal(TEXT.Length, bytes);
 
                 var shouldMatch = new string(buf.Buffer.Span.Slice(0, bytes));
@@ -84,7 +84,7 @@ namespace Cesil.Tests
 
                 buf.PushBackFromBuffer(bytes, SECOND_TEXT.Length);
 
-                var bytes2 = buf.Read(new TextReaderAdapter(str));
+                var bytes2 = buf.Read(new TextReaderAdapter(str), true);
 
                 Assert.Equal(SECOND_TEXT.Length, bytes2);
 
@@ -111,7 +111,7 @@ namespace Cesil.Tests
                                 MemoryPool<char>.Shared,
                                 500
                             );
-                        var bytes = await buf.ReadAsync(str, CancellationToken.None);
+                        var bytes = await buf.ReadAsync(str, true, CancellationToken.None);
                         Assert.Equal(TEXT.Length, bytes);
 
                         var shouldMatch = new string(buf.Buffer.Span.Slice(0, bytes));
@@ -119,7 +119,7 @@ namespace Cesil.Tests
 
                         buf.PushBackFromBuffer(bytes, SECOND_TEXT.Length);
 
-                        var bytes2 = await buf.ReadAsync(str, CancellationToken.None);
+                        var bytes2 = await buf.ReadAsync(str, true, CancellationToken.None);
 
                         Assert.Equal(SECOND_TEXT.Length, bytes2);
 

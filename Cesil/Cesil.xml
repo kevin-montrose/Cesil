@@ -513,7 +513,7 @@
             by this builder.
             </summary>
         </member>
-        <member name="M:Cesil.OptionsBuilder.WithValueSeparator(System.Char)">
+        <member name="M:Cesil.OptionsBuilder.WithValueSeparator(System.String)">
             <summary>
             Set the character used to separate two values in a row.
             </summary>

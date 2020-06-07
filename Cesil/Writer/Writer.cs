@@ -12,6 +12,8 @@ namespace Cesil
         {
             try
             {
+                var valueSeparator = Configuration.ValueSeparatorMemory.Span;
+
                 WriteHeadersAndEndRowIfNeeded();
 
                 var columnsValue = Columns;
@@ -22,7 +24,7 @@ namespace Cesil
 
                     if (needsSeparator)
                     {
-                        PlaceCharInStaging(Configuration.Options.ValueSeparator);
+                        PlaceAllInStaging(valueSeparator);
                     }
 
                     var col = columnsValue[i];
@@ -150,13 +152,14 @@ namespace Cesil
             var columnsValue = Columns;
 
             var options = Configuration.Options;
+            var valueSeparator = Configuration.ValueSeparatorMemory.Span;
 
             for (var i = 0; i < columnsValue.Length; i++)
             {
                 // for the separator
                 if (i != 0)
                 {
-                    PlaceCharInStaging(options.ValueSeparator);
+                    PlaceAllInStaging(valueSeparator);
                 }
 
                 var colName = columnsValue[i].Name;

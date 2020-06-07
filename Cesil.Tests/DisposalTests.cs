@@ -1114,7 +1114,8 @@ namespace Cesil.Tests
                         new ReaderStateMachine(),
                         Options.Default,
                         CharacterLookup.MakeCharacterLookup(Options.Default, out _),
-                        new TextReaderAdapter(TextReader.Null)
+                        new TextReaderAdapter(TextReader.Null),
+                        Options.Default.ValueSeparator.AsMemory()
                     );
                 }
             }

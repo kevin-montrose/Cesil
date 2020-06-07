@@ -6,6 +6,35 @@ namespace Cesil.Tests
     public class NeedsEncodeHelper_AVX_Tests
     {
         [Theory]
+        [InlineData("0123456789ABCDE", -1)]
+        [InlineData("0123456789ABCDEF", -1)]
+        [InlineData("0123456789ABCDEFG", -1)]
+
+        [InlineData("012#*#6789ABCDE", 3)]
+        [InlineData("0123456789ABC#*#", 13)]
+        [InlineData("#*#123456789ABCDEFG", 0)]
+
+        [InlineData("#123456789ABCDE", -1)]
+        [InlineData("#*23456789ABCDEF", -1)]
+        [InlineData("*#23456789ABCDEFG", -1)]
+
+        [InlineData("0123456789ABCD#", -1)]
+        [InlineData("0123456789ABCD#*", -1)]
+        [InlineData("0123456789ABCDEF#", -1)]
+
+        public unsafe void MultiCharacterValueSeparator(string txt, int expected)
+        {
+            var state = new NeedsEncodeHelper("#*#", '"', '#');
+
+            fixed (char* charPtr = txt)
+            {
+                var res = state.ContainsCharRequiringEncoding(charPtr, txt.Length);
+
+                Assert.Equal(expected, res);
+            }
+        }
+
+        [Theory]
         [InlineData("0123456789ABCDEFa", -1)]
         [InlineData("0123456789ABCDEF,", 16)]
         [InlineData("0123456789ABCDEFab", -1)]
@@ -19,7 +48,7 @@ namespace Cesil.Tests
 
             Assert.NotEqual(0, txt.Length % charsFor256Bits);
 
-            var state = new NeedsEncodeHelper(',', '"', '#');
+            var state = new NeedsEncodeHelper(",", '"', '#');
 
             fixed (char* charPtr = txt)
             {
@@ -45,7 +74,7 @@ namespace Cesil.Tests
 
             Assert.Equal(0, txt.Length % charsFor256Bits);
 
-            var state = new NeedsEncodeHelper(',', '"', '#');
+            var state = new NeedsEncodeHelper(",", '"', '#');
 
             fixed (char* charPtr = txt)
             {
@@ -58,7 +87,7 @@ namespace Cesil.Tests
         [Fact]
         public unsafe void LessThan256Bits()
         {
-            var state = new NeedsEncodeHelper(',', '"', '#');
+            var state = new NeedsEncodeHelper(",", '"', '#');
 
             for (var len = 0; len < 16; len++)
             {
@@ -98,9 +127,9 @@ namespace Cesil.Tests
         [InlineData("world", -1)]
         public unsafe void Simple(string txt, int expected)
         {
-            var s1 = new NeedsEncodeHelper(',', '"', '#');
-            var s2 = new NeedsEncodeHelper(',', '"', null);
-            var s3 = new NeedsEncodeHelper(',', null, null);
+            var s1 = new NeedsEncodeHelper(",", '"', '#');
+            var s2 = new NeedsEncodeHelper(",", '"', null);
+            var s3 = new NeedsEncodeHelper(",", null, null);
 
             fixed (char* charPtr = txt)
             {

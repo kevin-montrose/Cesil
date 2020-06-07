@@ -17,6 +17,7 @@ namespace Cesil
         public Options Options { get; }
 
         internal readonly ReadOnlyMemory<char> RowEndingMemory;
+        internal readonly ReadOnlyMemory<char> ValueSeparatorMemory;
 
         internal readonly DeserializableMember[] DeserializeColumns;
 
@@ -60,7 +61,10 @@ namespace Cesil
                     //     but construction is fine
                     _ => default
                 };
+
             NeedsEncode = new NeedsEncodeHelper(options.ValueSeparator, options.EscapedValueStartAndEnd, options.CommentCharacter);
+
+            ValueSeparatorMemory = options.ValueSeparator.AsMemory();
         }
 
         /// <summary>
@@ -89,7 +93,10 @@ namespace Cesil
                     //     but construction is fine
                     _ => default
                 };
+
             NeedsEncode = new NeedsEncodeHelper(options.ValueSeparator, options.EscapedValueStartAndEnd, options.CommentCharacter);
+
+            ValueSeparatorMemory = options.ValueSeparator.AsMemory();
         }
 
         public IAsyncReader<T> CreateAsyncReader(PipeReader reader, Encoding encoding, object? context = null)

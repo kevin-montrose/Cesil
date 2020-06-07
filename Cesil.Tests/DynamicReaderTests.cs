@@ -15,6 +15,389 @@ namespace Cesil.Tests
     public class DynamicReaderTests
     {
         [Fact]
+        public void MultiCharacterSeparators()
+        {
+            // header variants
+            {
+                // no headers
+                {
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+
+                    RunSyncDynamicReaderVariants(
+                        opts,
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("hello#|#123\r\n\"world\"#|#456\r\n\"f#|#b\"#|#789"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a[0]);
+                                        Assert.Equal(123, (int)a[1]);
+                                    },
+                                    b =>
+                                    {
+                                        Assert.Equal("world", (string)b[0]);
+                                        Assert.Equal(456, (int)b[1]);
+                                    },
+                                    c =>
+                                    {
+                                        Assert.Equal("f#|#b", (string)c[0]);
+                                        Assert.Equal(789, (int)c[1]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // always headers
+                {
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+
+                    RunSyncDynamicReaderVariants(
+                        opts,
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("A#|#B\r\nhello#|#123\r\n\"world\"#|#456\r\n\"f#|#b\"#|#789"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.A);
+                                        Assert.Equal(123, (int)a.B);
+                                    },
+                                    b =>
+                                    {
+                                        Assert.Equal("world", (string)b.A);
+                                        Assert.Equal(456, (int)b.B);
+                                    },
+                                    c =>
+                                    {
+                                        Assert.Equal("f#|#b", (string)c.A);
+                                        Assert.Equal(789, (int)c.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+            }
+
+            // detect line endings
+            {
+                var opts1 = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Never).WithRowEnding(RowEnding.Detect).ToOptions();
+                var opts2 = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithRowEnding(RowEnding.Detect).ToOptions();
+
+                // \r\n
+                {
+                    
+
+                    // not present
+                    RunSyncDynamicReaderVariants(
+                        opts1,
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("hello#|#123\r\n\"world\"#|#456\r\n\"f#|#b\"#|#789"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a[0]);
+                                        Assert.Equal(123, (int)a[1]);
+                                    },
+                                    b =>
+                                    {
+                                        Assert.Equal("world", (string)b[0]);
+                                        Assert.Equal(456, (int)b[1]);
+                                    },
+                                    c =>
+                                    {
+                                        Assert.Equal("f#|#b", (string)c[0]);
+                                        Assert.Equal(789, (int)c[1]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+
+                    // present
+                    RunSyncDynamicReaderVariants(
+                        opts2,
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B#|#A\r\n123#|#hello\r\n456#|#\"world\"\r\n789#|#\"f#|#b\""))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.A);
+                                        Assert.Equal(123, (int)a.B);
+                                    },
+                                    b =>
+                                    {
+                                        Assert.Equal("world", (string)b.A);
+                                        Assert.Equal(456, (int)b.B);
+                                    },
+                                    c =>
+                                    {
+                                        Assert.Equal("f#|#b", (string)c.A);
+                                        Assert.Equal(789, (int)c.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // \r
+                {
+                    // not present
+                    RunSyncDynamicReaderVariants(
+                        opts1,
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("hello#|#123\r\"world\"#|#456\r\"f#|#b\"#|#789"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a[0]);
+                                        Assert.Equal(123, (int)a[1]);
+                                    },
+                                    b =>
+                                    {
+                                        Assert.Equal("world", (string)b[0]);
+                                        Assert.Equal(456, (int)b[1]);
+                                    },
+                                    c =>
+                                    {
+                                        Assert.Equal("f#|#b", (string)c[0]);
+                                        Assert.Equal(789, (int)c[1]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+
+                    // present
+                    RunSyncDynamicReaderVariants(
+                        opts2,
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B#|#A\r123#|#hello\r456#|#\"world\"\r789#|#\"f#|#b\""))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.A);
+                                        Assert.Equal(123, (int)a.B);
+                                    },
+                                    b =>
+                                    {
+                                        Assert.Equal("world", (string)b.A);
+                                        Assert.Equal(456, (int)b.B);
+                                    },
+                                    c =>
+                                    {
+                                        Assert.Equal("f#|#b", (string)c.A);
+                                        Assert.Equal(789, (int)c.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // \n
+                {
+                    // not present
+                    RunSyncDynamicReaderVariants(
+                        opts1,
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("hello#|#123\n\"world\"#|#456\n\"f#|#b\"#|#789"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a[0]);
+                                        Assert.Equal(123, (int)a[1]);
+                                    },
+                                    b =>
+                                    {
+                                        Assert.Equal("world", (string)b[0]);
+                                        Assert.Equal(456, (int)b[1]);
+                                    },
+                                    c =>
+                                    {
+                                        Assert.Equal("f#|#b", (string)c[0]);
+                                        Assert.Equal(789, (int)c[1]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+
+                    // present
+                    RunSyncDynamicReaderVariants(
+                        opts2,
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B#|#A\n123#|#hello\n456#|#\"world\"\n789#|#\"f#|#b\""))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.A);
+                                        Assert.Equal(123, (int)a.B);
+                                    },
+                                    b =>
+                                    {
+                                        Assert.Equal("world", (string)b.A);
+                                        Assert.Equal(456, (int)b.B);
+                                    },
+                                    c =>
+                                    {
+                                        Assert.Equal("f#|#b", (string)c.A);
+                                        Assert.Equal(789, (int)c.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+            }
+        }
+
+        [Fact]
+        public void MultiCharacterSeparatorInHeaders()
+        {
+            // always
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).ToOptions();
+
+                RunSyncDynamicReaderVariants(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("B#|#\"Foo#|#Bar\"\r\n123#|#hello"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+                            Assert.Collection(
+                                rows,
+                                a =>
+                                {
+                                    Assert.Equal("hello", (string)a["Foo#|#Bar"]);
+                                    Assert.Equal(123, (int)a.B);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+
+            // detect rows endings
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithRowEnding(RowEnding.Detect).ToOptions();
+
+                // \r\n
+                {
+                    RunSyncDynamicReaderVariants(
+                        opts,
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B#|#\"Foo#|#Bar\"\r\n123#|#hello"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a["Foo#|#Bar"]);
+                                        Assert.Equal(123, (int)a.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // \r
+                {
+                    RunSyncDynamicReaderVariants(
+                        opts,
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B#|#\"Foo#|#Bar\"\r123#|#hello"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a["Foo#|#Bar"]);
+                                        Assert.Equal(123, (int)a.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // \n
+                {
+                    RunSyncDynamicReaderVariants(
+                        opts,
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B#|#\"Foo#|#Bar\"\n123#|#hello"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a["Foo#|#Bar"]);
+                                        Assert.Equal(123, (int)a.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+            }
+        }
+
+        [Fact]
         public void NullStringColumn()
         {
             RunSyncDynamicReaderVariants(
@@ -5867,6 +6250,387 @@ loop:
         }
 
         // async tests
+
+        [Fact]
+        public async Task MultiCharacterSeparatorsAsync()
+        {
+            // header variants
+            {
+                // no headers
+                {
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+
+                    await RunAsyncDynamicReaderVariants(
+                        opts,
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("hello#|#123\r\n\"world\"#|#456\r\n\"f#|#b\"#|#789"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a[0]);
+                                        Assert.Equal(123, (int)a[1]);
+                                    },
+                                    b =>
+                                    {
+                                        Assert.Equal("world", (string)b[0]);
+                                        Assert.Equal(456, (int)b[1]);
+                                    },
+                                    c =>
+                                    {
+                                        Assert.Equal("f#|#b", (string)c[0]);
+                                        Assert.Equal(789, (int)c[1]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // always headers
+                {
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+
+                    await RunAsyncDynamicReaderVariants(
+                        opts,
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("A#|#B\r\nhello#|#123\r\n\"world\"#|#456\r\n\"f#|#b\"#|#789"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.A);
+                                        Assert.Equal(123, (int)a.B);
+                                    },
+                                    b =>
+                                    {
+                                        Assert.Equal("world", (string)b.A);
+                                        Assert.Equal(456, (int)b.B);
+                                    },
+                                    c =>
+                                    {
+                                        Assert.Equal("f#|#b", (string)c.A);
+                                        Assert.Equal(789, (int)c.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+            }
+
+            // detect line endings
+            {
+                var opts1 = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Never).WithRowEnding(RowEnding.Detect).ToOptions();
+                var opts2 = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithRowEnding(RowEnding.Detect).ToOptions();
+
+                // \r\n
+                {
+                    // not present
+                    await RunAsyncDynamicReaderVariants(
+                        opts1,
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("hello#|#123\r\n\"world\"#|#456\r\n\"f#|#b\"#|#789"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a[0]);
+                                        Assert.Equal(123, (int)a[1]);
+                                    },
+                                    b =>
+                                    {
+                                        Assert.Equal("world", (string)b[0]);
+                                        Assert.Equal(456, (int)b[1]);
+                                    },
+                                    c =>
+                                    {
+                                        Assert.Equal("f#|#b", (string)c[0]);
+                                        Assert.Equal(789, (int)c[1]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+
+                    // present
+                    await RunAsyncDynamicReaderVariants(
+                        opts2,
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("B#|#A\r\n123#|#hello\r\n456#|#\"world\"\r\n789#|#\"f#|#b\""))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.A);
+                                        Assert.Equal(123, (int)a.B);
+                                    },
+                                    b =>
+                                    {
+                                        Assert.Equal("world", (string)b.A);
+                                        Assert.Equal(456, (int)b.B);
+                                    },
+                                    c =>
+                                    {
+                                        Assert.Equal("f#|#b", (string)c.A);
+                                        Assert.Equal(789, (int)c.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // \r
+                {
+                    // not present
+                    await RunAsyncDynamicReaderVariants(
+                        opts1,
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("hello#|#123\r\"world\"#|#456\r\"f#|#b\"#|#789"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a[0]);
+                                        Assert.Equal(123, (int)a[1]);
+                                    },
+                                    b =>
+                                    {
+                                        Assert.Equal("world", (string)b[0]);
+                                        Assert.Equal(456, (int)b[1]);
+                                    },
+                                    c =>
+                                    {
+                                        Assert.Equal("f#|#b", (string)c[0]);
+                                        Assert.Equal(789, (int)c[1]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+
+                    // present
+                    await RunAsyncDynamicReaderVariants(
+                        opts2,
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("B#|#A\r123#|#hello\r456#|#\"world\"\r789#|#\"f#|#b\""))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.A);
+                                        Assert.Equal(123, (int)a.B);
+                                    },
+                                    b =>
+                                    {
+                                        Assert.Equal("world", (string)b.A);
+                                        Assert.Equal(456, (int)b.B);
+                                    },
+                                    c =>
+                                    {
+                                        Assert.Equal("f#|#b", (string)c.A);
+                                        Assert.Equal(789, (int)c.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // \n
+                {
+                    // not present
+                    await RunAsyncDynamicReaderVariants(
+                        opts1,
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("hello#|#123\n\"world\"#|#456\n\"f#|#b\"#|#789"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a[0]);
+                                        Assert.Equal(123, (int)a[1]);
+                                    },
+                                    b =>
+                                    {
+                                        Assert.Equal("world", (string)b[0]);
+                                        Assert.Equal(456, (int)b[1]);
+                                    },
+                                    c =>
+                                    {
+                                        Assert.Equal("f#|#b", (string)c[0]);
+                                        Assert.Equal(789, (int)c[1]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+
+                    // present
+                    await RunAsyncDynamicReaderVariants(
+                        opts2,
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("B#|#A\n123#|#hello\n456#|#\"world\"\n789#|#\"f#|#b\""))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a.A);
+                                        Assert.Equal(123, (int)a.B);
+                                    },
+                                    b =>
+                                    {
+                                        Assert.Equal("world", (string)b.A);
+                                        Assert.Equal(456, (int)b.B);
+                                    },
+                                    c =>
+                                    {
+                                        Assert.Equal("f#|#b", (string)c.A);
+                                        Assert.Equal(789, (int)c.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+            }
+        }
+
+        [Fact]
+        public async Task MultiCharacterSeparatorInHeadersAsync()
+        {
+            // always
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).ToOptions();
+
+                await RunAsyncDynamicReaderVariants(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("B#|#\"Foo#|#Bar\"\r\n123#|#hello"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+                            Assert.Collection(
+                                rows,
+                                a =>
+                                {
+                                    Assert.Equal("hello", (string)a["Foo#|#Bar"]);
+                                    Assert.Equal(123, (int)a.B);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+
+            // detect rows endings
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithRowEnding(RowEnding.Detect).ToOptions();
+
+                // \r\n
+                {
+                    await RunAsyncDynamicReaderVariants(
+                        opts,
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("B#|#\"Foo#|#Bar\"\r\n123#|#hello"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a["Foo#|#Bar"]);
+                                        Assert.Equal(123, (int)a.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // \r
+                {
+                    await RunAsyncDynamicReaderVariants(
+                        opts,
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("B#|#\"Foo#|#Bar\"\r123#|#hello"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a["Foo#|#Bar"]);
+                                        Assert.Equal(123, (int)a.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // \n
+                {
+                    await RunAsyncDynamicReaderVariants(
+                        opts,
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("B#|#\"Foo#|#Bar\"\n123#|#hello"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    a =>
+                                    {
+                                        Assert.Equal("hello", (string)a["Foo#|#Bar"]);
+                                        Assert.Equal(123, (int)a.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+            }
+        }
 
         [Fact]
         public async Task MissingTrailingColumnsAsync()

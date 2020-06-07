@@ -61,6 +61,7 @@ namespace Cesil
                 var wholeRowContext = WriteContext.DiscoveringCells(Configuration.Options, RowNumber, Context);
 
                 var options = Configuration.Options;
+                var valueSeparator = Configuration.ValueSeparatorMemory.Span;
 
                 var cellValues = options.TypeDescriber.GetCellsForDynamicRow(in wholeRowContext, row as object);
                 cellValues = ForceInOrder(cellValues);
@@ -74,7 +75,7 @@ namespace Cesil
 
                     if (needsSeparator)
                     {
-                        PlaceCharInStaging(options.ValueSeparator);
+                        PlaceAllInStaging(valueSeparator);
                     }
 
                     ColumnIdentifier ci;
@@ -317,13 +318,15 @@ end:
 
         private void WriteHeaders()
         {
+            var valueSeparator = Configuration.ValueSeparatorMemory.Span;
+
             var columnNamesValue = ColumnNames.Value;
             for (var i = 0; i < columnNamesValue.Length; i++)
             {
                 if (i != 0)
                 {
                     // first value doesn't get a separator
-                    PlaceCharInStaging(Configuration.Options.ValueSeparator);
+                    PlaceAllInStaging(valueSeparator);
                 }
                 else
                 {
