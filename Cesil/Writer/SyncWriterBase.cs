@@ -48,7 +48,14 @@ namespace Cesil
 
         internal abstract void WriteInner(T row);
 
-        public abstract void WriteComment(string comment);
+        public void WriteComment(string comment)
+        {
+            Utils.CheckArgumentNull(comment, nameof(comment));
+
+            WriteComment(comment.AsSpan());
+        }
+
+        public abstract void WriteComment(ReadOnlySpan<char> comment);
 
         internal void EndRecord()
         {

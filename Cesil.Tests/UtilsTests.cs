@@ -227,35 +227,6 @@ namespace Cesil.Tests
             Assert.Equal(expected, trimmedStr);
         }
 
-        [Theory]
-        [InlineData("", "\r\n")]
-        [InlineData("hello\r\nworld", "\r\n")]
-        [InlineData("hello world", " ")]
-        [InlineData("hello_world__foo_+bar_+_+_+_+wooo_+", "_+")]
-        [InlineData("\r\n", "\r\n")]
-        [InlineData(" \r\n", "\r\n")]
-        [InlineData("\r\n ", "\r\n")]
-        [InlineData(" \r\n ", "\r\n")]
-        [InlineData("#", "#")]
-        [InlineData("#", "###")]
-        [InlineData("nothing to break on", "foo")]
-        public void Split(string haystack, string needle)
-        {
-            var shouldMatch = haystack.Split(needle, StringSplitOptions.RemoveEmptyEntries);
-
-            var actually = Utils.Split(haystack.AsMemory(), needle.AsMemory());
-            var actuallySegments = new List<string>();
-            foreach (var seq in actually)
-            {
-                if (seq.Length != 0)
-                {
-                    actuallySegments.Add(new string(seq.Span));
-                }
-            }
-
-            Assert.True(shouldMatch.SequenceEqual(actuallySegments));
-        }
-
         private class _Encode
         {
             public string Foo { get; set; }

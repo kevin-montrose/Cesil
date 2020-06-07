@@ -2555,7 +2555,7 @@ namespace Cesil.Tests
                     await using (var w = getWriter())
                     await using (var csv = config.CreateAsyncWriter(w))
                     {
-                        await Assert.ThrowsAsync<ArgumentNullException>(async () => await csv.WriteCommentAsync(null));
+                        await Assert.ThrowsAsync<ArgumentNullException>(async () => await csv.WriteCommentAsync(default(string)));
                     }
 
                     var res = await getStr();

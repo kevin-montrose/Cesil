@@ -30,5 +30,15 @@ namespace Cesil
         /// comment lines.
         /// </summary>
         void WriteComment(string comment);
+
+        /// <summary>
+        /// Write a comment as a row.
+        /// 
+        /// Only supported if this IWriter's configuration has a way to indicate comments.
+        /// 
+        /// If the comment contains the row ending character sequence, it will be written as multiple
+        /// comment lines.
+        /// </summary>
+        void WriteComment(ReadOnlySpan<char> comment);
     }
 }

@@ -1265,5 +1265,120 @@ namespace Cesil.Tests
             }
 #endif
         }
+
+        // todo: remove this (or move it to Cesil.Tests)
+        // won't return empty entries
+        internal static ReadOnlySequence<char> Split(ReadOnlyMemory<char> str, ReadOnlyMemory<char> with)
+        {
+            var strSpan = str.Span;
+            var withSpan = with.Span;
+
+            var ix = FindNextIx(0, strSpan, withSpan);
+
+            if (ix == -1)
+            {
+                return new ReadOnlySequence<char>(str);
+            }
+
+            ReadOnlyCharSegment head = null;
+            ReadOnlyCharSegment tail = null;
+
+            var lastIx = 0;
+            while (ix != -1)
+            {
+                var len = ix - lastIx;
+                if (len > 0)
+                {
+                    var subset = str[lastIx..ix];
+                    if (head == null)
+                    {
+                        head = new ReadOnlyCharSegment(subset, len);
+                    }
+                    else
+                    {
+                        if (tail == null)
+                        {
+                            tail = head.Append(subset, len);
+                        }
+                        else
+                        {
+                            tail = tail.Append(subset, len);
+                        }
+                    }
+                }
+
+                lastIx = ix + with.Length;
+                ix = FindNextIx(lastIx, strSpan, withSpan);
+            }
+
+            if (lastIx != str.Length)
+            {
+                var len = str.Length - lastIx;
+                var end = str.Slice(lastIx);
+                if (head == null)
+                {
+                    head = new ReadOnlyCharSegment(end, len);
+
+                }
+                else
+                {
+                    if (tail == null)
+                    {
+                        tail = head.Append(end, len);
+                    }
+                    else
+                    {
+                        tail = tail.Append(end, len);
+                    }
+                }
+            }
+
+            if (head == null)
+            {
+                return ReadOnlySequence<char>.Empty;
+            }
+
+            if (tail == null)
+            {
+                return new ReadOnlySequence<char>(head.Memory);
+            }
+
+            var ret = new ReadOnlySequence<char>(head, 0, tail, tail.Memory.Length);
+
+            return ret;
+
+            // actually figure out the next end
+            static int FindNextIx(int startAt, ReadOnlySpan<char> haystack, ReadOnlySpan<char> needle)
+            {
+                var c = needle[0];
+                var lookupFrom = startAt;
+
+tryAgain:
+
+                var ix = Utils.FindChar(haystack, lookupFrom, c);
+                if (ix == -1) return -1;
+
+                for (var i = 1; i < needle.Length; i++)
+                {
+                    var readIx = ix + i;
+                    if (readIx == haystack.Length)
+                    {
+                        // past the end
+                        return -1;
+                    }
+
+                    var shouldMatch = needle[i];
+                    var actuallyIs = haystack[readIx];
+                    if (shouldMatch != actuallyIs)
+                    {
+                        lookupFrom = readIx;
+                        goto tryAgain;
+                    }
+                }
+
+                // actually all matched, hooray!
+                return ix;
+            }
+        }
     }
 }

@@ -1501,20 +1501,20 @@ namespace Cesil.Tests
             // sequence of multiple spans
             {
                 // default options can always encode
-                var seq1 = Utils.Split("hel-lo".AsMemory(), "-".AsMemory());
+                var seq1 = Split("hel-lo".AsMemory(), "-".AsMemory());
                 Assert.False(seq1.IsSingleSegment);
                 WriterBase<object>.CheckCanEncode(seq1, Options.Default);
 
                 var tsv = Options.CreateBuilder(Options.Default).WithEscapedValueEscapeCharacter(null).WithValueSeparator("\t").ToOptions();
                 // but " isn't
-                var seq2 = Utils.Split("\" -".AsMemory(), " ".AsMemory());
+                var seq2 = Split("\" -".AsMemory(), " ".AsMemory());
                 Assert.False(seq2.IsSingleSegment);
                 var exc1 = Assert.Throws<InvalidOperationException>(() => WriterBase<object>.CheckCanEncode(seq2, tsv));
                 Assert.Contains("'\"'", exc1.Message);
 
                 var noEscape = Options.CreateBuilder(Options.Default).WithEscapedValueEscapeCharacter(null).WithEscapedValueStartAndEnd(null).ToOptions();
                 // comma is not escapable
-                var seq3 = Utils.Split("----!, ".AsMemory(), "!".AsMemory());
+                var seq3 = Split("----!, ".AsMemory(), "!".AsMemory());
                 Assert.False(seq3.IsSingleSegment);
                 var exc2 = Assert.Throws<InvalidOperationException>(() => WriterBase<object>.CheckCanEncode(seq3, noEscape));
                 Assert.Contains("','", exc2.Message);
@@ -1525,20 +1525,20 @@ namespace Cesil.Tests
                 var opt = Options.CreateBuilder(Options.Default).WithValueSeparator("---").ToOptions();
 
                 // default options can always encode
-                var seq1 = Utils.Split("hel-lo".AsMemory(), "-".AsMemory());
+                var seq1 = Split("hel-lo".AsMemory(), "-".AsMemory());
                 Assert.False(seq1.IsSingleSegment);
                 WriterBase<object>.CheckCanEncode(seq1, opt);
 
                 var noInnerEscape = Options.CreateBuilder(opt).WithEscapedValueEscapeCharacter(null).ToOptions();
                 // but " isn't
-                var seq2 = Utils.Split("\" - ".AsMemory(), "-".AsMemory());
+                var seq2 = Split("\" - ".AsMemory(), "-".AsMemory());
                 Assert.False(seq2.IsSingleSegment);
                 var exc1 = Assert.Throws<InvalidOperationException>(() => WriterBase<object>.CheckCanEncode(seq2, noInnerEscape));
                 Assert.Contains("'\"'", exc1.Message);
 
                 var noEscape = Options.CreateBuilder(opt).WithEscapedValueEscapeCharacter(null).WithEscapedValueStartAndEnd(null).ToOptions();
                 // comma is not escapable
-                var seq3 = Utils.Split("--- !".AsMemory(), " ".AsMemory());
+                var seq3 = Split("--- !".AsMemory(), " ".AsMemory());
                 Assert.False(seq3.IsSingleSegment);
                 var exc2 = Assert.Throws<InvalidOperationException>(() => WriterBase<object>.CheckCanEncode(seq3, noEscape));
                 Assert.Contains("'---'", exc2.Message);
@@ -6278,7 +6278,7 @@ namespace Cesil.Tests
                     await using (var writer = getWriter())
                     await using (var csv = config.CreateAsyncWriter(writer))
                     {
-                        await Assert.ThrowsAsync<ArgumentNullException>(async () => await csv.WriteCommentAsync(null));
+                        await Assert.ThrowsAsync<ArgumentNullException>(async () => await csv.WriteCommentAsync(default(string)));
                     }
 
                     var _ = await getStr();

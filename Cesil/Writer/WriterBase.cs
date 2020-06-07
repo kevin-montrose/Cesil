@@ -74,24 +74,6 @@ namespace Cesil
             return InStaging == StagingMemory.Length;
         }
 
-        internal (char CommentChar, ReadOnlySequence<char> CommentLines) SplitCommentIntoLines(string comment)
-        {
-            var options = Configuration.Options;
-            var commentChar = options.CommentCharacter;
-
-            if (commentChar == null)
-            {
-                return Throw.InvalidOperationException<(char CommentChar, ReadOnlySequence<char> CommentLines)>($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
-            }
-
-            var commentMem = comment.AsMemory();
-
-            var seq = Utils.Split(commentMem, Configuration.RowEndingMemory);
-            var c = commentChar.Value;
-
-            return (c, seq);
-        }
-
         internal static void CheckCanEncode(ReadOnlySpan<char> chars, Options options)
         {
             var escapedValueStartAndEnd = options.EscapedValueStartAndEnd;
