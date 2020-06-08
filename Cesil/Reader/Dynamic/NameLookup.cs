@@ -552,12 +552,8 @@ processPrefixGroup:
                 return false;
             }
 
-            Debug.WriteLineIf(
-                LogConstants.NAME_LOOKUP,
-                $"{nameof(Create)}: ordered names ({string.Join(", ", sortedNames.Select(x => '"' + new string(x.Span) + '"'))})"
-            );
-
-
+            LogHelper.NameLookup_OrderedNames(sortedNames);
+            
             ushort startIx = 0;
             ushort lastIx = (ushort)(sortedNames.Count - 1);    // we know this will fix because we check the site of sortedNames above
 
@@ -671,10 +667,7 @@ processPrefixGroup:
                         groupStartSpan[curOffset] = prefixLenChar;
                         curOffset++;
 
-                        Debug.WriteLineIf(
-                            LogConstants.NAME_LOOKUP,
-                            $"{nameof(StorePrefixGroups)}: depth={depth}, start={startOfPrefixGroup}, prefix=\"{new string(name.Slice(0, prefixLen))}\""
-                        );
+                        LogHelper.NameLookup_StorePrefixGroups(depth, startOfPrefixGroup, name, prefixLen);
 
                         // store the actual prefix characters
                         var prefixCharsToCopy = name.Slice(ignoreCharCount, prefixLen);
@@ -712,12 +705,7 @@ processPrefixGroup:
                         var newLastNamesIx = FromEndOfPrefixGroup(groupStartSpan[groupPtr]);
                         var size = newLastNamesIx - newFirstNamesIx + 1;
 
-                        Debug.WriteLineIf(LogConstants.NAME_LOOKUP, $"Indexes: depth={depth}, start:{newFirstNamesIx}, last:{newLastNamesIx}");
-
-                        Debug.Assert(
-                            newFirstNamesIx <= newLastNamesIx,
-                            $"Indexes into group are non-sensical; {nameof(newFirstNamesIx)} ({newFirstNamesIx}) > {nameof(newLastNamesIx)} ({newLastNamesIx})"
-                        );
+                        LogHelper.NameLookup_Indexes(depth, newFirstNamesIx, newLastNamesIx);
 
                         if (size > 1)
                         {
@@ -791,9 +779,6 @@ processPrefixGroup:
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static bool ToOffset(int offset, out char asChar)
         {
-            // offset will always be >= 1
-            Debug.Assert(offset >= 1, $"Offset out of range: {offset}");
-
             var val = -offset;
             if (val < short.MinValue || val > short.MaxValue)
             {
@@ -812,8 +797,6 @@ processPrefixGroup:
         internal static int FromOffset(char c)
         {
             short asShort = (short)c;
-
-            Debug.Assert(asShort < 0, $"Unexpected offset value, wasn't negative: {asShort}");
 
             return -asShort;
         }
@@ -834,8 +817,6 @@ processPrefixGroup:
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static bool ToPrefixLength(int len, out char asChar)
         {
-            Debug.Assert(len >= 0, $"Length out of range: {len}");
-
             if (len < 0 || len > ushort.MaxValue)
             {
                 asChar = '\0';

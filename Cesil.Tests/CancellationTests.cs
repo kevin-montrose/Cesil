@@ -32,11 +32,47 @@ namespace Cesil.Tests
 
                             token.Cancel();
 
-                            await Assert.ThrowsAsync<OperationCanceledException>(async () => await i.MoveNextAsync());
+                            await AssertThrowsAsync<OperationCanceledException>(async () => await i.MoveNextAsync());
                         }
                     }
                 }
             );
+
+            static async Task AssertThrowsAsync<T>(Func<Task> task)
+                where T: Exception
+            {
+                Exception exc;
+                try
+                {
+                    await task();
+                    exc = null;
+                }
+                catch(Exception e)
+                {
+                    exc = e;
+                }
+
+                Assert.NotNull(exc);
+
+                if(exc is AggregateException ae)
+                {
+                    foreach(var a in ae.InnerExceptions)
+                    {
+                        if(a is T)
+                        {
+                            return;
+                        }
+                    }
+
+                    // not the right exception
+                    Assert.True(false);
+                }
+                else
+                {
+                    // exact match
+                    Assert.IsType<T>(exc);
+                }
+            }
         }
     }
 }

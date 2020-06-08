@@ -87,7 +87,6 @@ namespace Cesil
                 try
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     using (self.StateMachine.Pin())
                     {
@@ -100,7 +99,6 @@ namespace Cesil
                             self.StateMachine.ReleasePinForAsync(resTask);
                             {
                                 res = await ConfigureCancellableAwait(self, resTask, cancellationToken);
-                                CheckCancellation(self, cancellationToken);
                             }
 
                             if (res.HasValue)
@@ -127,9 +125,7 @@ namespace Cesil
             {
                 try
                 {
-
                     var other = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     if (other.HasValue)
                     {
@@ -148,7 +144,6 @@ namespace Cesil
                         self.StateMachine.ReleasePinForAsync(resTask);
                         {
                             res = await ConfigureCancellableAwait(self, resTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
                         }
                         if (res.HasValue)
                         {
@@ -218,10 +213,9 @@ namespace Cesil
                 try
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
-                    var res = await ConfigureCancellableAwait(self, self.TryReadInnerAsync(false, false, true, ref row, cancellationToken), cancellationToken);
-                    CheckCancellation(self, cancellationToken);
+                    var readTask = self.TryReadInnerAsync(false, false, true, ref row, cancellationToken);
+                    var res = await ConfigureCancellableAwait(self, readTask, cancellationToken);
 
                     return
                         res.ResultType switch
@@ -243,7 +237,6 @@ namespace Cesil
                 try
                 {
                     var res = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     return
                         res.ResultType switch
@@ -300,10 +293,9 @@ namespace Cesil
                 try
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
-                    var res = await ConfigureCancellableAwait(self, self.TryReadInnerAsync(false, false, false, ref row, cancellationToken), cancellationToken);
-                    CheckCancellation(self, cancellationToken);
+                    var readTask = self.TryReadInnerAsync(false, false, false, ref row, cancellationToken);
+                    var res = await ConfigureCancellableAwait(self, readTask, cancellationToken);
 
                     return
                         res.ResultType switch
@@ -325,7 +317,6 @@ namespace Cesil
                 try
                 {
                     var res = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     return
                         res.ResultType switch
@@ -370,10 +361,9 @@ namespace Cesil
                 try
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
-                    var ret = await ConfigureCancellableAwait(self, self.TryReadInnerAsync(true, false, false, ref record, cancellationToken), cancellationToken);
-                    CheckCancellation(self, cancellationToken);
+                    var readTask = self.TryReadInnerAsync(true, false, false, ref record, cancellationToken);
+                    var ret = await ConfigureCancellableAwait(self, readTask, cancellationToken);
 
                     return ret;
                 }
@@ -410,10 +400,9 @@ namespace Cesil
                 try
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
-                    var ret = await ConfigureCancellableAwait(self, self.TryReadInnerAsync(true, false, true, ref record, cancellationToken), cancellationToken);
-                    CheckCancellation(self, cancellationToken);
+                    var readTask = self.TryReadInnerAsync(true, false, true, ref record, cancellationToken);
+                    var ret = await ConfigureCancellableAwait(self, readTask, cancellationToken);
 
                     return ret;
                 }

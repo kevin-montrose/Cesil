@@ -61,6 +61,7 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
+            // since we'll never go async here, check for cancellation once per call
             CheckCancellation(this, Token);
 
             if (Enumerator.MoveNext())

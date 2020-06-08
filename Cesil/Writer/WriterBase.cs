@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 
 namespace Cesil
 {
@@ -66,6 +67,7 @@ namespace Cesil
         => Utils.FindNeedsEncode(head, 0, Configuration) != -1;
 
         // returns true if we need to flush staging
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool PlaceInStaging(char c)
         {
             StagingMemory.Span[InStaging] = c;

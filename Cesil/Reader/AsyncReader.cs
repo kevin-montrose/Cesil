@@ -36,12 +36,11 @@ namespace Cesil
                 try
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     if (self.ReadHeaders == null)
                     {
-                        await ConfigureCancellableAwait(self, self.HandleHeadersAsync(cancellationToken), cancellationToken);
-                        CheckCancellation(self, cancellationToken);
+                        var handleHeadersTask = self.HandleHeadersAsync(cancellationToken);
+                        await ConfigureCancellableAwait(self, handleHeadersTask, cancellationToken);
                     }
                 }
                 catch (Exception e)
@@ -124,7 +123,6 @@ namespace Cesil
                             self.StateMachine.ReleasePinForAsync(waitFor);
                             {
                                 available = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                                CheckCancellation(self, cancellationToken);
                             }
                             if (available == 0)
                             {
@@ -156,7 +154,6 @@ namespace Cesil
                             self.StateMachine.ReleasePinForAsync(availableTask);
                             {
                                 available = await ConfigureCancellableAwait(self, availableTask, cancellationToken);
-                                CheckCancellation(self, cancellationToken);
                             }
                             if (available == 0)
                             {
@@ -230,7 +227,6 @@ namespace Cesil
                 try
                 {
                     var res = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     self.HandleLineEndingsDetectionResult(res);
                 }
@@ -297,7 +293,6 @@ namespace Cesil
                 try
                 {
                     var res = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     self.HandleHeadersReaderResult(res);
                 }

@@ -2022,8 +2022,7 @@ namespace Cesil.Tests
 
                     var res = await getStr();
                     Assert.Equal("A,B\r\nFoo,123\r\nBar,456\r\nFizz,456\r\nBuzz,789", res);
-                },
-                cancellable: false
+                }
             );
 
             // no count
@@ -2049,8 +2048,7 @@ namespace Cesil.Tests
 
                     var res = await getStr();
                     Assert.Equal("Item1,Item2\r\n0,0\r\n1,2\r\n2,4\r\n3,6\r\n4,8\r\n5,10\r\n6,12\r\n7,14\r\n8,16\r\n9,18\r\nnope,-1", res);
-                },
-                cancellable: false
+                }
             );
 
             // no count, async
@@ -2074,8 +2072,7 @@ namespace Cesil.Tests
 
                     var res = await getStr();
                     Assert.Equal("Item1,Item2\r\n0-0,0\r\n1-1,2\r\n2-2,4\r\n3-3,6\r\n4-4,8\r\n5-5,10\r\n6-6,12\r\n7-7,14\r\n8-8,16\r\n9-9,18\r\nhello,fifteen", res);
-                },
-                cancellable: false
+                }
             );
         }
 

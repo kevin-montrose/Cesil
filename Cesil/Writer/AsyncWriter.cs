@@ -53,9 +53,7 @@ namespace Cesil
             {
                 try
                 {
-
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     var selfColumnsValue = self.Columns;
                     for (var i = 0; i < selfColumnsValue.Length; i++)
@@ -65,7 +63,6 @@ namespace Cesil
 
                         var writeTask = self.WriteColumnAsync(row, i, col, needsSeparator, cancellationToken);
                         await ConfigureCancellableAwait(self, writeTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
                     }
 
                     self.RowNumber++;
@@ -82,7 +79,6 @@ namespace Cesil
                 try
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     // the implicit increment at the end of the loop
                     i++;
@@ -95,7 +91,6 @@ namespace Cesil
 
                         var writeTask = self.WriteColumnAsync(row, i, col, needsSeparator, cancellationToken);
                         await ConfigureCancellableAwait(self, writeTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
                     }
 
                     self.RowNumber++;
@@ -134,19 +129,10 @@ namespace Cesil
                 var splitIx = Utils.FindNextIx(0, comment, rowEndingMem);
                 if (splitIx == -1)
                 {
-                    // single segment
-                    var placeCharTask = PlaceCharInStagingAsync(commentChar, cancellationToken);
-                    if (!placeCharTask.IsCompletedSuccessfully(this))
-                    {
-                        return WriteCommentAsync_ContiueAfterSingleSegmentPlaceCharInStagingAsync(this, placeCharTask, comment, cancellationToken);
-                    }
+                    var writeTask = PlaceCharAndSegmentInStagingAsync(commentChar, comment, cancellationToken);
 
-                    if (comment.Length > 0)
-                    {
-                        // doesn't matter if it completes, client has to await before the next call anyway
-                        var placeTask = PlaceInStagingAsync(comment, cancellationToken);
-                        return placeTask;
-                    }
+                    // doesn't matter if it completes, client has to await before the next call anyway
+                    return writeTask;
                 }
                 else
                 {
@@ -165,20 +151,11 @@ namespace Cesil
                             }
                         }
 
-                        var placeCharTask = PlaceCharInStagingAsync(commentChar, cancellationToken);
-                        if (!placeCharTask.IsCompletedSuccessfully(this))
-                        {
-                            return WriteCommentAsync_ContinueAfterMultiSegmentPlaceCharInStagingAsync(this, placeCharTask, commentChar, comment, prevIx, splitIx, rowEndingMem, cancellationToken);
-                        }
-
                         var segSpan = comment[prevIx..splitIx];
-                        if (segSpan.Length > 0)
+                        var placeTask = PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
+                        if (!placeTask.IsCompletedSuccessfully(this))
                         {
-                            var placeTask = PlaceInStagingAsync(segSpan, cancellationToken);
-                            if (!placeTask.IsCompletedSuccessfully(this))
-                            {
-                                return WriteCommentAsync_ContinueAfterMultiSegmentPlaceInStagingAsync(this, placeTask, commentChar, comment, prevIx, splitIx, rowEndingMem, cancellationToken);
-                            }
+                            return WriteCommentAsync_ContinueAfterMultiSegmentPlaceCharAndSegmentInStagingAsync(this, placeTask, commentChar, comment, splitIx, rowEndingMem, cancellationToken);
                         }
 
                         prevIx = splitIx + rowEndingMem.Length;
@@ -198,14 +175,8 @@ namespace Cesil
                             }
                         }
 
-                        var placeCharTask = PlaceCharInStagingAsync(commentChar, cancellationToken);
-                        if (!placeCharTask.IsCompletedSuccessfully(this))
-                        {
-                            return WriteCommentAsync_ContinueAfterMultiSegmentFinalCommentPlaceCharAsync(this, placeCharTask, comment, prevIx, cancellationToken);
-                        }
-
                         var segSpan = comment[prevIx..];
-                        var placeTask = PlaceInStagingAsync(segSpan, cancellationToken);
+                        var placeTask = PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
 
                         // no need to wait, client will await before making another call
                         return placeTask;
@@ -219,41 +190,16 @@ namespace Cesil
 
             return default;
 
-            // wait for writing the char start finish, in the multi segment case, for the last comment, then continue
-            static async ValueTask WriteCommentAsync_ContinueAfterMultiSegmentFinalCommentPlaceCharAsync(AsyncWriter<T> self, ValueTask waitFor, ReadOnlyMemory<char> comment, int prevIx, CancellationToken cancellationToken)
-            {
-                try
-                {
-                    await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
-
-                    var segSpan = comment[prevIx..];
-                    var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
-                    await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
-                }
-                catch (Exception e)
-                {
-                    Throw.PoisonAndRethrow<object>(self, e);
-                }
-            }
-
             // wait for ending a row to finish, in the multi segment case, for the last comment, then continue
             static async ValueTask WriteCommentAsync_ContinueAfterMultiSegmentFinalCommentEndRecordAsync(AsyncWriter<T> self, ValueTask waitFor, char commentChar, ReadOnlyMemory<char> comment, int prevIx, CancellationToken cancellationToken)
             {
                 try
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
-
-                    var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                    await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
-
+                    
                     var segSpan = comment[prevIx..];
-                    var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
+                    var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
                     await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
                 }
                 catch (Exception e)
                 {
@@ -261,39 +207,28 @@ namespace Cesil
                 }
             }
 
-            // wait for writing a chunk of the comment to complete, in the multi segment case, then continue
-            static async ValueTask WriteCommentAsync_ContinueAfterMultiSegmentPlaceInStagingAsync(AsyncWriter<T> self, ValueTask waitFor, char commentChar, ReadOnlyMemory<char> comment, int prevIx, int splitIx, ReadOnlyMemory<char> rowEndingMem, CancellationToken cancellationToken)
+            static async ValueTask WriteCommentAsync_ContinueAfterMultiSegmentPlaceCharAndSegmentInStagingAsync(AsyncWriter<T> self, ValueTask waitFor, char commentChar, ReadOnlyMemory<char> comment, int splitIx, ReadOnlyMemory<char> rowEndingMem, CancellationToken cancellationToken)
             {
                 try
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
-                    // finish the loop
+                    int prevIx;
+                    // finish loop
                     {
                         prevIx = splitIx + rowEndingMem.Length;
                         splitIx = Utils.FindNextIx(prevIx, comment, rowEndingMem);
                     }
 
-                    // back into the loop
                     while (splitIx != -1)
                     {
-                        // never the first row, so always end
+                        // not first row by definition
                         var endRecordTask = self.EndRecordAsync(cancellationToken);
                         await ConfigureCancellableAwait(self, endRecordTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
-                        var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
 
                         var segSpan = comment[prevIx..splitIx];
-                        if (segSpan.Length > 0)
-                        {
-                            var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
-                            await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
-                        }
+                        var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
+                        await ConfigureCancellableAwait(self, placeTask, cancellationToken);
 
                         prevIx = splitIx + rowEndingMem.Length;
                         splitIx = Utils.FindNextIx(prevIx, comment, rowEndingMem);
@@ -301,94 +236,20 @@ namespace Cesil
 
                     if (prevIx != comment.Length)
                     {
-                        // never the first row, so always end
+                        // not first row by definition
                         var endRecordTask = self.EndRecordAsync(cancellationToken);
                         await ConfigureCancellableAwait(self, endRecordTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
-                        var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
 
                         var segSpan = comment[prevIx..];
-                        var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
+                        var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
                         await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
                     }
                 }
                 catch (Exception e)
                 {
                     Throw.PoisonAndRethrow<object>(self, e);
                 }
-            }
 
-            // wait for placing the comment start char in the multi-segment case, then continue
-            static async ValueTask WriteCommentAsync_ContinueAfterMultiSegmentPlaceCharInStagingAsync(AsyncWriter<T> self, ValueTask waitFor, char commentChar, ReadOnlyMemory<char> comment, int prevIx, int splitIx, ReadOnlyMemory<char> rowEndingMem, CancellationToken cancellationToken)
-            {
-                try
-                {
-                    await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
-
-                    // finish the loop
-                    {
-                        var segSpan = comment[prevIx..splitIx];
-                        if (segSpan.Length > 0)
-                        {
-                            var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
-                            await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
-                        }
-
-                        prevIx = splitIx + rowEndingMem.Length;
-                        splitIx = Utils.FindNextIx(prevIx, comment, rowEndingMem);
-                    }
-
-                    // back into the loop
-                    while (splitIx != -1)
-                    {
-                        // never the first row, so always end
-                        var endRecordTask = self.EndRecordAsync(cancellationToken);
-                        await ConfigureCancellableAwait(self, endRecordTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
-                        var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
-                        var segSpan = comment[prevIx..splitIx];
-                        if (segSpan.Length > 0)
-                        {
-                            var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
-                            await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
-                        }
-
-                        prevIx = splitIx + rowEndingMem.Length;
-                        splitIx = Utils.FindNextIx(prevIx, comment, rowEndingMem);
-                    }
-
-                    if (prevIx != comment.Length)
-                    {
-                        // never the first row, so always end
-                        var endRecordTask = self.EndRecordAsync(cancellationToken);
-                        await ConfigureCancellableAwait(self, endRecordTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
-                        var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
-                        var segSpan = comment[prevIx..];
-                        var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-                    }
-                }
-                catch (Exception e)
-                {
-                    Throw.PoisonAndRethrow<object>(self, e);
-                }
             }
 
             // wait for ending the record in the multi segment case, then continue
@@ -397,21 +258,12 @@ namespace Cesil
                 try
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     // finish the loop
                     {
-                        var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
                         var segSpan = comment[prevIx..splitIx];
-                        if (segSpan.Length > 0)
-                        {
-                            var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
-                            await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
-                        }
+                        var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
+                        await ConfigureCancellableAwait(self, placeTask, cancellationToken);
 
                         prevIx = splitIx + rowEndingMem.Length;
                         splitIx = Utils.FindNextIx(prevIx, comment, rowEndingMem);
@@ -423,19 +275,10 @@ namespace Cesil
                         // never the first row, so always end
                         var endRecordTask = self.EndRecordAsync(cancellationToken);
                         await ConfigureCancellableAwait(self, endRecordTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
-                        var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
 
                         var segSpan = comment[prevIx..splitIx];
-                        if (segSpan.Length > 0)
-                        {
-                            var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
-                            await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
-                        }
+                        var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
+                        await ConfigureCancellableAwait(self, placeTask, cancellationToken);
 
                         prevIx = splitIx + rowEndingMem.Length;
                         splitIx = Utils.FindNextIx(prevIx, comment, rowEndingMem);
@@ -446,38 +289,10 @@ namespace Cesil
                         // never the first row, so always end
                         var endRecordTask = self.EndRecordAsync(cancellationToken);
                         await ConfigureCancellableAwait(self, endRecordTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
-                        var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
 
                         var segSpan = comment[prevIx..];
-                        var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
+                        var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
                         await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-                    }
-                }
-                catch (Exception e)
-                {
-                    Throw.PoisonAndRethrow<object>(self, e);
-                }
-            }
-
-            // wait for writing the comment start char in the single segment case, then continue
-            static async ValueTask WriteCommentAsync_ContiueAfterSingleSegmentPlaceCharInStagingAsync(AsyncWriter<T> self, ValueTask waitFor, ReadOnlyMemory<char> comment, CancellationToken cancellationToken)
-            {
-                try
-                {
-                    // wait for the char to finish
-                    await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
-
-                    if (comment.Length > 0)
-                    {
-                        var placeTask = self.PlaceInStagingAsync(comment, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
                     }
                 }
                 catch (Exception e)
@@ -492,7 +307,6 @@ namespace Cesil
                 try
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     var options = self.Configuration.Options;
                     var commentCharNullable = options.CommentCharacter;
@@ -510,15 +324,8 @@ namespace Cesil
                     if (splitIx == -1)
                     {
                         // single segment
-                        var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-                        if (comment.Length > 0)
-                        {
-                            var placeTask = self.PlaceInStagingAsync(comment, cancellationToken);
-                            await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
-                        }
+                        var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, comment, cancellationToken);
+                        await ConfigureCancellableAwait(self, placeTask, cancellationToken);
                     }
                     else
                     {
@@ -532,20 +339,11 @@ namespace Cesil
                             {
                                 var endTask = self.EndRecordAsync(cancellationToken);
                                 await ConfigureCancellableAwait(self, endTask, cancellationToken);
-                                CheckCancellation(self, cancellationToken);
                             }
-
-                            var placeChar = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                            await ConfigureCancellableAwait(self, placeChar, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
 
                             var segSpan = comment[prevIx..splitIx];
-                            if (segSpan.Length > 0)
-                            {
-                                var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
-                                await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                                CheckCancellation(self, cancellationToken);
-                            }
+                            var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
+                            await ConfigureCancellableAwait(self, placeTask, cancellationToken);
 
                             prevIx = splitIx + rowEndingMem.Length;
                             splitIx = Utils.FindNextIx(prevIx, comment, rowEndingMem);
@@ -559,18 +357,11 @@ namespace Cesil
                             {
                                 var endTask = self.EndRecordAsync(cancellationToken);
                                 await ConfigureCancellableAwait(self, endTask, cancellationToken);
-                                CheckCancellation(self, cancellationToken);
                             }
 
-                            var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                            await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
-
                             var segSpan = comment[prevIx..];
-
-                            var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
+                            var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
                             await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
                         }
                     }
                 }
@@ -609,8 +400,8 @@ namespace Cesil
             static async ValueTask WriteHeadersAndEndRecordIfNeededAsync_ContinueAfterHeadersAsync(AsyncWriter<T> self, ValueTask<bool> waitFor, CancellationToken cancellationToken)
             {
                 var shouldEndRecord = true;
+
                 var res = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                CheckCancellation(self, cancellationToken);
 
 
                 if (!res)
@@ -622,7 +413,6 @@ namespace Cesil
                 {
                     var endTask = self.EndRecordAsync(cancellationToken);
                     await ConfigureCancellableAwait(self, endTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
                 }
             }
         }
@@ -631,7 +421,7 @@ namespace Cesil
         {
             if (needsSeparator)
             {
-                var sepTask = PlaceInStagingAsync(Configuration.ValueSeparatorMemory, cancellationToken);
+                var sepTask = PlaceAllInStagingAsync(Configuration.ValueSeparatorMemory, cancellationToken);
                 if (!sepTask.IsCompletedSuccessfully(this))
                 {
                     return WriteColumnAsync_ContinueAfterSeparatorAsync(this, sepTask, row, colIx, col, cancellationToken);
@@ -665,7 +455,6 @@ namespace Cesil
             static async ValueTask WriteColumnAsync_ContinueAfterSeparatorAsync(AsyncWriter<T> self, ValueTask waitFor, T row, int colIx, Column col, CancellationToken cancellationToken)
             {
                 await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                CheckCancellation(self, cancellationToken);
 
                 var ctx = self.WriteContexts[colIx].SetRowNumberForWriteColumn(self.RowNumber);
 
@@ -683,7 +472,6 @@ namespace Cesil
 
                 var writeTask = self.WriteValueAsync(res, cancellationToken);
                 await ConfigureCancellableAwait(self, writeTask, cancellationToken);
-                CheckCancellation(self, cancellationToken);
 
                 self.Buffer.Reset();
             }
@@ -692,7 +480,6 @@ namespace Cesil
             static async ValueTask WriteColumnAsync_ContinueAfterWriteAsync(AsyncWriter<T> self, ValueTask waitFor, CancellationToken cancellationToken)
             {
                 await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                CheckCancellation(self, cancellationToken);
 
                 self.Buffer.Reset();
             }
@@ -727,7 +514,6 @@ namespace Cesil
             static async ValueTask<bool> CheckHeadersAsync_CompleteAsync(AsyncWriter<T> self, ValueTask waitFor, CancellationToken cancellationToken)
             {
                 await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                CheckCancellation(self, cancellationToken);
 
                 return true;
             }
@@ -745,7 +531,7 @@ namespace Cesil
                 // for the separator
                 if (i != 0)
                 {
-                    var sepTask = PlaceInStagingAsync(valueSeparator, cancellationToken);
+                    var sepTask = PlaceAllInStagingAsync(valueSeparator, cancellationToken);
                     if (!sepTask.IsCompletedSuccessfully(this))
                     {
                         return WriteHeadersAsync_CompleteAfterFlushAsync(this, sepTask, needsEscape, valueSeparator, i, cancellationToken);
@@ -765,12 +551,10 @@ namespace Cesil
             static async ValueTask WriteHeadersAsync_CompleteAfterFlushAsync(AsyncWriter<T> self, ValueTask waitFor, bool[] needsEscape, ReadOnlyMemory<char> valueSeparator, int i, CancellationToken cancellationToken)
             {
                 await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                CheckCancellation(self, cancellationToken);
 
                 var selfColumnsValue = self.Columns;
                 var headerTask = self.WriteSingleHeaderAsync(selfColumnsValue[i], needsEscape[i], cancellationToken);
                 await ConfigureCancellableAwait(self, headerTask, cancellationToken);
-                CheckCancellation(self, cancellationToken);
 
                 // implicit increment at the end of the calling loop
                 i++;
@@ -778,13 +562,11 @@ namespace Cesil
                 for (; i < selfColumnsValue.Length; i++)
                 {
                     // by definition we've always wrote at least one column here
-                    var placeTask = self.PlaceInStagingAsync(valueSeparator, cancellationToken);
+                    var placeTask = self.PlaceAllInStagingAsync(valueSeparator, cancellationToken);
                     await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     var writeTask = self.WriteSingleHeaderAsync(selfColumnsValue[i], needsEscape[i], cancellationToken);
                     await ConfigureCancellableAwait(self, writeTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
                 }
             }
 
@@ -792,7 +574,6 @@ namespace Cesil
             static async ValueTask WriteHeadersAsync_CompleteAfterHeaderWriteAsync(AsyncWriter<T> self, ValueTask waitFor, bool[] needsEscape, ReadOnlyMemory<char> valueSeparator, int i, CancellationToken cancellationToken)
             {
                 await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                CheckCancellation(self, cancellationToken);
 
                 // implicit increment at the end of the calling loop
                 i++;
@@ -801,13 +582,11 @@ namespace Cesil
                 for (; i < selfColumnsValue.Length; i++)
                 {
                     // by definition we've always wrote at least one column here
-                    var placeTask = self.PlaceInStagingAsync(valueSeparator, cancellationToken);
+                    var placeTask = self.PlaceAllInStagingAsync(valueSeparator, cancellationToken);
                     await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     var writeTask = self.WriteSingleHeaderAsync(selfColumnsValue[i], needsEscape[i], cancellationToken);
                     await ConfigureCancellableAwait(self, writeTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
                 }
             }
         }
@@ -819,7 +598,8 @@ namespace Cesil
             if (!escape)
             {
                 var write = colName.AsMemory();
-                return PlaceInStagingAsync(write, cancellationToken);
+
+                return PlaceAllInStagingAsync(write, cancellationToken);
             }
             else
             {
@@ -845,7 +625,7 @@ namespace Cesil
                     var len = end - start;
                     var toWrite = colMem.Slice(start, len);
 
-                    var writeTask = PlaceInStagingAsync(toWrite, cancellationToken);
+                    var writeTask = PlaceAllInStagingAsync(toWrite, cancellationToken);
                     if (!writeTask.IsCompletedSuccessfully(this))
                     {
                         return WriteSingleHeaderAsync_CompleteAfterWriteAsync(this, writeTask, escapedValueStartAndStop, escapeValueEscapeChar, colMem, end, cancellationToken);
@@ -867,7 +647,7 @@ namespace Cesil
                 {
                     var toWrite = colMem.Slice(start);
 
-                    var writeTask = PlaceInStagingAsync(toWrite, cancellationToken);
+                    var writeTask = PlaceAllInStagingAsync(toWrite, cancellationToken);
                     if (!writeTask.IsCompletedSuccessfully(this))
                     {
                         return WriteSingleHeaderAsync_CompleteAfterLastWriteAsync(this, writeTask, escapedValueStartAndStop, cancellationToken);
@@ -888,7 +668,6 @@ namespace Cesil
             static async ValueTask WriteSingleHeaderAsync_CompleteAfterFirstCharAsync(AsyncWriter<T> self, ValueTask waitFor, char escapedValueStartAndStop, char escapeValueEscapeChar, ReadOnlyMemory<char> colMem, CancellationToken cancellationToken)
             {
                 await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                CheckCancellation(self, cancellationToken);
 
                 var start = 0;
                 var end = Utils.FindChar(colMem, start, escapedValueStartAndStop);
@@ -897,14 +676,12 @@ namespace Cesil
                     var len = end - start;
                     var toWrite = colMem.Slice(start, len);
 
-                    var placeTask = self.PlaceInStagingAsync(toWrite, cancellationToken);
+                    var placeTask = self.PlaceAllInStagingAsync(toWrite, cancellationToken);
                     await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     // place the escape char
                     var secondPlaceTask = self.PlaceCharInStagingAsync(escapeValueEscapeChar, cancellationToken);
                     await ConfigureCancellableAwait(self, secondPlaceTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     start = end;
                     end = Utils.FindChar(colMem, start + 1, escapedValueStartAndStop);
@@ -915,26 +692,22 @@ namespace Cesil
                 {
                     var toWrite = colMem.Slice(start);
 
-                    var thirdPlaceTask = self.PlaceInStagingAsync(toWrite, cancellationToken);
+                    var thirdPlaceTask = self.PlaceAllInStagingAsync(toWrite, cancellationToken);
                     await ConfigureCancellableAwait(self, thirdPlaceTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
                 }
 
                 // end with the escape char
                 var fourthPlaceTask = self.PlaceCharInStagingAsync(escapedValueStartAndStop, cancellationToken);
                 await ConfigureCancellableAwait(self, fourthPlaceTask, cancellationToken);
-                CheckCancellation(self, cancellationToken);
             }
 
             // waits for a write to finish, then complete the rest of the while loop and method async
             static async ValueTask WriteSingleHeaderAsync_CompleteAfterWriteAsync(AsyncWriter<T> self, ValueTask waitFor, char escapedValueStartAndStop, char escapeValueEscapeChar, ReadOnlyMemory<char> colMem, int end, CancellationToken cancellationToken)
             {
                 await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                CheckCancellation(self, cancellationToken);
 
                 var placeTask = self.PlaceCharInStagingAsync(escapedValueStartAndStop, cancellationToken);
                 await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                CheckCancellation(self, cancellationToken);
 
                 var start = end;
                 end = Utils.FindChar(colMem, start + 1, escapedValueStartAndStop);
@@ -944,14 +717,12 @@ namespace Cesil
                     var len = end - start;
                     var toWrite = colMem.Slice(start, len);
 
-                    var secondPlaceTask = self.PlaceInStagingAsync(toWrite, cancellationToken);
+                    var secondPlaceTask = self.PlaceAllInStagingAsync(toWrite, cancellationToken);
                     await ConfigureCancellableAwait(self, secondPlaceTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     // place the escape char
                     var thirdPlaceTask = self.PlaceCharInStagingAsync(escapeValueEscapeChar, cancellationToken);
                     await ConfigureCancellableAwait(self, thirdPlaceTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     start = end;
                     end = Utils.FindChar(colMem, start + 1, escapedValueStartAndStop);
@@ -962,22 +733,19 @@ namespace Cesil
                 {
                     var toWrite = colMem.Slice(start);
 
-                    var fourthPlaceTask = self.PlaceInStagingAsync(toWrite, cancellationToken);
+                    var fourthPlaceTask = self.PlaceAllInStagingAsync(toWrite, cancellationToken);
                     await ConfigureCancellableAwait(self, fourthPlaceTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
                 }
 
                 // end with the escape char
                 var fifthPlaceTask = self.PlaceCharInStagingAsync(escapedValueStartAndStop, cancellationToken);
                 await ConfigureCancellableAwait(self, fifthPlaceTask, cancellationToken);
-                CheckCancellation(self, cancellationToken);
             }
 
             // waits for an escape to finish, then completes the rest of the while loop and method async
             static async ValueTask WriteSingleHeaderAsync_CompleteAfterEscapeAsync(AsyncWriter<T> self, ValueTask waitFor, char escapedValueStartAndStop, char escapeValueEscapeChar, ReadOnlyMemory<char> colMem, int end, CancellationToken cancellationToken)
             {
                 await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                CheckCancellation(self, cancellationToken);
 
                 var start = end;
                 end = Utils.FindChar(colMem, start + 1, escapedValueStartAndStop);
@@ -987,14 +755,12 @@ namespace Cesil
                     var len = end - start;
                     var toWrite = colMem.Slice(start, len);
 
-                    var placeTask = self.PlaceInStagingAsync(toWrite, cancellationToken);
+                    var placeTask = self.PlaceAllInStagingAsync(toWrite, cancellationToken);
                     await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     // place the escape char
                     var secondPlaceTask = self.PlaceCharInStagingAsync(escapeValueEscapeChar, cancellationToken);
                     await ConfigureCancellableAwait(self, secondPlaceTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     start = end;
                     end = Utils.FindChar(colMem, start + 1, escapedValueStartAndStop);
@@ -1005,27 +771,23 @@ namespace Cesil
                 {
                     var toWrite = colMem.Slice(start);
 
-                    var thirdPlaceTask = self.PlaceInStagingAsync(toWrite, cancellationToken);
+                    var thirdPlaceTask = self.PlaceAllInStagingAsync(toWrite, cancellationToken);
                     await ConfigureCancellableAwait(self, thirdPlaceTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
                 }
 
                 // end with the escape char
                 var fourthPlaceTask = self.PlaceCharInStagingAsync(escapedValueStartAndStop, cancellationToken);
                 await ConfigureCancellableAwait(self, fourthPlaceTask, cancellationToken);
-                CheckCancellation(self, cancellationToken);
             }
 
             // waits for a write to finish, then writes out the final char and maybe flushes async
             static async ValueTask WriteSingleHeaderAsync_CompleteAfterLastWriteAsync(AsyncWriter<T> self, ValueTask waitFor, char escapedValueStartAndStop, CancellationToken cancellationToken)
             {
                 await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                CheckCancellation(self, cancellationToken);
 
                 // end with the escape char
                 var placeTask = self.PlaceCharInStagingAsync(escapedValueStartAndStop, cancellationToken);
                 await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                CheckCancellation(self, cancellationToken);
             }
         }
 

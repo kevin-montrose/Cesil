@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
+
 using static Cesil.AwaitHelper;
 using static Cesil.DisposableHelper;
 
@@ -94,7 +95,7 @@ namespace Cesil
 
                         if (needsSeparator)
                         {
-                            var placeValueSepTask = PlaceInStagingAsync(valueSeparator, cancellationToken);
+                            var placeValueSepTask = PlaceAllInStagingAsync(valueSeparator, cancellationToken);
                             if (!placeValueSepTask.IsCompletedSuccessfully(this))
                             {
                                 disposeE = false;
@@ -166,7 +167,6 @@ end:
                 try
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     var wholeRowContext = WriteContext.DiscoveringCells(self.Configuration.Options, self.RowNumber, self.Context);
 
@@ -182,9 +182,8 @@ end:
 
                         if (needsSeparator)
                         {
-                            var placeTask = self.PlaceInStagingAsync(valueSeparator, cancellationToken);
+                            var placeTask = self.PlaceAllInStagingAsync(valueSeparator, cancellationToken);
                             await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
                         }
 
                         ColumnIdentifier ci;
@@ -218,7 +217,6 @@ end:
 
                         var writeValueTask = self.WriteValueAsync(res, cancellationToken);
                         await ConfigureCancellableAwait(self, writeValueTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
 
                         self.Buffer.Reset();
 
@@ -239,11 +237,9 @@ end:
             {
                 try
                 {
-
                     try
                     {
                         await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
 
                         var selfColumnNamesValue = self.ColumnNames.Value;
 
@@ -280,7 +276,6 @@ end:
 
                             var writeValueTask = self.WriteValueAsync(res, cancellationToken);
                             await ConfigureCancellableAwait(self, writeValueTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
 
                             self.Buffer.Reset();
 
@@ -296,9 +291,8 @@ end:
 
                             if (needsSeparator)
                             {
-                                var placeTask = self.PlaceInStagingAsync(valueSeparator, cancellationToken);
+                                var placeTask = self.PlaceAllInStagingAsync(valueSeparator, cancellationToken);
                                 await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                                CheckCancellation(self, cancellationToken);
                             }
 
                             ColumnIdentifier ci;
@@ -332,7 +326,6 @@ end:
 
                             var writeValueTask = self.WriteValueAsync(res, cancellationToken);
                             await ConfigureCancellableAwait(self, writeValueTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
 
                             self.Buffer.Reset();
 
@@ -361,7 +354,6 @@ end:
                     try
                     {
                         await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
 
                         // finish loop
                         {
@@ -380,9 +372,8 @@ end:
 
                             if (needsSeparator)
                             {
-                                var placeTask = self.PlaceInStagingAsync(valueSeparator, cancellationToken);
+                                var placeTask = self.PlaceAllInStagingAsync(valueSeparator, cancellationToken);
                                 await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                                CheckCancellation(self, cancellationToken);
                             }
 
                             ColumnIdentifier ci;
@@ -416,7 +407,6 @@ end:
 
                             var writeValueTask = self.WriteValueAsync(res, cancellationToken);
                             await ConfigureCancellableAwait(self, writeValueTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
 
                             self.Buffer.Reset();
 
@@ -497,19 +487,10 @@ end:
                 if (splitIx == -1)
                 {
                     // single segment
-                    var placeCharTask = PlaceCharInStagingAsync(commentChar, cancellationToken);
-                    if (!placeCharTask.IsCompletedSuccessfully(this))
-                    {
-                        return WriteCommentAsync_ContinueAfterSingleSegmentPlaceCharInStagingAsync(this, placeCharTask, comment, cancellationToken);
-                    }
+                    var placeTask = PlaceCharAndSegmentInStagingAsync(commentChar, comment, cancellationToken);
 
-                    if (comment.Length > 0)
-                    {
-                        var placeTask = PlaceInStagingAsync(comment, cancellationToken);
-
-                        // doesn't matter if it's completed, since the client will await before making another call
-                        return placeTask;
-                    }
+                    // doesn't matter if it's completed, since the client will await before making another call
+                    return placeTask;
                 }
                 else
                 {
@@ -528,20 +509,12 @@ end:
                             }
                         }
 
-                        var placeCharTask = PlaceCharInStagingAsync(commentChar, cancellationToken);
-                        if (!placeCharTask.IsCompletedSuccessfully(this))
-                        {
-                            return WriteCommentAsync_ContinueAfterMultiSegmentPlaceCharInStagingAsync(this, placeCharTask, commentChar, comment, prevIx, splitIx, rowEndingMem, cancellationToken);
-                        }
-
                         var segSpan = comment[prevIx..splitIx];
-                        if (segSpan.Length > 0)
+                        var placeTask = PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
+
+                        if (!placeTask.IsCompletedSuccessfully(this))
                         {
-                            var placeInTask = PlaceInStagingAsync(segSpan, cancellationToken);
-                            if (!placeInTask.IsCompletedSuccessfully(this))
-                            {
-                                return WriteCommentAsync_ContinueAfterMultiSegmentPlaceInStagingAsync(this, placeInTask, commentChar, comment, prevIx, splitIx, rowEndingMem, cancellationToken);
-                            }
+                            return WriteCommentAsync_ContinueAfterMultiSegmentPlaceCharAndSegmentInStagingAsync(this, placeTask, commentChar, comment, splitIx, rowEndingMem, cancellationToken);
                         }
 
                         prevIx = splitIx + rowEndingMem.Length;
@@ -561,17 +534,11 @@ end:
                             }
                         }
 
-                        var placeCharTask = PlaceCharInStagingAsync(commentChar, cancellationToken);
-                        if (!placeCharTask.IsCompletedSuccessfully(this))
-                        {
-                            return WriteCommentAsync_ContinueAfterMultiSegmentFinalCommentPlaceCharInStagingAsync(this, placeCharTask, comment, prevIx, rowEndingMem, cancellationToken);
-                        }
-
                         var segSpan = comment[prevIx..];
-                        var placeInTask = PlaceInStagingAsync(segSpan, cancellationToken);
+                        var placeTask = PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
 
                         // no need to wait, as the client must await before making another call
-                        return placeInTask;
+                        return placeTask;
                     }
                 }
             }
@@ -582,18 +549,45 @@ end:
 
             return default;
 
-            // continue after waiting, in multi segment case, for the final comment, for the comment start char to write
-            static async ValueTask WriteCommentAsync_ContinueAfterMultiSegmentFinalCommentPlaceCharInStagingAsync(AsyncDynamicWriter self, ValueTask waitFor, ReadOnlyMemory<char> comment, int prevIx, ReadOnlyMemory<char> rowEndingMem, CancellationToken cancellationToken)
+            // continue after waiting, in the multi segment case, for writing a line to finish
+            static async ValueTask WriteCommentAsync_ContinueAfterMultiSegmentPlaceCharAndSegmentInStagingAsync(AsyncDynamicWriter self, ValueTask waitFor, char commentChar, ReadOnlyMemory<char> comment, int splitIx, ReadOnlyMemory<char> rowEndingMem, CancellationToken cancellationToken)
             {
                 try
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
-                    var segSpan = comment[prevIx..];
-                    var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
-                    await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
+                    // finish the loop
+                    int prevIx;
+                    {
+                        prevIx = splitIx + rowEndingMem.Length;
+                        splitIx = Utils.FindNextIx(prevIx, comment, rowEndingMem);
+                    }
+
+                    while (splitIx != -1)
+                    {
+                        // not first row, by definition
+                        var endRecordTask = self.EndRecordAsync(cancellationToken);
+                        await ConfigureCancellableAwait(self, waitFor, cancellationToken);
+
+                        var segSpan = comment[prevIx..splitIx];
+                        var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
+                        await ConfigureCancellableAwait(self, placeTask, cancellationToken);
+
+                        prevIx = splitIx + rowEndingMem.Length;
+                        splitIx = Utils.FindNextIx(prevIx, comment, rowEndingMem);
+                    }
+
+                    if (prevIx != comment.Length)
+                    {
+                        // not first row, by definition
+                        var endRecordTask = self.EndRecordAsync(cancellationToken);
+                        await ConfigureCancellableAwait(self, endRecordTask, cancellationToken);
+
+                        var segSpan = comment[prevIx..];
+                        var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
+
+                        await ConfigureCancellableAwait(self, placeTask, cancellationToken);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -607,146 +601,10 @@ end:
                 try
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
-
-                    var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                    await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     var segSpan = comment[prevIx..];
-                    var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
+                    var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
                     await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
-                }
-                catch (Exception e)
-                {
-                    Throw.PoisonAndRethrow<object>(self, e);
-                }
-            }
-
-            // continue after waiting, in the multi segment case, for writing the comment mem to finish
-            static async ValueTask WriteCommentAsync_ContinueAfterMultiSegmentPlaceInStagingAsync(AsyncDynamicWriter self, ValueTask waitFor, char commentChar, ReadOnlyMemory<char> comment, int prevIx, int splitIx, ReadOnlyMemory<char> rowEndingMem, CancellationToken cancellationToken)
-            {
-                try
-                {
-                    await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
-
-                    // finish the loop
-                    {
-                        prevIx = splitIx + rowEndingMem.Length;
-                        splitIx = Utils.FindNextIx(prevIx, comment, rowEndingMem);
-                    }
-
-                    while (splitIx != -1)
-                    {
-                        // not first row by definition, so no check
-                        var endRecordTask = self.EndRecordAsync(cancellationToken);
-                        await ConfigureCancellableAwait(self, endRecordTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
-                        var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
-                        var segSpan = comment[prevIx..splitIx];
-                        if (segSpan.Length > 0)
-                        {
-                            var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
-                            await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
-                        }
-
-                        prevIx = splitIx + rowEndingMem.Length;
-                        splitIx = Utils.FindNextIx(prevIx, comment, rowEndingMem);
-                    }
-
-                    if (prevIx != comment.Length)
-                    {
-                        // not first row by definition, so no check
-                        var endRecordTask = self.EndRecordAsync(cancellationToken);
-                        await ConfigureCancellableAwait(self, endRecordTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
-                        var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
-                        var segSpan = comment[prevIx..];
-                        var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-                    }
-
-                }
-                catch (Exception e)
-                {
-                    Throw.PoisonAndRethrow<object>(self, e);
-                }
-            }
-
-            // continue after waiting, in the multi sgement case, for writing the comment char to finish
-            static async ValueTask WriteCommentAsync_ContinueAfterMultiSegmentPlaceCharInStagingAsync(AsyncDynamicWriter self, ValueTask waitFor, char commentChar, ReadOnlyMemory<char> comment, int prevIx, int splitIx, ReadOnlyMemory<char> rowEndingMem, CancellationToken cancellationToken)
-            {
-                try
-                {
-                    await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
-
-                    // finish the loop
-                    {
-                        var segSpan = comment[prevIx..splitIx];
-                        if (segSpan.Length > 0)
-                        {
-                            var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
-                            await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
-                        }
-
-                        prevIx = splitIx + rowEndingMem.Length;
-                        splitIx = Utils.FindNextIx(prevIx, comment, rowEndingMem);
-                    }
-
-                    while (splitIx != -1)
-                    {
-                        // not first row by definition, so no check
-                        var endRecordTask = self.EndRecordAsync(cancellationToken);
-                        await ConfigureCancellableAwait(self, endRecordTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
-                        var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
-                        var segSpan = comment[prevIx..splitIx];
-                        if (segSpan.Length > 0)
-                        {
-                            var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
-                            await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
-                        }
-
-                        prevIx = splitIx + rowEndingMem.Length;
-                        splitIx = Utils.FindNextIx(prevIx, comment, rowEndingMem);
-                    }
-
-                    if (prevIx != comment.Length)
-                    {
-                        // not first by definition, so no check
-                        var endRecordTask = self.EndRecordAsync(cancellationToken);
-                        await ConfigureCancellableAwait(self, endRecordTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
-                        var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
-                        var segSpan = comment[prevIx..];
-                        var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-                    }
-
                 }
                 catch (Exception e)
                 {
@@ -760,21 +618,12 @@ end:
                 try
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     // finish the loop
                     {
-                        var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
                         var segSpan = comment[prevIx..splitIx];
-                        if (segSpan.Length > 0)
-                        {
-                            var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
-                            await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
-                        }
+                        var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
+                        await ConfigureCancellableAwait(self, placeTask, cancellationToken);
 
                         prevIx = splitIx + rowEndingMem.Length;
                         splitIx = Utils.FindNextIx(prevIx, comment, rowEndingMem);
@@ -785,19 +634,10 @@ end:
                         // not first row by definition, so no check
                         var endRecordTask = self.EndRecordAsync(cancellationToken);
                         await ConfigureCancellableAwait(self, endRecordTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
-                        var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
 
                         var segSpan = comment[prevIx..splitIx];
-                        if (segSpan.Length > 0)
-                        {
-                            var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
-                            await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
-                        }
+                        var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
+                        await ConfigureCancellableAwait(self, placeTask, cancellationToken);
 
                         prevIx = splitIx + rowEndingMem.Length;
                         splitIx = Utils.FindNextIx(prevIx, comment, rowEndingMem);
@@ -808,38 +648,10 @@ end:
                         // not first row, by definition
                         var endRecordTask = self.EndRecordAsync(cancellationToken);
                         await ConfigureCancellableAwait(self, endRecordTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
-                        var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
 
                         var segSpan = comment[prevIx..];
-                        var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
+                        var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
                         await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-                    }
-
-                }
-                catch (Exception e)
-                {
-                    Throw.PoisonAndRethrow<object>(self, e);
-                }
-            }
-
-            // continue after waiting, in the single segment, for the comment char to finish writing
-            static async ValueTask WriteCommentAsync_ContinueAfterSingleSegmentPlaceCharInStagingAsync(AsyncDynamicWriter self, ValueTask waitFor, ReadOnlyMemory<char> comment, CancellationToken cancellationToken)
-            {
-                try
-                {
-                    await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
-
-                    if (comment.Length > 0)
-                    {
-                        var placeTask = self.PlaceInStagingAsync(comment, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
                     }
                 }
                 catch (Exception e)
@@ -854,7 +666,6 @@ end:
                 try
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     var options = self.Configuration.Options;
                     var commentCharNullable = options.CommentCharacter;
@@ -875,16 +686,8 @@ end:
                     if (splitIx == -1)
                     {
                         // single segment
-                        var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
-                        if (comment.Length > 0)
-                        {
-                            var placeTask = self.PlaceInStagingAsync(comment, cancellationToken);
-                            await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
-                        }
+                        var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, comment, cancellationToken);
+                        await ConfigureCancellableAwait(self, placeTask, cancellationToken);
                     }
                     else
                     {
@@ -898,20 +701,11 @@ end:
                             {
                                 var endRecordTask = self.EndRecordAsync(cancellationToken);
                                 await ConfigureCancellableAwait(self, endRecordTask, cancellationToken);
-                                CheckCancellation(self, cancellationToken);
                             }
-
-                            var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                            await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
 
                             var segSpan = comment[prevIx..splitIx];
-                            if (segSpan.Length > 0)
-                            {
-                                var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
-                                await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                                CheckCancellation(self, cancellationToken);
-                            }
+                            var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
+                            await ConfigureCancellableAwait(self, placeTask, cancellationToken);
 
                             prevIx = splitIx + rowEndingMem.Length;
                             splitIx = Utils.FindNextIx(prevIx, comment, rowEndingMem);
@@ -925,17 +719,11 @@ end:
                             {
                                 var endRecordTask = self.EndRecordAsync(cancellationToken);
                                 await ConfigureCancellableAwait(self, endRecordTask, cancellationToken);
-                                CheckCancellation(self, cancellationToken);
                             }
 
-                            var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                            await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
-
                             var segSpan = comment[prevIx..];
-                            var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
+                            var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
                             await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
                         }
                     }
                 }
@@ -951,13 +739,11 @@ end:
                 try
                 {
                     var shouldEndRecord = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     if (shouldEndRecord)
                     {
                         var endRecordTask = self.EndRecordAsync(cancellationToken);
                         await ConfigureCancellableAwait(self, endRecordTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
                     }
 
                     var options = self.Configuration.Options;
@@ -979,16 +765,8 @@ end:
                     if (splitIx == -1)
                     {
                         // single segment
-                        var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                        await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                        CheckCancellation(self, cancellationToken);
-
-                        if (comment.Length > 0)
-                        {
-                            var placeTask = self.PlaceInStagingAsync(comment, cancellationToken);
-                            await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
-                        }
+                        var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, comment, cancellationToken);
+                        await ConfigureCancellableAwait(self, placeTask, cancellationToken);
                     }
                     else
                     {
@@ -1002,20 +780,11 @@ end:
                             {
                                 var endRecordTask = self.EndRecordAsync(cancellationToken);
                                 await ConfigureCancellableAwait(self, endRecordTask, cancellationToken);
-                                CheckCancellation(self, cancellationToken);
                             }
-
-                            var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                            await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
 
                             var segSpan = comment[prevIx..splitIx];
-                            if (segSpan.Length > 0)
-                            {
-                                var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
-                                await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                                CheckCancellation(self, cancellationToken);
-                            }
+                            var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
+                            await ConfigureCancellableAwait(self, placeTask, cancellationToken);
 
                             prevIx = splitIx + rowEndingMem.Length;
                             splitIx = Utils.FindNextIx(prevIx, comment, rowEndingMem);
@@ -1029,17 +798,11 @@ end:
                             {
                                 var endRecordTask = self.EndRecordAsync(cancellationToken);
                                 await ConfigureCancellableAwait(self, endRecordTask, cancellationToken);
-                                CheckCancellation(self, cancellationToken);
                             }
 
-                            var placeCharTask = self.PlaceCharInStagingAsync(commentChar, cancellationToken);
-                            await ConfigureCancellableAwait(self, placeCharTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
-
                             var segSpan = comment[prevIx..];
-                            var placeTask = self.PlaceInStagingAsync(segSpan, cancellationToken);
+                            var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
                             await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                            CheckCancellation(self, cancellationToken);
                         }
                     }
                 }
@@ -1086,7 +849,6 @@ end:
                 var shouldEndRecord = true;
 
                 var res = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                CheckCancellation(self, cancellationToken);
 
                 if (!res)
                 {
@@ -1097,7 +859,6 @@ end:
                 {
                     var endTask = self.EndRecordAsync(cancellationToken);
                     await ConfigureCancellableAwait(self, endTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
                 }
             }
         }
@@ -1162,10 +923,9 @@ end:
             return new ValueTask<bool>(true);
 
             // continue after WriteHeadersAsync() completes
-            static async ValueTask<bool> CheckHeadersAsync_ContinueAfterWriteHeadersAsync(AsyncDynamicWriter self, ValueTask waitFor, CancellationToken cancel)
+            static async ValueTask<bool> CheckHeadersAsync_ContinueAfterWriteHeadersAsync(AsyncDynamicWriter self, ValueTask waitFor, CancellationToken cancellationToken)
             {
-                await ConfigureCancellableAwait(self, waitFor, cancel);
-                CheckCancellation(self, cancel);
+                await ConfigureCancellableAwait(self, waitFor, cancellationToken);
 
                 return true;
             }
@@ -1238,7 +998,7 @@ end:
                 if (i != 0)
                 {
                     // first value doesn't get a separator
-                    var placeCharTask = PlaceInStagingAsync(valueSeparator, cancellationToken);
+                    var placeCharTask = PlaceAllInStagingAsync(valueSeparator, cancellationToken);
                     if (!placeCharTask.IsCompletedSuccessfully(this))
                     {
                         return WriteHeadersAsync_ContinueAfterStartOfForAsync(this, placeCharTask, valueSeparator, i, cancellationToken);
@@ -1264,7 +1024,7 @@ end:
 
                 // can colName is always gonna be encoded correctly, because we just discovered them
                 //   (ie. they're always correct for this config)
-                var placeInStagingTask = PlaceInStagingAsync(colName.AsMemory(), cancellationToken);
+                var placeInStagingTask = PlaceAllInStagingAsync(colName.AsMemory(), cancellationToken);
                 if (!placeInStagingTask.IsCompletedSuccessfully(this))
                 {
                     return WriteHeadersAsync_ContinueAfterPlaceInStagingAsync(this, placeInStagingTask, valueSeparator, i, cancellationToken);
@@ -1278,7 +1038,6 @@ end:
             static async ValueTask WriteHeadersAsync_ContinueAfterStartOfForAsync(AsyncDynamicWriter self, ValueTask waitFor, ReadOnlyMemory<char> valueSeparator, int i, CancellationToken cancellationToken)
             {
                 await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                CheckCancellation(self, cancellationToken);
 
                 var selfColumnNamesValue = self.ColumnNames.Value;
 
@@ -1288,9 +1047,8 @@ end:
 
                     // can colName is always gonna be encoded correctly, because we just discovered them
                     //   (ie. they're always correct for this config)
-                    var placeTask = self.PlaceInStagingAsync(colName.AsMemory(), cancellationToken);
+                    var placeTask = self.PlaceAllInStagingAsync(colName.AsMemory(), cancellationToken);
                     await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     i++;
                 }
@@ -1298,24 +1056,21 @@ end:
                 for (; i < selfColumnNamesValue.Length; i++)
                 {
                     // by definition i != 0, so no need for the if
-                    var secondPlaceTask = self.PlaceInStagingAsync(valueSeparator, cancellationToken);
+                    var secondPlaceTask = self.PlaceAllInStagingAsync(valueSeparator, cancellationToken);
                     await ConfigureCancellableAwait(self, secondPlaceTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     var colName = selfColumnNamesValue[i].EncodedName;
 
                     // can colName is always gonna be encoded correctly, because we just discovered them
                     //   (ie. they're always correct for this config)
-                    var thirdPlaceTask = self.PlaceInStagingAsync(colName.AsMemory(), cancellationToken);
+                    var thirdPlaceTask = self.PlaceAllInStagingAsync(colName.AsMemory(), cancellationToken);
                     await ConfigureCancellableAwait(self, thirdPlaceTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
                 }
             }
 
             static async ValueTask WriteHeadersAsync_ContinueAfterPlaceInStagingAsync(AsyncDynamicWriter self, ValueTask waitFor, ReadOnlyMemory<char> valueSeparator, int i, CancellationToken cancellationToken)
             {
                 await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                CheckCancellation(self, cancellationToken);
 
                 var selfColumnNamesValue = self.ColumnNames.Value;
 
@@ -1324,17 +1079,15 @@ end:
                 for (; i < selfColumnNamesValue.Length; i++)
                 {
                     // by definition i != 0, so no need for the if
-                    var placeTask = self.PlaceInStagingAsync(valueSeparator, cancellationToken);
+                    var placeTask = self.PlaceAllInStagingAsync(valueSeparator, cancellationToken);
                     await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
 
                     var colName = selfColumnNamesValue[i].EncodedName;
 
                     // can colName is always gonna be encoded correctly, because we just discovered them
                     //   (ie. they're always correct for this config)
-                    var secondPlaceTask = self.PlaceInStagingAsync(colName.AsMemory(), cancellationToken);
+                    var secondPlaceTask = self.PlaceAllInStagingAsync(colName.AsMemory(), cancellationToken);
                     await ConfigureCancellableAwait(self, secondPlaceTask, cancellationToken);
-                    CheckCancellation(self, cancellationToken);
                 }
             }
         }
