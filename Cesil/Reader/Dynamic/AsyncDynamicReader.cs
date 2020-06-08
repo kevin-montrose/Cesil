@@ -64,36 +64,36 @@ namespace Cesil
             DelegateCache = new ConcurrentDictionary<object, Delegate>();
         }
 
-        internal override ValueTask HandleRowEndingsAndHeadersAsync(CancellationToken cancel)
+        internal override ValueTask HandleRowEndingsAndHeadersAsync(CancellationToken cancellationToken)
         {
             if (RowEndings == null)
             {
-                var handleLineEndingsTask = HandleLineEndingsAsync(cancel);
+                var handleLineEndingsTask = HandleLineEndingsAsync(cancellationToken);
                 if (!handleLineEndingsTask.IsCompletedSuccessfully(this))
                 {
-                    return HandleRowEndingsAndHeadersAsync_ContinueAFterHandleLineEndingsAsync(this, handleLineEndingsTask, cancel);
+                    return HandleRowEndingsAndHeadersAsync_ContinueAFterHandleLineEndingsAsync(this, handleLineEndingsTask, cancellationToken);
                 }
             }
 
             if (ReadHeaders == null)
             {
-                return HandleHeadersAsync(cancel);
+                return HandleHeadersAsync(cancellationToken);
             }
 
             return default;
 
             // continue after waiting for HandleLineEndings to finish
-            static async ValueTask HandleRowEndingsAndHeadersAsync_ContinueAFterHandleLineEndingsAsync(AsyncDynamicReader self, ValueTask waitFor, CancellationToken cancel)
+            static async ValueTask HandleRowEndingsAndHeadersAsync_ContinueAFterHandleLineEndingsAsync(AsyncDynamicReader self, ValueTask waitFor, CancellationToken cancellationToken)
             {
                 try
                 {
-                    await ConfigureCancellableAwait(self, waitFor, cancel);
-                    CheckCancellation(self, cancel);
+                    await ConfigureCancellableAwait(self, waitFor, cancellationToken);
+                    CheckCancellation(self, cancellationToken);
 
                     if (self.ReadHeaders == null)
                     {
-                        await ConfigureCancellableAwait(self, self.HandleHeadersAsync(cancel), cancel);
-                        CheckCancellation(self, cancel);
+                        await ConfigureCancellableAwait(self, self.HandleHeadersAsync(cancellationToken), cancellationToken);
+                        CheckCancellation(self, cancellationToken);
                     }
                 }
                 catch (Exception e)
@@ -103,7 +103,7 @@ namespace Cesil
             }
         }
 
-        internal override ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync(bool returnComments, bool pinAcquired, bool checkRecord, ref dynamic record, CancellationToken cancel)
+        internal override ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync(bool returnComments, bool pinAcquired, bool checkRecord, ref dynamic record, CancellationToken cancellationToken)
         {
             TryAllocateAndTrack(this, ColumnNames, ref NotifyOnDisposeHead, checkRecord, ref record);
 
@@ -121,11 +121,12 @@ namespace Cesil
                 while (true)
                 {
                     PreparingToWriteToBuffer();
-                    var availableTask = Buffer.ReadAsync(Inner, madeProgress, cancel);
+
+                    var availableTask = Buffer.ReadAsync(Inner, madeProgress, cancellationToken);
                     if (!availableTask.IsCompletedSuccessfully(this))
                     {
                         disposeHandle = false;
-                        return TryReadInnerAsync_ContinueAfterReadAsync(this, availableTask, handle, returnComments, cancel);
+                        return TryReadInnerAsync_ContinueAfterReadAsync(this, availableTask, handle, returnComments, cancellationToken);
                     }
 
                     var available = availableTask.Result;
@@ -160,7 +161,7 @@ namespace Cesil
             }
 
             // continue after we read a chunk into a buffer
-            static async ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync_ContinueAfterReadAsync(AsyncDynamicReader self, ValueTask<int> waitFor, ReaderStateMachine.PinHandle handle, bool returnComments, CancellationToken cancel)
+            static async ValueTask<ReadWithCommentResult<dynamic>> TryReadInnerAsync_ContinueAfterReadAsync(AsyncDynamicReader self, ValueTask<int> waitFor, ReaderStateMachine.PinHandle handle, bool returnComments, CancellationToken cancellationToken)
             {
                 try
                 {
@@ -173,8 +174,8 @@ namespace Cesil
                             int available;
                             self.StateMachine.ReleasePinForAsync(waitFor);
                             {
-                                available = await ConfigureCancellableAwait(self, waitFor, cancel);
-                                CheckCancellation(self, cancel);
+                                available = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
+                                CheckCancellation(self, cancellationToken);
                             }
                             if (available == 0)
                             {
@@ -200,12 +201,13 @@ namespace Cesil
                         while (true)
                         {
                             self.PreparingToWriteToBuffer();
-                            var availableTask = self.Buffer.ReadAsync(self.Inner, madeProgress, cancel);
+
+                            var availableTask = self.Buffer.ReadAsync(self.Inner, madeProgress, cancellationToken);
                             int available;
                             self.StateMachine.ReleasePinForAsync(availableTask);
                             {
-                                available = await ConfigureCancellableAwait(self, availableTask, cancel);
-                                CheckCancellation(self, cancel);
+                                available = await ConfigureCancellableAwait(self, availableTask, cancellationToken);
+                                CheckCancellation(self, cancellationToken);
                             }
                             if (available == 0)
                             {
@@ -243,7 +245,7 @@ namespace Cesil
             NotifyOnDisposeHead.Remove(ref NotifyOnDisposeHead, row);
         }
 
-        private ValueTask HandleHeadersAsync(CancellationToken cancel)
+        private ValueTask HandleHeadersAsync(CancellationToken cancellationToken)
         {
             var options = Configuration.Options;
 
@@ -255,11 +257,11 @@ namespace Cesil
             var disposeReader = true;
             try
             {
-                var resTask = reader.ReadAsync(cancel);
+                var resTask = reader.ReadAsync(cancellationToken);
                 if (!resTask.IsCompletedSuccessfully(this))
                 {
                     disposeReader = false;
-                    return HandleHeadersAsync_WaitForRead(this, resTask, allowColumnsByName, reader, cancel);
+                    return HandleHeadersAsync_WaitForRead(this, resTask, allowColumnsByName, reader, cancellationToken);
                 }
 
                 var (headers, isHeader, pushBack) = resTask.Result;
@@ -317,12 +319,12 @@ namespace Cesil
             }
 
             // wait for a call to ReadAsync to finish, then continue
-            static async ValueTask HandleHeadersAsync_WaitForRead(AsyncDynamicReader self, ValueTask<(HeadersReader<object>.HeaderEnumerator Headers, bool IsHeader, Memory<char> PushBack)> toAwait, bool allowColumnsByName, HeadersReader<object> reader, CancellationToken cancel)
+            static async ValueTask HandleHeadersAsync_WaitForRead(AsyncDynamicReader self, ValueTask<(HeadersReader<object>.HeaderEnumerator Headers, bool IsHeader, Memory<char> PushBack)> toAwait, bool allowColumnsByName, HeadersReader<object> reader, CancellationToken cancellationToken)
             {
                 try
                 {
-                    var (headers, isHeader, pushBack) = await ConfigureCancellableAwait(self, toAwait, cancel);
-                    CheckCancellation(self, cancel);
+                    var (headers, isHeader, pushBack) = await ConfigureCancellableAwait(self, toAwait, cancellationToken);
+                    CheckCancellation(self, cancellationToken);
 
                     self.ColumnCount = headers.Count;
                     if (self.ColumnCount == 0)
@@ -374,7 +376,7 @@ namespace Cesil
             }
         }
 
-        private ValueTask HandleLineEndingsAsync(CancellationToken cancel)
+        private ValueTask HandleLineEndingsAsync(CancellationToken cancellationToken)
         {
             var options = Configuration.Options;
 
@@ -389,11 +391,11 @@ namespace Cesil
             var disposeDetector = true;
             try
             {
-                var resTask = detector.DetectAsync(cancel);
+                var resTask = detector.DetectAsync(cancellationToken);
                 if (!resTask.IsCompletedSuccessfully(this))
                 {
                     disposeDetector = false;
-                    return HandleLineEndingsAsync_WaitForDetector(this, resTask, detector, cancel);
+                    return HandleLineEndingsAsync_WaitForDetector(this, resTask, detector, cancellationToken);
                 }
 
                 HandleLineEndingsDetectionResult(resTask.Result);
@@ -408,12 +410,12 @@ namespace Cesil
             }
 
             // wait for the call to DetectAsync to complete
-            static async ValueTask HandleLineEndingsAsync_WaitForDetector(AsyncDynamicReader self, ValueTask<(RowEnding Ending, Memory<char> PushBack)?> toAwait, RowEndingDetector detector, CancellationToken cancel)
+            static async ValueTask HandleLineEndingsAsync_WaitForDetector(AsyncDynamicReader self, ValueTask<(RowEnding Ending, Memory<char> PushBack)?> toAwait, RowEndingDetector detector, CancellationToken cancellationToken)
             {
                 try
                 {
-                    var res = await ConfigureCancellableAwait(self, toAwait, cancel);
-                    CheckCancellation(self, cancel);
+                    var res = await ConfigureCancellableAwait(self, toAwait, cancellationToken);
+                    CheckCancellation(self, cancellationToken);
 
                     self.HandleLineEndingsDetectionResult(res);
                 }

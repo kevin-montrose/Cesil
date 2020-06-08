@@ -3,6 +3,8 @@ using System.Buffers;
 using System.Threading;
 using System.Threading.Tasks;
 
+using static Cesil.AwaitHelper;
+
 namespace Cesil
 {
     internal sealed class BufferWithPushback :
@@ -80,7 +82,7 @@ namespace Cesil
             return reader.Read(Buffer.Span);
         }
 
-        internal ValueTask<int> ReadAsync(IAsyncReaderAdapter reader, bool canBeServedFromPushback, CancellationToken cancel)
+        internal ValueTask<int> ReadAsync(IAsyncReaderAdapter reader, bool canBeServedFromPushback, CancellationToken cancellationToken)
         {
             if (InPushBack > 0)
             {
@@ -94,10 +96,10 @@ namespace Cesil
                 }
 
                 // this is _so_ trivial I'm intentionally not doing the ITestableAsyncProvider here
-                var readRes = reader.ReadAsync(Buffer[fromBuffer..], cancel);
+                var readRes = reader.ReadAsync(Buffer[fromBuffer..], cancellationToken);
                 if (!readRes.IsCompletedSuccessfully)
                 {
-                    return ReadAsync_ContinueAfterReadAsync(readRes, fromBuffer);
+                    return ReadAsync_ContinueAfterReadAsync(this, readRes, fromBuffer, cancellationToken);
                 }
 
                 var newBytes = readRes.Result;
@@ -105,12 +107,13 @@ namespace Cesil
                 return new ValueTask<int>(newBytes + fromBuffer);
             }
 
-            return reader.ReadAsync(Buffer, cancel);
+            return reader.ReadAsync(Buffer, cancellationToken);
 
             // wait for read to complete, then indicate total bytes available
-            static async ValueTask<int> ReadAsync_ContinueAfterReadAsync(ValueTask<int> waitFor, int fromBuffer)
+            static async ValueTask<int> ReadAsync_ContinueAfterReadAsync(BufferWithPushback self, ValueTask<int> waitFor, int fromBuffer, CancellationToken cancellationToken)
             {
-                var newBytes = await waitFor;
+                var newBytes = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
+                CheckCancellation(self, cancellationToken);
 
                 return newBytes + fromBuffer;
             }

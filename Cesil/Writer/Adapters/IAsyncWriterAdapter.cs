@@ -6,6 +6,6 @@ namespace Cesil
 {
     internal interface IAsyncWriterAdapter : ITestableAsyncDisposable
     {
-        ValueTask WriteAsync(ReadOnlyMemory<char> chars, CancellationToken cancel);
+        ValueTask WriteAsync(ReadOnlyMemory<char> chars, CancellationToken cancellationToken);
     }
 }

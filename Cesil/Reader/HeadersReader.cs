@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+
 using static Cesil.AwaitHelper;
 using static Cesil.DisposableHelper;
 
@@ -290,7 +291,7 @@ namespace Cesil
             PushBackLength += c.Length;
         }
 
-        internal ValueTask<(HeaderEnumerator Headers, bool IsHeader, Memory<char> PushBack)> ReadAsync(CancellationToken cancel)
+        internal ValueTask<(HeaderEnumerator Headers, bool IsHeader, Memory<char> PushBack)> ReadAsync(CancellationToken cancellationToken)
         {
             var handle = StateMachine.Pin();
             var disposeHandle = true;
@@ -300,11 +301,11 @@ namespace Cesil
                 var madeProgress = true;
                 while (true)
                 {
-                    var availableTask = Buffer.ReadAsync(InnerAsync.Value, madeProgress, cancel);
+                    var availableTask = Buffer.ReadAsync(InnerAsync.Value, madeProgress, cancellationToken);
                     if (!availableTask.IsCompletedSuccessfully(this))
                     {
                         disposeHandle = false;
-                        return ReadAsync_ContinueAfterReadAsync(this, availableTask, handle, cancel);
+                        return ReadAsync_ContinueAfterReadAsync(this, availableTask, handle, cancellationToken);
                     }
 
                     var available = availableTask.Result;
@@ -343,7 +344,7 @@ namespace Cesil
                 HeadersReader<T> self,
                 ValueTask<int> waitFor,
                 ReaderStateMachine.PinHandle handle,
-                CancellationToken cancel)
+                CancellationToken cancellationToken)
             {
                 using (handle)
                 {
@@ -352,7 +353,7 @@ namespace Cesil
                     int available;
                     self.StateMachine.ReleasePinForAsync(waitFor);
                     {
-                        available = await ConfigureCancellableAwait(self, waitFor, cancel);
+                        available = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
                     }
 
                     // handle the in flight task
@@ -379,10 +380,10 @@ namespace Cesil
                     // go back into the loop
                     while (true)
                     {
-                        var readTask = self.Buffer.ReadAsync(self.InnerAsync.Value, madeProgress, cancel);
+                        var readTask = self.Buffer.ReadAsync(self.InnerAsync.Value, madeProgress, cancellationToken);
                         self.StateMachine.ReleasePinForAsync(readTask);
                         {
-                            available = await ConfigureCancellableAwait(self, readTask, cancel);
+                            available = await ConfigureCancellableAwait(self, readTask, cancellationToken);
                         }
 
                         if (available == 0)

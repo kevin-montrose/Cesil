@@ -80,7 +80,7 @@ namespace Cesil
             ValueSeparatorMemory = valueSeparatorMemory;
         }
 
-        internal ValueTask<(RowEnding Ending, Memory<char> PushBack)?> DetectAsync(CancellationToken cancel)
+        internal ValueTask<(RowEnding Ending, Memory<char> PushBack)?> DetectAsync(CancellationToken cancellationToken)
         {
             var handle = State.Pin();
             var disposeHandle = true;
@@ -91,12 +91,12 @@ namespace Cesil
                 while (continueScan)
                 {
                     var mem = BufferOwner.Memory[BufferStart..];
-                    var endTask = InnerAsync.Value.ReadAsync(mem, cancel);
+                    var endTask = InnerAsync.Value.ReadAsync(mem, cancellationToken);
 
                     if (!endTask.IsCompletedSuccessfully(this))
                     {
                         disposeHandle = false;
-                        return DetectAsync_ContinueAfterReadAsync(this, endTask, handle, cancel);
+                        return DetectAsync_ContinueAfterReadAsync(this, endTask, handle, cancellationToken);
                     }
 
                     var end = endTask.Result;

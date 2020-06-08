@@ -20,7 +20,7 @@ namespace Cesil
         /// Returns the number of rows written.
         /// </summary>
         [return: IntentionallyExposedPrimitive("count is best represented as an int")]
-        ValueTask<int> WriteAllAsync(IAsyncEnumerable<TRow> rows, CancellationToken cancel = default);
+        ValueTask<int> WriteAllAsync(IAsyncEnumerable<TRow> rows, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Writes all rows enumerated by the given IEnumerable.
@@ -31,7 +31,7 @@ namespace Cesil
         /// Returns the number of rows written.
         /// </summary>
         [return: IntentionallyExposedPrimitive("count is best represented as an int")]
-        ValueTask<int> WriteAllAsync(IEnumerable<TRow> rows, CancellationToken cancel = default);
+        ValueTask<int> WriteAllAsync(IEnumerable<TRow> rows, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Write a single row.
@@ -39,7 +39,7 @@ namespace Cesil
         /// Will complete synchronously if possible, but will not block
         /// if the underlying sink does not complete immediately.
         /// </summary>
-        ValueTask WriteAsync(TRow row, CancellationToken cancel = default);
+        ValueTask WriteAsync(TRow row, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Write a comment as a row.
@@ -52,7 +52,8 @@ namespace Cesil
         /// Will complete synchronously if possible, but will not block
         /// if the underlying sink does not complete immediately.
         /// </summary>
-        ValueTask WriteCommentAsync(string comment, CancellationToken cancel = default);
+
+        ValueTask WriteCommentAsync(string comment, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Write a comment as a row.
@@ -65,6 +66,6 @@ namespace Cesil
         /// Will complete synchronously if possible, but will not block
         /// if the underlying sink does not complete immediately.
         /// </summary>
-        ValueTask WriteCommentAsync(ReadOnlyMemory<char> comment, CancellationToken cancel = default);
+        ValueTask WriteCommentAsync(ReadOnlyMemory<char> comment, CancellationToken cancellationToken = default);
     }
 }

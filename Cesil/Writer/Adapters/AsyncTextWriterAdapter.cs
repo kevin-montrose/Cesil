@@ -18,11 +18,11 @@ namespace Cesil
             Inner = inner;
         }
 
-        public ValueTask WriteAsync(ReadOnlyMemory<char> chars, CancellationToken cancel)
+        public ValueTask WriteAsync(ReadOnlyMemory<char> chars, CancellationToken cancellationToken)
         {
             AssertNotDisposedInternal(this);
 
-            var ret = Inner.WriteAsync(chars, cancel);
+            var ret = Inner.WriteAsync(chars, cancellationToken);
             if (ret.IsCompletedSuccessfully)
             {
                 return default;

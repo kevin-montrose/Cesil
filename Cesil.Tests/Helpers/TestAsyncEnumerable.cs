@@ -54,7 +54,7 @@ namespace Cesil.Tests
             AlwaysAsync = alwaysAsync;
         }
 
-        public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancel = default)
+        public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         => new TestAsyncEnumerator<T>(Raw.GetEnumerator(), AlwaysAsync);
     }
 }

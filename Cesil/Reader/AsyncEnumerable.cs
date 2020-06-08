@@ -75,10 +75,10 @@ namespace Cesil
             return new ValueTask<bool>(true);
 
             // wait for a read to finish, then continue async
-            static async ValueTask<bool> MoveNextAsync_ContinueAfterReadAsync(AsyncEnumerable<T> self, ValueTask<ReadResult<T>> waitFor, CancellationToken cancel)
+            static async ValueTask<bool> MoveNextAsync_ContinueAfterReadAsync(AsyncEnumerable<T> self, ValueTask<ReadResult<T>> waitFor, CancellationToken cancellationToken)
             {
-                var res = await ConfigureCancellableAwait(self, waitFor, cancel);
-                CheckCancellation(self, cancel);
+                var res = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
+                CheckCancellation(self, cancellationToken);
 
                 if (!res.HasValue)
                 {

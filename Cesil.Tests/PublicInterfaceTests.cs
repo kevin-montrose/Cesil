@@ -1945,7 +1945,7 @@ namespace Cesil.Tests
                     [typeof(char?).GetTypeInfo()] = new[] { "commentStart", "escapeStart", "escape" },
 
                     // system types
-                    [typeof(CancellationToken).GetTypeInfo()] = new[] { "cancel" },
+                    [typeof(CancellationToken).GetTypeInfo()] = new[] { "cancellationToken" },
                     [typeof(Encoding).GetTypeInfo()] = new[] { "encoding" },
                     [typeof(IBufferWriter<char>).GetTypeInfo()] = new[] { "writer" },
                     [typeof(IBufferWriter<byte>).GetTypeInfo()] = new[] { "writer" },

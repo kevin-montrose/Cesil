@@ -27,7 +27,7 @@ namespace Cesil
             MemoryPool = memoryPool;
         }
 
-        public ValueTask WriteAsync(ReadOnlyMemory<char> chars, CancellationToken cancel)
+        public ValueTask WriteAsync(ReadOnlyMemory<char> chars, CancellationToken cancellationToken)
         {
             AssertNotDisposedInternal(this);
 
@@ -58,14 +58,14 @@ namespace Cesil
 
             if (!flushTask.IsCompletedSuccessfully(this))
             {
-                return WriteAsync_ContinueAfterFlushAsync(this, flushTask, cancel);
+                return WriteAsync_ContinueAfterFlushAsync(this, flushTask, cancellationToken);
             }
 
             return default;
 
-            static async ValueTask WriteAsync_ContinueAfterFlushAsync(PipeWriterAdapter self, ValueTask<FlushResult> waitFor, CancellationToken cancel)
+            static async ValueTask WriteAsync_ContinueAfterFlushAsync(PipeWriterAdapter self, ValueTask<FlushResult> waitFor, CancellationToken cancellationToken)
             {
-                await ConfigureCancellableAwait(self, waitFor, cancel);
+                await ConfigureCancellableAwait(self, waitFor, cancellationToken);
             }
         }
 
