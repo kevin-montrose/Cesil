@@ -134,6 +134,7 @@ namespace Cesil
         internal static readonly TypeInfo DynamicRowDisposal = typeof(DynamicRowDisposal).GetTypeInfo();
         internal static readonly TypeInfo ManualTypeDescriberFallbackBehavior = typeof(ManualTypeDescriberFallbackBehavior).GetTypeInfo();
         internal static readonly TypeInfo ExtraColumnTreatment = typeof(ExtraColumnTreatment).GetTypeInfo();
+        internal static readonly TypeInfo SurrogateTypeDescriberFallbackBehavior = typeof(SurrogateTypeDescriberFallbackBehavior).GetTypeInfo();
 
         // Cesil structs
         internal static readonly TypeInfo ColumnIdentifier = typeof(ColumnIdentifier).GetTypeInfo();
@@ -170,5 +171,11 @@ namespace Cesil
         // constructor params
         internal static readonly TypeInfo[] ParserConstructorOneParameter_Array = new[] { typeof(ReadOnlySpan<char>).GetTypeInfo() };
         internal static readonly TypeInfo[] ParserConstructorTwoParameter_Array = new[] { typeof(ReadOnlySpan<char>).GetTypeInfo(), typeof(ReadContext).MakeByRefType().GetTypeInfo() };
+
+        internal static class ReaderStateMachine
+        {
+            internal static readonly TypeInfo State = typeof(Cesil.ReaderStateMachine.State).GetTypeInfo();
+            internal static readonly TypeInfo CharacterType = typeof(Cesil.ReaderStateMachine.CharacterType).GetTypeInfo();
+        }
     }
 }

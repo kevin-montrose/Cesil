@@ -55,7 +55,9 @@ namespace Cesil
             MemoryPool = pool;
 
             InstanceProvider = instanceProvider;
+#pragma warning disable CES0005 // setters is strictly _less_ nullable than Setters, so this is safe but the compiler doesn't know that
             Setters = setters!;
+#pragma warning restore CES0005
 
             // we'll never _use_ this (we'll clone all real instances)
             //   so don't actually allocate but do make a note if we'll
@@ -72,7 +74,9 @@ namespace Cesil
 
             _RowStarted = false;
             CurrentPopulated = false;
+#pragma warning disable CES0005 // T is generic, and we'll overwrite it before it's used, so default! is needed
             Current = default!;
+#pragma warning restore CES0005
 
             _IsDisposed = false;
         }
@@ -92,7 +96,9 @@ namespace Cesil
 
             _RowStarted = false;
             CurrentPopulated = false;
+#pragma warning disable CES0005 // T is generic, and we'll overwrite it before it's used, so default! is needed
             Current = default!;
+#pragma warning restore CES0005
 
             HasRequired = hasRequired;
             RequiredTracker = tracker;
@@ -314,7 +320,9 @@ namespace Cesil
             }
 
             var ret = Current;
+#pragma warning disable CES0005 // T is generic, and we'll overwrite it before it's used, so default! is needed
             Current = default!;
+#pragma warning restore CES0005
             CurrentPopulated = false;
             _RowStarted = false;
 

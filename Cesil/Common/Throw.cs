@@ -124,5 +124,9 @@ namespace Cesil
 
             throw new SerializationException(msg);
         }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        internal static T NotImplementedException<T>(string message)
+        => throw new NotImplementedException(message);
     }
 }

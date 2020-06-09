@@ -116,7 +116,6 @@ namespace Cesil
             public override string ToString()
             => $" => ({NextState}, {Result})";
 
-
             public static implicit operator TransitionRule(ValueTuple<State, AdvanceResult> tuple)
             => new TransitionRule(tuple.Item1, tuple.Item2);
         }

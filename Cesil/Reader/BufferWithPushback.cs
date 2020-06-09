@@ -95,12 +95,13 @@ namespace Cesil
                     return new ValueTask<int>(fromBuffer);
                 }
 
-                // this is _so_ trivial I'm intentionally not doing the ITestableAsyncProvider here
+#pragma warning disable CES0001 // this is _so_ trivial I'm intentionally not doing the ITestableAsyncProvider here
                 var readRes = reader.ReadAsync(Buffer[fromBuffer..], cancellationToken);
                 if (!readRes.IsCompletedSuccessfully)
                 {
                     return ReadAsync_ContinueAfterReadAsync(this, readRes, fromBuffer, cancellationToken);
                 }
+#pragma warning restore CES0001
 
                 var newBytes = readRes.Result;
 
@@ -113,7 +114,6 @@ namespace Cesil
             static async ValueTask<int> ReadAsync_ContinueAfterReadAsync(BufferWithPushback self, ValueTask<int> waitFor, int fromBuffer, CancellationToken cancellationToken)
             {
                 var newBytes = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                CheckCancellation(self, cancellationToken);
 
                 return newBytes + fromBuffer;
             }

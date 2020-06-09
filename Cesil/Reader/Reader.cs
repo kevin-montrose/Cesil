@@ -75,6 +75,9 @@ namespace Cesil
                 return;
             }
 
+            // should always have been initialized by now
+            var rowEndings = Utils.NonNullValue(RowEndings);
+
             using (
                 var headerReader = new HeadersReader<T>(
                     StateMachine,
@@ -82,7 +85,7 @@ namespace Cesil
                     SharedCharacterLookup,
                     Inner,
                     Buffer,
-                    RowEndings!.Value
+                    rowEndings
                 )
             )
             {

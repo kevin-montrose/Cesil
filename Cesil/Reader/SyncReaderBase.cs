@@ -37,7 +37,9 @@ namespace Cesil
                 {
                     while (true)
                     {
+#pragma warning disable CES0005 // T is generic, and null is legal, but since T isn't known to be a class we have to forgive null here
                         T _ = default!;
+#pragma warning restore CES0005
                         var res = TryReadInner(false, true, false, ref _);
                         if (!res.HasValue)
                         {
@@ -72,7 +74,9 @@ namespace Cesil
             AssertNotDisposed(this);
             AssertNotPoisoned(Configuration);
 
+#pragma warning disable CES0005 // T is generic, and null is legal, but since T isn't known to be a class we have to forgive null here
             record = default!;
+#pragma warning restore CES0005
 
             try
             {
@@ -128,7 +132,9 @@ namespace Cesil
             {
                 HandleRowEndingsAndHeaders();
 
+#pragma warning disable CES0005 // T is generic, and null is legal, but since T isn't known to be a class we have to forgive null here
                 T record = default!;
+#pragma warning restore CES0005
                 return TryReadInner(true, false, false, ref record);
             }
             catch (Exception e)

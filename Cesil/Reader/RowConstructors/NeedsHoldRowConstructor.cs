@@ -84,7 +84,9 @@ namespace Cesil
 
             CurrentPopulated = false;
             _RowStarted = false;
+#pragma warning disable CES0005 // T is generic, so we can't annotate it, but we'll always overwrite it before returning... just can't prove that
             Current = default!;
+#pragma warning restore CES0005
 
             var lookupArr = ImmutableArray.CreateBuilder<(int? SimpleMember, int? HeldMember)>();
             var simpleArr = ImmutableArray.CreateBuilder<(string Name, MemberRequired Required, ParseAndSetOnDelegate<THold> ParseAndHold, MoveFromHoldToRowDelegate<TRow, THold> MoveToRow, ParseAndSetOnDelegate<TRow> SetOnRow)>();
@@ -161,7 +163,9 @@ namespace Cesil
 
             CurrentPopulated = false;
             _RowStarted = false;
+#pragma warning disable CES0005 // T is generic, so we can't annotate it, but we'll always overwrite it before returning... just can't prove that
             Current = default!;
+#pragma warning restore CES0005
 
             HasRequired = hasRequired;
             RequiredTracker = requiredTracker;
@@ -335,7 +339,9 @@ namespace Cesil
 
         public bool TryPreAllocate(in ReadContext ctx, bool checkPrealloc, ref TRow prealloced)
         {
+#pragma warning disable CES0005     // we _have_ to assign this, but it'll never get a non-default value and it's generic so we can't tell the compiler null is OK
             prealloced = default!;
+#pragma warning restore CES0005
             return false;
         }
 
@@ -496,7 +502,9 @@ namespace Cesil
             }
 
             var ret = Current;
+#pragma warning disable CES0005 // T is generic, so we can't annotate it, but we'll always overwrite it before returning... just can't prove that
             Current = default!;
+#pragma warning restore CES0005
             CurrentPopulated = false;
             _RowStarted = false;
             HeldCount = 0;

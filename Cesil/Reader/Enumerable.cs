@@ -44,7 +44,9 @@ namespace Cesil
             Reader = reader;
             Enumerated = false;
             _IsDisposed = false;
+#pragma warning disable CES0005 // T is generic, and we'll overwrite it before it's used, so default! is needed
             _Current = default!;
+#pragma warning restore CES0005
         }
 
         IEnumerator IEnumerable.GetEnumerator()

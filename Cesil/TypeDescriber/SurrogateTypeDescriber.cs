@@ -5,6 +5,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
+using static Cesil.BindingFlagsConstants;
+
 namespace Cesil
 {
     /// <summary>
@@ -442,15 +444,15 @@ handleMethod:
         {
             if (isPublic)
             {
-                if (isStatic) return BindingFlagsConstants.PublicStatic;
+                if (isStatic) return PublicStatic;
 
-                return BindingFlagsConstants.PublicInstance;
+                return PublicInstance;
             }
             else
             {
-                if (isStatic) return BindingFlagsConstants.InternalStatic;
+                if (isStatic) return InternalStatic;
 
-                return BindingFlagsConstants.InternalInstance;
+                return InternalInstance;
             }
         }
 

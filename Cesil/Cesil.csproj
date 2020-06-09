@@ -47,4 +47,8 @@ Please report any issues: https://github.com/kevin-montrose/Cesil/issues/new</Pa
     <PackageReference Include="System.Runtime.Serialization.Primitives" Version="4.3.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Cesil.Analyzers\Cesil.Analyzers.csproj" PrivateAssets="all" ReferenceOutputAssembly="false" OutputItemType="Analyzer" />
+  </ItemGroup>
+
 </Project>

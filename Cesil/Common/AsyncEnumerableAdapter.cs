@@ -39,7 +39,9 @@ namespace Cesil
             Rows = rows;
             Enumerated = false;
             Enumerator = Rows.GetEnumerator();
+#pragma warning disable CES0005 // T is generic, and we'll overwrite it before it's used, so default! is needed
             _Current = default!;
+#pragma warning restore CES0005
             _IsDisposed = false;
         }
 

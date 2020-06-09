@@ -44,10 +44,12 @@ namespace Cesil
         //   every await IF the await isn't actually going to do anything
         internal void ReleasePinForAsync<T>(ValueTask<T> task)
         {
+#pragma warning disable CES0001 // this isn't actually a transition point, we care what _actually_ has happened
             if (task.IsCompletedSuccessfully)
             {
                 return;
             }
+#pragma warning restore CES0001
 
             Unpin();
         }

@@ -77,14 +77,18 @@
         internal ReadWithCommentResult(string comment)
         {
             ResultType = ReadWithCommentResultType.HasComment;
+#pragma warning disable CES0005 // T is generic, and null is legal, but since T isn't known to be a class we have to forgive null here
             _Value = default!;
+#pragma warning restore CES0005
             _Comment = comment;
         }
 
         private ReadWithCommentResult(ReadWithCommentResultType t)
         {
             ResultType = t;
+#pragma warning disable CES0005 // T is generic, and null is legal, but since T isn't known to be a class we have to forgive null here
             _Value = default!;
+#pragma warning restore CES0005
             _Comment = null;
         }
 

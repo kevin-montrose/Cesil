@@ -4,6 +4,8 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 
+using static Cesil.BindingFlagsConstants;
+
 namespace Cesil
 {
     [SuppressMessage("", "IDE0051", Justification = "Used via reflection")]
@@ -76,7 +78,7 @@ namespace Cesil
             {
                 var parsingClass = GetParsingClass();
 
-                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseEnum), BindingFlagsConstants.InternalStatic);
+                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseEnum), InternalStatic);
                 return Parser.ForMethod(enumParsingMtd);
             }
 
@@ -84,7 +86,7 @@ namespace Cesil
             {
                 var parsingClass = GetParsingClass();
 
-                var nullableEnumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseNullableEnum), BindingFlagsConstants.InternalStatic);
+                var nullableEnumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseNullableEnum), InternalStatic);
                 return Parser.ForMethod(nullableEnumParsingMtd);
             }
 
@@ -92,7 +94,7 @@ namespace Cesil
             {
                 var parsingClass = GetParsingClass();
 
-                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseFlagsEnum), BindingFlagsConstants.InternalStatic);
+                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseFlagsEnum), InternalStatic);
                 return Parser.ForMethod(enumParsingMtd);
             }
 
@@ -100,7 +102,7 @@ namespace Cesil
             {
                 var parsingClass = GetParsingClass();
 
-                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseNullableFlagsEnum), BindingFlagsConstants.InternalStatic);
+                var enumParsingMtd = parsingClass.GetMethodNonNull(nameof(TryParseNullableFlagsEnum), InternalStatic);
                 return Parser.ForMethod(enumParsingMtd);
             }
 
@@ -173,7 +175,9 @@ namespace Cesil
 
                     if (!found)
                     {
+#pragma warning disable CES0005     // T is generic, so we can't annotate it, but it needs a default value
                         val = default!;
+#pragma warning restore CES0005
                         return false;
                     }
                 }

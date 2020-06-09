@@ -4,6 +4,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 
+using static Cesil.BindingFlagsConstants;
+
 namespace Cesil
 {
     [SuppressMessage("", "IDE0051", Justification = "Used via reflection")]
@@ -66,7 +68,7 @@ namespace Cesil
             {
                 var formattingClass = GetFormattingClass();
 
-                var enumParsingMtd = formattingClass.GetMethodNonNull(nameof(TryFormatBasicEnum), BindingFlagsConstants.InternalStatic);
+                var enumParsingMtd = formattingClass.GetMethodNonNull(nameof(TryFormatBasicEnum), InternalStatic);
                 return Formatter.ForMethod(enumParsingMtd);
             }
 
@@ -74,7 +76,7 @@ namespace Cesil
             {
                 var formattingClass = GetFormattingClass();
 
-                var enumParsingMtd = formattingClass.GetMethodNonNull(nameof(TryFormatFlagsEnum), BindingFlagsConstants.InternalStatic);
+                var enumParsingMtd = formattingClass.GetMethodNonNull(nameof(TryFormatFlagsEnum), InternalStatic);
                 return Formatter.ForMethod(enumParsingMtd);
             }
 
@@ -82,7 +84,7 @@ namespace Cesil
             {
                 var formattingClass = GetFormattingClass();
 
-                var nullableEnumParsingMtd = formattingClass.GetMethodNonNull(nameof(TryFormatNullableBasicEnum), BindingFlagsConstants.InternalStatic);
+                var nullableEnumParsingMtd = formattingClass.GetMethodNonNull(nameof(TryFormatNullableBasicEnum), InternalStatic);
                 return Formatter.ForMethod(nullableEnumParsingMtd);
             }
 
@@ -90,7 +92,7 @@ namespace Cesil
             {
                 var formattingClass = GetFormattingClass();
 
-                var nullableEnumParsingMtd = formattingClass.GetMethodNonNull(nameof(TryFormatNullableFlagsEnum), BindingFlagsConstants.InternalStatic);
+                var nullableEnumParsingMtd = formattingClass.GetMethodNonNull(nameof(TryFormatNullableFlagsEnum), InternalStatic);
                 return Formatter.ForMethod(nullableEnumParsingMtd);
             }
 

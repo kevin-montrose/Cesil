@@ -82,7 +82,7 @@ namespace Cesil
         /// </summary>
         public static SurrogateTypeDescriberBuilder CreateBuilder(SurrogateTypeDescriberFallbackBehavior fallbackBehavior, ITypeDescriber typeDescriber, ITypeDescriber fallbackTypeDescriber)
         {
-            if (!Enum.IsDefined(typeof(SurrogateTypeDescriberFallbackBehavior), fallbackBehavior))
+            if (!Enum.IsDefined(Types.SurrogateTypeDescriberFallbackBehavior, fallbackBehavior))
             {
                 return Throw.ArgumentException<SurrogateTypeDescriberBuilder>($"Unexpected {nameof(SurrogateTypeDescriberFallbackBehavior)}: {fallbackBehavior}", nameof(fallbackBehavior));
             }
@@ -133,7 +133,7 @@ namespace Cesil
         /// </summary>
         public SurrogateTypeDescriberBuilder WithFallbackBehavior(SurrogateTypeDescriberFallbackBehavior fallbackBehavior)
         {
-            if (!Enum.IsDefined(typeof(SurrogateTypeDescriberFallbackBehavior), fallbackBehavior))
+            if (!Enum.IsDefined(Types.SurrogateTypeDescriberFallbackBehavior, fallbackBehavior))
             {
                 return Throw.ArgumentException<SurrogateTypeDescriberBuilder>($"Unexpected {nameof(SurrogateTypeDescriberFallbackBehavior)}: {fallbackBehavior}", nameof(fallbackBehavior));
             }

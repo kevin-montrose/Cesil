@@ -4,6 +4,8 @@ using System.Collections.Immutable;
 using System.Linq.Expressions;
 using System.Reflection;
 
+using static Cesil.BindingFlagsConstants;
+
 namespace Cesil
 {
     /// <summary>
@@ -31,7 +33,7 @@ namespace Cesil
         private static IReadOnlyDictionary<TypeInfo, Parser> CreateTypeParsers()
         {
             var ret = new Dictionary<TypeInfo, Parser>();
-            foreach (var mtd in Types.DefaultTypeParsers.GetMethods(BindingFlagsConstants.InternalStatic))
+            foreach (var mtd in Types.DefaultTypeParsers.GetMethods(InternalStatic))
             {
                 var thirdArg = mtd.GetParameters()[2];
                 var forType = thirdArg.ParameterType.GetTypeInfo().GetElementTypeNonNull();
@@ -336,7 +338,7 @@ namespace Cesil
             if (forType.IsEnum)
             {
                 var parsingClass = Types.DefaultEnumTypeParser.MakeGenericType(forType).GetTypeInfo();
-                var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultEnumTypeParser<StringComparison>.TryParseEnumParser), BindingFlagsConstants.InternalStatic);
+                var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultEnumTypeParser<StringComparison>.TryParseEnumParser), InternalStatic);
                 var parser = (Parser?)parserField.GetValue(null);
 
                 return parser;
@@ -346,7 +348,7 @@ namespace Cesil
             if (nullableElem != null && nullableElem.IsEnum)
             {
                 var parsingClass = Types.DefaultEnumTypeParser.MakeGenericType(nullableElem).GetTypeInfo();
-                var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultEnumTypeParser<StringComparison>.TryParseNullableEnumParser), BindingFlagsConstants.InternalStatic);
+                var parserField = parsingClass.GetFieldNonNull(nameof(DefaultTypeParsers.DefaultEnumTypeParser<StringComparison>.TryParseNullableEnumParser), InternalStatic);
                 var parser = (Parser?)parserField.GetValue(null);
 
                 return parser;

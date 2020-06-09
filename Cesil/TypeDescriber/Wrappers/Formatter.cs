@@ -5,6 +5,8 @@ using System.Collections.Immutable;
 using System.Linq.Expressions;
 using System.Reflection;
 
+using static Cesil.BindingFlagsConstants;
+
 namespace Cesil
 {
     /// <summary>
@@ -30,7 +32,7 @@ namespace Cesil
         private static IReadOnlyDictionary<TypeInfo, Formatter> CreateTypeFormatters()
         {
             var ret = new Dictionary<TypeInfo, Formatter>();
-            foreach (var mtd in Types.DefaultTypeFormatters.GetMethods(BindingFlagsConstants.InternalStatic))
+            foreach (var mtd in Types.DefaultTypeFormatters.GetMethods(InternalStatic))
             {
                 var firstArg = mtd.GetParameters()[0];
                 var forType = firstArg.ParameterType;
@@ -227,7 +229,7 @@ namespace Cesil
             if (forType.IsEnum)
             {
                 var formattingClass = Types.DefaultEnumTypeFormatter.MakeGenericType(forType).GetTypeInfo();
-                var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryEnumFormatter), BindingFlagsConstants.InternalStatic);
+                var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryEnumFormatter), InternalStatic);
                 var formatter = (Formatter?)formatterField.GetValue(null);
 
                 return formatter;
@@ -237,7 +239,7 @@ namespace Cesil
             if (nullableElem != null && nullableElem.IsEnum)
             {
                 var formattingClass = Types.DefaultEnumTypeFormatter.MakeGenericType(nullableElem).GetTypeInfo();
-                var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryNullableEnumFormatter), BindingFlagsConstants.InternalStatic);
+                var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryNullableEnumFormatter), InternalStatic);
                 var formatter = (Formatter?)formatterField.GetValue(null);
 
                 return formatter;

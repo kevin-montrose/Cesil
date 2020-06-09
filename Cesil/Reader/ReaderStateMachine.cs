@@ -181,16 +181,16 @@ namespace Cesil
                 var ret = new System.Text.StringBuilder();
                 ret.AppendLine($"Offset = {TransitionMatrixMemoryOffset}");
 
-                foreach (State? sNull in Enum.GetValues(typeof(State)))
+                foreach (State? sNull in Enum.GetValues(Types.ReaderStateMachine.State))
                 {
-                    var s = sNull!.Value;
+                    var s = Utils.NonNullValue(sNull);
 
                     ret.AppendLine();
                     ret.AppendLine($"From {s}");
                     ret.AppendLine("===");
-                    foreach (CharacterType? cNull in Enum.GetValues(typeof(CharacterType)))
+                    foreach (CharacterType? cNull in Enum.GetValues(Types.ReaderStateMachine.CharacterType))
                     {
-                        var c = cNull!.Value;
+                        var c = Utils.NonNullValue(cNull);
 
                         var offset = GetTransitionMatrixOffset(s, c);
 
