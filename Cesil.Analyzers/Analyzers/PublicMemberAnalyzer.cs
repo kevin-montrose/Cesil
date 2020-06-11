@@ -117,8 +117,7 @@ namespace Cesil.Analyzers
                 }
             }
 
-            var diag = Diagnostic.Create(Diagnostics.PublicMember, publicMod.GetLocation());
-            context.ReportDiagnostic(diag);
+            publicMod.ReportDiagnostic(Diagnostics.PublicMember, context);
         }
     }
 }

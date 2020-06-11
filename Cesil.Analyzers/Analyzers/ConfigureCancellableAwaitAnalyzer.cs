@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -16,11 +15,9 @@ namespace Cesil.Analyzers
     {
         public ConfigureCancellableAwaitAnalyzer() : base(false, Diagnostics.ConfigureCancellableAwait, SyntaxKind.AwaitExpression) { }
 
-        [SuppressMessage("MicrosoftCodeAnalysisPerformance", "RS1012:Start action has no registered actions.", Justification = "Handled in AnalyzerBase")]
-        protected override ImmutableHashSet<IMethodSymbol> OnCompilationStart(CompilationStartAnalysisContext context)
+        protected override ImmutableHashSet<IMethodSymbol> OnCompilationStart(Compilation compilation)
         {
-            var comp = context.Compilation;
-            var awaitHelper = comp.GetTypeByMetadataName("Cesil.AwaitHelper");
+            var awaitHelper = compilation.GetTypeByMetadataName("Cesil.AwaitHelper");
             if (awaitHelper == null)
             {
                 throw new InvalidOperationException("Expected AwaitHelper");
@@ -66,8 +63,7 @@ namespace Cesil.Analyzers
 
             if (mark)
             {
-                var diag = Diagnostic.Create(Diagnostics.ConfigureCancellableAwait, rightHand.GetLocation());
-                context.ReportDiagnostic(diag);
+                rightHand.ReportDiagnostic(Diagnostics.ConfigureCancellableAwait, context);
             }
         }
     }

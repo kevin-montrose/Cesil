@@ -25,8 +25,7 @@ namespace Cesil.Analyzers
                 return;
             }
 
-            var diag = Diagnostic.Create(Diagnostics.NullForgiveness, node.GetLocation());
-            context.ReportDiagnostic(diag);
+            node.ReportDiagnostic(Diagnostics.NullForgiveness, context);
         }
     }
 }

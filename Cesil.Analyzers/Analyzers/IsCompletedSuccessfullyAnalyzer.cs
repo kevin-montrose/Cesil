@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -22,35 +20,34 @@ namespace Cesil.Analyzers
     {
         public sealed class State
         {
-            public INamedTypeSymbol AsyncTestHelper { get; }
+            public ImmutableArray<SourceSpan> AsyncTestHelperRoots { get; }
             public ImmutableHashSet<IPropertySymbol> ForbiddenMembers { get; }
 
-            internal State(INamedTypeSymbol asyncTestHelper, ImmutableHashSet<IPropertySymbol> forbiddenMembers)
+            internal State(ImmutableArray<SourceSpan> asyncTestHelperRoots, ImmutableHashSet<IPropertySymbol> forbiddenMembers)
             {
-                AsyncTestHelper = asyncTestHelper;
+                AsyncTestHelperRoots = asyncTestHelperRoots;
                 ForbiddenMembers = forbiddenMembers;
             }
         }
 
         public IsCompletedSuccessfullyAnalyzer() : base(false, Diagnostics.IsCompletedSuccessfully, SyntaxKind.SimpleMemberAccessExpression) { }
 
-        [SuppressMessage("MicrosoftCodeAnalysisPerformance", "RS1012:Start action has no registered actions.", Justification = "Handled in AnalyzerBase")]
-        protected override State OnCompilationStart(CompilationStartAnalysisContext context)
+        protected override State OnCompilationStart(Compilation compilation)
         {
-            var comp = context.Compilation;
-
             // single class is allowed to use the forbidden members without explanation
-            var asyncTestHelper = comp.GetTypeByMetadataName("Cesil.AsyncTestHelper");
+            var asyncTestHelper = compilation.GetTypeByMetadataName("Cesil.AsyncTestHelper");
             if (asyncTestHelper == null)
             {
                 throw new InvalidOperationException("Expected AsyncTestHelper");
             }
 
+            var asyncTestHelperRoots = asyncTestHelper.GetSourceSpans();
+
             // get the stuff that we want to flag ONCE per compilation
-            var task = comp.GetTypeByMetadataName("System.Threading.Tasks.Task");
-            var taskT = comp.GetTypeByMetadataName("System.Threading.Tasks.Task`1");
-            var valueTask = comp.GetTypeByMetadataName("System.Threading.Tasks.ValueTask");
-            var valueTaskT = comp.GetTypeByMetadataName("System.Threading.Tasks.ValueTask`1");
+            var task = compilation.GetTypeByMetadataName("System.Threading.Tasks.Task");
+            var taskT = compilation.GetTypeByMetadataName("System.Threading.Tasks.Task`1");
+            var valueTask = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask");
+            var valueTaskT = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask`1");
 
             var ret = ImmutableHashSet.CreateBuilder<IPropertySymbol>();
 
@@ -82,12 +79,14 @@ namespace Cesil.Analyzers
                 }
             }
 
-            return new State(asyncTestHelper, ret.ToImmutable());
+            return new State(asyncTestHelperRoots, ret.ToImmutable());
         }
 
         protected override void OnSyntaxNode(SyntaxNodeAnalysisContext context, State state)
         {
-            if (!(context.Node is MemberAccessExpressionSyntax expr))
+            var node = context.Node;
+
+            if (!(node is MemberAccessExpressionSyntax expr))
             {
                 throw new InvalidOperationException($"Expected {nameof(MemberAccessExpressionSyntax)}");
             }
@@ -105,32 +104,14 @@ namespace Cesil.Analyzers
 
             if (mark)
             {
-                var inAsyncTestHelper =
-                    state
-                        .AsyncTestHelper
-                        .DeclaringSyntaxReferences
-                        .Any(
-                            syntaxRef =>
-                            {
-                                var tree = syntaxRef.SyntaxTree;
-                                var root = tree.GetRoot();
-
-                                return root.Contains(expr);
-                            }
-                        );
-
+                var inAsyncTestHelper = state.AsyncTestHelperRoots.ContainsNode(node);
                 if (inAsyncTestHelper)
                 {
                     // no need to check uses in AsyncTestHelper, since that's what we suggest you use instead
                     return;
                 }
 
-                var loc = expr.GetLocation();
-                var diag = Diagnostic.Create(
-                    Diagnostics.IsCompletedSuccessfully,
-                    loc
-                );
-                context.ReportDiagnostic(diag);
+                node.ReportDiagnostic(Diagnostics.IsCompletedSuccessfully, context);
             }
         }
     }

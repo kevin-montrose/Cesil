@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -16,40 +14,24 @@ namespace Cesil.Analyzers
     ///    option available.  Replacing that in the IL with a method call would be a bit much.
     /// </summary>
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public sealed class TypesAnalyzer : AnalyzerBase<ImmutableArray<SyntaxNode>>
+    public sealed class TypesAnalyzer : AnalyzerBase<ImmutableArray<SourceSpan>>
     {
         public TypesAnalyzer() : base(false, Diagnostics.Types, SyntaxKind.TypeOfExpression) { }
 
-        [SuppressMessage("MicrosoftCodeAnalysisPerformance", "RS1012:Start action has no registered actions.", Justification = "Handled in AnalyzerBase")]
-        protected override ImmutableArray<SyntaxNode> OnCompilationStart(CompilationStartAnalysisContext context)
+        protected override ImmutableArray<SourceSpan> OnCompilationStart(Compilation compilation)
         {
-            var comp = context.Compilation;
-
-            var typesClass = comp.GetTypeByMetadataName("Cesil.Types");
+            var typesClass = compilation.GetTypeByMetadataName("Cesil.Types");
             if (typesClass == null)
             {
                 throw new InvalidOperationException("Expected Types");
             }
 
-            var ret =
-                ImmutableArray.CreateRange(
-                    typesClass
-                        .DeclaringSyntaxReferences
-                        .Select(
-                            syntaxRef =>
-                            {
-                                var tree = syntaxRef.SyntaxTree;
-                                var root = tree.GetRoot();
-
-                                return root;
-                            }
-                        )
-                );
+            var ret = typesClass.GetSourceSpans();
 
             return ret;
         }
 
-        protected override void OnSyntaxNode(SyntaxNodeAnalysisContext context, ImmutableArray<SyntaxNode> typeRoots)
+        protected override void OnSyntaxNode(SyntaxNodeAnalysisContext context, ImmutableArray<SourceSpan> typeRoots)
         {
             var node = context.Node;
 
@@ -58,7 +40,7 @@ namespace Cesil.Analyzers
                 throw new InvalidOperationException($"Expected {nameof(TypeOfExpressionSyntax)}");
             }
 
-            var inTypes = typeRoots.Any(root => root.Contains(node));
+            var inTypes = typeRoots.ContainsNode(node);
 
             if (inTypes)
             {
@@ -75,8 +57,7 @@ namespace Cesil.Analyzers
 
             if (mark)
             {
-                var diag = Diagnostic.Create(Diagnostics.Types, typeofSyntax.GetLocation());
-                context.ReportDiagnostic(diag);
+                typeofSyntax.ReportDiagnostic(Diagnostics.Types, context);
             }
         }
     }

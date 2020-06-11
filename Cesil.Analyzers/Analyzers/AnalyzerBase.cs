@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
-
-using static Cesil.Analyzers.DebugHelper;
 
 namespace Cesil.Analyzers
 {
@@ -53,7 +51,7 @@ namespace Cesil.Analyzers
         public sealed override void Initialize(AnalysisContext context)
         {
             // helper for conveniently attaching a debugger
-            AttachDebugger(AttachDebugger);
+            DoAttachDebugger(AttachDebugger);
 
             // concurrent for performance sake's, but only if we're not debugging
             if (!AttachDebugger)
@@ -69,7 +67,7 @@ namespace Cesil.Analyzers
                 context =>
                 {
                     // grab the state
-                    var state = OnCompilationStart(context);
+                    var state = OnCompilationStart(context.Compilation);
 
                     // visit whatever nodes
                     context.RegisterSyntaxNodeAction(
@@ -83,10 +81,23 @@ namespace Cesil.Analyzers
             );
         }
 
-        [SuppressMessage("MicrosoftCodeAnalysisPerformance", "RS1012:Start action has no registered actions.", Justification = "Registration actually happens in Initialize")]
-        protected virtual TCompilationState OnCompilationStart(CompilationStartAnalysisContext context)
+        protected virtual TCompilationState OnCompilationStart(Compilation compilation)
         => default!;
 
         protected abstract void OnSyntaxNode(SyntaxNodeAnalysisContext context, TCompilationState state);
+
+        [Conditional("DEBUG")]
+        private static void DoAttachDebugger(bool doAttach)
+        {
+            if (!doAttach)
+            {
+                return;
+            }
+
+            if (!Debugger.IsAttached)
+            {
+                Debugger.Launch();
+            }
+        }
     }
 }
