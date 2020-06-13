@@ -30,6 +30,8 @@ namespace Cesil.Analyzers
             }
         }
 
+        private static ImmutableHashSet<string> TaskProperties { get; } = ImmutableHashSet.Create(nameof(Task.IsCompleted), nameof(Task.IsCanceled), nameof(Task.IsFaulted), nameof(ValueTask.IsCompletedSuccessfully));
+
         public IsCompletedSuccessfullyAnalyzer() : base(false, Diagnostics.IsCompletedSuccessfully, SyntaxKind.SimpleMemberAccessExpression) { }
 
         protected override State OnCompilationStart(Compilation compilation)
@@ -58,22 +60,15 @@ namespace Cesil.Analyzers
                     throw new InvalidOperationException("Symbol not defined");
                 }
 
-                var members = sym.GetMembers();
-                foreach (var mem in members)
+                foreach (var name in TaskProperties)
                 {
-                    if (mem.Kind != SymbolKind.Property) continue;
-
-                    var name = mem.Name;
-
-                    var include =
-                        name == nameof(Task.IsCompleted) ||
-                        name == nameof(Task.IsCanceled) ||
-                        name == nameof(Task.IsFaulted) ||
-                        name == nameof(ValueTask.IsCompletedSuccessfully);
-
-                    if (include)
+                    var mems = sym.GetMembers(name);
+                    foreach (var mem in mems)
                     {
-                        var prop = (IPropertySymbol)mem;
+                        if (!(mem is IPropertySymbol prop))
+                        {
+                            throw new InvalidOperationException($"Symbol not a {nameof(IPropertySymbol)}");
+                        }
                         ret.Add(prop);
                     }
                 }
@@ -91,6 +86,14 @@ namespace Cesil.Analyzers
                 throw new InvalidOperationException($"Expected {nameof(MemberAccessExpressionSyntax)}");
             }
 
+            var name = expr.Name.Identifier.ValueText;
+            if (!TaskProperties.Contains(name))
+            {
+                // early check, we _know_ this can't be something we care about
+                return;
+            }
+
+            // now actually do the expensive parts, checking that the name isn't just a coincidence
             var model = context.SemanticModel;
 
             var mark = false;

@@ -13,19 +13,43 @@ namespace Cesil.Analyzers
     /// Also suggests adding a `using static ... BindingFlagsConstants` if one is not present.
     /// </summary>
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public sealed class BindingFlagsAnalyzer : AnalyzerBase<BindingFlagsAnalyzer.Context>
+    public sealed class BindingFlagsAnalyzer : AnalyzerBase<BindingFlagsAnalyzer.State>
     {
-        public sealed class Context
+        public sealed class State
         {
-            public INamedTypeSymbol BindingFlagsConstants { get; }
-            public INamedTypeSymbol BindingFlags { get; }
             public ImmutableArray<SourceSpan> BindingFlagsConstantsRoots { get; }
+            public INamedTypeSymbol BindingFlagsConstants { get; }
+            public ImmutableHashSet<string> BindingFlagsConstantsNames { get; }
 
-            public Context(INamedTypeSymbol bindingFlagsConstants, INamedTypeSymbol bindingFlags, ImmutableArray<SourceSpan> bindingFlagsConstantsRoots)
+            public INamedTypeSymbol BindingFlags { get; }
+            public ImmutableHashSet<string> BindingFlagsNames { get; }
+
+
+
+            public State(INamedTypeSymbol bindingFlagsConstants, INamedTypeSymbol bindingFlags, ImmutableArray<SourceSpan> bindingFlagsConstantsRoots)
             {
                 BindingFlagsConstants = bindingFlagsConstants;
                 BindingFlags = bindingFlags;
                 BindingFlagsConstantsRoots = bindingFlagsConstantsRoots;
+
+                {
+                    var bfcns = ImmutableHashSet.CreateBuilder<string>();
+                    foreach (var member in bindingFlagsConstants.GetMembers())
+                    {
+                        bfcns.Add(member.Name);
+                    }
+                    BindingFlagsConstantsNames = bfcns.ToImmutable();
+                }
+
+                {
+                    var bfns = ImmutableHashSet.CreateBuilder<string>();
+                    foreach (var member in bindingFlags.GetMembers())
+                    {
+                        bfns.Add(member.Name);
+                    }
+                    BindingFlagsNames = bfns.ToImmutable();
+                }
+
             }
         }
 
@@ -37,7 +61,7 @@ namespace Cesil.Analyzers
             )
         { }
 
-        protected override Context OnCompilationStart(Compilation compilation)
+        protected override State OnCompilationStart(Compilation compilation)
         {
             var bindingFlagsConstants = compilation.GetTypeByMetadataName("Cesil.BindingFlagsConstants");
             if (bindingFlagsConstants == null)
@@ -53,10 +77,10 @@ namespace Cesil.Analyzers
 
             var bindingFlagsRoot = bindingFlagsConstants.GetSourceSpans();
 
-            return new Context(bindingFlagsConstants, bindingFlags, bindingFlagsRoot);
+            return new State(bindingFlagsConstants, bindingFlags, bindingFlagsRoot);
         }
 
-        protected override void OnSyntaxNode(SyntaxNodeAnalysisContext context, Context state)
+        protected override void OnSyntaxNode(SyntaxNodeAnalysisContext context, State state)
         {
             var node = context.Node;
             if (!(node is MemberAccessExpressionSyntax accessSyntax))
@@ -68,6 +92,17 @@ namespace Cesil.Analyzers
             if (inBindingFlagsConstants)
             {
                 // don't flag _in_ BindingFlagsConstants
+                return;
+            }
+
+            var rightHand = accessSyntax.Name.Identifier.ValueText;
+
+            var mightBeBindingFlags = state.BindingFlagsNames.Contains(rightHand);
+            var mightBeBindingFlagsContants = state.BindingFlagsConstantsNames.Contains(rightHand);
+
+            if (!mightBeBindingFlags && !mightBeBindingFlagsContants)
+            {
+                // nothing we care about, bail before touching the semantic model
                 return;
             }
 
@@ -83,13 +118,13 @@ namespace Cesil.Analyzers
             }
 
             // don't use BindingFlags
-            if (state.BindingFlags.Equals(namedSym, SymbolEqualityComparer.Default))
+            if (mightBeBindingFlags && state.BindingFlags.Equals(namedSym, SymbolEqualityComparer.Default))
             {
                 node.ReportDiagnostic(Diagnostics.BindingFlagsConstants, context);
             }
 
             // if you use BindingFlagsConstant, use it with a using static
-            if (state.BindingFlagsConstants.Equals(namedSym, SymbolEqualityComparer.Default))
+            if (mightBeBindingFlagsContants && state.BindingFlagsConstants.Equals(namedSym, SymbolEqualityComparer.Default))
             {
                 node.ReportDiagnostic(Diagnostics.UsingStaticBindingFlagsConstants, context);
             }
