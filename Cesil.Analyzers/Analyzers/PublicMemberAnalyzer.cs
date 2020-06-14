@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -22,11 +21,7 @@ namespace Cesil.Analyzers
 
         protected override void OnSyntaxNode(SyntaxNodeAnalysisContext context, object? state)
         {
-            var node = context.Node;
-            if (!(node is TypeDeclarationSyntax typeDecl))
-            {
-                throw new InvalidOperationException($"Expected {nameof(TypeDeclarationSyntax)}");
-            }
+            var typeDecl = context.Node.Expect<SyntaxNode, TypeDeclarationSyntax>();
 
             var isPublic = typeDecl.Modifiers.Any(m => m.Kind() == SyntaxKind.PublicKeyword);
             if (isPublic)
@@ -37,12 +32,10 @@ namespace Cesil.Analyzers
 
             var model = context.SemanticModel;
 
+            // since we're looking up a declaration in this project, 
+            //   this should ever be null.
             var namedType = model.GetDeclaredSymbol(typeDecl);
-            if (namedType == null)
-            {
-                // can't parse it, bail
-                return;
-            }
+            namedType = namedType.NonNull();
 
             var interfaceMembers = ImmutableHashSet.CreateBuilder<ISymbol>();
 
@@ -71,7 +64,7 @@ namespace Cesil.Analyzers
             SyntaxToken publicMod = default;
             var isMemPublic = false;
             var isMemOverride = false;
-            var isMemOperator = member is ConversionOperatorDeclarationSyntax;
+            var isMemOperator = member is ConversionOperatorDeclarationSyntax || member is OperatorDeclarationSyntax;
             foreach (var modifier in member.Modifiers)
             {
                 var kind = modifier.Kind();

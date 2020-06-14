@@ -1,4 +1,5 @@
-﻿using System.Collections.Immutable;
+﻿using System;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -7,8 +8,50 @@ namespace Cesil.Analyzers
 {
     internal static class ExtensionMethods
     {
-        // todo: can GetTreeRoots() and ContainsNode() be replaced with a simple range check?
-        //       ie. does this text occur in one of these files XYZ in ranges ABC?
+        /// <summary>
+        /// Helper that asserts value is non-null,
+        ///   throws an exception if assertion is false.
+        /// </summary>
+        public static T NonNull<T>(this T? value)
+            where T: class
+        {
+            if(value == null)
+            {
+                throw new InvalidOperationException("Unexpected null value");
+            }
+
+            return value;
+        }
+
+        /// <summary>
+        /// A form of Compilation.GetTypeByMetadataName() that will blow up rather
+        ///   than return null.
+        /// </summary>
+        public static INamedTypeSymbol GetTypeByMetadataNameNonNull(this Compilation compilation, string name)
+        {
+            var ret = compilation.GetTypeByMetadataName(name);
+            if (ret == null)
+            {
+                throw new InvalidOperationException($"Couldn't find {name}");
+            }
+
+            return ret;
+        }
+
+        /// <summary>
+        /// Helper asserts that THave is actually a TExpected, throws
+        ///   an exception if the assertions is false.
+        /// </summary>
+        public static TExpected Expect<THave, TExpected>(this THave item)
+            where TExpected: class, THave
+        {
+            if(!(item is TExpected ret))
+            {
+                throw new InvalidOperationException($"Expected {typeof(TExpected).Name}");
+            }
+
+            return ret;
+        }
 
         /// <summary>
         /// Gets all the root nodes of the syntax that defines parts of the given symbol,
@@ -29,7 +72,7 @@ namespace Cesil.Analyzers
         {
             var span = SourceSpan.Create(node);
 
-            foreach(var other in spans)
+            foreach (var other in spans)
             {
                 if (other.Contains(span))
                 {

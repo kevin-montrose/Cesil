@@ -94,6 +94,7 @@ namespace Cesil.Analyzers
                 return;
             }
 
+            // this is just not getting tested, deal
             if (!Debugger.IsAttached)
             {
                 Debugger.Launch();

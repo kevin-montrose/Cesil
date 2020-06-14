@@ -1,5 +1,4 @@
-﻿using System;
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -13,19 +12,9 @@ namespace Cesil.Analyzers
 
         protected override void OnSyntaxNode(SyntaxNodeAnalysisContext context, object? state)
         {
-            var node = context.Node;
-            if (!(node is PostfixUnaryExpressionSyntax exp))
-            {
-                throw new InvalidOperationException($"Expected {nameof(PostfixUnaryExpressionSyntax)}");
-            }
+            var exp = context.Node.Expect<SyntaxNode, PostfixUnaryExpressionSyntax>();
 
-            // if not null forgiveness, bail
-            if (exp.OperatorToken.ValueText != "!")
-            {
-                return;
-            }
-
-            node.ReportDiagnostic(Diagnostics.NullForgiveness, context);
+            exp.ReportDiagnostic(Diagnostics.NullForgiveness, context);
         }
     }
 }

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -63,17 +62,8 @@ namespace Cesil.Analyzers
 
         protected override State OnCompilationStart(Compilation compilation)
         {
-            var bindingFlagsConstants = compilation.GetTypeByMetadataName("Cesil.BindingFlagsConstants");
-            if (bindingFlagsConstants == null)
-            {
-                throw new InvalidOperationException($"Expected BindingFlagsConstants");
-            }
-
-            var bindingFlags = compilation.GetTypeByMetadataName("System.Reflection.BindingFlags");
-            if (bindingFlags == null)
-            {
-                throw new InvalidOperationException($"Expected BindingFlags");
-            }
+            var bindingFlagsConstants = compilation.GetTypeByMetadataNameNonNull("Cesil.BindingFlagsConstants");
+            var bindingFlags = compilation.GetTypeByMetadataNameNonNull("System.Reflection.BindingFlags");
 
             var bindingFlagsRoot = bindingFlagsConstants.GetSourceSpans();
 
@@ -82,13 +72,9 @@ namespace Cesil.Analyzers
 
         protected override void OnSyntaxNode(SyntaxNodeAnalysisContext context, State state)
         {
-            var node = context.Node;
-            if (!(node is MemberAccessExpressionSyntax accessSyntax))
-            {
-                throw new InvalidOperationException($"Expected {nameof(MemberAccessExpressionSyntax)} or {nameof(UsingDirectiveSyntax)}");
-            }
+            var accessSyntax = context.Node.Expect<SyntaxNode, MemberAccessExpressionSyntax>();
 
-            var inBindingFlagsConstants = state.BindingFlagsConstantsRoots.ContainsNode(node);
+            var inBindingFlagsConstants = state.BindingFlagsConstantsRoots.ContainsNode(accessSyntax);
             if (inBindingFlagsConstants)
             {
                 // don't flag _in_ BindingFlagsConstants
@@ -120,13 +106,13 @@ namespace Cesil.Analyzers
             // don't use BindingFlags
             if (mightBeBindingFlags && state.BindingFlags.Equals(namedSym, SymbolEqualityComparer.Default))
             {
-                node.ReportDiagnostic(Diagnostics.BindingFlagsConstants, context);
+                accessSyntax.ReportDiagnostic(Diagnostics.BindingFlagsConstants, context);
             }
 
             // if you use BindingFlagsConstant, use it with a using static
             if (mightBeBindingFlagsContants && state.BindingFlagsConstants.Equals(namedSym, SymbolEqualityComparer.Default))
             {
-                node.ReportDiagnostic(Diagnostics.UsingStaticBindingFlagsConstants, context);
+                accessSyntax.ReportDiagnostic(Diagnostics.UsingStaticBindingFlagsConstants, context);
             }
         }
     }

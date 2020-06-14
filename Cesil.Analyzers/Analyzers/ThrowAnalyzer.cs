@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -16,11 +15,7 @@ namespace Cesil.Analyzers
 
         protected override ImmutableArray<SourceSpan> OnCompilationStart(Compilation compilation)
         {
-            var throwClass = compilation.GetTypeByMetadataName("Cesil.Throw");
-            if (throwClass == null)
-            {
-                throw new InvalidOperationException("Expected Throw");
-            }
+            var throwClass = compilation.GetTypeByMetadataNameNonNull("Cesil.Throw");
 
             var ret = throwClass.GetSourceSpans();
 

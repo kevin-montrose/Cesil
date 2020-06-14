@@ -170,7 +170,7 @@ namespace Cesil
                     statements.Add(clear);
                 }
 
-                var delType = Types.ClearHoldDelegateType.MakeGenericType(holdType);
+                var delType = Types.ClearHoldDelegate.MakeGenericType(holdType);
 
                 var block = Expression.Block(statements);
 

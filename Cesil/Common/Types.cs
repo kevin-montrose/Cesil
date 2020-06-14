@@ -122,7 +122,7 @@ namespace Cesil
         internal static readonly TypeInfo ParseAndSetOnDelegate = typeof(ParseAndSetOnDelegate<>).GetTypeInfo();
         internal static readonly TypeInfo MoveFromHoldToRowDelegate = typeof(MoveFromHoldToRowDelegate<,>).GetTypeInfo();
         internal static readonly TypeInfo GetInstanceGivenHoldDelegate = typeof(GetInstanceGivenHoldDelegate<,>).GetTypeInfo();
-        internal static readonly TypeInfo ClearHoldDelegateType = typeof(ClearHoldDelegate<>).GetTypeInfo();
+        internal static readonly TypeInfo ClearHoldDelegate = typeof(ClearHoldDelegate<>).GetTypeInfo();
         internal static readonly TypeInfo InstanceProviderDelegate = typeof(InstanceProviderDelegate<>).GetTypeInfo();
         internal static readonly TypeInfo NeedsHoldRowConstructor = typeof(NeedsHoldRowConstructor<,>).GetTypeInfo();
 
@@ -149,7 +149,7 @@ namespace Cesil
         internal static readonly TypeInfo DefaultTypeFormatters = typeof(DefaultTypeFormatters).GetTypeInfo();
         internal static readonly TypeInfo DefaultEnumTypeFormatter = typeof(DefaultTypeFormatters.DefaultEnumTypeFormatter<>).GetTypeInfo();
         internal static readonly TypeInfo DisposableHelper = typeof(DisposableHelper).GetTypeInfo();
-        internal static readonly TypeInfo ThrowType = typeof(Throw).GetTypeInfo();
+        internal static readonly TypeInfo Throw = typeof(Throw).GetTypeInfo();
         internal static readonly TypeInfo TupleDynamicParsers = typeof(TupleDynamicParsers<>).GetTypeInfo();
         internal static readonly TypeInfo WellKnownRowTypes = typeof(WellKnownRowTypes).GetTypeInfo();
         internal static readonly TypeInfo WellKnownEnumRowType = typeof(WellKnownRowTypes.WellKnownEnumRowType<>).GetTypeInfo();

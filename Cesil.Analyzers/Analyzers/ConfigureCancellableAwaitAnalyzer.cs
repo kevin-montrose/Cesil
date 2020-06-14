@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -17,32 +16,19 @@ namespace Cesil.Analyzers
 
         protected override ImmutableHashSet<IMethodSymbol> OnCompilationStart(Compilation compilation)
         {
-            var awaitHelper = compilation.GetTypeByMetadataName("Cesil.AwaitHelper");
-            if (awaitHelper == null)
-            {
-                throw new InvalidOperationException("Expected AwaitHelper");
-            }
+            var awaitHelper = compilation.GetTypeByMetadataNameNonNull("Cesil.AwaitHelper");
 
-            var members = ImmutableHashSet.CreateBuilder<IMethodSymbol>();
-            foreach (var mem in awaitHelper.GetMembers("ConfigureCancellableAwait"))
-            {
-                if (!(mem is IMethodSymbol mtd)) continue;
-
-                members.Add(mtd);
-            }
-
-            var methodsMustBeCalled = members.ToImmutable();
+            var methodsMustBeCalled =
+                ImmutableHashSet.CreateRange(
+                    awaitHelper.GetMembers("ConfigureCancellableAwait").OfType<IMethodSymbol>()
+                );
 
             return methodsMustBeCalled;
         }
 
         protected override void OnSyntaxNode(SyntaxNodeAnalysisContext context, ImmutableHashSet<IMethodSymbol> methodsMustBeCalled)
         {
-            var node = context.Node;
-            if (!(node is AwaitExpressionSyntax await))
-            {
-                throw new InvalidOperationException($"Expected {nameof(AwaitExpressionSyntax)}");
-            }
+            var await = context.Node.Expect<SyntaxNode, AwaitExpressionSyntax>();
 
             var model = context.SemanticModel;
 
@@ -51,12 +37,35 @@ namespace Cesil.Analyzers
             var rightHand = await.Expression;
             if (rightHand is InvocationExpressionSyntax invoke)
             {
-                var symInfo = model.GetSymbolInfo(invoke.Expression);
-                if (symInfo.Symbol is IMethodSymbol mtdSym)
+                var exp = invoke.Expression;
+
+                // only bother touching the semantic model _if_ the method name involved is ConfigureCancellableAwait
+                //   note that we don't check the class name, because it could be aliased to something else
+                bool couldBeConfigureCancellableAwait;
+                if (exp is IdentifierNameSyntax ident)
                 {
-                    if (methodsMustBeCalled.Contains(mtdSym.OriginalDefinition))
+                    var methodName = ident.Identifier.ValueText;
+                    couldBeConfigureCancellableAwait = methodName == "ConfigureCancellableAwait";
+                }
+                else if (exp is MemberAccessExpressionSyntax memberAccess)
+                {
+                    var methodName = memberAccess.Name.Identifier.ValueText;
+                    couldBeConfigureCancellableAwait = methodName == "ConfigureCancellableAwait";
+                }
+                else
+                {
+                    couldBeConfigureCancellableAwait = false;
+                }
+
+                if (couldBeConfigureCancellableAwait)
+                {
+                    var symInfo = model.GetSymbolInfo(exp);
+                    if (symInfo.Symbol is IMethodSymbol mtdSym)
                     {
-                        mark = false;
+                        if (methodsMustBeCalled.Contains(mtdSym.OriginalDefinition))
+                        {
+                            mark = false;
+                        }
                     }
                 }
             }

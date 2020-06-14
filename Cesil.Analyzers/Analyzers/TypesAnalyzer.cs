@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -20,11 +19,7 @@ namespace Cesil.Analyzers
 
         protected override ImmutableArray<SourceSpan> OnCompilationStart(Compilation compilation)
         {
-            var typesClass = compilation.GetTypeByMetadataName("Cesil.Types");
-            if (typesClass == null)
-            {
-                throw new InvalidOperationException("Expected Types");
-            }
+            var typesClass = compilation.GetTypeByMetadataNameNonNull("Cesil.Types");
 
             var ret = typesClass.GetSourceSpans();
 
@@ -33,14 +28,9 @@ namespace Cesil.Analyzers
 
         protected override void OnSyntaxNode(SyntaxNodeAnalysisContext context, ImmutableArray<SourceSpan> typeRoots)
         {
-            var node = context.Node;
+            var typeofSyntax = context.Node.Expect<SyntaxNode, TypeOfExpressionSyntax>();
 
-            if (!(node is TypeOfExpressionSyntax typeofSyntax))
-            {
-                throw new InvalidOperationException($"Expected {nameof(TypeOfExpressionSyntax)}");
-            }
-
-            var inTypes = typeRoots.ContainsNode(node);
+            var inTypes = typeRoots.ContainsNode(typeofSyntax);
 
             if (inTypes)
             {

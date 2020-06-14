@@ -10,7 +10,7 @@ namespace Cesil.Analyzers
             new DiagnosticDescriptor(
                 "CES0001",
                 "Incorrect .IsCompletedSuccessfully property use",
-                "Use .IsCompletedSuccessfully(object) extension method instead of .IsCompletedSuccessfully property",
+                "Use .IsCompletedSuccessfully(object) extension method instead of completion-related properties (IsCompleted, IsFaulted, etc.)",
                 "Cesil",
                 DiagnosticSeverity.Warning,
                 true

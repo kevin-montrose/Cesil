@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -37,38 +36,26 @@ namespace Cesil.Analyzers
         protected override State OnCompilationStart(Compilation compilation)
         {
             // single class is allowed to use the forbidden members without explanation
-            var asyncTestHelper = compilation.GetTypeByMetadataName("Cesil.AsyncTestHelper");
-            if (asyncTestHelper == null)
-            {
-                throw new InvalidOperationException("Expected AsyncTestHelper");
-            }
+            var asyncTestHelper = compilation.GetTypeByMetadataNameNonNull("Cesil.AsyncTestHelper");
 
             var asyncTestHelperRoots = asyncTestHelper.GetSourceSpans();
 
             // get the stuff that we want to flag ONCE per compilation
-            var task = compilation.GetTypeByMetadataName("System.Threading.Tasks.Task");
-            var taskT = compilation.GetTypeByMetadataName("System.Threading.Tasks.Task`1");
-            var valueTask = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask");
-            var valueTaskT = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask`1");
+            var task = compilation.GetTypeByMetadataNameNonNull("System.Threading.Tasks.Task");
+            var taskT = compilation.GetTypeByMetadataNameNonNull("System.Threading.Tasks.Task`1");
+            var valueTask = compilation.GetTypeByMetadataNameNonNull("System.Threading.Tasks.ValueTask");
+            var valueTaskT = compilation.GetTypeByMetadataNameNonNull("System.Threading.Tasks.ValueTask`1");
 
             var ret = ImmutableHashSet.CreateBuilder<IPropertySymbol>();
 
             foreach (var sym in new[] { task, taskT, valueTask, valueTaskT })
             {
-                if (sym == null)
-                {
-                    throw new InvalidOperationException("Symbol not defined");
-                }
-
                 foreach (var name in TaskProperties)
                 {
                     var mems = sym.GetMembers(name);
                     foreach (var mem in mems)
                     {
-                        if (!(mem is IPropertySymbol prop))
-                        {
-                            throw new InvalidOperationException($"Symbol not a {nameof(IPropertySymbol)}");
-                        }
+                        var prop = mem.Expect<ISymbol, IPropertySymbol>();
                         ret.Add(prop);
                     }
                 }
@@ -79,12 +66,7 @@ namespace Cesil.Analyzers
 
         protected override void OnSyntaxNode(SyntaxNodeAnalysisContext context, State state)
         {
-            var node = context.Node;
-
-            if (!(node is MemberAccessExpressionSyntax expr))
-            {
-                throw new InvalidOperationException($"Expected {nameof(MemberAccessExpressionSyntax)}");
-            }
+            var expr = context.Node.Expect<SyntaxNode, MemberAccessExpressionSyntax>();
 
             var name = expr.Name.Identifier.ValueText;
             if (!TaskProperties.Contains(name))
@@ -107,14 +89,14 @@ namespace Cesil.Analyzers
 
             if (mark)
             {
-                var inAsyncTestHelper = state.AsyncTestHelperRoots.ContainsNode(node);
+                var inAsyncTestHelper = state.AsyncTestHelperRoots.ContainsNode(expr);
                 if (inAsyncTestHelper)
                 {
                     // no need to check uses in AsyncTestHelper, since that's what we suggest you use instead
                     return;
                 }
 
-                node.ReportDiagnostic(Diagnostics.IsCompletedSuccessfully, context);
+                expr.ReportDiagnostic(Diagnostics.IsCompletedSuccessfully, context);
             }
         }
     }
