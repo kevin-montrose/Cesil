@@ -55,7 +55,9 @@ namespace Cesil
                 {
                     while (true)
                     {
+#pragma warning disable CES0005 // T is generic, and null is legal, but since T isn't known to be a class we have to forgive null here
                         T _ = default!;
+#pragma warning restore CES0005
                         var resTask = TryReadInnerAsync(false, true, false, ref _, cancellationToken);
                         if (!resTask.IsCompletedSuccessfully(this))
                         {
@@ -92,7 +94,9 @@ namespace Cesil
                     {
                         while (true)
                         {
+#pragma warning disable CES0005 // T is generic, and null is legal, but since T isn't known to be a class we have to forgive null here
                             T _ = default!;
+#pragma warning restore CES0005
 
                             var resTask = self.TryReadInnerAsync(false, true, false, ref _, cancellationToken);
                             ReadWithCommentResult<T> res;
@@ -138,7 +142,9 @@ namespace Cesil
 
                     while (true)
                     {
+#pragma warning disable CES0005 // T is generic, and null is legal, but since T isn't known to be a class we have to forgive null here
                         T _ = default!;
+#pragma warning restore CES0005
                         var resTask = self.TryReadInnerAsync(false, true, false, ref _, cancellationToken);
                         ReadWithCommentResult<T> res;
                         self.StateMachine.ReleasePinForAsync(resTask);
@@ -260,7 +266,9 @@ namespace Cesil
 
             try
             {
+#pragma warning disable CES0005 // T is generic, and null is legal, but since T isn't known to be a class we have to forgive null here
                 T row = default!;
+#pragma warning restore CES0005
                 var handleRowEndingsAndHeadersTask = HandleRowEndingsAndHeadersAsync(cancellationToken);
                 if (!handleRowEndingsAndHeadersTask.IsCompletedSuccessfully(this))
                 {
@@ -340,7 +348,9 @@ namespace Cesil
 
             try
             {
+#pragma warning disable CES0005 // T is generic, and null is legal, but since T isn't known to be a class we have to forgive null here
                 T record = default!;
+#pragma warning restore CES0005
 
                 var handleRowEndingsAndHeadersTask = HandleRowEndingsAndHeadersAsync(cancellationToken);
                 if (!handleRowEndingsAndHeadersTask.IsCompletedSuccessfully(this))

@@ -45,7 +45,9 @@
         private ReadResult(bool v)
         {
             HasValue = v;
+#pragma warning disable CES0005 // T is generic, and null is legal, but since T isn't known to be a class we have to forgive null here
             _Value = default!;
+#pragma warning restore CES0005
         }
 
         /// <summary>

@@ -7,6 +7,8 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
 
+using static Cesil.BindingFlagsConstants;
+
 namespace Cesil
 {
     internal delegate void ParseAndSetOnDelegate<TRow>(ref TRow row, in ReadContext ctx, ReadOnlySpan<char> data);
@@ -133,7 +135,7 @@ namespace Cesil
                 var name = member.Name;
                 var required = member.IsRequired ? MemberRequired.Yes : MemberRequired.No;
 
-                var field = holdType.GetFieldNonNull("Simple_" + name, BindingFlagsConstants.InternalInstance);
+                var field = holdType.GetFieldNonNull("Simple_" + name, InternalInstance);
                 var parseAndHold = RowConstructor.MakeParseAndSetDelegate(holdType, member.Parser, Setter.ForField(field), default);
                 var moveToRow = MakeMoveFromHoldToRowDelegate(rowType, holdType, member.Setter, Getter.ForField(field), member.Reset);
                 var setOnRow = RowConstructor.MakeParseAndSetDelegate(rowType, member.Parser, member.Setter, member.Reset);
@@ -145,7 +147,7 @@ namespace Cesil
             var clearHold = MakeClearHold(holdType);
 
             var constructorType = Types.NeedsHoldRowConstructor.MakeGenericType(rowType, holdType).GetTypeInfo();
-            var createMtd = constructorType.GetMethodNonNull(nameof(NeedsHoldRowConstructor<object, object>.Create), BindingFlagsConstants.InternalStatic);
+            var createMtd = constructorType.GetMethodNonNull(nameof(NeedsHoldRowConstructor<object, object>.Create), InternalStatic);
 
             var ret = createMtd.Invoke(null, new object[] { pool, clearHold, constructFromHold, simple, hold });
             if (ret == null)
@@ -162,13 +164,13 @@ namespace Cesil
 
                 var holdParam = Expression.Parameter(holdType);
 
-                foreach (var f in holdType.GetFields(BindingFlagsConstants.InternalInstance))
+                foreach (var f in holdType.GetFields(InternalInstance))
                 {
                     var clear = Expression.Assign(Expression.Field(holdParam, f), Expression.Default(f.FieldType.GetTypeInfo()));
                     statements.Add(clear);
                 }
 
-                var delType = Types.ClearHoldDelegateType.MakeGenericType(holdType);
+                var delType = Types.ClearHoldDelegate.MakeGenericType(holdType);
 
                 var block = Expression.Block(statements);
 
@@ -204,7 +206,7 @@ namespace Cesil
                     var name = member.Name;
                     var required = member.IsRequired ? MemberRequired.Yes : MemberRequired.No;
 
-                    var field = holdType.GetFieldNonNull("Hold_" + name, BindingFlagsConstants.InternalInstance);
+                    var field = holdType.GetFieldNonNull("Hold_" + name, InternalInstance);
                     var parseAndHold = RowConstructor.MakeParseAndSetDelegate(holdType, csp.Member.Parser, Setter.ForField(field), default);
 
                     parseAndHoldBuilder.Add(csp.Index, (name, required, parseAndHold));

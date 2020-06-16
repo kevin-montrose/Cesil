@@ -496,7 +496,7 @@ namespace Cesil
         /// </summary>
         public OptionsBuilder WithDynamicRowDisposal(DynamicRowDisposal dynamicRowDisposal)
         {
-            if (!Enum.IsDefined(typeof(DynamicRowDisposal), dynamicRowDisposal))
+            if (!Enum.IsDefined(Types.DynamicRowDisposal, dynamicRowDisposal))
             {
                 return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(DynamicRowDisposal)} value: {dynamicRowDisposal}", nameof(dynamicRowDisposal));
             }

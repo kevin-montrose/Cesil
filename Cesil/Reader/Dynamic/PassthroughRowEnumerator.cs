@@ -5,7 +5,7 @@ using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
-    internal sealed class PassthroughRowEnumerator : IEnumerator<object>, ITestableDisposable
+    internal sealed class PassthroughRowEnumerator : IEnumerator<object?>, ITestableDisposable
     {
         // this checks that reusing the underlying DynamicRow will
         //   cause a generation check failure
@@ -13,8 +13,8 @@ namespace Cesil
 
         public bool IsDisposed => Enumerator.IsDisposed;
 
-        private object _Current;
-        public object Current
+        private object? _Current;
+        public object? Current
         {
             get
             {
@@ -27,7 +27,7 @@ namespace Cesil
 
         internal PassthroughRowEnumerator(DynamicRow row)
         {
-            _Current = default!;
+            _Current = null;
             Enumerator = new DynamicRow.DynamicColumnEnumerator(row);
         }
 
@@ -37,7 +37,7 @@ namespace Cesil
 
             if (!Enumerator.MoveNext())
             {
-                _Current = default!;
+                _Current = null;
                 return false;
             }
 
@@ -46,7 +46,7 @@ namespace Cesil
             var val = Enumerator.Row.GetCellAt(col.Index);
             if (val == null)
             {
-                _Current = default!;
+                _Current = null;
             }
             else
             {
@@ -60,7 +60,7 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
-            _Current = default!;
+            _Current = null;
             Enumerator.Reset();
         }
 

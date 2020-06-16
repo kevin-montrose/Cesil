@@ -401,7 +401,9 @@ checkSize:
 
             dynamic? toCast = GetByIdentifier(in index);
 
+#pragma warning disable CES0005 // T is generic, so we can't annotate it (could be a class or struct) but we want dynamic to try and convert regardless
             return (T)toCast!;
+#pragma warning restore CES0005
         }
 
         internal object? GetByIdentifier(in ColumnIdentifier index)

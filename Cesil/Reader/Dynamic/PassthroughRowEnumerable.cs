@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Cesil
 {
-    internal sealed class PassthroughRowEnumerable : IEnumerable<object>
+    internal sealed class PassthroughRowEnumerable : IEnumerable<object?>
     {
         private readonly uint Generation;
         private readonly DynamicRow Row;
@@ -14,7 +14,7 @@ namespace Cesil
             Generation = Row.Generation;
         }
 
-        public IEnumerator<object> GetEnumerator()
+        public IEnumerator<object?> GetEnumerator()
         {
             Row.AssertGenerationMatch(Generation);
 

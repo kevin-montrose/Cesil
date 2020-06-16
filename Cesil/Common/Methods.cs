@@ -27,9 +27,9 @@ namespace Cesil
 
         internal static class Throw
         {
-            internal static readonly MethodInfo InvalidOperationException = Types.ThrowType.GetMethodNonNull(nameof(Cesil.Throw.InvalidOperationException), InternalStatic);
-            internal static readonly MethodInfo InvalidOperationExceptionOfObject = Types.ThrowType.GetMethodNonNull(nameof(Cesil.Throw.InvalidOperationException), InternalStatic).MakeGenericMethod(Types.Object);
-            internal static readonly MethodInfo ParseFailed = Types.ThrowType.GetMethodNonNull(nameof(Cesil.Throw.ParseFailed), InternalStatic);
+            internal static readonly MethodInfo InvalidOperationException = Types.Throw.GetMethodNonNull(nameof(Cesil.Throw.InvalidOperationException), InternalStatic);
+            internal static readonly MethodInfo InvalidOperationExceptionOfObject = Types.Throw.GetMethodNonNull(nameof(Cesil.Throw.InvalidOperationException), InternalStatic).MakeGenericMethod(Types.Object);
+            internal static readonly MethodInfo ParseFailed = Types.Throw.GetMethodNonNull(nameof(Cesil.Throw.ParseFailed), InternalStatic);
         }
 
         internal static class DynamicRow

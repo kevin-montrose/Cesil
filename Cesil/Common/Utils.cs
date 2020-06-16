@@ -202,7 +202,9 @@ tryAgain:
             if (aNull && bNull) return true;
             if (aNull || bNull) return false;
 
+#pragma warning disable CES0005 // we've actually checked that a is non-null, but in a way the compiler can't follow
             return a!.Equals(b);
+#pragma warning restore CES0005
         }
 
         internal static IMemoryOwner<T> RentMustIncrease<T>(MemoryPool<T> pool, int newSize, int oldSize)
@@ -426,7 +428,7 @@ tryAgain:
                         else
                         {
                             // todo: figure out how to test this, and implement? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/2)
-                            throw new NotImplementedException();
+                            return Throw.NotImplementedException<int>("BigEndian support has not been implemented; see https://github.com/kevin-montrose/Cesil/issues/2");
                         }
                     }
 
@@ -468,7 +470,7 @@ tryAgain:
                         else
                         {
                             // todo: figure out how to test this, and implement? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/2)
-                            throw new NotImplementedException();
+                            return Throw.NotImplementedException<int>("BigEndian support has not been implemented; see https://github.com/kevin-montrose/Cesil/issues/2");
                         }
                     }
 

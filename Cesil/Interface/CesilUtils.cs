@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+using static Cesil.AwaitHelper;
+
 namespace Cesil
 {
     /// <summary>
@@ -239,7 +241,7 @@ namespace Cesil
             {
                 await using (var e = csv.EnumerateAllAsync().GetAsyncEnumerator(cancellationToken))
                 {
-                    while (await e.MoveNextAsync())
+                    while (await ConfigureCancellableAwait(csv, e.MoveNextAsync(), cancellationToken))
                     {
                         yield return e.Current;
                     }
@@ -649,7 +651,7 @@ namespace Cesil
         {
             await using (var csv = c.CreateAsyncWriter(writer, context))
             {
-                await csv.WriteAllAsync(rows, cancellationToken);
+                await ConfigureCancellableAwait(csv, csv.WriteAllAsync(rows, cancellationToken), cancellationToken);
             }
         }
 
@@ -744,7 +746,10 @@ namespace Cesil
                 using (var stream = File.Create(path))
                 using (var writer = new StreamWriter(stream, Encoding.UTF8))
                 {
-                    await WriteAsync(rows, writer, options, context, cancellationToken);
+#pragma warning disable CES0002 // WriteAsync is going to immediately check cancellation, and actually has an ITestableCancellationProvider to work with
+                                //   so don't bother wrapping this one too
+                    await WriteAsync(rows, writer, options, context, cancellationToken).ConfigureAwait(false);
+#pragma warning restore CES0002
                 }
             }
         }
@@ -782,7 +787,10 @@ namespace Cesil
                 using (var stream = File.Create(path))
                 using (var writer = new StreamWriter(stream, Encoding.UTF8))
                 {
-                    await WriteDynamicAsync(rows, writer, options, context, cancellationToken);
+#pragma warning disable CES0002 // WriteDynamicAsync is going to immediately check cancellation, and actually has an ITestableCancellationProvider to work with
+                                //   so don't bother wrapping this one too
+                    await WriteDynamicAsync(rows, writer, options, context, cancellationToken).ConfigureAwait(false);
+#pragma warning restore CES0002
                 }
             }
         }
@@ -815,8 +823,11 @@ namespace Cesil
             {
                 using (var writer = new StringWriter())
                 {
-                    await WriteAsync(rows, writer, options, context, cancellationToken);
+#pragma warning disable CES0002 // WriteAsync is going to immediately check cancellation, and actually has an ITestableCancellationProvider to work with
+                                //   so don't bother wrapping this one too
+                    await WriteAsync(rows, writer, options, context, cancellationToken).ConfigureAwait(false);
                     return writer.ToString();
+#pragma warning restore CES0002
                 }
             }
         }
@@ -849,8 +860,11 @@ namespace Cesil
             {
                 using (var writer = new StringWriter())
                 {
-                    await WriteDynamicAsync(rows, writer, options, context, cancellationToken);
+#pragma warning disable CES0002 // WriteDynamicAsync is going to immediately check cancellation, and actually has an ITestableCancellationProvider to work with
+                                //   so don't bother wrapping this one too
+                    await WriteDynamicAsync(rows, writer, options, context, cancellationToken).ConfigureAwait(false);
                     return writer.ToString();
+#pragma warning restore CES0002
                 }
             }
         }
@@ -883,8 +897,11 @@ namespace Cesil
             {
                 using (var writer = new StringWriter())
                 {
-                    await WriteAsync(rows, writer, options, context, cancellationToken);
+#pragma warning disable CES0002 // WriteAsync is going to immediately check cancellation, and actually has an ITestableCancellationProvider to work with
+                                //   so don't bother wrapping this one too
+                    await WriteAsync(rows, writer, options, context, cancellationToken).ConfigureAwait(false);
                     return writer.ToString();
+#pragma warning restore CES0002
                 }
             }
         }
@@ -917,8 +934,11 @@ namespace Cesil
             {
                 using (var writer = new StringWriter())
                 {
-                    await WriteDynamicAsync(rows, writer, options, context, cancellationToken);
+#pragma warning disable CES0002 // WriteDynamicAsync is going to immediately check cancellation, and actually has an ITestableCancellationProvider to work with
+                                //   so don't bother wrapping this one too
+                    await WriteDynamicAsync(rows, writer, options, context, cancellationToken).ConfigureAwait(false);
                     return writer.ToString();
+#pragma warning restore CES0002
                 }
             }
         }

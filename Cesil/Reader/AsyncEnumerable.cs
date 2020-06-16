@@ -34,7 +34,9 @@ namespace Cesil
         internal AsyncEnumerable(IAsyncReader<T> reader)
         {
             Reader = reader;
+#pragma warning disable CES0005 // T is generic, and we'll overwrite it before it's used, so default! is needed
             _Current = default!;
+#pragma warning restore CES0005
             Token = CancellationToken.None;
         }
 
