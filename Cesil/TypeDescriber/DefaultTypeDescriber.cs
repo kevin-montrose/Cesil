@@ -1087,7 +1087,7 @@ endLoop:
         /// 
         /// Override to customize behavior.
         /// </summary>
-        protected bool ShouldIncludeCell(string name, in WriteContext context, dynamic row)
+        protected virtual bool ShouldIncludeCell(string name, in WriteContext context, dynamic row)
         => true;
 
         /// <summary>
@@ -1096,7 +1096,7 @@ endLoop:
         /// Override to customize behavior.
         /// </summary>
         [return: NullableExposed("May not be known, null is cleanest way to handle it")]
-        protected Formatter? GetFormatter(TypeInfo forType, string name, in WriteContext context, dynamic row)
+        protected virtual Formatter? GetFormatter(TypeInfo forType, string name, in WriteContext context, dynamic row)
         => Formatter.GetDefault(forType);
 
         /// <summary>
