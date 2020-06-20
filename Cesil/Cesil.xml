@@ -1783,7 +1783,6 @@
              
             we end up with:
              - count 3
-             - 
             
             
              0: 0000, 0003,     // 3 strings (each int takes 2 chars)
@@ -1799,7 +1798,43 @@
             
             The length of each string can be determined from the difference between each index, with a special case for the LAST string
               whose length can be calculated from the end of the memory.
+            </summary>
+        </member>
+        <member name="T:Cesil.NameLookup.OrdererNames">
+            <summary>
+            In order string-int key values
             
+            Data is stored like:
+             - (index of string) (value for string)
+             - (inded of string) (value for string)
+             - ...
+             - (length of string)
+             - (string data)
+             - (value for string)
+             - (length of string)
+             - (string data)
+             - (value for string)
+            
+            So, it looks like:
+             - index of string 0
+             - index of string 1
+             - index of string 2
+             - ...
+             - (length and string and value data)
+             - (length and string and value data)
+             - (length and string and value data)
+            
+            The indexes at the front are stored sorted, but everything else isn't.  That means
+              that whenever a value is inserted, the indexes at the front may move around
+              but once written none of the string data is ever moved.
+            
+            Strings are referred to by absolute indexes.  Offsets would be more efficient
+              if we resized the array, but since we pre-allocate the correct size
+              it's just extra math.
+            
+            The variable length data being at the end and _not_ being in order
+              let's the ordering algorithm swap values just by moving fixed size
+              chunks around, never having to move string data.
             </summary>
         </member>
         <member name="T:Cesil.RowConstructor">

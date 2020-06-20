@@ -130,7 +130,7 @@ namespace Cesil.Tests
 
             void IDelegateCache.AddDelegate<T, V>(T key, V cached) { }
 
-            bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)]out V del)
+            bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)] out V del)
             {
                 del = default;
                 return false;
@@ -277,10 +277,48 @@ namespace Cesil.Tests
                     //   it implements IEnumerable as a necessary part of being
                     //   an ICollection
                 }
+                else if (t == typeof(NameLookup.OrdererNames))
+                {
+                    IDisposable_OrdererNames();
+                }
                 else
                 {
                     throw new XunitException($"No test configured for .Dispose() on {t.Name}");
                 }
+            }
+
+            void IDisposable_OrdererNames()
+            {
+                // double dispose does not error
+                {
+                    var a = MakeOrdererNames();
+                    a.Dispose();
+                    a.Dispose();
+                }
+
+                // assert throws after dispose
+                {
+                    var a = MakeOrdererNames();
+                    a.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => ((ITestableDisposable)a).AssertNotDisposed());
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    using (var a = MakeOrdererNames())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(a);
+                    }
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make an adapter that's "good to go"
+                static NameLookup.OrdererNames MakeOrdererNames()
+                => NameLookup.OrdererNames.Create(Array.Empty<string>(), MemoryPool<char>.Shared);
             }
 
             void IDisposable_PassthroughRowEnumerator()

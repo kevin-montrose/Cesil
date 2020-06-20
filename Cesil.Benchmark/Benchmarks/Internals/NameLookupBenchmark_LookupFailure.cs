@@ -16,8 +16,8 @@ namespace Cesil.Benchmark
 
         public IEnumerable<string> NameSets => new[] { nameof(WideRow), nameof(NarrowRow<object>), "CommonEnglish" };
 
-        private List<string> Names;
-        private List<string> MissingNames;
+        private string[] Names;
+        private string[] MissingNames;
 
         private Dictionary<string, int> DictionaryLookup;
         private string[] ArrayLookup;
@@ -28,12 +28,12 @@ namespace Cesil.Benchmark
         public void Initialize()
         {
             var rand = new Random(2020_05_22);
-            Names = Benchmark.NameSet.GetNameSet(NameSet);
+            Names = Benchmark.NameSet.GetNameSet(NameSet).ToArray();
 
-            MissingNames = new List<string>();
-            while (MissingNames.Count < Names.Count)
+            var missingNamesRaw = new List<string>();
+            while (missingNamesRaw.Count < Names.Length)
             {
-                var baseName = Names[rand.Next(Names.Count)];
+                var baseName = Names[rand.Next(Names.Length)];
                 string newName;
 
                 switch (rand.Next(3))
@@ -61,8 +61,9 @@ namespace Cesil.Benchmark
 
                 if (Names.Contains(newName)) continue;
 
-                MissingNames.Add(newName);
+                missingNamesRaw.Add(newName);
             }
+            MissingNames = missingNamesRaw.ToArray();
 
             InitializeClass(nameof(Dictionary<string, int>));
             InitializeClass(nameof(System.Array));
@@ -121,7 +122,7 @@ namespace Cesil.Benchmark
             // for curiousity, what does it look like when all the keys aren't present?
             for (var iter = 0; iter < ITERS; iter++)
             {
-                for (var i = 0; i < MissingNames.Count; i++)
+                for (var i = 0; i < MissingNames.Length; i++)
                 {
                     var name = MissingNames[i];
                     DictionaryLookup.TryGetValue(name, out _);
@@ -132,7 +133,7 @@ namespace Cesil.Benchmark
         private Dictionary<string, int> DictionaryImpl()
         {
             var ret = new Dictionary<string, int>();
-            for (var i = 0; i < Names.Count; i++)
+            for (var i = 0; i < Names.Length; i++)
             {
                 ret[Names[i]] = i;
             }
@@ -147,7 +148,7 @@ namespace Cesil.Benchmark
             //   the expected case for NameLookup
             for (var iter = 0; iter < ITERS; iter++)
             {
-                for (var i = 0; i < MissingNames.Count; i++)
+                for (var i = 0; i < MissingNames.Length; i++)
                 {
                     var name = MissingNames[i];
                     System.Array.IndexOf(ArrayLookup, name);
@@ -167,7 +168,7 @@ namespace Cesil.Benchmark
             //   the expected case for NameLookup
             for (var iter = 0; iter < ITERS; iter++)
             {
-                for (var i = 0; i < MissingNames.Count; i++)
+                for (var i = 0; i < MissingNames.Length; i++)
                 {
                     var name = MissingNames[i];
                     BinarySearch.TryLookup(name, out _);
@@ -177,8 +178,7 @@ namespace Cesil.Benchmark
 
         private NameLookup NameLookup_BinarySearchImpl()
         {
-            var withIx = Names.Select((n, ix) => (Name: n, Index: ix));
-            var inOrder = withIx.OrderBy(o => o.Name, StringComparer.Ordinal);
+            using var inOrder = NameLookup.OrdererNames.Create(Names, MemoryPool<char>.Shared);
 
             if (!NameLookup.TryCreateBinarySearch(inOrder, MemoryPool<char>.Shared, out var owner, out var mem))
             {
@@ -196,7 +196,7 @@ namespace Cesil.Benchmark
             //   the expected case for NameLookup
             for (var iter = 0; iter < ITERS; iter++)
             {
-                for (var i = 0; i < MissingNames.Count; i++)
+                for (var i = 0; i < MissingNames.Length; i++)
                 {
                     var name = MissingNames[i];
                     AdaptiveRadixTrie.TryLookup(name, out _);
@@ -206,8 +206,7 @@ namespace Cesil.Benchmark
 
         private NameLookup NameLookup_AdaptiveRadixTrieImpl()
         {
-            var withIx = Names.Select((n, ix) => (Name: n, Index: ix));
-            var inOrder = withIx.OrderBy(o => o.Name, StringComparer.Ordinal);
+            using var inOrder = NameLookup.OrdererNames.Create(Names, MemoryPool<char>.Shared);
 
             if (!NameLookup.TryCreateAdaptiveRadixTrie(inOrder, MemoryPool<char>.Shared, out var owner, out var mem))
             {
