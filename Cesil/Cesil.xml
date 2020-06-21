@@ -4,6 +4,13 @@
         <name>Cesil</name>
     </assembly>
     <members>
+        <member name="T:Cesil.ExcludeFromCoverageAttribute">
+            <summary>
+            It appears that Coverlet uses _just the name_ to identify attributes,
+              so we can avoid taking a dependency on it and just define this
+              otherwise pointless attribute ourselves.
+            </summary>
+        </member>
         <member name="M:Cesil.BoundConfigurationBase`1.#ctor">
             <summary>
             For some testing scenarios.

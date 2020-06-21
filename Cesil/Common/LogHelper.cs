@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace Cesil
 {
     // todo: test that all non-private members of LogHelper are conditional?
 
     // use this pattern so debug statements can be disabled based on inner consts
+    [ExcludeFromCoverage("Conditionally enabled logging, no need for code coverage")]
     internal static class LogHelper
     {
         private const string DEBUG_SYMBOL = "DEBUG";

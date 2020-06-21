@@ -21,7 +21,7 @@ namespace Cesil
         private int NameLookupReferenceCount;
         private NameLookup NameLookup;
 
-        private ConcurrentDictionary<object, Delegate> DelegateCache;
+        private readonly ConcurrentDictionary<object, Delegate> DelegateCache;
 
         NameLookup IDynamicRowOwner.AcquireNameLookup()
         {

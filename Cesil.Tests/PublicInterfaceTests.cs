@@ -2377,6 +2377,9 @@ namespace Cesil.Tests
 
             new NotEquatableAttribute("shouldn't throw");
             Assert.Throws<ArgumentNullException>(() => new NotEquatableAttribute(null));
+
+            new ExcludeFromCoverageAttribute("shouldn't throw");
+            Assert.Throws<ArgumentNullException>(() => new ExcludeFromCoverageAttribute(null));
         }
     }
 }
