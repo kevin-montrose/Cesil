@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using Xunit;
 
@@ -51,8 +52,8 @@ namespace Cesil.Tests
                 return InstanceProvider.ForDelegate(x);
             }
 
-            public IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext ctx, object row)
-                => TypeDescribers.Default.GetCellsForDynamicRow(in ctx, row);
+            public int GetCellsForDynamicRow(in WriteContext ctx, object row, Span<DynamicCellValue> cells)
+            => TypeDescribers.Default.GetCellsForDynamicRow(in ctx, row, cells);
 
             public Parser GetDynamicCellParserFor(in ReadContext ctx, TypeInfo targetType)
             => TypeDescribers.Default.GetDynamicCellParserFor(in ctx, targetType);

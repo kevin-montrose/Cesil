@@ -237,6 +237,7 @@
               - dynamic rows are disposed when the reader that returns them is disposed
               - whitespace is preserved
               - extra columns are ignored
+              - uses ArrayPool.Shared
             </summary>
         </member>
         <member name="F:Cesil.Options.DynamicDefault">
@@ -256,6 +257,7 @@
               - uses the default read buffer size
               - dynamic rows are disposed when the reader that returns them is disposed
               - extra columns are included, accessible via index
+              - uses ArrayPool.Shared
             </summary>
         </member>
         <member name="P:Cesil.Options.ValueSeparator">
@@ -353,6 +355,12 @@
         <member name="P:Cesil.Options.ExtraColumnTreatment">
             <summary>
             How to handle extra colums encountered when reading a CSV.
+            </summary>
+        </member>
+        <member name="P:Cesil.Options.ArrayPool">
+            <summary>
+            Which ArrayPool to use when buffering DynamicCellValues when
+            writing dynamic rows.
             </summary>
         </member>
         <member name="M:Cesil.Options.CreateBuilder">
@@ -503,6 +511,12 @@
             How to handle extra colums encountered when reading a CSV.
             </summary>
         </member>
+        <member name="P:Cesil.OptionsBuilder.ArrayPool">
+            <summary>
+            Which ArrayPool to use when buffering DynamicCellValues when
+            writing dynamic rows.
+            </summary>
+        </member>
         <member name="M:Cesil.OptionsBuilder.CreateBuilder">
             <summary>
             Create a new, empty, OptionsBuilder.
@@ -569,6 +583,12 @@
         <member name="M:Cesil.OptionsBuilder.WithMemoryPool(System.Buffers.MemoryPool{System.Char})">
             <summary>
             Set the MemoryPool used during reading and writing.
+            </summary>
+        </member>
+        <member name="M:Cesil.OptionsBuilder.WithArrayPool(System.Buffers.ArrayPool{Cesil.DynamicCellValue})">
+            <summary>
+            Set the ArrayPool used for buffering DynamicCellValues when writing
+            dynamic rows.
             </summary>
         </member>
         <member name="M:Cesil.OptionsBuilder.WithCommentCharacter(System.Nullable{System.Char})">
@@ -2237,16 +2257,19 @@
             Override to tweak behavior.
             </summary>
         </member>
-        <member name="M:Cesil.DefaultTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)">
+        <member name="M:Cesil.DefaultTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object,System.Span{Cesil.DynamicCellValue})">
             <summary>
-            Enumerates cells on the given dynamic row.
+            Discovers cells for the given dynamic row.
+            
+            If the span is too small, the needed size is returned and the span
+            is left in an indeterminate state.
             
             Null rows have no cells, but are legal.
             
             Rows created by Cesil have their cells enumerated as strings.
             
             Other dynamic types will have each member enumerated as either their
-              actual type (if a formatter is available) or as a string.
+            actual type (if a formatter is available) or as a string.
             
             Override to tweak behavior.
             </summary>
@@ -2492,11 +2515,16 @@
             Returns null if no DynamicRowConverter could be found.
             </summary>
         </member>
-        <member name="M:Cesil.ITypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)">
+        <member name="M:Cesil.ITypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object,System.Span{Cesil.DynamicCellValue})">
             <summary>
             Called to determine the cells that make up the given dynamic row.
             
-            Used to enumerate cells when serializing dynamically.
+            Returns the number of cells extracted from the row.  If the given span is 
+            too small, its contents are ignored and GetCellsForDynamicRow is called again with one 
+            of at least the indicated size.
+            
+            The content of the given span is undefined, in particular no values are guaranteed
+            to be carried forward between calls.
             </summary>
         </member>
         <member name="T:Cesil.ManualTypeDescriber">
@@ -2560,17 +2588,17 @@
         </member>
         <member name="M:Cesil.ManualTypeDescriber.GetDynamicCellParserFor(Cesil.ReadContext@,System.Reflection.TypeInfo)">
             <summary>
-            Delegates to DefaultTypeDescriber.
+            Operation not supported, raises exception if used.
             </summary>
         </member>
         <member name="M:Cesil.ManualTypeDescriber.GetDynamicRowConverter(Cesil.ReadContext@,System.Collections.Generic.IEnumerable{Cesil.ColumnIdentifier},System.Reflection.TypeInfo)">
             <summary>
-            Delegates to DefaultTypeDescriber.
+            Operation not supported, raises exception if used.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)">
+        <member name="M:Cesil.ManualTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object,System.Span{Cesil.DynamicCellValue})">
             <summary>
-            Delegates to DefaultTypeDescriber.
+            Operation not supported, raises exception if used.
             </summary>
         </member>
         <member name="M:Cesil.ManualTypeDescriber.Equals(System.Object)">
@@ -3159,7 +3187,7 @@
             Delegates to TypeDescriber.
             </summary>
         </member>
-        <member name="M:Cesil.SurrogateTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)">
+        <member name="M:Cesil.SurrogateTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object,System.Span{Cesil.DynamicCellValue})">
             <summary>
             Delegates to TypeDescriber.
             </summary>

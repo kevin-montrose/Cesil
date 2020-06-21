@@ -239,13 +239,15 @@ namespace Cesil.Tests
                 // leaks
                 {
                     var leakDetector = new TrackedMemoryPool<char>();
-                    var leakDetectorConfig = bindConfig(Options.CreateBuilder(opts).WithMemoryPool(leakDetector).ToOptions());
+                    var arrLeakDetector = new TrackedArrayPool<DynamicCellValue>();
+                    var leakDetectorConfig = bindConfig(Options.CreateBuilder(opts).WithMemoryPool(leakDetector).WithArrayPool(arrLeakDetector).ToOptions());
 
                     var runCount = 0;
                     run(leakDetectorConfig, str => { runCount++; return maker(str); });
 
                     Assert.Equal(expectedRuns, runCount);
                     Assert.Equal(0, leakDetector.OutstandingRentals);
+                    Assert.Equal(0, arrLeakDetector.OutstandingRentals);
                 }
             }
         }
@@ -447,7 +449,8 @@ namespace Cesil.Tests
                 // leak detection
                 {
                     var leakDetector = new TrackedMemoryPool<char>();
-                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).ToOptions());
+                    var arrLeakDetector = new TrackedArrayPool<DynamicCellValue>();
+                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).WithArrayPool(arrLeakDetector).ToOptions());
 
                     int cancelPoints;
                     {
@@ -455,6 +458,7 @@ namespace Cesil.Tests
                         await run(wrappedConfig, str => { return readerMaker(str); });
 
                         Assert.Equal(0, leakDetector.OutstandingRentals);
+                        Assert.Equal(0, arrLeakDetector.OutstandingRentals);
 
                         cancelPoints = wrappedConfig.CancelCounter - 1;
                     }
@@ -614,7 +618,8 @@ namespace Cesil.Tests
                 //run the test once, but look for leaks
                 {
                     var leakDetector = new TrackedMemoryPool<char>();
-                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).ToOptions());
+                    var arrLeakDetector = new TrackedArrayPool<DynamicCellValue>();
+                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).WithArrayPool(arrLeakDetector).ToOptions());
 
                     int runCount = 0;
                     await run(leakDetectorConfig, str => { runCount++; return readerMaker(str); });
@@ -623,6 +628,7 @@ namespace Cesil.Tests
                         Assert.Equal(1, runCount);
                     }
                     Assert.Equal(0, leakDetector.OutstandingRentals);
+                    Assert.Equal(0, arrLeakDetector.OutstandingRentals);
                 }
             }
 
@@ -667,7 +673,8 @@ namespace Cesil.Tests
                 while (true)
                 {
                     var leakDetector = new TrackedMemoryPool<char>();
-                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).ToOptions());
+                    var arrLeakDetector = new TrackedArrayPool<DynamicCellValue>();
+                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).WithArrayPool(arrLeakDetector).ToOptions());
 
                     var wrappedConfig = new AsyncCountingAndForcingConfig<T>(leakDetectorConfig);
                     wrappedConfig.GoAsyncAfter = forceUpTo;
@@ -679,6 +686,7 @@ namespace Cesil.Tests
                         Assert.Equal(1, runCount);
                     }
                     Assert.Equal(0, leakDetector.OutstandingRentals);
+                    Assert.Equal(0, arrLeakDetector.OutstandingRentals);
 
                     if (wrappedConfig.AsyncCounter >= forceUpTo)
                     {
@@ -841,7 +849,8 @@ namespace Cesil.Tests
                 (writer, getter) = maker();
                 {
                     var leakDetector = new TrackedMemoryPool<char>();
-                    var leakConfig = bindConfig(Options.CreateBuilder(baseOptions).WithMemoryPool(leakDetector).ToOptions());
+                    var arrLeakDetector = new TrackedArrayPool<DynamicCellValue>();
+                    var leakConfig = bindConfig(Options.CreateBuilder(baseOptions).WithMemoryPool(leakDetector).WithArrayPool(arrLeakDetector).ToOptions());
 
                     var gotWriter = 0;
                     var gotString = 0;
@@ -850,13 +859,15 @@ namespace Cesil.Tests
                     Assert.Equal(1, gotWriter);
                     Assert.Equal(1, gotString);
                     Assert.Equal(0, leakDetector.OutstandingRentals);
+                    Assert.Equal(0, arrLeakDetector.OutstandingRentals);
                 }
 
                 // no buffer, leaks
                 (writer, getter) = maker();
                 {
                     var leakDetector = new TrackedMemoryPool<char>();
-                    var leakConfig = bindConfig(Options.CreateBuilder(baseOptions).WithMemoryPool(leakDetector).WithWriteBufferSizeHint(0).ToOptions());
+                    var arrLeakDetector = new TrackedArrayPool<DynamicCellValue>();
+                    var leakConfig = bindConfig(Options.CreateBuilder(baseOptions).WithMemoryPool(leakDetector).WithArrayPool(arrLeakDetector).WithWriteBufferSizeHint(0).ToOptions());
 
                     var gotWriter = 0;
                     var gotString = 0;
@@ -867,6 +878,7 @@ namespace Cesil.Tests
                     // you'd think we'd expect NO rentals, but there are cases where we _have_ to buffer
                     //       so just deal with it
                     Assert.Equal(0, leakDetector.OutstandingRentals);
+                    Assert.Equal(0, arrLeakDetector.OutstandingRentals);
                 }
             }
         }
@@ -1061,7 +1073,8 @@ namespace Cesil.Tests
                 // leaks
                 {
                     var leakDetector = new TrackedMemoryPool<char>();
-                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).ToOptions());
+                    var arrLeakDetector = new TrackedArrayPool<DynamicCellValue>();
+                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).WithArrayPool(arrLeakDetector).ToOptions());
 
                     int cancelPoints;
                     {
@@ -1075,6 +1088,7 @@ namespace Cesil.Tests
                     }
 
                     Assert.Equal(0, leakDetector.OutstandingRentals);
+                    Assert.Equal(0, arrLeakDetector.OutstandingRentals);
 
                     // walk each cancellation point
                     var forceUpTo = 0;
@@ -1175,7 +1189,8 @@ namespace Cesil.Tests
                 // run the test once, but look for leaks
                 {
                     var leakDetector = new TrackedMemoryPool<char>();
-                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).ToOptions());
+                    var arrLeakDetector = new TrackedArrayPool<DynamicCellValue>();
+                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).WithArrayPool(arrLeakDetector).ToOptions());
 
                     int writerCount = 0;
                     int stringCount = 0;
@@ -1189,6 +1204,7 @@ namespace Cesil.Tests
                     Assert.Equal(1, stringCount);
 
                     Assert.Equal(0, leakDetector.OutstandingRentals);
+                    Assert.Equal(0, arrLeakDetector.OutstandingRentals);
                 }
             }
 
@@ -1235,7 +1251,8 @@ namespace Cesil.Tests
                 while (true)
                 {
                     var leakDetector = new TrackedMemoryPool<char>();
-                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).ToOptions());
+                    var arrLeakDetector = new TrackedArrayPool<DynamicCellValue>();
+                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).WithArrayPool(arrLeakDetector).ToOptions());
 
                     var wrappedConfig = new AsyncCountingAndForcingConfig<T>(leakDetectorConfig);
                     wrappedConfig.GoAsyncAfter = forceUpTo;
@@ -1252,6 +1269,7 @@ namespace Cesil.Tests
                     Assert.Equal(1, stringCount);
 
                     Assert.Equal(0, leakDetector.OutstandingRentals);
+                    Assert.Equal(0, arrLeakDetector.OutstandingRentals);
 
                     if (wrappedConfig.AsyncCounter >= forceUpTo)
                     {

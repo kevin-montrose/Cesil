@@ -2003,6 +2003,8 @@ namespace Cesil.Tests
                     [typeof(DynamicRowConverter).GetTypeInfo()] = new[] { "rowConverter", "fallbackConverter" },
                     [typeof(SerializableMember).GetTypeInfo()] = new[] { "serializableMember" },
                     [typeof(DeserializableMember).GetTypeInfo()] = new[] { "deserializableMember" },
+                    [typeof(Span<DynamicCellValue>).GetTypeInfo()] = new[] { "cells" },
+                    [typeof(ArrayPool<DynamicCellValue>).GetTypeInfo()] = new[] { "arrayPool" },
 
                     // delegates
                     [typeof(FormatterDelegate<>).GetTypeInfo()] = new[] { "del" },
@@ -2386,7 +2388,7 @@ namespace Cesil.Tests
         public void LogHelperConditionals()
         {
             var logHelper = typeof(LogHelper).GetTypeInfo();
-            foreach(var mtd in logHelper.GetMethods(BindingFlagsConstants.All))
+            foreach (var mtd in logHelper.GetMethods(BindingFlagsConstants.All))
             {
                 // check public or internal methods that are declared by LogHelper
                 var check = mtd.DeclaringType.GetTypeInfo() == logHelper && (mtd.IsAssembly || mtd.IsPublic);

@@ -567,9 +567,9 @@ handleMethod:
         /// <summary>
         /// Delegates to TypeDescriber.
         /// </summary>
-        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
-        public IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext context, object row)
-        => TypeDescriber.GetCellsForDynamicRow(in context, row);
+        [return: IntentionallyExposedPrimitive("Count, int is the best option")]
+        public int GetCellsForDynamicRow(in WriteContext context, object row, Span<DynamicCellValue> cells)
+        => TypeDescriber.GetCellsForDynamicRow(in context, row, cells);
 
         // operators
 
