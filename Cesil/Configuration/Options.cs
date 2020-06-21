@@ -30,6 +30,7 @@ namespace Cesil
         ///   - dynamic rows are disposed when the reader that returns them is disposed
         ///   - whitespace is preserved
         ///   - extra columns are ignored
+        ///   - uses ArrayPool.Shared
         /// </summary>
         public static readonly Options Default =
             CreateBuilder()
@@ -48,6 +49,7 @@ namespace Cesil
                 .WithDynamicRowDisposal(DynamicRowDisposal.OnReaderDispose)
                 .WithWhitespaceTreatment(WhitespaceTreatments.Preserve)
                 .WithExtraColumnTreatment(ExtraColumnTreatment.Ignore)
+                .WithArrayPool(ArrayPool<DynamicCellValue>.Shared)
                 .ToOptions();
 
         /// <summary>
@@ -66,6 +68,7 @@ namespace Cesil
         ///   - uses the default read buffer size
         ///   - dynamic rows are disposed when the reader that returns them is disposed
         ///   - extra columns are included, accessible via index
+        ///   - uses ArrayPool.Shared
         /// </summary>
         public static readonly Options DynamicDefault =
             CreateBuilder()
@@ -84,6 +87,7 @@ namespace Cesil
                 .WithDynamicRowDisposal(DynamicRowDisposal.OnReaderDispose)
                 .WithWhitespaceTreatment(WhitespaceTreatments.Preserve)
                 .WithExtraColumnTreatment(ExtraColumnTreatment.IncludeDynamic)
+                .WithArrayPool(ArrayPool<DynamicCellValue>.Shared)
                 .ToOptions();
 
         /// <summary>
@@ -170,6 +174,11 @@ namespace Cesil
         /// How to handle extra colums encountered when reading a CSV.
         /// </summary>
         public ExtraColumnTreatment ExtraColumnTreatment { get; private set; }
+        /// <summary>
+        /// Which ArrayPool to use when buffering DynamicCellValues when
+        /// writing dynamic rows.
+        /// </summary>
+        public ArrayPool<DynamicCellValue> ArrayPool { get; private set; }
 
         internal Options(OptionsBuilder copy)
         {
@@ -188,6 +197,7 @@ namespace Cesil
             DynamicRowDisposal = copy.DynamicRowDisposal;
             WhitespaceTreatment = copy.WhitespaceTreatment;
             ExtraColumnTreatment = copy.ExtraColumnTreatment;
+            ArrayPool = Utils.NonNull(copy.ArrayPool);
         }
 
         /// <summary>
@@ -238,7 +248,8 @@ namespace Cesil
                 options.WriteHeader == WriteHeader &&
                 options.WriteTrailingRowEnding == WriteTrailingRowEnding &&
                 options.WhitespaceTreatment == WhitespaceTreatment &&
-                options.ExtraColumnTreatment == ExtraColumnTreatment;
+                options.ExtraColumnTreatment == ExtraColumnTreatment &
+                options.ArrayPool == ArrayPool;
         }
 
         /// <summary>
@@ -246,23 +257,27 @@ namespace Cesil
         /// </summary>
         public override int GetHashCode()
         => HashCode.Combine(
-            CommentCharacter,
-            DynamicRowDisposal,
-            EscapedValueEscapeCharacter,
-            EscapedValueStartAndEnd,
-            MemoryPool,
-            ReadBufferSizeHint,
-            ReadHeader,
+            ArrayPool,
             HashCode.Combine(
-                RowEnding,
-                TypeDescriber,
-                ValueSeparator,
-                WriteBufferSizeHint,
-                WriteHeader,
-                WriteTrailingRowEnding,
-                WhitespaceTreatment,
-                ExtraColumnTreatment
-            ));
+                CommentCharacter,
+                DynamicRowDisposal,
+                EscapedValueEscapeCharacter,
+                EscapedValueStartAndEnd,
+                MemoryPool,
+                ReadBufferSizeHint,
+                ReadHeader,
+                HashCode.Combine(
+                    RowEnding,
+                    TypeDescriber,
+                    ValueSeparator,
+                    WriteBufferSizeHint,
+                    WriteHeader,
+                    WriteTrailingRowEnding,
+                    WhitespaceTreatment,
+                    ExtraColumnTreatment
+                )
+            )
+           );
 
         /// <summary>
         /// Returns a representation of this Options object.
@@ -288,6 +303,7 @@ namespace Cesil
             ret.Append($", {nameof(WriteTrailingRowEnding)}={WriteTrailingRowEnding}");
             ret.Append($", {nameof(WhitespaceTreatment)}={WhitespaceTreatment}");
             ret.Append($", {nameof(ExtraColumnTreatment)}={ExtraColumnTreatment}");
+            ret.Append($", {nameof(ArrayPool)}={ArrayPool}");
 
             return ret.ToString();
         }

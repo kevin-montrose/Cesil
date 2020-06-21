@@ -17,6 +17,7 @@ namespace Cesil
         private const bool STATE_TRANSITION = false;
         private const bool TRACKED_MEMORY_OWNER = false;
         private const bool NAME_LOOKUP = false;
+        private const bool TRACKED_ARRAY_POOL = false;
 
         // NameLookup: log events related
 
@@ -89,6 +90,29 @@ namespace Cesil
 
         [Conditional(TRACKED_MEMORY_OWNER ? DEBUG_SYMBOL : NEVER_SYMBOL)]
         internal static void TrackedMemoryOwner_Freed(int id, [CallerMemberName] string? caller = null)
+        {
+            caller = SetCaller(caller);
+            Debug.WriteLine($"\t{caller}: Freed {id}");
+        }
+
+        // TrackedArrayPool (defined in Cesil.Tests) log events
+
+        [Conditional(TRACKED_ARRAY_POOL ? DEBUG_SYMBOL : NEVER_SYMBOL)]
+        internal static void TrackedArrayPool_New(int poolId, [CallerMemberName] string? caller = null)
+        {
+            caller = SetCaller(caller);
+            Debug.WriteLine($"{caller}: Initializing PoolId={poolId}");
+        }
+
+        [Conditional(TRACKED_ARRAY_POOL ? DEBUG_SYMBOL : NEVER_SYMBOL)]
+        internal static void TrackedArrayPool_Rent(int id, [CallerMemberName] string? caller = null)
+        {
+            caller = SetCaller(caller);
+            Debug.WriteLine($"\t{caller}: Rented {id}");
+        }
+
+        [Conditional(TRACKED_ARRAY_POOL ? DEBUG_SYMBOL : NEVER_SYMBOL)]
+        internal static void TrackedArrayPool_Freed(int id, [CallerMemberName] string? caller = null)
         {
             caller = SetCaller(caller);
             Debug.WriteLine($"\t{caller}: Freed {id}");

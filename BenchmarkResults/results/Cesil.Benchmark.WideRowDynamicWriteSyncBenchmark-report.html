@@ -2,7 +2,7 @@
 <html lang='en'>
 <head>
 <meta charset='utf-8' />
-<title>Cesil.Benchmark.WideRowDynamicWriteSyncBenchmark-20200529-051854</title>
+<title>Cesil.Benchmark.WideRowDynamicWriteSyncBenchmark-20200621-184921</title>
 
 <style type="text/css">
 	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
@@ -15,8 +15,8 @@
 <pre><code>
 BenchmarkDotNet=v0.12.1, OS=Windows 8.1 (6.3.9600.0)
 Intel Core i7-4960HQ CPU 2.60GHz (Haswell), 1 CPU, 8 logical and 4 physical cores
-Frequency=2533200 Hz, Resolution=394.7576 ns, Timer=TSC
-.NET Core SDK=3.1.300
+Frequency=2533208 Hz, Resolution=394.7564 ns, Timer=TSC
+.NET Core SDK=3.1.301
   [Host]     : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
   DefaultJob : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
 </code></pre>
@@ -25,16 +25,16 @@ Frequency=2533200 Hz, Resolution=394.7576 ns, Timer=TSC
 <table>
 <thead><tr><th>         Method</th><th>RowSet</th><th>  Mean</th><th>Error</th><th>StdDev</th><th>Median</th><th>Ratio</th><th>RatioSD</th><th>Gen 0</th><th>Gen 1</th><th>Gen 2</th><th>Allocated</th>
 </tr>
-</thead><tbody><tr><td>Static</td><td>DeepRows</td><td>97,817.8 &mu;s</td><td>1,079.95 &mu;s</td><td>2,028.41 &mu;s</td><td>96,989.2 &mu;s</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>2633.8 KB</td>
-</tr><tr><td>Dynamic_Static</td><td>DeepRows</td><td>303,795.0 &mu;s</td><td>4,419.07 &mu;s</td><td>3,917.39 &mu;s</td><td>304,267.3 &mu;s</td><td>3.07</td><td>0.08</td><td>-</td><td>-</td><td>-</td><td>47040.33 KB</td>
-</tr><tr><td>Dynamic_Cesil</td><td>DeepRows</td><td>107,511.5 &mu;s</td><td>747.86 &mu;s</td><td>662.96 &mu;s</td><td>107,551.4 &mu;s</td><td>1.09</td><td>0.03</td><td>200.0000</td><td>-</td><td>-</td><td>24215.5 KB</td>
-</tr><tr><td>Dynamic_ExpandoObject</td><td>DeepRows</td><td>278,998.0 &mu;s</td><td>4,979.03 &mu;s</td><td>4,657.38 &mu;s</td><td>277,308.1 &mu;s</td><td>2.83</td><td>0.09</td><td>-</td><td>-</td><td>-</td><td>40891.57 KB</td>
-</tr><tr><td>Dynamic_Custom</td><td>DeepRows</td><td>615,267.9 &mu;s</td><td>6,410.70 &mu;s</td><td>5,353.23 &mu;s</td><td>614,272.9 &mu;s</td><td>6.21</td><td>0.15</td><td>3000.0000</td><td>-</td><td>-</td><td>235992.04 KB</td>
-</tr><tr><td>Static</td><td>ShallowRows</td><td>103.9 &mu;s</td><td>1.25 &mu;s</td><td>1.16 &mu;s</td><td>103.7 &mu;s</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>5.36 KB</td>
-</tr><tr><td>Dynamic_Static</td><td>ShallowRows</td><td>325.9 &mu;s</td><td>2.43 &mu;s</td><td>2.03 &mu;s</td><td>326.3 &mu;s</td><td>3.14</td><td>0.03</td><td>0.4883</td><td>-</td><td>-</td><td>56.49 KB</td>
-</tr><tr><td>Dynamic_Cesil</td><td>ShallowRows</td><td>111.5 &mu;s</td><td>0.49 &mu;s</td><td>0.41 &mu;s</td><td>111.3 &mu;s</td><td>1.07</td><td>0.01</td><td>0.3662</td><td>-</td><td>-</td><td>30.18 KB</td>
-</tr><tr><td>Dynamic_ExpandoObject</td><td>ShallowRows</td><td>292.2 &mu;s</td><td>5.41 &mu;s</td><td>5.06 &mu;s</td><td>293.8 &mu;s</td><td>2.81</td><td>0.06</td><td>0.4883</td><td>-</td><td>-</td><td>49.6 KB</td>
-</tr><tr><td>Dynamic_Custom</td><td>ShallowRows</td><td>703.2 &mu;s</td><td>4.23 &mu;s</td><td>3.96 &mu;s</td><td>701.5 &mu;s</td><td>6.77</td><td>0.08</td><td>3.9063</td><td>-</td><td>-</td><td>264.2 KB</td>
+</thead><tbody><tr><td>Static</td><td>DeepRows</td><td>112,063.4 &mu;s</td><td>2,124.49 &mu;s</td><td>5,707.31 &mu;s</td><td>109,942.8 &mu;s</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>2633.84 KB</td>
+</tr><tr><td>Dynamic_Static</td><td>DeepRows</td><td>320,771.5 &mu;s</td><td>2,949.30 &mu;s</td><td>2,758.78 &mu;s</td><td>320,087.0 &mu;s</td><td>2.63</td><td>0.14</td><td>-</td><td>-</td><td>-</td><td>37742.12 KB</td>
+</tr><tr><td>Dynamic_Cesil</td><td>DeepRows</td><td>115,116.3 &mu;s</td><td>2,268.49 &mu;s</td><td>3,973.08 &mu;s</td><td>113,445.0 &mu;s</td><td>1.01</td><td>0.06</td><td>200.0000</td><td>-</td><td>-</td><td>14917.39 KB</td>
+</tr><tr><td>Dynamic_ExpandoObject</td><td>DeepRows</td><td>294,474.2 &mu;s</td><td>3,131.04 &mu;s</td><td>2,775.59 &mu;s</td><td>295,677.1 &mu;s</td><td>2.39</td><td>0.10</td><td>-</td><td>-</td><td>-</td><td>31593.77 KB</td>
+</tr><tr><td>Dynamic_Custom</td><td>DeepRows</td><td>688,127.9 &mu;s</td><td>9,330.76 &mu;s</td><td>7,791.61 &mu;s</td><td>686,772.7 &mu;s</td><td>5.55</td><td>0.23</td><td>3000.0000</td><td>-</td><td>-</td><td>226695.64 KB</td>
+</tr><tr><td>Static</td><td>ShallowRows</td><td>112.8 &mu;s</td><td>1.01 &mu;s</td><td>0.89 &mu;s</td><td>112.8 &mu;s</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>5.36 KB</td>
+</tr><tr><td>Dynamic_Static</td><td>ShallowRows</td><td>352.5 &mu;s</td><td>1.36 &mu;s</td><td>1.20 &mu;s</td><td>352.6 &mu;s</td><td>3.12</td><td>0.03</td><td>0.4883</td><td>-</td><td>-</td><td>46.31 KB</td>
+</tr><tr><td>Dynamic_Cesil</td><td>ShallowRows</td><td>116.7 &mu;s</td><td>2.19 &mu;s</td><td>1.94 &mu;s</td><td>115.9 &mu;s</td><td>1.03</td><td>0.02</td><td>0.2441</td><td>-</td><td>-</td><td>19.99 KB</td>
+</tr><tr><td>Dynamic_ExpandoObject</td><td>ShallowRows</td><td>316.4 &mu;s</td><td>2.98 &mu;s</td><td>2.49 &mu;s</td><td>316.6 &mu;s</td><td>2.80</td><td>0.03</td><td>0.4883</td><td>-</td><td>-</td><td>39.42 KB</td>
+</tr><tr><td>Dynamic_Custom</td><td>ShallowRows</td><td>726.3 &mu;s</td><td>7.14 &mu;s</td><td>6.33 &mu;s</td><td>729.0 &mu;s</td><td>6.44</td><td>0.05</td><td>2.9297</td><td>-</td><td>-</td><td>254.11 KB</td>
 </tr></tbody></table>
 </body>
 </html>

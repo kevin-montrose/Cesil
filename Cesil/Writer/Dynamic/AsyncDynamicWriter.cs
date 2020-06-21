@@ -26,7 +26,13 @@ namespace Cesil
 
         private bool HasWrittenComments;
 
-        internal AsyncDynamicWriter(DynamicBoundConfiguration config, IAsyncWriterAdapter inner, object? context) : base(config, inner, context) { }
+        private DynamicCellValue[] CellBuffer;
+
+        internal AsyncDynamicWriter(DynamicBoundConfiguration config, IAsyncWriterAdapter inner, object? context) : base(config, inner, context)
+        {
+            // todo: don't pre-allocate this
+            CellBuffer = config.Options.ArrayPool.Rent(8);
+        }
 
         bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)] out V del)
             where V : class
@@ -78,80 +84,68 @@ namespace Cesil
 
                 var wholeRowContext = WriteContext.DiscoveringCells(Configuration.Options, RowNumber, Context);
 
-                var cellValues = typeDescriber.GetCellsForDynamicRow(in wholeRowContext, row as object);
-                cellValues = ForceInOrder(cellValues);
+                var cellValues = Utils.GetCells(options.ArrayPool, ref CellBuffer, typeDescriber, in wholeRowContext, row as object);
+
+                Utils.ForceInOrder(ColumnNames.Value, ColumnNameSorter, cellValues);
+                var cellValuesInOrderSpan = cellValues.Span;
 
                 var columnNamesValue = ColumnNames.Value;
 
-                var i = 0;
-                var e = cellValues.GetEnumerator();
-                bool disposeE = true;
-                try
+                for (var i = 0; i < cellValuesInOrderSpan.Length; i++)
                 {
-                    while (e.MoveNext())
+                    var cell = cellValuesInOrderSpan[i];
+
+                    var needsSeparator = i != 0;
+
+                    if (needsSeparator)
                     {
-                        var cell = e.Current;
-                        var needsSeparator = i != 0;
-
-                        if (needsSeparator)
+                        var placeValueSepTask = PlaceAllInStagingAsync(valueSeparator, cancellationToken);
+                        if (!placeValueSepTask.IsCompletedSuccessfully(this))
                         {
-                            var placeValueSepTask = PlaceAllInStagingAsync(valueSeparator, cancellationToken);
-                            if (!placeValueSepTask.IsCompletedSuccessfully(this))
-                            {
-                                disposeE = false;
-                                return WriteAsync_ContinueAfterPlaceCharAsync(this, placeValueSepTask, valueSeparator, cell, i, e, cancellationToken);
-                            }
+                            return WriteAsync_ContinueAfterPlaceCharAsync(this, placeValueSepTask, valueSeparator, cell, i, cellValues, cancellationToken);
                         }
+                    }
 
-                        ColumnIdentifier ci;
-                        if (i < columnNamesValue.Length)
-                        {
-                            ci = ColumnIdentifier.CreateInner(i, columnNamesValue[i].Name);
-                        }
-                        else
-                        {
-                            ci = ColumnIdentifier.Create(i);
-                        }
+                    ColumnIdentifier ci;
+                    if (i < columnNamesValue.Length)
+                    {
+                        ci = ColumnIdentifier.CreateInner(i, columnNamesValue[i].Name);
+                    }
+                    else
+                    {
+                        ci = ColumnIdentifier.Create(i);
+                    }
 
-                        var ctx = WriteContext.WritingColumn(Configuration.Options, RowNumber, ci, Context);
+                    var ctx = WriteContext.WritingColumn(Configuration.Options, RowNumber, ci, Context);
 
-                        var formatter = cell.Formatter;
-                        var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
-                        var del = delProvider.Guarantee(this);
+                    var formatter = cell.Formatter;
+                    var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
+                    var del = delProvider.Guarantee(this);
 
-                        var val = cell.Value as object;
-                        if (!del(val, in ctx, Buffer))
-                        {
-                            return Throw.SerializationException<ValueTask>($"Could not write column {ci}, formatter {formatter} returned false");
-                        }
+                    var val = cell.Value as object;
+                    if (!del(val, in ctx, Buffer))
+                    {
+                        return Throw.SerializationException<ValueTask>($"Could not write column {ci}, formatter {formatter} returned false");
+                    }
 
-                        ReadOnlySequence<char> res = default;
-                        if (!Buffer.MakeSequence(ref res))
-                        {
-                            // nothing was written, so just move on
-                            goto end;
-                        }
+                    ReadOnlySequence<char> res = default;
+                    if (!Buffer.MakeSequence(ref res))
+                    {
+                        // nothing was written, so just move on
+                        goto end;
+                    }
 
-                        var writeValueTask = WriteValueAsync(res, cancellationToken);
-                        if (!writeValueTask.IsCompletedSuccessfully(this))
-                        {
-                            disposeE = false;
-                            return WriteAsync_ContinueAfterWriteValueAsync(this, writeValueTask, valueSeparator, i, e, cancellationToken);
-                        }
-                        Buffer.Reset();
+                    var writeValueTask = WriteValueAsync(res, cancellationToken);
+                    if (!writeValueTask.IsCompletedSuccessfully(this))
+                    {
+                        return WriteAsync_ContinueAfterWriteValueAsync(this, writeValueTask, valueSeparator, i, cellValues, cancellationToken);
+                    }
+                    Buffer.Reset();
 
 end:
-                        i++;
-                    }
+                    // no-op for label
+                    { }
                 }
-                finally
-                {
-                    if (disposeE)
-                    {
-                        e.Dispose();
-                    }
-                }
-
                 RowNumber++;
 
                 return default;
@@ -168,16 +162,20 @@ end:
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
 
-                    var wholeRowContext = WriteContext.DiscoveringCells(self.Configuration.Options, self.RowNumber, self.Context);
+                    var options = self.Configuration.Options;
 
-                    var cellValues = typeDescriber.GetCellsForDynamicRow(in wholeRowContext, row as object);
-                    cellValues = self.ForceInOrder(cellValues);
+                    var wholeRowContext = WriteContext.DiscoveringCells(options, self.RowNumber, self.Context);
+
+                    var cellValues = Utils.GetCells(options.ArrayPool, ref self.CellBuffer, typeDescriber, in wholeRowContext, row as object);
+
+                    Utils.ForceInOrder(self.ColumnNames.Value, self.ColumnNameSorter, cellValues);
 
                     var selfColumnNamesValue = self.ColumnNames.Value;
 
-                    var i = 0;
-                    foreach (var cell in cellValues)
+                    for (var i = 0; i < cellValues.Length; i++)
                     {
+                        var cell = cellValues.Span[i];
+
                         var needsSeparator = i != 0;
 
                         if (needsSeparator)
@@ -221,7 +219,8 @@ end:
                         self.Buffer.Reset();
 
 end:
-                        i++;
+                        // no-op for label
+                        { }
                     }
 
                     self.RowNumber++;
@@ -233,112 +232,103 @@ end:
             }
 
             // continue after PlaceCharInStagingAsync completes
-            static async ValueTask WriteAsync_ContinueAfterPlaceCharAsync(AsyncDynamicWriter self, ValueTask waitFor, ReadOnlyMemory<char> valueSeparator, DynamicCellValue cell, int i, IEnumerator<DynamicCellValue> e, CancellationToken cancellationToken)
+            static async ValueTask WriteAsync_ContinueAfterPlaceCharAsync(AsyncDynamicWriter self, ValueTask waitFor, ReadOnlyMemory<char> valueSeparator, DynamicCellValue cell, int i, ReadOnlyMemory<DynamicCellValue> e, CancellationToken cancellationToken)
             {
                 try
                 {
-                    try
+                    await ConfigureCancellableAwait(self, waitFor, cancellationToken);
+
+                    var selfColumnNamesValue = self.ColumnNames.Value;
+
+                    // finish the loop
                     {
-                        await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-
-                        var selfColumnNamesValue = self.ColumnNames.Value;
-
-                        // finish the loop
+                        ColumnIdentifier ci;
+                        if (i < selfColumnNamesValue.Length)
                         {
-                            ColumnIdentifier ci;
-                            if (i < selfColumnNamesValue.Length)
-                            {
-                                ci = ColumnIdentifier.CreateInner(i, selfColumnNamesValue[i].Name);
-                            }
-                            else
-                            {
-                                ci = ColumnIdentifier.Create(i);
-                            }
-
-                            var ctx = WriteContext.WritingColumn(self.Configuration.Options, self.RowNumber, ci, self.Context);
-
-                            var formatter = cell.Formatter;
-                            var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
-                            var del = delProvider.Guarantee(self);
-
-                            var val = cell.Value as object;
-                            if (!del(val, in ctx, self.Buffer))
-                            {
-                                Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
-                            }
-
-                            ReadOnlySequence<char> res = default;
-                            if (!self.Buffer.MakeSequence(ref res))
-                            {
-                                // nothing was written, so just move on
-                                goto end;
-                            }
-
-                            var writeValueTask = self.WriteValueAsync(res, cancellationToken);
-                            await ConfigureCancellableAwait(self, writeValueTask, cancellationToken);
-
-                            self.Buffer.Reset();
-
-end:
-                            i++;
+                            ci = ColumnIdentifier.CreateInner(i, selfColumnNamesValue[i].Name);
+                        }
+                        else
+                        {
+                            ci = ColumnIdentifier.Create(i);
                         }
 
-                        // resume
-                        while (e.MoveNext())
+                        var ctx = WriteContext.WritingColumn(self.Configuration.Options, self.RowNumber, ci, self.Context);
+
+                        var formatter = cell.Formatter;
+                        var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
+                        var del = delProvider.Guarantee(self);
+
+                        var val = cell.Value as object;
+                        if (!del(val, in ctx, self.Buffer))
                         {
-                            cell = e.Current;
-                            var needsSeparator = i != 0;
-
-                            if (needsSeparator)
-                            {
-                                var placeTask = self.PlaceAllInStagingAsync(valueSeparator, cancellationToken);
-                                await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                            }
-
-                            ColumnIdentifier ci;
-                            if (i < selfColumnNamesValue.Length)
-                            {
-                                ci = ColumnIdentifier.CreateInner(i, selfColumnNamesValue[i].Name);
-                            }
-                            else
-                            {
-                                ci = ColumnIdentifier.Create(i);
-                            }
-
-                            var ctx = WriteContext.WritingColumn(self.Configuration.Options, self.RowNumber, ci, self.Context);
-
-                            var formatter = cell.Formatter;
-                            var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
-                            var del = delProvider.Guarantee(self);
-
-                            var val = cell.Value as object;
-                            if (!del(val, in ctx, self.Buffer))
-                            {
-                                Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
-                            }
-
-                            ReadOnlySequence<char> res = default;
-                            if (!self.Buffer.MakeSequence(ref res))
-                            {
-                                // nothing was written, so just move on
-                                goto end;
-                            }
-
-                            var writeValueTask = self.WriteValueAsync(res, cancellationToken);
-                            await ConfigureCancellableAwait(self, writeValueTask, cancellationToken);
-
-                            self.Buffer.Reset();
-
-end:
-                            i++;
+                            Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
                         }
 
-                        self.RowNumber++;
+                        ReadOnlySequence<char> res = default;
+                        if (!self.Buffer.MakeSequence(ref res))
+                        {
+                            // nothing was written, so just move on
+                            goto end;
+                        }
+
+                        var writeValueTask = self.WriteValueAsync(res, cancellationToken);
+                        await ConfigureCancellableAwait(self, writeValueTask, cancellationToken);
+
+                        self.Buffer.Reset();
+
+end:
+                        i++;
                     }
-                    finally
+
+                    // resume
+                    for (; i < e.Length; i++)
                     {
-                        e.Dispose();
+                        cell = e.Span[i];
+
+                        // always need a separator, since the i always > 0
+                        var placeTask = self.PlaceAllInStagingAsync(valueSeparator, cancellationToken);
+                        await ConfigureCancellableAwait(self, placeTask, cancellationToken);
+
+                        ColumnIdentifier ci;
+                        if (i < selfColumnNamesValue.Length)
+                        {
+                            ci = ColumnIdentifier.CreateInner(i, selfColumnNamesValue[i].Name);
+                        }
+                        else
+                        {
+                            ci = ColumnIdentifier.Create(i);
+                        }
+
+                        var ctx = WriteContext.WritingColumn(self.Configuration.Options, self.RowNumber, ci, self.Context);
+
+                        var formatter = cell.Formatter;
+                        var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
+                        var del = delProvider.Guarantee(self);
+
+                        var val = cell.Value as object;
+                        if (!del(val, in ctx, self.Buffer))
+                        {
+                            Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
+                        }
+
+                        ReadOnlySequence<char> res = default;
+                        if (!self.Buffer.MakeSequence(ref res))
+                        {
+                            // nothing was written, so just move on
+                            goto end;
+                        }
+
+                        var writeValueTask = self.WriteValueAsync(res, cancellationToken);
+                        await ConfigureCancellableAwait(self, writeValueTask, cancellationToken);
+
+                        self.Buffer.Reset();
+
+end:
+                        // no-op for label
+                        { }
                     }
+
+                    self.RowNumber++;
                 }
                 catch (Exception exc)
                 {
@@ -347,79 +337,70 @@ end:
             }
 
             // continue after WriteValueAsync completes
-            static async ValueTask WriteAsync_ContinueAfterWriteValueAsync(AsyncDynamicWriter self, ValueTask waitFor, ReadOnlyMemory<char> valueSeparator, int i, IEnumerator<DynamicCellValue> e, CancellationToken cancellationToken)
+            static async ValueTask WriteAsync_ContinueAfterWriteValueAsync(AsyncDynamicWriter self, ValueTask waitFor, ReadOnlyMemory<char> valueSeparator, int i, ReadOnlyMemory<DynamicCellValue> e, CancellationToken cancellationToken)
             {
                 try
                 {
-                    try
+                    await ConfigureCancellableAwait(self, waitFor, cancellationToken);
+
+                    // finish loop
                     {
-                        await ConfigureCancellableAwait(self, waitFor, cancellationToken);
+                        self.Buffer.Reset();
 
-                        // finish loop
+                        i++;
+                    }
+
+                    var selfColumnNamesValue = self.ColumnNames.Value;
+
+                    // resume
+                    for (; i < e.Length; i++)
+                    {
+                        var cell = e.Span[i];
+
+                        // always need a separator, i is also > 0
+                        var placeTask = self.PlaceAllInStagingAsync(valueSeparator, cancellationToken);
+                        await ConfigureCancellableAwait(self, placeTask, cancellationToken);
+
+                        ColumnIdentifier ci;
+                        if (i < selfColumnNamesValue.Length)
                         {
-                            self.Buffer.Reset();
-
-                            i++;
+                            ci = ColumnIdentifier.CreateInner(i, selfColumnNamesValue[i].Name);
+                        }
+                        else
+                        {
+                            ci = ColumnIdentifier.Create(i);
                         }
 
-                        var selfColumnNamesValue = self.ColumnNames.Value;
+                        var ctx = WriteContext.WritingColumn(self.Configuration.Options, self.RowNumber, ci, self.Context);
 
-                        // resume
-                        while (e.MoveNext())
+                        var formatter = cell.Formatter;
+                        var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
+                        var del = delProvider.Guarantee(self);
+
+                        var val = cell.Value as object;
+                        if (!del(val, in ctx, self.Buffer))
                         {
-                            var cell = e.Current;
-                            var needsSeparator = i != 0;
+                            Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
+                        }
 
-                            if (needsSeparator)
-                            {
-                                var placeTask = self.PlaceAllInStagingAsync(valueSeparator, cancellationToken);
-                                await ConfigureCancellableAwait(self, placeTask, cancellationToken);
-                            }
+                        ReadOnlySequence<char> res = default;
+                        if (!self.Buffer.MakeSequence(ref res))
+                        {
+                            // nothing was written, so just move on
+                            goto end;
+                        }
 
-                            ColumnIdentifier ci;
-                            if (i < selfColumnNamesValue.Length)
-                            {
-                                ci = ColumnIdentifier.CreateInner(i, selfColumnNamesValue[i].Name);
-                            }
-                            else
-                            {
-                                ci = ColumnIdentifier.Create(i);
-                            }
+                        var writeValueTask = self.WriteValueAsync(res, cancellationToken);
+                        await ConfigureCancellableAwait(self, writeValueTask, cancellationToken);
 
-                            var ctx = WriteContext.WritingColumn(self.Configuration.Options, self.RowNumber, ci, self.Context);
-
-                            var formatter = cell.Formatter;
-                            var delProvider = (ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>)formatter;
-                            var del = delProvider.Guarantee(self);
-
-                            var val = cell.Value as object;
-                            if (!del(val, in ctx, self.Buffer))
-                            {
-                                Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
-                            }
-
-                            ReadOnlySequence<char> res = default;
-                            if (!self.Buffer.MakeSequence(ref res))
-                            {
-                                // nothing was written, so just move on
-                                goto end;
-                            }
-
-                            var writeValueTask = self.WriteValueAsync(res, cancellationToken);
-                            await ConfigureCancellableAwait(self, writeValueTask, cancellationToken);
-
-                            self.Buffer.Reset();
+                        self.Buffer.Reset();
 
 end:
-                            i++;
-                        }
+                        // no-op for label
+                        { }
+                    }
 
-                        self.RowNumber++;
-                    }
-                    finally
-                    {
-                        e.Dispose();
-                    }
+                    self.RowNumber++;
                 }
                 catch (Exception exc)
                 {
@@ -863,42 +844,6 @@ end:
             }
         }
 
-        private IEnumerable<DynamicCellValue> ForceInOrder(IEnumerable<DynamicCellValue> raw)
-        {
-            var columnNamesValue = ColumnNames.Value;
-
-            // no headers mean we write whatever we're given!
-            if (columnNamesValue.Length == 0) return raw;
-
-            var inOrder = true;
-
-            var i = 0;
-            foreach (var x in raw)
-            {
-                if (i == columnNamesValue.Length)
-                {
-                    return Throw.InvalidOperationException<IEnumerable<DynamicCellValue>>("Too many cells returned, could not place in desired order");
-                }
-
-                var (name, _) = columnNamesValue[i];
-                if (!name.Equals(x.Name))
-                {
-                    inOrder = false;
-                    break;
-                }
-
-                i++;
-            }
-
-            // already in order, 
-            if (inOrder) return raw;
-
-            var ret = new List<DynamicCellValue>(raw);
-            ret.Sort(ColumnNameSorter.Value);
-
-            return ret;
-        }
-
         // returns true if it did write out headers,
         //   so we need to end a record before
         //   writing the next one
@@ -933,6 +878,7 @@ end:
 
         private void DiscoverColumns(dynamic o)
         {
+            // todo: remove this allocation
             var cols = new List<(string TrueName, string EncodedName)>();
 
             var ctx = WriteContext.DiscoveringColumns(Configuration.Options, Context);
@@ -940,7 +886,9 @@ end:
             var options = Configuration.Options;
 
             var colIx = 0;
-            foreach (var c in options.TypeDescriber.GetCellsForDynamicRow(in ctx, o as object))
+            var cellsMem = Utils.GetCells(options.ArrayPool, ref CellBuffer, options.TypeDescriber, in ctx, o as object);
+            var cells = cellsMem.Span;
+            foreach (var c in cells)
             {
                 var colName = c.Name;
 
@@ -1148,6 +1096,7 @@ end:
                         OneCharOwner.Clear();
                     }
                     Buffer.Dispose();
+                    Configuration.Options.ArrayPool.Return(CellBuffer);
                 }
                 catch (Exception e)
                 {
@@ -1165,6 +1114,7 @@ end:
                     }
 
                     Buffer.Dispose();
+                    Configuration.Options.ArrayPool.Return(CellBuffer);
 
                     return Throw.PoisonAndRethrow<ValueTask>(this, e);
                 }
@@ -1207,6 +1157,7 @@ end:
                         self.OneCharOwner.Clear();
                     }
                     self.Buffer.Dispose();
+                    self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
                 }
                 catch (Exception e)
                 {
@@ -1224,6 +1175,7 @@ end:
                     }
 
                     self.Buffer.Dispose();
+                    self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
 
                     Throw.PoisonAndRethrow<object>(self, e);
                 }
@@ -1258,6 +1210,7 @@ end:
                         self.OneCharOwner.Clear();
                     }
                     self.Buffer.Dispose();
+                    self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
                 }
                 catch (Exception e)
                 {
@@ -1275,6 +1228,7 @@ end:
                     }
 
                     self.Buffer.Dispose();
+                    self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
 
                     Throw.PoisonAndRethrow<object>(self, e);
                 }
@@ -1299,6 +1253,7 @@ end:
                         self.OneCharOwner.Value.Dispose();
                     }
                     self.Buffer.Dispose();
+                    self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
                 }
                 catch (Exception e)
                 {
@@ -1316,6 +1271,7 @@ end:
                     }
 
                     self.Buffer.Dispose();
+                    self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
 
                     Throw.PoisonAndRethrow<object>(self, e);
                 }
@@ -1333,6 +1289,7 @@ end:
                         self.OneCharOwner.Value.Dispose();
                     }
                     self.Buffer.Dispose();
+                    self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
                 }
                 catch (Exception e)
                 {
@@ -1343,6 +1300,7 @@ end:
                     }
 
                     self.Buffer.Dispose();
+                    self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
 
                     Throw.PoisonAndRethrow<object>(self, e);
                 }

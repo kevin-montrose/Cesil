@@ -92,7 +92,7 @@ namespace Cesil.Tests
         public void NotSupported()
         {
             var m = ManualTypeDescriber.CreateBuilder().ToManualTypeDescriber();
-            Assert.Throws<NotSupportedException>(() => m.GetCellsForDynamicRow(default, null));
+            Assert.Throws<NotSupportedException>(() => m.GetCellsForDynamicRow(default, null, default));
             Assert.Throws<NotSupportedException>(() => m.GetDynamicCellParserFor(default, null));
             Assert.Throws<NotSupportedException>(() => m.GetDynamicRowConverter(default, null, null));
         }

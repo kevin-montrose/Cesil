@@ -102,6 +102,12 @@ namespace Cesil
         /// How to handle extra colums encountered when reading a CSV.
         /// </summary>
         public ExtraColumnTreatment ExtraColumnTreatment { get; private set; }
+        /// <summary>
+        /// Which ArrayPool to use when buffering DynamicCellValues when
+        /// writing dynamic rows.
+        /// </summary>
+        [NullableExposed("All properties on OptionsBuilder are mutable and nullable, Options handles making sure they're not null")]
+        public ArrayPool<DynamicCellValue>? ArrayPool { get; private set; }
 
         internal OptionsBuilder()
         {
@@ -125,6 +131,7 @@ namespace Cesil
             DynamicRowDisposal = copy.DynamicRowDisposal;
             WhitespaceTreatment = copy.WhitespaceTreatment;
             ExtraColumnTreatment = copy.ExtraColumnTreatment;
+            ArrayPool = copy.ArrayPool;
         }
 
         /// <summary>
@@ -203,7 +210,12 @@ namespace Cesil
             // MemoryPool not configured
             if (MemoryPool == null)
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(TypeDescriber)} has not been set");
+                return Throw.InvalidOperationException<Options>($"{nameof(MemoryPool)} has not been set");
+            }
+            // ArrayPool not configured
+            if (ArrayPool == null)
+            {
+                return Throw.InvalidOperationException<Options>($"{nameof(ArrayPool)} has not been set");
             }
             // WriteBufferSizeHint < 0
             if (WriteBufferSizeHint.HasValue && WriteBufferSizeHint.Value < 0)
@@ -425,6 +437,18 @@ namespace Cesil
         }
 
         /// <summary>
+        /// Set the ArrayPool used for buffering DynamicCellValues when writing
+        /// dynamic rows.
+        /// </summary>
+        public OptionsBuilder WithArrayPool(ArrayPool<DynamicCellValue> arrayPool)
+        {
+            arrayPool ??= ArrayPool<DynamicCellValue>.Shared;
+
+            ArrayPool = arrayPool;
+            return this;
+        }
+
+        /// <summary>
         /// Set or clear the character that starts a row
         /// that is a comment.
         /// </summary>
@@ -445,7 +469,7 @@ namespace Cesil
         /// All values are treated as hints, it's up to
         ///   the configured MemoryPool to satisfy the request.
         /// </summary>
-        public OptionsBuilder WithWriteBufferSizeHint([IntentionallyExposedPrimitive("Best way to indicate a size")]int? sizeHint)
+        public OptionsBuilder WithWriteBufferSizeHint([IntentionallyExposedPrimitive("Best way to indicate a size")] int? sizeHint)
         {
             if (sizeHint != null && sizeHint < 0)
             {
@@ -471,7 +495,7 @@ namespace Cesil
         /// All values are treated as hints, it's up to
         ///   the configured MemoryPool to satisfy the request.
         /// </summary>
-        public OptionsBuilder WithReadBufferSizeHint([IntentionallyExposedPrimitive("Best way to indicate a size")]int sizeHint)
+        public OptionsBuilder WithReadBufferSizeHint([IntentionallyExposedPrimitive("Best way to indicate a size")] int sizeHint)
         {
             if (sizeHint < 0)
             {
@@ -575,6 +599,7 @@ namespace Cesil
             ret.Append($", {nameof(WriteTrailingRowEnding)}={WriteTrailingRowEnding}");
             ret.Append($", {nameof(WhitespaceTreatment)}={WhitespaceTreatment}");
             ret.Append($", {nameof(ExtraColumnTreatment)}={ExtraColumnTreatment}");
+            ret.Append($", {nameof(ArrayPool)}={ArrayPool}");
 
             return ret.ToString();
         }
