@@ -2381,5 +2381,20 @@ namespace Cesil.Tests
             new ExcludeFromCoverageAttribute("shouldn't throw");
             Assert.Throws<ArgumentNullException>(() => new ExcludeFromCoverageAttribute(null));
         }
+
+        [Fact]
+        public void LogHelperConditionals()
+        {
+            var logHelper = typeof(LogHelper).GetTypeInfo();
+            foreach(var mtd in logHelper.GetMethods(BindingFlagsConstants.All))
+            {
+                // check public or internal methods that are declared by LogHelper
+                var check = mtd.DeclaringType.GetTypeInfo() == logHelper && (mtd.IsAssembly || mtd.IsPublic);
+                if (!check) continue;
+
+                var cond = mtd.GetCustomAttribute<ConditionalAttribute>();
+                Assert.NotNull(cond);
+            }
+        }
     }
 }

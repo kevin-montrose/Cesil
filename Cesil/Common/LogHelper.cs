@@ -6,8 +6,6 @@ using System.Runtime.CompilerServices;
 
 namespace Cesil
 {
-    // todo: test that all non-private members of LogHelper are conditional?
-
     // use this pattern so debug statements can be disabled based on inner consts
     [ExcludeFromCoverage("Conditionally enabled logging, no need for code coverage")]
     internal static class LogHelper

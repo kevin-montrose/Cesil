@@ -1266,7 +1266,6 @@ namespace Cesil.Tests
 #endif
         }
 
-        // todo: remove this (or move it to Cesil.Tests)
         // won't return empty entries
         internal static ReadOnlySequence<char> Split(ReadOnlyMemory<char> str, ReadOnlyMemory<char> with)
         {
