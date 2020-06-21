@@ -1,14 +1,513 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using Xunit;
 
 namespace Cesil.Tests
 {
     public class NameLookupTests
     {
+        // memory pool that fills any returned buffers will garbage
+        private sealed class _OrderNames_MemoryPool : MemoryPool<char>
+        {
+            private readonly RandomNumberGenerator Rand;
+            private readonly MemoryPool<char> Inner;
+            public override int MaxBufferSize => throw new NotImplementedException();
+
+            internal _OrderNames_MemoryPool(MemoryPool<char> inner)
+            {
+                Rand = RandomNumberGenerator.Create();
+                Inner = inner;
+            }
+
+            public override IMemoryOwner<char> Rent(int minBufferSize = -1)
+            {
+                var ret = Inner.Rent(minBufferSize);
+                var bytes = MemoryMarshal.Cast<char, byte>(ret.Memory.Span);
+
+                Rand.GetBytes(bytes);
+
+                return ret;
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing)
+                {
+                    Rand.Dispose();
+                    Inner.Dispose();
+                }
+            }
+        }
+
+        [Fact]
+        public void OrdererNames()
+        {
+            // empty
+            {
+                using var orderer = NameLookup.OrdererNames.Create(Array.Empty<string>(), MemoryPool<char>.Shared);
+                Assert.Equal(0, orderer.Count);
+
+                Assert.Throws<ArgumentOutOfRangeException>(() => orderer[-1]);
+                Assert.Throws<ArgumentOutOfRangeException>(() => orderer[0]);
+                Assert.Throws<ArgumentOutOfRangeException>(() => orderer[1]);
+            }
+
+            // simple 
+            {
+                var names = new[] { "hello" };
+                using var orderer = NameLookup.OrdererNames.Create(names, MemoryPool<char>.Shared);
+                Assert.Equal(1, orderer.Count);
+
+                var val = orderer[0];
+                Assert.Equal(0, val.Index);
+                Assert.True(Utils.AreEqual("hello".AsMemory(), val.Name));
+            }
+
+            // requires moving
+            {
+                var names = new[] { "hello", "abcd" };
+                using var orderer = NameLookup.OrdererNames.Create(names, MemoryPool<char>.Shared);
+                Assert.Equal(2, orderer.Count);
+
+                var val0 = orderer[0];
+                Assert.Equal(1, val0.Index);
+                Assert.True(Utils.AreEqual("abcd".AsMemory(), val0.Name));
+
+                var val1 = orderer[1];
+                Assert.Equal(0, val1.Index);
+                Assert.True(Utils.AreEqual("hello".AsMemory(), val1.Name));
+            }
+
+            // big and random
+            {
+                var pools =
+                    new MemoryPool<char>[]
+                    {
+                        MemoryPool<char>.Shared,
+                        new _OrdererNames_Create_MemoryPool(),
+                        new _OrderNames_MemoryPool(MemoryPool<char>.Shared),
+                        new _OrderNames_MemoryPool(new _OrdererNames_Create_MemoryPool())
+                    };
+
+                var rand = new Random(2020_06_20);
+                for (var i = 0; i < 1_000; i++)
+                {
+                    var len = rand.Next(100);
+                    var data = Enumerable.Range(0, len).Select(x => Guid.NewGuid().ToString()).ToList();
+                    for (var j = 0; j < data.Count; j++)
+                    {
+                        var subLen = rand.Next(data[j].Length);
+                        var newVal = data[j].Substring(0, subLen);
+                        data[j] = newVal;
+                    }
+
+                    var finalDataList = new List<string>();
+                    foreach (var item in data)
+                    {
+                        if (finalDataList.Contains(item)) continue;
+
+                        finalDataList.Add(item);
+                    }
+                    var finalData = finalDataList.ToArray();
+
+                    var finalDataInOrder = finalData.Select((d, ix) => (Data: d, Index: ix)).OrderBy(t => t.Data).ToList();
+
+                    // test orderer
+                    {
+                        foreach (var pool in pools)
+                        {
+                            using var orderer = NameLookup.OrdererNames.Create(finalData, pool);
+
+                            for (var k = 0; k < finalDataInOrder.Count; k++)
+                            {
+                                var (val, ix) = orderer[k];
+                                var (originalVal, originalIx) = finalDataInOrder[k];
+
+                                Assert.Equal(originalIx, ix);
+                                Assert.Equal(originalVal, new string(val.Span));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // memory pool that always gives you _exactly_ the amount of memory you ask for
+        private sealed class _OrdererNames_Create_MemoryPool : MemoryPool<char>
+        {
+            private sealed class Owner : IMemoryOwner<char>
+            {
+                private readonly IMemoryOwner<char> Inner;
+                public Memory<char> Memory { get; }
+
+                internal Owner(IMemoryOwner<char> inner, Memory<char> mem)
+                {
+                    Inner = inner;
+                    Memory = mem;
+                }
+
+                public void Dispose()
+                {
+                    Inner.Dispose();
+                }
+            }
+
+            public override int MaxBufferSize => MemoryPool<char>.Shared.MaxBufferSize;
+
+            public override IMemoryOwner<char> Rent(int minBufferSize = -1)
+            {
+                int size = minBufferSize;
+                if (size == -1)
+                {
+                    size = 1;
+                }
+
+                var rent = MemoryPool<char>.Shared.Rent(size);
+                var mem = rent.Memory.Slice(0, size);
+
+                return new Owner(rent, mem);
+            }
+
+            protected override void Dispose(bool disposing) { }
+        }
+
+        [Fact]
+        public void OrdererNames_Create()
+        {
+            var pools =
+                new[]
+                {
+                    MemoryPool<char>.Shared,
+                    new _OrdererNames_Create_MemoryPool()
+                };
+
+            foreach (var pool in pools)
+            {
+                // empty!
+                {
+                    using var orderer = NameLookup.OrdererNames.Create(Array.Empty<string>(), pool);
+                    Assert.Equal(0, orderer.Count);
+
+                    Assert.Throws<ArgumentOutOfRangeException>(() => orderer[0]);
+                }
+
+                // single element
+                {
+                    using var orderer = NameLookup.OrdererNames.Create(new[] { "foo" }, pool);
+                    Assert.Equal(1, orderer.Count);
+
+                    var front = orderer.Memory[..2].ToArray();
+                    var back = orderer.Memory[^7..].ToArray();
+
+                    var bytes = BitConverter.GetBytes(orderer.Memory.Length - 7);
+                    var c0 = BitConverter.ToChar(bytes, 0);
+                    var c1 = BitConverter.ToChar(bytes, sizeof(char));
+
+                    Assert.True(
+                        front.SequenceEqual(
+                            new char[]
+                            {
+                                c0,
+                                c1
+                            }
+                        )
+                    );
+
+                    // middle can be full of garbage
+
+                    Assert.True(
+                        back.SequenceEqual(
+                            new char[]
+                            {
+                                (char)0x03,
+                                (char)0,
+                                'f',
+                                'o',
+                                'o',
+                                (char)0x0,  // value of 0
+                                (char)0x0,
+                            }
+                        )
+                    );
+
+                    var res0 = orderer[0];
+                    Assert.Equal(0, res0.Index);
+                    Assert.True(Utils.AreEqual("foo".AsMemory(), res0.Name));
+
+                    Assert.Throws<ArgumentOutOfRangeException>(() => orderer[1]);
+                }
+
+                // multi element
+                {
+                    var names = new[] { "foo", "abcd", "car", "zoo" };
+                    using var orderer = NameLookup.OrdererNames.Create(names, pool);
+                    Assert.Equal(4, orderer.Count);
+
+                    var frontSize = names.Length * 2;
+                    var backSize = names.Length * 4 + names.Sum(n => n.Length);
+
+                    var front = orderer.Memory[..frontSize].ToArray();
+                    var back = orderer.Memory[^backSize..].ToArray();
+
+                    var indexFoo = orderer.Memory.Length - 3 - 2 - 2;
+                    var fooBytes = BitConverter.GetBytes(indexFoo);
+                    var foo0 = BitConverter.ToChar(fooBytes, 0);
+                    var foo1 = BitConverter.ToChar(fooBytes, sizeof(char));
+
+                    var indexAbcd = indexFoo - 4 - 2 - 2;
+                    var abcdBytes = BitConverter.GetBytes(indexAbcd);
+                    var abcd0 = BitConverter.ToChar(abcdBytes, 0);
+                    var abcd1 = BitConverter.ToChar(abcdBytes, sizeof(char));
+
+                    var indexCar = indexAbcd - 3 - 2 - 2;
+                    var carBytes = BitConverter.GetBytes(indexCar);
+                    var car0 = BitConverter.ToChar(carBytes, 0);
+                    var car1 = BitConverter.ToChar(carBytes, sizeof(char));
+
+                    var indexZoo = indexCar - 3 - 2 - 2;
+                    var zooBytes = BitConverter.GetBytes(indexZoo);
+                    var zoo0 = BitConverter.ToChar(zooBytes, 0);
+                    var zoo1 = BitConverter.ToChar(zooBytes, sizeof(char));
+
+                    Assert.True(
+                        front.SequenceEqual(
+                            new char[]
+                            {
+                                // abcd
+                                abcd0,
+                                abcd1,
+
+                                // car
+                                car0,
+                                car1,
+
+                                // foo
+                                foo0,
+                                foo1,
+
+                                // zoo
+                                zoo0,
+                                zoo1,
+                            }
+                        )
+                    );
+
+                    // middle is all garbage
+
+                    Assert.True(
+                        back.SequenceEqual(
+                            new char[]
+                            {
+                                // zoo = 3
+                                (char)0x03,
+                                (char)0x00,
+                                'z', 'o', 'o',
+                                (char)0x03,
+                                (char)0x00,
+                                
+  
+                                // car = 2
+                                (char)0x03,
+                                (char)0x00,
+                                'c', 'a', 'r',
+                                (char)0x02,
+                                (char)0x00,
+                            
+                                // abcd = 1
+                                (char)0x04,
+                                (char)0x00,
+                                'a', 'b', 'c', 'd',
+                                (char)0x01,
+                                (char)0x00,
+
+                                // foo = 0
+                                (char)0x03,
+                                (char)0x00,
+                                'f','o', 'o',
+                                (char)0x00,
+                                (char)0x00,
+                            }
+                        )
+                    );
+
+                    var res0 = orderer[0];
+                    Assert.Equal(1, res0.Index);
+                    Assert.True(Utils.AreEqual("abcd".AsMemory(), res0.Name));
+
+                    var res1 = orderer[1];
+                    Assert.Equal(2, res1.Index);
+                    Assert.True(Utils.AreEqual("car".AsMemory(), res1.Name));
+
+                    var res2 = orderer[2];
+                    Assert.Equal(0, res2.Index);
+                    Assert.True(Utils.AreEqual("foo".AsMemory(), res2.Name));
+
+                    var res3 = orderer[3];
+                    Assert.Equal(3, res3.Index);
+                    Assert.True(Utils.AreEqual("zoo".AsMemory(), res3.Name));
+
+                    Assert.Throws<ArgumentOutOfRangeException>(() => orderer[4]);
+                }
+            }
+        }
+
+        [Fact]
+        public void OrdererNames_FindInsertionIx()
+        {
+            // empty!
+            {
+                Assert.Equal(0, NameLookup.OrdererNames.FindInsertionIx(ReadOnlySpan<char>.Empty, 0, "hello".AsSpan()));
+            }
+
+            // single element
+            {
+                // total length 2 + 2 + 4 + 5 = 13 chars
+                var spanArr =
+                    new char[]
+                    {
+                        (char)0x06, // index 6
+                        (char)0x0,
+
+                        // random filler (4 chars)
+                        'x','k','c','d',
+                        
+                        // length + "foo" (5 chars)
+                        (char)0x03,
+                        (char)0,
+                        'f',
+                        'o',
+                        'o',
+                        (char)0x0,  // value of 0
+                        (char)0x0,
+                    };
+                var span = new Span<char>(spanArr);
+
+                // comes before
+                var ixA = NameLookup.OrdererNames.FindInsertionIx(span, 1, "a".AsSpan());
+                Assert.Equal(0, ixA);
+
+                // comes after
+                var ixFuzz = NameLookup.OrdererNames.FindInsertionIx(span, 1, "fuzz".AsSpan());
+                Assert.Equal(1, ixFuzz);
+
+                // comes before, common prefix
+                var ixFo = NameLookup.OrdererNames.FindInsertionIx(span, 1, "fo".AsSpan());
+                Assert.Equal(0, ixFo);
+
+                // comes after, common prefix
+                var ixFoobar = NameLookup.OrdererNames.FindInsertionIx(span, 1, "foobar".AsSpan());
+                Assert.Equal(1, ixFoobar);
+
+                // exact match is no good!
+                Assert.Throws<InvalidOperationException>(() => NameLookup.OrdererNames.FindInsertionIx(spanArr.AsSpan(), 1, "foo".AsSpan()));
+            }
+
+            // multi element
+            //   0 = "foo"
+            //   1 = "abcd"
+            //   2 = "car"
+            {
+                // total length 32
+                //  entries: 4 + 4 + 4 = 12
+                //  padding: 4         =  4
+                //  strings: 5 + 6 + 5 = 16
+                var spanArr =
+                    new char[]
+                    {
+                        (char)0x11,  // index of abcd = 17
+                        (char)0x00,
+
+                        (char)0x0A,  // index of car = 10
+                        (char)0x00,
+
+                        (char)0x19,  // index of foo = 25
+                        (char)0x00,
+
+                        // random filler (4 chars)
+                        'x','k','c','d',
+                        
+                        // length + "car" (5 chars)
+                        (char)0x03,
+                        (char)0,
+                        'c',
+                        'a',
+                        'r',
+                        (char)0x02,  // value of 2
+                        (char)0x00,
+
+                        // length + "abcd" (6 chars)
+                        (char)0x04,
+                        (char)0,
+                        'a',
+                        'b',
+                        'c',
+                        'd',
+                        (char)0x01,  // value of 1
+                        (char)0x00,
+
+                        // length + "foo" (5 chars)
+                        (char)0x03,
+                        (char)0,
+                        'f',
+                        'o',
+                        'o',
+                        (char)0x00,  // value of 0
+                        (char)0x00,
+                    };
+                var span = new Span<char>(spanArr);
+
+                // before everything
+                var ixA = NameLookup.OrdererNames.FindInsertionIx(span, 3, "a".AsSpan());
+                Assert.Equal(0, ixA);
+
+                // before abcd, common prefix
+                var ixABCA = NameLookup.OrdererNames.FindInsertionIx(span, 3, "abca".AsSpan());
+                Assert.Equal(0, ixABCA);
+
+                // after abcd, common prefix
+                var ixABCDE = NameLookup.OrdererNames.FindInsertionIx(span, 3, "abcde".AsSpan());
+                Assert.Equal(1, ixABCDE);
+
+                // between abcd and car
+                var ixBar = NameLookup.OrdererNames.FindInsertionIx(span, 3, "bar".AsSpan());
+                Assert.Equal(1, ixBar);
+
+                // before car, common prefix
+                var ixC = NameLookup.OrdererNames.FindInsertionIx(span, 3, "c".AsSpan());
+                Assert.Equal(1, ixC);
+
+                // after car, common prefix
+                var ixCC = NameLookup.OrdererNames.FindInsertionIx(span, 3, "cc".AsSpan());
+                Assert.Equal(2, ixCC);
+
+                // between car and foo
+                var ixDog = NameLookup.OrdererNames.FindInsertionIx(span, 3, "dog".AsSpan());
+                Assert.Equal(2, ixDog);
+
+                // before foo, common prefix
+                var ixFoa = NameLookup.OrdererNames.FindInsertionIx(span, 3, "foa".AsSpan());
+                Assert.Equal(2, ixFoa);
+
+                // after foo, common prefix
+                var ixFoz = NameLookup.OrdererNames.FindInsertionIx(span, 3, "foz".AsSpan());
+                Assert.Equal(3, ixFoz);
+
+                // after foo
+                var ixZ = NameLookup.OrdererNames.FindInsertionIx(span, 3, "z".AsSpan());
+                Assert.Equal(3, ixZ);
+
+                // exact match is no good!
+                Assert.Throws<InvalidOperationException>(() => NameLookup.OrdererNames.FindInsertionIx(spanArr.AsSpan(), 3, "abcd".AsSpan()));
+                Assert.Throws<InvalidOperationException>(() => NameLookup.OrdererNames.FindInsertionIx(spanArr.AsSpan(), 3, "car".AsSpan()));
+                Assert.Throws<InvalidOperationException>(() => NameLookup.OrdererNames.FindInsertionIx(spanArr.AsSpan(), 3, "foo".AsSpan()));
+            }
+        }
+
         private sealed class _FailIfMemoryNotAvailable : MemoryPool<char>
         {
             private sealed class Owner : IMemoryOwner<char>
@@ -36,9 +535,13 @@ namespace Cesil.Tests
         {
             var mem = new _FailIfMemoryNotAvailable();
 
-            var keys = Enumerable.Range(0, ushort.MaxValue + 2).Select(i => i.ToString()).ToList();
+            var keys = Enumerable.Range(0, ushort.MaxValue + 2).Select(i => i.ToString()).ToArray();
 
             Assert.Throws<InvalidOperationException>(() => NameLookup.Create(keys, mem));
+
+            using var safeKeys = NameLookup.OrdererNames.Create(keys, MemoryPool<char>.Shared);
+
+            Assert.Throws<InvalidOperationException>(() => NameLookup.CreateInner(safeKeys, mem));
         }
 
         [Fact]
@@ -46,7 +549,7 @@ namespace Cesil.Tests
         {
             // too many keys
             {
-                var keys = Enumerable.Range(0, ushort.MaxValue + 2).Select(i => i.ToString()).ToList();
+                var keys = Enumerable.Range(0, ushort.MaxValue + 2).Select(i => i.ToString()).ToArray();
 
                 using (var lookup = NameLookup.Create(keys, MemoryPool<char>.Shared))
                 {
@@ -110,9 +613,9 @@ namespace Cesil.Tests
                 const int InfixCount = 1000;
                 const int InfixLength = 100;
 
-                var keys = new List<string>();
+                var keysList = new List<string>();
 
-                keys.Add(UniqueKey);
+                keysList.Add(UniqueKey);
 
                 // these a 
                 var uniqueInfixes = Enumerable.Range(0, InfixCount).Select(x => string.Join("", Enumerable.Repeat((char)x, InfixLength))).ToArray();
@@ -124,9 +627,10 @@ namespace Cesil.Tests
                     var key1 = CommonPrefix + infix + (char)InfixCount;
                     var key2 = CommonPrefix + infix + (char)(InfixCount + 1);
 
-                    keys.Add(key1);
-                    keys.Add(key2);
+                    keysList.Add(key1);
+                    keysList.Add(key2);
                 }
+                var keys = keysList.ToArray();
 
                 // with these keys, the second level after the CommonPrefix will have
                 //   InfixCount entries, each entry will be InfixLength + 2 (one for 
@@ -139,9 +643,9 @@ namespace Cesil.Tests
                 {
                     Assert.Equal(NameLookup.Algorithm.BinarySearch, lookup.Mode);
 
-                    for (var i = 0; i < keys.Count; i++)
+                    for (var i = 0; i < keysList.Count; i++)
                     {
-                        var key = keys[i];
+                        var key = keysList[i];
                         Assert.True(lookup.TryLookup(key, out var val));
                         Assert.Equal(i, val);
                     }
@@ -159,7 +663,7 @@ namespace Cesil.Tests
 
             // one value
             {
-                var vals = OrderValues(new[] { "bar" });
+                using var vals = OrderValues(new[] { "bar" });
 
                 Assert.True(NameLookup.TryCreateBinarySearch(vals, MemoryPool<char>.Shared, out var owner, out var mem));
                 var chars = mem.ToArray();
@@ -186,7 +690,7 @@ namespace Cesil.Tests
 
             // two values
             {
-                var vals = OrderValues(new[] { "bar", "buzz" });
+                using var vals = OrderValues(new[] { "bar", "buzz" });
 
                 Assert.True(NameLookup.TryCreateBinarySearch(vals, MemoryPool<char>.Shared, out var owner, out var mem));
                 var chars = mem.ToArray();
@@ -219,7 +723,7 @@ namespace Cesil.Tests
 
             // actual values
             {
-                var vals = OrderValues(new[] { "bar", "buzz", "foo", "head", "heap", "hello" });
+                using var vals = OrderValues(new[] { "bar", "buzz", "foo", "head", "heap", "hello" });
 
                 Assert.True(NameLookup.TryCreateBinarySearch(vals, MemoryPool<char>.Shared, out var owner, out var mem));
                 var chars = mem.ToArray();
@@ -290,6 +794,7 @@ namespace Cesil.Tests
                             .ToList();
 
                     var valsOrdered = vals.OrderBy(x => x.Name, StringComparer.Ordinal);
+                    using var valsOrdering = OrderValues(vals.Select(x => x.Name));
 
                     var fizzIx = vals.Single(s => s.Name == "fizz").Index;
                     Assert.NotEqual(-1, fizzIx);
@@ -310,7 +815,7 @@ namespace Cesil.Tests
                     var heatIx = vals.Single(s => s.Name == "heat").Index;
                     Assert.NotEqual(-1, heatIx);
 
-                    Assert.True(NameLookup.TryCreateBinarySearch(valsOrdered, MemoryPool<char>.Shared, out var owner, out var mem));
+                    Assert.True(NameLookup.TryCreateBinarySearch(valsOrdering, MemoryPool<char>.Shared, out var owner, out var mem));
                     var chars = mem.ToArray();
                     owner.Dispose();
 
@@ -397,8 +902,8 @@ namespace Cesil.Tests
             }
 
             // put stuff in the correct order for the create call
-            static IOrderedEnumerable<(string Name, int Index)> OrderValues(IEnumerable<string> raw)
-            => raw.Select((r, ix) => (Name: r, Index: ix)).OrderBy(r => r.Name, StringComparer.Ordinal);
+            static NameLookup.OrdererNames OrderValues(IEnumerable<string> raw)
+            => NameLookup.OrdererNames.Create(raw.ToArray(), MemoryPool<char>.Shared);
 
             static unsafe bool Equal(ReadOnlySpan<char> a, ReadOnlySpan<char> b)
             {
@@ -637,7 +1142,7 @@ namespace Cesil.Tests
 
             static NameLookup Create(List<string> values)
             {
-                var vals = values.Select((t, ix) => (Name: t, Index: ix)).OrderBy(o => o.Name, StringComparer.Ordinal);
+                using var vals = NameLookup.OrdererNames.Create(values.ToArray(), MemoryPool<char>.Shared);
 
                 Assert.True(NameLookup.TryCreateBinarySearch(vals, MemoryPool<char>.Shared, out var owner, out var mem));
 
@@ -658,13 +1163,13 @@ namespace Cesil.Tests
             //   a prefix group with all values [0, short.MaxValue]
             //   in it
 
-            var keys = Enumerable.Range(0, short.MaxValue + 1).Select(x => "" + (char)x).ToList();
+            var keys = Enumerable.Range(0, short.MaxValue + 1).Select(x => "" + (char)x).ToArray();
 
             using (var lookup = NameLookup.Create(keys, MemoryPool<char>.Shared))
             {
                 Assert.Equal(NameLookup.Algorithm.AdaptiveRadixTrie, lookup.Mode);
 
-                for (var i = 0; i < keys.Count; i++)
+                for (var i = 0; i < keys.Length; i++)
                 {
                     var key = keys[i];
                     Assert.True(lookup.TryLookup(key, out var val));
@@ -680,7 +1185,7 @@ namespace Cesil.Tests
         {
             // one value
             {
-                var vals = new List<string> { "bar" }.Select(b => b.AsMemory()).ToList();
+                var vals = NameLookup.OrdererNames.Create(new[] { "bar" }, MemoryPool<char>.Shared);
 
                 var take = NameLookup.CommonPrefixLengthAdaptivePrefixTrie(vals, (ushort)(vals.Count - 1), 0, 0, out var endOfGroupIx);
                 Assert.Equal(3, take);
@@ -689,16 +1194,14 @@ namespace Cesil.Tests
 
             // actual values
             {
-                var vals = new List<string> { "bar", "buzz", "foo", "head", "heap", "hello" }.Select(b => b.AsMemory()).ToList();
-
-                Assert.True(vals.Select(_ => new string(_.Span)).SequenceEqual(vals.Select(_ => new string(_.Span)).OrderBy(_ => _)));
+                var vals = NameLookup.OrdererNames.Create(new[] { "bar", "buzz", "foo", "head", "heap", "hello" }, MemoryPool<char>.Shared);
 
                 ushort fooIx = 2;
-                Assert.True(Utils.AreEqual("foo".AsMemory(), vals[fooIx]));
+                Assert.True(Utils.AreEqual("foo".AsMemory(), vals[fooIx].Name));
                 ushort barIx = 0;
-                Assert.True(Utils.AreEqual("bar".AsMemory(), vals[barIx]));
+                Assert.True(Utils.AreEqual("bar".AsMemory(), vals[barIx].Name));
                 ushort headIx = 3;
-                Assert.True(Utils.AreEqual("head".AsMemory(), vals[headIx]));
+                Assert.True(Utils.AreEqual("head".AsMemory(), vals[headIx].Name));
 
                 var takeFromFoo = NameLookup.CommonPrefixLengthAdaptivePrefixTrie(vals, (ushort)(vals.Count - 1), fooIx, 0, out var endOfFooIx);
                 Assert.Equal(3, takeFromFoo);
@@ -721,7 +1224,7 @@ namespace Cesil.Tests
             // should be 
             //   0, 3, b, a, r, -1 == 3 + "bar".Length = 6
             {
-                var vals = new List<string> { "bar" }.Select(b => b.AsMemory()).ToList();
+                var vals = NameLookup.OrdererNames.Create(new[] { "bar" }, MemoryPool<char>.Shared);
 
                 var mem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(vals, 0, (ushort)(vals.Count - 1), 0);
                 Assert.Equal(6, mem);
@@ -753,26 +1256,28 @@ namespace Cesil.Tests
             //
             // final length is 39 chars
             {
-                var rootVals = new List<string> { "bar", "buzz", "foo", "head", "heap", "hello" }.Select(b => b.AsMemory()).ToList();
-                var groupAt13 = new List<string> { "ar", "uzz" }.Select(b => b.AsMemory()).ToList();                                    // after taking b
-                var groupAt23 = new List<string> { "ad", "ap", "llo" }.Select(b => b.AsMemory()).ToList();                              // after taking he
-                var groupAt32 = new List<string> { "d", "p" }.Select(b => b.AsMemory()).ToList();                                       // after taking hea
+                var rootVals = new[] { "bar", "buzz", "foo", "head", "heap", "hello" };
+                using var rootValsOrdered = NameLookup.OrdererNames.Create(rootVals, MemoryPool<char>.Shared);
 
-                Assert.True(rootVals.Select(_ => new string(_.Span)).SequenceEqual(rootVals.Select(_ => new string(_.Span)).OrderBy(_ => _)));
-                Assert.True(groupAt13.Select(_ => new string(_.Span)).SequenceEqual(groupAt13.Select(_ => new string(_.Span)).OrderBy(_ => _)));
-                Assert.True(groupAt23.Select(_ => new string(_.Span)).SequenceEqual(groupAt23.Select(_ => new string(_.Span)).OrderBy(_ => _)));
-                Assert.True(groupAt32.Select(_ => new string(_.Span)).SequenceEqual(groupAt32.Select(_ => new string(_.Span)).OrderBy(_ => _)));
+                var groupAt13 = new[] { "ar", "uzz" };                                                                       // after taking b
+                using var groupAt13Ordered = NameLookup.OrdererNames.Create(groupAt13, MemoryPool<char>.Shared);
 
-                var g32Mem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(groupAt32, 0, (ushort)(groupAt32.Count - 1), 0);
+                var groupAt23 = new[] { "ad", "ap", "llo" };                                                                 // after taking he
+                using var groupAt23Ordered = NameLookup.OrdererNames.Create(groupAt23, MemoryPool<char>.Shared);
+
+                var groupAt32 = new[] { "d", "p" };                                                                          // after taking hea
+                using var groupAt32Ordered = NameLookup.OrdererNames.Create(groupAt32, MemoryPool<char>.Shared);
+
+                var g32Mem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(groupAt32Ordered, 0, (ushort)(groupAt32.Length - 1), 0);
                 Assert.Equal(7, g32Mem);
 
-                var g23Mem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(groupAt23, 0, (ushort)(groupAt23.Count - 1), 0);
+                var g23Mem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(groupAt23Ordered, 0, (ushort)(groupAt23.Length - 1), 0);
                 Assert.Equal(9, g23Mem - g32Mem);
 
-                var g13Mem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(groupAt13, 0, (ushort)(groupAt13.Count - 1), 0);
+                var g13Mem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(groupAt13Ordered, 0, (ushort)(groupAt13.Length - 1), 0);
                 Assert.Equal(10, g13Mem);
 
-                var rootMem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(rootVals, 0, (ushort)(rootVals.Count - 1), 0);
+                var rootMem = NameLookup.CalculateNeededMemoryAdaptivePrefixTrie(rootValsOrdered, 0, (ushort)(rootVals.Length - 1), 0);
                 Assert.Equal(39, rootMem);
             }
         }
@@ -832,7 +1337,7 @@ namespace Cesil.Tests
             // 
             // len = 6
             {
-                var vals = new List<string> { "bar" };
+                var vals = new[] { "bar" };
 
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
@@ -872,7 +1377,7 @@ namespace Cesil.Tests
             //
             // len = 14
             {
-                var vals = new List<string> { "bar", "buzz" };
+                var vals = new[] { "bar", "buzz" };
 
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
@@ -934,7 +1439,7 @@ namespace Cesil.Tests
             //
             // final length is 39 chars
             {
-                var vals = new List<string> { "bar", "buzz", "foo", "head", "heap", "hello" };
+                var vals = new[] { "bar", "buzz", "foo", "head", "heap", "hello" };
 
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
@@ -1035,7 +1540,7 @@ namespace Cesil.Tests
             // length = 58
             {
                 var rand = new Random(2020_03_21);
-                var valsMaster = new List<string> { "fizz", "fizzing", "foo", "he", "heap", "heaper", "heaping", "heapingly", "heat" };
+                var valsMaster = new[] { "fizz", "fizzing", "foo", "he", "heap", "heaper", "heaping", "heapingly", "heat" };
 
                 for (var i = 0; i < 10; i++)
                 {
@@ -1061,7 +1566,7 @@ namespace Cesil.Tests
                     var heapinglyIx = vals.IndexOf("heapingly");
                     Assert.NotEqual(-1, heapinglyIx);
 
-                    using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
+                    using (var lookup = NameLookup.Create(vals.ToArray(), MemoryPool<char>.Shared))
                     {
                         Assert.Equal(NameLookup.Algorithm.AdaptiveRadixTrie, lookup.Mode);
                         Assert.NotNull(lookup.MemoryOwner);
@@ -1146,7 +1651,7 @@ namespace Cesil.Tests
         {
             // single key
             {
-                var vals = new List<string> { "bar" };
+                var vals = new[] { "bar" };
 
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
@@ -1182,7 +1687,7 @@ namespace Cesil.Tests
 
             // two strings
             {
-                var vals = new List<string> { "bar", "buzz" };
+                var vals = new[] { "bar", "buzz" };
 
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
@@ -1224,7 +1729,7 @@ namespace Cesil.Tests
 
             // proper values
             {
-                var vals = new List<string> { "bar", "buzz", "foo", "head", "heap", "hello" };
+                var vals = new[] { "bar", "buzz", "foo", "head", "heap", "hello" };
 
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
@@ -1232,7 +1737,7 @@ namespace Cesil.Tests
                     Assert.False(lookup.TryLookup("", out var emptyVal));
                     Assert.Equal(-1, emptyVal);
 
-                    for (var i = 0; i < vals.Count; i++)
+                    for (var i = 0; i < vals.Length; i++)
                     {
                         var val = vals[i];
                         Assert.True(lookup.TryLookup(val, out var valVal));
@@ -1291,7 +1796,7 @@ namespace Cesil.Tests
                 for (var i = 0; i < 10; i++)
                 {
                     // get em in a random order for test purposes
-                    var vals = valsMaster.Select(v => (Value: v, Order: rand.Next())).OrderBy(t => t.Order).Select(t => t.Value).ToList();
+                    var vals = valsMaster.Select(v => (Value: v, Order: rand.Next())).OrderBy(t => t.Order).Select(t => t.Value).ToArray();
 
                     using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                     {
@@ -1299,7 +1804,7 @@ namespace Cesil.Tests
                         Assert.False(lookup.TryLookup("", out var emptyVal));
                         Assert.Equal(-1, emptyVal);
 
-                        for (var j = 0; j < vals.Count; j++)
+                        for (var j = 0; j < vals.Length; j++)
                         {
                             var val = vals[j];
                             Assert.True(lookup.TryLookup(val, out var valVal));
@@ -1353,11 +1858,11 @@ namespace Cesil.Tests
 
             // benchmark values
             {
-                var vals = new List<string> { "NullableGuid", "NullableInt", "NullableChar", "NullableSByte", "NullableDateTime", "NullableFloat", "DateTime", "Long", "Float", "ULong", "NullableUInt", "NullableShort", "Byte", "Enum", "NullableDecimal", "ShallowRows", "DeepRows", "Decimal", "NullableByte", "NullableUShort", "Char", "DateTimeOffset", "Int", "NullableULong", "SByte", "Short", "NullableLong", "NullableDouble", "UShort", "Double", "FlagsEnum", "Uri", "String", "NullableEnum", "NullableDateTimeOffset", "UInt", "NullableFlagsEnum", "Guid" };
+                var vals = new[] { "NullableGuid", "NullableInt", "NullableChar", "NullableSByte", "NullableDateTime", "NullableFloat", "DateTime", "Long", "Float", "ULong", "NullableUInt", "NullableShort", "Byte", "Enum", "NullableDecimal", "ShallowRows", "DeepRows", "Decimal", "NullableByte", "NullableUShort", "Char", "DateTimeOffset", "Int", "NullableULong", "SByte", "Short", "NullableLong", "NullableDouble", "UShort", "Double", "FlagsEnum", "Uri", "String", "NullableEnum", "NullableDateTimeOffset", "UInt", "NullableFlagsEnum", "Guid" };
                 using (var lookup = NameLookup.Create(vals, MemoryPool<char>.Shared))
                 {
                     Assert.Equal(NameLookup.Algorithm.AdaptiveRadixTrie, lookup.Mode);
-                    for (var i = 0; i < vals.Count; i++)
+                    for (var i = 0; i < vals.Length; i++)
                     {
                         var val = vals[i];
                         Assert.True(lookup.TryLookup(val, out var ix));
