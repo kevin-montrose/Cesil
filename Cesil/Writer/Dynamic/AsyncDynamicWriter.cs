@@ -26,13 +26,9 @@ namespace Cesil
 
         private bool HasWrittenComments;
 
-        private DynamicCellValue[] CellBuffer;
+        private DynamicCellValue[]? CellBuffer;
 
-        internal AsyncDynamicWriter(DynamicBoundConfiguration config, IAsyncWriterAdapter inner, object? context) : base(config, inner, context)
-        {
-            // todo: don't pre-allocate this
-            CellBuffer = config.Options.ArrayPool.Rent(8);
-        }
+        internal AsyncDynamicWriter(DynamicBoundConfiguration config, IAsyncWriterAdapter inner, object? context) : base(config, inner, context) { }
 
         bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)] out V del)
             where V : class
@@ -143,7 +139,7 @@ namespace Cesil
                     Buffer.Reset();
 
 end:
-                    // no-op for label
+// no-op for label
                     { }
                 }
                 RowNumber++;
@@ -219,7 +215,7 @@ end:
                         self.Buffer.Reset();
 
 end:
-                        // no-op for label
+// no-op for label
                         { }
                     }
 
@@ -324,7 +320,7 @@ end:
                         self.Buffer.Reset();
 
 end:
-                        // no-op for label
+// no-op for label
                         { }
                     }
 
@@ -396,7 +392,7 @@ end:
                         self.Buffer.Reset();
 
 end:
-                        // no-op for label
+// no-op for label
                         { }
                     }
 
@@ -1096,7 +1092,11 @@ end:
                         OneCharOwner.Clear();
                     }
                     Buffer.Dispose();
-                    Configuration.Options.ArrayPool.Return(CellBuffer);
+
+                    if (CellBuffer != null)
+                    {
+                        Configuration.Options.ArrayPool.Return(CellBuffer);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -1114,7 +1114,10 @@ end:
                     }
 
                     Buffer.Dispose();
-                    Configuration.Options.ArrayPool.Return(CellBuffer);
+                    if (CellBuffer != null)
+                    {
+                        Configuration.Options.ArrayPool.Return(CellBuffer);
+                    }
 
                     return Throw.PoisonAndRethrow<ValueTask>(this, e);
                 }
@@ -1157,7 +1160,11 @@ end:
                         self.OneCharOwner.Clear();
                     }
                     self.Buffer.Dispose();
-                    self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
+
+                    if (self.CellBuffer != null)
+                    {
+                        self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -1175,7 +1182,10 @@ end:
                     }
 
                     self.Buffer.Dispose();
-                    self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
+                    if (self.CellBuffer != null)
+                    {
+                        self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
+                    }
 
                     Throw.PoisonAndRethrow<object>(self, e);
                 }
@@ -1210,7 +1220,10 @@ end:
                         self.OneCharOwner.Clear();
                     }
                     self.Buffer.Dispose();
-                    self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
+                    if (self.CellBuffer != null)
+                    {
+                        self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -1228,7 +1241,10 @@ end:
                     }
 
                     self.Buffer.Dispose();
-                    self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
+                    if (self.CellBuffer != null)
+                    {
+                        self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
+                    }
 
                     Throw.PoisonAndRethrow<object>(self, e);
                 }
@@ -1252,8 +1268,12 @@ end:
                     {
                         self.OneCharOwner.Value.Dispose();
                     }
+
                     self.Buffer.Dispose();
-                    self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
+                    if (self.CellBuffer != null)
+                    {
+                        self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -1271,7 +1291,10 @@ end:
                     }
 
                     self.Buffer.Dispose();
-                    self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
+                    if (self.CellBuffer != null)
+                    {
+                        self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
+                    }
 
                     Throw.PoisonAndRethrow<object>(self, e);
                 }
@@ -1288,8 +1311,12 @@ end:
                     {
                         self.OneCharOwner.Value.Dispose();
                     }
+
                     self.Buffer.Dispose();
-                    self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
+                    if (self.CellBuffer != null)
+                    {
+                        self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -1300,7 +1327,10 @@ end:
                     }
 
                     self.Buffer.Dispose();
-                    self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
+                    if (self.CellBuffer != null)
+                    {
+                        self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
+                    }
 
                     Throw.PoisonAndRethrow<object>(self, e);
                 }

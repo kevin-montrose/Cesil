@@ -23,13 +23,9 @@ namespace Cesil
 
         private bool HasWrittenComments;
 
-        private DynamicCellValue[] CellBuffer;
+        private DynamicCellValue[]? CellBuffer;
 
-        internal DynamicWriter(DynamicBoundConfiguration config, IWriterAdapter inner, object? context) : base(config, inner, context) 
-        {
-            // todo: don't pre-allocate this
-            CellBuffer = config.Options.ArrayPool.Rent(8);
-        }
+        internal DynamicWriter(DynamicBoundConfiguration config, IWriterAdapter inner, object? context) : base(config, inner, context) { }
 
         bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)]out V del)
         {
@@ -396,7 +392,11 @@ end:
 
                     Inner.Dispose();
                     Buffer.Dispose();
-                    Configuration.Options.ArrayPool.Return(CellBuffer);
+
+                    if (CellBuffer != null)
+                    {
+                        Configuration.Options.ArrayPool.Return(CellBuffer);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -408,7 +408,11 @@ end:
                     }
 
                     Buffer.Dispose();
-                    Configuration.Options.ArrayPool.Return(CellBuffer);
+
+                    if (CellBuffer != null)
+                    {
+                        Configuration.Options.ArrayPool.Return(CellBuffer);
+                    }
 
                     Throw.PoisonAndRethrow<object>(this, e);
                 }
