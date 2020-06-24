@@ -751,16 +751,19 @@ tryAgain:
             }
         }
 
-        internal static Memory<DynamicCellValue> GetCells(ArrayPool<DynamicCellValue> arrPool, ref DynamicCellValue[] buffer, ITypeDescriber describer, in WriteContext context, object rowAsObj)
+        internal static Memory<DynamicCellValue> GetCells(ArrayPool<DynamicCellValue> arrPool, ref DynamicCellValue[]? buffer, ITypeDescriber describer, in WriteContext context, object rowAsObj)
         {
 tryAgain:
-            var bufferMem = buffer.AsMemory();
+            var bufferMem = buffer?.AsMemory() ?? Memory<DynamicCellValue>.Empty;
             var bufferSpan = bufferMem.Span;
 
             var numCells = describer.GetCellsForDynamicRow(context, rowAsObj, bufferSpan);
             if (numCells > bufferSpan.Length)
             {
-                arrPool.Return(buffer);
+                if (buffer != null)
+                {
+                    arrPool.Return(buffer);
+                }
                 buffer = arrPool.Rent(numCells);
                 goto tryAgain;
             }
