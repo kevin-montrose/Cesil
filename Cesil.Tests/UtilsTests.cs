@@ -34,6 +34,25 @@ namespace Cesil.Tests
             var dynConfig = Configuration.ForDynamic();
             var dynExc = ImpossibleException.Create("testing", "foo", "bar", 123, dynConfig);
             Assert.Equal("The impossible has happened!\r\ntesting\r\nFile: foo\r\nMember: bar\r\nLine: 123\r\nPlease report this to https://github.com/kevin-montrose/Cesil/issues/new\r\nBound to System.Object\r\nDynamic binding\r\nWith options: Options with CommentCharacter=, DynamicRowDisposal=OnReaderDispose, EscapedValueEscapeCharacter=\", EscapedValueStartAndEnd=\", MemoryPool=System.Buffers.ArrayMemoryPool`1[System.Char], ReadBufferSizeHint=0, ReadHeader=Always, RowEnding=CarriageReturnLineFeed, TypeDescriber=DefaultTypeDescriber Shared Instance, ValueSeparator=,, WriteBufferSizeHint=, WriteHeader=Always, WriteTrailingRowEnding=Never, WhitespaceTreatment=Preserve, ExtraColumnTreatment=IncludeDynamic", dynExc.Message);
+
+            Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object>("wat"));
+            Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object>("wat", Options.Default));
+            Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object, _WeirdImpossibleExceptions>("wat", concreteConfig));
+
+
+            var files = new[] { "SomeFile.cs", null };
+            var members = new[] { "SomeMember", null };
+
+            foreach(var f in files)
+            {
+                foreach(var m in members)
+                {
+                    Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object>("wat", f, m));
+                    Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object>("wat", Options.Default, f, m));
+                    Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object, _WeirdImpossibleExceptions>("wat", concreteConfig, f, m));
+                }
+            }
+            
         }
 
         [Fact]
@@ -45,6 +64,10 @@ namespace Cesil.Tests
             Assert.Throws<ImpossibleException>(() => e.Options);
             Assert.Throws<ImpossibleException>(() => e.ReleaseNameLookup());
             Assert.Throws<ImpossibleException>(() => e.Remove(new DynamicRow()));
+
+            var dc = (IDelegateCache)e;
+            Assert.Throws<ImpossibleException>(() => dc.TryGetDelegate<string, Action>("hello", out _));
+            Assert.Throws<ImpossibleException>(() => dc.AddDelegate<string, Action>("hello", () => { }));
         }
 
         [Fact]

@@ -23,9 +23,10 @@ namespace Cesil
 
         bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)]out V del)
         {
-            del = default;
-            Throw.ImpossibleException<bool>("Shouldn't be possible");
-            return false;
+#pragma warning disable CES0005 // this value isn't going to matter, since this method always explodes
+            del = default!;
+#pragma warning restore CES0005
+            return Throw.ImpossibleException<bool>("Shouldn't be possible");
         }
 
         void IDelegateCache.AddDelegate<T, V>(T key, V cached)
