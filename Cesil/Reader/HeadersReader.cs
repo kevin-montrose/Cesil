@@ -207,7 +207,7 @@ namespace Cesil
 
             var options = Configuration.Options;
 
-            MemoryPool = options.MemoryPool;
+            MemoryPool = Configuration.MemoryPool;
             BufferSizeHint = options.ReadBufferSizeHint;
             Columns = config.DeserializeColumns;
 

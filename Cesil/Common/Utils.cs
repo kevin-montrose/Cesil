@@ -620,12 +620,10 @@ tryAgain:
             return -1;
         }
 
-        internal static string Encode(string rawStr, Options options)
+        internal static string Encode(string rawStr, Options options, MemoryPool<char> pool)
         {
             // assume there's a single character that needs escape, so 2 chars for the start and stop and 1 for the escape
             var defaultSize = rawStr.Length + 2 + 1;
-
-            var pool = options.MemoryPool;
 
             var escapedValueStartAndStop = options.EscapedValueStartAndEnd;
 
@@ -642,7 +640,7 @@ tryAgain:
             }
 
             var raw = rawStr.AsMemory();
-            var retOwner = options.MemoryPool.Rent(defaultSize);
+            var retOwner = pool.Rent(defaultSize);
             try
             {
                 retOwner.Memory.Span[0] = escapedValueStartAndStop.Value;
@@ -751,10 +749,10 @@ tryAgain:
             }
         }
 
-        internal static Memory<DynamicCellValue> GetCells(ArrayPool<DynamicCellValue> arrPool, ref DynamicCellValue[]? buffer, ITypeDescriber describer, in WriteContext context, object rowAsObj)
+        internal static Memory<DynamicCellValue> GetCells(MemoryPool<DynamicCellValue> arrPool, ref IMemoryOwner<DynamicCellValue>? buffer, ITypeDescriber describer, in WriteContext context, object rowAsObj)
         {
 tryAgain:
-            var bufferMem = buffer?.AsMemory() ?? Memory<DynamicCellValue>.Empty;
+            var bufferMem = buffer?.Memory ?? Memory<DynamicCellValue>.Empty;
             var bufferSpan = bufferMem.Span;
 
             var numCells = describer.GetCellsForDynamicRow(context, rowAsObj, bufferSpan);
@@ -762,7 +760,7 @@ tryAgain:
             {
                 if (buffer != null)
                 {
-                    arrPool.Return(buffer);
+                    buffer.Dispose();
                 }
                 buffer = arrPool.Rent(numCells);
                 goto tryAgain;

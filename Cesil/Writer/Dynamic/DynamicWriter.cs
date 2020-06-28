@@ -23,11 +23,11 @@ namespace Cesil
 
         private bool HasWrittenComments;
 
-        private DynamicCellValue[]? CellBuffer;
+        private IMemoryOwner<DynamicCellValue>? CellBuffer;
 
         internal DynamicWriter(DynamicBoundConfiguration config, IWriterAdapter inner, object? context) : base(config, inner, context) { }
 
-        bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)]out V del)
+        bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)] out V del)
         {
             if (DelegateCache == null)
             {
@@ -66,7 +66,7 @@ namespace Cesil
                 var options = Configuration.Options;
                 var valueSeparator = Configuration.ValueSeparatorMemory.Span;
 
-                var cellValuesMem = Utils.GetCells(options.ArrayPool, ref CellBuffer, options.TypeDescriber, in wholeRowContext, row as object);
+                var cellValuesMem = Utils.GetCells(Configuration.DynamicMemoryPool, ref CellBuffer, options.TypeDescriber, in wholeRowContext, row as object);
 
                 Utils.ForceInOrder(ColumnNames.Value, ColumnNameSorter, cellValuesMem);
                 var cellValuesEnumerableSpan = cellValuesMem.Span;
@@ -275,7 +275,7 @@ end:
 
             var options = Configuration.Options;
 
-            var cellsMem = Utils.GetCells(options.ArrayPool, ref CellBuffer, options.TypeDescriber, in ctx, o as object);
+            var cellsMem = Utils.GetCells(Configuration.DynamicMemoryPool, ref CellBuffer, options.TypeDescriber, in ctx, o as object);
             var cells = cellsMem.Span;
 
             var colIx = 0;
@@ -294,7 +294,7 @@ end:
                 // encode it, if it needs encoding
                 if (NeedsEncode(encodedColName))
                 {
-                    encodedColName = Utils.Encode(encodedColName, options);
+                    encodedColName = Utils.Encode(encodedColName, options, Configuration.MemoryPool);
                 }
 
                 cols.Add((colName, encodedColName));
@@ -392,11 +392,7 @@ end:
 
                     Inner.Dispose();
                     Buffer.Dispose();
-
-                    if (CellBuffer != null)
-                    {
-                        Configuration.Options.ArrayPool.Return(CellBuffer);
-                    }
+                    CellBuffer?.Dispose();
                 }
                 catch (Exception e)
                 {
@@ -408,11 +404,7 @@ end:
                     }
 
                     Buffer.Dispose();
-
-                    if (CellBuffer != null)
-                    {
-                        Configuration.Options.ArrayPool.Return(CellBuffer);
-                    }
+                    CellBuffer?.Dispose();
 
                     Throw.PoisonAndRethrow<object>(this, e);
                 }

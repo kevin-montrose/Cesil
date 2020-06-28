@@ -43,13 +43,13 @@ namespace Cesil
 
         private readonly ReadOnlyMemory<char> ValueSeparatorMemory;
 
-        internal RowEndingDetector(ReaderStateMachine stateMachine, Options options, CharacterLookup charLookup, IReaderAdapter inner, ReadOnlyMemory<char> valueSeparatorMemory)
-            : this(stateMachine, options, charLookup, inner, null, valueSeparatorMemory) { }
+        internal RowEndingDetector(ReaderStateMachine stateMachine, Options options, MemoryPool<char> memPool, CharacterLookup charLookup, IReaderAdapter inner, ReadOnlyMemory<char> valueSeparatorMemory)
+            : this(stateMachine, options, memPool, charLookup, inner, null, valueSeparatorMemory) { }
 
-        internal RowEndingDetector(ReaderStateMachine stateMachine, Options options, CharacterLookup charLookup, IAsyncReaderAdapter innerAsync, ReadOnlyMemory<char> valueSeparatorMemory)
-            : this(stateMachine, options, charLookup, null, innerAsync, valueSeparatorMemory) { }
+        internal RowEndingDetector(ReaderStateMachine stateMachine, Options options, MemoryPool<char> memPool, CharacterLookup charLookup, IAsyncReaderAdapter innerAsync, ReadOnlyMemory<char> valueSeparatorMemory)
+            : this(stateMachine, options, memPool, charLookup, null, innerAsync, valueSeparatorMemory) { }
 
-        private RowEndingDetector(ReaderStateMachine stateMachine, Options options, CharacterLookup charLookup, IReaderAdapter? inner, IAsyncReaderAdapter? innerAsync, ReadOnlyMemory<char> valueSeparatorMemory)
+        private RowEndingDetector(ReaderStateMachine stateMachine, Options options, MemoryPool<char> memPool, CharacterLookup charLookup, IReaderAdapter? inner, IAsyncReaderAdapter? innerAsync, ReadOnlyMemory<char> valueSeparatorMemory)
         {
             Inner.SetAllowNull(inner);
             InnerAsync.SetAllowNull(innerAsync);
@@ -66,7 +66,7 @@ namespace Cesil
                 options.WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimAfterValues)
             );
 
-            MemoryPool = options.MemoryPool;
+            MemoryPool = memPool;
 
             BufferSizeHint = options.ReadBufferSizeHint;
             if (BufferSizeHint == 0)

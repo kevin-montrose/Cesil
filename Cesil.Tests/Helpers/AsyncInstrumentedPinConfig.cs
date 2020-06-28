@@ -10,7 +10,7 @@ namespace Cesil.Tests
 
         internal ReaderStateMachine StateMachine;
 
-        public AsyncInstrumentedPinConfig(BoundConfigurationBase<T> inner) : base()
+        public AsyncInstrumentedPinConfig(BoundConfigurationBase<T> inner) : base(inner.MemoryPool, inner.DynamicMemoryPool)
         {
             Inner = inner;
         }

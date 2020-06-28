@@ -47,7 +47,7 @@ namespace Cesil
                 bufferSize = bufferMinSize;
             }
 
-            var memPool = options.MemoryPool;
+            var memPool = config.MemoryPool;
 
             Buffer =
                 new BufferWithPushback(
@@ -56,7 +56,7 @@ namespace Cesil
                 );
             Partial = new Partial(memPool);
 
-            SharedCharacterLookup = CharacterLookup.MakeCharacterLookup(options, out _);
+            SharedCharacterLookup = CharacterLookup.MakeCharacterLookup(options, memPool, out _);
             StateMachine = new ReaderStateMachine();
             RowBuilder = rowBuilder;
 
