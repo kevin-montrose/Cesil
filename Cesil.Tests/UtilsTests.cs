@@ -188,7 +188,6 @@ namespace Cesil.Tests
             Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object>("wat", Options.Default));
             Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object, _WeirdImpossibleExceptions>("wat", concreteConfig));
 
-
             var files = new[] { "SomeFile.cs", null };
             var members = new[] { "SomeMember", null };
 
