@@ -16,7 +16,7 @@ namespace Cesil
             => MemoryPool<T>.Shared;
 
             public override string ToString()
-            => $"{nameof(DefaultMemoryPoolProvider)} {(this == Default ? "Shared Instance" : "Unique Instance")}";
+            => $"{nameof(DefaultMemoryPoolProvider)} Shared Instance";
         }
 
         /// <summary>
