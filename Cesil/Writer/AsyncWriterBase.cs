@@ -673,7 +673,7 @@ namespace Cesil
         {
             if (!OneCharOwner.HasValue)
             {
-                OneCharOwner.Value = Configuration.Options.MemoryPool.Rent(1);
+                OneCharOwner.Value = Configuration.MemoryPool.Rent(1);
                 OneCharMemory = OneCharOwner.Value.Memory.Slice(0, 1);
             }
 

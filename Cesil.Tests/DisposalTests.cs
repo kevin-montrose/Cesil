@@ -921,7 +921,7 @@ namespace Cesil.Tests
                 {
                     var ret = new ReaderStateMachine();
                     ret.Initialize(
-                        CharacterLookup.MakeCharacterLookup(Options.Default, out _),
+                        CharacterLookup.MakeCharacterLookup(Options.Default, MemoryPool<char>.Shared, out _),
                         'a',
                         'b',
                         RowEnding.CarriageReturnLineFeed,
@@ -1159,7 +1159,8 @@ namespace Cesil.Tests
                     return new RowEndingDetector(
                         new ReaderStateMachine(),
                         Options.Default,
-                        CharacterLookup.MakeCharacterLookup(Options.Default, out _),
+                        MemoryPool<char>.Shared,
+                        CharacterLookup.MakeCharacterLookup(Options.Default, MemoryPool<char>.Shared, out _),
                         new TextReaderAdapter(TextReader.Null),
                         Options.Default.ValueSeparator.AsMemory()
                     );
@@ -1205,7 +1206,7 @@ namespace Cesil.Tests
                         new HeadersReader<_IDisposable>(
                             new ReaderStateMachine(),
                             config,
-                            CharacterLookup.MakeCharacterLookup(Options.Default, out _),
+                            CharacterLookup.MakeCharacterLookup(Options.Default, MemoryPool<char>.Shared, out _),
                             new TextReaderAdapter(TextReader.Null),
                             new BufferWithPushback(
                                 MemoryPool<char>.Shared,
@@ -1310,7 +1311,7 @@ namespace Cesil.Tests
                 // make a partial that's "good to go"
                 static CharacterLookup MakeLookup()
                 {
-                    return CharacterLookup.MakeCharacterLookup(Options.Default, out _);
+                    return CharacterLookup.MakeCharacterLookup(Options.Default, MemoryPool<char>.Shared, out _);
                 }
             }
 

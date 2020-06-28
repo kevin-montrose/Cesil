@@ -204,10 +204,10 @@ namespace Cesil.Tests
                     .WithWhitespaceTreatment(WhitespaceTreatments.Trim)
                     .ToOptions();
 
-            using (var c = CharacterLookup.MakeCharacterLookup(cOpts, out var maxSize1))
-            using (var d = CharacterLookup.MakeCharacterLookup(dOpts, out var maxSize2))
-            using (var e = CharacterLookup.MakeCharacterLookup(eOpts, out var maxSize3))
-            using (var f = CharacterLookup.MakeCharacterLookup(fOpts, out var maxSize4))
+            using (var c = CharacterLookup.MakeCharacterLookup(cOpts, MemoryPool<char>.Shared, out var maxSize1))
+            using (var d = CharacterLookup.MakeCharacterLookup(dOpts, MemoryPool<char>.Shared, out var maxSize2))
+            using (var e = CharacterLookup.MakeCharacterLookup(eOpts, MemoryPool<char>.Shared, out var maxSize3))
+            using (var f = CharacterLookup.MakeCharacterLookup(fOpts, MemoryPool<char>.Shared, out var maxSize4))
             {
                 for (var x = 0; x <= char.MaxValue; x++)
                 {
@@ -252,23 +252,10 @@ namespace Cesil.Tests
             Assert.Throws<InvalidOperationException>(() => Configuration.For<object>());
         }
 
-        private class _OptionsEquality_MemoryPool : MemoryPool<char>
+        private class _OptionsEquality_MemoryPoolProvider : IMemoryPoolProvider
         {
-            public override int MaxBufferSize => Shared.MaxBufferSize;
-
-            public override IMemoryOwner<char> Rent(int minBufferSize = -1)
-            => Shared.Rent(minBufferSize);
-
-            protected override void Dispose(bool disposing) { }
-        }
-
-        private sealed class _OptionsEquality_ArrayPool : ArrayPool<DynamicCellValue>
-        {
-            public override DynamicCellValue[] Rent(int minimumLength)
-            => Shared.Rent(minimumLength);
-
-            public override void Return(DynamicCellValue[] array, bool clearArray = false)
-            => Shared.Return(array, clearArray);
+            public MemoryPool<T> GetMemoryPool<T>()
+            => MemoryPool<T>.Shared;
         }
 
         [Fact]
@@ -280,7 +267,7 @@ namespace Cesil.Tests
                 foreach (var drd in new[] { DynamicRowDisposal.OnExplicitDispose, DynamicRowDisposal.OnReaderDispose })
                     foreach (var escapeChar in new char[] { '"', '\\' })
                         foreach (var escapeStartChar in new char[] { '"', '!' })
-                            foreach (var memPool in new[] { MemoryPool<char>.Shared, new _OptionsEquality_MemoryPool() })
+                            foreach (var memPool in new[] { MemoryPoolProviders.Default, new _OptionsEquality_MemoryPoolProvider() })
                                 foreach (var readHint in new[] { 1, 10 })
                                     foreach (var rh in new[] { ReadHeader.Always, ReadHeader.Never })
                                         foreach (var re in new[] { RowEnding.CarriageReturn, RowEnding.Detect })
@@ -290,30 +277,28 @@ namespace Cesil.Tests
                                                         foreach (var wh in new[] { WriteHeader.Always, WriteHeader.Never })
                                                             foreach (var wt in new[] { WriteTrailingRowEnding.Always, WriteTrailingRowEnding.Never })
                                                                 foreach (var ect in new[] { ExtraColumnTreatment.Ignore, ExtraColumnTreatment.ThrowException })
-                                                                    foreach (var ap in new[] { ArrayPool<DynamicCellValue>.Shared, new _OptionsEquality_ArrayPool() })
-                                                                    {
-                                                                        var builder = OptionsBuilder.CreateBuilder();
-                                                                        var opt =
-                                                                            builder
-                                                                                .WithCommentCharacter(commentChar)
-                                                                                .WithDynamicRowDisposal(drd)
-                                                                                .WithEscapedValueEscapeCharacter(escapeChar)
-                                                                                .WithEscapedValueStartAndEnd(escapeStartChar)
-                                                                                .WithMemoryPool(memPool)
-                                                                                .WithReadBufferSizeHint(readHint)
-                                                                                .WithReadHeader(rh)
-                                                                                .WithRowEnding(re)
-                                                                                .WithTypeDescriber(typeDesc)
-                                                                                .WithValueSeparator(valSepChar.ToString())
-                                                                                .WithWriteBufferSizeHint(writeHint)
-                                                                                .WithWriteHeader(wh)
-                                                                                .WithWriteTrailingRowEnding(wt)
-                                                                                .WithExtraColumnTreatment(ect)
-                                                                                .WithArrayPool(ap)
-                                                                                .ToOptions();
+                                                                {
+                                                                    var builder = OptionsBuilder.CreateBuilder();
+                                                                    var opt =
+                                                                        builder
+                                                                            .WithCommentCharacter(commentChar)
+                                                                            .WithDynamicRowDisposal(drd)
+                                                                            .WithEscapedValueEscapeCharacter(escapeChar)
+                                                                            .WithEscapedValueStartAndEnd(escapeStartChar)
+                                                                            .WithMemoryPoolProvider(memPool)
+                                                                            .WithReadBufferSizeHint(readHint)
+                                                                            .WithReadHeader(rh)
+                                                                            .WithRowEnding(re)
+                                                                            .WithTypeDescriber(typeDesc)
+                                                                            .WithValueSeparator(valSepChar.ToString())
+                                                                            .WithWriteBufferSizeHint(writeHint)
+                                                                            .WithWriteHeader(wh)
+                                                                            .WithWriteTrailingRowEnding(wt)
+                                                                            .WithExtraColumnTreatment(ect)
+                                                                            .ToOptions();
 
-                                                                        opts.Add(opt);
-                                                                    }
+                                                                    opts.Add(opt);
+                                                                }
 
             for (var i = 0; i < opts.Count; i++)
             {
@@ -499,11 +484,10 @@ namespace Cesil.Tests
                     .WithWriteHeader(WriteHeader.Always)
                     //.WithTypeDescriber(TypeDescribers.Default)
                     .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Never)
-                    .WithMemoryPool(MemoryPool<char>.Shared)
+                    .WithMemoryPoolProvider(MemoryPoolProviders.Default)
                     .WithWriteBufferSizeHint(null)
                     .WithCommentCharacter(null)
                     .WithReadBufferSizeHint(0)
-                    .WithArrayPool(ArrayPool<DynamicCellValue>.Shared)
                     .ToOptions()
             );
 
@@ -524,25 +508,6 @@ namespace Cesil.Tests
                     .WithWriteBufferSizeHint(null)
                     .WithCommentCharacter(null)
                     .WithReadBufferSizeHint(0)
-                    .WithArrayPool(ArrayPool<DynamicCellValue>.Shared)
-                    .ToOptions()
-            );
-
-            Assert.Throws<InvalidOperationException>(
-                () =>
-                    Options.CreateBuilder().WithValueSeparator(','.ToString())
-                    .WithRowEnding(RowEnding.CarriageReturnLineFeed)
-                    .WithEscapedValueStartAndEnd('"')
-                    .WithEscapedValueEscapeCharacter('"')
-                    .WithReadHeader(ReadHeader.Detect)
-                    .WithWriteHeader(WriteHeader.Always)
-                    .WithTypeDescriber(TypeDescribers.Default)
-                    .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Never)
-                    .WithMemoryPool(MemoryPool<char>.Shared)
-                    .WithWriteBufferSizeHint(null)
-                    .WithCommentCharacter(null)
-                    .WithReadBufferSizeHint(0)
-                    //.WithArrayPool(ArrayPool<DynamicCellValue>.Shared)
                     .ToOptions()
             );
 

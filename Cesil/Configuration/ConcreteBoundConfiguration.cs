@@ -26,7 +26,7 @@ namespace Cesil
         {
             if (instanceProvider != null && deserializeColumns.Any())
             {
-                var builder = RowConstructor.Create<T>(options.MemoryPool, instanceProvider, deserializeColumns);
+                var builder = RowConstructor.Create<T>(MemoryPool, instanceProvider, deserializeColumns);
                 RowBuilder.Value = builder;
             }
             else

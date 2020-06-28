@@ -56,10 +56,10 @@ namespace Cesil
 
         internal static unsafe CharacterLookup MakeCharacterLookup(
             Options options,
+            MemoryPool<char> memoryPool,
             out int neededSize
         )
         {
-            var memoryPool = options.MemoryPool;
             var escapeStartChar = options.EscapedValueStartAndEnd;
             var valueSeparatorChar = options.ValueSeparator[0];
             var valueSepIsMultiChar = options.ValueSeparator.Length > 1;

@@ -11,7 +11,7 @@
               otherwise pointless attribute ourselves.
             </summary>
         </member>
-        <member name="M:Cesil.BoundConfigurationBase`1.#ctor">
+        <member name="M:Cesil.BoundConfigurationBase`1.#ctor(System.Buffers.MemoryPool{System.Char},System.Buffers.MemoryPool{Cesil.DynamicCellValue})">
             <summary>
             For some testing scenarios.
             
@@ -210,6 +210,30 @@
               during certain operations as a member on WriteContext.
             </summary>
         </member>
+        <member name="T:Cesil.IMemoryPoolProvider">
+            <summary>
+            Interface used to obtain MemoryPools.
+            
+            Cesil uses this during creation of IBoundConfigurations to determine
+              where necessary allocations during read/writing will be placed.
+            </summary>
+        </member>
+        <member name="M:Cesil.IMemoryPoolProvider.GetMemoryPool``1">
+            <summary>
+            Returns a MemoryPool for the given type.
+            </summary>
+        </member>
+        <member name="T:Cesil.MemoryPoolProviders">
+            <summary>
+            Holds references to pre-allocated IMemoryPoolProviders.
+            </summary>
+        </member>
+        <member name="P:Cesil.MemoryPoolProviders.Default">
+            <summary>
+            Returns the default IMemoryPoolProvider instance, which obtains
+            MemoryPools via MemoryPool(T).Shared.
+            </summary>
+        </member>
         <member name="T:Cesil.Options">
             <summary>
             A set of options for reading and writing CSV files.
@@ -229,7 +253,7 @@
               - detects headers when reading
               - writes headers
               - uses the default type describer
-              - uses MemoryPool.Shared
+              - uses MemoryPoolProviders.Default
               - uses the default write buffer size
               - does not write a new line after the last row
               - does not support comments
@@ -250,14 +274,13 @@
               - assumes headers are present
               - writes headers
               - uses the default type describer
-              - uses MemoryPool.Shared
+              - uses MemoryPoolProviders.Default
               - uses the default write buffer size
               - does not write a new line after the last row
               - does not support comments
               - uses the default read buffer size
               - dynamic rows are disposed when the reader that returns them is disposed
               - extra columns are included, accessible via index
-              - uses ArrayPool.Shared
             </summary>
         </member>
         <member name="P:Cesil.Options.ValueSeparator">
@@ -311,9 +334,9 @@
             in a CSV.
             </summary>
         </member>
-        <member name="P:Cesil.Options.MemoryPool">
+        <member name="P:Cesil.Options.MemoryPoolProvider">
             <summary>
-            Which MemoryPool to use when reading or writing a CSV.
+            Provider for MemoryPools needed during reading or writing CSVs.
             </summary>
         </member>
         <member name="P:Cesil.Options.CommentCharacter">
@@ -355,12 +378,6 @@
         <member name="P:Cesil.Options.ExtraColumnTreatment">
             <summary>
             How to handle extra colums encountered when reading a CSV.
-            </summary>
-        </member>
-        <member name="P:Cesil.Options.ArrayPool">
-            <summary>
-            Which ArrayPool to use when buffering DynamicCellValues when
-            writing dynamic rows.
             </summary>
         </member>
         <member name="M:Cesil.Options.CreateBuilder">
@@ -465,9 +482,9 @@
             in a CSV.
             </summary>
         </member>
-        <member name="P:Cesil.OptionsBuilder.MemoryPool">
+        <member name="P:Cesil.OptionsBuilder.MemoryPoolProvider">
             <summary>
-            Which MemoryPool to use when reading or writing a CSV.
+            Provider for MemoryPools needed during reading or writing CSVs.
             </summary>
         </member>
         <member name="P:Cesil.OptionsBuilder.CommentCharacter">
@@ -509,12 +526,6 @@
         <member name="P:Cesil.OptionsBuilder.ExtraColumnTreatment">
             <summary>
             How to handle extra colums encountered when reading a CSV.
-            </summary>
-        </member>
-        <member name="P:Cesil.OptionsBuilder.ArrayPool">
-            <summary>
-            Which ArrayPool to use when buffering DynamicCellValues when
-            writing dynamic rows.
             </summary>
         </member>
         <member name="M:Cesil.OptionsBuilder.CreateBuilder">
@@ -580,15 +591,9 @@
             Set whether or not to end the last row with a new line.
             </summary>
         </member>
-        <member name="M:Cesil.OptionsBuilder.WithMemoryPool(System.Buffers.MemoryPool{System.Char})">
+        <member name="M:Cesil.OptionsBuilder.WithMemoryPoolProvider(Cesil.IMemoryPoolProvider)">
             <summary>
-            Set the MemoryPool used during reading and writing.
-            </summary>
-        </member>
-        <member name="M:Cesil.OptionsBuilder.WithArrayPool(System.Buffers.ArrayPool{Cesil.DynamicCellValue})">
-            <summary>
-            Set the ArrayPool used for buffering DynamicCellValues when writing
-            dynamic rows.
+            Set the MemoryPoolProvider used during reading and writing.
             </summary>
         </member>
         <member name="M:Cesil.OptionsBuilder.WithCommentCharacter(System.Nullable{System.Char})">

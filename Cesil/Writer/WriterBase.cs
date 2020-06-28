@@ -30,7 +30,7 @@ namespace Cesil
             Configuration = config;
 
             var options = Configuration.Options;
-            var memPool = options.MemoryPool;
+            var memPool = Configuration.MemoryPool;
             var writeSizeHint = options.WriteBufferSizeHint;
 
             Buffer = new MaxSizedBufferWriter(memPool, writeSizeHint);

@@ -177,11 +177,11 @@ namespace Cesil.Tests
 
             var concreteConfig = Configuration.For<_WeirdImpossibleExceptions>();
             var concreteExc = ImpossibleException.Create("testing", "foo", "bar", 123, concreteConfig);
-            Assert.Equal("The impossible has happened!\r\ntesting\r\nFile: foo\r\nMember: bar\r\nLine: 123\r\nPlease report this to https://github.com/kevin-montrose/Cesil/issues/new\r\nBound to Cesil.Tests.UtilsTests+_WeirdImpossibleExceptions\r\nConcrete binding\r\nWith options: Options with CommentCharacter=, DynamicRowDisposal=OnReaderDispose, EscapedValueEscapeCharacter=\", EscapedValueStartAndEnd=\", MemoryPool=System.Buffers.ArrayMemoryPool`1[System.Char], ReadBufferSizeHint=0, ReadHeader=Detect, RowEnding=CarriageReturnLineFeed, TypeDescriber=DefaultTypeDescriber Shared Instance, ValueSeparator=,, WriteBufferSizeHint=, WriteHeader=Always, WriteTrailingRowEnding=Never, WhitespaceTreatment=Preserve, ExtraColumnTreatment=Ignore, ArrayPool=System.Buffers.TlsOverPerCoreLockedStacksArrayPool`1[Cesil.DynamicCellValue]", concreteExc.Message);
+            Assert.Equal("The impossible has happened!\r\ntesting\r\nFile: foo\r\nMember: bar\r\nLine: 123\r\nPlease report this to https://github.com/kevin-montrose/Cesil/issues/new\r\nBound to Cesil.Tests.UtilsTests+_WeirdImpossibleExceptions\r\nConcrete binding\r\nWith options: Options with CommentCharacter=, DynamicRowDisposal=OnReaderDispose, EscapedValueEscapeCharacter=\", EscapedValueStartAndEnd=\", MemoryPoolProvider=DefaultMemoryPoolProvider Shared Instance, ReadBufferSizeHint=0, ReadHeader=Detect, RowEnding=CarriageReturnLineFeed, TypeDescriber=DefaultTypeDescriber Shared Instance, ValueSeparator=,, WriteBufferSizeHint=, WriteHeader=Always, WriteTrailingRowEnding=Never, WhitespaceTreatment=Preserve, ExtraColumnTreatment=Ignore", concreteExc.Message);
 
             var dynConfig = Configuration.ForDynamic();
             var dynExc = ImpossibleException.Create("testing", "foo", "bar", 123, dynConfig);
-            Assert.Equal("The impossible has happened!\r\ntesting\r\nFile: foo\r\nMember: bar\r\nLine: 123\r\nPlease report this to https://github.com/kevin-montrose/Cesil/issues/new\r\nBound to System.Object\r\nDynamic binding\r\nWith options: Options with CommentCharacter=, DynamicRowDisposal=OnReaderDispose, EscapedValueEscapeCharacter=\", EscapedValueStartAndEnd=\", MemoryPool=System.Buffers.ArrayMemoryPool`1[System.Char], ReadBufferSizeHint=0, ReadHeader=Always, RowEnding=CarriageReturnLineFeed, TypeDescriber=DefaultTypeDescriber Shared Instance, ValueSeparator=,, WriteBufferSizeHint=, WriteHeader=Always, WriteTrailingRowEnding=Never, WhitespaceTreatment=Preserve, ExtraColumnTreatment=IncludeDynamic, ArrayPool=System.Buffers.TlsOverPerCoreLockedStacksArrayPool`1[Cesil.DynamicCellValue]", dynExc.Message);
+            Assert.Equal("The impossible has happened!\r\ntesting\r\nFile: foo\r\nMember: bar\r\nLine: 123\r\nPlease report this to https://github.com/kevin-montrose/Cesil/issues/new\r\nBound to System.Object\r\nDynamic binding\r\nWith options: Options with CommentCharacter=, DynamicRowDisposal=OnReaderDispose, EscapedValueEscapeCharacter=\", EscapedValueStartAndEnd=\", MemoryPoolProvider=DefaultMemoryPoolProvider Shared Instance, ReadBufferSizeHint=0, ReadHeader=Always, RowEnding=CarriageReturnLineFeed, TypeDescriber=DefaultTypeDescriber Shared Instance, ValueSeparator=,, WriteBufferSizeHint=, WriteHeader=Always, WriteTrailingRowEnding=Never, WhitespaceTreatment=Preserve, ExtraColumnTreatment=IncludeDynamic", dynExc.Message);
         }
 
         [Fact]
@@ -380,6 +380,19 @@ namespace Cesil.Tests
             public string Foo { get; set; }
         }
 
+        private sealed class _Encode_MemoryPoolProvider : IMemoryPoolProvider
+        {
+            public MemoryPool<T> GetMemoryPool<T>()
+            {
+                if(typeof(T) == typeof(char))
+                {
+                    return (MemoryPool<T>)(object)new _Encode_MemoryPool();
+                }
+
+                return MemoryPool<T>.Shared;
+            }
+        }
+
         private sealed class _Encode_MemoryPool : MemoryPool<char>
         {
             private sealed class Owner : IMemoryOwner<char>
@@ -424,7 +437,7 @@ namespace Cesil.Tests
         {
             // defaults
             {
-                var res = Utils.Encode(input, Options.Default);
+                var res = Utils.Encode(input, Options.Default, MemoryPool<char>.Shared);
 
                 Assert.Equal(expected, res);
             }
@@ -432,9 +445,9 @@ namespace Cesil.Tests
             // exact buffer
 
             {
-                var opts = Options.CreateBuilder(Options.Default).WithMemoryPool(new _Encode_MemoryPool()).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithMemoryPoolProvider(new _Encode_MemoryPoolProvider()).ToOptions();
 
-                var res = Utils.Encode(input, opts);
+                var res = Utils.Encode(input, opts, new _Encode_MemoryPool());
 
                 Assert.Equal(expected, res);
             }
@@ -446,12 +459,12 @@ namespace Cesil.Tests
             // no escapes at all
             var opts1 = Options.CreateBuilder(Options.Default).WithEscapedValueEscapeCharacter(null).WithEscapedValueStartAndEnd(null).ToOptions();
 
-            Assert.Throws<ImpossibleException>(() => Utils.Encode("", opts1));
+            Assert.Throws<ImpossibleException>(() => Utils.Encode("", opts1, MemoryPool<char>.Shared));
 
             // no escape char
             var opts2 = Options.CreateBuilder(opts1).WithEscapedValueEscapeCharacter(null).ToOptions();
 
-            Assert.Throws<ImpossibleException>(() => Utils.Encode("", opts2));
+            Assert.Throws<ImpossibleException>(() => Utils.Encode("", opts2, MemoryPool<char>.Shared));
         }
 
 

@@ -26,7 +26,7 @@ namespace Cesil
 
         private bool HasWrittenComments;
 
-        private DynamicCellValue[]? CellBuffer;
+        private IMemoryOwner<DynamicCellValue>? CellBuffer;
 
         internal AsyncDynamicWriter(DynamicBoundConfiguration config, IAsyncWriterAdapter inner, object? context) : base(config, inner, context) { }
 
@@ -80,7 +80,7 @@ namespace Cesil
 
                 var wholeRowContext = WriteContext.DiscoveringCells(Configuration.Options, RowNumber, Context);
 
-                var cellValues = Utils.GetCells(options.ArrayPool, ref CellBuffer, typeDescriber, in wholeRowContext, row as object);
+                var cellValues = Utils.GetCells(Configuration.DynamicMemoryPool, ref CellBuffer, typeDescriber, in wholeRowContext, row as object);
 
                 Utils.ForceInOrder(ColumnNames.Value, ColumnNameSorter, cellValues);
                 var cellValuesInOrderSpan = cellValues.Span;
@@ -162,7 +162,7 @@ end:
 
                     var wholeRowContext = WriteContext.DiscoveringCells(options, self.RowNumber, self.Context);
 
-                    var cellValues = Utils.GetCells(options.ArrayPool, ref self.CellBuffer, typeDescriber, in wholeRowContext, row as object);
+                    var cellValues = Utils.GetCells(self.Configuration.DynamicMemoryPool, ref self.CellBuffer, typeDescriber, in wholeRowContext, row as object);
 
                     Utils.ForceInOrder(self.ColumnNames.Value, self.ColumnNameSorter, cellValues);
 
@@ -882,7 +882,7 @@ end:
             var options = Configuration.Options;
 
             var colIx = 0;
-            var cellsMem = Utils.GetCells(options.ArrayPool, ref CellBuffer, options.TypeDescriber, in ctx, o as object);
+            var cellsMem = Utils.GetCells(Configuration.DynamicMemoryPool, ref CellBuffer, options.TypeDescriber, in ctx, o as object);
             var cells = cellsMem.Span;
             foreach (var c in cells)
             {
@@ -899,7 +899,7 @@ end:
                 // encode it, if it needs encoding
                 if (NeedsEncode(encodedColName))
                 {
-                    encodedColName = Utils.Encode(encodedColName, options);
+                    encodedColName = Utils.Encode(encodedColName, options, Configuration.MemoryPool);
                 }
 
                 cols.Add((colName, encodedColName));
@@ -1093,10 +1093,7 @@ end:
                     }
                     Buffer.Dispose();
 
-                    if (CellBuffer != null)
-                    {
-                        Configuration.Options.ArrayPool.Return(CellBuffer);
-                    }
+                    CellBuffer?.Dispose();
                 }
                 catch (Exception e)
                 {
@@ -1114,10 +1111,7 @@ end:
                     }
 
                     Buffer.Dispose();
-                    if (CellBuffer != null)
-                    {
-                        Configuration.Options.ArrayPool.Return(CellBuffer);
-                    }
+                    CellBuffer?.Dispose();
 
                     return Throw.PoisonAndRethrow<ValueTask>(this, e);
                 }
@@ -1161,10 +1155,7 @@ end:
                     }
                     self.Buffer.Dispose();
 
-                    if (self.CellBuffer != null)
-                    {
-                        self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
-                    }
+                    self.CellBuffer?.Dispose();
                 }
                 catch (Exception e)
                 {
@@ -1182,10 +1173,7 @@ end:
                     }
 
                     self.Buffer.Dispose();
-                    if (self.CellBuffer != null)
-                    {
-                        self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
-                    }
+                    self.CellBuffer?.Dispose();
 
                     Throw.PoisonAndRethrow<object>(self, e);
                 }
@@ -1220,10 +1208,7 @@ end:
                         self.OneCharOwner.Clear();
                     }
                     self.Buffer.Dispose();
-                    if (self.CellBuffer != null)
-                    {
-                        self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
-                    }
+                    self.CellBuffer?.Dispose();
                 }
                 catch (Exception e)
                 {
@@ -1241,10 +1226,7 @@ end:
                     }
 
                     self.Buffer.Dispose();
-                    if (self.CellBuffer != null)
-                    {
-                        self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
-                    }
+                    self.CellBuffer?.Dispose();
 
                     Throw.PoisonAndRethrow<object>(self, e);
                 }
@@ -1270,10 +1252,7 @@ end:
                     }
 
                     self.Buffer.Dispose();
-                    if (self.CellBuffer != null)
-                    {
-                        self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
-                    }
+                    self.CellBuffer?.Dispose();
                 }
                 catch (Exception e)
                 {
@@ -1291,10 +1270,7 @@ end:
                     }
 
                     self.Buffer.Dispose();
-                    if (self.CellBuffer != null)
-                    {
-                        self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
-                    }
+                    self.CellBuffer?.Dispose();
 
                     Throw.PoisonAndRethrow<object>(self, e);
                 }
@@ -1313,10 +1289,7 @@ end:
                     }
 
                     self.Buffer.Dispose();
-                    if (self.CellBuffer != null)
-                    {
-                        self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
-                    }
+                    self.CellBuffer?.Dispose();
                 }
                 catch (Exception e)
                 {
@@ -1327,10 +1300,7 @@ end:
                     }
 
                     self.Buffer.Dispose();
-                    if (self.CellBuffer != null)
-                    {
-                        self.Configuration.Options.ArrayPool.Return(self.CellBuffer);
-                    }
+                    self.CellBuffer?.Dispose();
 
                     Throw.PoisonAndRethrow<object>(self, e);
                 }
