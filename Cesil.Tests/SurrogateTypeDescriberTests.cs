@@ -20,8 +20,8 @@ namespace Cesil.Tests
                 new[] { typeof(string).GetTypeInfo(), typeof(long).GetTypeInfo() },
                 new[] { typeof(object).GetTypeInfo(), typeof(long).GetTypeInfo(), typeof(string).GetTypeInfo(), typeof(int).GetTypeInfo() }
             };
-            var describers = new[] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() };
-            var fallbacks = new[] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() };
+            var describers = new ITypeDescriber[] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() };
+            var fallbacks = new ITypeDescriber[] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() };
 
             var surrogates = new List<SurrogateTypeDescriber>();
 

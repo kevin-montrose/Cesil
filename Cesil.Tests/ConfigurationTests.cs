@@ -275,7 +275,7 @@ namespace Cesil.Tests
                                 foreach (var readHint in new[] { 1, 10 })
                                     foreach (var rh in new[] { ReadHeader.Always, ReadHeader.Never })
                                         foreach (var re in new[] { RowEnding.CarriageReturn, RowEnding.Detect })
-                                            foreach (var typeDesc in new[] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() })
+                                            foreach (var typeDesc in new ITypeDescriber[] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() })
                                                 foreach (var valSepChar in new char[] { ',', ';' })
                                                     foreach (var writeHint in new int?[] { null, 10 })
                                                         foreach (var wh in new[] { WriteHeader.Always, WriteHeader.Never })

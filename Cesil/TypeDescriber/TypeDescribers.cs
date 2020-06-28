@@ -11,6 +11,6 @@
         /// This instance is used in cases where an ITypeDescriber has not been
         ///   configured.
         /// </summary>
-        public static readonly ITypeDescriber Default = new DefaultTypeDescriber();
+        public static readonly DefaultTypeDescriber Default = new DefaultTypeDescriber();
     }
 }

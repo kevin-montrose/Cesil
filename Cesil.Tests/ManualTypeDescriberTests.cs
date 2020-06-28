@@ -12,7 +12,7 @@ namespace Cesil.Tests
         public void Equality()
         {
             var behaviors = new[] { ManualTypeDescriberFallbackBehavior.Throw, ManualTypeDescriberFallbackBehavior.UseFallback };
-            var fallbacks = new[] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() };
+            var fallbacks = new ITypeDescriber[] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() };
             var providers = new[] { InstanceProvider.ForDelegate((in ReadContext _, out string x) => { x = ""; return true; }), InstanceProvider.ForDelegate((in ReadContext _, out object o) => { o = new object(); return true; }) };
             var getters =
                 new[]
