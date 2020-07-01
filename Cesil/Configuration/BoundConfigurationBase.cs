@@ -26,15 +26,21 @@ namespace Cesil
 
         internal readonly NeedsEncodeHelper NeedsEncode;
 
+        internal readonly MemoryPool<char> MemoryPool;
+        internal readonly MemoryPool<DynamicCellValue> DynamicMemoryPool;
+
 #pragma warning disable CS8618
         /// <summary>
         /// For some testing scenarios.
         /// 
         /// Created instance is nearly unusable.
         /// </summary>
-        protected BoundConfigurationBase()
+        protected BoundConfigurationBase(
+            MemoryPool<char> memPool,
+            MemoryPool<DynamicCellValue> dynMemPool)
         {
-
+            MemoryPool = memPool;
+            DynamicMemoryPool = dynMemPool;
         }
 #pragma warning restore CS8618
 
@@ -65,6 +71,9 @@ namespace Cesil
             NeedsEncode = new NeedsEncodeHelper(options.ValueSeparator, options.EscapedValueStartAndEnd, options.CommentCharacter);
 
             ValueSeparatorMemory = options.ValueSeparator.AsMemory();
+
+            MemoryPool = options.MemoryPoolProvider.GetMemoryPool<char>();
+            DynamicMemoryPool = options.MemoryPoolProvider.GetMemoryPool<DynamicCellValue>();
         }
 
         /// <summary>
@@ -97,6 +106,9 @@ namespace Cesil
             NeedsEncode = new NeedsEncodeHelper(options.ValueSeparator, options.EscapedValueStartAndEnd, options.CommentCharacter);
 
             ValueSeparatorMemory = options.ValueSeparator.AsMemory();
+
+            MemoryPool = options.MemoryPoolProvider.GetMemoryPool<char>();
+            DynamicMemoryPool = options.MemoryPoolProvider.GetMemoryPool<DynamicCellValue>();
         }
 
         public IAsyncReader<T> CreateAsyncReader(PipeReader reader, Encoding encoding, object? context = null)
@@ -129,7 +141,7 @@ namespace Cesil
 
             // context is legally null
 
-            var wrapper = new PipeWriterAdapter(writer, encoding, Options.MemoryPool);
+            var wrapper = new PipeWriterAdapter(writer, encoding, MemoryPool);
 
             return CreateAsyncWriter(wrapper, context);
         }

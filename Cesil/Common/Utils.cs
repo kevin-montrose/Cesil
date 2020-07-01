@@ -620,12 +620,10 @@ tryAgain:
             return -1;
         }
 
-        internal static string Encode(string rawStr, Options options)
+        internal static string Encode(string rawStr, Options options, MemoryPool<char> pool)
         {
             // assume there's a single character that needs escape, so 2 chars for the start and stop and 1 for the escape
             var defaultSize = rawStr.Length + 2 + 1;
-
-            var pool = options.MemoryPool;
 
             var escapedValueStartAndStop = options.EscapedValueStartAndEnd;
 
@@ -642,7 +640,7 @@ tryAgain:
             }
 
             var raw = rawStr.AsMemory();
-            var retOwner = options.MemoryPool.Rent(defaultSize);
+            var retOwner = pool.Rent(defaultSize);
             try
             {
                 retOwner.Memory.Span[0] = escapedValueStartAndStop.Value;
@@ -748,6 +746,148 @@ tryAgain:
                     return ExtraColumnTreatment.ThrowException;
                 default:
                     return Throw.ImpossibleException<ExtraColumnTreatment, T>($"Unexpected {nameof(ExtraColumnTreatment)}: {ect}", config);
+            }
+        }
+
+        internal static Memory<DynamicCellValue> GetCells(MemoryPool<DynamicCellValue> arrPool, ref IMemoryOwner<DynamicCellValue>? buffer, ITypeDescriber describer, in WriteContext context, object rowAsObj)
+        {
+tryAgain:
+            var bufferMem = buffer?.Memory ?? Memory<DynamicCellValue>.Empty;
+            var bufferSpan = bufferMem.Span;
+
+            var numCells = describer.GetCellsForDynamicRow(context, rowAsObj, bufferSpan);
+            if (numCells > bufferSpan.Length)
+            {
+                if (buffer != null)
+                {
+                    buffer.Dispose();
+                }
+                buffer = arrPool.Rent(numCells);
+                goto tryAgain;
+            }
+
+            return bufferMem[..numCells];
+        }
+
+        internal static void ForceInOrder(
+            (string Name, string EncodedName)[] columnNamesValue,
+            NonNull<Comparison<DynamicCellValue>> columnNameSorter,
+            Memory<DynamicCellValue> raw
+        )
+        {
+            // no headers mean we write whatever we're given
+            if (columnNamesValue.Length == 0)
+            {
+                return;
+            }
+
+            var rawSpan = raw.Span;
+
+            var inOrder = true;
+
+            var i = 0;
+            foreach (var x in rawSpan)
+            {
+                if (i == columnNamesValue.Length)
+                {
+                    Throw.InvalidOperationException<Memory<DynamicCellValue>>("Too many cells returned, could not place in desired order");
+                    return;
+                }
+
+                var (name, _) = columnNamesValue[i];
+                if (!name.Equals(x.Name))
+                {
+                    inOrder = false;
+                    break;
+                }
+
+                i++;
+            }
+
+            // already in order
+            if (inOrder)
+            {
+                return;
+            }
+
+            var comparer = columnNameSorter.Value;
+
+            Sort(rawSpan, comparer);
+        }
+
+        // todo: once MemoryExtensions.Sort() lands we can remove all of this (add tracking issue?)
+        //       coming as part of .NET 5, as a consequence of https://github.com/dotnet/runtime/issues/19969
+        internal static void Sort<T>(Span<T> span, Comparison<T> comparer)
+        {
+            // crummy quick sort implementation, all of this should get killed
+
+            var len = span.Length;
+
+            if (len <= 1)
+            {
+                return;
+            }
+
+            if (len == 2)
+            {
+                var a = span[0];
+                var b = span[1];
+
+                var res = comparer(a, b);
+                if (res > 0)
+                {
+                    span[0] = b;
+                    span[1] = a;
+                }
+
+                return;
+            }
+
+            // we only ever call this when the span isn't _already_ sorted,
+            //    so our sort can be really dumb
+            // basically Lomuto (see: https://en.wikipedia.org/wiki/Quicksort#Lomuto_partition_scheme)
+
+            var splitIx = Partition(span, comparer);
+
+            var left = span[..splitIx];
+            var right = span[(splitIx + 1)..];
+
+            Sort(left, comparer);
+            Sort(right, comparer);
+
+            // re-order subSpan such that items before the returned index are less than the value
+            //    at the returned index
+            static int Partition(Span<T> subSpan, Comparison<T> comparer)
+            {
+                var len = subSpan.Length;
+
+                var pivotIx = len - 1;
+                var pivotItem = subSpan[pivotIx];
+
+                var i = 0;
+
+                for (var j = 0; j < len; j++)
+                {
+                    var item = subSpan[j];
+                    var res = comparer(item, pivotItem);
+
+                    if (res < 0)
+                    {
+                        Swap(subSpan, i, j);
+                        i++;
+                    }
+                }
+
+                Swap(subSpan, i, pivotIx);
+
+                return i;
+            }
+
+            static void Swap(Span<T> subSpan, int i, int j)
+            {
+                var oldI = subSpan[i];
+                subSpan[i] = subSpan[j];
+                subSpan[j] = oldI;
             }
         }
     }

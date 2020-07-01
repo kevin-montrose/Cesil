@@ -61,10 +61,10 @@ namespace Cesil
         /// </summary>
         public WriteTrailingRowEnding WriteTrailingRowEnding { get; private set; }
         /// <summary>
-        /// Which MemoryPool to use when reading or writing a CSV.
+        /// Provider for MemoryPools needed during reading or writing CSVs.
         /// </summary>
         [NullableExposed("All properties on OptionsBuilder are mutable and nullable, Options handles making sure they're not null")]
-        public MemoryPool<char>? MemoryPool { get; private set; }
+        public IMemoryPoolProvider? MemoryPoolProvider { get; private set; }
         /// <summary>
         /// Which character, if any, is used to indicate the start
         /// of a comment.
@@ -118,7 +118,7 @@ namespace Cesil
             WriteHeader = copy.WriteHeader;
             TypeDescriber = copy.TypeDescriber;
             WriteTrailingRowEnding = copy.WriteTrailingRowEnding;
-            MemoryPool = copy.MemoryPool;
+            MemoryPoolProvider = copy.MemoryPoolProvider;
             CommentCharacter = copy.CommentCharacter;
             WriteBufferSizeHint = copy.WriteBufferSizeHint;
             ReadBufferSizeHint = copy.ReadBufferSizeHint;
@@ -200,10 +200,10 @@ namespace Cesil
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(WriteTrailingRowEnding)} has an unexpected value, '{WriteTrailingRowEnding}'");
             }
-            // MemoryPool not configured
-            if (MemoryPool == null)
+            // MemoryPoolProvider not configured
+            if (MemoryPoolProvider == null)
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(TypeDescriber)} has not been set");
+                return Throw.InvalidOperationException<Options>($"{nameof(MemoryPoolProvider)} has not been set");
             }
             // WriteBufferSizeHint < 0
             if (WriteBufferSizeHint.HasValue && WriteBufferSizeHint.Value < 0)
@@ -414,13 +414,13 @@ namespace Cesil
         }
 
         /// <summary>
-        /// Set the MemoryPool used during reading and writing.
+        /// Set the MemoryPoolProvider used during reading and writing.
         /// </summary>
-        public OptionsBuilder WithMemoryPool(MemoryPool<char> memoryPool)
+        public OptionsBuilder WithMemoryPoolProvider(IMemoryPoolProvider memoryPoolProvider)
         {
-            memoryPool ??= MemoryPool<char>.Shared;
+            memoryPoolProvider ??= MemoryPoolProviders.Default;
 
-            MemoryPool = memoryPool;
+            MemoryPoolProvider = memoryPoolProvider;
             return this;
         }
 
@@ -445,7 +445,7 @@ namespace Cesil
         /// All values are treated as hints, it's up to
         ///   the configured MemoryPool to satisfy the request.
         /// </summary>
-        public OptionsBuilder WithWriteBufferSizeHint([IntentionallyExposedPrimitive("Best way to indicate a size")]int? sizeHint)
+        public OptionsBuilder WithWriteBufferSizeHint([IntentionallyExposedPrimitive("Best way to indicate a size")] int? sizeHint)
         {
             if (sizeHint != null && sizeHint < 0)
             {
@@ -471,7 +471,7 @@ namespace Cesil
         /// All values are treated as hints, it's up to
         ///   the configured MemoryPool to satisfy the request.
         /// </summary>
-        public OptionsBuilder WithReadBufferSizeHint([IntentionallyExposedPrimitive("Best way to indicate a size")]int sizeHint)
+        public OptionsBuilder WithReadBufferSizeHint([IntentionallyExposedPrimitive("Best way to indicate a size")] int sizeHint)
         {
             if (sizeHint < 0)
             {
@@ -564,7 +564,7 @@ namespace Cesil
             ret.Append($", {nameof(DynamicRowDisposal)}={DynamicRowDisposal}");
             ret.Append($", {nameof(EscapedValueEscapeCharacter)}={EscapedValueEscapeCharacter}");
             ret.Append($", {nameof(EscapedValueStartAndEnd)}={EscapedValueStartAndEnd}");
-            ret.Append($", {nameof(MemoryPool)}={MemoryPool}");
+            ret.Append($", {nameof(MemoryPoolProvider)}={MemoryPoolProvider}");
             ret.Append($", {nameof(ReadBufferSizeHint)}={ReadBufferSizeHint}");
             ret.Append($", {nameof(ReadHeader)}={ReadHeader}");
             ret.Append($", {nameof(RowEnding)}={RowEnding}");

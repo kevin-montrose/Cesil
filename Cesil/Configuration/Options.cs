@@ -22,7 +22,7 @@ namespace Cesil
         ///   - detects headers when reading
         ///   - writes headers
         ///   - uses the default type describer
-        ///   - uses MemoryPool.Shared
+        ///   - uses MemoryPoolProviders.Default
         ///   - uses the default write buffer size
         ///   - does not write a new line after the last row
         ///   - does not support comments
@@ -30,6 +30,7 @@ namespace Cesil
         ///   - dynamic rows are disposed when the reader that returns them is disposed
         ///   - whitespace is preserved
         ///   - extra columns are ignored
+        ///   - uses ArrayPool.Shared
         /// </summary>
         public static readonly Options Default =
             CreateBuilder()
@@ -41,7 +42,7 @@ namespace Cesil
                 .WithWriteHeader(WriteHeader.Always)
                 .WithTypeDescriber(TypeDescribers.Default)
                 .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Never)
-                .WithMemoryPool(MemoryPool<char>.Shared)
+                .WithMemoryPoolProvider(MemoryPoolProviders.Default)
                 .WithWriteBufferSizeHint(null)
                 .WithCommentCharacter(null)
                 .WithReadBufferSizeHint(0)
@@ -59,7 +60,7 @@ namespace Cesil
         ///   - assumes headers are present
         ///   - writes headers
         ///   - uses the default type describer
-        ///   - uses MemoryPool.Shared
+        ///   - uses MemoryPoolProviders.Default
         ///   - uses the default write buffer size
         ///   - does not write a new line after the last row
         ///   - does not support comments
@@ -77,7 +78,7 @@ namespace Cesil
                 .WithWriteHeader(WriteHeader.Always)
                 .WithTypeDescriber(TypeDescribers.Default)
                 .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Never)
-                .WithMemoryPool(MemoryPool<char>.Shared)
+                .WithMemoryPoolProvider(MemoryPoolProviders.Default)
                 .WithWriteBufferSizeHint(null)
                 .WithCommentCharacter(null)
                 .WithReadBufferSizeHint(0)
@@ -130,9 +131,9 @@ namespace Cesil
         /// </summary>
         public WriteTrailingRowEnding WriteTrailingRowEnding { get; }
         /// <summary>
-        /// Which MemoryPool to use when reading or writing a CSV.
+        /// Provider for MemoryPools needed during reading or writing CSVs.
         /// </summary>
-        public MemoryPool<char> MemoryPool { get; }
+        public IMemoryPoolProvider MemoryPoolProvider { get; }
         /// <summary>
         /// Which character, if any, is used to indicate the start
         /// of a comment.
@@ -181,7 +182,7 @@ namespace Cesil
             WriteHeader = copy.WriteHeader;
             TypeDescriber = Utils.NonNull(copy.TypeDescriber);
             WriteTrailingRowEnding = copy.WriteTrailingRowEnding;
-            MemoryPool = Utils.NonNull(copy.MemoryPool);
+            MemoryPoolProvider = Utils.NonNull(copy.MemoryPoolProvider);
             CommentCharacter = copy.CommentCharacter;
             WriteBufferSizeHint = copy.WriteBufferSizeHint;
             ReadBufferSizeHint = copy.ReadBufferSizeHint;
@@ -228,7 +229,7 @@ namespace Cesil
                 options.DynamicRowDisposal == DynamicRowDisposal &&
                 options.EscapedValueEscapeCharacter == EscapedValueEscapeCharacter &&
                 options.EscapedValueStartAndEnd == EscapedValueStartAndEnd &&
-                options.MemoryPool == MemoryPool &&
+                options.MemoryPoolProvider == MemoryPoolProvider &&
                 options.ReadBufferSizeHint == ReadBufferSizeHint &&
                 options.ReadHeader == ReadHeader &&
                 options.RowEnding == RowEnding &&
@@ -246,23 +247,24 @@ namespace Cesil
         /// </summary>
         public override int GetHashCode()
         => HashCode.Combine(
-            CommentCharacter,
-            DynamicRowDisposal,
-            EscapedValueEscapeCharacter,
-            EscapedValueStartAndEnd,
-            MemoryPool,
-            ReadBufferSizeHint,
-            ReadHeader,
-            HashCode.Combine(
-                RowEnding,
-                TypeDescriber,
-                ValueSeparator,
-                WriteBufferSizeHint,
-                WriteHeader,
-                WriteTrailingRowEnding,
-                WhitespaceTreatment,
-                ExtraColumnTreatment
-            ));
+                CommentCharacter,
+                DynamicRowDisposal,
+                EscapedValueEscapeCharacter,
+                EscapedValueStartAndEnd,
+                MemoryPoolProvider,
+                ReadBufferSizeHint,
+                ReadHeader,
+                HashCode.Combine(
+                    RowEnding,
+                    TypeDescriber,
+                    ValueSeparator,
+                    WriteBufferSizeHint,
+                    WriteHeader,
+                    WriteTrailingRowEnding,
+                    WhitespaceTreatment,
+                    ExtraColumnTreatment
+                )
+            );
 
         /// <summary>
         /// Returns a representation of this Options object.
@@ -277,7 +279,7 @@ namespace Cesil
             ret.Append($", {nameof(DynamicRowDisposal)}={DynamicRowDisposal}");
             ret.Append($", {nameof(EscapedValueEscapeCharacter)}={EscapedValueEscapeCharacter}");
             ret.Append($", {nameof(EscapedValueStartAndEnd)}={EscapedValueStartAndEnd}");
-            ret.Append($", {nameof(MemoryPool)}={MemoryPool}");
+            ret.Append($", {nameof(MemoryPoolProvider)}={MemoryPoolProvider}");
             ret.Append($", {nameof(ReadBufferSizeHint)}={ReadBufferSizeHint}");
             ret.Append($", {nameof(ReadHeader)}={ReadHeader}");
             ret.Append($", {nameof(RowEnding)}={RowEnding}");

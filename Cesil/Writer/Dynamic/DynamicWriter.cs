@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+
 using static Cesil.DisposableHelper;
 
 namespace Cesil
@@ -22,9 +23,11 @@ namespace Cesil
 
         private bool HasWrittenComments;
 
+        private IMemoryOwner<DynamicCellValue>? CellBuffer;
+
         internal DynamicWriter(DynamicBoundConfiguration config, IWriterAdapter inner, object? context) : base(config, inner, context) { }
 
-        bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)]out V del)
+        bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)] out V del)
         {
             if (DelegateCache == null)
             {
@@ -63,13 +66,15 @@ namespace Cesil
                 var options = Configuration.Options;
                 var valueSeparator = Configuration.ValueSeparatorMemory.Span;
 
-                var cellValues = options.TypeDescriber.GetCellsForDynamicRow(in wholeRowContext, row as object);
-                cellValues = ForceInOrder(cellValues);
+                var cellValuesMem = Utils.GetCells(Configuration.DynamicMemoryPool, ref CellBuffer, options.TypeDescriber, in wholeRowContext, row as object);
+
+                Utils.ForceInOrder(ColumnNames.Value, ColumnNameSorter, cellValuesMem);
+                var cellValuesEnumerableSpan = cellValuesMem.Span;
 
                 var columnNamesValue = ColumnNames.Value;
 
                 var i = 0;
-                foreach (var cell in cellValues)
+                foreach (var cell in cellValuesEnumerableSpan)
                 {
                     var needsSeparator = i != 0;
 
@@ -241,42 +246,6 @@ end:
             }
         }
 
-        private IEnumerable<DynamicCellValue> ForceInOrder(IEnumerable<DynamicCellValue> raw)
-        {
-            var columnNamesValue = ColumnNames.Value;
-
-            // no headers mean we write whatever we're given
-            if (columnNamesValue.Length == 0) return raw;
-
-            var inOrder = true;
-
-            var i = 0;
-            foreach (var x in raw)
-            {
-                if (i == columnNamesValue.Length)
-                {
-                    return Throw.InvalidOperationException<IEnumerable<DynamicCellValue>>("Too many cells returned, could not place in desired order");
-                }
-
-                var (name, _) = columnNamesValue[i];
-                if (!name.Equals(x.Name))
-                {
-                    inOrder = false;
-                    break;
-                }
-
-                i++;
-            }
-
-            // already in order, 
-            if (inOrder) return raw;
-
-            var ret = new List<DynamicCellValue>(raw);
-            ret.Sort(ColumnNameSorter.Value);
-
-            return ret;
-        }
-
         // returns true if it did write out headers,
         //   so we need to end a record before
         //   writing the next one
@@ -299,14 +268,18 @@ end:
 
         private void DiscoverColumns(dynamic o)
         {
+            // todo: remove this allocation
             var cols = new List<(string TrueName, string EncodedName)>();
 
             var ctx = WriteContext.DiscoveringColumns(Configuration.Options, Context);
 
             var options = Configuration.Options;
 
+            var cellsMem = Utils.GetCells(Configuration.DynamicMemoryPool, ref CellBuffer, options.TypeDescriber, in ctx, o as object);
+            var cells = cellsMem.Span;
+
             var colIx = 0;
-            foreach (var c in options.TypeDescriber.GetCellsForDynamicRow(in ctx, o as object))
+            foreach (var c in cells)
             {
                 var colName = c.Name;
 
@@ -321,7 +294,7 @@ end:
                 // encode it, if it needs encoding
                 if (NeedsEncode(encodedColName))
                 {
-                    encodedColName = Utils.Encode(encodedColName, options);
+                    encodedColName = Utils.Encode(encodedColName, options, Configuration.MemoryPool);
                 }
 
                 cols.Add((colName, encodedColName));
@@ -395,7 +368,6 @@ end:
 
                 try
                 {
-
                     if (IsFirstRow)
                     {
                         CheckHeaders(null);
@@ -420,6 +392,7 @@ end:
 
                     Inner.Dispose();
                     Buffer.Dispose();
+                    CellBuffer?.Dispose();
                 }
                 catch (Exception e)
                 {
@@ -431,6 +404,7 @@ end:
                     }
 
                     Buffer.Dispose();
+                    CellBuffer?.Dispose();
 
                     Throw.PoisonAndRethrow<object>(this, e);
                 }

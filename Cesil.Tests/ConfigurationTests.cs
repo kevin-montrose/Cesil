@@ -58,8 +58,8 @@ namespace Cesil.Tests
             public IEnumerable<SerializableMember> EnumerateMembersToSerialize(TypeInfo forType)
             => SerializableMembers;
 
-            public IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext context, object row)
-            => Enumerable.Empty<DynamicCellValue>();
+            public int GetCellsForDynamicRow(in WriteContext context, object row, Span<DynamicCellValue> cells)
+            => 0;
 
             public Parser GetDynamicCellParserFor(in ReadContext context, TypeInfo targetType)
             => null;
@@ -204,10 +204,10 @@ namespace Cesil.Tests
                     .WithWhitespaceTreatment(WhitespaceTreatments.Trim)
                     .ToOptions();
 
-            using (var c = CharacterLookup.MakeCharacterLookup(cOpts, out var maxSize1))
-            using (var d = CharacterLookup.MakeCharacterLookup(dOpts, out var maxSize2))
-            using (var e = CharacterLookup.MakeCharacterLookup(eOpts, out var maxSize3))
-            using (var f = CharacterLookup.MakeCharacterLookup(fOpts, out var maxSize4))
+            using (var c = CharacterLookup.MakeCharacterLookup(cOpts, MemoryPool<char>.Shared, out var maxSize1))
+            using (var d = CharacterLookup.MakeCharacterLookup(dOpts, MemoryPool<char>.Shared, out var maxSize2))
+            using (var e = CharacterLookup.MakeCharacterLookup(eOpts, MemoryPool<char>.Shared, out var maxSize3))
+            using (var f = CharacterLookup.MakeCharacterLookup(fOpts, MemoryPool<char>.Shared, out var maxSize4))
             {
                 for (var x = 0; x <= char.MaxValue; x++)
                 {
@@ -252,14 +252,10 @@ namespace Cesil.Tests
             Assert.Throws<InvalidOperationException>(() => Configuration.For<object>());
         }
 
-        private class _OptionsEquality_MemoryPool : MemoryPool<char>
+        private class _OptionsEquality_MemoryPoolProvider : IMemoryPoolProvider
         {
-            public override int MaxBufferSize => Shared.MaxBufferSize;
-
-            public override IMemoryOwner<char> Rent(int minBufferSize = -1)
-            => Shared.Rent(minBufferSize);
-
-            protected override void Dispose(bool disposing) { }
+            public MemoryPool<T> GetMemoryPool<T>()
+            => MemoryPool<T>.Shared;
         }
 
         [Fact]
@@ -271,7 +267,7 @@ namespace Cesil.Tests
                 foreach (var drd in new[] { DynamicRowDisposal.OnExplicitDispose, DynamicRowDisposal.OnReaderDispose })
                     foreach (var escapeChar in new char[] { '"', '\\' })
                         foreach (var escapeStartChar in new char[] { '"', '!' })
-                            foreach (var memPool in new[] { MemoryPool<char>.Shared, new _OptionsEquality_MemoryPool() })
+                            foreach (var memPool in new[] { MemoryPoolProviders.Default, new _OptionsEquality_MemoryPoolProvider() })
                                 foreach (var readHint in new[] { 1, 10 })
                                     foreach (var rh in new[] { ReadHeader.Always, ReadHeader.Never })
                                         foreach (var re in new[] { RowEnding.CarriageReturn, RowEnding.Detect })
@@ -289,7 +285,7 @@ namespace Cesil.Tests
                                                                             .WithDynamicRowDisposal(drd)
                                                                             .WithEscapedValueEscapeCharacter(escapeChar)
                                                                             .WithEscapedValueStartAndEnd(escapeStartChar)
-                                                                            .WithMemoryPool(memPool)
+                                                                            .WithMemoryPoolProvider(memPool)
                                                                             .WithReadBufferSizeHint(readHint)
                                                                             .WithReadHeader(rh)
                                                                             .WithRowEnding(re)
@@ -488,7 +484,7 @@ namespace Cesil.Tests
                     .WithWriteHeader(WriteHeader.Always)
                     //.WithTypeDescriber(TypeDescribers.Default)
                     .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Never)
-                    .WithMemoryPool(MemoryPool<char>.Shared)
+                    .WithMemoryPoolProvider(MemoryPoolProviders.Default)
                     .WithWriteBufferSizeHint(null)
                     .WithCommentCharacter(null)
                     .WithReadBufferSizeHint(0)

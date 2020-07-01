@@ -1070,6 +1070,10 @@ namespace Cesil.Tests
                 {
                     msg = InvokeToString_MemberOrderHelper();
                 }
+                else if (t == typeof(MemoryPoolProviders.DefaultMemoryPoolProvider))
+                {
+                    msg = InvokeToString_DefaultMemoryPoolProvider();
+                }
                 else
                 {
                     Assert.True(false, $"No test for ToString() on {t}");
@@ -1094,6 +1098,11 @@ namespace Cesil.Tests
                 {
                     Assert.StartsWith(shouldStartWith, msg2);
                 }
+            }
+
+            static string InvokeToString_DefaultMemoryPoolProvider()
+            {
+                return MemoryPoolProviders.Default.ToString();
             }
 
             static string InvokeToString_MemberOrderHelper()
@@ -1863,7 +1872,7 @@ namespace Cesil.Tests
             }
         }
 
-        private class _ParameterNamesApproved<TRow, TCollection, TValue, TOutput, TInstance>
+        private class _ParameterNamesApproved<TRow, TCollection, TValue, TOutput, TInstance, TElement>
         { }
 
         private class NamedComparer : IEqualityComparer<TypeInfo>
@@ -1920,7 +1929,7 @@ namespace Cesil.Tests
         [Fact]
         public void ParameterNamesApproved()
         {
-            var genArgs = typeof(_ParameterNamesApproved<,,,,>).GetGenericArguments();
+            var genArgs = typeof(_ParameterNamesApproved<,,,,,>).GetGenericArguments();
             Assert.True(genArgs.All(a => a.IsGenericParameter));
 
             // these should be descriptive, but aren't actually important for stability
@@ -1955,7 +1964,6 @@ namespace Cesil.Tests
                     [typeof(ReadOnlySequence<byte>).GetTypeInfo()] = new[] { "sequence" },
                     [typeof(TextReader).GetTypeInfo()] = new[] { "reader" },
                     [typeof(PipeReader).GetTypeInfo()] = new[] { "reader" },
-                    [typeof(MemoryPool<char>).GetTypeInfo()] = new[] { "memoryPool" },
                     [typeof(ReadOnlySpan<char>).GetTypeInfo()] = new[] { "data", "comment" },
                     [typeof(ReadOnlyMemory<char>).GetTypeInfo()] = new[] { "comment" },
                     [typeof(IEnumerable<dynamic>).GetTypeInfo()] = new[] { "rows" },
@@ -1989,6 +1997,7 @@ namespace Cesil.Tests
                     [typeof(DynamicRowDisposal).GetTypeInfo()] = new[] { "dynamicRowDisposal" },
                     [typeof(WhitespaceTreatments).GetTypeInfo()] = new[] { "whitespaceTreatment" },
                     [typeof(ExtraColumnTreatment).GetTypeInfo()] = new[] { "extraColumnTreatment" },
+                    [typeof(IMemoryPoolProvider).GetTypeInfo()] = new [] { "memoryPoolProvider" },
 
                     // wrapper types
                     [typeof(DynamicCellValue).GetTypeInfo()] = new[] { "value" },
@@ -2003,6 +2012,7 @@ namespace Cesil.Tests
                     [typeof(DynamicRowConverter).GetTypeInfo()] = new[] { "rowConverter", "fallbackConverter" },
                     [typeof(SerializableMember).GetTypeInfo()] = new[] { "serializableMember" },
                     [typeof(DeserializableMember).GetTypeInfo()] = new[] { "deserializableMember" },
+                    [typeof(Span<DynamicCellValue>).GetTypeInfo()] = new[] { "cells" },
 
                     // delegates
                     [typeof(FormatterDelegate<>).GetTypeInfo()] = new[] { "del" },
@@ -2386,7 +2396,7 @@ namespace Cesil.Tests
         public void LogHelperConditionals()
         {
             var logHelper = typeof(LogHelper).GetTypeInfo();
-            foreach(var mtd in logHelper.GetMethods(BindingFlagsConstants.All))
+            foreach (var mtd in logHelper.GetMethods(BindingFlagsConstants.All))
             {
                 // check public or internal methods that are declared by LogHelper
                 var check = mtd.DeclaringType.GetTypeInfo() == logHelper && (mtd.IsAssembly || mtd.IsPublic);

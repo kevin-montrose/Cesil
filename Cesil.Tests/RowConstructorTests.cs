@@ -368,7 +368,7 @@ namespace Cesil.Tests
 
             var buffer = new BufferWithPushback(MemoryPool<char>.Shared, 500);
 
-            var charLookup = CharacterLookup.MakeCharacterLookup(Options.Default, out _);
+            var charLookup = CharacterLookup.MakeCharacterLookup(Options.Default, MemoryPool<char>.Shared, out _);
             var reader = new HeadersReader<T>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), buffer, RowEnding.CarriageReturnLineFeed);
 
             var res = reader.Read();

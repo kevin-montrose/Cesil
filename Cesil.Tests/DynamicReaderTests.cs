@@ -2666,10 +2666,8 @@ namespace Cesil.Tests
                 throw new NotImplementedException();
             }
 
-            public IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext ctx, object row)
-            {
-                throw new NotImplementedException();
-            }
+            public int GetCellsForDynamicRow(in WriteContext ctx, object row, Span<DynamicCellValue> cells)
+            => throw new NotImplementedException();
 
             public Parser GetDynamicCellParserFor(in ReadContext ctx, TypeInfo targetType)
             => TypeDescribers.Default.GetDynamicCellParserFor(in ctx, targetType);
@@ -3668,8 +3666,8 @@ namespace Cesil.Tests
             public Parser GetDynamicCellParserFor(in ReadContext ctx, TypeInfo targetType)
             => P ?? TypeDescribers.Default.GetDynamicCellParserFor(in ctx, targetType);
 
-            public IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext ctx, object row)
-            => TypeDescribers.Default.GetCellsForDynamicRow(in ctx, row);
+            public int GetCellsForDynamicRow(in WriteContext ctx, object row, Span<DynamicCellValue> cells)
+            => TypeDescribers.Default.GetCellsForDynamicRow(in ctx, row, cells);
 
             public DynamicRowConverter GetDynamicRowConverter(in ReadContext ctx, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
             => D ?? TypeDescribers.Default.GetDynamicRowConverter(in ctx, columns, targetType);
@@ -3902,8 +3900,8 @@ namespace Cesil.Tests
             public Parser GetDynamicCellParserFor(in ReadContext ctx, TypeInfo targetType)
             => Lookup[targetType];
 
-            public IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext ctx, object row)
-            => TypeDescribers.Default.GetCellsForDynamicRow(in ctx, row);
+            public int GetCellsForDynamicRow(in WriteContext ctx, object row, Span<DynamicCellValue> cells)
+            => 0;
 
             public DynamicRowConverter GetDynamicRowConverter(in ReadContext ctx, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
             => TypeDescribers.Default.GetDynamicRowConverter(in ctx, columns, targetType);
@@ -5704,8 +5702,8 @@ loop:
             public IEnumerable<SerializableMember> EnumerateMembersToSerialize(TypeInfo forType)
             => TypeDescribers.Default.EnumerateMembersToSerialize(forType);
 
-            public IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext ctx, object row)
-            => TypeDescribers.Default.GetCellsForDynamicRow(in ctx, row);
+            public int GetCellsForDynamicRow(in WriteContext ctx, object row, Span<DynamicCellValue> cells)
+            => TypeDescribers.Default.GetCellsForDynamicRow(in ctx, row, cells);
 
             public Parser GetDynamicCellParserFor(in ReadContext ctx, TypeInfo targetType)
             => TypeDescribers.Default.GetDynamicCellParserFor(in ctx, targetType);
@@ -6151,8 +6149,8 @@ loop:
             public Parser GetDynamicCellParserFor(in ReadContext ctx, TypeInfo targetType)
             => TypeDescribers.Default.GetDynamicCellParserFor(in ctx, targetType);
 
-            public IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext ctx, object row)
-            => TypeDescribers.Default.GetCellsForDynamicRow(in ctx, row);
+            public int GetCellsForDynamicRow(in WriteContext ctx, object row, Span<DynamicCellValue> cells)
+            => TypeDescribers.Default.GetCellsForDynamicRow(in ctx, row, cells);
 
             public DynamicRowConverter GetDynamicRowConverter(in ReadContext ctx, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
             => (DynamicRowConverter)D;

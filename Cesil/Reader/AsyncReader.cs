@@ -197,7 +197,7 @@ namespace Cesil
             }
 
             var disposeDetector = true;
-            var detector = new RowEndingDetector(StateMachine, Configuration.Options, SharedCharacterLookup, Inner, Configuration.ValueSeparatorMemory);
+            var detector = new RowEndingDetector(StateMachine, Configuration.Options, Configuration.MemoryPool, SharedCharacterLookup, Inner, Configuration.ValueSeparatorMemory);
             try
             {
                 var resTask = detector.DetectAsync(cancellationToken);

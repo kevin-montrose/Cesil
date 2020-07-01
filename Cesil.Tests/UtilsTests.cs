@@ -11,6 +11,154 @@ namespace Cesil.Tests
     public class UtilsTests
     {
         [Fact]
+        public void Sort()
+        {
+            // empty
+            {
+                var items = Span<int>.Empty;
+                Utils.Sort(items, (a, b) => a.CompareTo(b));
+
+                Assert.True(items.IsEmpty);
+            }
+
+            // single element
+            {
+                var items = new[] { 1 }.AsSpan();
+                Utils.Sort(items, (a, b) => a.CompareTo(b));
+
+                Assert.Collection(
+                    items.ToArray(),
+                    a => Assert.Equal(1, a)
+                );
+            }
+
+            // two element
+            {
+                var items1 = new[] { 1, 2 }.AsSpan();
+                var items2 = new[] { 2, 1 }.AsSpan();
+
+                Utils.Sort(items1, (a, b) => a.CompareTo(b));
+                Utils.Sort(items2, (a, b) => a.CompareTo(b));
+
+                Assert.Collection(
+                    items1.ToArray(),
+                    a => Assert.Equal(1, a),
+                    a => Assert.Equal(2, a)
+                );
+
+                Assert.Collection(
+                    items2.ToArray(),
+                    a => Assert.Equal(1, a),
+                    a => Assert.Equal(2, a)
+                );
+            }
+
+            // three element
+            {
+                var items1 = new[] { 1, 2, 3 }.AsSpan();
+                var items2 = new[] { 1, 3, 2 }.AsSpan();
+                var items3 = new[] { 2, 1, 3 }.AsSpan();
+                var items4 = new[] { 2, 3, 1 }.AsSpan();
+                var items5 = new[] { 3, 1, 2 }.AsSpan();
+                var items6 = new[] { 3, 2, 1 }.AsSpan();
+
+                Utils.Sort(items1, (a, b) => a.CompareTo(b));
+                Utils.Sort(items2, (a, b) => a.CompareTo(b));
+                Utils.Sort(items3, (a, b) => a.CompareTo(b));
+                Utils.Sort(items4, (a, b) => a.CompareTo(b));
+                Utils.Sort(items5, (a, b) => a.CompareTo(b));
+                Utils.Sort(items6, (a, b) => a.CompareTo(b));
+
+                Assert.Collection(
+                    items1.ToArray(),
+                    a => Assert.Equal(1, a),
+                    a => Assert.Equal(2, a),
+                    a => Assert.Equal(3, a)
+                );
+
+                Assert.Collection(
+                    items2.ToArray(),
+                    a => Assert.Equal(1, a),
+                    a => Assert.Equal(2, a),
+                    a => Assert.Equal(3, a)
+                );
+
+                Assert.Collection(
+                    items3.ToArray(),
+                    a => Assert.Equal(1, a),
+                    a => Assert.Equal(2, a),
+                    a => Assert.Equal(3, a)
+                );
+
+                Assert.Collection(
+                    items4.ToArray(),
+                    a => Assert.Equal(1, a),
+                    a => Assert.Equal(2, a),
+                    a => Assert.Equal(3, a)
+                );
+
+                Assert.Collection(
+                    items5.ToArray(),
+                    a => Assert.Equal(1, a),
+                    a => Assert.Equal(2, a),
+                    a => Assert.Equal(3, a)
+                );
+
+                Assert.Collection(
+                    items6.ToArray(),
+                    a => Assert.Equal(1, a),
+                    a => Assert.Equal(2, a),
+                    a => Assert.Equal(3, a)
+                );
+            }
+
+            // lots of random data
+            {
+                var rand = new Random(2020_06_21);
+                for (var i = 0; i < 1_000; i++)
+                {
+                    var len = rand.Next(1_000);
+                    var items = new List<int>();
+                    for (var j = 0; j < len; j++)
+                    {
+                        items.Add(rand.Next());
+                    }
+
+                    var span = items.ToArray().AsSpan();
+                    Utils.Sort(span, (a, b) => a.CompareTo(b));
+
+                    // make sure all the elements appear
+                    var spanArr = span.ToArray();
+                    for (var j = 0; j < items.Count; j++)
+                    {
+                        var subItem = items[j];
+                        var countInItems = items.Count(x => x == subItem);
+                        var countInSpan = spanArr.Count(x => x == subItem);
+
+                        Assert.Equal(countInItems, countInSpan);
+                    }
+
+                    if (items.Count > 0)
+                    {
+                        // check in order
+                        var prevItem = span[0];
+                        for (var j = 1; j < span.Length; j++)
+                        {
+                            var curItem = span[j];
+                            var inOrder = prevItem <= curItem;
+
+                            Assert.True(inOrder);
+                        }
+                    }
+                    else
+                    {
+                        Assert.True(span.IsEmpty);
+                    }
+                }
+            }
+        }
+
+        [Fact]
         public void EmptyMemoryOwnerIsEmpty()
         {
             var m = EmptyMemoryOwner.Singleton;
@@ -29,16 +177,16 @@ namespace Cesil.Tests
 
             var concreteConfig = Configuration.For<_WeirdImpossibleExceptions>();
             var concreteExc = ImpossibleException.Create("testing", "foo", "bar", 123, concreteConfig);
-            Assert.Equal("The impossible has happened!\r\ntesting\r\nFile: foo\r\nMember: bar\r\nLine: 123\r\nPlease report this to https://github.com/kevin-montrose/Cesil/issues/new\r\nBound to Cesil.Tests.UtilsTests+_WeirdImpossibleExceptions\r\nConcrete binding\r\nWith options: Options with CommentCharacter=, DynamicRowDisposal=OnReaderDispose, EscapedValueEscapeCharacter=\", EscapedValueStartAndEnd=\", MemoryPool=System.Buffers.ArrayMemoryPool`1[System.Char], ReadBufferSizeHint=0, ReadHeader=Detect, RowEnding=CarriageReturnLineFeed, TypeDescriber=DefaultTypeDescriber Shared Instance, ValueSeparator=,, WriteBufferSizeHint=, WriteHeader=Always, WriteTrailingRowEnding=Never, WhitespaceTreatment=Preserve, ExtraColumnTreatment=Ignore", concreteExc.Message);
+            Assert.Equal("The impossible has happened!\r\ntesting\r\nFile: foo\r\nMember: bar\r\nLine: 123\r\nPlease report this to https://github.com/kevin-montrose/Cesil/issues/new\r\nBound to Cesil.Tests.UtilsTests+_WeirdImpossibleExceptions\r\nConcrete binding\r\nWith options: Options with CommentCharacter=, DynamicRowDisposal=OnReaderDispose, EscapedValueEscapeCharacter=\", EscapedValueStartAndEnd=\", MemoryPoolProvider=DefaultMemoryPoolProvider Shared Instance, ReadBufferSizeHint=0, ReadHeader=Detect, RowEnding=CarriageReturnLineFeed, TypeDescriber=DefaultTypeDescriber Shared Instance, ValueSeparator=,, WriteBufferSizeHint=, WriteHeader=Always, WriteTrailingRowEnding=Never, WhitespaceTreatment=Preserve, ExtraColumnTreatment=Ignore", concreteExc.Message);
 
             var dynConfig = Configuration.ForDynamic();
             var dynExc = ImpossibleException.Create("testing", "foo", "bar", 123, dynConfig);
-            Assert.Equal("The impossible has happened!\r\ntesting\r\nFile: foo\r\nMember: bar\r\nLine: 123\r\nPlease report this to https://github.com/kevin-montrose/Cesil/issues/new\r\nBound to System.Object\r\nDynamic binding\r\nWith options: Options with CommentCharacter=, DynamicRowDisposal=OnReaderDispose, EscapedValueEscapeCharacter=\", EscapedValueStartAndEnd=\", MemoryPool=System.Buffers.ArrayMemoryPool`1[System.Char], ReadBufferSizeHint=0, ReadHeader=Always, RowEnding=CarriageReturnLineFeed, TypeDescriber=DefaultTypeDescriber Shared Instance, ValueSeparator=,, WriteBufferSizeHint=, WriteHeader=Always, WriteTrailingRowEnding=Never, WhitespaceTreatment=Preserve, ExtraColumnTreatment=IncludeDynamic", dynExc.Message);
+
+            Assert.Equal("The impossible has happened!\r\ntesting\r\nFile: foo\r\nMember: bar\r\nLine: 123\r\nPlease report this to https://github.com/kevin-montrose/Cesil/issues/new\r\nBound to System.Object\r\nDynamic binding\r\nWith options: Options with CommentCharacter=, DynamicRowDisposal=OnReaderDispose, EscapedValueEscapeCharacter=\", EscapedValueStartAndEnd=\", MemoryPoolProvider=DefaultMemoryPoolProvider Shared Instance, ReadBufferSizeHint=0, ReadHeader=Always, RowEnding=CarriageReturnLineFeed, TypeDescriber=DefaultTypeDescriber Shared Instance, ValueSeparator=,, WriteBufferSizeHint=, WriteHeader=Always, WriteTrailingRowEnding=Never, WhitespaceTreatment=Preserve, ExtraColumnTreatment=IncludeDynamic", dynExc.Message);
 
             Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object>("wat"));
             Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object>("wat", Options.Default));
             Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object, _WeirdImpossibleExceptions>("wat", concreteConfig));
-
 
             var files = new[] { "SomeFile.cs", null };
             var members = new[] { "SomeMember", null };
@@ -52,7 +200,6 @@ namespace Cesil.Tests
                     Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object, _WeirdImpossibleExceptions>("wat", concreteConfig, f, m));
                 }
             }
-            
         }
 
         [Fact]
@@ -255,6 +402,19 @@ namespace Cesil.Tests
             public string Foo { get; set; }
         }
 
+        private sealed class _Encode_MemoryPoolProvider : IMemoryPoolProvider
+        {
+            public MemoryPool<T> GetMemoryPool<T>()
+            {
+                if(typeof(T) == typeof(char))
+                {
+                    return (MemoryPool<T>)(object)new _Encode_MemoryPool();
+                }
+
+                return MemoryPool<T>.Shared;
+            }
+        }
+
         private sealed class _Encode_MemoryPool : MemoryPool<char>
         {
             private sealed class Owner : IMemoryOwner<char>
@@ -299,7 +459,7 @@ namespace Cesil.Tests
         {
             // defaults
             {
-                var res = Utils.Encode(input, Options.Default);
+                var res = Utils.Encode(input, Options.Default, MemoryPool<char>.Shared);
 
                 Assert.Equal(expected, res);
             }
@@ -307,9 +467,9 @@ namespace Cesil.Tests
             // exact buffer
 
             {
-                var opts = Options.CreateBuilder(Options.Default).WithMemoryPool(new _Encode_MemoryPool()).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithMemoryPoolProvider(new _Encode_MemoryPoolProvider()).ToOptions();
 
-                var res = Utils.Encode(input, opts);
+                var res = Utils.Encode(input, opts, new _Encode_MemoryPool());
 
                 Assert.Equal(expected, res);
             }
@@ -321,12 +481,12 @@ namespace Cesil.Tests
             // no escapes at all
             var opts1 = Options.CreateBuilder(Options.Default).WithEscapedValueEscapeCharacter(null).WithEscapedValueStartAndEnd(null).ToOptions();
 
-            Assert.Throws<ImpossibleException>(() => Utils.Encode("", opts1));
+            Assert.Throws<ImpossibleException>(() => Utils.Encode("", opts1, MemoryPool<char>.Shared));
 
             // no escape char
             var opts2 = Options.CreateBuilder(opts1).WithEscapedValueEscapeCharacter(null).ToOptions();
 
-            Assert.Throws<ImpossibleException>(() => Utils.Encode("", opts2));
+            Assert.Throws<ImpossibleException>(() => Utils.Encode("", opts2, MemoryPool<char>.Shared));
         }
 
 
@@ -637,9 +797,9 @@ namespace Cesil.Tests
         }
 
         [Theory]
-        
+
         [InlineData("hello", "world", -1)]
-        
+
         [InlineData(",ello", ",", 0)]
         [InlineData("h,llo", ",", 1)]
         [InlineData("he,lo", ",", 2)]

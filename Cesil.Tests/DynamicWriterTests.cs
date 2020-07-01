@@ -345,13 +345,19 @@ namespace Cesil.Tests
                 F = f;
             }
 
-            public override IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext context, dynamic row)
+            public override int GetCellsForDynamicRow(in WriteContext context, dynamic row, Span<DynamicCellValue> cells)
             {
+                if(cells.Length < 1)
+                {
+                    return 1;
+                }
+
                 string val = row.Foo;
 
                 var ret = DynamicCellValue.Create("Foo", val, F);
 
-                return new[] { ret };
+                cells[0] = ret;
+                return 1;
             }
         }
 
@@ -623,9 +629,12 @@ namespace Cesil.Tests
                 FailOn = failOn;
             }
 
-            public override IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in Cesil.WriteContext ctx, dynamic row)
+            public override int GetCellsForDynamicRow(in WriteContext ctx, dynamic row, Span<DynamicCellValue> cells)
             {
-                var ret = new List<DynamicCellValue>();
+                if(cells.Length < CellNum)
+                {
+                    return CellNum;
+                }
 
                 for (var i = 0; i < CellNum; i++)
                 {
@@ -634,10 +643,10 @@ namespace Cesil.Tests
                             Formatter.ForDelegate((string value, in WriteContext context, IBufferWriter<char> buffer) => false) :
                             Formatter.ForDelegate((string value, in WriteContext context, IBufferWriter<char> buffer) => true);
 
-                    ret.Add(DynamicCellValue.Create("Bar" + i, "foo" + i, f));
+                    cells[i] = DynamicCellValue.Create("Bar" + i, "foo" + i, f);
                 }
 
-                return ret;
+                return CellNum;
             }
         }
 

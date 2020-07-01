@@ -294,7 +294,7 @@ namespace Cesil
                         }
 
                         Interlocked.Increment(ref NameLookupReferenceCount);
-                        NameLookup = NameLookup.Create(columnNamesValue, Configuration.Options.MemoryPool);
+                        NameLookup = NameLookup.Create(columnNamesValue, Configuration.MemoryPool);
                     }
 
                     RowBuilder.SetColumnOrder(headers);
@@ -352,7 +352,7 @@ namespace Cesil
                             }
 
                             Interlocked.Increment(ref self.NameLookupReferenceCount);
-                            self.NameLookup = NameLookup.Create(columnNamesValue, self.Configuration.Options.MemoryPool);
+                            self.NameLookup = NameLookup.Create(columnNamesValue, self.Configuration.MemoryPool);
                         }
 
                         self.RowBuilder.SetColumnOrder(headers);
@@ -383,7 +383,7 @@ namespace Cesil
                 return default;
             }
 
-            var detector = new RowEndingDetector(StateMachine, options, SharedCharacterLookup, Inner, Configuration.ValueSeparatorMemory);
+            var detector = new RowEndingDetector(StateMachine, options, Configuration.MemoryPool, SharedCharacterLookup, Inner, Configuration.ValueSeparatorMemory);
             var disposeDetector = true;
             try
             {
