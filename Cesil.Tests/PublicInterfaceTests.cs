@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
@@ -285,6 +286,18 @@ namespace Cesil.Tests
                 if (mtd.DeclaringType != typeof(Throw)) continue;
 
                 Assert.True(mtd.MethodImplementationFlags.HasFlag(MethodImplAttributes.NoInlining));
+            }
+        }
+
+        [Fact]
+        public void ThrowOnlyDoesNotReturn()
+        {
+            foreach (var mtd in typeof(Throw).GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
+            {
+                if (mtd.DeclaringType != typeof(Throw)) continue;
+
+                var attr = mtd.GetCustomAttribute<DoesNotReturnAttribute>();
+                Assert.NotNull(attr);
             }
         }
 
