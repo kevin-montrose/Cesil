@@ -2034,6 +2034,7 @@ namespace Cesil.Tests
                     [typeof(InstanceProviderDelegate<>).GetTypeInfo()] = new[] { "del" },
                     [typeof(ParserDelegate<>).GetTypeInfo()] = new[] { "del" },
                     [typeof(ResetDelegate<>).GetTypeInfo()] = new[] { "del" },
+                    [typeof(ResetByRefDelegate<>).GetTypeInfo()] = new[] { "del" },
                     [typeof(StaticResetDelegate).GetTypeInfo()] = new[] { "del" },
                     [typeof(StaticSetterDelegate<>).GetTypeInfo()] = new[] { "del" },
                     [typeof(SetterDelegate<,>).GetTypeInfo()] = new[] { "del" },

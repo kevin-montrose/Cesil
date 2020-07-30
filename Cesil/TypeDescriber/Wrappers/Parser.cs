@@ -65,27 +65,30 @@ namespace Cesil
         internal readonly NonNull<ConstructorInfo> Constructor;
 
         internal readonly TypeInfo Creates;
+        internal readonly NullHandling CreatesNullability;
 
         private readonly ImmutableArray<Parser> _Fallbacks;
         ImmutableArray<Parser> IElseSupporting<Parser>.Fallbacks => _Fallbacks;
 
         DynamicParserDelegate? ICreatesCacheableDelegate<DynamicParserDelegate>.CachedDelegate { get; set; }
 
-        private Parser(MethodInfo method, TypeInfo creates, ImmutableArray<Parser> fallbacks)
+        private Parser(MethodInfo method, TypeInfo creates, ImmutableArray<Parser> fallbacks, NullHandling createsNullability)
         {
             Method.Value = method;
             Delegate.Clear();
             Constructor.Clear();
             Creates = creates;
+            CreatesNullability = createsNullability;
             _Fallbacks = fallbacks;
         }
 
-        private Parser(Delegate del, TypeInfo creates, ImmutableArray<Parser> fallbacks)
+        private Parser(Delegate del, TypeInfo creates, ImmutableArray<Parser> fallbacks, NullHandling createsNullability)
         {
             Delegate.Value = del;
             Method.Clear();
             Constructor.Clear();
             Creates = creates;
+            CreatesNullability = createsNullability;
             _Fallbacks = fallbacks;
         }
 
@@ -95,6 +98,7 @@ namespace Cesil
             Method.Clear();
             Constructor.Value = cons;
             Creates = cons.DeclaringTypeNonNull();
+            CreatesNullability = NullHandling.ForbidNull;
             _Fallbacks = fallbacks;
         }
 
@@ -132,8 +136,8 @@ namespace Cesil
             return
                 Mode switch
                 {
-                    BackingMode.Method => new Parser(Method.Value, Creates, newFallbacks),
-                    BackingMode.Delegate => new Parser(Delegate.Value, Creates, newFallbacks),
+                    BackingMode.Method => new Parser(Method.Value, Creates, newFallbacks, CreatesNullability),
+                    BackingMode.Delegate => new Parser(Delegate.Value, Creates, newFallbacks, CreatesNullability),
                     BackingMode.Constructor => new Parser(Constructor.Value, newFallbacks),
                     _ => Throw.ImpossibleException<Parser>($"Unexpected {nameof(BackingMode)}: {Mode}"),
                 };
@@ -151,6 +155,8 @@ namespace Cesil
             {
                 return Throw.ArgumentException<Parser>($"{fallbackParser} does not provide a value assignable to {Creates}, and cannot be used as a fallback for this {nameof(Parser)}", nameof(fallbackParser));
             }
+
+            // todo: does nullability need logic here?
 
             return this.DoElse(fallbackParser);
         }
@@ -241,9 +247,9 @@ namespace Cesil
                 return Throw.ArgumentException<Parser>($"{nameof(method)} must have three parameters", nameof(method));
             }
 
-            var p1 = args[0].ParameterType.GetTypeInfo();
+            var p0 = args[0].ParameterType.GetTypeInfo();
 
-            if (p1 != Types.ReadOnlySpanOfChar)
+            if (p0 != Types.ReadOnlySpanOfChar)
             {
                 return Throw.ArgumentException<Parser>($"The first parameter of {nameof(method)} must be a {nameof(ReadOnlySpan<char>)}", nameof(method));
             }
@@ -253,14 +259,16 @@ namespace Cesil
                 return Throw.ArgumentException<Parser>($"The second parameter of {nameof(method)} must be an `in {nameof(ReadContext)}`; {msg}", nameof(method));
             }
 
-            var p3 = args[2].ParameterType.GetTypeInfo();
+            var arg2 = args[2];
+            var p2 = arg2.ParameterType.GetTypeInfo();
 
-            if (!p3.IsByRef)
+            if (!p2.IsByRef)
             {
                 return Throw.ArgumentException<Parser>($"The third parameter of {nameof(method)} must be an out", nameof(method));
             }
 
-            var underlying = p3.GetElementTypeNonNull();
+            var underlying = p2.GetElementTypeNonNull();
+            var nullability = arg2.DetermineNullability();
 
             var parserRetType = method.ReturnType.GetTypeInfo();
             if (parserRetType != Types.Bool)
@@ -268,7 +276,7 @@ namespace Cesil
                 return Throw.ArgumentException<Parser>($"{nameof(method)} must return a bool", nameof(method));
             }
 
-            return new Parser(method, underlying, ImmutableArray<Parser>.Empty);
+            return new Parser(method, underlying, ImmutableArray<Parser>.Empty, nullability);
         }
 
         /// <summary>
@@ -324,7 +332,9 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(del, nameof(del));
 
-            return new Parser(del, typeof(TOutput).GetTypeInfo(), ImmutableArray<Parser>.Empty);
+            var nullability = del.Method.GetParameters()[2].DetermineNullability();
+
+            return new Parser(del, typeof(TOutput).GetTypeInfo(), ImmutableArray<Parser>.Empty, nullability);
         }
 
         /// <summary>
@@ -462,8 +472,9 @@ namespace Cesil
             if (delType.IsGenericType && delType.GetGenericTypeDefinition() == Types.ParserDelegate)
             {
                 var t = delType.GetGenericArguments()[0].GetTypeInfo();
+                var n = del.Method.GetParameters()[2].DetermineNullability();
 
-                return new Parser(del, t, ImmutableArray<Parser>.Empty);
+                return new Parser(del, t, ImmutableArray<Parser>.Empty, n);
             }
 
             var mtd = del.Method;
@@ -479,8 +490,8 @@ namespace Cesil
                 return Throw.InvalidOperationException<Parser>($"Delegate must take 3 parameters");
             }
 
-            var p1 = args[0].ParameterType.GetTypeInfo();
-            if (p1 != Types.ReadOnlySpanOfChar)
+            var p0 = args[0].ParameterType.GetTypeInfo();
+            if (p0 != Types.ReadOnlySpanOfChar)
             {
                 return Throw.InvalidOperationException<Parser>($"The first parameter to the delegate must be a {nameof(ReadOnlySpan<char>)}");
             }
@@ -490,20 +501,22 @@ namespace Cesil
                 return Throw.InvalidOperationException<Parser>($"The second parameter to the delegate must be an `in {nameof(ReadContext)}`; {msg}");
             }
 
-            var createsRef = args[2].ParameterType.GetTypeInfo();
+            var p2 = args[2];
+            var createsRef = p2.ParameterType.GetTypeInfo();
             if (!createsRef.IsByRef)
             {
                 return Throw.InvalidOperationException<Parser>($"The third parameter to the delegate must be an out type, was not by ref");
             }
 
             var creates = createsRef.GetElementTypeNonNull();
+            var createsNullability = p2.DetermineNullability();
 
             var parserDel = Types.ParserDelegate.MakeGenericType(creates);
             var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
             var reboundDel = System.Delegate.CreateDelegate(parserDel, del, invoke);
 
-            return new Parser(reboundDel, creates, ImmutableArray<Parser>.Empty);
+            return new Parser(reboundDel, creates, ImmutableArray<Parser>.Empty, createsNullability);
         }
     }
 }

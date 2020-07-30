@@ -1774,6 +1774,16 @@ namespace Cesil.Tests
             {
                 _C = 5;
             }
+
+            private int _D;
+            public int D
+            {
+                get => _D;
+                set => _D += value;
+            }
+
+            public static void ResetD_Row_ByRef(ref _VariousResets row, ref ReadContext _)
+            => (row = new _VariousResets()).D = 6;
         }
 
         [Fact]
@@ -1782,12 +1792,14 @@ namespace Cesil.Tests
             var t = typeof(_VariousResets).GetTypeInfo();
             var cons = t.GetConstructors().Single();
 
-            var a = t.GetProperty(nameof(_VariousResets.A));
-            var aReset = t.GetMethod(nameof(_VariousResets.ResetA_Row_Context), BindingFlags.Public | BindingFlags.Static);
-            var b = t.GetProperty(nameof(_VariousResets.B));
-            var bReset = t.GetMethod(nameof(_VariousResets.ResetB_NoRow_Context), BindingFlags.Public | BindingFlags.Static);
-            var c = t.GetProperty(nameof(_VariousResets.C));
-            var cReset = t.GetMethod(nameof(_VariousResets.ResetC_Context), BindingFlags.Public | BindingFlags.Instance);
+            var a = t.GetPropertyNonNull(nameof(_VariousResets.A), BindingFlags.Public | BindingFlags.Instance);
+            var aReset = t.GetMethodNonNull(nameof(_VariousResets.ResetA_Row_Context), BindingFlags.Public | BindingFlags.Static);
+            var b = t.GetPropertyNonNull(nameof(_VariousResets.B), BindingFlags.Public | BindingFlags.Instance);
+            var bReset = t.GetMethodNonNull(nameof(_VariousResets.ResetB_NoRow_Context), BindingFlags.Public | BindingFlags.Static);
+            var c = t.GetPropertyNonNull(nameof(_VariousResets.C), BindingFlags.Public | BindingFlags.Instance);
+            var cReset = t.GetMethodNonNull(nameof(_VariousResets.ResetC_Context), BindingFlags.Public | BindingFlags.Instance);
+            var d = t.GetPropertyNonNull(nameof(_VariousResets.D), BindingFlags.Public | BindingFlags.Instance);
+            var dReset = t.GetMethodNonNull(nameof(_VariousResets.ResetD_Row_ByRef), BindingFlags.Public | BindingFlags.Static);
 
             var m = ManualTypeDescriber.CreateBuilder();
             m.WithInstanceProvider(InstanceProvider.ForParameterlessConstructor(cons));
@@ -1816,8 +1828,36 @@ namespace Cesil.Tests
                                 Assert.Equal(12, r.A);
                                 Assert.Equal(9, r.B);
                                 Assert.Equal(10, r.C);
+                                Assert.Equal(0, r.D);
                             }
                         );
+                    }
+                }
+            );
+
+            // now with D
+            m.WithExplicitSetter(t, "D", Setter.ForProperty(d), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.No, Reset.ForMethod(dReset));
+            var td2 = m.ToManualTypeDescriber();
+            var opts2 = Options.CreateBuilder(Options.Default).WithTypeDescriber(td2).ToOptions();
+
+            RunSyncReaderVariants<_VariousResets>(
+                opts2,
+                (config, getReader) =>
+                {
+                    _VariousResets._B = 8675;
+
+                    using (var reader = getReader("A,B,C,D\r\n4,5,6,7"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var pre = new _VariousResets();
+                        var oldPre = pre;
+                        Assert.True(csv.TryReadWithReuse(ref pre));
+
+                        Assert.NotSame(oldPre, pre);
+                        Assert.Equal(0, pre.A);
+                        Assert.Equal(9, pre.B);
+                        Assert.Equal(0, pre.C);
+                        Assert.Equal(13, pre.D);
                     }
                 }
             );
@@ -7656,12 +7696,14 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             var t = typeof(_VariousResets).GetTypeInfo();
             var cons = t.GetConstructors().Single();
 
-            var a = t.GetProperty(nameof(_VariousResets.A));
-            var aReset = t.GetMethod(nameof(_VariousResets.ResetA_Row_Context), BindingFlags.Public | BindingFlags.Static);
-            var b = t.GetProperty(nameof(_VariousResets.B));
-            var bReset = t.GetMethod(nameof(_VariousResets.ResetB_NoRow_Context), BindingFlags.Public | BindingFlags.Static);
-            var c = t.GetProperty(nameof(_VariousResets.C));
-            var cReset = t.GetMethod(nameof(_VariousResets.ResetC_Context), BindingFlags.Public | BindingFlags.Instance);
+            var a = t.GetPropertyNonNull(nameof(_VariousResets.A), BindingFlags.Public | BindingFlags.Instance);
+            var aReset = t.GetMethodNonNull(nameof(_VariousResets.ResetA_Row_Context), BindingFlags.Public | BindingFlags.Static);
+            var b = t.GetPropertyNonNull(nameof(_VariousResets.B), BindingFlags.Public | BindingFlags.Instance);
+            var bReset = t.GetMethodNonNull(nameof(_VariousResets.ResetB_NoRow_Context), BindingFlags.Public | BindingFlags.Static);
+            var c = t.GetPropertyNonNull(nameof(_VariousResets.C), BindingFlags.Public | BindingFlags.Instance);
+            var cReset = t.GetMethodNonNull(nameof(_VariousResets.ResetC_Context), BindingFlags.Public | BindingFlags.Instance);
+            var d = t.GetPropertyNonNull(nameof(_VariousResets.D), BindingFlags.Public | BindingFlags.Instance);
+            var dReset = t.GetMethodNonNull(nameof(_VariousResets.ResetD_Row_ByRef), BindingFlags.Public | BindingFlags.Static);
 
             var m = ManualTypeDescriber.CreateBuilder();
             m.WithInstanceProvider(InstanceProvider.ForParameterlessConstructor(cons));
@@ -7692,6 +7734,36 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                                 Assert.Equal(10, r.C);
                             }
                         );
+                    }
+                }
+            );
+
+            // now with D
+            m.WithExplicitSetter(t, "D", Setter.ForProperty(d), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.No, Reset.ForMethod(dReset));
+            var td2 = m.ToManualTypeDescriber();
+            var opts2 = Options.CreateBuilder(Options.Default).WithTypeDescriber(td2).ToOptions();
+
+            await RunAsyncReaderVariants<_VariousResets>(
+                opts2,
+                async (config, getReader) =>
+                {
+                    _VariousResets._B = 8675;
+
+                    await using (var reader = await getReader("A,B,C,D\r\n4,5,6,7"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var pre = new _VariousResets();
+                        var oldPre = pre;
+                        var res = await csv.TryReadWithReuseAsync(ref pre);
+
+                        Assert.True(res.HasValue);
+                        var val = res.Value;
+
+                        Assert.NotSame(oldPre, val);
+                        Assert.Equal(0, val.A);
+                        Assert.Equal(9, val.B);
+                        Assert.Equal(0, val.C);
+                        Assert.Equal(13, val.D);
                     }
                 }
             );

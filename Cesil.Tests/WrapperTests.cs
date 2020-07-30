@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Microsoft.VisualBasic.CompilerServices;
 using Xunit;
 
 namespace Cesil.Tests
@@ -27,7 +29,7 @@ namespace Cesil.Tests
             void IDelegateCache.AddDelegate<T, V>(T key, V cached)
             => Cache.Add(key, cached);
 
-            bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)]out V del)
+            bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)] out V del)
             {
                 if (!Cache.TryGetValue(key, out var obj))
                 {
@@ -93,6 +95,7 @@ namespace Cesil.Tests
             public static bool StaticResetCtxCalled;
             public static bool StaticResetXXXParamCalled;
             public static bool StaticResetXXXParamCtxCalled;
+            public static bool StaticResetXXXByRefParamCtxCalled;
             public static _ColumnSetters_Val StaticField;
             public static _ColumnSetters_Val _Set;
 
@@ -169,6 +172,11 @@ namespace Cesil.Tests
             public static void StaticResetXXXParamCtx(_ColumnSetters s, in ReadContext _)
             {
                 StaticResetXXXParamCtxCalled = true;
+            }
+
+            public static void StaticResetXXXByRefParamCtx(ref _ColumnSetters s, in ReadContext _)
+            {
+                StaticResetXXXByRefParamCtxCalled = true;
             }
         }
 
@@ -480,7 +488,7 @@ namespace Cesil.Tests
             void IDelegateCache.AddDelegate<T, V>(T key, V cached)
             => Cache.Add(key, cached);
 
-            bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)]out V del)
+            bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)] out V del)
             {
                 if (!Cache.TryGetValue(key, out var obj))
                 {
@@ -490,6 +498,166 @@ namespace Cesil.Tests
 
                 del = (V)obj;
                 return true;
+            }
+        }
+
+        private sealed class _FormatterNullability
+        {
+#nullable enable
+            public static bool NonNullRef_Method(object val, in WriteContext ctx, IBufferWriter<char> buf) => true;
+            public static bool NullRef_Method(object? val, in WriteContext ctx, IBufferWriter<char> buf) => true;
+            public static bool NonNullValue_Method(int val, in WriteContext ctx, IBufferWriter<char> buf) => true;
+            public static bool NullValue_Method(int? val, in WriteContext ctx, IBufferWriter<char> buf) => true;
+
+            public delegate bool NonNullRef_Delegate(object val, in WriteContext ctx, IBufferWriter<char> buf);
+            public delegate bool NullRef_Delegate(object? val, in WriteContext ctx, IBufferWriter<char> buf);
+            public delegate bool NonNullValue_Delegate(int val, in WriteContext ctx, IBufferWriter<char> buf);
+            public delegate bool NullValue_Delegate(int? val, in WriteContext ctx, IBufferWriter<char> buf);
+#nullable disable
+
+            public static bool ObliviousRef_Method(object val, in WriteContext ctx, IBufferWriter<char> buf) => true;
+            public static bool ObliviousNonNullValue_Method(int val, in WriteContext ctx, IBufferWriter<char> buf) => true;
+            public static bool ObliviousNullValue_Method(int? val, in WriteContext ctx, IBufferWriter<char> buf) => true;
+
+            public delegate bool ObliviousRef_Delegate(object val, in WriteContext ctx, IBufferWriter<char> buf);
+            public delegate bool ObliviousNonNullValue_Delegate(int val, in WriteContext ctx, IBufferWriter<char> buf);
+            public delegate bool ObliviousNullValue_Delegate(int? val, in WriteContext ctx, IBufferWriter<char> buf);
+        }
+
+        private delegate bool _FormatterNullability_Delegate<T>(T val, in WriteContext ctx, IBufferWriter<char> buf);
+
+        [Fact]
+        public void FormatterNullability()
+        {
+            var t = typeof(_FormatterNullability);
+
+            foreach (var mem in t.GetMembers(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
+            {
+                if (mem.DeclaringType != t) continue;
+
+                var name = mem.Name;
+                if (name == ".ctor") continue;
+
+                var expectedResult = name[0..(name.LastIndexOf("_"))];
+
+                var mtdVersion = expectedResult + "_Method";
+
+                Formatter f;
+                switch (mem.MemberType)
+                {
+                    case MemberTypes.Method:
+                        var mtd = (MethodInfo)mem;
+                        f = Formatter.ForMethod(mtd);
+                        break;
+                    case MemberTypes.NestedType:
+                        var innerT = (TypeInfo)mem;
+                        var del = Delegate.CreateDelegate(innerT, t.GetMethod(mtdVersion, BindingFlags.Public | BindingFlags.Static));
+                        f = (Formatter)del;
+                        break;
+                    default: throw new Exception();
+                }
+
+                NullHandling res;
+                switch (expectedResult)
+                {
+                    case "Constructor":
+                    case "NonNullRef":
+                    case "NonNullValue":
+                    case "ObliviousNonNullValue":
+                        res = NullHandling.ForbidNull;
+                        break;
+
+                    case "NullRef":
+                    case "NullValue":
+                    case "ObliviousRef":
+                    case "ObliviousNullValue":
+                        res = NullHandling.AllowNull;
+                        break;
+
+                    default: throw new Exception();
+                }
+
+                Assert.Equal(res, f.TakesNullability);
+            }
+
+            // delegates
+#nullable enable
+            FormatterDelegate<object> nonNullRef1 = (object val, in WriteContext _, IBufferWriter<char> c) => true;
+            _FormatterNullability_Delegate<object> nonNullRef2 = (object val, in WriteContext _, IBufferWriter<char> c) => true;
+
+            FormatterDelegate<object?> nullRef1 = (object? val, in WriteContext _, IBufferWriter<char> c) => true;
+            _FormatterNullability_Delegate<object?> nullRef2 = (object? val, in WriteContext _, IBufferWriter<char> c) => true;
+
+            FormatterDelegate<int> nonNullValue1 = (int val, in WriteContext _, IBufferWriter<char> c) => true;
+            _FormatterNullability_Delegate<int> nonNullValue2 = (int val, in WriteContext _, IBufferWriter<char> c) => true;
+
+            FormatterDelegate<int?> nullValue1 = (int? val, in WriteContext _, IBufferWriter<char> c) => true;
+            _FormatterNullability_Delegate<int?> nullValue2 = (int? val, in WriteContext _, IBufferWriter<char> c) => true;
+#nullable disable
+
+            FormatterDelegate<object> obliviousRef1 = (object val, in WriteContext _, IBufferWriter<char> c) => true;
+            _FormatterNullability_Delegate<object> obliviousRef2 = (object val, in WriteContext _, IBufferWriter<char> c) => true;
+
+            FormatterDelegate<int> obliviousNonNullValue1 = (int val, in WriteContext _, IBufferWriter<char> c) => true;
+            _FormatterNullability_Delegate<int> obliviousNonNullValue2 = (int val, in WriteContext _, IBufferWriter<char> c) => true;
+
+            FormatterDelegate<int?> obliviousNullValue1 = (int? val, in WriteContext _, IBufferWriter<char> c) => true;
+            _FormatterNullability_Delegate<int?> obliviousNullValue2 = (int? val, in WriteContext _, IBufferWriter<char> c) => true;
+
+            var genLookup =
+                new Dictionary<string, Delegate>
+                {
+                    [nameof(nonNullRef1)] = nonNullRef1,
+                    [nameof(nonNullRef2)] = nonNullRef2,
+
+                    [nameof(nullRef1)] = nullRef1,
+                    [nameof(nullRef2)] = nullRef2,
+
+                    [nameof(nonNullValue1)] = nonNullValue1,
+                    [nameof(nonNullValue2)] = nonNullValue2,
+
+                    [nameof(nullValue1)] = nullValue1,
+                    [nameof(nullValue2)] = nullValue2,
+
+                    [nameof(obliviousRef1)] = obliviousRef1,
+                    [nameof(obliviousRef2)] = obliviousRef2,
+
+                    [nameof(obliviousNonNullValue1)] = obliviousNonNullValue1,
+                    [nameof(obliviousNonNullValue2)] = obliviousNonNullValue2,
+
+                    [nameof(obliviousNullValue1)] = obliviousNullValue1,
+                    [nameof(obliviousNullValue2)] = obliviousNullValue2,
+                };
+
+            foreach (var kv in genLookup)
+            {
+                var name = kv.Key;
+                var del = kv.Value;
+
+                var expected = name[..^1];
+
+                var f = (Formatter)del;
+
+                NullHandling res;
+                switch (expected)
+                {
+                    case "nonNullRef":
+                    case "nonNullValue":
+                    case "obliviousNonNullValue":
+                        res = NullHandling.ForbidNull;
+                        break;
+
+                    case "nullRef":
+                    case "nullValue":
+                    case "obliviousRef":
+                    case "obliviousNullValue":
+                        res = NullHandling.AllowNull;
+                        break;
+
+                    default: throw new Exception();
+                }
+
+                Assert.Equal(res, f.TakesNullability);
             }
         }
 
@@ -1049,6 +1217,292 @@ namespace Cesil.Tests
             }
         }
 
+
+        private sealed class _GetterNullability
+        {
+            // don't have rows
+#nullable enable
+            public static object NonNullRef_Field = new object();
+            public static object? NullRef_Field = null;
+            public static int NonNullValue_Field = 0;
+            public static int? NullValue_Field = null;
+
+            public static object NonNullRef_Method(in WriteContext _) => new object();
+            public static object? NullRef_Method(in WriteContext _) => null;
+            public static int NonNullValue_Method(in WriteContext _) => 0;
+            public static int? NullValue_Method(in WriteContext _) => null;
+
+            public delegate object NonNullRef_Delegate(in WriteContext ctx);
+            public delegate object? NullRef_Delegate(in WriteContext ctx);
+            public delegate int NonNullValue_Delegate(in WriteContext ctx);
+            public delegate int? NullValue_Delegate(in WriteContext ctx);
+#nullable disable
+
+            public static object ObliviousRef_Field = new object();
+            public static int ObliviousValue_Field = 0;
+            public static int? ObliviousNullValue_Field = null;
+
+            public static object ObliviousRef_Method(in WriteContext _) => new object();
+            public static int ObliviousValue_Method(in WriteContext _) => 0;
+            public static int? ObliviousNullValue_Method(in WriteContext _) => null;
+
+            public delegate object ObliviousRef_Delegate(in WriteContext ctx);
+            public delegate int ObliviousValue_Delegate(in WriteContext ctx);
+            public delegate int? ObliviousNullValue_Delegate(in WriteContext ctx);
+
+            // has rows
+#nullable enable
+            public int Instance_Field = 0;
+
+            public int Instance_Method(in WriteContext _) => 0;
+            public static int RowNonNullRef_Method(object row, in WriteContext _) => 0;
+            public static int RowNullRef_Method(object? row, in WriteContext _) => 0;
+            public static int RowNonNullValue_Method(int row, in WriteContext _) => 0;
+            public static int RowNullValue_Method(int? row, in WriteContext _) => 0;
+
+            public delegate int RowNonNullRef_Delegate(object row, in WriteContext ctx);
+            public delegate int RowNullRef_Delegate(object? row, in WriteContext ctx);
+            public delegate int RowNonNullValue_Delegate(int row, in WriteContext ctx);
+            public delegate int RowNullValue_Delegate(int? row, in WriteContext ctx);
+#nullable disable
+
+            public int ObliviousRow_Field = 0;
+
+            public int ObliviousRow_Method(in WriteContext _) => 0;
+            public static int ObliviousRowRef_Method(object row, in WriteContext _) => 0;
+            public static int ObliviousRowNonNullValue_Method(int row, in WriteContext _) => 0;
+            public static int ObliviousRowNullValue_Method(int? row, in WriteContext _) => 0;
+
+            public delegate int ObliviousRowRef_Delegate(object row, in WriteContext ctx);
+            public delegate int ObliviousRowNonNullValue_Delegate(int row, in WriteContext ctx);
+            public delegate int ObliviousRowNullValue_Delegate(int? row, in WriteContext ctx);
+        }
+
+        delegate T _GetterNullabilty_NoRow<T>(in WriteContext ctx);
+        delegate T _GetterNullabilty_WithRow<V, T>(V row, in WriteContext ctx);
+
+        [Fact]
+        public void GetterNullability()
+        {
+            var t = typeof(_GetterNullability);
+            foreach (var mem in t.GetMembers(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
+            {
+                if (mem.DeclaringType != t) continue;
+                if (mem is ConstructorInfo) continue;
+
+                var name = mem.Name;
+                var expectedResult = name.Substring(0, name.IndexOf("_"));
+
+                var mtdVersion = expectedResult + "_Method";
+
+                var g =
+                    mem.MemberType switch
+                    {
+                        MemberTypes.Field => Getter.ForField((FieldInfo)mem),
+                        MemberTypes.Method => Getter.ForMethod((MethodInfo)mem),
+                        MemberTypes.NestedType => (Getter)Delegate.CreateDelegate((TypeInfo)mem, t.GetMethod(mtdVersion, BindingFlags.Public | BindingFlags.Static)),
+                        _ => throw new Exception()
+                    };
+
+                NullHandling? rowHandling;
+                NullHandling returnHandling;
+
+                switch (expectedResult)
+                {
+                    case "ObliviousValue":
+                    case "NonNullValue":
+                    case "NonNullRef":
+                        rowHandling = null;
+                        returnHandling = NullHandling.ForbidNull;
+                        break;
+
+                    case "ObliviousRef":
+                    case "ObliviousNullValue":
+                    case "NullValue":
+                    case "NullRef":
+                        rowHandling = null;
+                        returnHandling = NullHandling.AllowNull;
+                        break;
+
+                    case "Instance":
+                    case "RowNonNullRef":
+                    case "RowNonNullValue":
+                    case "ObliviousRow":
+                    case "ObliviousRowValue":
+                    case "ObliviousRowNonNullValue":
+                        rowHandling = NullHandling.ForbidNull;
+                        returnHandling = NullHandling.ForbidNull;
+                        break;
+
+                    case "RowNullRef":
+                    case "ObliviousRowRef":
+                    case "RowNullValue":
+                    case "ObliviousRowNullValue":
+                        rowHandling = NullHandling.AllowNull;
+                        returnHandling = NullHandling.ForbidNull;
+                        break;
+
+                    default: throw new Exception();
+                }
+
+                Assert.Equal(rowHandling, g.RowNullability);
+                Assert.Equal(returnHandling, g.ReturnsNullability);
+            }
+
+            // generic delegates - null aware
+#nullable enable
+            StaticGetterDelegate<string> noRow_NonNullRef1 = (in WriteContext _) => "";
+            _GetterNullabilty_NoRow<string> noRow_NonNullRef2 = (in WriteContext _) => "";
+
+            StaticGetterDelegate<string?> noRow_NullRef1 = (in WriteContext _) => null;
+            _GetterNullabilty_NoRow<string?> noRow_NullRef2 = (in WriteContext _) => null;
+
+            StaticGetterDelegate<int> noRow_NonNullValue1 = (in WriteContext _) => 0;
+            _GetterNullabilty_NoRow<int> noRow_NonNullValue2 = (in WriteContext _) => 0;
+
+            StaticGetterDelegate<int?> noRow_NullValue1 = (in WriteContext _) => null;
+            _GetterNullabilty_NoRow<int?> noRow_NullValue2 = (in WriteContext _) => null;
+
+            GetterDelegate<string, int> row_NonNullRef1 = (string _, in WriteContext __) => 0;
+            _GetterNullabilty_WithRow<string, int> row_NonNullRef2 = (string _, in WriteContext __) => 0;
+
+            GetterDelegate<string?, int> row_NullRef1 = (string? _, in WriteContext __) => 0;
+            _GetterNullabilty_WithRow<string?, int> row_NullRef2 = (string? _, in WriteContext __) => 0;
+
+            GetterDelegate<int, int> row_NonNullValue1 = (int _, in WriteContext __) => 0;
+            _GetterNullabilty_WithRow<int, int> row_NonNullValue2 = (int _, in WriteContext __) => 0;
+
+            GetterDelegate<int?, int> row_NullValue1 = (int? _, in WriteContext __) => 0;
+            _GetterNullabilty_WithRow<int?, int> row_NullValue2 = (int? _, in WriteContext __) => 0;
+#nullable disable
+
+            // generic delegates - oblivious
+            StaticGetterDelegate<string> noRow_ObliviousRef1 = (in WriteContext _) => "";
+            _GetterNullabilty_NoRow<string> noRow_ObliviousRef2 = (in WriteContext _) => "";
+
+            StaticGetterDelegate<int> noRow_ObliviousNonNullValue1 = (in WriteContext _) => 0;
+            _GetterNullabilty_NoRow<int> noRow_ObliviousNonNullValue2 = (in WriteContext _) => 0;
+
+            StaticGetterDelegate<int?> noRow_ObliviousNullValue1 = (in WriteContext _) => null;
+            _GetterNullabilty_NoRow<int?> noRow_ObliviousNullValue2 = (in WriteContext _) => null;
+
+            GetterDelegate<string, int> row_ObliviousRef1 = (string _, in WriteContext __) => 0;
+            _GetterNullabilty_WithRow<string, int> row_ObliviousRef2 = (string _, in WriteContext __) => 0;
+
+            GetterDelegate<int, int> row_ObliviousNonNullValue1 = (int _, in WriteContext __) => 0;
+            _GetterNullabilty_WithRow<int, int> row_ObliviousNonNullValue2 = (int _, in WriteContext __) => 0;
+
+            GetterDelegate<int?, int> row_ObliviousNullValue1 = (int? _, in WriteContext __) => 0;
+            _GetterNullabilty_WithRow<int?, int> row_ObliviousNullValue2 = (int? _, in WriteContext __) => 0;
+
+            var genLookup =
+                new Dictionary<string, Delegate>
+                {
+                    [nameof(noRow_NonNullRef1)] = noRow_NonNullRef1,
+                    [nameof(noRow_NonNullRef2)] = noRow_NonNullRef2,
+
+                    [nameof(noRow_NullRef1)] = noRow_NullRef1,
+                    [nameof(noRow_NullRef2)] = noRow_NullRef2,
+
+                    [nameof(noRow_NonNullValue1)] = noRow_NonNullValue1,
+                    [nameof(noRow_NonNullValue2)] = noRow_NonNullValue2,
+
+                    [nameof(noRow_NullValue1)] = noRow_NullValue1,
+                    [nameof(noRow_NullValue2)] = noRow_NullValue2,
+
+                    [nameof(row_NonNullRef1)] = row_NonNullRef1,
+                    [nameof(row_NonNullRef2)] = row_NonNullRef2,
+
+                    [nameof(row_NullRef1)] = row_NullRef1,
+                    [nameof(row_NullRef2)] = row_NullRef2,
+
+                    [nameof(row_NonNullValue1)] = row_NonNullValue1,
+                    [nameof(row_NonNullValue2)] = row_NonNullValue2,
+
+                    [nameof(row_NullValue1)] = row_NullValue1,
+                    [nameof(row_NullValue2)] = row_NullValue2,
+
+                    [nameof(noRow_ObliviousRef1)] = noRow_ObliviousRef1,
+                    [nameof(noRow_ObliviousRef2)] = noRow_ObliviousRef2,
+
+                    [nameof(noRow_ObliviousNonNullValue1)] = noRow_ObliviousNonNullValue1,
+                    [nameof(noRow_ObliviousNonNullValue2)] = noRow_ObliviousNonNullValue2,
+
+                    [nameof(noRow_ObliviousNullValue1)] = noRow_ObliviousNullValue1,
+                    [nameof(noRow_ObliviousNullValue2)] = noRow_ObliviousNullValue2,
+
+                    [nameof(row_ObliviousRef1)] = row_ObliviousRef1,
+                    [nameof(row_ObliviousRef2)] = row_ObliviousRef2,
+
+                    [nameof(row_ObliviousNonNullValue1)] = row_ObliviousNonNullValue1,
+                    [nameof(row_ObliviousNonNullValue2)] = row_ObliviousNonNullValue2,
+
+                    [nameof(row_ObliviousNullValue1)] = row_ObliviousNullValue1,
+                    [nameof(row_ObliviousNullValue2)] = row_ObliviousNullValue2,
+                };
+
+            foreach (var kv in genLookup)
+            {
+                var name = kv.Key;
+                var del = kv.Value;
+
+                var ix = name.IndexOf("_");
+                var row = name[..ix];
+                var expected = name[(ix + 1)..^1];
+
+                var g = (Getter)del;
+
+                NullHandling? rowHandling;
+                NullHandling returnHandling;
+
+                if (row == "noRow")
+                {
+                    rowHandling = null;
+                    switch (expected)
+                    {
+                        case "ObliviousNonNullValue":
+                        case "NonNullValue":
+                        case "NonNullRef":
+                            returnHandling = NullHandling.ForbidNull;
+                            break;
+
+                        case "ObliviousRef":
+                        case "ObliviousNullValue":
+                        case "NullValue":
+                        case "NullRef":
+                            returnHandling = NullHandling.AllowNull;
+                            break;
+
+                        default: throw new Exception();
+                    }
+                }
+                else
+                {
+                    returnHandling = NullHandling.ForbidNull;
+                    switch (expected)
+                    {
+                        case "ObliviousNonNullValue":
+                        case "NonNullValue":
+                        case "NonNullRef":
+                            rowHandling = NullHandling.ForbidNull;
+                            break;
+
+                        case "ObliviousRef":
+                        case "ObliviousNullValue":
+                        case "NullValue":
+                        case "NullRef":
+                            rowHandling = NullHandling.AllowNull;
+                            break;
+
+                        default: throw new Exception();
+                    }
+                }
+
+                Assert.Equal(rowHandling, g.RowNullability);
+                Assert.Equal(returnHandling, g.ReturnsNullability);
+            }
+        }
+
         private static void _BadResetArgs1(int a, int b) { }
 
         private class _Resets
@@ -1056,8 +1510,6 @@ namespace Cesil.Tests
             public void Reset(int a) { }
 
             public int ResetWithReturn() => 1;
-
-            public static void ResetWrongByRef(ref object _) { }
 
             public static void StaticResetTooManyArgs(_Resets row, in ReadContext ctx, object _) { }
             public void InstanceResetTooManyArgs(in ReadContext ctx, object _) { }
@@ -1073,9 +1525,11 @@ namespace Cesil.Tests
             var staticMethodResetParam = Reset.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticResetXXXParam)));
             var staticMethodResetCtx = Reset.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticResetXXXCtx)));
             var staticMethodResetParamCtx = Reset.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticResetXXXParamCtx)));
+            var staticMethodResetByRefParamCtx = Reset.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticResetXXXByRefParamCtx)));
             var delReset = (Reset)(ResetDelegate<_ColumnSetters>)((_ColumnSetters a, in ReadContext _) => { });
             var staticDelReset = (Reset)(StaticResetDelegate)((in ReadContext _) => { });
-            var resets = new[] { methodReset, methodResetCtx, staticMethodReset, staticMethodResetParam, staticMethodResetCtx, staticMethodResetParamCtx, delReset, staticDelReset };
+            var delByRefReset = (Reset)(ResetByRefDelegate<_ColumnSetters>)((ref _ColumnSetters a, in ReadContext _) => { });
+            var resets = new[] { methodReset, methodResetCtx, staticMethodReset, staticMethodResetParam, staticMethodResetCtx, staticMethodResetParamCtx, staticMethodResetByRefParamCtx, delReset, staticDelReset, delByRefReset };
 
             var notReset = "";
 
@@ -1127,7 +1581,20 @@ namespace Cesil.Tests
                     Assert.True(r1.IsStatic);
                     Assert.True(r1.TakesContext);
                 }
+                else if (r1 == staticMethodResetByRefParamCtx)
+                {
+                    Assert.Equal(BackingMode.Method, r1.Mode);
+                    Assert.Equal(typeof(_ColumnSetters), r1.RowType.Value);
+                    Assert.True(r1.IsStatic);
+                    Assert.True(r1.TakesContext);
+                }
                 else if (r1 == delReset)
+                {
+                    Assert.Equal(BackingMode.Delegate, r1.Mode);
+                    Assert.Equal(typeof(_ColumnSetters), r1.RowType.Value);
+                    Assert.False(r1.IsStatic);
+                }
+                else if (r1 == delByRefReset)
                 {
                     Assert.Equal(BackingMode.Delegate, r1.Mode);
                     Assert.Equal(typeof(_ColumnSetters), r1.RowType.Value);
@@ -1175,7 +1642,6 @@ namespace Cesil.Tests
                 Assert.Throws<ArgumentException>(() => Reset.ForMethod(typeof(WrapperTests).GetMethod(nameof(_BadResetArgs1), BindingFlags.Static | BindingFlags.NonPublic)));
                 Assert.Throws<ArgumentException>(() => Reset.ForMethod(typeof(_Resets).GetMethod(nameof(_Resets.Reset), BindingFlags.Instance | BindingFlags.Public)));
                 Assert.Throws<ArgumentException>(() => Reset.ForMethod(typeof(_Resets).GetMethod(nameof(_Resets.ResetWithReturn), BindingFlags.Instance | BindingFlags.Public)));
-                Assert.Throws<ArgumentException>(() => Reset.ForMethod(typeof(_Resets).GetMethod(nameof(_Resets.ResetWrongByRef), BindingFlags.Static | BindingFlags.Public)));
                 Assert.Throws<ArgumentException>(() => Reset.ForMethod(typeof(_Resets).GetMethod(nameof(_Resets.StaticResetTooManyArgs), BindingFlags.Static | BindingFlags.Public)));
                 Assert.Throws<ArgumentException>(() => Reset.ForMethod(typeof(_Resets).GetMethod(nameof(_Resets.InstanceResetTooManyArgs), BindingFlags.Instance | BindingFlags.Public)));
             }
@@ -1183,6 +1649,7 @@ namespace Cesil.Tests
             // ForDelegate errors
             {
                 Assert.Throws<ArgumentNullException>(() => Reset.ForDelegate(default(ResetDelegate<string>)));
+                Assert.Throws<ArgumentNullException>(() => Reset.ForDelegate(default(ResetByRefDelegate<string>)));
                 Assert.Throws<ArgumentNullException>(() => Reset.ForDelegate(default(StaticResetDelegate)));
             }
 
@@ -1196,6 +1663,238 @@ namespace Cesil.Tests
                 Assert.Throws<InvalidOperationException>(() => (Reset)c);
                 Action<int, int, int> d = (_, __, ___) => { };
                 Assert.Throws<InvalidOperationException>(() => (Reset)d);
+            }
+        }
+
+        private sealed class _ResetNullability
+        {
+            // nullable aware
+#nullable enable
+            public static void Row_Context_NonNullRef_Method(object row, in ReadContext ctx) { }
+            public static void Row_Context_NullRef_Method(object? row, in ReadContext ctx) { }
+            public static void Row_Context_NonNullValue_Method(int row, in ReadContext ctx) { }
+            public static void Row_Context_NullValue_Method(int? row, in ReadContext ctx) { }
+
+            public static void Row_Context_ByRef_NonNullRef_Method(ref object row, in ReadContext ctx) { }
+            public static void Row_Context_ByRef_NullRef_Method(ref object? row, in ReadContext ctx) { }
+            public static void Row_Context_ByRef_NonNullValue_Method(ref int row, in ReadContext ctx) { }
+            public static void Row_Context_ByRef_NullValue_Method(ref int? row, in ReadContext ctx) { }
+
+            public static void Row_NoContext_NonNullRef_Method(object row) { }
+            public static void Row_NoContext_NullRef_Method(object? row) { }
+            public static void Row_NoContext_NonNullValue_Method(int row) { }
+            public static void Row_NoContext_NullValue_Method(int? row) { }
+
+            public delegate void Row_Context_NonNullRef_Delegate(object row, in ReadContext ctx);
+            public delegate void Row_Context_NullRef_Delegate(object? row, in ReadContext ctx);
+            public delegate void Row_Context_NonNullValue_Delegate(int row, in ReadContext ctx);
+            public delegate void Row_Context_NullValue_Delegate(int? row, in ReadContext ctx);
+
+            public delegate void Row_Context_ByRef_NonNullRef_Delegate(ref object row, in ReadContext ctx);
+            public delegate void Row_Context_ByRef_NullRef_Delegate(ref object? row, in ReadContext ctx);
+            public delegate void Row_Context_ByRef_NonNullValue_Delegate(ref int row, in ReadContext ctx);
+            public delegate void Row_Context_ByRef_NullValue_Delegate(ref int? row, in ReadContext ctx);
+#nullable disable
+
+            // instance (requires non-null ref)
+            public void Instance_Context_Method(in ReadContext ctx) { }
+            public void Instance_NoContext_Method() { }
+
+            // nullable oblivious
+            public static void Row_Context_ObliviousRef_Method(object row, in ReadContext ctx) { }
+            public static void Row_Context_ObliviousNonNullValue_Method(int row, in ReadContext ctx) { }
+            public static void Row_Context_ObliviousNullValue_Method(int? row, in ReadContext ctx) { }
+
+            public static void Row_Context_ByRef_ObliviousRef_Method(ref object row, in ReadContext ctx) { }
+            public static void Row_Context_ByRef_ObliviousNonNullValue_Method(ref int row, in ReadContext ctx) { }
+            public static void Row_Context_ByRef_ObliviousNullValue_Method(ref int? row, in ReadContext ctx) { }
+
+            public static void Row_NoContext_ObliviousRef_Method(object row) { }
+            public static void Row_NoContext_ObliviousNonNullValue_Method(int row) { }
+            public static void Row_NoContext_ObliviousNullValue_Method(int? row) { }
+
+            public delegate void Row_Context_ObliviousRef_Delegate(object row, in ReadContext ctx);
+            public delegate void Row_Context_ObliviousNonNullValue_Delegate(int row, in ReadContext ctx);
+            public delegate void Row_Context_ObliviousNullValue_Delegate(int? row, in ReadContext ctx);
+
+            public delegate void Row_Context_ByRef_ObliviousRef_Delegate(ref object row, in ReadContext ctx);
+            public delegate void Row_Context_ByRef_ObliviousNonNullValue_Delegate(ref int row, in ReadContext ctx);
+            public delegate void Row_Context_ByRef_ObliviousNullValue_Delegate(ref int? row, in ReadContext ctx);
+
+            // don't care about nullability at all
+            public static void NoRow_Context_Method(in ReadContext ctx) { }
+            public static void NoRow_NoContext_Method() { }
+
+            public delegate void NoRow_Context_Delegate(in ReadContext ctx);
+        }
+
+        public delegate void _ResetNullability_StaticResetDelegate(in ReadContext ctx);
+        public delegate void _ResetNullability_ResetDelegate<TRow>(TRow onType, in ReadContext context);
+        public delegate void _ResetNullability_ResetByRefDelegate<TRow>(ref TRow onType, in ReadContext context);
+
+        [Fact]
+        public void ResetNullability()
+        {
+            var t = typeof(_ResetNullability).GetTypeInfo();
+
+            foreach (var mem in t.GetMembers(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
+            {
+                if (mem.DeclaringType != t) continue;
+                if (mem.MemberType == MemberTypes.Constructor) continue;
+
+                var name = mem.Name;
+                var expectedResult = name[0..(name.LastIndexOf("_"))];
+
+                var mtdEquiv = expectedResult + "_Method";
+
+                Reset r =
+                    mem.MemberType switch
+                    {
+                        MemberTypes.Method => Reset.ForMethod((MethodInfo)mem),
+                        MemberTypes.NestedType => (Reset)Delegate.CreateDelegate((TypeInfo)mem, t.GetMethod(mtdEquiv, BindingFlags.Public | BindingFlags.Static)),
+                        _ => throw new Exception()
+                    };
+
+                expectedResult = expectedResult.Replace("_ByRef", "");
+
+                NullHandling? res;
+
+                switch (expectedResult)
+                {
+                    case "Instance_Context":
+                    case "Instance_NoContext":
+                    case "Row_Context_NonNullRef":
+                    case "Row_NoContext_NonNullRef":
+                    case "Row_Context_NonNullValue":
+                    case "Row_NoContext_NonNullValue":
+                    case "Row_Context_ObliviousNonNullValue":
+                    case "Row_NoContext_ObliviousNonNullValue":
+                        res = NullHandling.ForbidNull;
+                        break;
+
+                    case "Row_Context_ObliviousRef":
+                    case "Row_NoContext_ObliviousRef":
+                    case "Row_Context_NullRef":
+                    case "Row_NoContext_NullRef":
+                    case "Row_Context_NullValue":
+                    case "Row_NoContext_NullValue":
+                    case "Row_Context_ObliviousNullValue":
+                    case "Row_NoContext_ObliviousNullValue":
+                        res = NullHandling.AllowNull;
+                        break;
+
+                    case "NoRow_Context":
+                    case "NoRow_NoContext":
+                        res = null;
+                        break;
+
+                    default: throw new Exception();
+                }
+
+                Assert.Equal(res, r.RowTypeNullability);
+            }
+
+#nullable enable
+            ResetDelegate<object> nonNullRefRow1 = (object _, in ReadContext __) => { };
+            _ResetNullability_ResetDelegate<object> nonNullRefRow2 = (object _, in ReadContext __) => { };
+            _ResetNullability_ResetByRefDelegate<object> nonNullRefRow3 = (ref object _, in ReadContext __) => { };
+
+            ResetDelegate<object?> nullRefRow1 = (object? _, in ReadContext __) => { };
+            _ResetNullability_ResetDelegate<object?> nullRefRow2 = (object? _, in ReadContext __) => { };
+            _ResetNullability_ResetByRefDelegate<object?> nullRefRow3 = (ref object? _, in ReadContext __) => { };
+
+            ResetDelegate<int> nonNullValueRow1 = (int _, in ReadContext __) => { };
+            _ResetNullability_ResetDelegate<int> nonNullValueRow2 = (int _, in ReadContext __) => { };
+            _ResetNullability_ResetByRefDelegate<int> nonNullValueRow3 = (ref int _, in ReadContext __) => { };
+
+            ResetDelegate<int?> nullValueRow1 = (int? _, in ReadContext __) => { };
+            _ResetNullability_ResetDelegate<int?> nullValueRow2 = (int? _, in ReadContext __) => { };
+            _ResetNullability_ResetByRefDelegate<int?> nullValueRow3 = (ref int? _, in ReadContext __) => { };
+#nullable disable
+
+            ResetDelegate<object> obliviousRefRow1 = (object _, in ReadContext __) => { };
+            _ResetNullability_ResetDelegate<object> obliviousRefRow2 = (object _, in ReadContext __) => { };
+            _ResetNullability_ResetByRefDelegate<object> obliviousRefRow3 = (ref object _, in ReadContext __) => { };
+
+            ResetDelegate<int> obliviousNonNullValueRow1 = (int _, in ReadContext __) => { };
+            _ResetNullability_ResetDelegate<int> obliviousNonNullValueRow2 = (int _, in ReadContext __) => { };
+            _ResetNullability_ResetByRefDelegate<int> obliviousNonNullValueRow3 = (ref int _, in ReadContext __) => { };
+
+            ResetDelegate<int?> obliviousNullValueRow1 = (int? _, in ReadContext __) => { };
+            _ResetNullability_ResetDelegate<int?> obliviousNullValueRow2 = (int? _, in ReadContext __) => { };
+            _ResetNullability_ResetByRefDelegate<int?> obliviousNullValueRow3 = (ref int? _, in ReadContext __) => { };
+
+            StaticResetDelegate noRow1 = (in ReadContext _) => { };
+            _ResetNullability_StaticResetDelegate noRow2 = (in ReadContext _) => { };
+
+            var genLookup =
+                new Dictionary<string, Delegate>
+                {
+                    [nameof(nonNullRefRow1)] = nonNullRefRow1,
+                    [nameof(nonNullRefRow2)] = nonNullRefRow2,
+                    [nameof(nonNullRefRow3)] = nonNullRefRow3,
+
+                    [nameof(nullRefRow1)] = nullRefRow1,
+                    [nameof(nullRefRow2)] = nullRefRow2,
+                    [nameof(nullRefRow3)] = nullRefRow3,
+
+                    [nameof(nonNullValueRow1)] = nonNullValueRow1,
+                    [nameof(nonNullValueRow2)] = nonNullValueRow2,
+                    [nameof(nonNullValueRow3)] = nonNullValueRow3,
+
+                    [nameof(nullValueRow1)] = nullValueRow1,
+                    [nameof(nullValueRow2)] = nullValueRow2,
+                    [nameof(nullValueRow3)] = nullValueRow3,
+
+                    [nameof(obliviousRefRow1)] = obliviousRefRow1,
+                    [nameof(obliviousRefRow2)] = obliviousRefRow2,
+                    [nameof(obliviousRefRow3)] = obliviousRefRow3,
+
+                    [nameof(obliviousNonNullValueRow1)] = obliviousNonNullValueRow1,
+                    [nameof(obliviousNonNullValueRow2)] = obliviousNonNullValueRow2,
+                    [nameof(obliviousNonNullValueRow3)] = obliviousNonNullValueRow3,
+
+                    [nameof(obliviousNullValueRow1)] = obliviousNullValueRow1,
+                    [nameof(obliviousNullValueRow2)] = obliviousNullValueRow2,
+                    [nameof(obliviousNullValueRow3)] = obliviousNullValueRow3,
+
+                    [nameof(noRow1)] = noRow1,
+                    [nameof(noRow2)] = noRow2,
+                };
+
+            foreach (var kv in genLookup)
+            {
+                var name = kv.Key;
+                var del = kv.Value;
+
+                var r = (Reset)del;
+
+                var expectedRes = name[..^1];
+
+                NullHandling? res;
+                switch (expectedRes)
+                {
+                    case "nonNullRefRow":
+                    case "nonNullValueRow":
+                    case "obliviousNonNullValueRow":
+                        res = NullHandling.ForbidNull;
+                        break;
+
+                    case "nullRefRow":
+                    case "nullValueRow":
+                    case "obliviousRefRow":
+                    case "obliviousNullValueRow":
+                        res = NullHandling.AllowNull;
+                        break;
+
+                    case "noRow":
+                        res = null;
+                        break;
+
+                    default: throw new Exception();
+                }
+
+                Assert.Equal(res, r.RowTypeNullability);
             }
         }
 
@@ -1320,6 +2019,203 @@ namespace Cesil.Tests
                 Assert.Throws<InvalidOperationException>(() => (Parser)e);
                 BadParser3 f = delegate { return false; };
                 Assert.Throws<InvalidOperationException>(() => (Parser)f);
+            }
+        }
+
+        private sealed class _ParserNullability
+        {
+            public _ParserNullability(ReadOnlySpan<char> c) { }
+            public _ParserNullability(ReadOnlySpan<char> c, in ReadContext ctx) { }
+
+#nullable enable
+            public static bool NonNullRef_Method(ReadOnlySpan<char> c, in ReadContext ctx, out object res)
+            {
+                res = new object();
+                return true;
+            }
+
+            public static bool NullRef_Method(ReadOnlySpan<char> c, in ReadContext ctx, out object? res)
+            {
+                res = null;
+                return true;
+            }
+
+            public static bool NonNullValue_Method(ReadOnlySpan<char> c, in ReadContext ctx, out int res)
+            {
+                res = 0;
+                return true;
+            }
+
+            public static bool NullValue_Method(ReadOnlySpan<char> c, in ReadContext ctx, out int? res)
+            {
+                res = null;
+                return true;
+            }
+
+            public delegate bool NonNullRef_Delegate(ReadOnlySpan<char> c, in ReadContext ctx, out object res);
+            public delegate bool NullRef_Delegate(ReadOnlySpan<char> c, in ReadContext ctx, out object? res);
+            public delegate bool NonNullValue_Delegate(ReadOnlySpan<char> c, in ReadContext ctx, out int res);
+            public delegate bool NullValue_Delegate(ReadOnlySpan<char> c, in ReadContext ctx, out int? res);
+#nullable disable
+
+            public static bool ObliviousRef_Method(ReadOnlySpan<char> c, in ReadContext ctx, out object res)
+            {
+                res = null;
+                return true;
+            }
+
+            public static bool ObliviousNonNullValue_Method(ReadOnlySpan<char> c, in ReadContext ctx, out int res)
+            {
+                res = 0;
+                return true;
+            }
+
+            public static bool ObliviousNullValue_Method(ReadOnlySpan<char> c, in ReadContext ctx, out int? res)
+            {
+                res = null;
+                return true;
+            }
+
+            public delegate bool ObliviousRef_Delegate(ReadOnlySpan<char> c, in ReadContext ctx, out object res);
+            public delegate bool ObliviousNonNullValue_Delegate(ReadOnlySpan<char> c, in ReadContext ctx, out int res);
+            public delegate bool ObliviousNullValue_Delegate(ReadOnlySpan<char> c, in ReadContext ctx, out int? res);
+        }
+
+        public delegate bool _ParserNullability_ParserDelegate<T>(ReadOnlySpan<char> c, in ReadContext ctx, out T res);
+
+        [Fact]
+        public void ParserNullability()
+        {
+            var t = typeof(_ParserNullability);
+
+            foreach (var mem in t.GetMembers(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
+            {
+                if (mem.DeclaringType != t) continue;
+
+                var name = mem.Name;
+                var expectedResult = name == ".ctor" ? "Constructor" : name[0..(name.LastIndexOf("_"))];
+
+                var mtdVersion = expectedResult + "_Method";
+
+                Parser p;
+                switch (mem.MemberType)
+                {
+                    case MemberTypes.Constructor:
+                        var cons = (ConstructorInfo)mem;
+                        p = Parser.ForConstructor(cons);
+                        break;
+                    case MemberTypes.Method:
+                        var mtd = (MethodInfo)mem;
+                        p = Parser.ForMethod(mtd);
+                        break;
+                    case MemberTypes.NestedType:
+                        var innerT = (TypeInfo)mem;
+                        var del = Delegate.CreateDelegate(innerT, t.GetMethod(mtdVersion, BindingFlags.Public | BindingFlags.Static));
+                        p = (Parser)del;
+                        break;
+                    default: throw new Exception();
+                }
+
+                NullHandling res;
+                switch (expectedResult)
+                {
+                    case "Constructor":
+                    case "NonNullRef":
+                    case "NonNullValue":
+                    case "ObliviousNonNullValue":
+                        res = NullHandling.ForbidNull;
+                        break;
+
+                    case "NullRef":
+                    case "NullValue":
+                    case "ObliviousRef":
+                    case "ObliviousNullValue":
+                        res = NullHandling.AllowNull;
+                        break;
+
+                    default: throw new Exception();
+                }
+
+                Assert.Equal(res, p.CreatesNullability);
+            }
+
+#nullable enable
+            ParserDelegate<object> nonNullRef1 = (ReadOnlySpan<char> _, in ReadContext __, out object res) => { res = new object(); return true; };
+            _ParserNullability_ParserDelegate<object> nonNullRef2 = (ReadOnlySpan<char> _, in ReadContext __, out object res) => { res = new object(); return true; };
+
+            ParserDelegate<object?> nullRef1 = (ReadOnlySpan<char> _, in ReadContext __, out object? res) => { res = null; return true; };
+            _ParserNullability_ParserDelegate<object?> nullRef2 = (ReadOnlySpan<char> _, in ReadContext __, out object? res) => { res = null; return true; };
+
+            ParserDelegate<int> nonNullValue1 = (ReadOnlySpan<char> _, in ReadContext __, out int res) => { res = 0; return true; };
+            _ParserNullability_ParserDelegate<int> nonNullValue2 = (ReadOnlySpan<char> _, in ReadContext __, out int res) => { res = 0; return true; };
+
+            ParserDelegate<int?> nullValue1 = (ReadOnlySpan<char> _, in ReadContext __, out int? res) => { res = null; return true; };
+            _ParserNullability_ParserDelegate<int?> nullValue2 = (ReadOnlySpan<char> _, in ReadContext __, out int? res) => { res = null; return true; };
+#nullable disable
+
+            ParserDelegate<object> obliviousRef1 = (ReadOnlySpan<char> _, in ReadContext __, out object res) => { res = new object(); return true; };
+            _ParserNullability_ParserDelegate<object> obliviousRef2 = (ReadOnlySpan<char> _, in ReadContext __, out object res) => { res = new object(); return true; };
+
+            ParserDelegate<int> obliviousNonNullValue1 = (ReadOnlySpan<char> _, in ReadContext __, out int res) => { res = 0; return true; };
+            _ParserNullability_ParserDelegate<int> obliviousNonNullValue2 = (ReadOnlySpan<char> _, in ReadContext __, out int res) => { res = 0; return true; };
+
+            ParserDelegate<int?> obliviousNullValue1 = (ReadOnlySpan<char> _, in ReadContext __, out int? res) => { res = null; return true; };
+            _ParserNullability_ParserDelegate<int?> obliviousNullValue2 = (ReadOnlySpan<char> _, in ReadContext __, out int? res) => { res = null; return true; };
+
+            var genLookup =
+                new Dictionary<string, Delegate>
+                {
+                    [nameof(nonNullRef1)] = nonNullRef1,
+                    [nameof(nonNullRef2)] = nonNullRef2,
+
+                    [nameof(nullRef1)] = nullRef1,
+                    [nameof(nullRef2)] = nullRef2,
+
+                    [nameof(nonNullValue1)] = nonNullValue1,
+                    [nameof(nonNullValue2)] = nonNullValue2,
+
+                    [nameof(nullValue1)] = nullValue1,
+                    [nameof(nullValue2)] = nullValue2,
+
+                    [nameof(obliviousRef1)] = obliviousRef1,
+                    [nameof(obliviousRef2)] = obliviousRef2,
+
+                    [nameof(obliviousNonNullValue1)] = obliviousNonNullValue1,
+                    [nameof(obliviousNonNullValue2)] = obliviousNonNullValue2,
+
+                    [nameof(obliviousNullValue1)] = obliviousNullValue1,
+                    [nameof(obliviousNullValue2)] = obliviousNullValue2,
+                };
+
+            foreach (var kv in genLookup)
+            {
+                var name = kv.Key;
+                var del = kv.Value;
+
+                var p = (Parser)del;
+
+                var expected = name[..^1];
+
+                NullHandling res;
+                switch (expected)
+                {
+                    case "nonNullRef":
+                    case "nonNullValue":
+                    case "obliviousNonNullValue":
+                        res = NullHandling.ForbidNull;
+                        break;
+
+                    case "nullRef":
+                    case "nullValue":
+                    case "obliviousRef":
+                    case "obliviousNullValue":
+                        res = NullHandling.AllowNull;
+                        break;
+
+                    default: throw new Exception();
+                }
+
+                Assert.Equal(res, p.CreatesNullability);
             }
         }
 
@@ -1760,6 +2656,320 @@ namespace Cesil.Tests
             }
         }
 
+        private sealed class _SetterNullability
+        {
+            // don't have rows
+#nullable enable
+            public static object NonNullRef_Field = new object();
+            public static object? NullRef_Field = null;
+            public static int NonNullValue_Field = 0;
+            public static int? NullValue_Field = null;
+
+            public static void NonNullRef_Method(object val, in ReadContext _) { }
+            public static void NullRef_Method(object? val, in ReadContext _) { }
+            public static void NonNullValue_Method(int val, in ReadContext _) { }
+            public static void NullValue_Method(int? val, in ReadContext _) { }
+
+            public delegate void NonNullRef_Delegate(object val, in ReadContext ctx);
+            public delegate void NullRef_Delegate(object? val, in ReadContext ctx);
+            public delegate void NonNullValue_Delegate(int val, in ReadContext ctx);
+            public delegate void NullValue_Delegate(int? val, in ReadContext ctx);
+#nullable disable
+
+            public static object ObliviousRef_Field = new object();
+            public static int ObliviousValue_Field = 0;
+            public static int? ObliviousNullValue_Field = null;
+
+            public static void ObliviousRef_Method(object val, in ReadContext _) { }
+            public static void ObliviousValue_Method(int val, in ReadContext _) { }
+            public static void ObliviousNullValue_Method(int? val, in ReadContext _) { }
+
+            public delegate void ObliviousRef_Delegate(object val, in ReadContext ctx);
+            public delegate void ObliviousValue_Delegate(int val, in ReadContext ctx);
+            public delegate void ObliviousNullValue_Delegate(int? val, in ReadContext ctx);
+
+            // has rows
+#nullable enable
+            public int Instance_Field = 0;
+
+            public void Instance_Method(int val, in ReadContext _) { }
+            public static void RowNonNullRef_Method(object row, int val, in ReadContext _) { }
+            public static void RowNonNullRef_ByRef_Method(ref object row, int val, in ReadContext _) { }
+            public static void RowNullRef_Method(object? row, int val, in ReadContext _) { }
+            public static void RowNullRef_ByRef_Method(ref object? row, int val, in ReadContext _) { }
+            public static void RowNonNullValue_Method(int row, int val, in ReadContext _) { }
+            public static void RowNonNullValue_ByRef_Method(ref int row, int val, in ReadContext _) { }
+            public static void RowNullValue_Method(int? row, int val, in ReadContext _) { }
+            public static void RowNullValue_ByRef_Method(ref int? row, int val, in ReadContext _) { }
+
+            public delegate void RowNonNullRef_Delegate(object row, int val, in ReadContext ctx);
+            public delegate void RowNonNullRef_ByRef_Delegate(ref object row, int val, in ReadContext ctx);
+            public delegate void RowNullRef_Delegate(object? row, int val, in ReadContext ctx);
+            public delegate void RowNullRef_ByRef_Delegate(ref object? row, int val, in ReadContext ctx);
+            public delegate void RowNonNullValue_Delegate(int row, int val, in ReadContext ctx);
+            public delegate void RowNonNullValue_ByRef_Delegate(ref int row, int val, in ReadContext ctx);
+            public delegate void RowNullValue_Delegate(int? row, int val, in ReadContext ctx);
+            public delegate void RowNullValue_ByRef_Delegate(ref int? row, int val, in ReadContext ctx);
+#nullable disable
+
+            public int ObliviousRow_Field = 0;
+
+            public void ObliviousRow_Method(int val, in ReadContext _) { }
+            public static void ObliviousRowRef_Method(object row, int val, in ReadContext _) { }
+            public static void ObliviousRowRef_ByRef_Method(ref object row, int val, in ReadContext _) { }
+            public static void ObliviousRowNonNullValue_Method(int row, int val, in ReadContext _) { }
+            public static void ObliviousRowNonNullValue_ByRef_Method(ref int row, int val, in ReadContext _) { }
+            public static void ObliviousRowNullValue_Method(int? row, int val, in ReadContext _) { }
+            public static void ObliviousRowNullValue_ByRef_Method(ref int? row, int val, in ReadContext _) { }
+
+            public delegate void ObliviousRowRef_Delegate(object row, int val, in ReadContext ctx);
+            public delegate void ObliviousRowRef_ByRef_Delegate(ref object row, int val, in ReadContext ctx);
+            public delegate void ObliviousRowNonNullValue_Delegate(int row, int val, in ReadContext ctx);
+            public delegate void ObliviousRowNonNullValue_ByRef_Delegate(ref int row, int val, in ReadContext ctx);
+            public delegate void ObliviousRowNullValue_Delegate(int? row, int val, in ReadContext ctx);
+            public delegate void ObliviousRowNullValue_ByRef_Delegate(ref int? row, int val, in ReadContext ctx);
+        }
+
+        delegate void _SetterNullabilty_NoRow<T>(T val, in ReadContext ctx);
+        delegate void _SetterNullabilty_WithRow<V, T>(V row, T val, in ReadContext ctx);
+        delegate void _SetterNullabilty_ByRef_WithRow<V, T>(ref V row, T val, in ReadContext ctx);
+
+        [Fact]
+        public void SetterNullability()
+        {
+            var t = typeof(_SetterNullability);
+            foreach (var mem in t.GetMembers(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
+            {
+                if (mem.DeclaringType != t) continue;
+                if (mem is ConstructorInfo) continue;
+
+                var name = mem.Name;
+                var expectedResult = name.Substring(0, name.IndexOf("_"));
+
+                var mtdVersion = name[..(name.LastIndexOf("_"))] + "_Method";
+
+                var s =
+                    mem.MemberType switch
+                    {
+                        MemberTypes.Field => Setter.ForField((FieldInfo)mem),
+                        MemberTypes.Method => Setter.ForMethod((MethodInfo)mem),
+                        MemberTypes.NestedType => (Setter)Delegate.CreateDelegate((TypeInfo)mem, t.GetMethod(mtdVersion, BindingFlags.Public | BindingFlags.Static)),
+                        _ => throw new Exception()
+                    };
+
+                NullHandling? rowHandling;
+                NullHandling takesHandling;
+
+                switch (expectedResult)
+                {
+                    case "ObliviousValue":
+                    case "NonNullValue":
+                    case "NonNullRef":
+                        rowHandling = null;
+                        takesHandling = NullHandling.ForbidNull;
+                        break;
+
+                    case "ObliviousRef":
+                    case "ObliviousNullValue":
+                    case "NullValue":
+                    case "NullRef":
+                        rowHandling = null;
+                        takesHandling = NullHandling.AllowNull;
+                        break;
+
+                    case "Instance":
+                    case "RowNonNullRef":
+                    case "RowNonNullValue":
+                    case "ObliviousRow":
+                    case "ObliviousRowValue":
+                    case "ObliviousRowNonNullValue":
+                        rowHandling = NullHandling.ForbidNull;
+                        takesHandling = NullHandling.ForbidNull;
+                        break;
+
+                    case "RowNullRef":
+                    case "ObliviousRowRef":
+                    case "RowNullValue":
+                    case "ObliviousRowNullValue":
+                        rowHandling = NullHandling.AllowNull;
+                        takesHandling = NullHandling.ForbidNull;
+                        break;
+
+                    default: throw new Exception();
+                }
+
+                Assert.Equal(rowHandling, s.RowNullability);
+                Assert.Equal(takesHandling, s.TakesNullability);
+            }
+
+            // generic delegates - null aware
+#nullable enable
+            StaticSetterDelegate<string> noRow_NonNullRef1 = (string val, in ReadContext _) => { };
+            _SetterNullabilty_NoRow<string> noRow_NonNullRef2 = (string val, in ReadContext _) => { };
+
+            StaticSetterDelegate<string?> noRow_NullRef1 = (string? val, in ReadContext _) => { };
+            _SetterNullabilty_NoRow<string?> noRow_NullRef2 = (string? val, in ReadContext _) => { };
+
+            StaticSetterDelegate<int> noRow_NonNullValue1 = (int val, in ReadContext _) => { };
+            _SetterNullabilty_NoRow<int> noRow_NonNullValue2 = (int val, in ReadContext _) => { };
+
+            StaticSetterDelegate<int?> noRow_NullValue1 = (int? val, in ReadContext _) => { };
+            _SetterNullabilty_NoRow<int?> noRow_NullValue2 = (int? val, in ReadContext _) => { };
+
+            SetterDelegate<string, int> row_NonNullRef1 = (string _, int __, in ReadContext ___) => { };
+            _SetterNullabilty_WithRow<string, int> row_NonNullRef2 = (string _, int __, in ReadContext ___) => { };
+            _SetterNullabilty_ByRef_WithRow<string, int> row_NonNullRef3 = (ref string _, int __, in ReadContext ___) => { };
+
+            SetterDelegate<string?, int> row_NullRef1 = (string? _, int __, in ReadContext ___) => { };
+            _SetterNullabilty_WithRow<string?, int> row_NullRef2 = (string? _, int __, in ReadContext ___) => { };
+            _SetterNullabilty_ByRef_WithRow<string?, int> row_NullRef3 = (ref string? _, int __, in ReadContext ___) => { };
+
+            SetterDelegate<int, int> row_NonNullValue1 = (int _, int __, in ReadContext ___) => { };
+            _SetterNullabilty_WithRow<int, int> row_NonNullValue2 = (int _, int __, in ReadContext ___) => { };
+            _SetterNullabilty_ByRef_WithRow<int, int> row_NonNullValue3 = (ref int _, int __, in ReadContext ___) => { };
+
+            SetterDelegate<int?, int> row_NullValue1 = (int? _, int __, in ReadContext ___) => { };
+            _SetterNullabilty_WithRow<int?, int> row_NullValue2 = (int? _, int __, in ReadContext ___) => { };
+            _SetterNullabilty_ByRef_WithRow<int?, int> row_NullValue3 = (ref int? _, int __, in ReadContext ___) => { };
+#nullable disable
+
+            // generic delegates - oblivious
+            StaticSetterDelegate<string> noRow_ObliviousRef1 = (string val, in ReadContext _) => { };
+            _SetterNullabilty_NoRow<string> noRow_ObliviousRef2 = (string val, in ReadContext _) => { };
+
+            StaticSetterDelegate<int> noRow_ObliviousNonNullValue1 = (int val, in ReadContext _) => { };
+            _SetterNullabilty_NoRow<int> noRow_ObliviousNonNullValue2 = (int val, in ReadContext _) => { };
+
+            StaticSetterDelegate<int?> noRow_ObliviousNullValue1 = (int? val, in ReadContext _) => { };
+            _SetterNullabilty_NoRow<int?> noRow_ObliviousNullValue2 = (int? val, in ReadContext _) => { };
+
+            SetterDelegate<string, int> row_ObliviousRef1 = (string _, int val, in ReadContext __) => { };
+            _SetterNullabilty_WithRow<string, int> row_ObliviousRef2 = (string _, int val, in ReadContext __) => { };
+            _SetterNullabilty_ByRef_WithRow<string, int> row_ObliviousRef3 = (ref string _, int val, in ReadContext __) => { };
+
+            SetterDelegate<int, int> row_ObliviousNonNullValue1 = (int _, int val, in ReadContext __) => { };
+            _SetterNullabilty_WithRow<int, int> row_ObliviousNonNullValue2 = (int _, int val, in ReadContext __) => { };
+            _SetterNullabilty_ByRef_WithRow<int, int> row_ObliviousNonNullValue3 = (ref int _, int val, in ReadContext __) => { };
+
+            SetterDelegate<int?, int> row_ObliviousNullValue1 = (int? _, int val, in ReadContext __) => { };
+            _SetterNullabilty_WithRow<int?, int> row_ObliviousNullValue2 = (int? _, int val, in ReadContext __) => { };
+            _SetterNullabilty_ByRef_WithRow<int?, int> row_ObliviousNullValue3 = (ref int? _, int val, in ReadContext __) => { };
+
+            var genLookup =
+                new Dictionary<string, Delegate>
+                {
+                    [nameof(noRow_NonNullRef1)] = noRow_NonNullRef1,
+                    [nameof(noRow_NonNullRef2)] = noRow_NonNullRef2,
+
+                    [nameof(noRow_NullRef1)] = noRow_NullRef1,
+                    [nameof(noRow_NullRef2)] = noRow_NullRef2,
+
+                    [nameof(noRow_NonNullValue1)] = noRow_NonNullValue1,
+                    [nameof(noRow_NonNullValue2)] = noRow_NonNullValue2,
+
+                    [nameof(noRow_NullValue1)] = noRow_NullValue1,
+                    [nameof(noRow_NullValue2)] = noRow_NullValue2,
+
+                    [nameof(row_NonNullRef1)] = row_NonNullRef1,
+                    [nameof(row_NonNullRef2)] = row_NonNullRef2,
+                    [nameof(row_NonNullRef3)] = row_NonNullRef3,
+
+                    [nameof(row_NullRef1)] = row_NullRef1,
+                    [nameof(row_NullRef2)] = row_NullRef2,
+                    [nameof(row_NullRef3)] = row_NullRef3,
+
+                    [nameof(row_NonNullValue1)] = row_NonNullValue1,
+                    [nameof(row_NonNullValue2)] = row_NonNullValue2,
+                    [nameof(row_NonNullValue3)] = row_NonNullValue3,
+
+                    [nameof(row_NullValue1)] = row_NullValue1,
+                    [nameof(row_NullValue2)] = row_NullValue2,
+                    [nameof(row_NullValue3)] = row_NullValue3,
+
+                    [nameof(noRow_ObliviousRef1)] = noRow_ObliviousRef1,
+                    [nameof(noRow_ObliviousRef2)] = noRow_ObliviousRef2,
+
+                    [nameof(noRow_ObliviousNonNullValue1)] = noRow_ObliviousNonNullValue1,
+                    [nameof(noRow_ObliviousNonNullValue2)] = noRow_ObliviousNonNullValue2,
+
+                    [nameof(noRow_ObliviousNullValue1)] = noRow_ObliviousNullValue1,
+                    [nameof(noRow_ObliviousNullValue2)] = noRow_ObliviousNullValue2,
+
+                    [nameof(row_ObliviousRef1)] = row_ObliviousRef1,
+                    [nameof(row_ObliviousRef2)] = row_ObliviousRef2,
+                    [nameof(row_ObliviousRef3)] = row_ObliviousRef3,
+
+                    [nameof(row_ObliviousNonNullValue1)] = row_ObliviousNonNullValue1,
+                    [nameof(row_ObliviousNonNullValue2)] = row_ObliviousNonNullValue2,
+                    [nameof(row_ObliviousNonNullValue3)] = row_ObliviousNonNullValue3,
+
+                    [nameof(row_ObliviousNullValue1)] = row_ObliviousNullValue1,
+                    [nameof(row_ObliviousNullValue2)] = row_ObliviousNullValue2,
+                    [nameof(row_ObliviousNullValue3)] = row_ObliviousNullValue3,
+                };
+
+            foreach (var kv in genLookup)
+            {
+                var name = kv.Key;
+                var del = kv.Value;
+
+                var ix = name.IndexOf("_");
+                var row = name[..ix];
+                var expected = name[(ix + 1)..^1];
+
+                var s = (Setter)del;
+
+                NullHandling? rowHandling;
+                NullHandling takesHandling;
+
+                if (row == "noRow")
+                {
+                    rowHandling = null;
+                    switch (expected)
+                    {
+                        case "ObliviousNonNullValue":
+                        case "NonNullValue":
+                        case "NonNullRef":
+                            takesHandling = NullHandling.ForbidNull;
+                            break;
+
+                        case "ObliviousRef":
+                        case "ObliviousNullValue":
+                        case "NullValue":
+                        case "NullRef":
+                            takesHandling = NullHandling.AllowNull;
+                            break;
+
+                        default: throw new Exception();
+                    }
+                }
+                else
+                {
+                    takesHandling = NullHandling.ForbidNull;
+                    switch (expected)
+                    {
+                        case "ObliviousNonNullValue":
+                        case "NonNullValue":
+                        case "NonNullRef":
+                            rowHandling = NullHandling.ForbidNull;
+                            break;
+
+                        case "ObliviousRef":
+                        case "ObliviousNullValue":
+                        case "NullValue":
+                        case "NullRef":
+                            rowHandling = NullHandling.AllowNull;
+                            break;
+
+                        default: throw new Exception();
+                    }
+                }
+
+                Assert.Equal(rowHandling, s.RowNullability);
+                Assert.Equal(takesHandling, s.TakesNullability);
+            }
+        }
+
         private class _ShouldSerializeCast
         {
             public int Foo { get; set; }
@@ -2023,6 +3233,202 @@ namespace Cesil.Tests
                 Assert.Throws<InvalidOperationException>(() => (ShouldSerialize)c);
                 Func<int, bool> d = _ => true;
                 Assert.Throws<InvalidOperationException>(() => (ShouldSerialize)d);
+            }
+        }
+
+        private sealed class _ShouldSerializeNullability
+        {
+            // nullable aware
+#nullable enable
+            public static bool Row_Context_NonNullRef_Method(object row, in WriteContext ctx) => true;
+            public static bool Row_Context_NullRef_Method(object? row, in WriteContext ctx) => true;
+            public static bool Row_Context_NonNullValue_Method(int row, in WriteContext ctx) => true;
+            public static bool Row_Context_NullValue_Method(int? row, in WriteContext ctx) => true;
+
+            public static bool Row_NoContext_NonNullRef_Method(object row) => true;
+            public static bool Row_NoContext_NullRef_Method(object? row) => true;
+            public static bool Row_NoContext_NonNullValue_Method(int row) => true;
+            public static bool Row_NoContext_NullValue_Method(int? row) => true;
+
+            public static bool NoRow_NoContext_Method() => true;
+
+            public static bool NoRow_Context_Method(in WriteContext ctx) => true;
+
+            public delegate bool Row_Context_NonNullRef_Delegate(object row, in WriteContext ctx);
+            public delegate bool Row_Context_NullRef_Delegate(object? row, in WriteContext ctx);
+            public delegate bool Row_Context_NonNullValue_Delegate(int row, in WriteContext ctx);
+            public delegate bool Row_Context_NullValue_Delegate(int? row, in WriteContext ctx);
+
+            public delegate bool NoRow_Context_Delegate(in WriteContext ctx);
+#nullable disable
+
+            // instance methods
+            public bool Instance_Context_Method(in WriteContext ctx) => true;
+            public bool Instance_NoContext_Method() => true;
+
+            // nullable oblivious
+            public static bool Row_Context_ObliviousRef_Method(object row, in WriteContext ctx) => true;
+            public static bool Row_Context_ObliviousNonNullValue_Method(int row, in WriteContext ctx) => true;
+            public static bool Row_Context_ObliviousNullValue_Method(int? row, in WriteContext ctx) => true;
+
+            public static bool Row_NoContext_ObliviousRef_Method(object row) => true;
+            public static bool Row_NoContext_ObliviousNonNullValue_Method(int row) => true;
+            public static bool Row_NoContext_ObliviousNullValue_Method(int? row) => true;
+
+            public delegate bool Row_Context_ObliviousRef_Delegate(object row, in WriteContext ctx);
+            public delegate bool Row_Context_ObliviousNonNullValue_Delegate(int row, in WriteContext ctx);
+            public delegate bool Row_Context_ObliviousNullValue_Delegate(int? row, in WriteContext ctx);
+        }
+
+        private delegate bool _ShouldSerializeNullability_StaticShouldSerializeDelegate(in WriteContext ctx);
+        private delegate bool _ShouldSerializeNullability_ShouldSerializeDelegate<T>(T row, in WriteContext ctx);
+
+        [Fact]
+        public void ShouldSerializeNullability()
+        {
+            var t = typeof(_ShouldSerializeNullability);
+            foreach (var mem in t.GetMembers(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
+            {
+                if (mem.DeclaringType != t) continue;
+                if (mem.MemberType == MemberTypes.Constructor) continue;
+
+                var name = mem.Name;
+                var expected = name[..(name.LastIndexOf("_"))];
+
+                var mtdEquiv = expected + "_Method";
+
+                var s =
+                    mem.MemberType switch
+                    {
+                        MemberTypes.Method => ShouldSerialize.ForMethod((MethodInfo)mem),
+                        MemberTypes.NestedType => (ShouldSerialize)Delegate.CreateDelegate((TypeInfo)mem, t.GetMethod(mtdEquiv)),
+                        _ => throw new Exception()
+                    };
+
+                NullHandling? res;
+                switch (expected)
+                {
+                    case "Row_Context_NonNullRef":
+                    case "Row_Context_NonNullValue":
+                    case "Row_NoContext_NonNullRef":
+                    case "Row_NoContext_NonNullValue":
+                    case "Instance_Context":
+                    case "Instance_NoContext":
+                    case "Row_Context_ObliviousNonNullValue":
+                    case "Row_NoContext_ObliviousNonNullValue":
+                        res = NullHandling.ForbidNull;
+                        break;
+
+                    case "Row_Context_NullRef":
+                    case "Row_Context_NullValue":
+                    case "Row_NoContext_NullRef":
+                    case "Row_NoContext_NullValue":
+                    case "Row_Context_ObliviousRef":
+                    case "Row_NoContext_ObliviousRef":
+                    case "Row_Context_ObliviousNullValue":
+                    case "Row_NoContext_ObliviousNullValue":
+                        res = NullHandling.AllowNull;
+                        break;
+
+                    case "NoRow_Context":
+                    case "NoRow_NoContext":
+                        res = null;
+                        break;
+
+                    default: throw new Exception();
+                }
+
+                Assert.Equal(res, s.TakesNullability);
+            }
+
+            // gen delegates
+#nullable enable
+            ShouldSerializeDelegate<object> rowNonNullRef1 = (object row, in WriteContext ctx) => true;
+            _ShouldSerializeNullability_ShouldSerializeDelegate<object> rowNonNullRef2 = (object row, in WriteContext ctx) => true;
+
+            ShouldSerializeDelegate<object?> rowNullRef1 = (object? row, in WriteContext ctx) => true;
+            _ShouldSerializeNullability_ShouldSerializeDelegate<object?> rowNullRef2 = (object? row, in WriteContext ctx) => true;
+
+            ShouldSerializeDelegate<int> rowNonNullValue1 = (int row, in WriteContext ctx) => true;
+            _ShouldSerializeNullability_ShouldSerializeDelegate<int> rowNonNullValue2 = (int row, in WriteContext ctx) => true;
+
+            ShouldSerializeDelegate<int?> rowNullValue1 = (int? row, in WriteContext ctx) => true;
+            _ShouldSerializeNullability_ShouldSerializeDelegate<int?> rowNullValue2 = (int? row, in WriteContext ctx) => true;
+#nullable disable
+
+            ShouldSerializeDelegate<object> rowObliviousRef1 = (object row, in WriteContext ctx) => true;
+            _ShouldSerializeNullability_ShouldSerializeDelegate<object> rowObliviousRef2 = (object row, in WriteContext ctx) => true;
+
+            ShouldSerializeDelegate<int> rowObliviousNonNullValue1 = (int row, in WriteContext ctx) => true;
+            _ShouldSerializeNullability_ShouldSerializeDelegate<int> rowObliviousNonNullValue2 = (int row, in WriteContext ctx) => true;
+
+            ShouldSerializeDelegate<int?> rowObliviousNullValue1 = (int? row, in WriteContext ctx) => true;
+            _ShouldSerializeNullability_ShouldSerializeDelegate<int?> rowObliviousNullValue2 = (int? row, in WriteContext ctx) => true;
+
+            StaticShouldSerializeDelegate noRow1 = (in WriteContext ctx) => true;
+            _ShouldSerializeNullability_StaticShouldSerializeDelegate noRow2 = (in WriteContext ctx) => true;
+
+            var genLookup =
+                new Dictionary<string, Delegate>
+                {
+                    [nameof(rowNonNullRef1)] = rowNonNullRef1,
+                    [nameof(rowNonNullRef2)] = rowNonNullRef2,
+
+                    [nameof(rowNullRef1)] = rowNullRef1,
+                    [nameof(rowNullRef2)] = rowNullRef2,
+
+                    [nameof(rowNonNullValue1)] = rowNonNullValue1,
+                    [nameof(rowNonNullValue2)] = rowNonNullValue2,
+
+                    [nameof(rowNullValue1)] = rowNullValue1,
+                    [nameof(rowNullValue2)] = rowNullValue2,
+
+                    [nameof(rowObliviousRef1)] = rowObliviousRef1,
+                    [nameof(rowObliviousRef2)] = rowObliviousRef2,
+
+                    [nameof(rowObliviousNonNullValue1)] = rowObliviousNonNullValue1,
+                    [nameof(rowObliviousNonNullValue2)] = rowObliviousNonNullValue2,
+
+                    [nameof(rowObliviousNullValue1)] = rowObliviousNullValue1,
+                    [nameof(rowObliviousNullValue2)] = rowObliviousNullValue2,
+
+                    [nameof(noRow1)] = noRow1,
+                    [nameof(noRow2)] = noRow2,
+                };
+
+            foreach (var kv in genLookup)
+            {
+                var name = kv.Key;
+                var del = kv.Value;
+
+                var s = (ShouldSerialize)del;
+
+                var expected = name[..^1];
+
+                NullHandling? res;
+                switch (expected)
+                {
+                    case "rowNonNullRef":
+                    case "rowNonNullValue":
+                    case "rowObliviousNonNullValue":
+                        res = NullHandling.ForbidNull;
+                        break;
+
+                    case "rowNullRef":
+                    case "rowNullValue":
+                    case "rowObliviousRef":
+                    case "rowObliviousNullValue":
+                        res = NullHandling.AllowNull;
+                        break;
+
+                    case "noRow":
+                        res = null;
+                        break;
+
+                    default: throw new Exception();
+                }
+
+                Assert.Equal(res, s.TakesNullability);
             }
         }
 
@@ -2480,6 +3886,211 @@ namespace Cesil.Tests
                 var genParamType = listType.GetGenericArguments()[0].GetTypeInfo();
                 Assert.Throws<ArgumentException>(() => InstanceProvider.GetDefault(listType));
                 Assert.Throws<ArgumentException>(() => InstanceProvider.GetDefault(genParamType));
+            }
+        }
+
+        private sealed class _InstanceProviderNullability
+        {
+            public _InstanceProviderNullability() { }
+            public _InstanceProviderNullability(int a) { }
+
+#nullable enable
+            public static bool NonNullRef_Method(in ReadContext _, out _InstanceProviderNullability res)
+            {
+                res = new _InstanceProviderNullability();
+                return true;
+            }
+
+            public static bool NullRef_Method(in ReadContext _, out _InstanceProviderNullability? res)
+            {
+                res = null;
+                return true;
+            }
+
+            public static bool NonNullValue_Method(in ReadContext _, out int res)
+            {
+                res = 0;
+                return true;
+            }
+
+            public static bool NullValue_Method(in ReadContext _, out int? res)
+            {
+                res = null;
+                return true;
+            }
+
+            public delegate bool NonNullRef_Delegate(in ReadContext _, out _InstanceProviderNullability res);
+            public delegate bool NullRef_Delegate(in ReadContext _, out _InstanceProviderNullability? res);
+            public delegate bool NonNullValue_Delegate(in ReadContext _, out int res);
+            public delegate bool NullValue_Delegate(in ReadContext _, out int? res);
+#nullable disable
+
+            public static bool ObliviousRef_Method(in ReadContext _, out _InstanceProviderNullability res)
+            {
+                res = null;
+                return true;
+            }
+
+            public static bool ObliviousNonNullValue_Method(in ReadContext _, out int res)
+            {
+                res = 0;
+                return true;
+            }
+
+            public static bool ObliviousNullValue_Method(in ReadContext _, out int? res)
+            {
+                res = null;
+                return true;
+            }
+
+            public delegate bool ObliviousRef_Delegate(in ReadContext _, out _InstanceProviderNullability res);
+            public delegate bool ObliviousNonNullValue_Delegate(in ReadContext _, out int res);
+            public delegate bool ObliviousNullValue_Delegate(in ReadContext _, out int? res);
+        }
+
+        private delegate bool _InstanceProviderNullability_Delegate<T>(in ReadContext _, out T res);
+
+        [Fact]
+        public void InstanceProviderNullability()
+        {
+            var t = typeof(_InstanceProviderNullability);
+
+            foreach (var mem in t.GetMembers(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
+            {
+                if (mem.DeclaringType != t) continue;
+
+                var name = mem.Name;
+                var expectedResult = name != ".ctor" ? name[0..(name.LastIndexOf("_"))] : "Constructor";
+
+                var mtdVersion = expectedResult + "_Method";
+
+                InstanceProvider ip;
+                switch (mem.MemberType)
+                {
+                    case MemberTypes.Constructor:
+                        var cons = (ConstructorInfo)mem;
+                        if (cons.GetParameters().Length == 0)
+                        {
+                            ip = InstanceProvider.ForParameterlessConstructor(cons);
+                        }
+                        else
+                        {
+                            ip = InstanceProvider.ForConstructorWithParameters(cons);
+                        }
+                        break;
+                    case MemberTypes.Method:
+                        var mtd = (MethodInfo)mem;
+                        ip = InstanceProvider.ForMethod(mtd);
+                        break;
+                    case MemberTypes.NestedType:
+                        var innerT = (TypeInfo)mem;
+                        var del = Delegate.CreateDelegate(innerT, t.GetMethod(mtdVersion, BindingFlags.Public | BindingFlags.Static));
+                        ip = (InstanceProvider)del;
+                        break;
+                    default: throw new Exception();
+                }
+
+                NullHandling res;
+                switch (expectedResult)
+                {
+                    case "Constructor":
+                    case "NonNullRef":
+                    case "NonNullValue":
+                    case "ObliviousNonNullValue":
+                        res = NullHandling.ForbidNull;
+                        break;
+
+                    case "NullRef":
+                    case "NullValue":
+                    case "ObliviousRef":
+                    case "ObliviousNullValue":
+                        res = NullHandling.AllowNull;
+                        break;
+
+                    default: throw new Exception();
+                }
+
+                Assert.Equal(res, ip.ConstructsNullability);
+            }
+
+            // delegates
+#nullable enable
+            InstanceProviderDelegate<object> nonNullRef1 = (in ReadContext _, out object res) => { res = new object(); return true; };
+            _InstanceProviderNullability_Delegate<object> nonNullRef2 = (in ReadContext _, out object res) => { res = new object(); return true; };
+
+            InstanceProviderDelegate<object?> nullRef1 = (in ReadContext _, out object? res) => { res = null; return true; };
+            _InstanceProviderNullability_Delegate<object?> nullRef2 = (in ReadContext _, out object? res) => { res = null; return true; };
+
+            InstanceProviderDelegate<int> nonNullValue1 = (in ReadContext _, out int res) => { res = 0; return true; };
+            _InstanceProviderNullability_Delegate<int> nonNullValue2 = (in ReadContext _, out int res) => { res = 0; return true; };
+
+            InstanceProviderDelegate<int?> nullValue1 = (in ReadContext _, out int? res) => { res = null; return true; };
+            _InstanceProviderNullability_Delegate<int?> nullValue2 = (in ReadContext _, out int? res) => { res = null; return true; };
+#nullable disable
+
+            InstanceProviderDelegate<object> obliviousRef1 = (in ReadContext _, out object res) => { res = new object(); return true; };
+            _InstanceProviderNullability_Delegate<object> obliviousRef2 = (in ReadContext _, out object res) => { res = new object(); return true; };
+
+            InstanceProviderDelegate<int> obliviousNonNullValue1 = (in ReadContext _, out int res) => { res = 0; return true; };
+            _InstanceProviderNullability_Delegate<int> obliviousNonNullValue2 = (in ReadContext _, out int res) => { res = 0; return true; };
+
+            InstanceProviderDelegate<int?> obliviousNullValue1 = (in ReadContext _, out int? res) => { res = null; return true; };
+            _InstanceProviderNullability_Delegate<int?> obliviousNullValue2 = (in ReadContext _, out int? res) => { res = null; return true; };
+
+            var genLookup =
+                new Dictionary<string, Delegate>
+                {
+                    [nameof(nonNullRef1)] = nonNullRef1,
+                    [nameof(nonNullRef2)] = nonNullRef2,
+
+                    [nameof(nullRef1)] = nullRef1,
+                    [nameof(nullRef2)] = nullRef2,
+
+                    [nameof(nonNullValue1)] = nonNullValue1,
+                    [nameof(nonNullValue2)] = nonNullValue2,
+
+                    [nameof(nullValue1)] = nullValue1,
+                    [nameof(nullValue2)] = nullValue2,
+
+                    [nameof(obliviousRef1)] = obliviousRef1,
+                    [nameof(obliviousRef2)] = obliviousRef2,
+
+                    [nameof(obliviousNonNullValue1)] = obliviousNonNullValue1,
+                    [nameof(obliviousNonNullValue2)] = obliviousNonNullValue2,
+
+                    [nameof(obliviousNullValue1)] = obliviousNullValue1,
+                    [nameof(obliviousNullValue2)] = obliviousNullValue2,
+                };
+
+            foreach (var kv in genLookup)
+            {
+                var name = kv.Key;
+                var del = kv.Value;
+
+                var expected = name[..^1];
+
+                var ip = (InstanceProvider)del;
+
+                NullHandling res;
+                switch (expected)
+                {
+                    case "nonNullRef":
+                    case "nonNullValue":
+                    case "obliviousNonNullValue":
+                        res = NullHandling.ForbidNull;
+                        break;
+
+                    case "nullRef":
+                    case "nullValue":
+                    case "obliviousRef":
+                    case "obliviousNullValue":
+                        res = NullHandling.AllowNull;
+                        break;
+
+                    default: throw new Exception();
+                }
+
+                Assert.Equal(res, ip.ConstructsNullability);
             }
         }
 

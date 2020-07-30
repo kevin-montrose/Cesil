@@ -20,6 +20,8 @@ namespace Cesil
 
         internal bool EmitDefaultValue { get; }
 
+        // todo: anything for nullability here?
+
         private SerializableMember(string name, Getter getter, Formatter formatter, ShouldSerialize? shouldSerialize, bool emitDefault)
         {
             Name = name;

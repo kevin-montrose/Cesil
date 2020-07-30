@@ -721,6 +721,7 @@ namespace Cesil
     public delegate void SetterByRefDelegate<T,V>(T _, V __);
     public delegate void StaticSetterDelegate<T>(T _);
     public delegate void ResetDelegate<T>(T _);
+    public delegate void ResetByRefDelegate<T>(T _);
     public delegate void StaticResetDelegate();
     public delegate void GetterDelegate<T,V>(T _, V __);
     public delegate void StaticGetterDelegate<T>(T _);

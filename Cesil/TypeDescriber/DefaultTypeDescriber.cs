@@ -114,7 +114,7 @@ namespace Cesil
                     var order = GetOrder(forType, p);
                     var isRequired = GetIsRequired(forType, p);
                     var reset = GetReset(forType, p);
-
+                    
                     buffer.Add(order, DeserializableMember.CreateInner(forType, name, setter, parser, isRequired, reset));
                 }
 
@@ -128,7 +128,7 @@ namespace Cesil
                     var order = GetOrder(forType, f);
                     var isRequired = GetIsRequired(forType, f);
                     var reset = GetReset(forType, f);
-
+                    
                     buffer.Add(order, DeserializableMember.CreateInner(forType, name, setter, parser, isRequired, reset));
                 }
 
@@ -946,7 +946,6 @@ endLoop:
             // now the least convenient dynamic type
             if (rowObj is IDynamicMetaObjectProvider asDynamic)
             {
-
                 var arg = Expressions.Parameter_Object;
                 var metaObj = asDynamic.GetMetaObject(arg);
 

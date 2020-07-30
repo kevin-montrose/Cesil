@@ -59,23 +59,26 @@ namespace Cesil
         internal readonly NonNull<Delegate> Delegate;
 
         internal readonly TypeInfo Takes;
+        internal readonly NullHandling TakesNullability;
 
         DynamicFormatterDelegate? ICreatesCacheableDelegate<DynamicFormatterDelegate>.CachedDelegate { get; set; }
 
         private readonly ImmutableArray<Formatter> _Fallbacks;
         ImmutableArray<Formatter> IElseSupporting<Formatter>.Fallbacks => _Fallbacks;
 
-        private Formatter(TypeInfo takes, MethodInfo method, ImmutableArray<Formatter> fallbacks)
+        private Formatter(TypeInfo takes, MethodInfo method, ImmutableArray<Formatter> fallbacks, NullHandling nullability)
         {
             Takes = takes;
+            TakesNullability = nullability;
             Method.Value = method;
             Delegate.Clear();
             _Fallbacks = fallbacks;
         }
 
-        private Formatter(TypeInfo takes, Delegate del, ImmutableArray<Formatter> fallbacks)
+        private Formatter(TypeInfo takes, Delegate del, ImmutableArray<Formatter> fallbacks, NullHandling nullability)
         {
             Takes = takes;
+            TakesNullability = nullability;
             Method.Clear();
             Delegate.Value = del;
             _Fallbacks = fallbacks;
@@ -86,8 +89,8 @@ namespace Cesil
             return
                 Mode switch
                 {
-                    BackingMode.Delegate => new Formatter(Takes, Delegate.Value, newFallbacks),
-                    BackingMode.Method => new Formatter(Takes, Method.Value, newFallbacks),
+                    BackingMode.Delegate => new Formatter(Takes, Delegate.Value, newFallbacks, TakesNullability),
+                    BackingMode.Method => new Formatter(Takes, Method.Value, newFallbacks, TakesNullability),
                     _ => Throw.ImpossibleException<Formatter>($"Unexpected {nameof(BackingMode)}: {Mode}"),
                 };
         }
@@ -158,6 +161,8 @@ namespace Cesil
                 return Throw.ArgumentException<Formatter>($"{fallbackFormatter} does not take a value assignable from {Takes}, and cannot be used as a fallback for this {nameof(Formatter)}", nameof(fallbackFormatter));
             }
 
+            // todo: does nullability need logic here?
+
             return this.DoElse(fallbackFormatter);
         }
 
@@ -193,7 +198,9 @@ namespace Cesil
                 return Throw.ArgumentException<Formatter>($"{nameof(method)} must take 3 parameters", nameof(method));
             }
 
-            var takes = args[0].ParameterType.GetTypeInfo();
+            var arg0 = args[0];
+            var takes = arg0.ParameterType.GetTypeInfo();
+            var takesNullability = arg0.DetermineNullability();
 
             if (!args[1].IsWriteContextByRef(out var msg))
             {
@@ -205,7 +212,7 @@ namespace Cesil
                 return Throw.ArgumentException<Formatter>($"The third parameter to {nameof(method)} must be a {nameof(IBufferWriter<char>)}", nameof(method));
             }
 
-            return new Formatter(takes, method, ImmutableArray<Formatter>.Empty);
+            return new Formatter(takes, method, ImmutableArray<Formatter>.Empty, takesNullability);
         }
 
         /// <summary>
@@ -215,7 +222,9 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(del, nameof(del));
 
-            return new Formatter(typeof(TValue).GetTypeInfo(), del, ImmutableArray<Formatter>.Empty);
+            var nullability = del.Method.GetParameters()[0].DetermineNullability();
+
+            return new Formatter(typeof(TValue).GetTypeInfo(), del, ImmutableArray<Formatter>.Empty, nullability);
         }
 
         /// <summary>
@@ -273,6 +282,7 @@ namespace Cesil
         {
             if (ReferenceEquals(formatter, null)) return false;
 
+            if (TakesNullability != formatter.TakesNullability) return false;
             if (Takes != formatter.Takes) return false;
 
             var otherMode = formatter.Mode;
@@ -301,7 +311,7 @@ namespace Cesil
         /// Returns a hash code for this Getter.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(Formatter), Takes, Mode, Delegate, Method, _Fallbacks.Length);
+        => HashCode.Combine(nameof(Formatter), Takes, Mode, Delegate, Method, _Fallbacks.Length, TakesNullability);
 
         /// <summary>
         /// Describes this Formatter.
@@ -315,20 +325,20 @@ namespace Cesil
                 case BackingMode.Method:
                     if (_Fallbacks.Length > 0)
                     {
-                        return $"{nameof(Formatter)} for {Takes} backed by method {Method} with fallbacks {string.Join(", ", _Fallbacks)}";
+                        return $"{nameof(Formatter)} for {Takes} ({TakesNullability}) backed by method {Method} with fallbacks {string.Join(", ", _Fallbacks)}";
                     }
                     else
                     {
-                        return $"{nameof(Formatter)} for {Takes} backed by method {Method}";
+                        return $"{nameof(Formatter)} for {Takes} ({TakesNullability}) backed by method {Method}";
                     }
                 case BackingMode.Delegate:
                     if (_Fallbacks.Length > 0)
                     {
-                        return $"{nameof(Formatter)} for {Takes} backed by delegate {Delegate} with fallbacks {string.Join(", ", _Fallbacks)}";
+                        return $"{nameof(Formatter)} for {Takes} ({TakesNullability}) backed by delegate {Delegate} with fallbacks {string.Join(", ", _Fallbacks)}";
                     }
                     else
                     {
-                        return $"{nameof(Formatter)} for {Takes} backed by delegate {Delegate}";
+                        return $"{nameof(Formatter)} for {Takes} ({TakesNullability}) backed by delegate {Delegate}";
                     }
                 default:
                     return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
@@ -357,8 +367,9 @@ namespace Cesil
             if (delType.IsGenericType && delType.GetGenericTypeDefinition() == Types.FormatterDelegate)
             {
                 var t = delType.GetGenericArguments()[0].GetTypeInfo();
+                var n = del.Method.GetParameters()[0].DetermineNullability();
 
-                return new Formatter(t, del, ImmutableArray<Formatter>.Empty);
+                return new Formatter(t, del, ImmutableArray<Formatter>.Empty, n);
             }
 
             var mtd = del.Method;
@@ -374,7 +385,9 @@ namespace Cesil
                 return Throw.InvalidOperationException<Formatter>($"Delegate must take 3 parameters");
             }
 
-            var takes = args[0].ParameterType.GetTypeInfo();
+            var arg0 = args[0];
+            var takes = arg0.ParameterType.GetTypeInfo();
+            var takesNullability = arg0.DetermineNullability();
 
             if (!args[1].IsWriteContextByRef(out var msg))
             {
@@ -391,7 +404,7 @@ namespace Cesil
 
             var reboundDel = System.Delegate.CreateDelegate(formatterDel, del, invoke);
 
-            return new Formatter(takes, reboundDel, ImmutableArray<Formatter>.Empty);
+            return new Formatter(takes, reboundDel, ImmutableArray<Formatter>.Empty, takesNullability);
         }
 
         /// <summary>

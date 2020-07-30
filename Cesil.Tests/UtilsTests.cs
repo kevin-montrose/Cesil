@@ -824,5 +824,220 @@ namespace Cesil.Tests
             var ix = Utils.Find(txt, 0, needle);
             Assert.Equal(expected, ix);
         }
+
+        private class _DeterminingNullability
+        {
+            // fields, with annotations
+#nullable enable
+            public string NonNullField = "";
+            public string? NullField = null;
+
+            public List<string> GenericNonNullField = new List<string>();
+            public List<string>? GenericNullField = null;
+
+            public ImmutableArray<string> GenericValueNonNullField = ImmutableArray<string>.Empty;
+            public ImmutableArray<string>? GenericValueNullField = null;
+
+            public int NonNullValueField = 0;
+            public int? NullValueField = null;
+#nullable disable
+
+            // fields, without annotations
+            public string OblivousField = null;
+            public List<string> ObliviousGenericField = null;
+            public ImmutableArray<string> ObliviousGenericValueField = ImmutableArray<string>.Empty;
+            public ImmutableArray<string>? ObliviousGenericNullableValueField = null;
+            public int ObliviousValueField = 0;
+            public int? ObliviousNullValueField = null;
+
+            // properties, with annotations
+#nullable enable
+            public string NonNullProp { get; } = "";
+            public string? NullProp { get; } = null;
+
+            public List<string> GenericNonNullProp { get; } = new List<string>();
+            public List<string>? GenericNullProp { get; } = null;
+
+            public ImmutableArray<string> GenericValueNonNullProp { get; } = ImmutableArray<string>.Empty;
+            public ImmutableArray<string>? GenericValueNullProp { get; } = null;
+
+            public int NonNullValueProp { get; } = 0;
+            public int? NullValueProp { get; } = null;
+#nullable disable
+
+            // properties, without annotations
+            public string OblivousProp { get; } = null;
+            public List<string> ObliviousGenericProp { get; } = null;
+            public ImmutableArray<string> ObliviousGenericValueProp { get; } = ImmutableArray<string>.Empty;
+            public ImmutableArray<string>? ObliviousGenericNullableValueProp { get; } = null;
+            public int ObliviousValueProp { get; } = 0;
+            public int? ObliviousNullValueProp { get; } = null;
+        }
+
+#nullable enable
+        private static void _DetermineNullability_Enabled_Method(
+            string refNonNull,
+            string? refNull,
+            List<string> genRefNonNull,
+            List<string>? genRefNull,
+            ImmutableArray<string> genStructNonNull,
+            ImmutableArray<string>? genStructNull,
+            int valNonNull,
+            int? valNull,
+
+            ref string byRef_refNonNull,
+            ref string? byRef_refNull,
+            ref List<string> byRef_genRefNonNull,
+            ref List<string>? byRef_genRefNull,
+            ref ImmutableArray<string> byRef_genStructNonNull,
+            ref ImmutableArray<string>? byRef_genStructNull,
+            ref int byRef_valNonNull,
+            ref int? byRef_valNull
+        )
+        { }
+#nullable disable
+
+        private static void _DetermineNullability_Oblivious_Method(
+            string refNull,
+            List<string> genRefNull,
+            ImmutableArray<string> genStructNonNull,
+            ImmutableArray<string>? genStructNull,
+            int valNonNull,
+            int? valNull,
+
+            ref string byRef_refNull,
+            ref List<string> byRef_genRefNull,
+            ref ImmutableArray<string> byRef_genStructNonNull,
+            ref ImmutableArray<string>? byRef_genStructNull,
+            ref int byRef_valNonNull,
+            ref int? byRef_valNull
+        )
+        { }
+
+        [Fact]
+        public void DeterminingNullability()
+        {
+            // field tests
+
+            Assert.Equal(NullHandling.AllowNull, default(FieldInfo).DetermineNullability());
+
+            Assert.Equal(NullHandling.ForbidNull, Field(nameof(_DeterminingNullability.NonNullField)));
+            Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.NullField)));
+
+            Assert.Equal(NullHandling.ForbidNull, Field(nameof(_DeterminingNullability.GenericNonNullField)));
+            Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.GenericNullField)));
+
+            Assert.Equal(NullHandling.ForbidNull, Field(nameof(_DeterminingNullability.GenericValueNonNullField)));
+            Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.GenericValueNullField)));
+
+            Assert.Equal(NullHandling.ForbidNull, Field(nameof(_DeterminingNullability.NonNullValueField)));
+            Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.NullValueField)));
+
+            Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.OblivousField)));
+            Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.ObliviousGenericField)));
+            Assert.Equal(NullHandling.ForbidNull, Field(nameof(_DeterminingNullability.ObliviousGenericValueField)));
+            Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.ObliviousGenericNullableValueField)));
+            Assert.Equal(NullHandling.ForbidNull, Field(nameof(_DeterminingNullability.ObliviousValueField)));
+            Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.ObliviousNullValueField)));
+
+            // prop tests
+
+            Assert.Equal(NullHandling.AllowNull, default(PropertyInfo).DetermineNullability());
+
+            Assert.Equal(NullHandling.ForbidNull, Property(nameof(_DeterminingNullability.NonNullProp)));
+            Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.NullProp)));
+
+            Assert.Equal(NullHandling.ForbidNull, Property(nameof(_DeterminingNullability.GenericNonNullProp)));
+            Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.GenericNullProp)));
+
+            Assert.Equal(NullHandling.ForbidNull, Property(nameof(_DeterminingNullability.GenericValueNonNullProp)));
+            Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.GenericValueNullProp)));
+
+            Assert.Equal(NullHandling.ForbidNull, Property(nameof(_DeterminingNullability.NonNullValueProp)));
+            Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.NullValueProp)));
+
+            Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.OblivousProp)));
+            Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.ObliviousGenericProp)));
+            Assert.Equal(NullHandling.ForbidNull, Property(nameof(_DeterminingNullability.ObliviousGenericValueProp)));
+            Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.ObliviousGenericNullableValueProp)));
+            Assert.Equal(NullHandling.ForbidNull, Property(nameof(_DeterminingNullability.ObliviousValueProp)));
+            Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.ObliviousNullValueProp)));
+
+            // argument tests (enabled)
+
+            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Enabled_Method), "refNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "refNull"));
+
+            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Enabled_Method), "genRefNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "genRefNull"));
+
+            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Enabled_Method), "genStructNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "genStructNull"));
+
+            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Enabled_Method), "valNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "valNull"));
+
+            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_refNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_refNull"));
+
+            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_genRefNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_genRefNull"));
+
+            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_genStructNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_genStructNull"));
+
+            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_valNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_valNull"));
+
+            // argument tests (disabled)
+
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "refNull"));
+
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "genRefNull"));
+
+            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "genStructNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "genStructNull"));
+
+            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "valNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "valNull"));
+
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "byRef_refNull"));
+
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "byRef_genRefNull"));
+
+            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "byRef_genStructNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "byRef_genStructNull"));
+
+            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "byRef_valNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "byRef_valNull"));
+
+            static NullHandling Field(string name)
+            {
+                var field = typeof(_DeterminingNullability).GetField(name);
+
+                Assert.NotNull(field);
+
+                return field.DetermineNullability();
+            }
+
+            static NullHandling Property(string name)
+            {
+                var prop = typeof(_DeterminingNullability).GetProperty(name);
+
+                Assert.NotNull(prop);
+
+                return prop.DetermineNullability();
+            }
+
+            static NullHandling Argument(string mtdName, string argName)
+            {
+                var mtd = typeof(UtilsTests).GetMethod(mtdName, BindingFlags.NonPublic | BindingFlags.Static);
+                Assert.NotNull(mtd);
+
+                var arg = mtd.GetParameters().Single(p => p.Name == argName);
+
+                return arg.DetermineNullability();
+            }
+        }
     }
 }

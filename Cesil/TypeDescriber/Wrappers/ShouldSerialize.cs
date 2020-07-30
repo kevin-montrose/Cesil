@@ -47,21 +47,27 @@ namespace Cesil
         }
 
         internal readonly NonNull<MethodInfo> Method;
+
         internal readonly NonNull<Delegate> Delegate;
+
         internal readonly NonNull<TypeInfo> Takes;
+        internal readonly NullHandling? TakesNullability;
+
         internal readonly bool TakesContext;
 
-        private ShouldSerialize(TypeInfo? takes, MethodInfo method, bool takesContext)
+        private ShouldSerialize(TypeInfo? takes, MethodInfo method, bool takesContext, NullHandling? takesNullability)
         {
             Takes.SetAllowNull(takes);
+            TakesNullability = takesNullability;
             Method.Value = method;
             Delegate.Clear();
             TakesContext = takesContext;
         }
 
-        private ShouldSerialize(TypeInfo? takes, Delegate del)
+        private ShouldSerialize(TypeInfo? takes, Delegate del, NullHandling? takesNullability)
         {
             Takes.SetAllowNull(takes);
+            TakesNullability = takesNullability;
             Method.Clear();
             Delegate.Value = del;
             TakesContext = true;
@@ -164,11 +170,13 @@ namespace Cesil
             var args = method.GetParameters();
 
             TypeInfo? takes;
+            NullHandling? takesNullability;
             bool takesContext;
 
             if (!method.IsStatic)
             {
                 takes = method.DeclaringTypeNonNull();
+                takesNullability = NullHandling.ForbidNull;
 
                 if (args.Length == 0)
                 {
@@ -193,11 +201,13 @@ namespace Cesil
                 if (args.Length == 0)
                 {
                     takes = null;
+                    takesNullability = null;
                     takesContext = false;
                 }
                 else if (args.Length == 1)
                 {
-                    var p0 = args[0].ParameterType.GetTypeInfo();
+                    var arg0 = args[0];
+                    var p0 = arg0.ParameterType.GetTypeInfo();
 
                     if (p0.IsByRef)
                     {
@@ -208,17 +218,21 @@ namespace Cesil
                         }
 
                         takes = null;
+                        takesNullability = null;
                         takesContext = true;
                     }
                     else
                     {
                         takes = p0;
+                        takesNullability = arg0.DetermineNullability();
                         takesContext = false;
                     }
                 }
                 else if (args.Length == 2)
                 {
-                    takes = args[0].ParameterType.GetTypeInfo();
+                    var arg0 = args[0];
+                    takes = arg0.ParameterType.GetTypeInfo();
+                    takesNullability = arg0.DetermineNullability();
 
                     if (!args[1].IsWriteContextByRef(out var msg))
                     {
@@ -233,7 +247,7 @@ namespace Cesil
                 }
             }
 
-            return new ShouldSerialize(takes, method, takesContext);
+            return new ShouldSerialize(takes, method, takesContext, takesNullability);
         }
 
         /// <summary>
@@ -243,7 +257,9 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(del, nameof(del));
 
-            return new ShouldSerialize(typeof(TRow).GetTypeInfo(), del);
+            var nullability = del.Method.GetParameters()[0].DetermineNullability();
+
+            return new ShouldSerialize(typeof(TRow).GetTypeInfo(), del, nullability);
         }
 
         /// <summary>
@@ -253,7 +269,7 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(del, nameof(del));
 
-            return new ShouldSerialize(null, del);
+            return new ShouldSerialize(null, del, null);
         }
 
         /// <summary>
@@ -367,15 +383,16 @@ namespace Cesil
             var delType = del.GetType().GetTypeInfo();
             if (delType == Types.StaticShouldSerializeDelegate)
             {
-                return new ShouldSerialize(null, del);
+                return new ShouldSerialize(null, del, null);
             }
 
             if (delType.IsGenericType && delType.GetGenericTypeDefinition().GetTypeInfo() == Types.ShouldSerializeDelegate)
             {
                 var genArgs = delType.GetGenericArguments();
                 var takesType = genArgs[0].GetTypeInfo();
+                var nullability = del.Method.GetParameters()[0].DetermineNullability();
 
-                return new ShouldSerialize(takesType, del);
+                return new ShouldSerialize(takesType, del, nullability);
             }
 
             var mtd = del.Method;
@@ -397,11 +414,13 @@ namespace Cesil
 
                 var reboundDel = System.Delegate.CreateDelegate(Types.StaticShouldSerializeDelegate, del, invoke);
 
-                return new ShouldSerialize(null, reboundDel);
+                return new ShouldSerialize(null, reboundDel, null);
             }
             else if (ps.Length == 2)
             {
-                var takesType = ps[0].ParameterType.GetTypeInfo();
+                var p0 = ps[0];
+                var takesType = p0.ParameterType.GetTypeInfo();
+                var takesNullability = p0.DetermineNullability();
 
                 if (!ps[1].IsWriteContextByRef(out var msg))
                 {
@@ -411,7 +430,7 @@ namespace Cesil
                 var shouldSerializeDelType = Types.ShouldSerializeDelegate.MakeGenericType(takesType);
                 var reboundDel = System.Delegate.CreateDelegate(shouldSerializeDelType, del, invoke);
 
-                return new ShouldSerialize(takesType, reboundDel);
+                return new ShouldSerialize(takesType, reboundDel, takesNullability);
             }
             else
             {

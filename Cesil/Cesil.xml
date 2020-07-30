@@ -2980,6 +2980,30 @@
             it is not an error if it is omitted.
             </summary>
         </member>
+        <member name="T:Cesil.NullHandling">
+            <summary>
+            Controls how null values encountered at runtime will be handled.
+            </summary>
+        </member>
+        <member name="F:Cesil.NullHandling.AllowNull">
+            <summary>
+            Null is a legal value.
+            
+            Note that non-nullable values types can never be null
+            at runtime, and thus all values (including default) will be
+            permitted.
+            </summary>
+        </member>
+        <member name="F:Cesil.NullHandling.ForbidNull">
+            <summary>
+            Null is not a legal value.  If null is encountered at runtime,
+            an exception will be raised.
+            
+            Note that non-nullable values types can never be null
+            at runtime, and thus all values (including default) will be
+            permitted.
+            </summary>
+        </member>
         <member name="T:Cesil.SerializableMember">
             <summary>
             Represents a member of a type to use when serializing.
@@ -3908,6 +3932,11 @@
             Delegate type for resets.
             </summary>
         </member>
+        <member name="T:Cesil.ResetByRefDelegate`1">
+            <summary>
+            Delegate type for resets, where row is passed by ref.
+            </summary>
+        </member>
         <member name="T:Cesil.Reset">
             <summary>
             Represents code called before a setter is called or a field
@@ -3935,6 +3964,11 @@
             </summary>
         </member>
         <member name="M:Cesil.Reset.ForDelegate``1(Cesil.ResetDelegate{``0})">
+            <summary>
+            Create a reset from a delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Reset.ForDelegate``1(Cesil.ResetByRefDelegate{``0})">
             <summary>
             Create a reset from a delegate.
             </summary>
