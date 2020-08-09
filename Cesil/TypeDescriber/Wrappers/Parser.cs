@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq.Expressions;
 using System.Reflection;
-
+using System.Runtime.InteropServices;
 using static Cesil.BindingFlagsConstants;
 
 namespace Cesil
@@ -159,6 +159,33 @@ namespace Cesil
             // todo: does nullability need logic here?
 
             return this.DoElse(fallbackParser);
+        }
+
+        /// <summary>
+        /// Creates a new Parser that differs from this one on how
+        /// it expects to handle null values at runtime.
+        /// 
+        /// When nulls are forbidden, if the .NET runtime cannot guarantee the 
+        ///   absense of nulls at runtime, checks will be performed to ensure 
+        ///   that nulls are not introduced.
+        ///   
+        /// It is an error to allow nulls when the runtime would always forbiden
+        ///   them.  For example, Parsers that produce non-nullable
+        ///   value types cannot have NullHandling.AllowNulls passed to this
+        ///   method.
+        /// </summary>
+        public Parser WithValueNullHandling(NullHandling nullHandling)
+        {
+            Utils.ValidateNullHandling(Mode == BackingMode.Constructor, Creates, CreatesNullability, nameof(nullHandling), nullHandling);
+
+            return
+                Mode switch
+                {
+                    BackingMode.Constructor => new Parser(Constructor.Value, _Fallbacks),
+                    BackingMode.Delegate => new Parser(Delegate.Value, Creates, _Fallbacks, nullHandling),
+                    BackingMode.Method => new Parser(Method.Value, Creates, _Fallbacks, nullHandling),
+                    _ => Throw.ImpossibleException<Parser>($"Unexpected: {nameof(BackingMode)}: {Mode}")
+                };
         }
 
         internal Expression MakeExpression(ParameterExpression dataVar, ParameterExpression contextVar, ParameterExpression outVar)
@@ -382,8 +409,8 @@ namespace Cesil
             return
                 Mode switch
                 {
-                    BackingMode.Method => $"{nameof(Parser)} backed by method {Method} creating {Creates}",
-                    BackingMode.Delegate => $"{nameof(Parser)} backed by delegate {Delegate} creating {Creates}",
+                    BackingMode.Method => $"{nameof(Parser)} backed by method {Method} creating {Creates} ({CreatesNullability})",
+                    BackingMode.Delegate => $"{nameof(Parser)} backed by delegate {Delegate} creating {Creates} ({CreatesNullability})",
                     BackingMode.Constructor => $"{nameof(Parser)} backed by constructor {Constructor} creating {Creates}",
                     _ => Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}"),
                 };

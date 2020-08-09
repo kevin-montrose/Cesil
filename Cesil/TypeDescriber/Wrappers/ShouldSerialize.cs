@@ -144,6 +144,41 @@ namespace Cesil
         }
 
         /// <summary>
+        /// Creates a new ShouldSerialize that differs from this one on if
+        /// it expects to receive null rows at runtime.
+        /// 
+        /// When nulls are forbidden, if the .NET runtime cannot guarantee the 
+        ///   absense of nulls at runtime, checks will be performed to ensure 
+        ///   that nulls are not introduced.
+        ///   
+        /// It is an error to allow nulls when the runtime would always forbiden
+        ///   them.  For example, ShouldSerialize that accepts non-nullable
+        ///   value types cannot have NullHandling.AllowNulls passed to this
+        ///   method.
+        ///   
+        /// It is also an error to call this method if the ShouldSerialize does not receive
+        ///   rows.  For example, ShouldSerialize backed by static methods cannot
+        ///   have this method called.
+        /// </summary>
+        public ShouldSerialize WithRowNullHandling(NullHandling nullHandling)
+        {
+            if (TakesNullability == null)
+            {
+                return Throw.InvalidOperationException<ShouldSerialize>($"{this} does not take rows, and so cannot have a {nameof(NullHandling)} specified");
+            }
+
+            Utils.ValidateNullHandling(false, Takes.Value, TakesNullability.Value, nameof(nullHandling), nullHandling);
+
+            return
+                Mode switch
+                {
+                    BackingMode.Method => new ShouldSerialize(Takes.Value, Method.Value, TakesContext, nullHandling),
+                    BackingMode.Delegate => new ShouldSerialize(Takes.Value, Delegate.Value, nullHandling),
+                    _ => Throw.ImpossibleException<ShouldSerialize>($"Unexpected: {nameof(BackingMode)}: {Mode}")
+                };
+        }
+
+        /// <summary>
         /// Create a ShouldSerialize from a method.
         /// 
         /// Method must return bool.
@@ -338,7 +373,7 @@ namespace Cesil
                     {
                         if (Takes.HasValue)
                         {
-                            return $"{nameof(ShouldSerialize)} backed by method {Method} taking {Takes}";
+                            return $"{nameof(ShouldSerialize)} backed by method {Method} taking {Takes} ({TakesNullability})";
                         }
                         else
                         {
@@ -347,7 +382,7 @@ namespace Cesil
                     }
                     else
                     {
-                        return $"{nameof(ShouldSerialize)} backed by method {Method} on {Takes}";
+                        return $"{nameof(ShouldSerialize)} backed by method {Method} on {Takes} ({TakesNullability})";
                     }
                 case BackingMode.Delegate:
                     if (IsStatic)
@@ -356,7 +391,7 @@ namespace Cesil
                     }
                     else
                     {
-                        return $"{nameof(ShouldSerialize)} backed by delegate {Delegate} taking {Takes}";
+                        return $"{nameof(ShouldSerialize)} backed by delegate {Delegate} taking {Takes} ({TakesNullability})";
                     }
                 default:
                     return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");

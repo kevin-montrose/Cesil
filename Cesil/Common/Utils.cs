@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace Cesil
@@ -888,6 +889,62 @@ tryAgain:
                 var oldI = subSpan[i];
                 subSpan[i] = subSpan[j];
                 subSpan[j] = oldI;
+            }
+        }
+
+        // injected into delegates to perform runtime checks
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void RuntimeNullableValueCheck<T>(T? mustNotBeNull, string message)
+            where T : struct
+        {
+            if (mustNotBeNull == null)
+            {
+                Throw.InvalidOperationException<object>(message);
+                return;
+            }
+        }
+
+        // injected into delegates to perform runtime checks
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void RuntimeNullableReferenceCheck(object? mustNotBeNull, string message)
+        {
+            if (mustNotBeNull == null)
+            {
+                Throw.InvalidOperationException<object>(message);
+                return;
+            }
+        }
+
+        internal static void ValidateNullHandling(
+            bool runtimeUsesConstructor,
+            TypeInfo runtimeType, 
+            NullHandling currentNullHandling,
+            string newNullHandlingArgName,
+            NullHandling newNullHandling
+        )
+        {
+            switch (newNullHandling)
+            {
+                case NullHandling.AllowNull:
+                    if (runtimeType.IsValueType && !runtimeType.IsNullableValueType())
+                    {
+                        Throw.InvalidOperationException<object>($"Type of {runtimeType} cannot be null at runtime, it is not legal to allow nulls");
+                        return;
+                    }
+
+                    if (runtimeUsesConstructor)
+                    {
+                        Throw.InvalidOperationException<object>($"Backed by a constructor, which can never produce null values at runtime");
+                        return;
+                    }
+                    break;
+
+                // can always forbid nulls
+                case NullHandling.ForbidNull: break;
+
+                default:
+                    Throw.ArgumentException<object>($"Unexpected {nameof(NullHandling)}: {newNullHandling}", newNullHandlingArgName);
+                    return;
             }
         }
     }

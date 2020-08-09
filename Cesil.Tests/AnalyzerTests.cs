@@ -760,6 +760,7 @@ namespace Cesil
     public class Throw { }
     public class TupleDynamicParsers<T> { }
     public class WellKnownRowTypes { public class WellKnownEnumRowType<T> { } }
+    public class Utils { }
 
     // interfaces
     public interface IDynamicRowOwner { }

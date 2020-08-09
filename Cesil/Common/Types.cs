@@ -155,6 +155,7 @@ namespace Cesil
         internal static readonly TypeInfo DisposableHelper = typeof(DisposableHelper).GetTypeInfo();
         internal static readonly TypeInfo Throw = typeof(Throw).GetTypeInfo();
         internal static readonly TypeInfo TupleDynamicParsers = typeof(TupleDynamicParsers<>).GetTypeInfo();
+        internal static readonly TypeInfo Utils = typeof(Utils).GetTypeInfo();
         internal static readonly TypeInfo WellKnownRowTypes = typeof(WellKnownRowTypes).GetTypeInfo();
         internal static readonly TypeInfo WellKnownEnumRowType = typeof(WellKnownRowTypes.WellKnownEnumRowType<>).GetTypeInfo();
 

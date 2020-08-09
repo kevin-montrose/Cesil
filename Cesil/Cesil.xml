@@ -3513,6 +3513,21 @@
               it will then try the given fallback Formatter.
             </summary>
         </member>
+        <member name="M:Cesil.Formatter.WithValueNullHandling(Cesil.NullHandling)">
+            <summary>
+            Creates a new Formatter that differs from this one on how
+            it expects to handle null values at runtime.
+            
+            When nulls are forbidden, if the .NET runtime cannot guarantee the 
+              absense of nulls at runtime, checks will be performed to ensure 
+              that nulls are not introduced.
+              
+            It is an error to allow nulls when the runtime would always forbiden
+              them.  For example, Formatters that accept non-nullable
+              value types cannot have NullHandling.AllowNulls passed to this
+              method.
+            </summary>
+        </member>
         <member name="M:Cesil.Formatter.ForMethod(System.Reflection.MethodInfo)">
             <summary>
             Create a formatter from a method.
@@ -3523,7 +3538,7 @@
                 - the type to be formatter (or one it is assignable to)
                 - an in (or by ref) WriteContext
                 -an IBufferWriter(char)
-              * return bool (false indicates insufficient space was available)
+              * return bool (false indicates value could not be formatted)
             </summary>
         </member>
         <member name="M:Cesil.Formatter.ForDelegate``1(Cesil.FormatterDelegate{``0})">
@@ -3597,6 +3612,40 @@
             Represents code used to get a value from a type.
             
             Wraps a static method, an instance method, a field, or a delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.WithValueNullHandling(Cesil.NullHandling)">
+            <summary>
+            Creates a new Getter that differs from this one on if
+            it expects to return null values at runtime.
+            
+            When nulls are forbidden, if the .NET runtime cannot guarantee the 
+              absense of nulls at runtime, checks will be performed to ensure 
+              that nulls are not introduced.
+              
+            It is an error to allow nulls when the runtime would always forbiden
+              them.  For example, Getter that returns non-nullable
+              value types cannot have NullHandling.AllowNulls passed to this
+              method.
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.WithRowNullHandling(Cesil.NullHandling)">
+            <summary>
+            Creates a new Getter that differs from this one on if
+            it expects to receive null rows at runtime.
+            
+            When nulls are forbidden, if the .NET runtime cannot guarantee the 
+              absense of nulls at runtime, checks will be performed to ensure 
+              that nulls are not introduced.
+              
+            It is an error to allow nulls when the runtime would always forbiden
+              them.  For example, Getter that returns non-nullable
+              value types cannot have NullHandling.AllowNulls passed to this
+              method.
+              
+            It is also an error to call this method if the Getter does not receive
+              rows.  For example, Getters backed by static methods or fields cannot
+              have this method called.
             </summary>
         </member>
         <member name="M:Cesil.Getter.ForProperty(System.Reflection.PropertyInfo)">
@@ -3705,6 +3754,21 @@
             <summary>
             Create a new instance provider that will try this instance provider, but if it returns false
               it will then try the given fallback InstanceProvider.
+            </summary>
+        </member>
+        <member name="M:Cesil.InstanceProvider.WithRowNullHandling(Cesil.NullHandling)">
+            <summary>
+            Creates a new InstanceProvider that differs from this one on how
+            it expects to handle null rows at runtime.
+            
+            When nulls are forbidden, if the .NET runtime cannot guarantee the 
+              absense of nulls at runtime, checks will be performed to ensure 
+              that nulls are not introduced.
+              
+            It is an error to allow nulls when the runtime would always forbiden
+              them.  For example, InstanceProviders that produces non-nullable
+              value types cannot have NullHandling.AllowNulls passed to this
+              method.
             </summary>
         </member>
         <member name="M:Cesil.InstanceProvider.ForMethod(System.Reflection.MethodInfo)">
@@ -3832,6 +3896,21 @@
             <summary>
             Create a new parser that will try this parser, but if it returns false
               it will then try the given fallback Parser.
+            </summary>
+        </member>
+        <member name="M:Cesil.Parser.WithValueNullHandling(Cesil.NullHandling)">
+            <summary>
+            Creates a new Parser that differs from this one on how
+            it expects to handle null values at runtime.
+            
+            When nulls are forbidden, if the .NET runtime cannot guarantee the 
+              absense of nulls at runtime, checks will be performed to ensure 
+              that nulls are not introduced.
+              
+            It is an error to allow nulls when the runtime would always forbiden
+              them.  For example, Parsers that produce non-nullable
+              value types cannot have NullHandling.AllowNulls passed to this
+              method.
             </summary>
         </member>
         <member name="M:Cesil.Parser.ForMethod(System.Reflection.MethodInfo)">
@@ -4047,6 +4126,25 @@
               parameter.
             </summary>
         </member>
+        <member name="M:Cesil.Setter.WithRowNullHandling(Cesil.NullHandling)">
+            <summary>
+            Creates a new Setter that differs from this one on if
+            it expects to receive null rows at runtime.
+            
+            When nulls are forbidden, if the .NET runtime cannot guarantee the 
+              absense of nulls at runtime, checks will be performed to ensure 
+              that nulls are not introduced.
+              
+            It is an error to allow nulls when the runtime would always forbiden
+              them.  For example, Setter that takes a non-nullable
+              value type as a row cannot have NullHandling.AllowNulls passed to this
+              method.
+              
+            It is also an error to call this method if the Setter does not receive
+              rows.  For example, Setters backed by static methods or fields cannot
+              have this method called.
+            </summary>
+        </member>
         <member name="M:Cesil.Setter.ForProperty(System.Reflection.PropertyInfo)">
             <summary>
             Create a setter from a PropertyInfo.
@@ -4173,6 +4271,25 @@
             Represents code used to determine whether or not to write a value.
             
             Wraps a static method, an instance method, or a delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.ShouldSerialize.WithRowNullHandling(Cesil.NullHandling)">
+            <summary>
+            Creates a new ShouldSerialize that differs from this one on if
+            it expects to receive null rows at runtime.
+            
+            When nulls are forbidden, if the .NET runtime cannot guarantee the 
+              absense of nulls at runtime, checks will be performed to ensure 
+              that nulls are not introduced.
+              
+            It is an error to allow nulls when the runtime would always forbiden
+              them.  For example, ShouldSerialize that accepts non-nullable
+              value types cannot have NullHandling.AllowNulls passed to this
+              method.
+              
+            It is also an error to call this method if the ShouldSerialize does not receive
+              rows.  For example, ShouldSerialize backed by static methods cannot
+              have this method called.
             </summary>
         </member>
         <member name="M:Cesil.ShouldSerialize.ForMethod(System.Reflection.MethodInfo)">

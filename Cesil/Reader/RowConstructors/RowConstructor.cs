@@ -81,7 +81,6 @@ namespace Cesil
                 var required = sp.IsRequired ? MemberRequired.Yes : MemberRequired.No;
                 var parseAndSet = (ParseAndSetOnDelegate<TRow>)MakeParseAndSetDelegate(rowType, sp.Parser, sp.Setter, sp.Reset);
 
-
                 arr.Add((name, required, parseAndSet));
             }
 
@@ -95,9 +94,46 @@ namespace Cesil
                 var ctxParam = Expressions.Parameter_ReadContext_ByRef;
                 var outParam = Expression.Parameter(rowType.MakeByRefType().GetTypeInfo());
 
-                var body = instanceProvider.MakeExpression(rowType, ctxParam, outParam);
+                var callInstanceProvider = instanceProvider.MakeExpression(rowType, ctxParam, outParam);
 
-                var lambda = Expression.Lambda<InstanceProviderDelegate<TRow>>(body, ctxParam, outParam);
+                Expression<InstanceProviderDelegate<TRow>> lambda;
+
+                if (instanceProvider.ConstructsNullability == NullHandling.ForbidNull && instanceProvider.ConstructsType.AllowsNullLikeValue())
+                {
+                    // need to inject extra logic to make sure the runtime value doesn't violate the ForbidNull handling
+
+                    var resParam = Expressions.Variable_Bool;
+                    var assignRes = Expression.Assign(resParam, callInstanceProvider);
+
+                    MethodInfo validationMtd;
+
+                    if (instanceProvider.ConstructsType.IsValueType)
+                    {
+                        // means this is a nullable value type
+                        var valueTypeElem = instanceProvider.ConstructsType.GetNullableUnderlyingTypeNonNull();
+                        validationMtd = Methods.Utils.RuntimeNullableValueCheck.MakeGenericMethod(valueTypeElem);
+                    }
+                    else
+                    {
+                        validationMtd = Methods.Utils.RuntimeNullableReferenceCheck;
+                    }
+
+                    var msgConstant = Expression.Constant($"{instanceProvider} was forbidden from producing null values, but did produce one at runtime");
+                    var callValidation = Expression.Call(validationMtd, outParam, msgConstant);
+
+                    var ifExp = Expression.IfThen(resParam, callValidation);
+
+                    var body = Expression.Block(new[] { resParam }, assignRes, ifExp, resParam);
+
+                    lambda = Expression.Lambda<InstanceProviderDelegate<TRow>>(body, ctxParam, outParam);
+                }
+                else
+                {
+                    // simple pass through
+                    lambda = Expression.Lambda<InstanceProviderDelegate<TRow>>(callInstanceProvider, ctxParam, outParam);
+                }
+
+
                 var del = lambda.Compile();
 
                 return del;
@@ -284,6 +320,28 @@ namespace Cesil
 
             statements.Add(assignParseRes);
 
+            if(parser.CreatesNullability == NullHandling.ForbidNull && parser.Creates.AllowsNullLikeValue())
+            {
+                // need to inject a runtime check that the Parser hasn't violated it's configuration
+
+                MethodInfo validationMtd;
+                if(parser.Creates.IsNullableValueType())
+                {
+                    var elemType = parser.Creates.GetNullableUnderlyingTypeNonNull();
+                    validationMtd = Methods.Utils.RuntimeNullableValueCheck.MakeGenericMethod(elemType);
+                }
+                else
+                {
+                    validationMtd = Methods.Utils.RuntimeNullableReferenceCheck;
+                }
+
+                var msgConstant = Expression.Constant($"{parser} was forbidden from producing null values, but did produce one at runtime");
+                var validationCall = Expression.Call(validationMtd, outDestVar, msgConstant);
+                var ifSuccessValidate = Expression.IfThen(resVar, validationCall);
+
+                statements.Add(ifSuccessValidate);
+            }
+
             var parserConst = Expression.Constant(parser);
 
             var throwNoParse = Expression.Call(Methods.Throw.ParseFailed, parserConst, ctxParam, dataSpanParam);
@@ -300,6 +358,28 @@ namespace Cesil
             var setterBody = setter.MakeExpression(rowParam, outDestVar, ctxParam);
 
             statements.Add(setterBody);
+
+            var setterMayViolateNullability =
+                (setter.RowType.HasValue && setter.IsRowByRef) &&                                                   // takes a row, and it's by ref (so the setter may have modified it)
+                (setter.RowNullability == NullHandling.ForbidNull && setter.RowType.Value.AllowsNullLikeValue());   //   and the row type shouldn't be null, but _could_ be
+
+            if (setterMayViolateNullability)
+            {
+                MethodInfo validationMtd;
+                if (rowType.IsNullableValueType())
+                {
+                    var elemType = rowType.GetNullableUnderlyingTypeNonNull();
+                    validationMtd = Methods.Utils.RuntimeNullableValueCheck.MakeGenericMethod(elemType);
+                }
+                else
+                {
+                    validationMtd = Methods.Utils.RuntimeNullableReferenceCheck;
+                }
+
+                var msgConst = Expression.Constant($"{setter} changed row to null, which is not permitted");
+                var callValidation = Expression.Call(validationMtd, rowParam, msgConst);
+                statements.Add(callValidation);
+            }
 
             var body = Expression.Block(new[] { resVar, outDestVar }, statements);
 

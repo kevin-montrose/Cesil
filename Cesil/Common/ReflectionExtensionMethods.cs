@@ -8,7 +8,20 @@ namespace Cesil
 {
     internal static class ReflectionExtensionMethods
     {
-        // todo: test these DetermineNullability methods
+        internal static bool AllowsNullLikeValue(this TypeInfo type)
+        {
+            while (type.IsByRef)
+            {
+                type = type.GetElementTypeNonNull();
+            }
+
+            if (!type.IsValueType)
+            {
+                return true;
+            }
+
+            return type.IsNullableValueType();
+        }
 
         internal static NullHandling DetermineNullability(this PropertyInfo? property)
         {
@@ -159,15 +172,13 @@ namespace Cesil
             // found an actual attribute and extracted the relevant bit, what does it mean?
             static NullHandling GetHandlingByByte(byte val, T member, TypeInfo effectiveMemberType)
             {
-                switch (val)
+                return val switch
                 {
-                    case 0: return GetObliviousNullHandling(effectiveMemberType);
-                    case 1: return NullHandling.ForbidNull;
-                    case 2: return NullHandling.AllowNull;
-
-                    default:
-                        return Throw.ImpossibleException<NullHandling>($@"NullableAttribute with unexpected argument {val} (on member {member}), this should not be possible");
-                }
+                    0 => GetObliviousNullHandling(effectiveMemberType),
+                    1 => NullHandling.ForbidNull,
+                    2 => NullHandling.AllowNull,
+                    _ => Throw.ImpossibleException<NullHandling>($@"NullableAttribute with unexpected argument {val} (on member {member}), this should not be possible"),
+                };
             }
 
             // no annotation found, do what is "natural"
@@ -185,6 +196,17 @@ namespace Cesil
 
                 return NullHandling.AllowNull;
             }
+        }
+
+        internal static TypeInfo GetNullableUnderlyingTypeNonNull(this TypeInfo type)
+        {
+            var underlying = Nullable.GetUnderlyingType(type);
+            if (underlying == null)
+            {
+                return Throw.ImpossibleException<TypeInfo>("Called with non-nullable type");
+            }
+
+            return underlying.GetTypeInfo();
         }
 
         internal static bool IsNullableValueType(this TypeInfo type)

@@ -17,6 +17,191 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class WriterTests
     {
+        private sealed class _GetterFormatterNullabilityMismatch
+        {
+            
+        }
+
+        [Fact]
+        public void GetterFormatterNullabilityMismatch()
+        {
+#nullable enable
+            var g =
+                Getter.ForDelegate(
+                    (_GetterFormatterNullabilityMismatch row, in WriteContext ctx) =>
+                    {
+                        return default(int?);
+                    }
+                );
+            var f =
+                Formatter.ForDelegate(
+                    (int? value, in WriteContext ctx, IBufferWriter<char> buffer) => true
+                ).WithValueNullHandling(NullHandling.ForbidNull);
+#nullable disable
+
+            var exc = Assert.Throws<InvalidOperationException>(() => SerializableMember.Create(typeof(_GetterFormatterNullabilityMismatch).GetTypeInfo(), "foo", g, f, null, Cesil.EmitDefaultValue.Yes));
+            Assert.StartsWith("Getter ", exc.Message);
+            Assert.Contains(" returning System.Nullable`1[System.Int32] (AllowNull) may return a null value, ", exc.Message);
+            Assert.EndsWith(" cannot accept.", exc.Message);
+        }
+
+        [Fact]
+        public void NullHandlingViolations()
+        {
+            // getters
+            {
+                // can't return a null, but does
+#nullable enable
+                var g1 =
+                    Getter.ForDelegate<object, object>(
+                        (object row, in WriteContext ctx) =>
+                        {
+                            return null!;
+                        }
+                    );
+#nullable disable
+
+                var g2 =
+                    Getter.ForDelegate<object, int?>(
+                        (object row, in WriteContext ctx) =>
+                        {
+                            return null;
+                        }
+                    ).WithValueNullHandling(NullHandling.ForbidNull);
+
+                // nothing wrong with these two, but we'll violate
+                //   it's null expection around rows in dynamic contexts
+#nullable enable
+                var g3 =
+                    Getter.ForDelegate(
+                        (object row, in WriteContext ctx) => 0
+                    );
+#nullable disable
+                var g4 =
+                    Getter.ForDelegate(
+                        (int? row, in WriteContext ctx) => 0
+                    ).WithRowNullHandling(NullHandling.ForbidNull);
+
+                var fObj =
+                    Formatter.ForDelegate<object>(
+                        (object val, in WriteContext ctx, IBufferWriter<char> buff) =>
+                        {
+                            return true;
+                        }
+                    );
+
+                var fNullInt =
+                    Formatter.ForDelegate<int?>(
+                        (int? val, in WriteContext ctx, IBufferWriter<char> buff) =>
+                        {
+                            return true;
+                        }
+                    );
+
+                var cw1 = ColumnWriter.Create(typeof(object).GetTypeInfo(), Options.Default, fObj, new NonNull<ShouldSerialize>(), g1, true);
+                var ex1 = Assert.Throws<InvalidOperationException>(() => cw1(new object(), default, null));
+                Assert.StartsWith("Getter ", ex1.Message);
+                Assert.EndsWith(" returning System.Object (ForbidNull) was forbidden from return null values, but did return one at runtime", ex1.Message);
+
+                var cw2 = ColumnWriter.Create(typeof(object).GetTypeInfo(), Options.Default, fNullInt, new NonNull<ShouldSerialize>(), g2, true);
+                var ex2 = Assert.Throws<InvalidOperationException>(() => cw2(new object(), default, null));
+                Assert.StartsWith("Getter ", ex2.Message);
+                Assert.EndsWith(" returning System.Nullable`1[System.Int32] (ForbidNull) was forbidden from return null values, but did return one at runtime", ex2.Message);
+
+                var dynG3 = (g3 as ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>).CreateDelegate();
+                var ex3 = Assert.Throws<InvalidOperationException>(() => dynG3(default(object), default));
+                Assert.StartsWith("Getter ", ex3.Message);
+                Assert.EndsWith("taking System.Object (ForbidNull) returning System.Int32 (ForbidNull) does not take a null row value, but received one at runtime", ex3.Message);
+
+                var dynG4 = (g4 as ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>).CreateDelegate();
+                var ex4 = Assert.Throws<InvalidOperationException>(() => dynG4(default(int?), default));
+                Assert.StartsWith("Getter ", ex4.Message);
+                Assert.EndsWith("taking System.Nullable`1[System.Int32] (ForbidNull) returning System.Int32 (ForbidNull) does not take a null row value, but received one at runtime", ex4.Message);
+            }
+
+            // formatters don't need a test because the _getter_ will enforce that it
+            //  returned what it's supposed to w.r.t. nullability, provided that appropriate
+            //  checks are in place to prevent mismatches
+
+            // (dynamic) formatters
+            {
+                // dynamic formatters still need a test, because any old thing could end up being passed to them
+#nullable enable
+                var f1 =
+                    Formatter.ForDelegate(
+                        (object val, in WriteContext ctx, IBufferWriter<char> buffer) => true
+                    );
+#nullable disable
+                var f2 =
+                    Formatter.ForDelegate(
+                        (int? val, in WriteContext ctx, IBufferWriter<char> buffer) => true
+                    ).WithValueNullHandling(NullHandling.ForbidNull);
+
+                var genF1 = (f1 as ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>).CreateDelegate();
+                var genF2 = (f2 as ICreatesCacheableDelegate<Formatter.DynamicFormatterDelegate>).CreateDelegate();
+
+                var exc1 = Assert.Throws<InvalidOperationException>(() => genF1(default(object), default(WriteContext), default(IBufferWriter<char>)));
+                Assert.StartsWith("Formatter ", exc1.Message);
+                Assert.Contains("System.Object (ForbidNull)", exc1.Message);
+                Assert.EndsWith(" called with null value, which is not permitted", exc1.Message);
+
+                var exc2 = Assert.Throws<InvalidOperationException>(() => genF2(default(int?), default(WriteContext), default(IBufferWriter<char>)));
+                Assert.StartsWith("Formatter ", exc2.Message);
+                Assert.Contains("System.Nullable`1[System.Int32] (ForbidNull)", exc2.Message);
+                Assert.EndsWith(" called with null value, which is not permitted", exc2.Message);
+            }
+
+            // should serialize
+            {
+#nullable enable
+                var s1 =
+                    Cesil.ShouldSerialize.ForDelegate(
+                        (object row, in WriteContext ctx) => true
+                    );
+#nullable disable
+
+                var s2 =
+                    Cesil.ShouldSerialize.ForDelegate(
+                        (int? row, in WriteContext ctx) => true
+                    ).WithRowNullHandling(NullHandling.ForbidNull);
+
+                var fObj =
+                    Formatter.ForDelegate<object>(
+                        (object val, in WriteContext ctx, IBufferWriter<char> buff) =>
+                        {
+                            return true;
+                        }
+                    );
+
+                var fNullInt =
+                    Formatter.ForDelegate<int?>(
+                        (int? val, in WriteContext ctx, IBufferWriter<char> buff) =>
+                        {
+                            return true;
+                        }
+                    );
+
+                var g1 = Getter.ForDelegate((object row, in WriteContext ctx) => new object());
+                var g2 = Getter.ForDelegate((int? row, in WriteContext ctx) => default(int?));
+
+                var nnS1 = new NonNull<ShouldSerialize>();
+                nnS1.Value = s1;
+
+                var nnS2 = new NonNull<ShouldSerialize>();
+                nnS2.Value = s2;
+
+                var cw1 = ColumnWriter.Create(typeof(object).GetTypeInfo(), Options.Default, fObj, nnS1, g1, true);
+                var ex1 = Assert.Throws<InvalidOperationException>(() => cw1(null, default, null));
+                Assert.StartsWith("ShouldSerialize ", ex1.Message);
+                Assert.EndsWith(" taking System.Object (ForbidNull) does not accept null rows, but was given one at runtime", ex1.Message);
+
+                var cw2 = ColumnWriter.Create(typeof(int?).GetTypeInfo(), Options.Default, fNullInt, nnS2, g2, true);
+                var ex2 = Assert.Throws<InvalidOperationException>(() => cw2(default(int?), default, null));
+                Assert.StartsWith("ShouldSerialize ", ex2.Message);
+                Assert.EndsWith(" taking System.Nullable`1[System.Int32] (ForbidNull) does not accept null rows, but was given one at runtime", ex2.Message);
+            }
+        }
+
         private sealed class _ReturnedRowCounts
         {
             public string A { get; set; }

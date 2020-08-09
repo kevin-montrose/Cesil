@@ -35,6 +35,26 @@ namespace Cesil
             {
                 var ss = shouldSerialize.Value;
 
+                if(ss.TakesNullability == NullHandling.ForbidNull && ss.Takes.Value.AllowsNullLikeValue())
+                {
+                    var takes = ss.Takes.Value;
+
+                    MethodInfo validationMtd;
+                    if (takes.IsNullableValueType())
+                    {
+                        var elemType = takes.GetNullableUnderlyingTypeNonNull();
+                        validationMtd = Methods.Utils.RuntimeNullableValueCheck.MakeGenericMethod(elemType);
+                    }
+                    else
+                    {
+                        validationMtd = Methods.Utils.RuntimeNullableReferenceCheck;
+                    }
+
+                    var msgConst = Expression.Constant($"{ss} does not accept null rows, but was given one at runtime");
+                    var callValidation = Expression.Call(validationMtd, l1, msgConst);
+                    statements.Add(callValidation);
+                }
+
                 var callShouldSerialize = ss.MakeExpression(l1, p2);
 
                 var shouldntSerialize = Expression.Not(callShouldSerialize);
@@ -51,6 +71,25 @@ namespace Cesil
 
             var assignToL2 = Expression.Assign(l2, getExp);
             statements.Add(assignToL2);
+
+            // do we need to check that a null didn't happen at runtime?
+            if(getter.ReturnsNullability == NullHandling.ForbidNull && columnType.AllowsNullLikeValue())
+            {
+                MethodInfo validationMtd;
+                if (columnType.IsNullableValueType())
+                {
+                    var elemType = columnType.GetNullableUnderlyingTypeNonNull();
+                    validationMtd = Methods.Utils.RuntimeNullableValueCheck.MakeGenericMethod(elemType);
+                }
+                else
+                {
+                    validationMtd = Methods.Utils.RuntimeNullableReferenceCheck;
+                }
+
+                var msgConst = Expression.Constant($"{getter} was forbidden from return null values, but did return one at runtime");
+                var callValidation = Expression.Call(validationMtd, l2, msgConst);
+                statements.Add(callValidation);
+            }
 
             if (!emitDefaultValue)
             {

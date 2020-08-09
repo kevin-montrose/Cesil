@@ -109,6 +109,33 @@ namespace Cesil
             return this.DoElse(fallbackProvider);
         }
 
+        /// <summary>
+        /// Creates a new InstanceProvider that differs from this one on how
+        /// it expects to handle null rows at runtime.
+        /// 
+        /// When nulls are forbidden, if the .NET runtime cannot guarantee the 
+        ///   absense of nulls at runtime, checks will be performed to ensure 
+        ///   that nulls are not introduced.
+        ///   
+        /// It is an error to allow nulls when the runtime would always forbiden
+        ///   them.  For example, InstanceProviders that produces non-nullable
+        ///   value types cannot have NullHandling.AllowNulls passed to this
+        ///   method.
+        /// </summary>
+        public InstanceProvider WithRowNullHandling(NullHandling nullHandling)
+        {
+            Utils.ValidateNullHandling(Mode == BackingMode.Constructor, ConstructsType, ConstructsNullability, nameof(nullHandling), nullHandling);
+
+            return
+                Mode switch
+                {
+                    BackingMode.Constructor => new InstanceProvider(Constructor.Value, _Fallbacks),
+                    BackingMode.Method => new InstanceProvider(Method.Value, ConstructsType, _Fallbacks, nullHandling),
+                    BackingMode.Delegate => new InstanceProvider(Delegate.Value, ConstructsType, _Fallbacks, nullHandling),
+                    _ => Throw.ImpossibleException<InstanceProvider>($"Unexpected {nameof(BackingMode)}: {Mode}"),
+                };
+        }
+
         internal Expression MakeExpression(TypeInfo resultType, ParameterExpression context, ParameterExpression outVar)
         {
             Expression selfExp;

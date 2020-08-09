@@ -2010,7 +2010,8 @@ namespace Cesil.Tests
                     [typeof(DynamicRowDisposal).GetTypeInfo()] = new[] { "dynamicRowDisposal" },
                     [typeof(WhitespaceTreatments).GetTypeInfo()] = new[] { "whitespaceTreatment" },
                     [typeof(ExtraColumnTreatment).GetTypeInfo()] = new[] { "extraColumnTreatment" },
-                    [typeof(IMemoryPoolProvider).GetTypeInfo()] = new [] { "memoryPoolProvider" },
+                    [typeof(IMemoryPoolProvider).GetTypeInfo()] = new[] { "memoryPoolProvider" },
+                    [typeof(NullHandling).GetTypeInfo()] = new[] { "nullHandling" },
 
                     // wrapper types
                     [typeof(DynamicCellValue).GetTypeInfo()] = new[] { "value" },

@@ -146,6 +146,9 @@ namespace Cesil
 
             if (provider != null)
             {
+                var rowNullability = provider.ConstructsNullability;
+
+                // deal with setter mismatches
                 if (provider.ConstructorTakesParameters)
                 {
                     var cons = provider.Constructor.Value;
@@ -181,9 +184,12 @@ namespace Cesil
                         var cp = setter.ConstructorParameter.Value;
                         if (cp.Member != cons)
                         {
-                            Throw.InvalidOperationException<object>($"{nameof(Setter)} {setter} is backed by a parameter not on the constructor {cons}");
+                            Throw.InvalidOperationException<object>($"{setter} is backed by a parameter not on the constructor {cons}");
                             return;
                         }
+
+                        // no need to check for nullability, since we're using a constructor we'll never have a null row
+                        //    any null handling on the part of the setter is acceptable
                     }
                 }
                 else
@@ -193,7 +199,33 @@ namespace Cesil
                         var setter = d.Setter;
                         if (setter.Mode == BackingMode.ConstructorParameter)
                         {
-                            Throw.InvalidOperationException<object>($"{nameof(Setter)} {setter} bound to constructor parameter when {nameof(InstanceProvider)} is not backed by a parameter taking constructor");
+                            Throw.InvalidOperationException<object>($"{setter} bound to constructor parameter when {nameof(InstanceProvider)} is not backed by a parameter taking constructor");
+                            return;
+                        }
+
+                        if (rowNullability == NullHandling.AllowNull && setter.RowNullability == NullHandling.ForbidNull)
+                        {
+                            Throw.InvalidOperationException<object>($"{provider} may provide a null row, which {setter} will not accept.");
+                            return;
+                        }
+                    }
+                }
+
+                // deal with reset mismatches (only need if we could see null rows)
+                if (rowNullability == NullHandling.AllowNull)
+                {
+                    foreach (var d in deserializeColumns)
+                    {
+                        var r = d.Reset;
+                        if (!r.HasValue)
+                        {
+                            continue;
+                        }
+
+                        var resetNullability = r.Value.RowTypeNullability;
+                        if (resetNullability == NullHandling.ForbidNull)
+                        {
+                            Throw.InvalidOperationException<object>($"{provider} may provide a null row, which {r.Value} will not accept.");
                             return;
                         }
                     }

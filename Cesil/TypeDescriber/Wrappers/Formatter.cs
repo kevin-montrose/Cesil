@@ -37,7 +37,7 @@ namespace Cesil
                 var firstArg = mtd.GetParameters()[0];
                 var forType = firstArg.ParameterType;
 
-                ret.Add(forType.GetTypeInfo(), Formatter.ForMethod(mtd));
+                ret.Add(forType.GetTypeInfo(), ForMethod(mtd));
             }
 
             return ret;
@@ -101,9 +101,43 @@ namespace Cesil
             var p1 = Expressions.Parameter_WriteContext_ByRef;
             var p2 = Expressions.Parameter_IBufferWriterOfChar;
 
-            var block = Expression.Block(MakeExpression(p0, p1, p2));
+            var takesTypeVar = Expression.Variable(Takes);
+            var asTakesType = Expression.Convert(p0, Takes);
+            var assignsToTakesType = Expression.Assign(takesTypeVar, asTakesType);
+
+            var statements = new List<Expression>();
+            statements.Add(assignsToTakesType);
+
+            var formatterExp = MakeExpression(takesTypeVar, p1, p2);
+
+            if (TakesNullability == NullHandling.ForbidNull && Takes.AllowsNullLikeValue())
+            {
+                MethodInfo validateMtd;
+                if(Takes.IsNullableValueType())
+                {
+                    var elemType = Takes.GetNullableUnderlyingTypeNonNull();
+                    validateMtd = Methods.Utils.RuntimeNullableValueCheck.MakeGenericMethod(elemType);
+                }
+                else
+                {
+                    validateMtd = Methods.Utils.RuntimeNullableReferenceCheck;
+                }
+
+                var msgConst = Expression.Constant($"{this} called with null value, which is not permitted");
+                var callValidation = Expression.Call(validateMtd, takesTypeVar, msgConst);
+
+                statements.Add(callValidation);
+                statements.Add(formatterExp);
+            }
+            else
+            {
+                statements.Add(formatterExp);
+            }
+
+            var block = Expression.Block(new[] { takesTypeVar }, statements);
 
             var lambda = Expression.Lambda<DynamicFormatterDelegate>(block, p0, p1, p2);
+
             var del = lambda.Compile();
 
             return del;
@@ -113,20 +147,18 @@ namespace Cesil
         {
             Expression selfExp;
 
-            var asT = Expression.Convert(objectParam, Takes);
-
             switch (Mode)
             {
                 case BackingMode.Delegate:
                     {
                         var delRef = Expression.Constant(Delegate.Value);
-                        selfExp = Expression.Invoke(delRef, asT, writeContextParam, bufferWriterParam);
+                        selfExp = Expression.Invoke(delRef, objectParam, writeContextParam, bufferWriterParam);
 
                         break;
                     }
                 case BackingMode.Method:
                     {
-                        var call = Expression.Call(Method.Value, asT, writeContextParam, bufferWriterParam);
+                        var call = Expression.Call(Method.Value, objectParam, writeContextParam, bufferWriterParam);
                         selfExp = call;
 
                         break;
@@ -167,6 +199,32 @@ namespace Cesil
         }
 
         /// <summary>
+        /// Creates a new Formatter that differs from this one on how
+        /// it expects to handle null values at runtime.
+        /// 
+        /// When nulls are forbidden, if the .NET runtime cannot guarantee the 
+        ///   absense of nulls at runtime, checks will be performed to ensure 
+        ///   that nulls are not introduced.
+        ///   
+        /// It is an error to allow nulls when the runtime would always forbiden
+        ///   them.  For example, Formatters that accept non-nullable
+        ///   value types cannot have NullHandling.AllowNulls passed to this
+        ///   method.
+        /// </summary>
+        public Formatter WithValueNullHandling(NullHandling nullHandling)
+        {
+            Utils.ValidateNullHandling(false, Takes, TakesNullability, nameof(nullHandling), nullHandling);
+
+            return
+                Mode switch
+                {
+                    BackingMode.Delegate => new Formatter(Takes, Delegate.Value, _Fallbacks, nullHandling),
+                    BackingMode.Method => new Formatter(Takes, Method.Value, _Fallbacks, nullHandling),
+                    _ => Throw.ImpossibleException<Formatter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
+                };
+        }
+
+        /// <summary>
         /// Create a formatter from a method.
         /// 
         /// Formatter needs to:
@@ -175,7 +233,7 @@ namespace Cesil
         ///     - the type to be formatter (or one it is assignable to)
         ///     - an in (or by ref) WriteContext
         ///     -an IBufferWriter(char)
-        ///   * return bool (false indicates insufficient space was available)
+        ///   * return bool (false indicates value could not be formatted)
         /// </summary>
         public static Formatter ForMethod(MethodInfo method)
         {

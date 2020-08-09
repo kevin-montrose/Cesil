@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -133,10 +134,33 @@ namespace Cesil
             var rowAsTypeVar = Expression.Variable(rowTypeVar);
             var assignRowVar = Expression.Assign(rowAsTypeVar, onType);
 
+            var statements = new List<Expression>();
+            statements.Add(assignRowVar);
+
+            // do we need to check that null wasn't secreted into this?
+            if (RowNullability == NullHandling.ForbidNull && rowTypeVar.AllowsNullLikeValue())
+            {
+                MethodInfo validationMtd;
+                if(rowTypeVar.IsNullableValueType())
+                {
+                    var elemType = rowTypeVar.GetNullableUnderlyingTypeNonNull();
+                    validationMtd = Methods.Utils.RuntimeNullableValueCheck.MakeGenericMethod(elemType);
+                }
+                else
+                {
+                    validationMtd = Methods.Utils.RuntimeNullableReferenceCheck;
+                }
+
+                var msgConst = Expression.Constant($"{this} does not take a null row value, but received one at runtime");
+                var callValidation = Expression.Call(validationMtd, rowAsTypeVar, msgConst);
+                statements.Add(callValidation);
+            }
+
             var body = MakeExpression(rowAsTypeVar, ctx);
             var convertToObject = Expression.Convert(body, Types.Object);
+            statements.Add(convertToObject);
 
-            var block = Expression.Block(new[] { rowAsTypeVar }, assignRowVar, convertToObject);
+            var block = Expression.Block(new[] { rowAsTypeVar }, statements);
 
             var lambda = Expression.Lambda<DynamicGetterDelegate>(block, row, ctx);
             var del = lambda.Compile();
@@ -226,6 +250,69 @@ namespace Cesil
             }
 
             return selfExp;
+        }
+
+        /// <summary>
+        /// Creates a new Getter that differs from this one on if
+        /// it expects to return null values at runtime.
+        /// 
+        /// When nulls are forbidden, if the .NET runtime cannot guarantee the 
+        ///   absense of nulls at runtime, checks will be performed to ensure 
+        ///   that nulls are not introduced.
+        ///   
+        /// It is an error to allow nulls when the runtime would always forbiden
+        ///   them.  For example, Getter that returns non-nullable
+        ///   value types cannot have NullHandling.AllowNulls passed to this
+        ///   method.
+        /// </summary>
+        public Getter WithValueNullHandling(NullHandling nullHandling)
+        {
+            Utils.ValidateNullHandling(false, Returns, ReturnsNullability, nameof(nullHandling), nullHandling);
+
+            return
+                Mode switch
+                {
+                    BackingMode.Field => new Getter(RowType.HasValue ? RowType.Value : null, RowNullability, Returns, Field.Value, nullHandling),
+                    BackingMode.Method => new Getter(RowType.HasValue ? RowType.Value : null, RowNullability, Returns, Method.Value, TakesContext, nullHandling),
+                    BackingMode.Delegate => new Getter(RowType.HasValue ? RowType.Value : null, RowNullability, Returns, Delegate.Value, nullHandling),
+                    _ => Throw.ImpossibleException<Getter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
+                };
+        }
+
+        /// <summary>
+        /// Creates a new Getter that differs from this one on if
+        /// it expects to receive null rows at runtime.
+        /// 
+        /// When nulls are forbidden, if the .NET runtime cannot guarantee the 
+        ///   absense of nulls at runtime, checks will be performed to ensure 
+        ///   that nulls are not introduced.
+        ///   
+        /// It is an error to allow nulls when the runtime would always forbiden
+        ///   them.  For example, Getter that returns non-nullable
+        ///   value types cannot have NullHandling.AllowNulls passed to this
+        ///   method.
+        ///   
+        /// It is also an error to call this method if the Getter does not receive
+        ///   rows.  For example, Getters backed by static methods or fields cannot
+        ///   have this method called.
+        /// </summary>
+        public Getter WithRowNullHandling(NullHandling nullHandling)
+        {
+            if (RowNullability == null)
+            {
+                return Throw.InvalidOperationException<Getter>($"{this} does not take rows, and so cannot have a {nameof(NullHandling)} specified");
+            }
+
+            Utils.ValidateNullHandling(false, RowType.Value, RowNullability.Value, nameof(nullHandling), nullHandling);
+
+            return
+                Mode switch
+                {
+                    BackingMode.Field => new Getter(RowType.Value, nullHandling, Returns, Field.Value, ReturnsNullability),
+                    BackingMode.Method => new Getter(RowType.Value, nullHandling, Returns, Method.Value, TakesContext, ReturnsNullability),
+                    BackingMode.Delegate => new Getter(RowType.Value, nullHandling, Returns, Delegate.Value, ReturnsNullability),
+                    _ => Throw.ImpossibleException<Getter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
+                };
         }
 
         /// <summary>
