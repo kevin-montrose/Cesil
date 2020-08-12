@@ -156,7 +156,10 @@ namespace Cesil
                 return Throw.ArgumentException<Parser>($"{fallbackParser} does not provide a value assignable to {Creates}, and cannot be used as a fallback for this {nameof(Parser)}", nameof(fallbackParser));
             }
 
-            // todo: does nullability need logic here?
+            if (CreatesNullability == NullHandling.ForbidNull && fallbackParser.CreatesNullability == NullHandling.AllowNull)
+            {
+                return Throw.ArgumentException<Parser>($"This {nameof(Parser)} does not create null values, but {fallbackParser} does - accordingly it cannot be a fallback for this {nameof(Parser)}", nameof(fallbackParser));
+            }
 
             return this.DoElse(fallbackParser);
         }

@@ -141,7 +141,7 @@ namespace Cesil
             if (RowNullability == NullHandling.ForbidNull && rowTypeVar.AllowsNullLikeValue())
             {
                 MethodInfo validationMtd;
-                if(rowTypeVar.IsNullableValueType())
+                if (rowTypeVar.IsNullableValueType())
                 {
                     var elemType = rowTypeVar.GetNullableUnderlyingTypeNonNull();
                     validationMtd = Methods.Utils.RuntimeNullableValueCheck.MakeGenericMethod(elemType);
@@ -417,7 +417,22 @@ namespace Cesil
             else
             {
                 rowType = method.DeclaringTypeNonNull();
-                rowNullability = NullHandling.ForbidNull;   // instance method, can never allow null instance
+
+                if (rowType.IsValueType)
+                {
+                    if (rowType.IsNullableValueType())
+                    {
+                        rowNullability = NullHandling.AllowNull;     // the runtime is going to always do a null check, so it's "fine"
+                    }
+                    else
+                    {
+                        rowNullability = NullHandling.ForbidNull;    // runtime isn't going to allow a null, so reflect that
+                    }
+                }
+                else
+                {
+                    rowNullability = NullHandling.AllowNull;     // the runtime is going to always do a null check, so it's "fine"
+                }
 
                 if (getterParams.Length == 0)
                 {
@@ -463,7 +478,22 @@ namespace Cesil
             else
             {
                 onType = field.DeclaringTypeNonNull();
-                onTypeNullability = NullHandling.ForbidNull;
+
+                if (onType.IsValueType)
+                {
+                    if (onType.IsNullableValueType())
+                    {
+                        onTypeNullability = NullHandling.AllowNull;     // the runtime is going to always do a null check, so it's "fine"
+                    }
+                    else
+                    {
+                        onTypeNullability = NullHandling.ForbidNull;    // runtime isn't going to allow a null, so reflect that
+                    }
+                }
+                else
+                {
+                    onTypeNullability = NullHandling.AllowNull;     // the runtime is going to always do a null check, so it's "fine"
+                }
             }
 
             var returns = field.FieldType.GetTypeInfo();

@@ -123,6 +123,20 @@ namespace Cesil.Tests
             // doesn't take same type
             var diffType = Formatter.ForDelegate((_Formatters2 data, in WriteContext ctx, IBufferWriter<char> writer) => true);
             Assert.Throws<ArgumentException>(() => f1.Else(diffType));
+
+            // nullability
+            {
+#nullable enable
+                var fCanTakeNull = Formatter.ForDelegate((string? foo, in WriteContext ctx, IBufferWriter<char> buffer) => true);
+                var fCannotTakeNull = Formatter.ForDelegate((string foo, in WriteContext ctx, IBufferWriter<char> buffer) => true);
+#nullable disable
+
+                // something that requires null checks can happen before something that _doesn't_
+                fCannotTakeNull.Else(fCanTakeNull);
+
+                // but not vice versa
+                Assert.Throws<ArgumentException>(() => fCanTakeNull.Else(fCannotTakeNull));
+            }
         }
 
         private sealed class _InstanceProviders1 { }
@@ -140,9 +154,9 @@ namespace Cesil.Tests
         [Fact]
         public void InstanceProviders()
         {
-            var i1 = InstanceProvider.ForDelegate((in ReadContext ctx, out _InstanceProviders1 val) => { val = null; return true; });
+            var i1 = InstanceProvider.ForDelegate((in ReadContext ctx, out _InstanceProviders1 val) => { val = null; return true; }).WithRowNullHandling(NullHandling.ForbidNull);
             var i2 = InstanceProvider.ForParameterlessConstructor(typeof(_InstanceProviders1).GetConstructor(Type.EmptyTypes));
-            var i3 = InstanceProvider.ForMethod(typeof(ElseTests).GetMethod(nameof(_InstanceProviders_Mtd), BindingFlags.NonPublic | BindingFlags.Static));
+            var i3 = InstanceProvider.ForMethod(typeof(ElseTests).GetMethod(nameof(_InstanceProviders_Mtd), BindingFlags.NonPublic | BindingFlags.Static)).WithRowNullHandling(NullHandling.ForbidNull);
 
             var chainable = new[] { i1, i2, i3 };
 
@@ -175,6 +189,20 @@ namespace Cesil.Tests
             // doesn't produce same type
             var diffType = InstanceProvider.ForDelegate((in ReadContext ctx, out _InstanceProviders2 val) => { val = null; return true; });
             Assert.Throws<ArgumentException>(() => i1.Else(diffType));
+
+            // nullability
+            {
+#nullable enable
+                var ipCanMakeNull = InstanceProvider.ForDelegate((in ReadContext ctx, out string? res) => { res = null; return true; });
+                var ipCannotMakeNull = InstanceProvider.ForDelegate((in ReadContext ctx, out string res) => { res = ""; return true; });
+#nullable disable
+
+                // something that requires null checks can happen before something that _doesn't_
+                ipCanMakeNull.Else(ipCannotMakeNull);
+
+                // but not vice versa
+                Assert.Throws<ArgumentException>(() => ipCannotMakeNull.Else(ipCanMakeNull));
+            }
         }
 
         private sealed class _Parsers1
@@ -201,9 +229,9 @@ namespace Cesil.Tests
             var cons2 = t1.GetConstructor(new[] { typeof(ReadOnlySpan<char>), typeof(ReadContext).MakeByRefType() });
             var p1 = Parser.ForConstructor(cons1);
             var p2 = Parser.ForConstructor(cons2);
-            var p3 = Parser.ForDelegate((ReadOnlySpan<char> data, in ReadContext ctx, out _Parsers1 val) => { val = null; return true; });
+            var p3 = Parser.ForDelegate((ReadOnlySpan<char> data, in ReadContext ctx, out _Parsers1 val) => { val = null; return true; }).WithValueNullHandling(NullHandling.ForbidNull);
             var m1 = typeof(ElseTests).GetMethod(nameof(_Parsers_Mtd), BindingFlags.NonPublic | BindingFlags.Static);
-            var p4 = Parser.ForMethod(m1);
+            var p4 = Parser.ForMethod(m1).WithValueNullHandling(NullHandling.ForbidNull);
 
             var chainable = new[] { p1, p2, p3, p4 };
 
@@ -234,6 +262,20 @@ namespace Cesil.Tests
             // doesn't produce same type
             var diffType = Parser.ForDelegate((ReadOnlySpan<char> data, in ReadContext ctx, out _Parsers2 val) => { val = null; return true; });
             Assert.Throws<ArgumentException>(() => p1.Else(diffType));
+
+            // nullability
+            {
+#nullable enable
+                var pCanMakeNull = Parser.ForDelegate((ReadOnlySpan<char> data, in ReadContext ctx, out string? res) => { res = null; return true; });
+                var pCannotMakeNull = Parser.ForDelegate((ReadOnlySpan<char> data, in ReadContext ctx, out string res) => { res = ""; return true; });
+#nullable disable
+
+                // something that requires null checks can happen before something that _doesn't_
+                pCanMakeNull.Else(pCannotMakeNull);
+
+                // but not vice versa
+                Assert.Throws<ArgumentException>(() => pCannotMakeNull.Else(pCanMakeNull));
+            }
         }
 
         private sealed class _Simple : IElseSupporting<_Simple>

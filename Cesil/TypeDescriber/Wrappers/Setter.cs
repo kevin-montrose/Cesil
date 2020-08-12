@@ -423,7 +423,23 @@ namespace Cesil
             else
             {
                 onType = method.DeclaringTypeNonNull();
-                onTypeNullability = NullHandling.ForbidNull;    // instance method, no legal way for this to be null
+
+                if (onType.IsValueType)
+                {
+                    if (onType.IsNullableValueType())
+                    {
+                        onTypeNullability = NullHandling.AllowNull;     // the runtime is going to always do a null check, so it's "fine"
+                    }
+                    else
+                    {
+                        onTypeNullability = NullHandling.ForbidNull;    // runtime isn't going to allow a null, so reflect that
+                    }
+                }
+                else
+                {
+                    onTypeNullability = NullHandling.AllowNull;     // the runtime is going to always do a null check, so it's "fine"
+                }
+
                 isRowByRef = false;                             // instance is never (explicitly) by ref
 
                 if (args.Length == 1)
@@ -474,7 +490,22 @@ namespace Cesil
             else
             {
                 rowType = field.DeclaringTypeNonNull();
-                rowTypeNullability = NullHandling.ForbidNull;   // instance? always has to have a value
+
+                if (rowType.IsValueType)
+                {
+                    if (rowType.IsNullableValueType())
+                    {
+                        rowTypeNullability = NullHandling.AllowNull;     // the runtime is going to always do a null check, so it's "fine"
+                    }
+                    else
+                    {
+                        rowTypeNullability = NullHandling.ForbidNull;    // runtime isn't going to allow a null, so reflect that
+                    }
+                }
+                else
+                {
+                    rowTypeNullability = NullHandling.AllowNull;     // the runtime is going to always do a null check, so it's "fine"
+                }
             }
 
             var takesType = field.FieldType.GetTypeInfo();

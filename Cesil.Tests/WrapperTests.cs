@@ -1324,17 +1324,17 @@ namespace Cesil.Tests
                         returnHandling = NullHandling.AllowNull;
                         break;
 
-                    case "Instance":
                     case "RowNonNullRef":
                     case "RowNonNullValue":
-                    case "ObliviousRow":
                     case "ObliviousRowValue":
                     case "ObliviousRowNonNullValue":
                         rowHandling = NullHandling.ForbidNull;
                         returnHandling = NullHandling.ForbidNull;
                         break;
 
+                    case "Instance":
                     case "RowNullRef":
+                    case "ObliviousRow":
                     case "ObliviousRowRef":
                     case "RowNullValue":
                     case "ObliviousRowNullValue":
@@ -2777,16 +2777,16 @@ namespace Cesil.Tests
                         takesHandling = NullHandling.AllowNull;
                         break;
 
-                    case "Instance":
                     case "RowNonNullRef":
                     case "RowNonNullValue":
-                    case "ObliviousRow":
                     case "ObliviousRowValue":
                     case "ObliviousRowNonNullValue":
                         rowHandling = NullHandling.ForbidNull;
                         takesHandling = NullHandling.ForbidNull;
                         break;
 
+                    case "ObliviousRow":
+                    case "Instance":
                     case "RowNullRef":
                     case "ObliviousRowRef":
                     case "RowNullValue":
@@ -3773,9 +3773,9 @@ namespace Cesil.Tests
         [Fact]
         public void InstanceProviders()
         {
-            var methodBuilder = InstanceProvider.ForMethod(typeof(WrapperTests).GetMethod(nameof(_InstanceBuilderStaticMethod), BindingFlags.NonPublic | BindingFlags.Static));
+            var methodBuilder = InstanceProvider.ForMethod(typeof(WrapperTests).GetMethod(nameof(_InstanceBuilderStaticMethod), BindingFlags.NonPublic | BindingFlags.Static)).WithRowNullHandling(NullHandling.ForbidNull);
             var constructorBuilder = InstanceProvider.ForParameterlessConstructor(typeof(_InstanceBuilders).GetConstructor(Type.EmptyTypes));
-            var delBuilder = InstanceProvider.ForDelegate<_InstanceBuilders>((in ReadContext _, out _InstanceBuilders a) => { a = new _InstanceBuilders(); return true; });
+            var delBuilder = InstanceProvider.ForDelegate<_InstanceBuilders>((in ReadContext _, out _InstanceBuilders a) => { a = new _InstanceBuilders(); return true; }).WithRowNullHandling(NullHandling.ForbidNull);
             var chain1 = methodBuilder.Else(constructorBuilder);
             var chain2 = constructorBuilder.Else(methodBuilder);
             var chain3 = constructorBuilder.Else(methodBuilder).Else(delBuilder);

@@ -104,7 +104,10 @@ namespace Cesil
                 return Throw.ArgumentException<InstanceProvider>($"{fallbackProvider} does not provide a value assignable to {ConstructsType}, and cannot be used as a fallback for this {nameof(InstanceProvider)}", nameof(fallbackProvider));
             }
 
-            // todo: does nullability need logic here?
+            if (ConstructsNullability == NullHandling.ForbidNull && fallbackProvider.ConstructsNullability == NullHandling.AllowNull)
+            {
+                return Throw.ArgumentException<InstanceProvider>($"This {nameof(InstanceProvider)} does not create null values, but {fallbackProvider} does - accordingly it cannot be a fallback for this {nameof(InstanceProvider)}", nameof(fallbackProvider));
+            }
 
             return this.DoElse(fallbackProvider);
         }

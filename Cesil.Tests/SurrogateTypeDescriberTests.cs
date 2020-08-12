@@ -595,7 +595,7 @@ namespace Cesil.Tests
                         res = new _InstanceBuilders_Surrogate();
                         return true;
                     };
-                ip = ip.Else((InstanceProvider)del);
+                ip = ip.Else(((InstanceProvider)del).WithRowNullHandling(NullHandling.ForbidNull));
                 manual.WithInstanceProvider(ip);
 
                 var m = manual.ToManualTypeDescriber();

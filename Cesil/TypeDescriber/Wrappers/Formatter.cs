@@ -193,7 +193,10 @@ namespace Cesil
                 return Throw.ArgumentException<Formatter>($"{fallbackFormatter} does not take a value assignable from {Takes}, and cannot be used as a fallback for this {nameof(Formatter)}", nameof(fallbackFormatter));
             }
 
-            // todo: does nullability need logic here?
+            if(TakesNullability == NullHandling.AllowNull && fallbackFormatter.TakesNullability == NullHandling.ForbidNull)
+            {
+                return Throw.ArgumentException<Formatter>($"This {nameof(Formatter)} allows null values, but {fallbackFormatter} does not - accordingly it cannot be a fallback for this {nameof(Formatter)}", nameof(fallbackFormatter));
+            }
 
             return this.DoElse(fallbackFormatter);
         }
