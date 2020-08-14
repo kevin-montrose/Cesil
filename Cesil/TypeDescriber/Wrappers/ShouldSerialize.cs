@@ -143,25 +143,13 @@ namespace Cesil
             return selfExp;
         }
 
-        /// <summary>
-        /// Creates a new ShouldSerialize that differs from this one on if
-        /// it expects to receive null rows at runtime.
-        /// 
-        /// When nulls are forbidden, if the .NET runtime cannot guarantee the 
-        ///   absense of nulls at runtime, checks will be performed to ensure 
-        ///   that nulls are not introduced.
-        ///   
-        /// It is an error to allow nulls when the runtime would always forbiden
-        ///   them.  For example, ShouldSerialize that accepts non-nullable
-        ///   value types cannot have NullHandling.AllowNulls passed to this
-        ///   method.
-        ///   
-        /// It is also an error to call this method if the ShouldSerialize does not receive
-        ///   rows.  For example, ShouldSerialize backed by static methods cannot
-        ///   have this method called.
-        /// </summary>
-        public ShouldSerialize WithRowNullHandling(NullHandling nullHandling)
+        private ShouldSerialize ChangeRowNullHandling(NullHandling nullHandling)
         {
+            if (nullHandling == TakesNullability)
+            {
+                return this;
+            }
+
             if (TakesNullability == null)
             {
                 return Throw.InvalidOperationException<ShouldSerialize>($"{this} does not take rows, and so cannot have a {nameof(NullHandling)} specified");
@@ -177,6 +165,26 @@ namespace Cesil
                     _ => Throw.ImpossibleException<ShouldSerialize>($"Unexpected: {nameof(BackingMode)}: {Mode}")
                 };
         }
+
+        /// <summary>
+        /// Returns a ShouldSerialize that differs from this by explicitly allowing
+        ///   null rows be passed to it.
+        ///   
+        /// If the backing delegate, or method does not expect null rows
+        ///   this could result in errors at runtime.
+        /// </summary>
+        public ShouldSerialize AllowNullRows()
+        => ChangeRowNullHandling(NullHandling.AllowNull);
+
+        /// <summary>
+        /// Returns a ShouldSerialize that differs from this by explicitly forbidding
+        ///   null rows be passed to it.
+        ///   
+        /// If the .NET runtime cannot guarantee that nulls will not be passed,
+        ///   null checks will be injected.
+        /// </summary>
+        public ShouldSerialize ForbidNullRows()
+        => ChangeRowNullHandling(NullHandling.ForbidNull);
 
         /// <summary>
         /// Create a ShouldSerialize from a method.
@@ -211,7 +219,7 @@ namespace Cesil
             if (!method.IsStatic)
             {
                 takes = method.DeclaringTypeNonNull();
-                takesNullability = NullHandling.ForbidNull;
+                takesNullability = NullHandling.CannotBeNull;
 
                 if (args.Length == 0)
                 {

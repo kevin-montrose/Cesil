@@ -1266,9 +1266,9 @@ namespace Cesil.Tests
             public delegate int RowNullValue_Delegate(int? row, in WriteContext ctx);
 #nullable disable
 
-            public int ObliviousRow_Field = 0;
+            public int ObliviousInstance_Field = 0;
 
-            public int ObliviousRow_Method(in WriteContext _) => 0;
+            public int ObliviousInstance_Method(in WriteContext _) => 0;
             public static int ObliviousRowRef_Method(object row, in WriteContext _) => 0;
             public static int ObliviousRowNonNullValue_Method(int row, in WriteContext _) => 0;
             public static int ObliviousRowNullValue_Method(int? row, in WriteContext _) => 0;
@@ -1333,8 +1333,12 @@ namespace Cesil.Tests
                         break;
 
                     case "Instance":
+                    case "ObliviousInstance":
+                        rowHandling = NullHandling.CannotBeNull;
+                        returnHandling = NullHandling.ForbidNull;
+                        break;
+
                     case "RowNullRef":
-                    case "ObliviousRow":
                     case "ObliviousRowRef":
                     case "RowNullValue":
                     case "ObliviousRowNullValue":
@@ -1763,6 +1767,9 @@ namespace Cesil.Tests
                 {
                     case "Instance_Context":
                     case "Instance_NoContext":
+                        res = NullHandling.CannotBeNull;
+                        break;
+
                     case "Row_Context_NonNullRef":
                     case "Row_NoContext_NonNullRef":
                     case "Row_Context_NonNullValue":
@@ -2120,6 +2127,9 @@ namespace Cesil.Tests
                 switch (expectedResult)
                 {
                     case "Constructor":
+                        res = NullHandling.CannotBeNull;
+                        break;
+
                     case "NonNullRef":
                     case "NonNullValue":
                     case "ObliviousNonNullValue":
@@ -2690,9 +2700,6 @@ namespace Cesil.Tests
 
             // has rows
 #nullable enable
-            public int Instance_Field = 0;
-
-            public void Instance_Method(int val, in ReadContext _) { }
             public static void RowNonNullRef_Method(object row, int val, in ReadContext _) { }
             public static void RowNonNullRef_ByRef_Method(ref object row, int val, in ReadContext _) { }
             public static void RowNullRef_Method(object? row, int val, in ReadContext _) { }
@@ -2712,9 +2719,10 @@ namespace Cesil.Tests
             public delegate void RowNullValue_ByRef_Delegate(ref int? row, int val, in ReadContext ctx);
 #nullable disable
 
-            public int ObliviousRow_Field = 0;
+            public int Instance_Field = 0;
 
-            public void ObliviousRow_Method(int val, in ReadContext _) { }
+            public void Instance_Method(int val, in ReadContext _) { }
+
             public static void ObliviousRowRef_Method(object row, int val, in ReadContext _) { }
             public static void ObliviousRowRef_ByRef_Method(ref object row, int val, in ReadContext _) { }
             public static void ObliviousRowNonNullValue_Method(int row, int val, in ReadContext _) { }
@@ -2785,8 +2793,12 @@ namespace Cesil.Tests
                         takesHandling = NullHandling.ForbidNull;
                         break;
 
-                    case "ObliviousRow":
                     case "Instance":
+                        rowHandling = NullHandling.CannotBeNull;
+                        takesHandling = NullHandling.ForbidNull;
+                        break;
+
+                    case "ObliviousRow":
                     case "RowNullRef":
                     case "ObliviousRowRef":
                     case "RowNullValue":
@@ -3308,12 +3320,15 @@ namespace Cesil.Tests
                 NullHandling? res;
                 switch (expected)
                 {
+                    case "Instance_Context":
+                    case "Instance_NoContext":
+                        res = NullHandling.CannotBeNull;
+                        break;
+
                     case "Row_Context_NonNullRef":
                     case "Row_Context_NonNullValue":
                     case "Row_NoContext_NonNullRef":
                     case "Row_NoContext_NonNullValue":
-                    case "Instance_Context":
-                    case "Instance_NoContext":
                     case "Row_Context_ObliviousNonNullValue":
                     case "Row_NoContext_ObliviousNonNullValue":
                         res = NullHandling.ForbidNull;
@@ -3773,9 +3788,9 @@ namespace Cesil.Tests
         [Fact]
         public void InstanceProviders()
         {
-            var methodBuilder = InstanceProvider.ForMethod(typeof(WrapperTests).GetMethod(nameof(_InstanceBuilderStaticMethod), BindingFlags.NonPublic | BindingFlags.Static)).WithRowNullHandling(NullHandling.ForbidNull);
+            var methodBuilder = InstanceProvider.ForMethod(typeof(WrapperTests).GetMethod(nameof(_InstanceBuilderStaticMethod), BindingFlags.NonPublic | BindingFlags.Static));
             var constructorBuilder = InstanceProvider.ForParameterlessConstructor(typeof(_InstanceBuilders).GetConstructor(Type.EmptyTypes));
-            var delBuilder = InstanceProvider.ForDelegate<_InstanceBuilders>((in ReadContext _, out _InstanceBuilders a) => { a = new _InstanceBuilders(); return true; }).WithRowNullHandling(NullHandling.ForbidNull);
+            var delBuilder = InstanceProvider.ForDelegate<_InstanceBuilders>((in ReadContext _, out _InstanceBuilders a) => { a = new _InstanceBuilders(); return true; });
             var chain1 = methodBuilder.Else(constructorBuilder);
             var chain2 = constructorBuilder.Else(methodBuilder);
             var chain3 = constructorBuilder.Else(methodBuilder).Else(delBuilder);
@@ -3994,6 +4009,9 @@ namespace Cesil.Tests
                 switch (expectedResult)
                 {
                     case "Constructor":
+                        res = NullHandling.CannotBeNull;
+                        break;
+
                     case "NonNullRef":
                     case "NonNullValue":
                     case "ObliviousNonNullValue":

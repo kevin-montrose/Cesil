@@ -84,13 +84,15 @@ namespace Cesil
             _Fallbacks = fallbacks;
         }
 
-        Formatter IElseSupporting<Formatter>.Clone(ImmutableArray<Formatter> newFallbacks)
+        Formatter IElseSupporting<Formatter>.Clone(ImmutableArray<Formatter> newFallbacks, NullHandling? _, NullHandling? valueHandling)
         {
+            var takesNullability = Utils.NonNullValue(valueHandling);
+
             return
                 Mode switch
                 {
-                    BackingMode.Delegate => new Formatter(Takes, Delegate.Value, newFallbacks, TakesNullability),
-                    BackingMode.Method => new Formatter(Takes, Method.Value, newFallbacks, TakesNullability),
+                    BackingMode.Delegate => new Formatter(Takes, Delegate.Value, newFallbacks, takesNullability),
+                    BackingMode.Method => new Formatter(Takes, Method.Value, newFallbacks, takesNullability),
                     _ => Throw.ImpossibleException<Formatter>($"Unexpected {nameof(BackingMode)}: {Mode}"),
                 };
         }
@@ -112,27 +114,12 @@ namespace Cesil
 
             if (TakesNullability == NullHandling.ForbidNull && Takes.AllowsNullLikeValue())
             {
-                MethodInfo validateMtd;
-                if(Takes.IsNullableValueType())
-                {
-                    var elemType = Takes.GetNullableUnderlyingTypeNonNull();
-                    validateMtd = Methods.Utils.RuntimeNullableValueCheck.MakeGenericMethod(elemType);
-                }
-                else
-                {
-                    validateMtd = Methods.Utils.RuntimeNullableReferenceCheck;
-                }
+                var checkExp = Utils.MakeNullHandlingCheckExpression(Takes, takesTypeVar, $"{this} called with null value, which is not permitted");
 
-                var msgConst = Expression.Constant($"{this} called with null value, which is not permitted");
-                var callValidation = Expression.Call(validateMtd, takesTypeVar, msgConst);
+                statements.Add(checkExp);
+            }
 
-                statements.Add(callValidation);
-                statements.Add(formatterExp);
-            }
-            else
-            {
-                statements.Add(formatterExp);
-            }
+            statements.Add(formatterExp);
 
             var block = Expression.Block(new[] { takesTypeVar }, statements);
 
@@ -180,8 +167,26 @@ namespace Cesil
         DynamicFormatterDelegate ICreatesCacheableDelegate<DynamicFormatterDelegate>.Guarantee(IDelegateCache cache)
         => IDelegateCacheHelpers.GuaranteeImpl<Formatter, DynamicFormatterDelegate>(this, cache);
 
+        private Formatter ChangeValueNullHandling(NullHandling nullHandling)
+        {
+            if (nullHandling == TakesNullability)
+            {
+                return this;
+            }
+
+            Utils.ValidateNullHandling(false, Takes, TakesNullability, nameof(nullHandling), nullHandling);
+
+            return
+                Mode switch
+                {
+                    BackingMode.Delegate => new Formatter(Takes, Delegate.Value, _Fallbacks, nullHandling),
+                    BackingMode.Method => new Formatter(Takes, Method.Value, _Fallbacks, nullHandling),
+                    _ => Throw.ImpossibleException<Formatter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
+                };
+        }
+
         /// <summary>
-        /// Create a new formatter that will try this formatter, but if it returns false
+        /// Create a new Formatter that will try this formatter, but if it returns false
         ///   it will then try the given fallback Formatter.
         /// </summary>
         public Formatter Else(Formatter fallbackFormatter)
@@ -193,39 +198,30 @@ namespace Cesil
                 return Throw.ArgumentException<Formatter>($"{fallbackFormatter} does not take a value assignable from {Takes}, and cannot be used as a fallback for this {nameof(Formatter)}", nameof(fallbackFormatter));
             }
 
-            if(TakesNullability == NullHandling.AllowNull && fallbackFormatter.TakesNullability == NullHandling.ForbidNull)
-            {
-                return Throw.ArgumentException<Formatter>($"This {nameof(Formatter)} allows null values, but {fallbackFormatter} does not - accordingly it cannot be a fallback for this {nameof(Formatter)}", nameof(fallbackFormatter));
-            }
+            var newValueNullability = Utils.CommonInputNullHandling(TakesNullability, fallbackFormatter.TakesNullability);
 
-            return this.DoElse(fallbackFormatter);
+            return this.DoElse(fallbackFormatter, null, newValueNullability);
         }
 
         /// <summary>
-        /// Creates a new Formatter that differs from this one on how
-        /// it expects to handle null values at runtime.
+        /// Returns a Formatter that differs from this by explicitly allowing
+        ///   null values to be passed to it.
         /// 
-        /// When nulls are forbidden, if the .NET runtime cannot guarantee the 
-        ///   absense of nulls at runtime, checks will be performed to ensure 
-        ///   that nulls are not introduced.
-        ///   
-        /// It is an error to allow nulls when the runtime would always forbiden
-        ///   them.  For example, Formatters that accept non-nullable
-        ///   value types cannot have NullHandling.AllowNulls passed to this
-        ///   method.
+        /// If the backing method, or delegate does not expect null values, this may lead
+        ///   to errors at runtime.
         /// </summary>
-        public Formatter WithValueNullHandling(NullHandling nullHandling)
-        {
-            Utils.ValidateNullHandling(false, Takes, TakesNullability, nameof(nullHandling), nullHandling);
+        public Formatter AllowNullValues()
+        => ChangeValueNullHandling(NullHandling.AllowNull);
 
-            return
-                Mode switch
-                {
-                    BackingMode.Delegate => new Formatter(Takes, Delegate.Value, _Fallbacks, nullHandling),
-                    BackingMode.Method => new Formatter(Takes, Method.Value, _Fallbacks, nullHandling),
-                    _ => Throw.ImpossibleException<Formatter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
-                };
-        }
+        /// <summary>
+        /// Returns a new Formatter that differs from this by explicitly forbidding
+        ///   null values to be passed to it.
+        /// 
+        /// If the .NET runtime cannot guarantee the absense of null values, null checks
+        ///   will be injected.
+        /// </summary>
+        public Formatter ForbidNullValues()
+        => ChangeValueNullHandling(NullHandling.ForbidNull);
 
         /// <summary>
         /// Create a formatter from a method.

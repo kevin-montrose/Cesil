@@ -56,11 +56,11 @@ namespace Cesil
         private readonly ImmutableArray<InstanceProvider> _Fallbacks;
         ImmutableArray<InstanceProvider> IElseSupporting<InstanceProvider>.Fallbacks => _Fallbacks;
 
-        internal InstanceProvider(ConstructorInfo cons, ImmutableArray<InstanceProvider> fallbacks)
+        internal InstanceProvider(ConstructorInfo cons, ImmutableArray<InstanceProvider> fallbacks, NullHandling nullability)
         {
             Constructor.Value = cons;
             ConstructsType = cons.DeclaringTypeNonNull();
-            ConstructsNullability = NullHandling.ForbidNull;
+            ConstructsNullability = nullability;            // this isn't _always_ CannotBeNull because there might be fallbacks
             _Fallbacks = fallbacks;
         }
 
@@ -80,13 +80,15 @@ namespace Cesil
             _Fallbacks = fallbacks;
         }
 
-        InstanceProvider IElseSupporting<InstanceProvider>.Clone(ImmutableArray<InstanceProvider> newFallbacks)
+        InstanceProvider IElseSupporting<InstanceProvider>.Clone(ImmutableArray<InstanceProvider> newFallbacks, NullHandling? rowHandling, NullHandling? _)
         {
+            var rowHandlingValue = Utils.NonNullValue(rowHandling);
+
             return Mode switch
             {
-                BackingMode.Constructor => new InstanceProvider(Constructor.Value, newFallbacks),
-                BackingMode.Delegate => new InstanceProvider(Delegate.Value, ConstructsType, newFallbacks, ConstructsNullability),
-                BackingMode.Method => new InstanceProvider(Method.Value, ConstructsType, newFallbacks, ConstructsNullability),
+                BackingMode.Constructor => new InstanceProvider(Constructor.Value, newFallbacks, rowHandlingValue),
+                BackingMode.Delegate => new InstanceProvider(Delegate.Value, ConstructsType, newFallbacks, rowHandlingValue),
+                BackingMode.Method => new InstanceProvider(Method.Value, ConstructsType, newFallbacks, rowHandlingValue),
                 _ => Throw.ImpossibleException<InstanceProvider>($"Unexpected {nameof(BackingMode)}: {Mode}")
             };
         }
@@ -104,40 +106,46 @@ namespace Cesil
                 return Throw.ArgumentException<InstanceProvider>($"{fallbackProvider} does not provide a value assignable to {ConstructsType}, and cannot be used as a fallback for this {nameof(InstanceProvider)}", nameof(fallbackProvider));
             }
 
-            if (ConstructsNullability == NullHandling.ForbidNull && fallbackProvider.ConstructsNullability == NullHandling.AllowNull)
-            {
-                return Throw.ArgumentException<InstanceProvider>($"This {nameof(InstanceProvider)} does not create null values, but {fallbackProvider} does - accordingly it cannot be a fallback for this {nameof(InstanceProvider)}", nameof(fallbackProvider));
-            }
+            var newRowNullability = Utils.CommonOutputNullHandling(ConstructsNullability, fallbackProvider.ConstructsNullability);
 
-            return this.DoElse(fallbackProvider);
+            return this.DoElse(fallbackProvider, newRowNullability, null);
         }
 
-        /// <summary>
-        /// Creates a new InstanceProvider that differs from this one on how
-        /// it expects to handle null rows at runtime.
-        /// 
-        /// When nulls are forbidden, if the .NET runtime cannot guarantee the 
-        ///   absense of nulls at runtime, checks will be performed to ensure 
-        ///   that nulls are not introduced.
-        ///   
-        /// It is an error to allow nulls when the runtime would always forbiden
-        ///   them.  For example, InstanceProviders that produces non-nullable
-        ///   value types cannot have NullHandling.AllowNulls passed to this
-        ///   method.
-        /// </summary>
-        public InstanceProvider WithRowNullHandling(NullHandling nullHandling)
+        private InstanceProvider ChangeRowNullHandling(NullHandling nullHandling)
         {
+            if (nullHandling == ConstructsNullability)
+            {
+                return this;
+            }
+
             Utils.ValidateNullHandling(Mode == BackingMode.Constructor, ConstructsType, ConstructsNullability, nameof(nullHandling), nullHandling);
 
             return
                 Mode switch
                 {
-                    BackingMode.Constructor => new InstanceProvider(Constructor.Value, _Fallbacks),
+                    BackingMode.Constructor => new InstanceProvider(Constructor.Value, _Fallbacks, nullHandling),
                     BackingMode.Method => new InstanceProvider(Method.Value, ConstructsType, _Fallbacks, nullHandling),
                     BackingMode.Delegate => new InstanceProvider(Delegate.Value, ConstructsType, _Fallbacks, nullHandling),
                     _ => Throw.ImpossibleException<InstanceProvider>($"Unexpected {nameof(BackingMode)}: {Mode}"),
                 };
         }
+
+        /// <summary>
+        /// Returns a InstanceProvider that differs from this by explicitly allowing
+        ///   null rows to be created by it.
+        /// </summary>
+        public InstanceProvider AllowNullRows()
+        => ChangeRowNullHandling(NullHandling.AllowNull);
+
+        /// <summary>
+        /// Returns a InstanceProvider that differs from this by explicitly forbidding
+        ///   null rows be created by it.
+        ///   
+        /// If the .NET runtime cannot guarantee that null rows will not be created at runtime, 
+        ///   null checks will be injected.
+        /// </summary>
+        public InstanceProvider ForbidNullRows()
+        => ChangeRowNullHandling(NullHandling.ForbidNull);
 
         internal Expression MakeExpression(TypeInfo resultType, ParameterExpression context, ParameterExpression outVar)
         {
@@ -285,7 +293,7 @@ namespace Cesil
                 return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found a generic type definition", nameof(constructor));
             }
 
-            return new InstanceProvider(constructor, ImmutableArray<InstanceProvider>.Empty);
+            return new InstanceProvider(constructor, ImmutableArray<InstanceProvider>.Empty, NullHandling.CannotBeNull);
         }
 
         /// <summary>
@@ -321,7 +329,7 @@ namespace Cesil
                 return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found a generic type definition", nameof(constructor));
             }
 
-            return new InstanceProvider(constructor, ImmutableArray<InstanceProvider>.Empty);
+            return new InstanceProvider(constructor, ImmutableArray<InstanceProvider>.Empty, NullHandling.CannotBeNull);
         }
 
         /// <summary>

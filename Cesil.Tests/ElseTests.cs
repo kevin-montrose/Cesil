@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using Xunit;
@@ -117,13 +118,6 @@ namespace Cesil.Tests
                 var del = lambda.Compile();
             }
 
-            // errors
-            Assert.Throws<ArgumentNullException>(() => f1.Else(null));
-
-            // doesn't take same type
-            var diffType = Formatter.ForDelegate((_Formatters2 data, in WriteContext ctx, IBufferWriter<char> writer) => true);
-            Assert.Throws<ArgumentException>(() => f1.Else(diffType));
-
             // nullability
             {
 #nullable enable
@@ -132,11 +126,16 @@ namespace Cesil.Tests
 #nullable disable
 
                 // something that requires null checks can happen before something that _doesn't_
-                fCannotTakeNull.Else(fCanTakeNull);
-
-                // but not vice versa
-                Assert.Throws<ArgumentException>(() => fCanTakeNull.Else(fCannotTakeNull));
+                var combo = fCannotTakeNull.Else(fCanTakeNull);
+                Assert.Equal(NullHandling.ForbidNull, combo.TakesNullability);
             }
+
+            // errors
+            Assert.Throws<ArgumentNullException>(() => f1.Else(null));
+
+            // doesn't take same type
+            var diffType = Formatter.ForDelegate((_Formatters2 data, in WriteContext ctx, IBufferWriter<char> writer) => true);
+            Assert.Throws<ArgumentException>(() => f1.Else(diffType));
         }
 
         private sealed class _InstanceProviders1 { }
@@ -154,9 +153,9 @@ namespace Cesil.Tests
         [Fact]
         public void InstanceProviders()
         {
-            var i1 = InstanceProvider.ForDelegate((in ReadContext ctx, out _InstanceProviders1 val) => { val = null; return true; }).WithRowNullHandling(NullHandling.ForbidNull);
+            var i1 = InstanceProvider.ForDelegate((in ReadContext ctx, out _InstanceProviders1 val) => { val = null; return true; });
             var i2 = InstanceProvider.ForParameterlessConstructor(typeof(_InstanceProviders1).GetConstructor(Type.EmptyTypes));
-            var i3 = InstanceProvider.ForMethod(typeof(ElseTests).GetMethod(nameof(_InstanceProviders_Mtd), BindingFlags.NonPublic | BindingFlags.Static)).WithRowNullHandling(NullHandling.ForbidNull);
+            var i3 = InstanceProvider.ForMethod(typeof(ElseTests).GetMethod(nameof(_InstanceProviders_Mtd), BindingFlags.NonPublic | BindingFlags.Static));
 
             var chainable = new[] { i1, i2, i3 };
 
@@ -196,12 +195,21 @@ namespace Cesil.Tests
                 var ipCanMakeNull = InstanceProvider.ForDelegate((in ReadContext ctx, out string? res) => { res = null; return true; });
                 var ipCannotMakeNull = InstanceProvider.ForDelegate((in ReadContext ctx, out string res) => { res = ""; return true; });
 #nullable disable
+                var ipNullImpossible = InstanceProvider.ForConstructorWithParameters(typeof(string).GetConstructors().First());
 
-                // something that requires null checks can happen before something that _doesn't_
-                ipCanMakeNull.Else(ipCannotMakeNull);
+                var combo1 = ipCanMakeNull.Else(ipCannotMakeNull);
+                var combo2 = ipCanMakeNull.Else(ipCanMakeNull);
+                var combo3 = ipCannotMakeNull.Else(ipCannotMakeNull);
+                var combo4 = ipNullImpossible.Else(ipCanMakeNull);
+                var combo5 = ipNullImpossible.Else(ipCannotMakeNull);
+                var combo6 = ipNullImpossible.Else(ipNullImpossible);
 
-                // but not vice versa
-                Assert.Throws<ArgumentException>(() => ipCannotMakeNull.Else(ipCanMakeNull));
+                Assert.Equal(NullHandling.AllowNull, combo1.ConstructsNullability);
+                Assert.Equal(NullHandling.AllowNull, combo2.ConstructsNullability);
+                Assert.Equal(NullHandling.ForbidNull, combo3.ConstructsNullability);
+                Assert.Equal(NullHandling.AllowNull, combo4.ConstructsNullability);
+                Assert.Equal(NullHandling.ForbidNull, combo5.ConstructsNullability);
+                Assert.Equal(NullHandling.CannotBeNull, combo6.ConstructsNullability);
             }
         }
 
@@ -229,9 +237,9 @@ namespace Cesil.Tests
             var cons2 = t1.GetConstructor(new[] { typeof(ReadOnlySpan<char>), typeof(ReadContext).MakeByRefType() });
             var p1 = Parser.ForConstructor(cons1);
             var p2 = Parser.ForConstructor(cons2);
-            var p3 = Parser.ForDelegate((ReadOnlySpan<char> data, in ReadContext ctx, out _Parsers1 val) => { val = null; return true; }).WithValueNullHandling(NullHandling.ForbidNull);
+            var p3 = Parser.ForDelegate((ReadOnlySpan<char> data, in ReadContext ctx, out _Parsers1 val) => { val = null; return true; });
             var m1 = typeof(ElseTests).GetMethod(nameof(_Parsers_Mtd), BindingFlags.NonPublic | BindingFlags.Static);
-            var p4 = Parser.ForMethod(m1).WithValueNullHandling(NullHandling.ForbidNull);
+            var p4 = Parser.ForMethod(m1);
 
             var chainable = new[] { p1, p2, p3, p4 };
 
@@ -270,11 +278,21 @@ namespace Cesil.Tests
                 var pCannotMakeNull = Parser.ForDelegate((ReadOnlySpan<char> data, in ReadContext ctx, out string res) => { res = ""; return true; });
 #nullable disable
 
-                // something that requires null checks can happen before something that _doesn't_
-                pCanMakeNull.Else(pCannotMakeNull);
+                var pNullImpossible = Parser.ForConstructor(typeof(string).GetConstructor(new[] { typeof(ReadOnlySpan<char>) }));
 
-                // but not vice versa
-                Assert.Throws<ArgumentException>(() => pCannotMakeNull.Else(pCanMakeNull));
+                var combo1 = pCanMakeNull.Else(pCanMakeNull);
+                var combo2 = pCanMakeNull.Else(pCannotMakeNull);
+                var combo3 = pCanMakeNull.Else(pNullImpossible);
+                var combo4 = pCannotMakeNull.Else(pCannotMakeNull);
+                var combo5 = pCannotMakeNull.Else(pNullImpossible);
+                var combo6 = pNullImpossible.Else(pNullImpossible);
+
+                Assert.Equal(NullHandling.AllowNull, combo1.CreatesNullability);
+                Assert.Equal(NullHandling.AllowNull, combo2.CreatesNullability);
+                Assert.Equal(NullHandling.AllowNull, combo3.CreatesNullability);
+                Assert.Equal(NullHandling.ForbidNull, combo4.CreatesNullability);
+                Assert.Equal(NullHandling.ForbidNull, combo5.CreatesNullability);
+                Assert.Equal(NullHandling.CannotBeNull, combo6.CreatesNullability);
             }
         }
 
@@ -291,7 +309,7 @@ namespace Cesil.Tests
                 Fallbacks = fallbacks;
             }
 
-            public _Simple Clone(ImmutableArray<_Simple> newFallbacks)
+            public _Simple Clone(ImmutableArray<_Simple> newFallbacks, NullHandling? _, NullHandling? __)
             => new _Simple(Val, newFallbacks);
         }
 
@@ -303,7 +321,7 @@ namespace Cesil.Tests
             var c = new _Simple(3);
             var d = new _Simple(4);
 
-            var abcd = a.DoElse(b).DoElse(c).DoElse(d);
+            var abcd = a.DoElse(b, null, null).DoElse(c, null, null).DoElse(d, null, null);
             Assert.NotSame(a, abcd);
             Assert.NotSame(b, abcd);
             Assert.NotSame(c, abcd);
@@ -316,7 +334,7 @@ namespace Cesil.Tests
                 v => Assert.Equal(4, v.Val)
             );
 
-            var dcba = d.DoElse(c).DoElse(b).DoElse(a);
+            var dcba = d.DoElse(c, null, null).DoElse(b, null, null).DoElse(a, null, null);
             Assert.NotSame(a, dcba);
             Assert.NotSame(b, dcba);
             Assert.NotSame(c, dcba);
@@ -337,7 +355,7 @@ namespace Cesil.Tests
 
             // case 1
             {
-                var res = a.DoElse(b);
+                var res = a.DoElse(b, null, null);
                 Assert.NotSame(a, res);
                 Assert.NotSame(b, res);
                 Assert.Equal(1, res.Val);
@@ -349,7 +367,7 @@ namespace Cesil.Tests
 
             // case 2
             {
-                var res = a.DoElse(abcd);
+                var res = a.DoElse(abcd, null, null);
                 Assert.NotSame(a, res);
                 Assert.NotSame(abcd, res);
 
@@ -365,7 +383,7 @@ namespace Cesil.Tests
 
             // case 3
             {
-                var res = dcba.DoElse(a);
+                var res = dcba.DoElse(a, null, null);
                 Assert.NotSame(a, res);
                 Assert.NotSame(dcba, res);
 
@@ -381,7 +399,7 @@ namespace Cesil.Tests
 
             // case 4
             {
-                var res = abcd.DoElse(dcba);
+                var res = abcd.DoElse(dcba, null, null);
                 Assert.NotSame(abcd, res);
                 Assert.NotSame(dcba, res);
 

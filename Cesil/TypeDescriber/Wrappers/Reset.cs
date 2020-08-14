@@ -145,6 +145,49 @@ namespace Cesil
             return selfExp;
         }
 
+        private Reset ChangeRowNullHandling(NullHandling nullHandling)
+        {
+            if (nullHandling == RowTypeNullability)
+            {
+                return this;
+            }
+
+            if (RowTypeNullability == null)
+            {
+                return Throw.InvalidOperationException<Reset>($"{this} does not take rows, and so cannot have a {nameof(NullHandling)} specified");
+            }
+
+            Utils.ValidateNullHandling(false, RowType.Value, RowTypeNullability.Value, nameof(nullHandling), nullHandling);
+
+            return
+                Mode switch
+                {
+                    BackingMode.Method => new Reset(RowType.Value, Method.Value, TakesContext, nullHandling),
+                    BackingMode.Delegate => new Reset(RowType.Value, Delegate.Value, nullHandling),
+                    _ => Throw.ImpossibleException<Reset>($"Unexpected: {nameof(BackingMode)}: {Mode}")
+                };
+        }
+
+        /// <summary>
+        /// Returns a Reset that differs from this by explicitly allowing
+        ///   null rows be passed to it.
+        ///   
+        /// If the backing delegate, or method does not expect null rows
+        ///   this could result in errors at runtime.
+        /// </summary>
+        public Reset AllowNullRows()
+        => ChangeRowNullHandling(NullHandling.AllowNull);
+
+        /// <summary>
+        /// Returns a Reset that differs from this by explicitly forbidding
+        ///   null rows be passed to it.
+        ///   
+        /// If the .NET runtime cannot guarantee that nulls will not be passed,
+        ///   null checks will be injected.
+        /// </summary>
+        public Reset ForbidNullRows()
+        => ChangeRowNullHandling(NullHandling.ForbidNull);
+
         /// <summary>
         /// Create a reset from a method.
         /// 
@@ -235,7 +278,7 @@ namespace Cesil
             }
             else
             {
-                rowTypeNullability = NullHandling.ForbidNull;
+                rowTypeNullability = NullHandling.CannotBeNull;
 
                 if (args.Length == 0)
                 {

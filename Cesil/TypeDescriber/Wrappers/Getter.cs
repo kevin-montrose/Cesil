@@ -140,20 +140,9 @@ namespace Cesil
             // do we need to check that null wasn't secreted into this?
             if (RowNullability == NullHandling.ForbidNull && rowTypeVar.AllowsNullLikeValue())
             {
-                MethodInfo validationMtd;
-                if (rowTypeVar.IsNullableValueType())
-                {
-                    var elemType = rowTypeVar.GetNullableUnderlyingTypeNonNull();
-                    validationMtd = Methods.Utils.RuntimeNullableValueCheck.MakeGenericMethod(elemType);
-                }
-                else
-                {
-                    validationMtd = Methods.Utils.RuntimeNullableReferenceCheck;
-                }
+                var checkExp = Utils.MakeNullHandlingCheckExpression(rowTypeVar, rowAsTypeVar, $"{this} does not take a null row value, but received one at runtime");
 
-                var msgConst = Expression.Constant($"{this} does not take a null row value, but received one at runtime");
-                var callValidation = Expression.Call(validationMtd, rowAsTypeVar, msgConst);
-                statements.Add(callValidation);
+                statements.Add(checkExp);
             }
 
             var body = MakeExpression(rowAsTypeVar, ctx);
@@ -252,21 +241,13 @@ namespace Cesil
             return selfExp;
         }
 
-        /// <summary>
-        /// Creates a new Getter that differs from this one on if
-        /// it expects to return null values at runtime.
-        /// 
-        /// When nulls are forbidden, if the .NET runtime cannot guarantee the 
-        ///   absense of nulls at runtime, checks will be performed to ensure 
-        ///   that nulls are not introduced.
-        ///   
-        /// It is an error to allow nulls when the runtime would always forbiden
-        ///   them.  For example, Getter that returns non-nullable
-        ///   value types cannot have NullHandling.AllowNulls passed to this
-        ///   method.
-        /// </summary>
-        public Getter WithValueNullHandling(NullHandling nullHandling)
+        private Getter ChangeValueNullHandling(NullHandling nullHandling)
         {
+            if (nullHandling == ReturnsNullability)
+            {
+                return this;
+            }
+
             Utils.ValidateNullHandling(false, Returns, ReturnsNullability, nameof(nullHandling), nullHandling);
 
             return
@@ -279,25 +260,13 @@ namespace Cesil
                 };
         }
 
-        /// <summary>
-        /// Creates a new Getter that differs from this one on if
-        /// it expects to receive null rows at runtime.
-        /// 
-        /// When nulls are forbidden, if the .NET runtime cannot guarantee the 
-        ///   absense of nulls at runtime, checks will be performed to ensure 
-        ///   that nulls are not introduced.
-        ///   
-        /// It is an error to allow nulls when the runtime would always forbiden
-        ///   them.  For example, Getter that returns non-nullable
-        ///   value types cannot have NullHandling.AllowNulls passed to this
-        ///   method.
-        ///   
-        /// It is also an error to call this method if the Getter does not receive
-        ///   rows.  For example, Getters backed by static methods or fields cannot
-        ///   have this method called.
-        /// </summary>
-        public Getter WithRowNullHandling(NullHandling nullHandling)
+        private Getter ChangeRowNullHandling(NullHandling nullHandling)
         {
+            if (nullHandling == RowNullability)
+            {
+                return this;
+            }
+
             if (RowNullability == null)
             {
                 return Throw.InvalidOperationException<Getter>($"{this} does not take rows, and so cannot have a {nameof(NullHandling)} specified");
@@ -314,6 +283,43 @@ namespace Cesil
                     _ => Throw.ImpossibleException<Getter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
                 };
         }
+
+        /// <summary>
+        /// Returns a Getter that differs from this by explicitly allowing
+        ///   null values to be returned from it.
+        /// </summary>
+        public Getter AllowNullValues()
+        => ChangeValueNullHandling(NullHandling.AllowNull);
+
+        /// <summary>
+        /// Returns a Getter that differs from this by explicitly forbidding
+        ///   null values to be returned from it.
+        ///   
+        /// If the .NET runtime cannot guarantee that nulls will not be returned,
+        ///   null checks will be injected.
+        /// </summary>
+        public Getter ForbidNullValues()
+        => ChangeValueNullHandling(NullHandling.ForbidNull);
+
+        /// <summary>
+        /// Returns a Getter that differs from this by explicitly allowing
+        ///   null rows to be passed to it.
+        ///   
+        /// If the backing field, method, or delegate does not expect null values, this may lead
+        ///   to errors at runtime.
+        /// </summary>
+        public Getter AllowNullRows()
+        => ChangeRowNullHandling(NullHandling.AllowNull);
+
+        /// <summary>
+        /// Returns a Getter that differs from this by explicitly forbidding
+        ///   null rows be passed to it.
+        ///   
+        /// If the .NET runtime cannot guarantee that nulls will not be passed to it,
+        ///   null checks will be injected.
+        /// </summary>
+        public Getter ForbidNullRows()
+        => ChangeRowNullHandling(NullHandling.ForbidNull);
 
         /// <summary>
         /// Create a getter from a PropertyInfo.
@@ -417,22 +423,7 @@ namespace Cesil
             else
             {
                 rowType = method.DeclaringTypeNonNull();
-
-                if (rowType.IsValueType)
-                {
-                    if (rowType.IsNullableValueType())
-                    {
-                        rowNullability = NullHandling.AllowNull;     // the runtime is going to always do a null check, so it's "fine"
-                    }
-                    else
-                    {
-                        rowNullability = NullHandling.ForbidNull;    // runtime isn't going to allow a null, so reflect that
-                    }
-                }
-                else
-                {
-                    rowNullability = NullHandling.AllowNull;     // the runtime is going to always do a null check, so it's "fine"
-                }
+                rowNullability = NullHandling.CannotBeNull;
 
                 if (getterParams.Length == 0)
                 {
@@ -478,22 +469,7 @@ namespace Cesil
             else
             {
                 onType = field.DeclaringTypeNonNull();
-
-                if (onType.IsValueType)
-                {
-                    if (onType.IsNullableValueType())
-                    {
-                        onTypeNullability = NullHandling.AllowNull;     // the runtime is going to always do a null check, so it's "fine"
-                    }
-                    else
-                    {
-                        onTypeNullability = NullHandling.ForbidNull;    // runtime isn't going to allow a null, so reflect that
-                    }
-                }
-                else
-                {
-                    onTypeNullability = NullHandling.AllowNull;     // the runtime is going to always do a null check, so it's "fine"
-                }
+                onTypeNullability = NullHandling.CannotBeNull;
             }
 
             var returns = field.FieldType.GetTypeInfo();

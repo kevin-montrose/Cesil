@@ -161,11 +161,6 @@ namespace Cesil
                 return Throw.ArgumentException<SerializableMember>($"The first parameter to {nameof(formatter)} must accept a {toSerializeType}", nameof(formatter));
             }
 
-            if (formatter.TakesNullability == NullHandling.ForbidNull && getter.ReturnsNullability == NullHandling.AllowNull)
-            {
-                return Throw.InvalidOperationException<SerializableMember>($"{getter} may return a null value, which {formatter} cannot accept.");
-            }
-
             CheckShouldSerializeMethod(shouldSerialize, getter.RowType);
 
             return new SerializableMember(name, getter, formatter, shouldSerialize, emitDefaultValueBool);

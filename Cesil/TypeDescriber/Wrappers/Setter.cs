@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Text;
 
 namespace Cesil
 {
@@ -220,25 +219,13 @@ namespace Cesil
             return selfExp;
         }
 
-        /// <summary>
-        /// Creates a new Setter that differs from this one on if
-        /// it expects to receive null rows at runtime.
-        /// 
-        /// When nulls are forbidden, if the .NET runtime cannot guarantee the 
-        ///   absense of nulls at runtime, checks will be performed to ensure 
-        ///   that nulls are not introduced.
-        ///   
-        /// It is an error to allow nulls when the runtime would always forbiden
-        ///   them.  For example, Setter that takes a non-nullable
-        ///   value type as a row cannot have NullHandling.AllowNulls passed to this
-        ///   method.
-        ///   
-        /// It is also an error to call this method if the Setter does not receive
-        ///   rows.  For example, Setters backed by static methods or fields cannot
-        ///   have this method called.
-        /// </summary>
-        public Setter WithRowNullHandling(NullHandling nullHandling)
+        private Setter ChangeRowNullHandling(NullHandling nullHandling)
         {
+            if (nullHandling == RowNullability)
+            {
+                return this;
+            }
+
             if (RowNullability == null)
             {
                 return Throw.InvalidOperationException<Setter>($"{this} does not take rows, and so cannot have a {nameof(NullHandling)} specified");
@@ -255,6 +242,67 @@ namespace Cesil
                     _ => Throw.ImpossibleException<Setter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
                 };
         }
+
+        private Setter ChangeValueNullHandling(NullHandling nullHandling)
+        {
+            if (nullHandling == TakesNullability)
+            {
+                return this;
+            }
+
+            Utils.ValidateNullHandling(false, Takes, TakesNullability, nameof(nullHandling), nullHandling);
+
+            var rowType = RowType.HasValue ? RowType.Value : null;
+
+            return
+                Mode switch
+                {
+                    BackingMode.Field => new Setter(rowType, RowNullability, Takes, Field.Value, nullHandling),
+                    BackingMode.Method => new Setter(rowType, RowNullability, Takes, Method.Value, TakesContext, nullHandling, IsRowByRef),
+                    BackingMode.Delegate => new Setter(rowType, RowNullability, Takes, Delegate.Value, nullHandling, IsRowByRef),
+                    _ => Throw.ImpossibleException<Setter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
+                };
+        }
+
+        /// <summary>
+        /// Returns a Setter that differs from this by explicitly allowing
+        ///   null rows be passed to it.
+        ///   
+        /// If the backing field, delegate, or method does not expect null rows
+        ///   this could result in errors at runtime.
+        /// </summary>
+        public Setter AllowNullRows()
+        => ChangeRowNullHandling(NullHandling.AllowNull);
+
+        /// <summary>
+        /// Returns a Setter that differs from this by explicitly forbidding
+        ///   null rows be passed to it.
+        ///   
+        /// If the .NET runtime cannot guarantee that nulls will not be passed,
+        ///   null checks will be injected.
+        /// </summary>
+        public Setter ForbidNullRows()
+        => ChangeRowNullHandling(NullHandling.ForbidNull);
+
+        /// <summary>
+        /// Returns a Setter that differs from this by explicitly allowing
+        ///   null values be passed to it.
+        ///   
+        /// If the backing field, delegate, or method does not expect null values
+        ///   this could result in errors at runtime.
+        /// </summary>
+        public Setter AllowNullValues()
+        => ChangeValueNullHandling(NullHandling.AllowNull);
+
+        /// <summary>
+        /// Returns a Setter that differs from this by explicitly forbidding
+        ///   null values be passed to it.
+        ///   
+        /// If the .NET runtime cannot guarantee that nulls will not be passed,
+        ///   null checks will be injected.
+        /// </summary>
+        public Setter ForbidNullValues()
+        => ChangeValueNullHandling(NullHandling.ForbidNull);
 
         /// <summary>
         /// Create a setter from a PropertyInfo.
@@ -423,22 +471,7 @@ namespace Cesil
             else
             {
                 onType = method.DeclaringTypeNonNull();
-
-                if (onType.IsValueType)
-                {
-                    if (onType.IsNullableValueType())
-                    {
-                        onTypeNullability = NullHandling.AllowNull;     // the runtime is going to always do a null check, so it's "fine"
-                    }
-                    else
-                    {
-                        onTypeNullability = NullHandling.ForbidNull;    // runtime isn't going to allow a null, so reflect that
-                    }
-                }
-                else
-                {
-                    onTypeNullability = NullHandling.AllowNull;     // the runtime is going to always do a null check, so it's "fine"
-                }
+                onTypeNullability = NullHandling.CannotBeNull;
 
                 isRowByRef = false;                             // instance is never (explicitly) by ref
 
@@ -491,21 +524,7 @@ namespace Cesil
             {
                 rowType = field.DeclaringTypeNonNull();
 
-                if (rowType.IsValueType)
-                {
-                    if (rowType.IsNullableValueType())
-                    {
-                        rowTypeNullability = NullHandling.AllowNull;     // the runtime is going to always do a null check, so it's "fine"
-                    }
-                    else
-                    {
-                        rowTypeNullability = NullHandling.ForbidNull;    // runtime isn't going to allow a null, so reflect that
-                    }
-                }
-                else
-                {
-                    rowTypeNullability = NullHandling.AllowNull;     // the runtime is going to always do a null check, so it's "fine"
-                }
+                rowTypeNullability = NullHandling.CannotBeNull;
             }
 
             var takesType = field.FieldType.GetTypeInfo();

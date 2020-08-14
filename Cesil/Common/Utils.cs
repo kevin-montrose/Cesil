@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -917,7 +918,7 @@ tryAgain:
 
         internal static void ValidateNullHandling(
             bool runtimeUsesConstructor,
-            TypeInfo runtimeType, 
+            TypeInfo runtimeType,
             NullHandling currentNullHandling,
             string newNullHandlingArgName,
             NullHandling newNullHandling
@@ -946,6 +947,99 @@ tryAgain:
                     Throw.ArgumentException<object>($"Unexpected {nameof(NullHandling)}: {newNullHandling}", newNullHandlingArgName);
                     return;
             }
+        }
+
+        internal static Expression MakeNullHandlingCheckExpression(TypeInfo typeOfCheckedValue, ParameterExpression toCheck, string errorMessage)
+        {
+            MethodInfo validationMtd;
+            if (typeOfCheckedValue.IsNullableValueType())
+            {
+                var elemType = typeOfCheckedValue.GetNullableUnderlyingTypeNonNull();
+                validationMtd = Methods.Utils.RuntimeNullableValueCheck.MakeGenericMethod(elemType);
+            }
+            else
+            {
+                validationMtd = Methods.Utils.RuntimeNullableReferenceCheck;
+            }
+
+            var msgConstant = Expression.Constant(errorMessage);
+            var validationCall = Expression.Call(validationMtd, toCheck, msgConstant);
+
+            return validationCall;
+        }
+
+        internal static NullHandling? CommonInputNullHandling(NullHandling? a, NullHandling? b)
+        {
+            // todo: HOBOY does this need testing
+
+            if (a == null)
+            {
+                if (b == null)
+                {
+                    return null;
+                }
+
+                return b.Value;
+            }
+
+            if (b == null)
+            {
+                return a.Value;
+            }
+
+            var aVal = a.Value;
+            var bVal = b.Value;
+
+            // if they both do the same thing, obviously the union is the same
+            if (aVal == bVal)
+            {
+                return aVal;
+            }
+
+            // if either FORBIDs null, then the new thing FORBIDs null
+            if (aVal == NullHandling.ForbidNull || bVal == NullHandling.ForbidNull)
+            {
+                return NullHandling.ForbidNull;
+            }
+
+            return NullHandling.AllowNull;
+        }
+
+        internal static NullHandling? CommonOutputNullHandling(NullHandling? a, NullHandling? b)
+        {
+            // todo: HOBOY does this need testing
+
+            if (a == null)
+            {
+                if (b == null)
+                {
+                    return null;
+                }
+
+                return b.Value;
+            }
+
+            if (b == null)
+            {
+                return a.Value;
+            }
+
+            var aVal = a.Value;
+            var bVal = b.Value;
+
+            if (aVal == bVal)
+            {
+                return aVal;
+            }
+
+            // if _anything_ could provide a null, then the combo can provide a null
+            if(aVal == NullHandling.AllowNull || bVal == NullHandling.AllowNull)
+            {
+                return NullHandling.AllowNull;
+            }
+
+            // now it's got to be a mix of forbid null and cannot be null, whichs is always forbid
+            return NullHandling.ForbidNull;
         }
     }
 }

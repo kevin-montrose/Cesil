@@ -92,13 +92,13 @@ namespace Cesil
             _Fallbacks = fallbacks;
         }
 
-        private Parser(ConstructorInfo cons, ImmutableArray<Parser> fallbacks)
+        private Parser(ConstructorInfo cons, ImmutableArray<Parser> fallbacks, NullHandling createsNullability)
         {
             Delegate.Clear();
             Method.Clear();
             Constructor.Value = cons;
             Creates = cons.DeclaringTypeNonNull();
-            CreatesNullability = NullHandling.ForbidNull;
+            CreatesNullability = createsNullability;        // isn't always CannotBeNull because there might be fallbacks
             _Fallbacks = fallbacks;
         }
 
@@ -131,14 +131,16 @@ namespace Cesil
         DynamicParserDelegate ICreatesCacheableDelegate<DynamicParserDelegate>.Guarantee(IDelegateCache cache)
         => IDelegateCacheHelpers.GuaranteeImpl<Parser, DynamicParserDelegate>(this, cache);
 
-        Parser IElseSupporting<Parser>.Clone(ImmutableArray<Parser> newFallbacks)
+        Parser IElseSupporting<Parser>.Clone(ImmutableArray<Parser> newFallbacks, NullHandling? _, NullHandling? createsNullability)
         {
+            var createsNullabilityValue = Utils.NonNullValue(createsNullability);
+
             return
                 Mode switch
                 {
-                    BackingMode.Method => new Parser(Method.Value, Creates, newFallbacks, CreatesNullability),
-                    BackingMode.Delegate => new Parser(Delegate.Value, Creates, newFallbacks, CreatesNullability),
-                    BackingMode.Constructor => new Parser(Constructor.Value, newFallbacks),
+                    BackingMode.Method => new Parser(Method.Value, Creates, newFallbacks, createsNullabilityValue),
+                    BackingMode.Delegate => new Parser(Delegate.Value, Creates, newFallbacks, createsNullabilityValue),
+                    BackingMode.Constructor => new Parser(Constructor.Value, newFallbacks, createsNullabilityValue),
                     _ => Throw.ImpossibleException<Parser>($"Unexpected {nameof(BackingMode)}: {Mode}"),
                 };
         }
@@ -156,40 +158,46 @@ namespace Cesil
                 return Throw.ArgumentException<Parser>($"{fallbackParser} does not provide a value assignable to {Creates}, and cannot be used as a fallback for this {nameof(Parser)}", nameof(fallbackParser));
             }
 
-            if (CreatesNullability == NullHandling.ForbidNull && fallbackParser.CreatesNullability == NullHandling.AllowNull)
-            {
-                return Throw.ArgumentException<Parser>($"This {nameof(Parser)} does not create null values, but {fallbackParser} does - accordingly it cannot be a fallback for this {nameof(Parser)}", nameof(fallbackParser));
-            }
+            var newCreatesNullability = Utils.CommonOutputNullHandling(CreatesNullability, fallbackParser.CreatesNullability);
 
-            return this.DoElse(fallbackParser);
+            return this.DoElse(fallbackParser, null, newCreatesNullability);
         }
 
-        /// <summary>
-        /// Creates a new Parser that differs from this one on how
-        /// it expects to handle null values at runtime.
-        /// 
-        /// When nulls are forbidden, if the .NET runtime cannot guarantee the 
-        ///   absense of nulls at runtime, checks will be performed to ensure 
-        ///   that nulls are not introduced.
-        ///   
-        /// It is an error to allow nulls when the runtime would always forbiden
-        ///   them.  For example, Parsers that produce non-nullable
-        ///   value types cannot have NullHandling.AllowNulls passed to this
-        ///   method.
-        /// </summary>
-        public Parser WithValueNullHandling(NullHandling nullHandling)
+        private Parser ChangeValueNullHandling(NullHandling nullHandling)
         {
+            if (nullHandling == CreatesNullability)
+            {
+                return this;
+            }
+
             Utils.ValidateNullHandling(Mode == BackingMode.Constructor, Creates, CreatesNullability, nameof(nullHandling), nullHandling);
 
             return
                 Mode switch
                 {
-                    BackingMode.Constructor => new Parser(Constructor.Value, _Fallbacks),
+                    BackingMode.Constructor => new Parser(Constructor.Value, _Fallbacks, nullHandling),
                     BackingMode.Delegate => new Parser(Delegate.Value, Creates, _Fallbacks, nullHandling),
                     BackingMode.Method => new Parser(Method.Value, Creates, _Fallbacks, nullHandling),
                     _ => Throw.ImpossibleException<Parser>($"Unexpected: {nameof(BackingMode)}: {Mode}")
                 };
         }
+
+        /// <summary>
+        /// Returns a Parser that differs from this by explicitly allowing
+        ///   null values to be created by it.
+        /// </summary>
+        public Parser AllowNullValues()
+        => ChangeValueNullHandling(NullHandling.AllowNull);
+
+        /// <summary>
+        /// Returns a Parser that differs from this by explicitly forbidding
+        ///   null values to be created by it.
+        ///   
+        /// If the .NET runtime cannot guarantee that nulls will not be created,
+        ///   null checks will be injected.
+        /// </summary>
+        public Parser ForbidNullValues()
+        => ChangeValueNullHandling(NullHandling.ForbidNull);
 
         internal Expression MakeExpression(ParameterExpression dataVar, ParameterExpression contextVar, ParameterExpression outVar)
         {
@@ -352,7 +360,7 @@ namespace Cesil
                 return Throw.ArgumentException<Parser>($"{nameof(constructor)} must have one or two parameters", nameof(constructor));
             }
 
-            return new Parser(constructor, ImmutableArray<Parser>.Empty);
+            return new Parser(constructor, ImmutableArray<Parser>.Empty, NullHandling.CannotBeNull);
         }
 
         /// <summary>

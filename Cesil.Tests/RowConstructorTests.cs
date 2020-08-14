@@ -34,7 +34,7 @@ namespace Cesil.Tests
                         return true;
                     }
                 )
-                .WithRowNullHandling(NullHandling.ForbidNull);
+                .ForbidNullRows();
 
                 var des1 =
                     DeserializableMember.Create(
@@ -67,9 +67,58 @@ namespace Cesil.Tests
                 Assert.EndsWith(" to create System.Nullable`1[System.Int32] (ForbidNull) was forbidden from producing null values, but did produce one at runtime", ex2.Message);
             }
 
-            // resets don't need a test _because_ InstanceProviders will have their output checked
-            //   and any mismatch with what a reset can take and what an InstanceProvider can provide
-            //   will result in an error at Configuration creation time
+            // resets
+            {
+                // not allowed to take null, but will get one
+#nullable enable
+                var r1 = Reset.ForDelegate(
+                    (object row, in ReadContext ctx) => { }
+                );
+#nullable disable
+                var r2 = Reset.ForDelegate(
+                    (int? row, in ReadContext ctx) => { }
+                ).ForbidNullRows();
+
+                var ip1 = InstanceProvider.ForDelegate((in ReadContext ctx, out object res) => { res = null; return true; });
+
+                var des1 =
+                    DeserializableMember.Create(
+                        typeof(object).GetTypeInfo(),
+                        "foo",
+                        Setter.ForDelegate((int _, in ReadContext __) => { }),
+                        Parser.GetDefault(typeof(int).GetTypeInfo()),
+                        MemberRequired.No,
+                        r1
+                    );
+                var rc1 = RowConstructor.Create<object>(MemoryPool<char>.Shared, ip1, new[] { des1 });
+
+                object pre1 = null; 
+                rc1.TryPreAllocate(default, false, ref pre1);
+                rc1.StartRow(default);
+                var ex1 = Assert.Throws<InvalidOperationException>(() => rc1.ColumnAvailable(Options.Default, 0, 0, null, "123".AsSpan()));
+                Assert.StartsWith(nameof(Reset) + " ", ex1.Message);
+                Assert.EndsWith(" taking System.Object does not accept null row values, but recieved one at runtime", ex1.Message);
+
+                var ip2 = InstanceProvider.ForDelegate((in ReadContext ctx, out int? res) => { res = null; return true; });
+
+                var des2 =
+                    DeserializableMember.Create(
+                        typeof(int?).GetTypeInfo(),
+                        "foo",
+                        Setter.ForDelegate((int _, in ReadContext __) => { }),
+                        Parser.GetDefault(typeof(int).GetTypeInfo()),
+                        MemberRequired.No,
+                        r2
+                    );
+                var rc2 = RowConstructor.Create<int?>(MemoryPool<char>.Shared, ip2, new[] { des2 });
+
+                int? pre2 = null;
+                rc2.TryPreAllocate(default, false, ref pre2);
+                rc2.StartRow(default);
+                var ex2 = Assert.Throws<InvalidOperationException>(() => rc2.ColumnAvailable(Options.Default, 0, 0, null, "123".AsSpan()));
+                Assert.StartsWith(nameof(Reset) + " ", ex2.Message);
+                Assert.EndsWith(" taking System.Nullable`1[System.Int32] does not accept null row values, but recieved one at runtime", ex2.Message);
+            }
 
             // parsers
             {
@@ -93,7 +142,7 @@ namespace Cesil.Tests
                            return true;
                        }
                    )
-                   .WithValueNullHandling(NullHandling.ForbidNull);
+                   .ForbidNullValues();
 
                 var ip = InstanceProvider.ForDelegate((in ReadContext ctx, out object res) => { res = new object(); return true; });
 
@@ -133,11 +182,62 @@ namespace Cesil.Tests
                 Assert.EndsWith(" creating System.Nullable`1[System.Int32] (ForbidNull) was forbidden from producing null values, but did produce one at runtime", ex2.Message);
             }
 
-            // most setters don't need a test _because_ InstanceProviders & Parsers will have their output checked
-            //   and any mismatch with what a reset can take and what an InstanceProvider & Parsers can provide
-            //   will result in an error at DeserializableMember creation time
+            // setters (not by ref) rows
+            {
+#nullable enable
+                var s1 =
+                    Setter.ForDelegate(
+                        (object row, int val, in ReadContext ctx) => { }
+                    );
+#nullable disable
 
-            // setters (by ref)
+                var s2 =
+                    Setter.ForDelegate(
+                        (int? row, int val, in ReadContext ctx) => { }
+                    ).ForbidNullRows();
+
+                var ip1 = InstanceProvider.ForDelegate((in ReadContext ctx, out object res) => { res = null; return true; });
+
+                var des1 =
+                    DeserializableMember.Create(
+                        typeof(object).GetTypeInfo(),
+                        "foo",
+                        s1,
+                        Parser.GetDefault(typeof(int).GetTypeInfo()),
+                        MemberRequired.No,
+                        null
+                    ); ;
+                var rc1 = RowConstructor.Create<object>(MemoryPool<char>.Shared, ip1, new[] { des1 });
+
+                object pre1 = null;
+                rc1.TryPreAllocate(default, false, ref pre1);
+                rc1.StartRow(default);
+                var ex1 = Assert.Throws<InvalidOperationException>(() => rc1.ColumnAvailable(Options.Default, 0, 0, null, "123".AsSpan()));
+                Assert.StartsWith("Setter ", ex1.Message);
+                Assert.EndsWith(" taking System.Object (ForbidNull) and System.Int32 (ForbidNull) does not accept null rows, but recieved one at runtime", ex1.Message);
+
+                var ip2 = InstanceProvider.ForDelegate((in ReadContext ctx, out int? res) => { res = null; return true; });
+
+                var des2 =
+                    DeserializableMember.Create(
+                        typeof(int?).GetTypeInfo(),
+                        "foo",
+                        s2,
+                        Parser.GetDefault(typeof(int).GetTypeInfo()),
+                        MemberRequired.No,
+                        null
+                    ); ;
+                var rc2 = RowConstructor.Create<int?>(MemoryPool<char>.Shared, ip2, new[] { des2 });
+
+                int? pre2 = null;
+                rc2.TryPreAllocate(default, false, ref pre2);
+                rc2.StartRow(default);
+                var ex2 = Assert.Throws<InvalidOperationException>(() => rc2.ColumnAvailable(Options.Default, 0, 0, null, "123".AsSpan()));
+                Assert.StartsWith("Setter ", ex2.Message);
+                Assert.EndsWith(" taking System.Nullable`1[System.Int32] (ForbidNull) and System.Int32 (ForbidNull) does not accept null rows, but recieved one at runtime", ex2.Message);
+            }
+
+            // setters (by ref) rows
             // these are special because they can violate the nullability of the _row_
             //  unlike other setters
             {
@@ -157,7 +257,7 @@ namespace Cesil.Tests
                         {
                             row = null;
                         }
-                    ).WithRowNullHandling(NullHandling.ForbidNull);
+                    ).ForbidNullRows();
 
                 var ip1 = InstanceProvider.ForDelegate((in ReadContext ctx, out object res) => { res = new object(); return true; });
 
@@ -198,6 +298,62 @@ namespace Cesil.Tests
                 var ex2 = Assert.Throws<InvalidOperationException>(() => rc2.ColumnAvailable(Options.Default, 0, 0, null, "123".AsSpan()));
                 Assert.StartsWith("Setter ", ex2.Message);
                 Assert.EndsWith(" taking System.Nullable`1[System.Int32] (ForbidNull) and System.Int32 (ForbidNull) changed row to null, which is not permitted", ex2.Message);
+            }
+
+            // setter values
+            {
+#nullable enable
+                var s1 =
+                    Setter.ForDelegate(
+                        (object row, object val, in ReadContext ctx) => { }
+                    );
+#nullable disable
+
+                var s2 =
+                    Setter.ForDelegate(
+                        (object row, int? val, in ReadContext ctx) => { }
+                    ).ForbidNullValues();
+
+                var ip = InstanceProvider.ForDelegate((in ReadContext ctx, out object res) => { res = new object(); return true; });
+
+                var p1 = Parser.ForDelegate((ReadOnlySpan<char> data, in ReadContext ctx, out object val) => { val = null; return true; });
+
+                var des1 =
+                    DeserializableMember.Create(
+                        typeof(object).GetTypeInfo(),
+                        "foo",
+                        s1,
+                        p1,
+                        MemberRequired.No,
+                        null
+                    ); ;
+                var rc1 = RowConstructor.Create<object>(MemoryPool<char>.Shared, ip, new[] { des1 });
+
+                object pre = null;
+                rc1.TryPreAllocate(default, false, ref pre);
+                rc1.StartRow(default);
+                var ex1 = Assert.Throws<InvalidOperationException>(() => rc1.ColumnAvailable(Options.Default, 0, 0, null, "".AsSpan()));
+                Assert.StartsWith("Setter ", ex1.Message);
+                Assert.EndsWith(" taking System.Object (ForbidNull) and System.Object (ForbidNull) does not accept null values, but recieved one at runtime", ex1.Message);
+
+                var p2 = Parser.ForDelegate((ReadOnlySpan<char> data, in ReadContext ctx, out int? val) => { val = null; return true; });
+
+                var des2 =
+                    DeserializableMember.Create(
+                        typeof(object).GetTypeInfo(),
+                        "foo",
+                        s2,
+                        p2,
+                        MemberRequired.No,
+                        null
+                    ); ;
+                var rc2 = RowConstructor.Create<object>(MemoryPool<char>.Shared, ip, new[] { des2 });
+
+                rc2.TryPreAllocate(default, false, ref pre);
+                rc2.StartRow(default);
+                var ex2 = Assert.Throws<InvalidOperationException>(() => rc2.ColumnAvailable(Options.Default, 0, 0, null, "".AsSpan()));
+                Assert.StartsWith("Setter ", ex2.Message);
+                Assert.EndsWith(" taking System.Object (AllowNull) and System.Nullable`1[System.Int32] (ForbidNull) does not accept null values, but recieved one at runtime", ex2.Message);
             }
         }
 
