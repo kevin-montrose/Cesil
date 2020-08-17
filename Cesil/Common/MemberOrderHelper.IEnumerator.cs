@@ -11,6 +11,7 @@ namespace Cesil
         private int CurrentIndex;
         T IEnumerator<T>.Current => GetAt(CurrentIndex);
 
+        [ExcludeFromCoverage("Trivial, and covered by IEnumerator<T>.Current")]
         object? IEnumerator.Current => GetAt(CurrentIndex);
 
         bool IEnumerator.MoveNext()
@@ -42,6 +43,7 @@ namespace Cesil
             }
         }
 
+        [ExcludeFromCoverage("Trivial, and covered by IEnumerable<T>.GetEnumerator()")]
         IEnumerator IEnumerable.GetEnumerator()
         => ((IEnumerable<T>)this).GetEnumerator();
 

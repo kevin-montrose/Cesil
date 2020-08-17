@@ -118,7 +118,7 @@ namespace Cesil
                 return this;
             }
 
-            Utils.ValidateNullHandling(Mode == BackingMode.Constructor, ConstructsType, ConstructsNullability, nameof(nullHandling), nullHandling);
+            Utils.ValidateNullHandling(ConstructsType, nullHandling);
 
             return
                 Mode switch

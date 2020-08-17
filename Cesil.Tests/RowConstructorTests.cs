@@ -11,6 +11,71 @@ namespace Cesil.Tests
 {
     public class RowConstructorTests
     {
+        private sealed class _DynamicManyTrailingNullValues : IDynamicRowOwner
+        {
+            public Options Options => Options.Default;
+
+            public object Context => null;
+
+            public NameLookup AcquireNameLookup()
+            => NameLookup.Empty;
+
+            public void ReleaseNameLookup() { }
+
+            public void Remove(DynamicRow row) { }
+
+            void IDelegateCache.AddDelegate<T, V>(T key, V cached) { }
+
+            bool IDelegateCache.TryGetDelegate<T, V>(T key, out V del)
+            {
+                del = default;
+                return false;
+            }
+        }
+
+        // tests the case where the row needs to be resized because there are sooooo many nulls to pad it with
+        [Fact]
+        public void DynamicManyTrailingNullValues()
+        {
+            var owner = new _DynamicManyTrailingNullValues();
+            var config = (DynamicBoundConfiguration)Configuration.ForDynamic(Options.DynamicDefault);
+            var buffer = new BufferWithPushback(MemoryPool<char>.Shared, 500);
+
+            var colsNames = new[] { "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z" };
+
+            using (var str = new StringReader(string.Join(",", colsNames)))
+            {
+                using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
+                using var reader =
+                    new HeadersReader<object>(
+                        new ReaderStateMachine(),
+                        config,
+                        charLookup,
+                        new TextReaderAdapter(str),
+                        buffer,
+                        config.Options.RowEnding
+                    );
+                var res = reader.Read();
+
+                var cons = new DynamicRowConstructor();
+                cons.SetColumnOrder(res.Headers);
+
+                object row = null;
+                cons.TryPreAllocate(default, false, ref row);
+
+                ((DynamicRow)row).Init(owner, 0, null, TypeDescribers.Default, true, colsNames, 0, MemoryPool<char>.Shared);
+
+                cons.StartRow(default);
+                cons.ColumnAvailable(Options.DynamicDefault, 0, 0, null, "abc");
+                row = cons.FinishRow();
+
+                Assert.NotNull(row);
+                var vals = (IEnumerable<string>)(dynamic)row;
+                Assert.Equal("abc", vals.First());
+                Assert.All(vals.Skip(1), v => Assert.Null(v));
+            }
+        }
+
         [Fact]
         public void NullHandlingViolations()
         {
@@ -214,7 +279,7 @@ namespace Cesil.Tests
                 rc1.StartRow(default);
                 var ex1 = Assert.Throws<InvalidOperationException>(() => rc1.ColumnAvailable(Options.Default, 0, 0, null, "123".AsSpan()));
                 Assert.StartsWith("Setter ", ex1.Message);
-                Assert.EndsWith(" taking System.Object (ForbidNull) and System.Int32 (ForbidNull) does not accept null rows, but recieved one at runtime", ex1.Message);
+                Assert.EndsWith(" taking System.Object (ForbidNull) and System.Int32 (CannotBeNull) does not accept null rows, but recieved one at runtime", ex1.Message);
 
                 var ip2 = InstanceProvider.ForDelegate((in ReadContext ctx, out int? res) => { res = null; return true; });
 
@@ -234,7 +299,7 @@ namespace Cesil.Tests
                 rc2.StartRow(default);
                 var ex2 = Assert.Throws<InvalidOperationException>(() => rc2.ColumnAvailable(Options.Default, 0, 0, null, "123".AsSpan()));
                 Assert.StartsWith("Setter ", ex2.Message);
-                Assert.EndsWith(" taking System.Nullable`1[System.Int32] (ForbidNull) and System.Int32 (ForbidNull) does not accept null rows, but recieved one at runtime", ex2.Message);
+                Assert.EndsWith(" taking System.Nullable`1[System.Int32] (ForbidNull) and System.Int32 (CannotBeNull) does not accept null rows, but recieved one at runtime", ex2.Message);
             }
 
             // setters (by ref) rows
@@ -277,7 +342,7 @@ namespace Cesil.Tests
                 rc1.StartRow(default);
                 var ex1 = Assert.Throws<InvalidOperationException>(() => rc1.ColumnAvailable(Options.Default, 0, 0, null, "123".AsSpan()));
                 Assert.StartsWith("Setter ", ex1.Message);
-                Assert.EndsWith(" taking System.Object (ForbidNull) and System.Int32 (ForbidNull) changed row to null, which is not permitted", ex1.Message);
+                Assert.EndsWith(" taking System.Object (ForbidNull) and System.Int32 (CannotBeNull) changed row to null, which is not permitted", ex1.Message);
 
                 var ip2 = InstanceProvider.ForDelegate((in ReadContext ctx, out int? res) => { res = 0; return true; });
 
@@ -297,7 +362,7 @@ namespace Cesil.Tests
                 rc2.StartRow(default);
                 var ex2 = Assert.Throws<InvalidOperationException>(() => rc2.ColumnAvailable(Options.Default, 0, 0, null, "123".AsSpan()));
                 Assert.StartsWith("Setter ", ex2.Message);
-                Assert.EndsWith(" taking System.Nullable`1[System.Int32] (ForbidNull) and System.Int32 (ForbidNull) changed row to null, which is not permitted", ex2.Message);
+                Assert.EndsWith(" taking System.Nullable`1[System.Int32] (ForbidNull) and System.Int32 (CannotBeNull) changed row to null, which is not permitted", ex2.Message);
             }
 
             // setter values

@@ -31,6 +31,7 @@ namespace Cesil
                 }
             }
 
+            [ExcludeFromCoverage("Trivial, and covered by IEnumerator<T>.Current")]
             object IEnumerator.Current => Current;
 
             public bool IsDisposed { get; private set; }
@@ -123,6 +124,7 @@ namespace Cesil
             public IEnumerator<ColumnIdentifier> GetEnumerator()
             => new DynamicColumnEnumerator(Row);
 
+            [ExcludeFromCoverage("Trivial, and covered by IEnumerable<T>.GetEnumerator()")]
             IEnumerator IEnumerable.GetEnumerator()
             => GetEnumerator();
 
@@ -261,16 +263,7 @@ namespace Cesil
         {
             AssertNotDisposedInternal(this);
 
-            if (!HasData)
-            {
-                var initialSize = Width * CHARS_PER_INT + CharsToStore(text);
-
-                var dataValue = MemoryPool.Rent(initialSize);
-                HasData = true;
-                Data = dataValue;
-                DataMemory = Data.Memory;
-                CurrentDataOffset = DataMemory.Length;
-            }
+            InitializeDataIfNeeded(Width * CHARS_PER_INT + CharsToStore(text));
 
             Width = Math.Max(Width, index + 1);
 
@@ -282,21 +275,29 @@ namespace Cesil
         {
             AssertNotDisposedInternal(this);
 
-            if (!HasData)
-            {
-                var initialSize = (index + 1) * CHARS_PER_INT;
-
-                var dataValue = MemoryPool.Rent(initialSize);
-                HasData = true;
-                Data = dataValue;
-                DataMemory = Data.Memory;
-                CurrentDataOffset = DataMemory.Length;
-            }
-
+            InitializeDataIfNeeded((index + 1) * CHARS_PER_INT);
+            
             Width = Math.Max(Width, index + 1);
 
             StoreDataSpan(ReadOnlySpan<char>.Empty);
             StoreDataIndex(index, -1);
+        }
+
+        private void InitializeDataIfNeeded(int initialSize)
+        {
+            if (!HasData)
+            {
+                InitializeData(initialSize);
+            }
+        }
+
+        private void InitializeData(int initialSize)
+        {
+            var dataValue = MemoryPool.Rent(initialSize);
+            HasData = true;
+            Data = dataValue;
+            DataMemory = Data.Memory;
+            CurrentDataOffset = DataMemory.Length;
         }
 
         internal void PadWithNulls(int trailingCount)
@@ -305,13 +306,7 @@ namespace Cesil
 
             if (!HasData)
             {
-                var initialSize = trailingCount * CHARS_PER_INT;
-
-                var dataValue = MemoryPool.Rent(initialSize);
-                HasData = true;
-                Data = dataValue;
-                DataMemory = Data.Memory;
-                CurrentDataOffset = DataMemory.Length;
+                InitializeData(trailingCount * CHARS_PER_INT);
             }
             else
             {
@@ -321,7 +316,6 @@ namespace Cesil
                 var endOfNulls = startOfNulls + neededSpace;
 
 checkSize:
-
                 if (CurrentDataOffset < endOfNulls)
                 {
                     var minSize = Data.Memory.Length + (endOfNulls - CurrentDataOffset);
@@ -651,7 +645,8 @@ checkSize:
             dataUIntSpan[atIndex] = DataOffsetForStorage(dataIx);
         }
 
-        private int GetDataIndex(int atIndex)
+        // internal for testing purposes
+        internal int GetDataIndex(int atIndex)
         {
             if (!HasData)
             {

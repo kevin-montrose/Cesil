@@ -155,7 +155,7 @@ namespace Cesil
                 return Throw.InvalidOperationException<ShouldSerialize>($"{this} does not take rows, and so cannot have a {nameof(NullHandling)} specified");
             }
 
-            Utils.ValidateNullHandling(false, Takes.Value, TakesNullability.Value, nameof(nullHandling), nullHandling);
+            Utils.ValidateNullHandling(Takes.Value, nullHandling);
 
             return
                 Mode switch

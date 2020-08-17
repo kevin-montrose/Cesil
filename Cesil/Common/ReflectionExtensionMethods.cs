@@ -78,13 +78,6 @@ namespace Cesil
             //  - nullable value types allow null
             //  - value types forbid null
 
-            // value types can only have meaningful nullable annotations
-            //   for their generic parameters, which means we never care
-            //   about it's annotations
-            //
-            // since ints and whatnot are pretty common, this shortcut
-            //   can save some real time on type describing.
-
             // need to de-ref member type, because the "ref-ness" of it doesn't matter
             //   for nullability purposes
             var effectiveMemberType = memberType;
@@ -93,6 +86,12 @@ namespace Cesil
                 effectiveMemberType = effectiveMemberType.GetElementTypeNonNull();
             }
 
+            // value types can only have meaningful nullable annotations
+            //   for their generic parameters, which means we never care
+            //   about it's annotations
+            //
+            // since ints and whatnot are pretty common, this shortcut
+            //   can save some real time on type describing.
             if (effectiveMemberType.IsValueType)
             {
                 if (effectiveMemberType.IsNullableValueType())
@@ -100,7 +99,7 @@ namespace Cesil
                     return NullHandling.AllowNull;
                 }
 
-                return NullHandling.ForbidNull;
+                return NullHandling.CannotBeNull;
             }
 
             // check for explicit attributes
@@ -191,7 +190,7 @@ namespace Cesil
                         return NullHandling.AllowNull;
                     }
 
-                    return NullHandling.ForbidNull;
+                    return NullHandling.CannotBeNull;
                 }
 
                 return NullHandling.AllowNull;

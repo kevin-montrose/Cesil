@@ -1,20 +1,114 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using Microsoft.VisualBasic.CompilerServices;
 using Xunit;
 
 namespace Cesil.Tests
 {
     public class WrapperTests
     {
+        // todo: test null violations in chains
+
+        [Fact]
+        public void CannotAllowNulls()
+        {
+            var f = Formatter.GetDefault(typeof(int).GetTypeInfo());
+            var g = Getter.ForDelegate((int _, in WriteContext __) => default(int));
+            var ip = InstanceProvider.GetDefault(typeof(int).GetTypeInfo());
+            var p = Parser.GetDefault(typeof(int).GetTypeInfo());
+            var r = Reset.ForDelegate((int _, in ReadContext __) => { });
+            var s = Setter.ForDelegate((int _, int __, in ReadContext ___) => { });
+            var ss = ShouldSerialize.ForDelegate((int _, in WriteContext __) => true);
+
+            Assert.Throws<InvalidOperationException>(() => f.AllowNullValues());
+            Assert.Throws<InvalidOperationException>(() => g.AllowNullValues());
+            Assert.Throws<InvalidOperationException>(() => g.AllowNullRows());
+            Assert.Throws<InvalidOperationException>(() => ip.AllowNullRows());
+            Assert.Throws<InvalidOperationException>(() => p.AllowNullValues());
+            Assert.Throws<InvalidOperationException>(() => r.AllowNullRows());
+            Assert.Throws<InvalidOperationException>(() => s.AllowNullRows());
+            Assert.Throws<InvalidOperationException>(() => s.AllowNullValues());
+            Assert.Throws<InvalidOperationException>(() => ss.AllowNullRows());
+        }
+
+        [Fact]
+        public void ChangeNullabilityAllocations()
+        {
+            var f = Formatter.GetDefault(typeof(int?).GetTypeInfo());
+            var g = Getter.ForDelegate((int? _, in WriteContext __) => default(int?));
+            var ip = InstanceProvider.GetDefault(typeof(int?).GetTypeInfo());
+            var p = Parser.GetDefault(typeof(int?).GetTypeInfo());
+            var r = Reset.ForDelegate((int? _, in ReadContext __) => { });
+            var s = Setter.ForDelegate((int? _, int? __, in ReadContext ___) => { });
+            var ss = ShouldSerialize.ForDelegate((int? _, in WriteContext __) => true);
+
+            // same nullability, shouldn't allocate
+            {
+                var fNew = f.AllowNullValues();
+                Assert.Same(f, fNew);
+
+                var gNew1 = g.AllowNullValues();
+                Assert.Same(g, gNew1);
+
+                var gNew2 = g.AllowNullRows();
+                Assert.Same(g, gNew2);
+
+                var ipNew = ip.AllowNullRows();
+                Assert.Same(ip, ipNew);
+
+                var pNew = p.AllowNullValues();
+                Assert.Same(p, pNew);
+
+                var rNew = r.AllowNullRows();
+                Assert.Same(r, rNew);
+
+                var sNew1 = s.AllowNullRows();
+                Assert.Same(s, sNew1);
+
+                var sNew2 = s.AllowNullValues();
+                Assert.Same(s, sNew2);
+
+                var ssNew = ss.AllowNullRows();
+                Assert.Same(ss, ssNew);
+            }
+
+            // same nullability, _should_ allocate
+            {
+                var fNew = f.ForbidNullValues();
+                Assert.NotSame(f, fNew);
+
+                var gNew1 = g.ForbidNullValues();
+                Assert.NotSame(g, gNew1);
+
+                var gNew2 = g.ForbidNullRows();
+                Assert.NotSame(g, gNew2);
+
+                var ipNew = ip.ForbidNullRows();
+                Assert.NotSame(ip, ipNew);
+
+                var pNew = p.ForbidNullValues();
+                Assert.NotSame(p, pNew);
+
+                var rNew = r.ForbidNullRows();
+                Assert.NotSame(r, rNew);
+
+                var sNew1 = s.ForbidNullRows();
+                Assert.NotSame(s, sNew1);
+
+                var sNew2 = s.ForbidNullValues();
+                Assert.NotSame(s, sNew2);
+
+                var ssNew = ss.ForbidNullRows();
+                Assert.NotSame(ss, ssNew);
+            }
+        }
+
         private class _IDelegateCaches
         {
 #pragma warning disable CS0649
@@ -560,10 +654,12 @@ namespace Cesil.Tests
                 NullHandling res;
                 switch (expectedResult)
                 {
-                    case "Constructor":
-                    case "NonNullRef":
                     case "NonNullValue":
                     case "ObliviousNonNullValue":
+                        res = NullHandling.CannotBeNull;
+                        break;
+
+                    case "NonNullRef":
                         res = NullHandling.ForbidNull;
                         break;
 
@@ -641,9 +737,12 @@ namespace Cesil.Tests
                 NullHandling res;
                 switch (expected)
                 {
-                    case "nonNullRef":
                     case "nonNullValue":
                     case "obliviousNonNullValue":
+                        res = NullHandling.CannotBeNull;
+                        break;
+
+                    case "nonNullRef":
                         res = NullHandling.ForbidNull;
                         break;
 
@@ -1309,8 +1408,12 @@ namespace Cesil.Tests
 
                 switch (expectedResult)
                 {
-                    case "ObliviousValue":
                     case "NonNullValue":
+                    case "ObliviousValue":
+                        rowHandling = null;
+                        returnHandling = NullHandling.CannotBeNull;
+                        break;
+
                     case "NonNullRef":
                         rowHandling = null;
                         returnHandling = NullHandling.ForbidNull;
@@ -1324,18 +1427,22 @@ namespace Cesil.Tests
                         returnHandling = NullHandling.AllowNull;
                         break;
 
-                    case "RowNonNullRef":
                     case "RowNonNullValue":
-                    case "ObliviousRowValue":
                     case "ObliviousRowNonNullValue":
+                        rowHandling = NullHandling.CannotBeNull;
+                        returnHandling = NullHandling.CannotBeNull;
+                        break;
+
+                    case "RowNonNullRef":
+                    case "ObliviousRowValue":
                         rowHandling = NullHandling.ForbidNull;
-                        returnHandling = NullHandling.ForbidNull;
+                        returnHandling = NullHandling.CannotBeNull;
                         break;
 
                     case "Instance":
                     case "ObliviousInstance":
                         rowHandling = NullHandling.CannotBeNull;
-                        returnHandling = NullHandling.ForbidNull;
+                        returnHandling = NullHandling.CannotBeNull;
                         break;
 
                     case "RowNullRef":
@@ -1343,7 +1450,7 @@ namespace Cesil.Tests
                     case "RowNullValue":
                     case "ObliviousRowNullValue":
                         rowHandling = NullHandling.AllowNull;
-                        returnHandling = NullHandling.ForbidNull;
+                        returnHandling = NullHandling.CannotBeNull;
                         break;
 
                     default: throw new Exception();
@@ -1466,6 +1573,9 @@ namespace Cesil.Tests
                     {
                         case "ObliviousNonNullValue":
                         case "NonNullValue":
+                            returnHandling = NullHandling.CannotBeNull;
+                            break;
+                        
                         case "NonNullRef":
                             returnHandling = NullHandling.ForbidNull;
                             break;
@@ -1482,11 +1592,14 @@ namespace Cesil.Tests
                 }
                 else
                 {
-                    returnHandling = NullHandling.ForbidNull;
+                    returnHandling = NullHandling.CannotBeNull;
                     switch (expected)
                     {
                         case "ObliviousNonNullValue":
                         case "NonNullValue":
+                            rowHandling = NullHandling.CannotBeNull;
+                            break;
+
                         case "NonNullRef":
                             rowHandling = NullHandling.ForbidNull;
                             break;
@@ -1767,15 +1880,15 @@ namespace Cesil.Tests
                 {
                     case "Instance_Context":
                     case "Instance_NoContext":
+                    case "Row_Context_NonNullValue":
+                    case "Row_NoContext_NonNullValue":
+                    case "Row_Context_ObliviousNonNullValue":
+                    case "Row_NoContext_ObliviousNonNullValue":
                         res = NullHandling.CannotBeNull;
                         break;
 
                     case "Row_Context_NonNullRef":
                     case "Row_NoContext_NonNullRef":
-                    case "Row_Context_NonNullValue":
-                    case "Row_NoContext_NonNullValue":
-                    case "Row_Context_ObliviousNonNullValue":
-                    case "Row_NoContext_ObliviousNonNullValue":
                         res = NullHandling.ForbidNull;
                         break;
 
@@ -1881,9 +1994,12 @@ namespace Cesil.Tests
                 NullHandling? res;
                 switch (expectedRes)
                 {
-                    case "nonNullRefRow":
                     case "nonNullValueRow":
                     case "obliviousNonNullValueRow":
+                        res = NullHandling.CannotBeNull;
+                        break;
+
+                    case "nonNullRefRow":
                         res = NullHandling.ForbidNull;
                         break;
 
@@ -2126,13 +2242,13 @@ namespace Cesil.Tests
                 NullHandling res;
                 switch (expectedResult)
                 {
+                    case "NonNullValue":
+                    case "ObliviousNonNullValue":
                     case "Constructor":
                         res = NullHandling.CannotBeNull;
                         break;
 
                     case "NonNullRef":
-                    case "NonNullValue":
-                    case "ObliviousNonNullValue":
                         res = NullHandling.ForbidNull;
                         break;
 
@@ -2209,9 +2325,12 @@ namespace Cesil.Tests
                 NullHandling res;
                 switch (expected)
                 {
-                    case "nonNullRef":
                     case "nonNullValue":
                     case "obliviousNonNullValue":
+                        res = NullHandling.CannotBeNull;
+                        break;
+
+                    case "nonNullRef":
                         res = NullHandling.ForbidNull;
                         break;
 
@@ -2772,6 +2891,10 @@ namespace Cesil.Tests
                 {
                     case "ObliviousValue":
                     case "NonNullValue":
+                        rowHandling = null;
+                        takesHandling = NullHandling.CannotBeNull;
+                        break;
+
                     case "NonNullRef":
                         rowHandling = null;
                         takesHandling = NullHandling.ForbidNull;
@@ -2785,17 +2908,21 @@ namespace Cesil.Tests
                         takesHandling = NullHandling.AllowNull;
                         break;
 
-                    case "RowNonNullRef":
                     case "RowNonNullValue":
-                    case "ObliviousRowValue":
                     case "ObliviousRowNonNullValue":
+                        rowHandling = NullHandling.CannotBeNull;
+                        takesHandling = NullHandling.CannotBeNull;
+                        break;
+
+                    case "RowNonNullRef":
+                    case "ObliviousRowValue":
                         rowHandling = NullHandling.ForbidNull;
-                        takesHandling = NullHandling.ForbidNull;
+                        takesHandling = NullHandling.CannotBeNull;
                         break;
 
                     case "Instance":
                         rowHandling = NullHandling.CannotBeNull;
-                        takesHandling = NullHandling.ForbidNull;
+                        takesHandling = NullHandling.CannotBeNull;
                         break;
 
                     case "ObliviousRow":
@@ -2804,7 +2931,7 @@ namespace Cesil.Tests
                     case "RowNullValue":
                     case "ObliviousRowNullValue":
                         rowHandling = NullHandling.AllowNull;
-                        takesHandling = NullHandling.ForbidNull;
+                        takesHandling = NullHandling.CannotBeNull;
                         break;
 
                     default: throw new Exception();
@@ -2941,6 +3068,9 @@ namespace Cesil.Tests
                     {
                         case "ObliviousNonNullValue":
                         case "NonNullValue":
+                            takesHandling = NullHandling.CannotBeNull;
+                            break;
+
                         case "NonNullRef":
                             takesHandling = NullHandling.ForbidNull;
                             break;
@@ -2957,11 +3087,14 @@ namespace Cesil.Tests
                 }
                 else
                 {
-                    takesHandling = NullHandling.ForbidNull;
+                    takesHandling = NullHandling.CannotBeNull;
                     switch (expected)
                     {
                         case "ObliviousNonNullValue":
                         case "NonNullValue":
+                            rowHandling = NullHandling.CannotBeNull;
+                            break;
+
                         case "NonNullRef":
                             rowHandling = NullHandling.ForbidNull;
                             break;
@@ -3322,15 +3455,15 @@ namespace Cesil.Tests
                 {
                     case "Instance_Context":
                     case "Instance_NoContext":
+                    case "Row_Context_NonNullValue":
+                    case "Row_NoContext_NonNullValue":
+                    case "Row_Context_ObliviousNonNullValue":
+                    case "Row_NoContext_ObliviousNonNullValue":
                         res = NullHandling.CannotBeNull;
                         break;
 
                     case "Row_Context_NonNullRef":
-                    case "Row_Context_NonNullValue":
                     case "Row_NoContext_NonNullRef":
-                    case "Row_NoContext_NonNullValue":
-                    case "Row_Context_ObliviousNonNullValue":
-                    case "Row_NoContext_ObliviousNonNullValue":
                         res = NullHandling.ForbidNull;
                         break;
 
@@ -3423,9 +3556,12 @@ namespace Cesil.Tests
                 NullHandling? res;
                 switch (expected)
                 {
-                    case "rowNonNullRef":
                     case "rowNonNullValue":
                     case "rowObliviousNonNullValue":
+                        res = NullHandling.CannotBeNull;
+                        break;
+
+                    case "rowNonNullRef":
                         res = NullHandling.ForbidNull;
                         break;
 
@@ -4009,12 +4145,12 @@ namespace Cesil.Tests
                 switch (expectedResult)
                 {
                     case "Constructor":
+                    case "NonNullValue":
+                    case "ObliviousNonNullValue":
                         res = NullHandling.CannotBeNull;
                         break;
 
                     case "NonNullRef":
-                    case "NonNullValue":
-                    case "ObliviousNonNullValue":
                         res = NullHandling.ForbidNull;
                         break;
 
@@ -4092,9 +4228,12 @@ namespace Cesil.Tests
                 NullHandling res;
                 switch (expected)
                 {
-                    case "nonNullRef":
                     case "nonNullValue":
                     case "obliviousNonNullValue":
+                        res = NullHandling.CannotBeNull;
+                        break;
+
+                    case "nonNullRef":
                         res = NullHandling.ForbidNull;
                         break;
 

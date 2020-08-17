@@ -174,7 +174,7 @@ namespace Cesil
                 return this;
             }
 
-            Utils.ValidateNullHandling(false, Takes, TakesNullability, nameof(nullHandling), nullHandling);
+            Utils.ValidateNullHandling(Takes, nullHandling);
 
             return
                 Mode switch

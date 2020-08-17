@@ -226,6 +226,14 @@ namespace Cesil.Tests
         }
 
         [Fact]
+        public void NonNullValue()
+        {
+            Assert.Equal(1, Utils.NonNullValue((int?)1));
+
+            Assert.Throws<ImpossibleException>(() => Utils.NonNullValue(default(int?)));
+        }
+
+        [Fact]
         public void CheckImmutableReadInto()
         {
             // arrays
@@ -465,7 +473,6 @@ namespace Cesil.Tests
             }
 
             // exact buffer
-
             {
                 var opts = Options.CreateBuilder(Options.Default).WithMemoryPoolProvider(new _Encode_MemoryPoolProvider()).ToOptions();
 
@@ -927,17 +934,17 @@ namespace Cesil.Tests
             Assert.Equal(NullHandling.ForbidNull, Field(nameof(_DeterminingNullability.GenericNonNullField)));
             Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.GenericNullField)));
 
-            Assert.Equal(NullHandling.ForbidNull, Field(nameof(_DeterminingNullability.GenericValueNonNullField)));
+            Assert.Equal(NullHandling.CannotBeNull, Field(nameof(_DeterminingNullability.GenericValueNonNullField)));
             Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.GenericValueNullField)));
 
-            Assert.Equal(NullHandling.ForbidNull, Field(nameof(_DeterminingNullability.NonNullValueField)));
+            Assert.Equal(NullHandling.CannotBeNull, Field(nameof(_DeterminingNullability.NonNullValueField)));
             Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.NullValueField)));
 
             Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.OblivousField)));
             Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.ObliviousGenericField)));
-            Assert.Equal(NullHandling.ForbidNull, Field(nameof(_DeterminingNullability.ObliviousGenericValueField)));
+            Assert.Equal(NullHandling.CannotBeNull, Field(nameof(_DeterminingNullability.ObliviousGenericValueField)));
             Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.ObliviousGenericNullableValueField)));
-            Assert.Equal(NullHandling.ForbidNull, Field(nameof(_DeterminingNullability.ObliviousValueField)));
+            Assert.Equal(NullHandling.CannotBeNull, Field(nameof(_DeterminingNullability.ObliviousValueField)));
             Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.ObliviousNullValueField)));
 
             // prop tests
@@ -950,17 +957,17 @@ namespace Cesil.Tests
             Assert.Equal(NullHandling.ForbidNull, Property(nameof(_DeterminingNullability.GenericNonNullProp)));
             Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.GenericNullProp)));
 
-            Assert.Equal(NullHandling.ForbidNull, Property(nameof(_DeterminingNullability.GenericValueNonNullProp)));
+            Assert.Equal(NullHandling.CannotBeNull, Property(nameof(_DeterminingNullability.GenericValueNonNullProp)));
             Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.GenericValueNullProp)));
 
-            Assert.Equal(NullHandling.ForbidNull, Property(nameof(_DeterminingNullability.NonNullValueProp)));
+            Assert.Equal(NullHandling.CannotBeNull, Property(nameof(_DeterminingNullability.NonNullValueProp)));
             Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.NullValueProp)));
 
             Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.OblivousProp)));
             Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.ObliviousGenericProp)));
-            Assert.Equal(NullHandling.ForbidNull, Property(nameof(_DeterminingNullability.ObliviousGenericValueProp)));
+            Assert.Equal(NullHandling.CannotBeNull, Property(nameof(_DeterminingNullability.ObliviousGenericValueProp)));
             Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.ObliviousGenericNullableValueProp)));
-            Assert.Equal(NullHandling.ForbidNull, Property(nameof(_DeterminingNullability.ObliviousValueProp)));
+            Assert.Equal(NullHandling.CannotBeNull, Property(nameof(_DeterminingNullability.ObliviousValueProp)));
             Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.ObliviousNullValueProp)));
 
             // argument tests (enabled)
@@ -971,10 +978,10 @@ namespace Cesil.Tests
             Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Enabled_Method), "genRefNonNull"));
             Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "genRefNull"));
 
-            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Enabled_Method), "genStructNonNull"));
+            Assert.Equal(NullHandling.CannotBeNull, Argument(nameof(_DetermineNullability_Enabled_Method), "genStructNonNull"));
             Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "genStructNull"));
 
-            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Enabled_Method), "valNonNull"));
+            Assert.Equal(NullHandling.CannotBeNull, Argument(nameof(_DetermineNullability_Enabled_Method), "valNonNull"));
             Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "valNull"));
 
             Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_refNonNull"));
@@ -983,10 +990,10 @@ namespace Cesil.Tests
             Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_genRefNonNull"));
             Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_genRefNull"));
 
-            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_genStructNonNull"));
+            Assert.Equal(NullHandling.CannotBeNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_genStructNonNull"));
             Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_genStructNull"));
 
-            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_valNonNull"));
+            Assert.Equal(NullHandling.CannotBeNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_valNonNull"));
             Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_valNull"));
 
             // argument tests (disabled)
@@ -995,20 +1002,20 @@ namespace Cesil.Tests
 
             Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "genRefNull"));
 
-            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "genStructNonNull"));
+            Assert.Equal(NullHandling.CannotBeNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "genStructNonNull"));
             Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "genStructNull"));
 
-            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "valNonNull"));
+            Assert.Equal(NullHandling.CannotBeNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "valNonNull"));
             Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "valNull"));
 
             Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "byRef_refNull"));
 
             Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "byRef_genRefNull"));
 
-            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "byRef_genStructNonNull"));
+            Assert.Equal(NullHandling.CannotBeNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "byRef_genStructNonNull"));
             Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "byRef_genStructNull"));
 
-            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "byRef_valNonNull"));
+            Assert.Equal(NullHandling.CannotBeNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "byRef_valNonNull"));
             Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "byRef_valNull"));
 
             static NullHandling Field(string name)
@@ -1038,6 +1045,134 @@ namespace Cesil.Tests
 
                 return arg.DetermineNullability();
             }
+        }
+
+        [Theory]
+        [InlineData(1, "foobar", "ob", 2)]
+        [InlineData(1, "foobar", "are", -1)]
+        [InlineData(0, "foofozz", "oz", 4)]
+        public void FindNextIx(int startAt, string haystack, string needle, int expected)
+        {
+            var haystackSpan = haystack.AsSpan();
+            var needleSpan = needle.AsSpan();
+
+            var res = Utils.FindNextIx(startAt, haystackSpan, needleSpan);
+            Assert.Equal(expected, res);
+        }
+
+        [Fact]
+        public void Find_Sequence()
+        {
+            // empty
+            {
+                var res = Utils.Find(ReadOnlySequence<char>.Empty, "foobar");
+                Assert.Equal(-1, res);
+            }
+
+            // single segment
+            {
+                var mem = "foobar".AsMemory();
+                var seq = new ReadOnlySequence<char>(mem);
+
+                Assert.True(seq.IsSingleSegment);
+
+                var res = Utils.Find(seq, "ba");
+                Assert.Equal(3, res);
+            }
+
+            // multi segment
+            {
+                var head = new _FindNeedsEncode_Sequence_Segment("foo", 0);
+                var tail = head;
+                var next1 = new _FindNeedsEncode_Sequence_Segment("bar", (int)(tail.RunningIndex + tail.Memory.Length));
+                tail.SetNext(next1);
+                tail = next1;
+                var next2 = new _FindNeedsEncode_Sequence_Segment("fizz", (int)(tail.RunningIndex + tail.Memory.Length));
+                tail.SetNext(next2);
+                tail = next2;
+
+                var seq = new ReadOnlySequence<char>(head, 0, tail, "fizz".Length);
+
+                Assert.False(seq.IsSingleSegment);
+
+                // found, within single span
+                var res1 = Utils.Find(seq, "ba");
+                Assert.Equal(3, res1);
+
+                // found, straddles span
+                var res2 = Utils.Find(seq, "ob");
+                Assert.Equal(2, res2);
+
+                // not found (partial match)
+                var res3 = Utils.Find(seq, "re");
+                Assert.Equal(-1, res3);
+
+                // not found (no match)
+                var res4 = Utils.Find(seq, "xz");
+                Assert.Equal(-1, res4);
+
+                // found, completely covers span
+                var res5 = Utils.Find(seq, "bar");
+                Assert.Equal(3, res5);
+
+                // found, stradles multiple spans
+                var res6 = Utils.Find(seq, "obarf");
+                Assert.Equal(2, res6);
+
+                // found, stradles multiple spans (starts in non-first span)
+                var res7 = Utils.Find(seq, "arfi");
+                Assert.Equal(4, res7);
+
+                // not found, partial stradles multiple spans
+                var res8 = Utils.Find(seq, "arfix");
+                Assert.Equal(-1, res8);
+
+                // not found, partial stradles multiple spans and ends sequence
+                var res9 = Utils.Find(seq, "arfizzy");
+                Assert.Equal(-1, res9);
+            }
+        }
+
+        [Theory]
+        // reference types, anything is legal!
+        [InlineData(typeof(object), (byte)NullHandling.ForbidNull, false)]
+        [InlineData(typeof(object), (byte)NullHandling.AllowNull, false)]
+        // value types, can't be null
+        [InlineData(typeof(int), (byte)NullHandling.AllowNull, true)]
+        [InlineData(typeof(int), (byte)NullHandling.ForbidNull, false)]
+        // nullable value types can be anything
+        [InlineData(typeof(int?), (byte)NullHandling.AllowNull, false)]
+        [InlineData(typeof(int?), (byte)NullHandling.ForbidNull, false)]
+        public void ValidateNullHandling(Type forType, byte updatedByte, bool throws)
+        {
+            var updated = (NullHandling)updatedByte;
+
+            Action toRun = () => Utils.ValidateNullHandling(forType.GetTypeInfo(), updated);
+
+            if (throws)
+            {
+                Assert.Throws<InvalidOperationException>(toRun);
+            }
+            else
+            {
+                toRun();
+            }
+        }
+
+        // what happens when chaining things _as parameters_ (stuff passed to setters, formatters, and so on)
+        [Theory]
+        [InlineData((byte)NullHandling.AllowNull, (byte)NullHandling.AllowNull, (byte)NullHandling.AllowNull)]      // if they all take null, null is OK
+        [InlineData((byte)NullHandling.AllowNull, (byte)NullHandling.ForbidNull, (byte)NullHandling.ForbidNull)]    // if either forbid null, null isn't OK
+        [InlineData((byte)NullHandling .ForbidNull, (byte)NullHandling.AllowNull, (byte)NullHandling.ForbidNull)]
+        // CannotBeNull isn't possible
+        public void CommonInputNullHandling(byte firstByte, byte secondByte, byte expectedByte)
+        {
+            var first = (NullHandling)firstByte;
+            var second = (NullHandling)secondByte;
+            var expected = (NullHandling)expectedByte;
+
+            var res = Utils.CommonInputNullHandling(first, second);
+            Assert.Equal(expected, res);
         }
     }
 }

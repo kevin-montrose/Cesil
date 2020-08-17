@@ -83,12 +83,12 @@ namespace Cesil.Tests
                 var dynG3 = (g3 as ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>).CreateDelegate();
                 var ex3 = Assert.Throws<InvalidOperationException>(() => dynG3(default(object), default));
                 Assert.StartsWith("Getter ", ex3.Message);
-                Assert.EndsWith("taking System.Object (ForbidNull) returning System.Int32 (ForbidNull) does not take a null row value, but received one at runtime", ex3.Message);
+                Assert.EndsWith("taking System.Object (ForbidNull) returning System.Int32 (CannotBeNull) does not take a null row value, but received one at runtime", ex3.Message);
 
                 var dynG4 = (g4 as ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>).CreateDelegate();
                 var ex4 = Assert.Throws<InvalidOperationException>(() => dynG4(default(int?), default));
                 Assert.StartsWith("Getter ", ex4.Message);
-                Assert.EndsWith("taking System.Nullable`1[System.Int32] (ForbidNull) returning System.Int32 (ForbidNull) does not take a null row value, but received one at runtime", ex4.Message);
+                Assert.EndsWith("taking System.Nullable`1[System.Int32] (ForbidNull) returning System.Int32 (CannotBeNull) does not take a null row value, but received one at runtime", ex4.Message);
             }
 
             // formatter

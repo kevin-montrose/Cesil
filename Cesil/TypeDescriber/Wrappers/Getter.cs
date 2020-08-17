@@ -248,7 +248,7 @@ namespace Cesil
                 return this;
             }
 
-            Utils.ValidateNullHandling(false, Returns, ReturnsNullability, nameof(nullHandling), nullHandling);
+            Utils.ValidateNullHandling(Returns, nullHandling);
 
             return
                 Mode switch
@@ -272,7 +272,7 @@ namespace Cesil
                 return Throw.InvalidOperationException<Getter>($"{this} does not take rows, and so cannot have a {nameof(NullHandling)} specified");
             }
 
-            Utils.ValidateNullHandling(false, RowType.Value, RowNullability.Value, nameof(nullHandling), nullHandling);
+            Utils.ValidateNullHandling(RowType.Value, nullHandling);
 
             return
                 Mode switch

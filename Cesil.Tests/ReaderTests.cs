@@ -17,6 +17,37 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ReaderTests
     {
+        private sealed class _MultiCharacterSeparatorFakeOut
+        {
+            public string A { get; set; }
+            public string B { get; set; }
+        }
+
+        [Fact]
+        public void MultiCharacterSeparatorLookAhead()
+        {
+            var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("###").ToOptions();
+            RunSyncReaderVariants<_MultiCharacterSeparatorFakeOut>(
+                opts,
+                (config, getReader) =>
+                {
+                    using(var reader = getReader("A###B\r\nh#e##llo###\"w#o##r###ld\""))
+                    using(var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+                        Assert.Collection(
+                            rows,
+                            r =>
+                            {
+                                Assert.Equal("h#e##llo", r.A);
+                                Assert.Equal("w#o##r###ld", r.B);
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
         private sealed class _MultiCharacterSeparatorInHeaders
         {
             [DataMember(Name = "Foo#|#Bar")]
@@ -6034,6 +6065,31 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     }
                 );
             }
+        }
+
+        [Fact]
+        public async Task MultiCharacterSeparatorLookAheadAsync()
+        {
+            var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("###").ToOptions();
+            await RunAsyncReaderVariants<_MultiCharacterSeparatorFakeOut>(
+                opts,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("A###B\r\nh#e##llo###\"w#o##r###ld\""))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+                        Assert.Collection(
+                            rows,
+                            r =>
+                            {
+                                Assert.Equal("h#e##llo", r.A);
+                                Assert.Equal("w#o##r###ld", r.B);
+                            }
+                        );
+                    }
+                }
+            );
         }
 
         [Fact]

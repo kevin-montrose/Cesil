@@ -203,13 +203,17 @@ namespace Cesil.Tests
                 var combo4 = ipNullImpossible.Else(ipCanMakeNull);
                 var combo5 = ipNullImpossible.Else(ipCannotMakeNull);
                 var combo6 = ipNullImpossible.Else(ipNullImpossible);
+                var combo7 = ipCanMakeNull.Else(ipCannotMakeNull);
+                var combo8 = ipCannotMakeNull.Else(ipNullImpossible);
 
                 Assert.Equal(NullHandling.AllowNull, combo1.ConstructsNullability);
                 Assert.Equal(NullHandling.AllowNull, combo2.ConstructsNullability);
                 Assert.Equal(NullHandling.ForbidNull, combo3.ConstructsNullability);
-                Assert.Equal(NullHandling.AllowNull, combo4.ConstructsNullability);
-                Assert.Equal(NullHandling.ForbidNull, combo5.ConstructsNullability);
+                Assert.Equal(NullHandling.CannotBeNull, combo4.ConstructsNullability);
+                Assert.Equal(NullHandling.CannotBeNull, combo5.ConstructsNullability);
                 Assert.Equal(NullHandling.CannotBeNull, combo6.ConstructsNullability);
+                Assert.Equal(NullHandling.AllowNull, combo7.ConstructsNullability);
+                Assert.Equal(NullHandling.ForbidNull, combo8.ConstructsNullability);
             }
         }
 

@@ -168,6 +168,7 @@ namespace Cesil
 
 #if DEBUG
         // just for debugging purposes
+        [ExcludeFromCoverage("Purely for debugging")]
         internal unsafe string ToDebugString()
         {
             PinHandle? pin = null;

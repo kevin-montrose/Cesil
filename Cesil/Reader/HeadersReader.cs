@@ -39,6 +39,7 @@ namespace Cesil
                 }
             }
 
+            [ExcludeFromCoverage("Trivial, and covered by IEnumerator<T>.Current")]
             readonly object IEnumerator.Current => Current;
 
             internal HeaderEnumerator(int count, ReadOnlyMemory<char> buffer, WhitespaceTreatments whitespaceTreatment)

@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -19,6 +20,49 @@ namespace Cesil.Tests
                     MemoryPool<char>.Shared,
                     500
                 );
+        }
+
+        private sealed class _MultiCharacterLookAhead
+        {
+            [DataMember(Name = "h#e##llo")]
+            public string A { get; set; }
+            [DataMember(Name = "w#o##r###ld")]
+            public string B { get; set; }
+            public string C { get; set; }
+        }
+
+        [Fact]
+        public void MultiCharacterLookAhead()
+        {
+            var config =
+                    (ConcreteBoundConfiguration<_MultiCharacterLookAhead>)
+                        Configuration.For<_MultiCharacterLookAhead>(
+                            Options.CreateBuilder(Options.Default)
+                                .WithValueSeparator("###")
+                                .ToOptions()
+                        ); ;
+
+            using (var str = new StringReader("h#e##llo###\"w#o##r###ld\"###C"))
+            {
+                using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
+                using var reader =
+                    new HeadersReader<_MultiCharacterLookAhead>(
+                        new ReaderStateMachine(),
+                        config,
+                        charLookup,
+                        new TextReaderAdapter(str),
+                        MakeBuffer(),
+                        config.Options.RowEnding
+                    );
+                var res = reader.Read();
+                Assert.True(res.IsHeader);
+                Assert.Collection(
+                    ToEnumerable(res.Headers),
+                    i => Assert.Equal("h#e##llo", new string(i.Span)),
+                    i => Assert.Equal("w#o##r###ld", new string(i.Span)),
+                    i => Assert.Equal("C", new string(i.Span))
+                );
+            }
         }
 
         [Fact]
@@ -535,6 +579,42 @@ namespace Cesil.Tests
                     );
                     Assert.True(res.IsHeader);
                 }
+            }
+        }
+
+        // async tests
+
+        [Fact]
+        public async Task MultiCharacterLookAheadAsync()
+        {
+            var config =
+                    (ConcreteBoundConfiguration<_MultiCharacterLookAhead>)
+                        Configuration.For<_MultiCharacterLookAhead>(
+                            Options.CreateBuilder(Options.Default)
+                                .WithValueSeparator("###")
+                                .ToOptions()
+                        ); ;
+
+            using (var str = new StringReader("h#e##llo###\"w#o##r###ld\"###C"))
+            {
+                using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
+                using var reader =
+                    new HeadersReader<_MultiCharacterLookAhead>(
+                        new ReaderStateMachine(),
+                        config,
+                        charLookup,
+                        new AsyncTextReaderAdapter(str),
+                        MakeBuffer(),
+                        config.Options.RowEnding
+                    );
+                var res = await reader.ReadAsync(default);
+                Assert.True(res.IsHeader);
+                Assert.Collection(
+                    ToEnumerable(res.Headers),
+                    i => Assert.Equal("h#e##llo", new string(i.Span)),
+                    i => Assert.Equal("w#o##r###ld", new string(i.Span)),
+                    i => Assert.Equal("C", new string(i.Span))
+                );
             }
         }
 
