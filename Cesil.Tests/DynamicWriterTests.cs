@@ -90,7 +90,7 @@ namespace Cesil.Tests
                     var r1 = MakeDynamicRow("A,B,C\r\n1,2,3");
                     var r2 = MakeDynamicRow("A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V\r\n4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25");
 
-                    using(var writer = getWriter())
+                    using (var writer = getWriter())
                     using (var csv = config.CreateWriter(writer))
                     {
                         csv.Write(r1);
@@ -436,7 +436,7 @@ namespace Cesil.Tests
 
             public override int GetCellsForDynamicRow(in WriteContext context, dynamic row, Span<DynamicCellValue> cells)
             {
-                if(cells.Length < 1)
+                if (cells.Length < 1)
                 {
                     return 1;
                 }
@@ -720,7 +720,7 @@ namespace Cesil.Tests
 
             public override int GetCellsForDynamicRow(in WriteContext ctx, dynamic row, Span<DynamicCellValue> cells)
             {
-                if(cells.Length < CellNum)
+                if (cells.Length < CellNum)
                 {
                     return CellNum;
                 }

@@ -1448,8 +1448,9 @@ namespace Cesil.Tests
             public delegate int ObliviousRowNullValue_Delegate(int? row, in WriteContext ctx);
         }
 
-        delegate T _GetterNullabilty_NoRow<T>(in WriteContext ctx);
-        delegate T _GetterNullabilty_WithRow<V, T>(V row, in WriteContext ctx);
+        private delegate T _GetterNullabilty_NoRow<T>(in WriteContext ctx);
+
+        private delegate T _GetterNullabilty_WithRow<V, T>(V row, in WriteContext ctx);
 
         [Fact]
         public void GetterNullability()
@@ -1646,7 +1647,7 @@ namespace Cesil.Tests
                         case "NonNullValue":
                             returnHandling = NullHandling.CannotBeNull;
                             break;
-                        
+
                         case "NonNullRef":
                             returnHandling = NullHandling.ForbidNull;
                             break;
@@ -2968,9 +2969,11 @@ namespace Cesil.Tests
             public delegate void ObliviousRowNullValue_ByRef_Delegate(ref int? row, int val, in ReadContext ctx);
         }
 
-        delegate void _SetterNullabilty_NoRow<T>(T val, in ReadContext ctx);
-        delegate void _SetterNullabilty_WithRow<V, T>(V row, T val, in ReadContext ctx);
-        delegate void _SetterNullabilty_ByRef_WithRow<V, T>(ref V row, T val, in ReadContext ctx);
+        private delegate void _SetterNullabilty_NoRow<T>(T val, in ReadContext ctx);
+
+        private delegate void _SetterNullabilty_WithRow<V, T>(V row, T val, in ReadContext ctx);
+
+        private delegate void _SetterNullabilty_ByRef_WithRow<V, T>(ref V row, T val, in ReadContext ctx);
 
         [Fact]
         public void SetterNullability()

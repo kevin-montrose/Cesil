@@ -56,7 +56,7 @@ namespace Cesil.Tests
         [InlineData("h#ello###wo##rld###\"fiz###z\"###\"buzz###\"\r\n123", RowEnding.CarriageReturnLineFeed, "###")]
         public void Sync(string csv, RowEnding expected, string valueSep = ",")
         {
-            var config = 
+            var config =
                 (ConcreteBoundConfiguration<_Test>)
                     Configuration.For<_Test>(
                         Options.CreateBuilder(Options.Default)

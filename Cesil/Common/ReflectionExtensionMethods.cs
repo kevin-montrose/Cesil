@@ -198,7 +198,7 @@ namespace Cesil
             }
         }
 
-        internal static bool IsNullableValueType(this TypeInfo type, [NotNullWhen(returnValue: true)]out TypeInfo? elementType)
+        internal static bool IsNullableValueType(this TypeInfo type, [NotNullWhen(returnValue: true)] out TypeInfo? elementType)
         {
             elementType = Nullable.GetUnderlyingType(type)?.GetTypeInfo();
             return elementType != null;

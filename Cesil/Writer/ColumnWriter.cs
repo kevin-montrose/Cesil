@@ -35,7 +35,7 @@ namespace Cesil
             {
                 var ss = shouldSerialize.Value;
 
-                if(ss.TakesNullability == NullHandling.ForbidNull && ss.Takes.Value.AllowsNullLikeValue())
+                if (ss.TakesNullability == NullHandling.ForbidNull && ss.Takes.Value.AllowsNullLikeValue())
                 {
                     var takes = ss.Takes.Value;
 
@@ -61,8 +61,8 @@ namespace Cesil
             var assignToL2 = Expression.Assign(l2, getExp);
             statements.Add(assignToL2);
 
-            
-            if(getter.ReturnsNullability == NullHandling.ForbidNull && columnType.AllowsNullLikeValue())
+
+            if (getter.ReturnsNullability == NullHandling.ForbidNull && columnType.AllowsNullLikeValue())
             {
                 // do we need to check that a null didn't happen at runtime?
                 var checkExp = Utils.MakeNullHandlingCheckExpression(getter.Returns, l2, $"{getter} was forbidden from return null values, but did return one at runtime");
@@ -122,7 +122,7 @@ done:
                 statements.Add(ifIsDefaultReturnTrue);
             }
 
-            if(formatter.TakesNullability == NullHandling.ForbidNull && formatter.Takes.AllowsNullLikeValue())
+            if (formatter.TakesNullability == NullHandling.ForbidNull && formatter.Takes.AllowsNullLikeValue())
             {
                 // make sure formatter invariant hasn't been violated
                 var checkExp = Utils.MakeNullHandlingCheckExpression(formatter.Takes, l2, $"{formatter} does not take null values, but received one at runtime");

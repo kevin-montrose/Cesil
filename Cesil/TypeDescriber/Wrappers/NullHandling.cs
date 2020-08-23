@@ -1,6 +1,6 @@
 ﻿namespace Cesil
 {
-    internal enum NullHandling: byte
+    internal enum NullHandling : byte
     {
         AllowNull = 1,
         ForbidNull = 2,

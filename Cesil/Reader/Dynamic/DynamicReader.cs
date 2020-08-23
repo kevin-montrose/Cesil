@@ -38,7 +38,7 @@ namespace Cesil
             }
         }
 
-        bool IDelegateCache.TryGetDelegate<TKey, TDelegate>(TKey key, [MaybeNullWhen(returnValue: false)]out TDelegate del)
+        bool IDelegateCache.TryGetDelegate<TKey, TDelegate>(TKey key, [MaybeNullWhen(returnValue: false)] out TDelegate del)
         {
             if (!DelegateCache.TryGetValue(key, out var untyped))
             {

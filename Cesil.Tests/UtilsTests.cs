@@ -191,9 +191,9 @@ namespace Cesil.Tests
             var files = new[] { "SomeFile.cs", null };
             var members = new[] { "SomeMember", null };
 
-            foreach(var f in files)
+            foreach (var f in files)
             {
-                foreach(var m in members)
+                foreach (var m in members)
                 {
                     Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object>("wat", f, m));
                     Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object>("wat", Options.Default, f, m));
@@ -414,7 +414,7 @@ namespace Cesil.Tests
         {
             public MemoryPool<T> GetMemoryPool<T>()
             {
-                if(typeof(T) == typeof(char))
+                if (typeof(T) == typeof(char))
                 {
                     return (MemoryPool<T>)(object)new _Encode_MemoryPool();
                 }
@@ -1165,7 +1165,7 @@ namespace Cesil.Tests
         [Theory]
         [InlineData((byte)NullHandling.AllowNull, (byte)NullHandling.AllowNull, (byte)NullHandling.AllowNull)]      // if they all take null, null is OK
         [InlineData((byte)NullHandling.AllowNull, (byte)NullHandling.ForbidNull, (byte)NullHandling.ForbidNull)]    // if either forbid null, null isn't OK
-        [InlineData((byte)NullHandling .ForbidNull, (byte)NullHandling.AllowNull, (byte)NullHandling.ForbidNull)]
+        [InlineData((byte)NullHandling.ForbidNull, (byte)NullHandling.AllowNull, (byte)NullHandling.ForbidNull)]
         // CannotBeNull isn't possible
         public void CommonInputNullHandling(byte firstByte, byte secondByte, byte expectedByte)
         {

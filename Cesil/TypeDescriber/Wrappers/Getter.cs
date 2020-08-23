@@ -526,7 +526,7 @@ namespace Cesil
 
             if (getter.ReturnsNullability != ReturnsNullability) return false;
             if (getter.Returns != Returns) return false;
-            
+
             if (getter.RowType.HasValue)
             {
                 if (!RowType.HasValue)

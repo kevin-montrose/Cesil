@@ -98,7 +98,7 @@ namespace Cesil
                 cType = CharLookup[cOffset.Value];
             }
 
-            if(cType == CharacterType.MaybeValueSeparator)
+            if (cType == CharacterType.MaybeValueSeparator)
             {
                 if (!knownNotValueSeparator)
                 {

@@ -276,7 +276,7 @@ namespace Cesil
             AssertNotDisposedInternal(this);
 
             InitializeDataIfNeeded((index + 1) * CHARS_PER_INT);
-            
+
             Width = Math.Max(Width, index + 1);
 
             StoreDataSpan(ReadOnlySpan<char>.Empty);

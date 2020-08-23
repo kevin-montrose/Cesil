@@ -369,7 +369,7 @@ namespace Cesil
             {
                 // one variant of setters can _change_ a row during a call, so we need to check that that hasn't happened
                 var checkExp = Utils.MakeNullHandlingCheckExpression(rowType, rowParam, $"{setter} changed row to null, which is not permitted");
-                
+
                 statements.Add(checkExp);
             }
 

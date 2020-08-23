@@ -274,13 +274,13 @@ namespace Cesil.Tests
             );
         }
 
-        class _MultiCharacterValueSeparators
+        private class _MultiCharacterValueSeparators
         {
             public int A { get; set; }
             public string B { get; set; }
         }
 
-        class _MultiCharacterValueSeparators_Headers
+        private class _MultiCharacterValueSeparators_Headers
         {
             [DataMember(Name = "A#*#Escaped")]
             public int A { get; set; }

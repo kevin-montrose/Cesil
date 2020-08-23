@@ -23,7 +23,7 @@ namespace Cesil.Tests
         public void DetermineNeedsEscape(string[] colNames, char? escapeStartEnd, string valueSep, bool[] expected)
         {
             var cols = new Column[colNames.Length];
-            for(var i = 0; i < colNames.Length; i++)
+            for (var i = 0; i < colNames.Length; i++)
             {
                 cols[i] = new Column(colNames[i], null);
             }

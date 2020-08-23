@@ -622,7 +622,7 @@ namespace Cesil
 
             if (RowType.HasValue)
             {
-                if(!setter.RowType.HasValue)
+                if (!setter.RowType.HasValue)
                 {
                     return false;
                 }

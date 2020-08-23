@@ -64,7 +64,7 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
-            if(Reader.TryRead(out var c))
+            if (Reader.TryRead(out var c))
             {
                 _Current = c;
                 return true;

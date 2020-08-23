@@ -6,7 +6,6 @@ using System.IO.Pipelines;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit;
@@ -47,8 +46,8 @@ namespace Cesil.Tests
                 opts,
                 (config, getReader) =>
                 {
-                    using(var reader = getReader("A,B\r\n1,2\r\n3,4"))
-                    using(var csv = config.CreateReader(reader))
+                    using (var reader = getReader("A,B\r\n1,2\r\n3,4"))
+                    using (var csv = config.CreateReader(reader))
                     {
                         var rows = csv.ReadAll();
                         Assert.Collection(
@@ -83,8 +82,8 @@ namespace Cesil.Tests
                 opts,
                 (config, getReader) =>
                 {
-                    using(var reader = getReader("A###B\r\nh#e##llo###\"w#o##r###ld\""))
-                    using(var csv = config.CreateReader(reader))
+                    using (var reader = getReader("A###B\r\nh#e##llo###\"w#o##r###ld\""))
+                    using (var csv = config.CreateReader(reader))
                     {
                         var rows = csv.ReadAll();
                         Assert.Collection(
@@ -1883,7 +1882,7 @@ namespace Cesil.Tests
             var cReset = t.GetMethodNonNull(nameof(_VariousResets.ResetC_Context), BindingFlags.Public | BindingFlags.Instance);
             var d = t.GetPropertyNonNull(nameof(_VariousResets.D), BindingFlags.Public | BindingFlags.Instance);
             var dReset = t.GetMethodNonNull(nameof(_VariousResets.ResetD_Row_ByRef), BindingFlags.Public | BindingFlags.Static);
-            
+
             var m = ManualTypeDescriber.CreateBuilder();
             m.WithInstanceProvider(InstanceProvider.ForParameterlessConstructor(cons));
             m.WithExplicitSetter(t, "A", Setter.ForProperty(a), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.No, Reset.ForMethod(aReset));

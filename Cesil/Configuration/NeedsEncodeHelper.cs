@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
@@ -63,7 +62,7 @@ namespace Cesil
             ValueSeparator = sep;
             SecondChar = (short)(c2 ?? '\0');
             ThirdChar = (short)(c3 ?? '\0');
-            
+
             fixed (short* mapPtr = MAP)
             {
                 // put \r and \n in there
@@ -161,7 +160,7 @@ namespace Cesil
                 {
                     var charsToSkip = trailingZeros / sizeof(char);
 
-                    var charIx =  i * CHARS_PER_VECTOR + charsToSkip;
+                    var charIx = i * CHARS_PER_VECTOR + charsToSkip;
                     var r = CheckValueSeparatorPresent(charIx, strPtr + charIx, len);
                     if (r != -1) return r;
                 }
@@ -314,7 +313,7 @@ tryAgain:
             if (strLen - (ix + 1) < remaining) return -1;
 
             var ptr = strPtr + 1;
-            while(valueSepIx < ValueSeparator.Length)
+            while (valueSepIx < ValueSeparator.Length)
             {
                 var c = *ptr;
                 var sC = ValueSeparator[valueSepIx];

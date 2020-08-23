@@ -157,7 +157,7 @@ namespace Cesil.Tests
                     );
                 var rc1 = RowConstructor.Create<object>(MemoryPool<char>.Shared, ip1, new[] { des1 });
 
-                object pre1 = null; 
+                object pre1 = null;
                 rc1.TryPreAllocate(default, false, ref pre1);
                 rc1.StartRow(default);
                 var ex1 = Assert.Throws<InvalidOperationException>(() => rc1.ColumnAvailable(Options.Default, 0, 0, null, "123".AsSpan()));
