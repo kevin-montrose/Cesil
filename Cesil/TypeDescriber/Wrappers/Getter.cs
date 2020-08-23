@@ -525,8 +525,8 @@ namespace Cesil
             if (ReferenceEquals(getter, null)) return false;
 
             if (getter.ReturnsNullability != ReturnsNullability) return false;
-            if (getter.RowNullability != RowNullability) return false;
             if (getter.Returns != Returns) return false;
+            
             if (getter.RowType.HasValue)
             {
                 if (!RowType.HasValue)
@@ -534,15 +534,29 @@ namespace Cesil
                     return false;
                 }
 
-                if (getter.RowType.Value != RowType.Value) return false;
+                if (getter.RowNullability != RowNullability)
+                {
+                    return false;
+                }
+
+                if (getter.RowType.Value != RowType.Value)
+                {
+                    return false;
+                }
             }
             else
             {
-                if (RowType.HasValue) return false;
+                if (RowType.HasValue)
+                {
+                    return false;
+                }
             }
 
             var otherMode = getter.Mode;
-            if (otherMode != Mode) return false;
+            if (otherMode != Mode)
+            {
+                return false;
+            }
 
             return
                 otherMode switch

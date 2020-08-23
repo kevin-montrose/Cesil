@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Cesil
 {
@@ -358,6 +359,7 @@ namespace Cesil
             }
         }
 
+        [DoesNotReturn]
         private ReadWithCommentResultType HandleUncommonAdvanceResults(ReaderStateMachine.AdvanceResult res, char? lastRead)
         {
             string c;

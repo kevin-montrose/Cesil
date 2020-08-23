@@ -6,6 +6,7 @@ using System.IO.Pipelines;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit;
@@ -17,6 +18,57 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ReaderTests
     {
+        private sealed class _ByRefResets
+        {
+            public int A { get; set; }
+            public int B { get; set; }
+        }
+
+        [Fact]
+        public void ByRefResets()
+        {
+            var aReset = Reset.ForDelegate((ref _ByRefResets row, in ReadContext ctx) => { row.A = 10; });
+            var bReset = (Reset)((ResetByRefDelegate<_ByRefResets>)((ref _ByRefResets row, in ReadContext ctx) => { row.B = 20; }));
+
+            var t = typeof(_ByRefResets).GetTypeInfo();
+            var p = Parser.GetDefault(typeof(int).GetTypeInfo());
+
+            var aSetter = Setter.ForDelegate((_ByRefResets row, int val, in ReadContext ctx) => { row.A *= val; });
+            var bSetter = Setter.ForDelegate((_ByRefResets row, int val, in ReadContext ctx) => { row.B *= val; });
+
+            var mb = ManualTypeDescriber.CreateBuilder();
+            mb.WithExplicitSetter(t, "A", aSetter, p, MemberRequired.Yes, aReset);
+            mb.WithExplicitSetter(t, "B", bSetter, p, MemberRequired.Yes, bReset);
+
+            var m = mb.ToManualTypeDescriber();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(m).ToOptions();
+
+            RunSyncReaderVariants<_ByRefResets>(
+                opts,
+                (config, getReader) =>
+                {
+                    using(var reader = getReader("A,B\r\n1,2\r\n3,4"))
+                    using(var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+                        Assert.Collection(
+                            rows,
+                            r1 =>
+                            {
+                                Assert.Equal(10, r1.A);
+                                Assert.Equal(40, r1.B);
+                            },
+                            r2 =>
+                            {
+                                Assert.Equal(30, r2.A);
+                                Assert.Equal(80, r2.B);
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
         private sealed class _MultiCharacterSeparatorFakeOut
         {
             public string A { get; set; }
@@ -1831,7 +1883,7 @@ namespace Cesil.Tests
             var cReset = t.GetMethodNonNull(nameof(_VariousResets.ResetC_Context), BindingFlags.Public | BindingFlags.Instance);
             var d = t.GetPropertyNonNull(nameof(_VariousResets.D), BindingFlags.Public | BindingFlags.Instance);
             var dReset = t.GetMethodNonNull(nameof(_VariousResets.ResetD_Row_ByRef), BindingFlags.Public | BindingFlags.Static);
-
+            
             var m = ManualTypeDescriber.CreateBuilder();
             m.WithInstanceProvider(InstanceProvider.ForParameterlessConstructor(cons));
             m.WithExplicitSetter(t, "A", Setter.ForProperty(a), Parser.GetDefault(typeof(int).GetTypeInfo()), MemberRequired.No, Reset.ForMethod(aReset));
@@ -6065,6 +6117,53 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
                     }
                 );
             }
+        }
+
+        // asyn tests
+
+        [Fact]
+        public async Task ByRefResetsAsync()
+        {
+            var aReset = Reset.ForDelegate((ref _ByRefResets row, in ReadContext ctx) => { row.A = 10; });
+            var bReset = (Reset)((ResetByRefDelegate<_ByRefResets>)((ref _ByRefResets row, in ReadContext ctx) => { row.B = 20; }));
+
+            var t = typeof(_ByRefResets).GetTypeInfo();
+            var p = Parser.GetDefault(typeof(int).GetTypeInfo());
+
+            var aSetter = Setter.ForDelegate((_ByRefResets row, int val, in ReadContext ctx) => { row.A *= val; });
+            var bSetter = Setter.ForDelegate((_ByRefResets row, int val, in ReadContext ctx) => { row.B *= val; });
+
+            var mb = ManualTypeDescriber.CreateBuilder();
+            mb.WithExplicitSetter(t, "A", aSetter, p, MemberRequired.Yes, aReset);
+            mb.WithExplicitSetter(t, "B", bSetter, p, MemberRequired.Yes, bReset);
+
+            var m = mb.ToManualTypeDescriber();
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(m).ToOptions();
+
+            await RunAsyncReaderVariants<_ByRefResets>(
+                opts,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("A,B\r\n1,2\r\n3,4"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+                        Assert.Collection(
+                            rows,
+                            r1 =>
+                            {
+                                Assert.Equal(10, r1.A);
+                                Assert.Equal(40, r1.B);
+                            },
+                            r2 =>
+                            {
+                                Assert.Equal(30, r2.A);
+                                Assert.Equal(80, r2.B);
+                            }
+                        );
+                    }
+                }
+            );
         }
 
         [Fact]

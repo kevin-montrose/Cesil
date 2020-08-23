@@ -343,7 +343,7 @@ namespace Cesil.Tests
             Assert.Throws<InvalidOperationException>(() => t.GetFieldNonNull("Foo", BindingFlags.Static));
             Assert.Throws<InvalidOperationException>(() => t.GetMethodNonNull("Foo", BindingFlags.Static));
             Assert.Throws<InvalidOperationException>(() => t.GetMethodNonNull("Foo"));
-            Assert.Throws<InvalidOperationException>(() => t.GetMethodNonNull("Foo", BindingFlags.Static, null, Array.Empty<TypeInfo>(), null));
+            Assert.Throws<InvalidOperationException>(() => t.GetMethodNonNull("Foo", BindingFlags.Static, null, new[] { typeof(string).GetTypeInfo() }, null));
             Assert.Throws<InvalidOperationException>(() => t.GetPropertyNonNull("Foo", BindingFlags.Static));
 
             var c = typeof(_ReflectionHelpers).GetTypeInfo();
@@ -972,6 +972,8 @@ namespace Cesil.Tests
 
             // argument tests (enabled)
 
+            Assert.Equal(NullHandling.AllowNull, default(ParameterInfo).DetermineNullability());
+
             Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Enabled_Method), "refNonNull"));
             Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "refNull"));
 
@@ -1172,6 +1174,35 @@ namespace Cesil.Tests
             var expected = (NullHandling)expectedByte;
 
             var res = Utils.CommonInputNullHandling(first, second);
+            Assert.Equal(expected, res);
+        }
+
+        [Theory]
+        [InlineData(typeof(string), false, true)]
+        [InlineData(typeof(int), false, false)]
+        [InlineData(typeof(int?), false, true)]
+        [InlineData(typeof(string), true, true)]
+        [InlineData(typeof(int), true, false)]
+        [InlineData(typeof(int?), true, true)]
+        public void AllowsNullLikeValue(Type forType, bool byRef, bool expected)
+        {
+            var toCheck = forType;
+            if (byRef)
+            {
+                toCheck = toCheck.MakeByRefType();
+            }
+
+            var res = toCheck.GetTypeInfo().AllowsNullLikeValue();
+            Assert.Equal(expected, res);
+        }
+
+        [Theory]
+        [InlineData(typeof(int), false)]
+        [InlineData(typeof(ReadHeader), false)]
+        [InlineData(typeof(WhitespaceTreatments), true)]
+        public void IsFlagsEnum(Type forType, bool expected)
+        {
+            var res = forType.GetTypeInfo().IsFlagsEnum();
             Assert.Equal(expected, res);
         }
     }

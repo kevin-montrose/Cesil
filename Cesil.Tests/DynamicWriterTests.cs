@@ -35,6 +35,25 @@ namespace Cesil.Tests
         }
 
         [Fact]
+        public void WriteCommentErrors()
+        {
+            RunSyncDynamicWriterVariants(
+                Options.DynamicDefault,
+                (config, getWriter, getStr) =>
+                {
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
+                    {
+                        var exc = Assert.Throws<InvalidOperationException>(() => csv.WriteComment("foo"));
+                        Assert.Equal($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line", exc.Message);
+                    }
+
+                    getStr();
+                }
+            );
+        }
+
+        [Fact]
         public void IllegalRowSizes()
         {
             RunSyncDynamicWriterVariants(
@@ -2064,6 +2083,25 @@ namespace Cesil.Tests
         }
 
         // async tests
+
+        [Fact]
+        public async Task WriteCommentErrorsAsync()
+        {
+            await RunAsyncDynamicWriterVariants(
+                Options.DynamicDefault,
+                async (config, getWriter, getStr) =>
+                {
+                    await using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        var exc = await Assert.ThrowsAsync<InvalidOperationException>(async () => await csv.WriteCommentAsync("foo"));
+                        Assert.Equal($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line", exc.Message);
+                    }
+
+                    await getStr();
+                }
+            );
+        }
 
         [Fact]
         public async Task IllegalRowSizesAsync()

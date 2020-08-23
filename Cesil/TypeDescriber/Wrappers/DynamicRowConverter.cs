@@ -8,8 +8,6 @@ using System.Text;
 
 namespace Cesil
 {
-    // todo: nullability?
-
     /// <summary>
     /// Delegate type for DynamicRowConverters.
     /// </summary>

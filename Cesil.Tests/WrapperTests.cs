@@ -13,7 +13,23 @@ namespace Cesil.Tests
 {
     public class WrapperTests
     {
-        // todo: test null violations in chains
+        [Fact]
+        public void CannotChangeRowNullHandling()
+        {
+            var g = Getter.ForDelegate((in WriteContext _) => default(int));
+            var r = Reset.ForDelegate((in ReadContext _) => { });
+            var s = Setter.ForDelegate((int i, in ReadContext _) => { });
+            var ss = ShouldSerialize.ForDelegate((in WriteContext _) => default(bool));
+
+            Assert.Throws<InvalidOperationException>(() => g.AllowNullRows());
+            Assert.Throws<InvalidOperationException>(() => g.ForbidNullRows());
+            Assert.Throws<InvalidOperationException>(() => r.AllowNullRows());
+            Assert.Throws<InvalidOperationException>(() => r.ForbidNullRows());
+            Assert.Throws<InvalidOperationException>(() => s.AllowNullRows());
+            Assert.Throws<InvalidOperationException>(() => s.ForbidNullRows());
+            Assert.Throws<InvalidOperationException>(() => ss.AllowNullRows());
+            Assert.Throws<InvalidOperationException>(() => ss.ForbidNullRows());
+        }
 
         [Fact]
         public void CannotAllowNulls()
@@ -41,23 +57,32 @@ namespace Cesil.Tests
         public void ChangeNullabilityAllocations()
         {
             var f = Formatter.GetDefault(typeof(int?).GetTypeInfo());
-            var g = Getter.ForDelegate((int? _, in WriteContext __) => default(int?));
+            var g1 = Getter.ForDelegate((int? _, in WriteContext __) => default(int?));
+            var g2 = Getter.ForDelegate((in WriteContext __) => default(int?));
             var ip = InstanceProvider.GetDefault(typeof(int?).GetTypeInfo());
             var p = Parser.GetDefault(typeof(int?).GetTypeInfo());
             var r = Reset.ForDelegate((int? _, in ReadContext __) => { });
-            var s = Setter.ForDelegate((int? _, int? __, in ReadContext ___) => { });
+            // no alternative Reset takes any values
+            var s1 = Setter.ForDelegate((int? _, int? __, in ReadContext ___) => { });
+            var s2 = Setter.ForDelegate((int? __, in ReadContext ___) => { });
             var ss = ShouldSerialize.ForDelegate((int? _, in WriteContext __) => true);
+            // no alternative ShouldSerialize takes any values
 
             // same nullability, shouldn't allocate
             {
                 var fNew = f.AllowNullValues();
                 Assert.Same(f, fNew);
 
-                var gNew1 = g.AllowNullValues();
-                Assert.Same(g, gNew1);
+                var gNew1_1 = g1.AllowNullValues();
+                Assert.Same(g1, gNew1_1);
 
-                var gNew2 = g.AllowNullRows();
-                Assert.Same(g, gNew2);
+                var gNew1_2 = g1.AllowNullRows();
+                Assert.Same(g1, gNew1_2);
+
+                var gNew2 = g2.AllowNullValues();
+                Assert.Same(g2, gNew2);
+
+                // no row switch, there are no rows for g2
 
                 var ipNew = ip.AllowNullRows();
                 Assert.Same(ip, ipNew);
@@ -68,11 +93,16 @@ namespace Cesil.Tests
                 var rNew = r.AllowNullRows();
                 Assert.Same(r, rNew);
 
-                var sNew1 = s.AllowNullRows();
-                Assert.Same(s, sNew1);
+                var sNew1_1 = s1.AllowNullRows();
+                Assert.Same(s1, sNew1_1);
 
-                var sNew2 = s.AllowNullValues();
-                Assert.Same(s, sNew2);
+                var sNew1_2 = s1.AllowNullValues();
+                Assert.Same(s1, sNew1_2);
+
+                var sNew2 = s2.AllowNullValues();
+                Assert.Same(s2, sNew2);
+
+                // no row switch, there are not rows for s2
 
                 var ssNew = ss.AllowNullRows();
                 Assert.Same(ss, ssNew);
@@ -83,11 +113,16 @@ namespace Cesil.Tests
                 var fNew = f.ForbidNullValues();
                 Assert.NotSame(f, fNew);
 
-                var gNew1 = g.ForbidNullValues();
-                Assert.NotSame(g, gNew1);
+                var gNew1_1 = g1.ForbidNullValues();
+                Assert.NotSame(g1, gNew1_1);
 
-                var gNew2 = g.ForbidNullRows();
-                Assert.NotSame(g, gNew2);
+                var gNew1_2 = g1.ForbidNullRows();
+                Assert.NotSame(g1, gNew1_2);
+
+                var gNew2 = g2.ForbidNullValues();
+                Assert.NotSame(g2, gNew2);
+
+                // no row switch, there are no rows for g2
 
                 var ipNew = ip.ForbidNullRows();
                 Assert.NotSame(ip, ipNew);
@@ -98,11 +133,16 @@ namespace Cesil.Tests
                 var rNew = r.ForbidNullRows();
                 Assert.NotSame(r, rNew);
 
-                var sNew1 = s.ForbidNullRows();
-                Assert.NotSame(s, sNew1);
+                var sNew1_1 = s1.ForbidNullRows();
+                Assert.NotSame(s1, sNew1_1);
 
-                var sNew2 = s.ForbidNullValues();
-                Assert.NotSame(s, sNew2);
+                var sNew1_2 = s1.ForbidNullValues();
+                Assert.NotSame(s1, sNew1_2);
+
+                var sNew2 = s2.ForbidNullValues();
+                Assert.NotSame(s2, sNew2);
+
+                // no row switch, therea no rows for s2
 
                 var ssNew = ss.ForbidNullRows();
                 Assert.NotSame(ss, ssNew);
@@ -1063,11 +1103,16 @@ namespace Cesil.Tests
             var staticMethodGetterRowCtx = Getter.ForMethod(typeof(_ColumnWriters).GetMethod(nameof(_ColumnWriters.GetStaticRowCtx)));
             var fieldGetter = Getter.ForField(typeof(_ColumnWriters).GetField(nameof(_ColumnWriters.A)));
             var staticFieldGetter = Getter.ForField(typeof(_ColumnWriters).GetField(nameof(_ColumnWriters.StaticA)));
-            var delGetter = (Getter)(GetterDelegate<_ColumnWriters, _ColumnWriters_Val>)((_ColumnWriters row, in WriteContext _) => { return row.A; });
+            var delGetter1 = (Getter)(GetterDelegate<_ColumnWriters, _ColumnWriters_Val>)((_ColumnWriters row, in WriteContext _) => { return row.A; });
+#nullable enable
+            var delGetter2 = ((Getter)(GetterDelegate<_ColumnWriters, _ColumnWriters_Val>)((_ColumnWriters row, in WriteContext _) => { return row.A; }))!;
+            var delGetter3 = ((Getter)(GetterDelegate<_ColumnWriters?, _ColumnWriters_Val>)((_ColumnWriters? row, in WriteContext _) => { return row?.A ?? (new _ColumnWriters_Val()); }))!;
+            var delGetter4 = ((Getter)(GetterDelegate<_ColumnWriters, _ColumnWriters_Val?>)((_ColumnWriters row, in WriteContext _) => { return row.A; }))!;
+#nullable disable
             var staticDelGetter = (Getter)(StaticGetterDelegate<_ColumnWriters_Val>)((in WriteContext _) => { return new _ColumnWriters_Val { Value = "foo" }; });
             var propGetter = Getter.ForProperty(typeof(_ColumnWriters).GetProperty(nameof(_ColumnWriters.GetProp)));
             var staticPropGetter = Getter.ForProperty(typeof(_ColumnWriters).GetProperty(nameof(_ColumnWriters.GetPropStatic)));
-            var getters = new[] { methodGetter, methodGetter2, methodGetter3, methodGetterCtx, staticMethodGetter, staticMethodGetterCtx, staticMethodGetterRow, staticMethodGetterRowCtx, fieldGetter, staticFieldGetter, delGetter, staticDelGetter, propGetter, staticPropGetter };
+            var getters = new[] { methodGetter, methodGetter2, methodGetter3, methodGetterCtx, staticMethodGetter, staticMethodGetterCtx, staticMethodGetterRow, staticMethodGetterRowCtx, fieldGetter, staticFieldGetter, delGetter1, delGetter2, delGetter3, delGetter4, staticDelGetter, propGetter, staticPropGetter };
 
             var notGetter = "";
 
@@ -1137,11 +1182,37 @@ namespace Cesil.Tests
                     Assert.False(g1.TakesContext);
                     Assert.True(g1.IsStatic);
                 }
-                else if (g1 == delGetter)
+                else if (g1 == delGetter1)
                 {
                     Assert.Equal(BackingMode.Delegate, g1.Mode);
                     Assert.True(g1.TakesContext);
                     Assert.False(g1.IsStatic);
+                    Assert.Equal(NullHandling.AllowNull, g1.RowNullability);
+                    Assert.Equal(NullHandling.AllowNull, g1.ReturnsNullability);
+                }
+                else if (g1 == delGetter2)
+                {
+                    Assert.Equal(BackingMode.Delegate, g1.Mode);
+                    Assert.True(g1.TakesContext);
+                    Assert.False(g1.IsStatic);
+                    Assert.Equal(NullHandling.ForbidNull, g1.RowNullability);
+                    Assert.Equal(NullHandling.ForbidNull, g1.ReturnsNullability);
+                }
+                else if (g1 == delGetter3)
+                {
+                    Assert.Equal(BackingMode.Delegate, g1.Mode);
+                    Assert.True(g1.TakesContext);
+                    Assert.False(g1.IsStatic);
+                    Assert.Equal(NullHandling.AllowNull, g1.RowNullability);
+                    Assert.Equal(NullHandling.ForbidNull, g1.ReturnsNullability);
+                }
+                else if (g1 == delGetter4)
+                {
+                    Assert.Equal(BackingMode.Delegate, g1.Mode);
+                    Assert.True(g1.TakesContext);
+                    Assert.False(g1.IsStatic);
+                    Assert.Equal(NullHandling.ForbidNull, g1.RowNullability);
+                    Assert.Equal(NullHandling.AllowNull, g1.ReturnsNullability);
                 }
                 else if (g1 == staticDelGetter)
                 {
@@ -1241,15 +1312,15 @@ namespace Cesil.Tests
                 var gRes = (_ColumnWriters_Val)g(new _ColumnWriters(), default);
                 Assert.Equal("qwerty", gRes.Value);
 
-                ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter).Guarantee(cache);
-                var i = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter).CachedDelegate;
+                ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter1).Guarantee(cache);
+                var i = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter1).CachedDelegate;
                 Assert.NotNull(i);
                 Assert.NotEqual(a, i);
                 Assert.NotEqual(c, i);
                 Assert.NotEqual(e, i);
                 Assert.NotEqual(g, i);
-                ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter).Guarantee(cache);
-                var j = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter).CachedDelegate;
+                ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter1).Guarantee(cache);
+                var j = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)delGetter1).CachedDelegate;
                 Assert.Equal(i, j);
 
                 var iRes = (_ColumnWriters_Val)i(new _ColumnWriters { A = new _ColumnWriters_Val { Value = "xxxxx" } }, default);
@@ -1630,6 +1701,8 @@ namespace Cesil.Tests
 
             public static void StaticResetTooManyArgs(_Resets row, in ReadContext ctx, object _) { }
             public void InstanceResetTooManyArgs(in ReadContext ctx, object _) { }
+
+            public static void SingleParamWrongByRef(ref object _) { }
         }
 
         [Fact]
@@ -1643,10 +1716,11 @@ namespace Cesil.Tests
             var staticMethodResetCtx = Reset.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticResetXXXCtx)));
             var staticMethodResetParamCtx = Reset.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticResetXXXParamCtx)));
             var staticMethodResetByRefParamCtx = Reset.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.StaticResetXXXByRefParamCtx)));
-            var delReset = (Reset)(ResetDelegate<_ColumnSetters>)((_ColumnSetters a, in ReadContext _) => { });
+            var delReset1 = (Reset)(ResetDelegate<_ColumnSetters>)((_ColumnSetters a, in ReadContext _) => { });
+            var delReset2 = (Reset)(ResetDelegate<object>)((object a, in ReadContext _) => { });
             var staticDelReset = (Reset)(StaticResetDelegate)((in ReadContext _) => { });
             var delByRefReset = (Reset)(ResetByRefDelegate<_ColumnSetters>)((ref _ColumnSetters a, in ReadContext _) => { });
-            var resets = new[] { methodReset, methodResetCtx, staticMethodReset, staticMethodResetParam, staticMethodResetCtx, staticMethodResetParamCtx, staticMethodResetByRefParamCtx, delReset, staticDelReset, delByRefReset };
+            var resets = new[] { methodReset, methodResetCtx, staticMethodReset, staticMethodResetParam, staticMethodResetCtx, staticMethodResetParamCtx, staticMethodResetByRefParamCtx, delReset1, delReset2, staticDelReset, delByRefReset };
 
             var notReset = "";
 
@@ -1705,10 +1779,16 @@ namespace Cesil.Tests
                     Assert.True(r1.IsStatic);
                     Assert.True(r1.TakesContext);
                 }
-                else if (r1 == delReset)
+                else if (r1 == delReset1)
                 {
                     Assert.Equal(BackingMode.Delegate, r1.Mode);
                     Assert.Equal(typeof(_ColumnSetters), r1.RowType.Value);
+                    Assert.False(r1.IsStatic);
+                }
+                else if (r1 == delReset2)
+                {
+                    Assert.Equal(BackingMode.Delegate, r1.Mode);
+                    Assert.Equal(typeof(object), r1.RowType.Value);
                     Assert.False(r1.IsStatic);
                 }
                 else if (r1 == delByRefReset)
@@ -1761,6 +1841,7 @@ namespace Cesil.Tests
                 Assert.Throws<ArgumentException>(() => Reset.ForMethod(typeof(_Resets).GetMethod(nameof(_Resets.ResetWithReturn), BindingFlags.Instance | BindingFlags.Public)));
                 Assert.Throws<ArgumentException>(() => Reset.ForMethod(typeof(_Resets).GetMethod(nameof(_Resets.StaticResetTooManyArgs), BindingFlags.Static | BindingFlags.Public)));
                 Assert.Throws<ArgumentException>(() => Reset.ForMethod(typeof(_Resets).GetMethod(nameof(_Resets.InstanceResetTooManyArgs), BindingFlags.Instance | BindingFlags.Public)));
+                Assert.Throws<ArgumentException>(() => Reset.ForMethod(typeof(_Resets).GetMethod(nameof(_Resets.SingleParamWrongByRef), BindingFlags.Static | BindingFlags.Public)));
             }
 
             // ForDelegate errors
@@ -2607,6 +2688,8 @@ namespace Cesil.Tests
         [Fact]
         public void Setters()
         {
+            Assert.Null((Setter)default(Delegate));
+
             // setters
             var methodSetter = Setter.ForProperty(typeof(_ColumnSetters).GetProperty(nameof(_ColumnSetters.Prop)));
             var methodSetterCtx = Setter.ForMethod(typeof(_ColumnSetters).GetMethod(nameof(_ColumnSetters.SetCtx)));
@@ -2622,6 +2705,11 @@ namespace Cesil.Tests
             var delSetter2 = (Setter)(SetterDelegate<_ColumnSetters, _ColumnWriters_Val>)((_ColumnSetters a, _ColumnWriters_Val v, in ReadContext _) => { /* intentionally empty */ });
             var delSetter3 = (Setter)(SetterDelegate<_ColumnWriters, _ColumnSetters_Val>)((_ColumnWriters a, _ColumnSetters_Val v, in ReadContext _) => { /* intentionally empty */ });
             var delSetter4 = (Setter)(SetterDelegate<_ColumnWriters, _ColumnWriters_Val>)((_ColumnWriters a, _ColumnWriters_Val v, in ReadContext _) => { a.A = v; });
+#nullable enable
+            var delSetter5 = ((Setter)(SetterDelegate<_ColumnWriters, _ColumnWriters_Val>)((_ColumnWriters a, _ColumnWriters_Val v, in ReadContext _) => { a.A = v; }))!;
+            var delSetter6 = ((Setter)(SetterDelegate<_ColumnWriters, _ColumnWriters_Val?>)((_ColumnWriters a, _ColumnWriters_Val? v, in ReadContext _) => { a.A = v; }))!;
+            var delSetter7 = ((Setter)(SetterDelegate<_ColumnWriters?, _ColumnWriters_Val>)((_ColumnWriters? a, _ColumnWriters_Val v, in ReadContext _) => { if (a != null) { a.A = v; } }))!;
+#nullable disable
 
             var consSetter = Setter.ForConstructorParameter(typeof(_ColumnSetters).GetConstructors().Single().GetParameters().Single());
 
@@ -2629,7 +2717,7 @@ namespace Cesil.Tests
 
             var byRefDelSetter = (Setter)(SetterByRefDelegate<_ColumnWriters, _ColumnWriters_Val>)((ref _ColumnWriters a, _ColumnWriters_Val v, in ReadContext _) => { a.A = v; });
 
-            var setters = new[] { methodSetter, methodSetterCtx, staticMethodSet, staticMethodSetCtx, staticMethodSetParam, staticMethodSetByRefParam, staticMethodSetParamCtx, fieldSetter, delSetter1, delSetter2, delSetter3, delSetter4, staticDelSetter, consSetter, byRefDelSetter };
+            var setters = new[] { methodSetter, methodSetterCtx, staticMethodSet, staticMethodSetCtx, staticMethodSetParam, staticMethodSetByRefParam, staticMethodSetParamCtx, fieldSetter, delSetter1, delSetter2, delSetter3, delSetter4, delSetter5, delSetter6, delSetter7, staticDelSetter, consSetter, byRefDelSetter };
 
             var notSetter = "";
 
@@ -2688,6 +2776,29 @@ namespace Cesil.Tests
                 {
                     Assert.Equal(BackingMode.Delegate, s1.Mode);
                     Assert.False(s1.IsStatic);
+                    Assert.Equal(NullHandling.AllowNull, s1.TakesNullability);
+                    Assert.Equal(NullHandling.AllowNull, s1.RowNullability);
+                }
+                else if (s1 == delSetter5)
+                {
+                    Assert.Equal(BackingMode.Delegate, s1.Mode);
+                    Assert.False(s1.IsStatic);
+                    Assert.Equal(NullHandling.ForbidNull, s1.TakesNullability);
+                    Assert.Equal(NullHandling.ForbidNull, s1.RowNullability);
+                }
+                else if (s1 == delSetter6)
+                {
+                    Assert.Equal(BackingMode.Delegate, s1.Mode);
+                    Assert.False(s1.IsStatic);
+                    Assert.Equal(NullHandling.AllowNull, s1.TakesNullability);
+                    Assert.Equal(NullHandling.ForbidNull, s1.RowNullability);
+                }
+                else if (s1 == delSetter7)
+                {
+                    Assert.Equal(BackingMode.Delegate, s1.Mode);
+                    Assert.False(s1.IsStatic);
+                    Assert.Equal(NullHandling.ForbidNull, s1.TakesNullability);
+                    Assert.Equal(NullHandling.AllowNull, s1.RowNullability);
                 }
                 else if (s1 == staticDelSetter)
                 {

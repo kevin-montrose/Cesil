@@ -2,10 +2,8 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
 
 namespace Cesil
@@ -976,7 +974,7 @@ tryAgain:
             switch (newNullHandling)
             {
                 case NullHandling.AllowNull:
-                    if (runtimeType.IsValueType && !runtimeType.IsNullableValueType())
+                    if (runtimeType.IsValueType && !runtimeType.IsNullableValueType(out _))
                     {
                         Throw.InvalidOperationException<object>($"Type of {runtimeType} cannot be null at runtime, it is not legal to allow nulls");
                         return;
@@ -996,9 +994,8 @@ tryAgain:
         internal static Expression MakeNullHandlingCheckExpression(TypeInfo typeOfCheckedValue, ParameterExpression toCheck, string errorMessage)
         {
             MethodInfo validationMtd;
-            if (typeOfCheckedValue.IsNullableValueType())
+            if (typeOfCheckedValue.IsNullableValueType(out var elemType))
             {
-                var elemType = typeOfCheckedValue.GetNullableUnderlyingTypeNonNull();
                 validationMtd = Methods.Utils.RuntimeNullableValueCheck.MakeGenericMethod(elemType);
             }
             else

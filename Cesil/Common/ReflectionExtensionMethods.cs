@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -20,7 +21,7 @@ namespace Cesil
                 return true;
             }
 
-            return type.IsNullableValueType();
+            return type.IsNullableValueType(out _);
         }
 
         internal static NullHandling DetermineNullability(this PropertyInfo? property)
@@ -94,7 +95,7 @@ namespace Cesil
             //   can save some real time on type describing.
             if (effectiveMemberType.IsValueType)
             {
-                if (effectiveMemberType.IsNullableValueType())
+                if (effectiveMemberType.IsNullableValueType(out _))
                 {
                     return NullHandling.AllowNull;
                 }
@@ -185,7 +186,7 @@ namespace Cesil
             {
                 if (forType.IsValueType)
                 {
-                    if (forType.IsNullableValueType())
+                    if (forType.IsNullableValueType(out _))
                     {
                         return NullHandling.AllowNull;
                     }
@@ -197,23 +198,18 @@ namespace Cesil
             }
         }
 
-        internal static TypeInfo GetNullableUnderlyingTypeNonNull(this TypeInfo type)
+        internal static bool IsNullableValueType(this TypeInfo type, [NotNullWhen(returnValue: true)]out TypeInfo? elementType)
         {
-            var underlying = Nullable.GetUnderlyingType(type);
-            if (underlying == null)
-            {
-                return Throw.ImpossibleException<TypeInfo>("Called with non-nullable type");
-            }
-
-            return underlying.GetTypeInfo();
+            elementType = Nullable.GetUnderlyingType(type)?.GetTypeInfo();
+            return elementType != null;
         }
-
-        internal static bool IsNullableValueType(this TypeInfo type)
-        => Nullable.GetUnderlyingType(type) != null;
 
         internal static bool IsFlagsEnum(this TypeInfo type)
         {
-            if (!type.IsEnum) return false;
+            if (!type.IsEnum)
+            {
+                return false;
+            }
 
             return type.GetCustomAttribute<FlagsAttribute>() != null;
         }

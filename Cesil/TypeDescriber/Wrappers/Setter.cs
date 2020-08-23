@@ -392,17 +392,9 @@ namespace Cesil
                         // we're in case 3
                         onType = null;
                         onTypeNullability = null;
+                        isRowByRef = false;
 
-                        if (p0.IsByRef)
-                        {
-                            takesType = p0.GetElementTypeNonNull();
-                            isRowByRef = true;
-                        }
-                        else
-                        {
-                            takesType = p0;
-                            isRowByRef = false;
-                        }
+                        takesType = p0;
 
                         takesNullability = arg0.DetermineNullability();
                         takesContext = true;
@@ -625,19 +617,32 @@ namespace Cesil
 
             if (mode != otherMode) return false;
             if (TakesNullability != setter.TakesNullability) return false;
-            if (RowNullability != setter.RowNullability) return false;
             if (Takes != setter.Takes) return false;
             if (IsStatic != setter.IsStatic) return false;
 
             if (RowType.HasValue)
             {
-                if (!setter.RowType.HasValue) return false;
+                if(!setter.RowType.HasValue)
+                {
+                    return false;
+                }
 
-                if (RowType.Value != setter.RowType.Value) return false;
+                if (RowType.Value != setter.RowType.Value)
+                {
+                    return false;
+                }
+
+                if (RowNullability != setter.RowNullability)
+                {
+                    return false;
+                }
             }
             else
             {
-                if (setter.RowType.HasValue) return false;
+                if (setter.RowType.HasValue)
+                {
+                    return false;
+                }
             }
 
             return

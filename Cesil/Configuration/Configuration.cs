@@ -65,10 +65,27 @@ namespace Cesil
 
             char? escapeStartEnd = options.EscapedValueStartAndEnd;
             var valueSep = options.ValueSeparator;
-            var startOfValSep = valueSep[0];
+            
 
             // this is entirely knowable now, so go ahead and calculate
             //   and save for future use
+            var needsEscape = DetermineNeedsEscape(serializeColumns, escapeStartEnd, valueSep);
+
+            return
+                new ConcreteBoundConfiguration<TRow>(
+                    provider,
+                    deserializeMembers,
+                    serializeColumns,
+                    needsEscape,
+                    options
+                );
+        }
+
+        // internal for testing purposes
+        internal static bool[] DetermineNeedsEscape(Column[] serializeColumns, char? escapeStartEnd, string valueSep)
+        {
+            var startOfValSep = valueSep[0];
+
             var needsEscape = new bool[serializeColumns.Length];
             for (var i = 0; i < serializeColumns.Length; i++)
             {
@@ -114,14 +131,7 @@ namespace Cesil
                 needsEscape[i] = escape;
             }
 
-            return
-                new ConcreteBoundConfiguration<TRow>(
-                    provider,
-                    deserializeMembers,
-                    serializeColumns,
-                    needsEscape,
-                    options
-                );
+            return needsEscape;
         }
 
         private static void ValidateTypeDescription(TypeInfo t, IEnumerable<DeserializableMember>? deserializeColumns, IEnumerable<SerializableMember>? serializeColumns, InstanceProvider? provider)
@@ -200,32 +210,6 @@ namespace Cesil
                         if (setter.Mode == BackingMode.ConstructorParameter)
                         {
                             Throw.InvalidOperationException<object>($"{setter} bound to constructor parameter when {nameof(InstanceProvider)} is not backed by a parameter taking constructor");
-                            return;
-                        }
-
-                        if (rowNullability == NullHandling.AllowNull && setter.RowNullability == NullHandling.ForbidNull)
-                        {
-                            Throw.InvalidOperationException<object>($"{provider} may provide a null row, which {setter} will not accept.");
-                            return;
-                        }
-                    }
-                }
-
-                // deal with reset mismatches (only need if we could see null rows)
-                if (rowNullability == NullHandling.AllowNull)
-                {
-                    foreach (var d in deserializeColumns)
-                    {
-                        var r = d.Reset;
-                        if (!r.HasValue)
-                        {
-                            continue;
-                        }
-
-                        var resetNullability = r.Value.RowTypeNullability;
-                        if (resetNullability == NullHandling.ForbidNull)
-                        {
-                            Throw.InvalidOperationException<object>($"{provider} may provide a null row, which {r.Value} will not accept.");
                             return;
                         }
                     }
