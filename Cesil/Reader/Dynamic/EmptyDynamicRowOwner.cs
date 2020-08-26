@@ -21,7 +21,7 @@ namespace Cesil
         public void ReleaseNameLookup()
         => Throw.ImpossibleException<object>("Shouldn't be possible");
 
-        bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)]out V del)
+        bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)] out V del)
         {
 #pragma warning disable CES0005 // this value isn't going to matter, since this method always explodes
             del = default!;

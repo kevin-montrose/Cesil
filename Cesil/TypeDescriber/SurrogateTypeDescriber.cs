@@ -430,7 +430,7 @@ handleMethod:
                             fallbacks = arrBuilder.ToImmutable();
                         }
 
-                        return new InstanceProvider(consOnType, fallbacks);
+                        return new InstanceProvider(consOnType, fallbacks, builder.ConstructsNullability);
                     }
                 case BackingMode.Method:
                     return Throw.InvalidOperationException<InstanceProvider>($"Cannot map a method {nameof(InstanceProvider)} between types");

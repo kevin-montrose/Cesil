@@ -13,6 +13,26 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ConfigurationTests
     {
+        [Theory]
+        [InlineData(new[] { "foo", "bar" }, '"', ",", new[] { false, false })]
+        [InlineData(new[] { "foo,", "bar" }, '"', ",", new[] { true, false })]
+        [InlineData(new[] { "foo\r", "bar" }, '"', ",", new[] { true, false })]
+        [InlineData(new[] { "foo\n", "bar" }, '"', ",", new[] { true, false })]
+        [InlineData(new[] { "foo", "bar\"" }, '"', ",", new[] { false, true })]
+        [InlineData(new[] { "h#ello", "he##llo", "hel###lo", "hello###", "hello##", "hello#" }, '"', "###", new[] { false, false, true, true, false, false })]
+        public void DetermineNeedsEscape(string[] colNames, char? escapeStartEnd, string valueSep, bool[] expected)
+        {
+            var cols = new Column[colNames.Length];
+            for (var i = 0; i < colNames.Length; i++)
+            {
+                cols[i] = new Column(colNames[i], null);
+            }
+
+            var res = Configuration.DetermineNeedsEscape(cols, escapeStartEnd, valueSep);
+
+            Assert.Equal(expected, res);
+        }
+
         private sealed class _BadTypeDescribers_Row3
         {
             public string Foo { get; set; }

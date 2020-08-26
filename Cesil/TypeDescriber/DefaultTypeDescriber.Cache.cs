@@ -24,7 +24,7 @@ namespace Cesil
         void IDelegateCache.AddDelegate<T, V>(T key, V cached)
         => DelegateCache.TryAdd(key, cached);
 
-        bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)]out V del)
+        bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)] out V del)
         {
             if (!DelegateCache.TryGetValue(key, out var cached))
             {
@@ -36,13 +36,13 @@ namespace Cesil
             return true;
         }
 
-        private bool TryGetSerializableMembers(TypeInfo t, [MaybeNullWhen(returnValue: false)]out IEnumerable<SerializableMember> members)
+        private bool TryGetSerializableMembers(TypeInfo t, [MaybeNullWhen(returnValue: false)] out IEnumerable<SerializableMember> members)
         => SerializableMembers.TryGetValue(t, out members);
 
-        private bool TryGetDeserializableMembers(TypeInfo t, [MaybeNullWhen(returnValue: false)]out IEnumerable<DeserializableMember> members)
+        private bool TryGetDeserializableMembers(TypeInfo t, [MaybeNullWhen(returnValue: false)] out IEnumerable<DeserializableMember> members)
         => DeserializableMembers.TryGetValue(t, out members);
 
-        private bool TryGetFormatter(TypeInfo t, [MaybeNullWhen(returnValue: false)]out Formatter formatter)
+        private bool TryGetFormatter(TypeInfo t, [MaybeNullWhen(returnValue: false)] out Formatter formatter)
         => Formatters.TryGetValue(t, out formatter);
 
         private void AddSerializableMembers(TypeInfo t, IEnumerable<SerializableMember> members)

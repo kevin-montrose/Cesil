@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -67,37 +68,45 @@ namespace Cesil
         internal readonly NonNull<Delegate> Delegate;
 
         internal readonly NonNull<TypeInfo> RowType;
+        internal readonly NullHandling? RowNullability;
 
         internal readonly TypeInfo Returns;
+        internal readonly NullHandling ReturnsNullability;
 
         internal readonly bool TakesContext;
 
         DynamicGetterDelegate? ICreatesCacheableDelegate<DynamicGetterDelegate>.CachedDelegate { get; set; }
 
-        private Getter(TypeInfo? rowType, TypeInfo returns, MethodInfo method, bool takesContext)
+        private Getter(TypeInfo? rowType, NullHandling? rowNullability, TypeInfo returns, MethodInfo method, bool takesContext, NullHandling returnsNullability)
         {
             RowType.SetAllowNull(rowType);
+            RowNullability = rowNullability;
             Returns = returns;
+            ReturnsNullability = returnsNullability;
             Method.Value = method;
             TakesContext = takesContext;
             Delegate.Clear();
             Field.Clear();
         }
 
-        private Getter(TypeInfo? rowType, TypeInfo returns, Delegate del)
+        private Getter(TypeInfo? rowType, NullHandling? rowNullability, TypeInfo returns, Delegate del, NullHandling returnsNullability)
         {
             RowType.SetAllowNull(rowType);
+            RowNullability = rowNullability;
             Returns = returns;
+            ReturnsNullability = returnsNullability;
             Method.Clear();
             Delegate.Value = del;
             Field.Clear();
             TakesContext = true;
         }
 
-        private Getter(TypeInfo? rowType, TypeInfo returns, FieldInfo field)
+        private Getter(TypeInfo? rowType, NullHandling? rowNullability, TypeInfo returns, FieldInfo field, NullHandling returnsNullability)
         {
             RowType.SetAllowNull(rowType);
+            RowNullability = rowNullability;
             Returns = returns;
+            ReturnsNullability = returnsNullability;
             Method.Clear();
             Delegate.Clear();
             Field.Value = field;
@@ -125,10 +134,22 @@ namespace Cesil
             var rowAsTypeVar = Expression.Variable(rowTypeVar);
             var assignRowVar = Expression.Assign(rowAsTypeVar, onType);
 
+            var statements = new List<Expression>();
+            statements.Add(assignRowVar);
+
+            // do we need to check that null wasn't secreted into this?
+            if (RowNullability == NullHandling.ForbidNull && rowTypeVar.AllowsNullLikeValue())
+            {
+                var checkExp = Utils.MakeNullHandlingCheckExpression(rowTypeVar, rowAsTypeVar, $"{this} does not take a null row value, but received one at runtime");
+
+                statements.Add(checkExp);
+            }
+
             var body = MakeExpression(rowAsTypeVar, ctx);
             var convertToObject = Expression.Convert(body, Types.Object);
+            statements.Add(convertToObject);
 
-            var block = Expression.Block(new[] { rowAsTypeVar }, assignRowVar, convertToObject);
+            var block = Expression.Block(new[] { rowAsTypeVar }, statements);
 
             var lambda = Expression.Lambda<DynamicGetterDelegate>(block, row, ctx);
             var del = lambda.Compile();
@@ -220,6 +241,86 @@ namespace Cesil
             return selfExp;
         }
 
+        private Getter ChangeValueNullHandling(NullHandling nullHandling)
+        {
+            if (nullHandling == ReturnsNullability)
+            {
+                return this;
+            }
+
+            Utils.ValidateNullHandling(Returns, nullHandling);
+
+            return
+                Mode switch
+                {
+                    BackingMode.Field => new Getter(RowType.HasValue ? RowType.Value : null, RowNullability, Returns, Field.Value, nullHandling),
+                    BackingMode.Method => new Getter(RowType.HasValue ? RowType.Value : null, RowNullability, Returns, Method.Value, TakesContext, nullHandling),
+                    BackingMode.Delegate => new Getter(RowType.HasValue ? RowType.Value : null, RowNullability, Returns, Delegate.Value, nullHandling),
+                    _ => Throw.ImpossibleException<Getter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
+                };
+        }
+
+        private Getter ChangeRowNullHandling(NullHandling nullHandling)
+        {
+            if (nullHandling == RowNullability)
+            {
+                return this;
+            }
+
+            if (RowNullability == null)
+            {
+                return Throw.InvalidOperationException<Getter>($"{this} does not take rows, and so cannot have a {nameof(NullHandling)} specified");
+            }
+
+            Utils.ValidateNullHandling(RowType.Value, nullHandling);
+
+            return
+                Mode switch
+                {
+                    BackingMode.Field => new Getter(RowType.Value, nullHandling, Returns, Field.Value, ReturnsNullability),
+                    BackingMode.Method => new Getter(RowType.Value, nullHandling, Returns, Method.Value, TakesContext, ReturnsNullability),
+                    BackingMode.Delegate => new Getter(RowType.Value, nullHandling, Returns, Delegate.Value, ReturnsNullability),
+                    _ => Throw.ImpossibleException<Getter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
+                };
+        }
+
+        /// <summary>
+        /// Returns a Getter that differs from this by explicitly allowing
+        ///   null values to be returned from it.
+        /// </summary>
+        public Getter AllowNullValues()
+        => ChangeValueNullHandling(NullHandling.AllowNull);
+
+        /// <summary>
+        /// Returns a Getter that differs from this by explicitly forbidding
+        ///   null values to be returned from it.
+        ///   
+        /// If the .NET runtime cannot guarantee that nulls will not be returned,
+        ///   null checks will be injected.
+        /// </summary>
+        public Getter ForbidNullValues()
+        => ChangeValueNullHandling(NullHandling.ForbidNull);
+
+        /// <summary>
+        /// Returns a Getter that differs from this by explicitly allowing
+        ///   null rows to be passed to it.
+        ///   
+        /// If the backing field, method, or delegate does not expect null values, this may lead
+        ///   to errors at runtime.
+        /// </summary>
+        public Getter AllowNullRows()
+        => ChangeRowNullHandling(NullHandling.AllowNull);
+
+        /// <summary>
+        /// Returns a Getter that differs from this by explicitly forbidding
+        ///   null rows be passed to it.
+        ///   
+        /// If the .NET runtime cannot guarantee that nulls will not be passed to it,
+        ///   null checks will be injected.
+        /// </summary>
+        public Getter ForbidNullRows()
+        => ChangeRowNullHandling(NullHandling.ForbidNull);
+
         /// <summary>
         /// Create a getter from a PropertyInfo.
         /// 
@@ -261,6 +362,7 @@ namespace Cesil
             var getterParams = method.GetParameters();
 
             TypeInfo? rowType;
+            NullHandling? rowNullability;
             bool takesContext;
             if (method.IsStatic)
             {
@@ -268,11 +370,13 @@ namespace Cesil
                 {
                     /* that's fine */
                     rowType = null;
+                    rowNullability = null;
                     takesContext = false;
                 }
                 else if (getterParams.Length == 1)
                 {
-                    var p0 = getterParams[0].ParameterType.GetTypeInfo();
+                    var arg0 = getterParams[0];
+                    var p0 = arg0.ParameterType.GetTypeInfo();
                     if (p0.IsByRef)
                     {
                         var p0Elem = p0.GetElementTypeNonNull();
@@ -282,17 +386,20 @@ namespace Cesil
                         }
 
                         rowType = null;
+                        rowNullability = null;
                         takesContext = true;
                     }
                     else
                     {
                         rowType = p0;
+                        rowNullability = arg0.DetermineNullability();
                         takesContext = false;
                     }
                 }
                 else if (getterParams.Length == 2)
                 {
-                    var p0 = getterParams[0].ParameterType.GetTypeInfo();
+                    var arg0 = getterParams[0];
+                    var p0 = arg0.ParameterType.GetTypeInfo();
 
                     if (p0.IsByRef)
                     {
@@ -305,6 +412,7 @@ namespace Cesil
                     }
 
                     rowType = p0;
+                    rowNullability = arg0.DetermineNullability();
                     takesContext = true;
                 }
                 else
@@ -315,6 +423,7 @@ namespace Cesil
             else
             {
                 rowType = method.DeclaringTypeNonNull();
+                rowNullability = NullHandling.CannotBeNull;
 
                 if (getterParams.Length == 0)
                 {
@@ -335,9 +444,10 @@ namespace Cesil
                 }
             }
 
+            var nullability = method.ReturnParameter.DetermineNullability();
             var returns = method.ReturnType.GetTypeInfo();
 
-            return new Getter(rowType, returns, method, takesContext);
+            return new Getter(rowType, rowNullability, returns, method, takesContext, nullability);
         }
 
         /// <summary>
@@ -350,28 +460,36 @@ namespace Cesil
             Utils.CheckArgumentNull(field, nameof(field));
 
             TypeInfo? onType;
+            NullHandling? onTypeNullability;
             if (field.IsStatic)
             {
                 onType = null;
+                onTypeNullability = null;
             }
             else
             {
                 onType = field.DeclaringTypeNonNull();
+                onTypeNullability = NullHandling.CannotBeNull;
             }
 
             var returns = field.FieldType.GetTypeInfo();
+            var nullability = field.DetermineNullability();
 
-            return new Getter(onType, returns, field);
+            return new Getter(onType, onTypeNullability, returns, field, nullability);
         }
 
         /// <summary>
         /// Create a Getter from the given delegate.
         /// </summary>
         public static Getter ForDelegate<TRow, TValue>(GetterDelegate<TRow, TValue> del)
+            where TRow : notnull
         {
             Utils.CheckArgumentNull(del, nameof(del));
 
-            return new Getter(typeof(TRow).GetTypeInfo(), typeof(TValue).GetTypeInfo(), del);
+            var returnsNullability = del.Method.ReturnParameter.DetermineNullability();
+            var rowNullability = del.Method.GetParameters()[0].DetermineNullability();
+
+            return new Getter(typeof(TRow).GetTypeInfo(), rowNullability, typeof(TValue).GetTypeInfo(), del, returnsNullability);
         }
 
         /// <summary>
@@ -381,7 +499,9 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(del, nameof(del));
 
-            return new Getter(null, typeof(TValue).GetTypeInfo(), del);
+            var nullability = del.Method.ReturnParameter.DetermineNullability();
+
+            return new Getter(null, null, typeof(TValue).GetTypeInfo(), del, nullability);
         }
 
         /// <summary>
@@ -404,7 +524,9 @@ namespace Cesil
         {
             if (ReferenceEquals(getter, null)) return false;
 
+            if (getter.ReturnsNullability != ReturnsNullability) return false;
             if (getter.Returns != Returns) return false;
+
             if (getter.RowType.HasValue)
             {
                 if (!RowType.HasValue)
@@ -412,15 +534,29 @@ namespace Cesil
                     return false;
                 }
 
-                if (getter.RowType.Value != RowType.Value) return false;
+                if (getter.RowNullability != RowNullability)
+                {
+                    return false;
+                }
+
+                if (getter.RowType.Value != RowType.Value)
+                {
+                    return false;
+                }
             }
             else
             {
-                if (RowType.HasValue) return false;
+                if (RowType.HasValue)
+                {
+                    return false;
+                }
             }
 
             var otherMode = getter.Mode;
-            if (otherMode != Mode) return false;
+            if (otherMode != Mode)
+            {
+                return false;
+            }
 
             return
                 otherMode switch
@@ -436,7 +572,7 @@ namespace Cesil
         /// Returns a hash code for this Getter.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(Getter), Mode, Returns, Delegate, Method, Field);
+        => HashCode.Combine(nameof(Getter), Mode, Returns, Delegate, Method, Field, ReturnsNullability, RowNullability);
 
         /// <summary>
         /// Describes this Getter.
@@ -450,29 +586,29 @@ namespace Cesil
                 case BackingMode.Method:
                     if (!IsStatic)
                     {
-                        return $"{nameof(Getter)} backed by method {Method} taking {RowType} returning {Returns}";
+                        return $"{nameof(Getter)} backed by method {Method} taking {RowType} ({RowNullability}) returning {Returns} ({ReturnsNullability})";
                     }
                     else
                     {
-                        return $"{nameof(Getter)} backed by method {Method} returning {Returns}";
+                        return $"{nameof(Getter)} backed by method {Method} returning {Returns} ({ReturnsNullability})";
                     }
                 case BackingMode.Delegate:
                     if (!IsStatic)
                     {
-                        return $"{nameof(Getter)} backed by delegate {Delegate} taking {RowType} returning {Returns}";
+                        return $"{nameof(Getter)} backed by delegate {Delegate} taking {RowType} ({RowNullability}) returning {Returns} ({ReturnsNullability})";
                     }
                     else
                     {
-                        return $"{nameof(Getter)} backed by delegate {Delegate} returning {Returns}";
+                        return $"{nameof(Getter)} backed by delegate {Delegate} returning {Returns} ({ReturnsNullability})";
                     }
                 case BackingMode.Field:
                     if (!IsStatic)
                     {
-                        return $"{nameof(Getter)} backed by field {Field} on {RowType} returning {Returns}";
+                        return $"{nameof(Getter)} backed by field {Field} on {RowType} ({RowNullability}) returning {Returns} ({ReturnsNullability})";
                     }
                     else
                     {
-                        return $"{nameof(Getter)} backed by field {Field} returning {Returns}";
+                        return $"{nameof(Getter)} backed by field {Field} returning {Returns} ({ReturnsNullability})";
                     }
                 default:
                     return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
@@ -504,6 +640,9 @@ namespace Cesil
         {
             if (del == null) return null;
 
+            var mtd = del.Method;
+            var nullability = mtd.ReturnParameter.DetermineNullability();
+
             var delType = del.GetType().GetTypeInfo();
             if (delType.IsGenericType)
             {
@@ -514,18 +653,19 @@ namespace Cesil
                     var takes = genArgs[0].GetTypeInfo();
                     var returns = genArgs[1].GetTypeInfo();
 
-                    return new Getter(takes, returns, del);
+                    var takesNullability = mtd.GetParameters()[0].DetermineNullability();
+
+                    return new Getter(takes, takesNullability, returns, del, nullability);
                 }
 
                 if (delGenType == Types.StaticGetterDelegate)
                 {
                     var returns = genArgs[0].GetTypeInfo();
 
-                    return new Getter(null, returns, del);
+                    return new Getter(null, null, returns, del, nullability);
                 }
             }
 
-            var mtd = del.Method;
             var ret = mtd.ReturnType.GetTypeInfo();
             if (ret == Types.Void)
             {
@@ -535,19 +675,21 @@ namespace Cesil
             var args = mtd.GetParameters();
             if (args.Length == 2)
             {
-                var takes = args[0].ParameterType.GetTypeInfo();
+                var arg0 = args[0];
+                var takes = arg0.ParameterType.GetTypeInfo();
+                var takesNullability = arg0.DetermineNullability();
 
                 if (!args[1].IsWriteContextByRef(out var msg))
                 {
                     return Throw.InvalidOperationException<Getter>($"Delegate's second parameter must be a `in {nameof(WriteContext)}`; {msg}");
                 }
 
-                var formatterDel = Types.GetterDelegate.MakeGenericType(takes, ret);
+                var getterDel = Types.GetterDelegate.MakeGenericType(takes, ret);
                 var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
-                var reboundDel = System.Delegate.CreateDelegate(formatterDel, del, invoke);
+                var reboundDel = System.Delegate.CreateDelegate(getterDel, del, invoke);
 
-                return new Getter(takes, ret, reboundDel);
+                return new Getter(takes, takesNullability, ret, reboundDel, nullability);
             }
             else if (args.Length == 1)
             {
@@ -556,12 +698,12 @@ namespace Cesil
                     return Throw.InvalidOperationException<Getter>($"Delegate's first parameter must be a `in {nameof(WriteContext)}`; {msg}");
                 }
 
-                var formatterDel = Types.StaticGetterDelegate.MakeGenericType(ret);
+                var getterDel = Types.StaticGetterDelegate.MakeGenericType(ret);
                 var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
-                var reboundDel = System.Delegate.CreateDelegate(formatterDel, del, invoke);
+                var reboundDel = System.Delegate.CreateDelegate(getterDel, del, invoke);
 
-                return new Getter(null, ret, reboundDel);
+                return new Getter(null, null, ret, reboundDel, nullability);
             }
             else
             {

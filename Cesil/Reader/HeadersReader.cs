@@ -39,6 +39,7 @@ namespace Cesil
                 }
             }
 
+            [ExcludeFromCoverage("Trivial, and covered by IEnumerator<T>.Current")]
             readonly object IEnumerator.Current => Current;
 
             internal HeaderEnumerator(int count, ReadOnlyMemory<char> buffer, WhitespaceTreatments whitespaceTreatment)
@@ -710,7 +711,9 @@ finish:
     // only available in DEBUG for testing purposes
     internal sealed partial class HeadersReader<T> : ITestableCancellableProvider
     {
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int? ITestableCancellableProvider.CancelAfter { get; set; }
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int ITestableCancellableProvider.CancelCounter { get; set; }
     }
 
@@ -719,11 +722,14 @@ finish:
     internal sealed partial class HeadersReader<T> : ITestableAsyncProvider
     {
         private int _GoAsyncAfter;
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int ITestableAsyncProvider.GoAsyncAfter { set { _GoAsyncAfter = value; } }
 
         private int _AsyncCounter;
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int ITestableAsyncProvider.AsyncCounter => _AsyncCounter;
 
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         bool ITestableAsyncProvider.ShouldGoAsync()
         {
             lock (this)

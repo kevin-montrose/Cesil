@@ -3485,8 +3485,26 @@
         </member>
         <member name="M:Cesil.Formatter.Else(Cesil.Formatter)">
             <summary>
-            Create a new formatter that will try this formatter, but if it returns false
+            Create a new Formatter that will try this formatter, but if it returns false
               it will then try the given fallback Formatter.
+            </summary>
+        </member>
+        <member name="M:Cesil.Formatter.AllowNullValues">
+            <summary>
+            Returns a Formatter that differs from this by explicitly allowing
+              null values to be passed to it.
+            
+            If the backing method, or delegate does not expect null values, this may lead
+              to errors at runtime.
+            </summary>
+        </member>
+        <member name="M:Cesil.Formatter.ForbidNullValues">
+            <summary>
+            Returns a new Formatter that differs from this by explicitly forbidding
+              null values to be passed to it.
+            
+            If the .NET runtime cannot guarantee the absense of null values, null checks
+              will be injected.
             </summary>
         </member>
         <member name="M:Cesil.Formatter.ForMethod(System.Reflection.MethodInfo)">
@@ -3499,7 +3517,7 @@
                 - the type to be formatter (or one it is assignable to)
                 - an in (or by ref) WriteContext
                 -an IBufferWriter(char)
-              * return bool (false indicates insufficient space was available)
+              * return bool (false indicates value could not be formatted)
             </summary>
         </member>
         <member name="M:Cesil.Formatter.ForDelegate``1(Cesil.FormatterDelegate{``0})">
@@ -3573,6 +3591,39 @@
             Represents code used to get a value from a type.
             
             Wraps a static method, an instance method, a field, or a delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.AllowNullValues">
+            <summary>
+            Returns a Getter that differs from this by explicitly allowing
+              null values to be returned from it.
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.ForbidNullValues">
+            <summary>
+            Returns a Getter that differs from this by explicitly forbidding
+              null values to be returned from it.
+              
+            If the .NET runtime cannot guarantee that nulls will not be returned,
+              null checks will be injected.
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.AllowNullRows">
+            <summary>
+            Returns a Getter that differs from this by explicitly allowing
+              null rows to be passed to it.
+              
+            If the backing field, method, or delegate does not expect null values, this may lead
+              to errors at runtime.
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.ForbidNullRows">
+            <summary>
+            Returns a Getter that differs from this by explicitly forbidding
+              null rows be passed to it.
+              
+            If the .NET runtime cannot guarantee that nulls will not be passed to it,
+              null checks will be injected.
             </summary>
         </member>
         <member name="M:Cesil.Getter.ForProperty(System.Reflection.PropertyInfo)">
@@ -3681,6 +3732,21 @@
             <summary>
             Create a new instance provider that will try this instance provider, but if it returns false
               it will then try the given fallback InstanceProvider.
+            </summary>
+        </member>
+        <member name="M:Cesil.InstanceProvider.AllowNullRows">
+            <summary>
+            Returns a InstanceProvider that differs from this by explicitly allowing
+              null rows to be created by it.
+            </summary>
+        </member>
+        <member name="M:Cesil.InstanceProvider.ForbidNullRows">
+            <summary>
+            Returns a InstanceProvider that differs from this by explicitly forbidding
+              null rows be created by it.
+              
+            If the .NET runtime cannot guarantee that null rows will not be created at runtime, 
+              null checks will be injected.
             </summary>
         </member>
         <member name="M:Cesil.InstanceProvider.ForMethod(System.Reflection.MethodInfo)">
@@ -3810,6 +3876,21 @@
               it will then try the given fallback Parser.
             </summary>
         </member>
+        <member name="M:Cesil.Parser.AllowNullValues">
+            <summary>
+            Returns a Parser that differs from this by explicitly allowing
+              null values to be created by it.
+            </summary>
+        </member>
+        <member name="M:Cesil.Parser.ForbidNullValues">
+            <summary>
+            Returns a Parser that differs from this by explicitly forbidding
+              null values to be created by it.
+              
+            If the .NET runtime cannot guarantee that nulls will not be created,
+              null checks will be injected.
+            </summary>
+        </member>
         <member name="M:Cesil.Parser.ForMethod(System.Reflection.MethodInfo)">
             <summary>
             Create a Parser from the given method.
@@ -3908,12 +3989,35 @@
             Delegate type for resets.
             </summary>
         </member>
+        <member name="T:Cesil.ResetByRefDelegate`1">
+            <summary>
+            Delegate type for resets, where row is passed by ref.
+            </summary>
+        </member>
         <member name="T:Cesil.Reset">
             <summary>
             Represents code called before a setter is called or a field
               is set.
             
             Wraps a static method, an instance method, or a delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Reset.AllowNullRows">
+            <summary>
+            Returns a Reset that differs from this by explicitly allowing
+              null rows be passed to it.
+              
+            If the backing delegate, or method does not expect null rows
+              this could result in errors at runtime.
+            </summary>
+        </member>
+        <member name="M:Cesil.Reset.ForbidNullRows">
+            <summary>
+            Returns a Reset that differs from this by explicitly forbidding
+              null rows be passed to it.
+              
+            If the .NET runtime cannot guarantee that nulls will not be passed,
+              null checks will be injected.
             </summary>
         </member>
         <member name="M:Cesil.Reset.ForMethod(System.Reflection.MethodInfo)">
@@ -3935,6 +4039,11 @@
             </summary>
         </member>
         <member name="M:Cesil.Reset.ForDelegate``1(Cesil.ResetDelegate{``0})">
+            <summary>
+            Create a reset from a delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Reset.ForDelegate``1(Cesil.ResetByRefDelegate{``0})">
             <summary>
             Create a reset from a delegate.
             </summary>
@@ -4011,6 +4120,42 @@
             
             Wraps a static method, an instance method, a delegate, a field, or a constructor
               parameter.
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.AllowNullRows">
+            <summary>
+            Returns a Setter that differs from this by explicitly allowing
+              null rows be passed to it.
+              
+            If the backing field, delegate, or method does not expect null rows
+              this could result in errors at runtime.
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.ForbidNullRows">
+            <summary>
+            Returns a Setter that differs from this by explicitly forbidding
+              null rows be passed to it.
+              
+            If the .NET runtime cannot guarantee that nulls will not be passed,
+              null checks will be injected.
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.AllowNullValues">
+            <summary>
+            Returns a Setter that differs from this by explicitly allowing
+              null values be passed to it.
+              
+            If the backing field, delegate, or method does not expect null values
+              this could result in errors at runtime.
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.ForbidNullValues">
+            <summary>
+            Returns a Setter that differs from this by explicitly forbidding
+              null values be passed to it.
+              
+            If the .NET runtime cannot guarantee that nulls will not be passed,
+              null checks will be injected.
             </summary>
         </member>
         <member name="M:Cesil.Setter.ForProperty(System.Reflection.PropertyInfo)">
@@ -4139,6 +4284,24 @@
             Represents code used to determine whether or not to write a value.
             
             Wraps a static method, an instance method, or a delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.ShouldSerialize.AllowNullRows">
+            <summary>
+            Returns a ShouldSerialize that differs from this by explicitly allowing
+              null rows be passed to it.
+              
+            If the backing delegate, or method does not expect null rows
+              this could result in errors at runtime.
+            </summary>
+        </member>
+        <member name="M:Cesil.ShouldSerialize.ForbidNullRows">
+            <summary>
+            Returns a ShouldSerialize that differs from this by explicitly forbidding
+              null rows be passed to it.
+              
+            If the .NET runtime cannot guarantee that nulls will not be passed,
+              null checks will be injected.
             </summary>
         </member>
         <member name="M:Cesil.ShouldSerialize.ForMethod(System.Reflection.MethodInfo)">

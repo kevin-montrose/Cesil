@@ -79,8 +79,7 @@ namespace Cesil
             {
                 var name = sp.Name;
                 var required = sp.IsRequired ? MemberRequired.Yes : MemberRequired.No;
-                var parseAndSet = (ParseAndSetOnDelegate<TRow>)MakeParseAndSetDelegate(rowType, sp.Parser, sp.Setter, sp.Reset);
-
+                var parseAndSet = (ParseAndSetOnDelegate<TRow>)MakeParseAndSetDelegate(rowType, sp.Parser, sp.Setter, sp.Reset, instanceProvider.ConstructsNullability);
 
                 arr.Add((name, required, parseAndSet));
             }
@@ -95,9 +94,30 @@ namespace Cesil
                 var ctxParam = Expressions.Parameter_ReadContext_ByRef;
                 var outParam = Expression.Parameter(rowType.MakeByRefType().GetTypeInfo());
 
-                var body = instanceProvider.MakeExpression(rowType, ctxParam, outParam);
+                var callInstanceProvider = instanceProvider.MakeExpression(rowType, ctxParam, outParam);
 
-                var lambda = Expression.Lambda<InstanceProviderDelegate<TRow>>(body, ctxParam, outParam);
+                Expression<InstanceProviderDelegate<TRow>> lambda;
+
+                if (instanceProvider.ConstructsNullability == NullHandling.ForbidNull && instanceProvider.ConstructsType.AllowsNullLikeValue())
+                {
+                    // need to inject extra logic to make sure the runtime value doesn't violate the ForbidNull handling
+
+                    var resParam = Expressions.Variable_Bool;
+                    var assignRes = Expression.Assign(resParam, callInstanceProvider);
+
+                    var checkExp = Utils.MakeNullHandlingCheckExpression(instanceProvider.ConstructsType, outParam, $"{instanceProvider} was forbidden from producing null values, but did produce one at runtime");
+                    var ifExp = Expression.IfThen(resParam, checkExp);
+
+                    var body = Expression.Block(new[] { resParam }, assignRes, ifExp, resParam);
+
+                    lambda = Expression.Lambda<InstanceProviderDelegate<TRow>>(body, ctxParam, outParam);
+                }
+                else
+                {
+                    // simple pass through
+                    lambda = Expression.Lambda<InstanceProviderDelegate<TRow>>(callInstanceProvider, ctxParam, outParam);
+                }
+
                 var del = lambda.Compile();
 
                 return del;
@@ -136,9 +156,9 @@ namespace Cesil
                 var required = member.IsRequired ? MemberRequired.Yes : MemberRequired.No;
 
                 var field = holdType.GetFieldNonNull("Simple_" + name, InternalInstance);
-                var parseAndHold = RowConstructor.MakeParseAndSetDelegate(holdType, member.Parser, Setter.ForField(field), default);
+                var parseAndHold = MakeParseAndSetDelegate(holdType, member.Parser, Setter.ForField(field), default, instanceProvider.ConstructsNullability);
                 var moveToRow = MakeMoveFromHoldToRowDelegate(rowType, holdType, member.Setter, Getter.ForField(field), member.Reset);
-                var setOnRow = RowConstructor.MakeParseAndSetDelegate(rowType, member.Parser, member.Setter, member.Reset);
+                var setOnRow = MakeParseAndSetDelegate(rowType, member.Parser, member.Setter, member.Reset, instanceProvider.ConstructsNullability);
 
                 simpleBuilder.Add(csp.Index, (name, required, parseAndHold, moveToRow, setOnRow));
             }
@@ -207,7 +227,7 @@ namespace Cesil
                     var required = member.IsRequired ? MemberRequired.Yes : MemberRequired.No;
 
                     var field = holdType.GetFieldNonNull("Hold_" + name, InternalInstance);
-                    var parseAndHold = RowConstructor.MakeParseAndSetDelegate(holdType, csp.Member.Parser, Setter.ForField(field), default);
+                    var parseAndHold = RowConstructor.MakeParseAndSetDelegate(holdType, csp.Member.Parser, Setter.ForField(field), default, instanceProvider.ConstructsNullability);
 
                     parseAndHoldBuilder.Add(csp.Index, (name, required, parseAndHold));
 
@@ -263,7 +283,7 @@ namespace Cesil
             }
         }
 
-        private static Delegate MakeParseAndSetDelegate(TypeInfo rowType, Parser parser, Setter setter, NonNull<Reset> reset)
+        private static Delegate MakeParseAndSetDelegate(TypeInfo rowType, Parser parser, Setter setter, NonNull<Reset> reset, NullHandling instanceProviderNullHandling)
         {
             var statements = new List<Expression>();
 
@@ -284,6 +304,16 @@ namespace Cesil
 
             statements.Add(assignParseRes);
 
+            if (parser.CreatesNullability == NullHandling.ForbidNull && parser.Creates.AllowsNullLikeValue())
+            {
+                // need to inject a runtime check that the Parser hasn't violated it's configuration by producing a null
+
+                var checkExp = Utils.MakeNullHandlingCheckExpression(parser.Creates, outDestVar, $"{parser} was forbidden from producing null values, but did produce one at runtime");
+                var ifSuccessValidate = Expression.IfThen(resVar, checkExp);
+
+                statements.Add(ifSuccessValidate);
+            }
+
             var parserConst = Expression.Constant(parser);
 
             var throwNoParse = Expression.Call(Methods.Throw.ParseFailed, parserConst, ctxParam, dataSpanParam);
@@ -293,13 +323,55 @@ namespace Cesil
 
             if (reset.HasValue)
             {
-                var resetBody = reset.Value.MakeExpression(rowParam, ctxParam);
+                var resetValue = reset.Value;
+
+                if (resetValue.RowTypeNullability == NullHandling.ForbidNull && instanceProviderNullHandling == NullHandling.AllowNull && resetValue.RowType.Value.AllowsNullLikeValue())
+                {
+                    // make sure reset is being given the expected row (in terms of nullability)
+
+                    var checkExp = Utils.MakeNullHandlingCheckExpression(resetValue.RowType.Value, rowParam, $"{reset} does not accept null row values, but recieved one at runtime");
+
+                    statements.Add(checkExp);
+                }
+
+                var resetBody = resetValue.MakeExpression(rowParam, ctxParam);
+
                 statements.Add(resetBody);
+            }
+
+            if (setter.RowNullability == NullHandling.ForbidNull && instanceProviderNullHandling == NullHandling.AllowNull && setter.RowType.Value.AllowsNullLikeValue())
+            {
+                // need a check that setter _row_ invariants haven't been violated
+
+                var checkExp = Utils.MakeNullHandlingCheckExpression(setter.RowType.Value, rowParam, $"{setter} does not accept null rows, but recieved one at runtime");
+
+                statements.Add(checkExp);
+            }
+
+            if (setter.TakesNullability == NullHandling.ForbidNull && parser.CreatesNullability == NullHandling.AllowNull && setter.Takes.AllowsNullLikeValue())
+            {
+                // need a check that setter _value_ invariants haven't been violated
+
+                var checkExp = Utils.MakeNullHandlingCheckExpression(setter.Takes, outDestVar, $"{setter} does not accept null values, but recieved one at runtime");
+
+                statements.Add(checkExp);
             }
 
             var setterBody = setter.MakeExpression(rowParam, outDestVar, ctxParam);
 
             statements.Add(setterBody);
+
+            var setterMayViolateNullabilityPostCall =
+                (setter.RowType.HasValue && setter.IsRowByRef) &&                                                   // takes a row, and it's by ref (so the setter may have modified it)
+                (setter.RowNullability == NullHandling.ForbidNull && setter.RowType.Value.AllowsNullLikeValue());   //   and the row type shouldn't be null, but _could_ be
+
+            if (setterMayViolateNullabilityPostCall)
+            {
+                // one variant of setters can _change_ a row during a call, so we need to check that that hasn't happened
+                var checkExp = Utils.MakeNullHandlingCheckExpression(rowType, rowParam, $"{setter} changed row to null, which is not permitted");
+
+                statements.Add(checkExp);
+            }
 
             var body = Expression.Block(new[] { resVar, outDestVar }, statements);
 

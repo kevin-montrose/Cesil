@@ -13,9 +13,9 @@ namespace Cesil.Analyzers
         ///   throws an exception if assertion is false.
         /// </summary>
         public static T NonNull<T>(this T? value)
-            where T: class
+            where T : class
         {
-            if(value == null)
+            if (value == null)
             {
                 throw new InvalidOperationException("Unexpected null value");
             }
@@ -43,9 +43,9 @@ namespace Cesil.Analyzers
         ///   an exception if the assertions is false.
         /// </summary>
         public static TExpected Expect<THave, TExpected>(this THave item)
-            where TExpected: class, THave
+            where TExpected : class, THave
         {
-            if(!(item is TExpected ret))
+            if (!(item is TExpected ret))
             {
                 throw new InvalidOperationException($"Expected {typeof(TExpected).Name}");
             }

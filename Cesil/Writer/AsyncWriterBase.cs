@@ -613,7 +613,7 @@ namespace Cesil
                     var flushTask = FlushStagingAsync(cancellationToken);
                     if (!flushTask.IsCompletedSuccessfully(this))
                     {
-                        if(!mem.IsEmpty)
+                        if (!mem.IsEmpty)
                         {
                             return PlaceCharAndSegmentInStagingAsync_ContinueAfterFlushStagingAsync(this, flushTask, mem, cancellationToken);
                         }
@@ -631,7 +631,7 @@ namespace Cesil
             else
             {
                 var writeCharTask = WriteCharDirectlyAsync(c, cancellationToken);
-                if(!writeCharTask.IsCompletedSuccessfully(this))
+                if (!writeCharTask.IsCompletedSuccessfully(this))
                 {
                     if (!mem.IsEmpty)
                     {
@@ -679,7 +679,7 @@ namespace Cesil
 
             OneCharMemory.Span[0] = c;
             var writeTask = Inner.WriteAsync(OneCharMemory, cancellationToken);
-            
+
             return writeTask;
         }
 
@@ -700,7 +700,9 @@ namespace Cesil
 #if DEBUG
     internal abstract partial class AsyncWriterBase<T> : ITestableCancellableProvider
     {
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int? ITestableCancellableProvider.CancelAfter { get; set; }
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int ITestableCancellableProvider.CancelCounter { get; set; }
     }
 
@@ -709,11 +711,14 @@ namespace Cesil
     internal abstract partial class AsyncWriterBase<T> : ITestableAsyncProvider
     {
         private int _GoAsyncAfter;
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int ITestableAsyncProvider.GoAsyncAfter { set { _GoAsyncAfter = value; } }
 
         private int _AsyncCounter;
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int ITestableAsyncProvider.AsyncCounter => _AsyncCounter;
 
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         bool ITestableAsyncProvider.ShouldGoAsync()
         {
             lock (this)

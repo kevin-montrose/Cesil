@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Globalization;
@@ -14,6 +15,173 @@ namespace Cesil.Tests
 {
     public class DynamicReaderTests
     {
+        private sealed class _DynamicRowGetDataIndex : IDynamicRowOwner
+        {
+            public Options Options => Options.Default;
+
+            public object Context => null;
+
+            public NameLookup AcquireNameLookup()
+            => NameLookup.Empty;
+
+            public void ReleaseNameLookup() { }
+
+            public void Remove(DynamicRow row) { }
+
+            void IDelegateCache.AddDelegate<T, V>(T key, V cached) { }
+
+            bool IDelegateCache.TryGetDelegate<T, V>(T key, out V del)
+            {
+                del = default;
+                return false;
+            }
+        }
+
+        [Fact]
+        public void DynamicRowGetDataIndex()
+        {
+            var owner = new _DynamicRowGetDataIndex();
+
+            var dyn = new DynamicRow();
+            dyn.Init(owner, 0, null, TypeDescribers.Default, false, null, 0, MemoryPool<char>.Shared);
+
+            // no data, shouldn't explode
+            Assert.Equal(-1, dyn.GetDataIndex(0));
+
+            // reading past the end, also shouldn't explode
+            dyn.SetValue(0, "foo");
+            Assert.Equal(-1, dyn.GetDataIndex(2));
+
+            // no need for async equivalent
+        }
+
+        [Fact]
+        public void DynamicRowStringLookup()
+        {
+            RunSyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader("A\r\n1"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+                        Assert.Collection(
+                            rows,
+                            r =>
+                            {
+                                var n1 = "A";
+                                var nMissing = "D";
+
+                                Assert.Equal("1", (string)r[n1]);
+
+                                Assert.Throws<KeyNotFoundException>(() => r[nMissing]);
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public void RangesWithoutNames()
+        {
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions();
+
+            RunSyncDynamicReaderVariants(
+                opts,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader("1,2,3,4,5"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+                        Assert.Collection(
+                            rows,
+                            r =>
+                            {
+                                var range1 = (IEnumerable<int>)(r[2..]);
+                                var range2 = (IEnumerable<int>)(r[1..3]);
+
+                                Assert.Equal(new[] { 3, 4, 5 }, range1);
+                                Assert.Equal(new[] { 2, 3 }, range2);
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public void DynamicRowColumnIdentifierLookup()
+        {
+            RunSyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader("A\r\n1"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+                        Assert.Collection(
+                            rows,
+                            r =>
+                            {
+                                var c1I = ColumnIdentifier.Create(0);
+                                var c1N = ColumnIdentifier.Create(0, "A");
+
+                                var cMissingI = ColumnIdentifier.Create(4);
+                                var cMissingN = ColumnIdentifier.Create(4, "D");
+
+                                Assert.Equal("1", (string)r[c1I]);
+                                Assert.Equal("1", (string)r[c1N]);
+
+                                Assert.Throws<ArgumentOutOfRangeException>(() => r[cMissingI]);
+                                Assert.Throws<KeyNotFoundException>(() => r[cMissingN]);
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
+        private sealed class _DynamicRowDoubleInit : IDynamicRowOwner
+        {
+            public Options Options => Options.Default;
+
+            public object Context => null;
+
+            public NameLookup AcquireNameLookup()
+            => NameLookup.Empty;
+
+            public void ReleaseNameLookup() { }
+
+            public void Remove(DynamicRow row) { }
+
+            void IDelegateCache.AddDelegate<T, V>(T key, V cached) { }
+
+            bool IDelegateCache.TryGetDelegate<T, V>(T key, out V del)
+            {
+                del = default;
+                return false;
+            }
+        }
+
+        [Fact]
+        public void DynamicRowDoubleInit()
+        {
+            var owner = new _DynamicRowDoubleInit();
+
+            var row = new DynamicRow();
+            row.Init(owner, 0, null, TypeDescribers.Default, false, null, 0, MemoryPool<char>.Shared);
+
+            var exc = Assert.Throws<InvalidOperationException>(() => row.Init(owner, 0, null, TypeDescribers.Default, false, null, 0, MemoryPool<char>.Shared));
+            Assert.Equal("DynamicRow not in an uninitialized state", exc.Message);
+
+            row.Dispose();
+            row.Init(owner, 0, null, TypeDescribers.Default, false, null, 0, MemoryPool<char>.Shared);
+        }
+
         [Fact]
         public void MultiCharacterSeparators()
         {
@@ -97,7 +265,7 @@ namespace Cesil.Tests
 
                 // \r\n
                 {
-                    
+
 
                     // not present
                     RunSyncDynamicReaderVariants(
@@ -3411,6 +3579,20 @@ namespace Cesil.Tests
                         Assert.True(csv.TryRead(out var row));
                         Assert.False(csv.TryRead(out _));
 
+                        // range checks
+                        var startLessThan0 = new Range(^4, 3);
+                        var endLessthan0 = new Range(0, ^4);
+                        var startAfterWidth = new Range(4, 3);
+                        var endAfterWidth = new Range(0, 4);
+                        var startAfterEnd = new Range(2, 1);
+
+                        Assert.Throws<ArgumentOutOfRangeException>(() => row[startLessThan0]);
+                        Assert.Throws<ArgumentOutOfRangeException>(() => row[endLessthan0]);
+                        Assert.Throws<ArgumentOutOfRangeException>(() => row[startAfterWidth]);
+                        Assert.Throws<ArgumentOutOfRangeException>(() => row[endAfterWidth]);
+                        Assert.Throws<ArgumentException>(() => row[startAfterEnd]);
+                        // end range
+
                         var all = 0..3;
                         var allEnd = ^3..^0;
                         var allImp = ..;
@@ -6250,6 +6432,96 @@ loop:
         // async tests
 
         [Fact]
+        public async Task DynamicRowStringLookupAsync()
+        {
+            await RunAsyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("A\r\n1"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+                        Assert.Collection(
+                            rows,
+                            r =>
+                            {
+                                var n1 = "A";
+                                var nMissing = "D";
+
+                                Assert.Equal("1", (string)r[n1]);
+
+                                Assert.Throws<KeyNotFoundException>(() => r[nMissing]);
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public async Task RangesWithoutNamesAsync()
+        {
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions();
+
+            await RunAsyncDynamicReaderVariants(
+                opts,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("1,2,3,4,5"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+                        Assert.Collection(
+                            rows,
+                            r =>
+                            {
+                                var range1 = (IEnumerable<int>)(r[2..]);
+                                var range2 = (IEnumerable<int>)(r[1..3]);
+
+                                Assert.Equal(new[] { 3, 4, 5 }, range1);
+                                Assert.Equal(new[] { 2, 3 }, range2);
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
+        [Fact]
+        public async Task DynamicRowColumnIdentifierLookupAsync()
+        {
+            await RunAsyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader("A\r\n1"))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var rows = await csv.ReadAllAsync();
+                        Assert.Collection(
+                            rows,
+                            r =>
+                            {
+                                var c1I = ColumnIdentifier.Create(0);
+                                var c1N = ColumnIdentifier.Create(0, "A");
+
+                                var cMissingI = ColumnIdentifier.Create(4);
+                                var cMissingN = ColumnIdentifier.Create(4, "D");
+
+                                Assert.Equal("1", (string)r[c1I]);
+                                Assert.Equal("1", (string)r[c1N]);
+
+                                Assert.Throws<ArgumentOutOfRangeException>(() => r[cMissingI]);
+                                Assert.Throws<KeyNotFoundException>(() => r[cMissingN]);
+                            }
+                        );
+                    }
+                }
+            );
+        }
+
+        [Fact]
         public async Task MultiCharacterSeparatorsAsync()
         {
             // header variants
@@ -8562,6 +8834,20 @@ loop:
                         var row = r1.Value;
                         var r2 = await csv.TryReadAsync();
                         Assert.False(r2.HasValue);
+
+                        // range checks
+                        var startLessThan0 = new Range(^4, 3);
+                        var endLessthan0 = new Range(0, ^4);
+                        var startAfterWidth = new Range(4, 3);
+                        var endAfterWidth = new Range(0, 4);
+                        var startAfterEnd = new Range(2, 1);
+
+                        Assert.Throws<ArgumentOutOfRangeException>(() => row[startLessThan0]);
+                        Assert.Throws<ArgumentOutOfRangeException>(() => row[endLessthan0]);
+                        Assert.Throws<ArgumentOutOfRangeException>(() => row[startAfterWidth]);
+                        Assert.Throws<ArgumentOutOfRangeException>(() => row[endAfterWidth]);
+                        Assert.Throws<ArgumentException>(() => row[startAfterEnd]);
+                        // end range
 
                         var all = 0..3;
                         var allEnd = ^3..^0;

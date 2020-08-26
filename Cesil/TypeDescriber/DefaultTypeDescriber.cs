@@ -946,7 +946,6 @@ endLoop:
             // now the least convenient dynamic type
             if (rowObj is IDynamicMetaObjectProvider asDynamic)
             {
-
                 var arg = Expressions.Parameter_Object;
                 var metaObj = asDynamic.GetMetaObject(arg);
 

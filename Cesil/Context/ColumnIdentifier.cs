@@ -154,7 +154,7 @@ namespace Cesil
         /// 
         /// Equivalent to calling Create.
         /// </summary>
-        public static explicit operator ColumnIdentifier([IntentionallyExposedPrimitive("Best way to identify an index")]int index)
+        public static explicit operator ColumnIdentifier([IntentionallyExposedPrimitive("Best way to identify an index")] int index)
         => Create(index);
 
         /// <summary>

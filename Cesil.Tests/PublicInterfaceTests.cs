@@ -2010,7 +2010,8 @@ namespace Cesil.Tests
                     [typeof(DynamicRowDisposal).GetTypeInfo()] = new[] { "dynamicRowDisposal" },
                     [typeof(WhitespaceTreatments).GetTypeInfo()] = new[] { "whitespaceTreatment" },
                     [typeof(ExtraColumnTreatment).GetTypeInfo()] = new[] { "extraColumnTreatment" },
-                    [typeof(IMemoryPoolProvider).GetTypeInfo()] = new [] { "memoryPoolProvider" },
+                    [typeof(IMemoryPoolProvider).GetTypeInfo()] = new[] { "memoryPoolProvider" },
+                    [typeof(NullHandling).GetTypeInfo()] = new[] { "nullHandling" },
 
                     // wrapper types
                     [typeof(DynamicCellValue).GetTypeInfo()] = new[] { "value" },
@@ -2034,6 +2035,7 @@ namespace Cesil.Tests
                     [typeof(InstanceProviderDelegate<>).GetTypeInfo()] = new[] { "del" },
                     [typeof(ParserDelegate<>).GetTypeInfo()] = new[] { "del" },
                     [typeof(ResetDelegate<>).GetTypeInfo()] = new[] { "del" },
+                    [typeof(ResetByRefDelegate<>).GetTypeInfo()] = new[] { "del" },
                     [typeof(StaticResetDelegate).GetTypeInfo()] = new[] { "del" },
                     [typeof(StaticSetterDelegate<>).GetTypeInfo()] = new[] { "del" },
                     [typeof(SetterDelegate<,>).GetTypeInfo()] = new[] { "del" },

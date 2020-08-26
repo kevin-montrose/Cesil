@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Cesil
 {
@@ -124,7 +125,7 @@ namespace Cesil
                 if (res == ReaderStateMachine.AdvanceResult.LookAhead_MultiCharacterSeparator)
                 {
                     var valSepLen = Configuration.ValueSeparatorMemory.Length;
-                    
+
                     // do we have enough in the buffer to look ahead?
                     var canCheckForSeparator = bufferLen - i >= valSepLen;
                     if (canCheckForSeparator)
@@ -358,6 +359,7 @@ namespace Cesil
             }
         }
 
+        [DoesNotReturn]
         private ReadWithCommentResultType HandleUncommonAdvanceResults(ReaderStateMachine.AdvanceResult res, char? lastRead)
         {
             string c;

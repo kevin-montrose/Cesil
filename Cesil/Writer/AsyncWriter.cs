@@ -196,7 +196,7 @@ namespace Cesil
                 try
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                    
+
                     var segSpan = comment[prevIx..];
                     var placeTask = self.PlaceCharAndSegmentInStagingAsync(commentChar, segSpan, cancellationToken);
                     await ConfigureCancellableAwait(self, placeTask, cancellationToken);

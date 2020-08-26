@@ -80,41 +80,57 @@ namespace Cesil
         internal readonly NonNull<Delegate> Delegate;
 
         internal readonly NonNull<TypeInfo> RowType;
+        internal readonly NullHandling? RowNullability;
 
         internal readonly TypeInfo Takes;
+        internal readonly NullHandling TakesNullability;
 
         internal readonly bool TakesContext;
 
-        private Setter(TypeInfo rowType, TypeInfo takes, ParameterInfo param)
+        internal readonly bool IsRowByRef;
+
+        private Setter(TypeInfo rowType, NullHandling rowNullability, TypeInfo takes, ParameterInfo param, NullHandling takesNullability)
         {
             RowType.Value = rowType;
+            RowNullability = rowNullability;
             Takes = takes;
+            TakesNullability = takesNullability;
             ConstructorParameter.Value = param;
             TakesContext = false;
+            IsRowByRef = false;
         }
 
-        private Setter(TypeInfo? rowType, TypeInfo takes, MethodInfo method, bool takesContext)
+        private Setter(TypeInfo? rowType, NullHandling? rowNullability, TypeInfo takes, MethodInfo method, bool takesContext, NullHandling takesNullability, bool isRowByRef)
         {
             RowType.SetAllowNull(rowType);
+            RowNullability = rowNullability;
             Takes = takes;
+            TakesNullability = takesNullability;
             Method.Value = method;
             TakesContext = takesContext;
+            IsRowByRef = isRowByRef;
         }
 
-        private Setter(TypeInfo? rowType, TypeInfo takes, Delegate del)
+        private Setter(TypeInfo? rowType, NullHandling? rowNullability, TypeInfo takes, Delegate del, NullHandling takesNullability, bool isRowByRef)
         {
             RowType.SetAllowNull(rowType);
+            RowNullability = rowNullability;
             Takes = takes;
+            TakesNullability = takesNullability;
             Delegate.Value = del;
             TakesContext = true;
+            IsRowByRef = isRowByRef;
         }
 
-        private Setter(TypeInfo? rowType, TypeInfo takes, FieldInfo field)
+        private Setter(TypeInfo? rowType, NullHandling? rowNullability, TypeInfo takes, FieldInfo field, NullHandling takesNullability)
         {
             RowType.SetAllowNull(rowType);
+            RowNullability = rowNullability;
             Takes = takes;
+            TakesNullability = takesNullability;
             Field.Value = field;
             TakesContext = false;
+            IsRowByRef = false;
         }
 
         internal Expression MakeExpression(ParameterExpression rowVar, ParameterExpression valVar, ParameterExpression ctxVar)
@@ -203,6 +219,91 @@ namespace Cesil
             return selfExp;
         }
 
+        private Setter ChangeRowNullHandling(NullHandling nullHandling)
+        {
+            if (nullHandling == RowNullability)
+            {
+                return this;
+            }
+
+            if (RowNullability == null)
+            {
+                return Throw.InvalidOperationException<Setter>($"{this} does not take rows, and so cannot have a {nameof(NullHandling)} specified");
+            }
+
+            Utils.ValidateNullHandling(RowType.Value, nullHandling);
+
+            return
+                Mode switch
+                {
+                    BackingMode.Field => new Setter(RowType.Value, nullHandling, Takes, Field.Value, TakesNullability),
+                    BackingMode.Method => new Setter(RowType.Value, nullHandling, Takes, Method.Value, TakesContext, TakesNullability, IsRowByRef),
+                    BackingMode.Delegate => new Setter(RowType.Value, nullHandling, Takes, Delegate.Value, TakesNullability, IsRowByRef),
+                    _ => Throw.ImpossibleException<Setter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
+                };
+        }
+
+        private Setter ChangeValueNullHandling(NullHandling nullHandling)
+        {
+            if (nullHandling == TakesNullability)
+            {
+                return this;
+            }
+
+            Utils.ValidateNullHandling(Takes, nullHandling);
+
+            var rowType = RowType.HasValue ? RowType.Value : null;
+
+            return
+                Mode switch
+                {
+                    BackingMode.Field => new Setter(rowType, RowNullability, Takes, Field.Value, nullHandling),
+                    BackingMode.Method => new Setter(rowType, RowNullability, Takes, Method.Value, TakesContext, nullHandling, IsRowByRef),
+                    BackingMode.Delegate => new Setter(rowType, RowNullability, Takes, Delegate.Value, nullHandling, IsRowByRef),
+                    _ => Throw.ImpossibleException<Setter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
+                };
+        }
+
+        /// <summary>
+        /// Returns a Setter that differs from this by explicitly allowing
+        ///   null rows be passed to it.
+        ///   
+        /// If the backing field, delegate, or method does not expect null rows
+        ///   this could result in errors at runtime.
+        /// </summary>
+        public Setter AllowNullRows()
+        => ChangeRowNullHandling(NullHandling.AllowNull);
+
+        /// <summary>
+        /// Returns a Setter that differs from this by explicitly forbidding
+        ///   null rows be passed to it.
+        ///   
+        /// If the .NET runtime cannot guarantee that nulls will not be passed,
+        ///   null checks will be injected.
+        /// </summary>
+        public Setter ForbidNullRows()
+        => ChangeRowNullHandling(NullHandling.ForbidNull);
+
+        /// <summary>
+        /// Returns a Setter that differs from this by explicitly allowing
+        ///   null values be passed to it.
+        ///   
+        /// If the backing field, delegate, or method does not expect null values
+        ///   this could result in errors at runtime.
+        /// </summary>
+        public Setter AllowNullValues()
+        => ChangeValueNullHandling(NullHandling.AllowNull);
+
+        /// <summary>
+        /// Returns a Setter that differs from this by explicitly forbidding
+        ///   null values be passed to it.
+        ///   
+        /// If the .NET runtime cannot guarantee that nulls will not be passed,
+        ///   null checks will be injected.
+        /// </summary>
+        public Setter ForbidNullValues()
+        => ChangeValueNullHandling(NullHandling.ForbidNull);
+
         /// <summary>
         /// Create a setter from a PropertyInfo.
         /// 
@@ -249,21 +350,29 @@ namespace Cesil
             }
 
             TypeInfo? onType;
+            NullHandling? onTypeNullability;
             TypeInfo takesType;
+            NullHandling takesNullability;
             bool takesContext;
+            bool isRowByRef;
 
             var args = method.GetParameters();
 
             if (method.IsStatic)
             {
                 onType = null;
+                onTypeNullability = null;
 
                 if (args.Length == 1)
                 {
                     // has to be a static method taking the _value_ to be set
 
-                    takesType = args[0].ParameterType.GetTypeInfo();
+                    var arg0 = args[0];
+
+                    takesType = arg0.ParameterType.GetTypeInfo();
+                    takesNullability = arg0.DetermineNullability();
                     takesContext = false;
+                    isRowByRef = false;
                 }
                 else if (args.Length == 2)
                 {
@@ -272,14 +381,22 @@ namespace Cesil
                     //   2. static method taking the row type _by ref_ and the value to be set
                     //   3. static method taking the value to be set and an in ReadContext
 
-                    var p0 = args[0].ParameterType.GetTypeInfo();
-                    var p1 = args[1].ParameterType.GetTypeInfo();
+                    var arg0 = args[0];
+                    var arg1 = args[1];
+
+                    var p0 = arg0.ParameterType.GetTypeInfo();
+                    var p1 = arg1.ParameterType.GetTypeInfo();
 
                     if (args[1].IsReadContextByRef(out var _))
                     {
                         // we're in case 3
                         onType = null;
+                        onTypeNullability = null;
+                        isRowByRef = false;
+
                         takesType = p0;
+
+                        takesNullability = arg0.DetermineNullability();
                         takesContext = true;
                     }
                     else
@@ -292,15 +409,43 @@ namespace Cesil
                             return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by a static method taking 2 parameters cannot have a by ref second parameter unless that parameter is an `in {nameof(ReadContext)}`", nameof(method));
                         }
 
-                        onType = p0;
+                        if (p0.IsByRef)
+                        {
+                            onType = p0.GetElementTypeNonNull();
+                            isRowByRef = true;
+                        }
+                        else
+                        {
+                            onType = p0;
+                            isRowByRef = false;
+                        }
+
+                        onTypeNullability = arg0.DetermineNullability();
                         takesType = p1;
+                        takesNullability = arg1.DetermineNullability();
                         takesContext = false;
                     }
                 }
                 else if (args.Length == 3)
                 {
-                    onType = args[0].ParameterType.GetTypeInfo();
-                    takesType = args[1].ParameterType.GetTypeInfo();
+                    var arg0 = args[0];
+                    var arg1 = args[1];
+
+                    var p0 = arg0.ParameterType.GetTypeInfo();
+                    if (p0.IsByRef)
+                    {
+                        onType = p0.GetElementTypeNonNull();
+                        isRowByRef = true;
+                    }
+                    else
+                    {
+                        onType = p0;
+                        isRowByRef = false;
+                    }
+
+                    onTypeNullability = arg0.DetermineNullability();
+                    takesType = arg1.ParameterType.GetTypeInfo();
+                    takesNullability = arg1.DetermineNullability();
 
                     var p2 = args[2].ParameterType.GetTypeInfo();
                     if (!args[2].IsReadContextByRef(out var msg))
@@ -318,15 +463,22 @@ namespace Cesil
             else
             {
                 onType = method.DeclaringTypeNonNull();
+                onTypeNullability = NullHandling.CannotBeNull;
+
+                isRowByRef = false;                             // instance is never (explicitly) by ref
 
                 if (args.Length == 1)
                 {
-                    takesType = args[0].ParameterType.GetTypeInfo();
+                    var arg0 = args[0];
+                    takesType = arg0.ParameterType.GetTypeInfo();
+                    takesNullability = arg0.DetermineNullability();
                     takesContext = false;
                 }
                 else if (args.Length == 2)
                 {
-                    takesType = args[0].ParameterType.GetTypeInfo();
+                    var arg0 = args[0];
+                    takesType = arg0.ParameterType.GetTypeInfo();
+                    takesNullability = arg0.DetermineNullability();
 
                     if (!args[1].IsReadContextByRef(out var msg))
                     {
@@ -341,7 +493,7 @@ namespace Cesil
                 }
             }
 
-            return new Setter(onType, takesType, method, takesContext);
+            return new Setter(onType, onTypeNullability, takesType, method, takesContext, takesNullability, isRowByRef);
         }
 
         /// <summary>
@@ -354,18 +506,23 @@ namespace Cesil
             Utils.CheckArgumentNull(field, nameof(field));
 
             TypeInfo? rowType;
+            NullHandling? rowTypeNullability;
             if (field.IsStatic)
             {
                 rowType = null;
+                rowTypeNullability = null;
             }
             else
             {
                 rowType = field.DeclaringTypeNonNull();
+
+                rowTypeNullability = NullHandling.CannotBeNull;
             }
 
             var takesType = field.FieldType.GetTypeInfo();
+            var nullability = field.DetermineNullability();
 
-            return new Setter(rowType, takesType, field);
+            return new Setter(rowType, rowTypeNullability, takesType, field, nullability);
         }
 
         /// <summary>
@@ -376,8 +533,9 @@ namespace Cesil
             Utils.CheckArgumentNull(del, nameof(del));
 
             var takesType = typeof(TValue).GetTypeInfo();
+            var nullability = del.Method.GetParameters()[0].DetermineNullability();
 
-            return new Setter(null, takesType, del);
+            return new Setter(null, null, takesType, del, nullability, false);
         }
 
         /// <summary>
@@ -390,7 +548,12 @@ namespace Cesil
             var setOnType = typeof(TRow).GetTypeInfo();
             var takesType = typeof(TValue).GetTypeInfo();
 
-            return new Setter(setOnType, takesType, del);
+            var ps = del.Method.GetParameters();
+
+            var onTypeNullability = ps[0].DetermineNullability();
+            var takesNullability = ps[1].DetermineNullability();
+
+            return new Setter(setOnType, onTypeNullability, takesType, del, takesNullability, false);
         }
 
         /// <summary>
@@ -400,10 +563,15 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(del, nameof(del));
 
-            var setOnType = typeof(TRow).GetTypeInfo().MakeByRefType().GetTypeInfo();
+            var setOnType = typeof(TRow).GetTypeInfo().GetTypeInfo();
             var takesType = typeof(TValue).GetTypeInfo();
 
-            return new Setter(setOnType, takesType, del);
+            var ps = del.Method.GetParameters();
+
+            var onTypeNullability = ps[0].DetermineNullability();
+            var takesNullability = ps[1].DetermineNullability();
+
+            return new Setter(setOnType, onTypeNullability, takesType, del, takesNullability, true);
         }
 
         /// <summary>
@@ -416,7 +584,7 @@ namespace Cesil
             var mem = parameter.Member;
             if (mem is ConstructorInfo cons)
             {
-                return new Setter(cons.DeclaringTypeNonNull(), parameter.ParameterType.GetTypeInfo(), parameter);
+                return new Setter(cons.DeclaringTypeNonNull(), NullHandling.AllowNull, parameter.ParameterType.GetTypeInfo(), parameter, parameter.DetermineNullability());
             }
             else
             {
@@ -448,18 +616,33 @@ namespace Cesil
             var otherMode = setter.Mode;
 
             if (mode != otherMode) return false;
+            if (TakesNullability != setter.TakesNullability) return false;
             if (Takes != setter.Takes) return false;
             if (IsStatic != setter.IsStatic) return false;
 
             if (RowType.HasValue)
             {
-                if (!setter.RowType.HasValue) return false;
+                if (!setter.RowType.HasValue)
+                {
+                    return false;
+                }
 
-                if (RowType.Value != setter.RowType.Value) return false;
+                if (RowType.Value != setter.RowType.Value)
+                {
+                    return false;
+                }
+
+                if (RowNullability != setter.RowNullability)
+                {
+                    return false;
+                }
             }
             else
             {
-                if (setter.RowType.HasValue) return false;
+                if (setter.RowType.HasValue)
+                {
+                    return false;
+                }
             }
 
             return
@@ -478,7 +661,7 @@ namespace Cesil
         /// Returns a stable hash for this Setter.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(Setter), Delegate, Field, IsStatic, Method, Mode, RowType, HashCode.Combine(Takes, ConstructorParameter));
+        => HashCode.Combine(nameof(Setter), Delegate, Field, IsStatic, Method, Mode, RowType, HashCode.Combine(Takes, ConstructorParameter, TakesNullability, RowNullability));
 
         /// <summary>
         /// Describes this Setter.
@@ -492,32 +675,32 @@ namespace Cesil
                 case BackingMode.Delegate:
                     if (IsStatic)
                     {
-                        return $"{nameof(Setter)} backed by delegate {Delegate} taking {Takes}";
+                        return $"{nameof(Setter)} backed by delegate {Delegate} taking {Takes} ({TakesNullability})";
                     }
                     else
                     {
-                        return $"{nameof(Setter)} backed by delegate {Delegate} taking {RowType} and {Takes}";
+                        return $"{nameof(Setter)} backed by delegate {Delegate} taking {RowType} ({RowNullability}) and {Takes} ({TakesNullability})";
                     }
                 case BackingMode.Method:
                     if (IsStatic)
                     {
-                        return $"{nameof(Setter)} backed by method {Method} taking {Takes}";
+                        return $"{nameof(Setter)} backed by method {Method} taking {Takes} ({TakesNullability})";
                     }
                     else
                     {
-                        return $"{nameof(Setter)} on {RowType} backed by method {Method} taking {Takes}";
+                        return $"{nameof(Setter)} on {RowType} backed by method {Method} taking {Takes} ({TakesNullability})";
                     }
                 case BackingMode.Field:
                     if (IsStatic)
                     {
-                        return $"{nameof(Setter)} backed by field {Field} of {Takes}";
+                        return $"{nameof(Setter)} backed by field {Field} of {Takes} ({TakesNullability})";
                     }
                     else
                     {
-                        return $"{nameof(Setter)} on {RowType} backed by field {Field} of {Takes}";
+                        return $"{nameof(Setter)} on {RowType} backed by field {Field} of {Takes} ({TakesNullability})";
                     }
                 case BackingMode.ConstructorParameter:
-                    return $"{nameof(Setter)} on {RowType} backed by the constructor parameter {ConstructorParameter}";
+                    return $"{nameof(Setter)} on {RowType} backed by the constructor parameter {ConstructorParameter} of {Takes} ({TakesNullability})";
                 default:
                     return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
             }
@@ -566,14 +749,20 @@ namespace Cesil
                     var rowType = genArgs[0].GetTypeInfo();
                     var takesType = genArgs[1].GetTypeInfo();
 
-                    return new Setter(rowType, takesType, del);
+                    var mtdPs = del.Method.GetParameters();
+
+                    var rowNullability = mtdPs[0].DetermineNullability();
+                    var takesNullability = mtdPs[1].DetermineNullability();
+
+                    return new Setter(rowType, rowNullability, takesType, del, takesNullability, false);
                 }
                 else if (delGenType == Types.StaticSetterDelegate)
                 {
                     var genArgs = delType.GetGenericArguments();
                     var takesType = genArgs[0].GetTypeInfo();
+                    var nullability = del.Method.GetParameters()[0].DetermineNullability();
 
-                    return new Setter(null, takesType, del);
+                    return new Setter(null, null, takesType, del, nullability, false);
                 }
                 else if (delGenType == Types.SetterByRefDelegate)
                 {
@@ -581,7 +770,12 @@ namespace Cesil
                     var rowType = genArgs[0].GetTypeInfo().MakeByRefType().GetTypeInfo();
                     var takesType = genArgs[1].GetTypeInfo();
 
-                    return new Setter(rowType, takesType, del);
+                    var mtdPs = del.Method.GetParameters();
+
+                    var rowNullability = mtdPs[0].DetermineNullability();
+                    var takesNullability = mtdPs[1].DetermineNullability();
+
+                    return new Setter(rowType, rowNullability, takesType, del, takesNullability, true);
                 }
             }
 
@@ -600,8 +794,13 @@ namespace Cesil
                 //  - row type, value type, in ReadContext
                 //  - ref row type, value type, in ReadContext
 
-                var rowType = ps[0].ParameterType.GetTypeInfo();
-                var takesType = ps[1].ParameterType.GetTypeInfo();
+                var p0 = ps[0];
+                var p1 = ps[1];
+
+                var rowType = p0.ParameterType.GetTypeInfo();
+                var rowNullability = p0.DetermineNullability();
+                var takesType = p1.ParameterType.GetTypeInfo();
+                var takesNullability = p1.DetermineNullability();
 
                 if (takesType.IsByRef)
                 {
@@ -616,22 +815,26 @@ namespace Cesil
                 var firstGenArg = rowType;
                 var secondGenArg = takesType;
                 var delegateType = Types.SetterDelegate;
+                var isByRef = false;
 
                 if (firstGenArg.IsByRef)
                 {
                     firstGenArg = firstGenArg.GetElementTypeNonNull();
                     delegateType = Types.SetterByRefDelegate;
+                    isByRef = true;
                 }
 
                 var setterDelType = delegateType.MakeGenericType(firstGenArg, secondGenArg);
 
                 var reboundDel = System.Delegate.CreateDelegate(setterDelType, del, invoke);
 
-                return new Setter(rowType, takesType, reboundDel);
+                return new Setter(rowType, rowNullability, takesType, reboundDel, takesNullability, isByRef);
             }
             else if (ps.Length == 2)
             {
-                var takesType = ps[0].ParameterType.GetTypeInfo();
+                var p0 = ps[0];
+                var takesType = p0.ParameterType.GetTypeInfo();
+                var takesNullability = p0.DetermineNullability();
 
                 if (!ps[1].IsReadContextByRef(out var msg))
                 {
@@ -642,7 +845,7 @@ namespace Cesil
 
                 var reboundDel = System.Delegate.CreateDelegate(setterDelType, del, invoke);
 
-                return new Setter(null, takesType, reboundDel);
+                return new Setter(null, null, takesType, reboundDel, takesNullability, false);
             }
             else
             {

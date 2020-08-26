@@ -41,7 +41,7 @@ namespace Cesil
 
         private ConcurrentDictionary<object, Delegate> DelegateCache;
 
-        bool IDelegateCache.TryGetDelegate<TKey, TDelegate>(TKey key, [MaybeNullWhen(returnValue: false)]out TDelegate del)
+        bool IDelegateCache.TryGetDelegate<TKey, TDelegate>(TKey key, [MaybeNullWhen(returnValue: false)] out TDelegate del)
         {
             if (!DelegateCache.TryGetValue(key, out var untyped))
             {

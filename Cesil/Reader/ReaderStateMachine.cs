@@ -98,7 +98,7 @@ namespace Cesil
                 cType = CharLookup[cOffset.Value];
             }
 
-            if(cType == CharacterType.MaybeValueSeparator)
+            if (cType == CharacterType.MaybeValueSeparator)
             {
                 if (!knownNotValueSeparator)
                 {
@@ -168,6 +168,7 @@ namespace Cesil
 
 #if DEBUG
         // just for debugging purposes
+        [ExcludeFromCoverage("Purely for debugging")]
         internal unsafe string ToDebugString()
         {
             PinHandle? pin = null;

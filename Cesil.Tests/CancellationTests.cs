@@ -39,7 +39,7 @@ namespace Cesil.Tests
             );
 
             static async Task AssertThrowsAsync<T>(Func<Task> task)
-                where T: Exception
+                where T : Exception
             {
                 Exception exc;
                 try
@@ -47,18 +47,18 @@ namespace Cesil.Tests
                     await task();
                     exc = null;
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     exc = e;
                 }
 
                 Assert.NotNull(exc);
 
-                if(exc is AggregateException ae)
+                if (exc is AggregateException ae)
                 {
-                    foreach(var a in ae.InnerExceptions)
+                    foreach (var a in ae.InnerExceptions)
                     {
-                        if(a is T)
+                        if (a is T)
                         {
                             return;
                         }

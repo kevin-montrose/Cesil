@@ -46,9 +46,24 @@ namespace Cesil.Tests
         [InlineData("\"foo\r\nbar\"\r", RowEnding.CarriageReturn)]
         [InlineData("\"foo\rbar\"\r", RowEnding.CarriageReturn)]
         [InlineData("\"foo\nbar\"\r", RowEnding.CarriageReturn)]
-        public void Sync(string csv, RowEnding expected)
+
+        [InlineData("h#ello###wo##rld###\"fiz###z\"###\"buzz###\"\r", RowEnding.CarriageReturn, "###")]
+        [InlineData("h#ello###wo##rld###\"fiz###z\"###\"buzz###\"\n", RowEnding.LineFeed, "###")]
+        [InlineData("h#ello###wo##rld###\"fiz###z\"###\"buzz###\"\r\n", RowEnding.CarriageReturnLineFeed, "###")]
+
+        [InlineData("h#ello###wo##rld###\"fiz###z\"###\"buzz###\"\r123", RowEnding.CarriageReturn, "###")]
+        [InlineData("h#ello###wo##rld###\"fiz###z\"###\"buzz###\"\n123", RowEnding.LineFeed, "###")]
+        [InlineData("h#ello###wo##rld###\"fiz###z\"###\"buzz###\"\r\n123", RowEnding.CarriageReturnLineFeed, "###")]
+        public void Sync(string csv, RowEnding expected, string valueSep = ",")
         {
-            var config = (ConcreteBoundConfiguration<_Test>)Configuration.For<_Test>(Options.CreateBuilder(Options.Default).WithReadHeaderInternal(default).WithRowEnding(RowEnding.Detect).BuildInternal());
+            var config =
+                (ConcreteBoundConfiguration<_Test>)
+                    Configuration.For<_Test>(
+                        Options.CreateBuilder(Options.Default)
+                        .WithRowEnding(RowEnding.Detect)
+                        .WithValueSeparator(valueSep)
+                        .BuildInternal()
+                    );
 
             using (var str = new StringReader(csv))
             {
@@ -88,12 +103,20 @@ namespace Cesil.Tests
         [InlineData("\"foo\r\nbar\"\r", RowEnding.CarriageReturn)]
         [InlineData("\"foo\rbar\"\r", RowEnding.CarriageReturn)]
         [InlineData("\"foo\nbar\"\r", RowEnding.CarriageReturn)]
-        public async Task Async(string csv, RowEnding expected)
+
+        [InlineData("h#ello###wo##rld###\"fiz###z\"###\"buzz###\"\r", RowEnding.CarriageReturn, "###")]
+        [InlineData("h#ello###wo##rld###\"fiz###z\"###\"buzz###\"\n", RowEnding.LineFeed, "###")]
+        [InlineData("h#ello###wo##rld###\"fiz###z\"###\"buzz###\"\r\n", RowEnding.CarriageReturnLineFeed, "###")]
+
+        [InlineData("h#ello###wo##rld###\"fiz###z\"###\"buzz###\"\r123", RowEnding.CarriageReturn, "###")]
+        [InlineData("h#ello###wo##rld###\"fiz###z\"###\"buzz###\"\n123", RowEnding.LineFeed, "###")]
+        [InlineData("h#ello###wo##rld###\"fiz###z\"###\"buzz###\"\r\n123", RowEnding.CarriageReturnLineFeed, "###")]
+        public async Task Async(string csv, RowEnding expected, string valueSep = ",")
         {
-            var opts = Options.CreateBuilder(Options.Default).WithReadHeaderInternal(default).WithRowEnding(RowEnding.Detect).BuildInternal();
+            var opts = Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.Detect).WithValueSeparator(valueSep).BuildInternal();
 
             await RunAsyncReaderVariants<_Test>(
-                    Options.Default,
+                    opts,
                     async (config, getReader) =>
                     {
                         var configForced = config as AsyncCountingAndForcingConfig<_Test>;

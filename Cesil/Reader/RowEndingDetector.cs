@@ -33,7 +33,10 @@ namespace Cesil
         private readonly MemoryPool<char> MemoryPool;
         private readonly int BufferSizeHint;
 
+        // BufferStart is only ever set to 0 or 1, keep it an int makes some other logic easier
+        //   but if you set it to 2 or something all hell will break loose
         private int BufferStart;
+
         private readonly IMemoryOwner<char> BufferOwner;
 
         private int PushbackLength;
@@ -104,13 +107,10 @@ namespace Cesil
 
                     if (end == 0)
                     {
-                        if (BufferStart > 0)
+                        // only need to check for '\r', because we'll never leave a '\n' pending the buffer
+                        if (BufferStart == 1 && buffSpan[0] == '\r')
                         {
-                            switch (buffSpan[0])
-                            {
-                                case '\r': Ending = RowEnding.CarriageReturn; break;
-                                case '\n': Ending = RowEnding.LineFeed; break;
-                            }
+                            Ending = RowEnding.CarriageReturn;
                         }
                         break;
                     }
@@ -119,7 +119,7 @@ namespace Cesil
                         AddToPushback(buffSpan.Slice(BufferStart, end));
 
                         var len = end + BufferStart;
-                        var res = Advance(buffSpan.Slice(0, len));
+                        var res = Advance(buffSpan[..len]);
                         switch (res)
                         {
                             case AdvanceResult.Continue:
@@ -177,13 +177,10 @@ namespace Cesil
 
                     if (end == 0)
                     {
-                        if (self.BufferStart > 0)
+                        // only need to check for '\r', because we'll never leave a '\n' pending the buffer
+                        if (self.BufferStart == 1 && buffMem.Span[0] == '\r')
                         {
-                            switch (buffMem.Span[0])
-                            {
-                                case '\r': self.Ending = RowEnding.CarriageReturn; break;
-                                case '\n': self.Ending = RowEnding.LineFeed; break;
-                            }
+                            self.Ending = RowEnding.CarriageReturn;
                         }
                         goto end;
                     }
@@ -223,17 +220,14 @@ loopStart:
                             end = await ConfigureCancellableAwait(self, readTask, cancel);
                         }
 
+                        buffMem = self.BufferOwner.Memory;
+
                         if (end == 0)
                         {
-                            buffMem = self.BufferOwner.Memory;
-
-                            if (self.BufferStart > 0)
+                            // only need to check for '\r', because we'll never leave a '\n' pending the buffer
+                            if (self.BufferStart == 1 && buffMem.Span[0] == '\r')
                             {
-                                switch (buffMem.Span[0])
-                                {
-                                    case '\r': self.Ending = RowEnding.CarriageReturn; break;
-                                    case '\n': self.Ending = RowEnding.LineFeed; break;
-                                }
+                                self.Ending = RowEnding.CarriageReturn;
                             }
                             break;
                         }
@@ -284,13 +278,10 @@ end:
                     var end = Inner.Value.Read(buffSpan[BufferStart..]);
                     if (end == 0)
                     {
-                        if (BufferStart > 0)
+                        // only need to check for '\r', because we'll never leave a '\n' pending the buffer
+                        if (BufferStart == 1 && buffSpan[0] == '\r')
                         {
-                            switch (buffSpan[0])
-                            {
-                                case '\r': Ending = RowEnding.CarriageReturn; break;
-                                case '\n': Ending = RowEnding.LineFeed; break;
-                            }
+                            Ending = RowEnding.CarriageReturn;
                         }
                         break;
                     }
@@ -427,7 +418,7 @@ end:
                     }
                     else
                     {
-                        // we need to read more into the buffer before we can tell if we've got a separatore
+                        // we need to read more into the buffer before we can tell if we've got a separator
                         return AdvanceResult.Continue_PushBackOne;
                     }
                 }
@@ -475,7 +466,9 @@ end:
 #if DEBUG
     internal sealed partial class RowEndingDetector : ITestableCancellableProvider
     {
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int? ITestableCancellableProvider.CancelAfter { get; set; }
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int ITestableCancellableProvider.CancelCounter { get; set; }
     }
 
@@ -484,11 +477,14 @@ end:
     internal sealed partial class RowEndingDetector : ITestableAsyncProvider
     {
         private int _GoAsyncAfter;
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int ITestableAsyncProvider.GoAsyncAfter { set { _GoAsyncAfter = value; } }
 
         private int _AsyncCounter;
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int ITestableAsyncProvider.AsyncCounter => _AsyncCounter;
 
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         bool ITestableAsyncProvider.ShouldGoAsync()
         {
             lock (this)

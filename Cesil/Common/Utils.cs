@@ -2,6 +2,8 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq.Expressions;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace Cesil
@@ -543,18 +545,68 @@ tryAgain:
             }
 
             var curSegStart = 0;
+            var c1 = str[0];
 
-            foreach (var cur in head)
+            var e = head.GetEnumerator();
+
+            while (e.MoveNext())
             {
-                var curSegEnd = curSegStart + cur.Length;
+                var searchFrom = 0;
+                var curSpan = e.Current.Span;
 
-                var inSeg = Find(cur.Span, 0, str);
-                if (inSeg != -1)
+searchCurrentSpan:
+                var firstCharInCurSpan = FindChar(curSpan, searchFrom, c1);
+                if (firstCharInCurSpan == -1)
                 {
-                    return curSegStart + inSeg;
+                    // move to next segment
+                    curSegStart += curSpan.Length;
+                    continue;
                 }
 
-                curSegStart = curSegEnd;
+                // we've found the first char, but does the rest of the string appear in this segment?
+
+                // check as much of the string as we can, given what's left in the current span
+                var offsetToRemaining = curSegStart + firstCharInCurSpan + 1;
+                var remainingStrToCheck = str[1..];
+                var remainingSpanToCheck = curSpan[(firstCharInCurSpan + 1)..];
+
+checkRemaining:
+                var toCheck = Math.Min(remainingStrToCheck.Length, remainingSpanToCheck.Length);
+                for (var i = 0; i < toCheck; i++)
+                {
+                    var cStr = remainingStrToCheck[i];
+                    var cSpan = remainingSpanToCheck[i];
+                    if (cStr != cSpan)
+                    {
+                        // no dice, start searching again but further into the span
+                        searchFrom = firstCharInCurSpan + 1;
+                        goto searchCurrentSpan;
+                    }
+                }
+
+                // found it (we checked the whole remaining string)
+                if (remainingStrToCheck.Length == toCheck)
+                {
+                    return curSegStart + firstCharInCurSpan;
+                }
+
+                // now we have checked everything in the _current_ span against str,
+                //   and found that they match up to the end of the span
+
+                offsetToRemaining += remainingSpanToCheck.Length;
+                var nextSegPos = head.GetPosition(offsetToRemaining);
+                if (!head.TryGet(ref nextSegPos, out var afterRemainingCurSpan) || afterRemainingCurSpan.IsEmpty)
+                {
+                    // we ran out of data to check, so just move on
+                    curSegStart += curSpan.Length;
+                    continue;
+                }
+
+                // we have more data to check, so move the span-y bits forward
+                //    to 
+                remainingStrToCheck = remainingStrToCheck[toCheck..];
+                remainingSpanToCheck = afterRemainingCurSpan.Span;
+                goto checkRemaining;
             }
 
             return -1;
@@ -674,7 +726,7 @@ tryAgain:
                 retSpan[destIx] = escapedValueStartAndStop.Value;
                 destIx++;
 
-                var retStr = new string(retSpan.Slice(0, destIx));
+                var retStr = new string(retSpan[..destIx]);
 
                 return retStr;
             }
@@ -688,11 +740,7 @@ tryAgain:
             static int CopyIntoRet(MemoryPool<char> pool, ref IMemoryOwner<char> destOwner, ReadOnlyMemory<char> raw, int copyFrom, int copyTo, int copyLength)
             {
                 var neededLength = copyTo + copyLength;
-                if (neededLength > destOwner.Memory.Length)
-                {
-                    // + 1 'cause we need space for the trailing escape end character
-                    Resize(pool, ref destOwner, neededLength + 1);
-                }
+                GrowIfNeeded(pool, ref destOwner, neededLength);
 
                 var dest = destOwner.Memory;
 
@@ -706,17 +754,24 @@ tryAgain:
             static int AddEscapedChar(MemoryPool<char> pool, ref IMemoryOwner<char> destOwner, char needsEscape, char escapeChar, int copyTo)
             {
                 var neededLength = copyTo + 2;
-                if (neededLength > destOwner.Memory.Length)
-                {
-                    // + 1 'cause we need space for the trailing escape end character
-                    Resize(pool, ref destOwner, neededLength + 1);
-                }
+                GrowIfNeeded(pool, ref destOwner, neededLength);
 
                 var dest = destOwner.Memory.Span;
                 dest[copyTo] = escapeChar;
                 dest[copyTo + 1] = needsEscape;
 
                 return 2;
+            }
+
+            // resize the given buffer if it can't fit needed length
+            //   just a small helper to DRY things up
+            static void GrowIfNeeded(MemoryPool<char> pool, ref IMemoryOwner<char> destOwner, int neededLength)
+            {
+                if (neededLength > destOwner.Memory.Length)
+                {
+                    // + 1 'cause we need space for the trailing escape end character
+                    Resize(pool, ref destOwner, neededLength + 1);
+                }
             }
 
             // update oldOwner to be a rented memory with the given size,
@@ -758,10 +813,7 @@ tryAgain:
             var numCells = describer.GetCellsForDynamicRow(context, rowAsObj, bufferSpan);
             if (numCells > bufferSpan.Length)
             {
-                if (buffer != null)
-                {
-                    buffer.Dispose();
-                }
+                buffer?.Dispose();
                 buffer = arrPool.Rent(numCells);
                 goto tryAgain;
             }
@@ -889,6 +941,113 @@ tryAgain:
                 subSpan[i] = subSpan[j];
                 subSpan[j] = oldI;
             }
+        }
+
+        // injected into delegates to perform runtime checks
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void RuntimeNullableValueCheck<T>(T? mustNotBeNull, string message)
+            where T : struct
+        {
+            if (mustNotBeNull == null)
+            {
+                Throw.InvalidOperationException<object>(message);
+                return;
+            }
+        }
+
+        // injected into delegates to perform runtime checks
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void RuntimeNullableReferenceCheck(object? mustNotBeNull, string message)
+        {
+            if (mustNotBeNull == null)
+            {
+                Throw.InvalidOperationException<object>(message);
+                return;
+            }
+        }
+
+        internal static void ValidateNullHandling(
+            TypeInfo runtimeType,
+            NullHandling newNullHandling
+        )
+        {
+            switch (newNullHandling)
+            {
+                case NullHandling.AllowNull:
+                    if (runtimeType.IsValueType && !runtimeType.IsNullableValueType(out _))
+                    {
+                        Throw.InvalidOperationException<object>($"Type of {runtimeType} cannot be null at runtime, it is not legal to allow nulls");
+                        return;
+                    }
+
+                    break;
+
+                // can always forbid nulls
+                case NullHandling.ForbidNull: break;
+
+                default:
+                    Throw.ImpossibleException<object>($"Unexpected {nameof(NullHandling)}: {newNullHandling}");
+                    return;
+            }
+        }
+
+        internal static Expression MakeNullHandlingCheckExpression(TypeInfo typeOfCheckedValue, ParameterExpression toCheck, string errorMessage)
+        {
+            MethodInfo validationMtd;
+            if (typeOfCheckedValue.IsNullableValueType(out var elemType))
+            {
+                validationMtd = Methods.Utils.RuntimeNullableValueCheck.MakeGenericMethod(elemType);
+            }
+            else
+            {
+                validationMtd = Methods.Utils.RuntimeNullableReferenceCheck;
+            }
+
+            var msgConstant = Expression.Constant(errorMessage);
+            var validationCall = Expression.Call(validationMtd, toCheck, msgConstant);
+
+            return validationCall;
+        }
+
+        internal static NullHandling? CommonInputNullHandling(NullHandling first, NullHandling second)
+        {
+            // if they both do the same thing, obviously the union is the same
+            if (first == second)
+            {
+                return first;
+            }
+
+            // if either FORBIDs null, then the new thing FORBIDs null
+            if (first == NullHandling.ForbidNull || second == NullHandling.ForbidNull)
+            {
+                return NullHandling.ForbidNull;
+            }
+
+            return NullHandling.AllowNull;
+        }
+
+        internal static NullHandling? CommonOutputNullHandling(NullHandling first, NullHandling second)
+        {
+            if (first == second)
+            {
+                return first;
+            }
+
+            // if the _first_ thing cannot fail to produce a non-null value, then the combo is likewise
+            //    effectively non-nullable
+            if (first == NullHandling.CannotBeNull)
+            {
+                return NullHandling.CannotBeNull;
+            }
+
+            // if _either_ could provide a null, then the combo can provide a null
+            if (first == NullHandling.AllowNull || second == NullHandling.AllowNull)
+            {
+                return NullHandling.AllowNull;
+            }
+
+            // now it's got to be a mix of forbid null and cannot be null, which is always forbid
+            return NullHandling.ForbidNull;
         }
     }
 }

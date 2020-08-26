@@ -63,6 +63,9 @@ namespace Cesil
                 typeof(Tuple<,,,,,,,>).GetTypeInfo()
             };
 
+        // Arrays of system types
+        internal static readonly TypeInfo ByteArray = typeof(byte[]).GetTypeInfo();
+
         // System interfaces
         internal static readonly TypeInfo IDisposable = typeof(IDisposable).GetTypeInfo();
         internal static readonly TypeInfo IConvertible = typeof(IConvertible).GetTypeInfo();
@@ -112,6 +115,7 @@ namespace Cesil
         internal static readonly TypeInfo SetterByRefDelegate = typeof(SetterByRefDelegate<,>).GetTypeInfo();
         internal static readonly TypeInfo StaticSetterDelegate = typeof(StaticSetterDelegate<>).GetTypeInfo();
         internal static readonly TypeInfo ResetDelegate = typeof(ResetDelegate<>).GetTypeInfo();
+        internal static readonly TypeInfo ResetByRefDelegate = typeof(ResetByRefDelegate<>).GetTypeInfo();
         internal static readonly TypeInfo StaticResetDelegate = typeof(StaticResetDelegate).GetTypeInfo();
         internal static readonly TypeInfo GetterDelegate = typeof(GetterDelegate<,>).GetTypeInfo();
         internal static readonly TypeInfo StaticGetterDelegate = typeof(StaticGetterDelegate<>).GetTypeInfo();
@@ -151,6 +155,7 @@ namespace Cesil
         internal static readonly TypeInfo DisposableHelper = typeof(DisposableHelper).GetTypeInfo();
         internal static readonly TypeInfo Throw = typeof(Throw).GetTypeInfo();
         internal static readonly TypeInfo TupleDynamicParsers = typeof(TupleDynamicParsers<>).GetTypeInfo();
+        internal static readonly TypeInfo Utils = typeof(Utils).GetTypeInfo();
         internal static readonly TypeInfo WellKnownRowTypes = typeof(WellKnownRowTypes).GetTypeInfo();
         internal static readonly TypeInfo WellKnownEnumRowType = typeof(WellKnownRowTypes.WellKnownEnumRowType<>).GetTypeInfo();
 

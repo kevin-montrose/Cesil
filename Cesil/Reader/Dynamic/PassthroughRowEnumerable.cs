@@ -21,6 +21,7 @@ namespace Cesil
             return new PassthroughRowEnumerator(Row);
         }
 
+        [ExcludeFromCoverage("Trivial, and covered by IEnumerable<T>.GetEnumerator()")]
         IEnumerator IEnumerable.GetEnumerator()
         => GetEnumerator();
 

@@ -36,7 +36,7 @@ namespace Cesil
             => row;
         }
 
-        internal static bool TryGetSetter(TypeInfo type, [MaybeNullWhen(returnValue: false)]out string name, [MaybeNullWhen(returnValue: false)]out Setter setter)
+        internal static bool TryGetSetter(TypeInfo type, [MaybeNullWhen(returnValue: false)] out string name, [MaybeNullWhen(returnValue: false)] out Setter setter)
         {
             var nonNull = Nullable.GetUnderlyingType(type) ?? type;
 
@@ -75,7 +75,7 @@ namespace Cesil
             return false;
         }
 
-        internal static bool TryGetGetter(TypeInfo type, [MaybeNullWhen(returnValue: false)]out string name, [MaybeNullWhen(returnValue: false)]out Getter getter)
+        internal static bool TryGetGetter(TypeInfo type, [MaybeNullWhen(returnValue: false)] out string name, [MaybeNullWhen(returnValue: false)] out Getter getter)
         {
             var nonNull = Nullable.GetUnderlyingType(type) ?? type;
 

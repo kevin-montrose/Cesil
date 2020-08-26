@@ -35,6 +35,95 @@ namespace Cesil.Tests
         }
 
         [Fact]
+        public void WriteCommentErrors()
+        {
+            RunSyncDynamicWriterVariants(
+                Options.DynamicDefault,
+                (config, getWriter, getStr) =>
+                {
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
+                    {
+                        var exc = Assert.Throws<InvalidOperationException>(() => csv.WriteComment("foo"));
+                        Assert.Equal($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line", exc.Message);
+                    }
+
+                    getStr();
+                }
+            );
+        }
+
+        [Fact]
+        public void IllegalRowSizes()
+        {
+            RunSyncDynamicWriterVariants(
+                Options.DynamicDefault,         // this only happens if you're writing headers, which we do by default
+                (config, getWriter, getStr) =>
+                {
+                    var row = MakeDynamicRow("A,B,C\r\n1,2,3");
+                    var tooBigRow = MakeDynamicRow("A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V\r\n4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25");
+
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
+                    {
+                        csv.Write(row);
+
+                        var exc = Assert.Throws<InvalidOperationException>(() => { csv.Write(tooBigRow); });
+                        Assert.Equal("Too many cells returned, could not place in desired order", exc.Message);
+                    }
+
+                    getStr();
+                }
+            );
+        }
+
+        [Fact]
+        public void VariableSizeRows()
+        {
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteHeader(WriteHeader.Never).ToOptions();
+
+            // smaller first
+            RunSyncDynamicWriterVariants(
+                opts,
+                (config, getWriter, getStr) =>
+                {
+                    var r1 = MakeDynamicRow("A,B,C\r\n1,2,3");
+                    var r2 = MakeDynamicRow("A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V\r\n4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25");
+
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
+                    {
+                        csv.Write(r1);
+                        csv.Write(r2);
+                    }
+
+                    var res = getStr();
+                    Assert.Equal("1,2,3\r\n4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25", res);
+                }
+            );
+
+            // larger first
+            RunSyncDynamicWriterVariants(
+                opts,
+                (config, getWriter, getStr) =>
+                {
+                    var r1 = MakeDynamicRow("A,B,C\r\n1,2,3");
+                    var r2 = MakeDynamicRow("A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V\r\n4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25");
+
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
+                    {
+                        csv.Write(r2);
+                        csv.Write(r1);
+                    }
+
+                    var res = getStr();
+                    Assert.Equal("4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25\r\n1,2,3", res);
+                }
+            );
+        }
+
+        [Fact]
         public void ReturnedRowCounts()
         {
             // simple
@@ -347,7 +436,7 @@ namespace Cesil.Tests
 
             public override int GetCellsForDynamicRow(in WriteContext context, dynamic row, Span<DynamicCellValue> cells)
             {
-                if(cells.Length < 1)
+                if (cells.Length < 1)
                 {
                     return 1;
                 }
@@ -631,7 +720,7 @@ namespace Cesil.Tests
 
             public override int GetCellsForDynamicRow(in WriteContext ctx, dynamic row, Span<DynamicCellValue> cells)
             {
-                if(cells.Length < CellNum)
+                if (cells.Length < CellNum)
                 {
                     return CellNum;
                 }
@@ -1994,6 +2083,95 @@ namespace Cesil.Tests
         }
 
         // async tests
+
+        [Fact]
+        public async Task WriteCommentErrorsAsync()
+        {
+            await RunAsyncDynamicWriterVariants(
+                Options.DynamicDefault,
+                async (config, getWriter, getStr) =>
+                {
+                    await using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        var exc = await Assert.ThrowsAsync<InvalidOperationException>(async () => await csv.WriteCommentAsync("foo"));
+                        Assert.Equal($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line", exc.Message);
+                    }
+
+                    await getStr();
+                }
+            );
+        }
+
+        [Fact]
+        public async Task IllegalRowSizesAsync()
+        {
+            await RunAsyncDynamicWriterVariants(
+                Options.DynamicDefault,         // this only happens if you're writing headers, which we do by default
+                async (config, getWriter, getStr) =>
+                {
+                    var row = MakeDynamicRow("A,B,C\r\n1,2,3");
+                    var tooBigRow = MakeDynamicRow("A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V\r\n4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25");
+
+                    await using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        await csv.WriteAsync(row);
+
+                        var exc = await Assert.ThrowsAsync<InvalidOperationException>(async () => { await csv.WriteAsync(tooBigRow); });
+                        Assert.Equal("Too many cells returned, could not place in desired order", exc.Message);
+                    }
+
+                    await getStr();
+                }
+            );
+        }
+
+        [Fact]
+        public async Task VariableSizeRowsAsync()
+        {
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteHeader(WriteHeader.Never).ToOptions();
+
+            // smaller first
+            await RunAsyncDynamicWriterVariants(
+                opts,
+                async (config, getWriter, getStr) =>
+                {
+                    var r1 = MakeDynamicRow("A,B,C\r\n1,2,3");
+                    var r2 = MakeDynamicRow("A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V\r\n4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25");
+
+                    await using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        await csv.WriteAsync(r1);
+                        await csv.WriteAsync(r2);
+                    }
+
+                    var res = await getStr();
+                    Assert.Equal("1,2,3\r\n4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25", res);
+                }
+            );
+
+            // larger first
+            await RunAsyncDynamicWriterVariants(
+                opts,
+                async (config, getWriter, getStr) =>
+                {
+                    var r1 = MakeDynamicRow("A,B,C\r\n1,2,3");
+                    var r2 = MakeDynamicRow("A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V\r\n4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25");
+
+                    await using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        await csv.WriteAsync(r2);
+                        await csv.WriteAsync(r1);
+                    }
+
+                    var res = await getStr();
+                    Assert.Equal("4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25\r\n1,2,3", res);
+                }
+            );
+        }
 
         [Fact]
         public async Task ReturnedRowCountsAsync()

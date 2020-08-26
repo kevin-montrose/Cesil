@@ -15,7 +15,7 @@ namespace Cesil.Tests
             {
                 var ret = 0;
 
-                foreach(var kv in MemoryPools)
+                foreach (var kv in MemoryPools)
                 {
                     var poolType = typeof(TrackedMemoryPool<>).MakeGenericType(kv.Key);
                     var outstandingProp = poolType.GetProperty(nameof(TrackedMemoryPool<object>.OutstandingRentals));
@@ -32,7 +32,7 @@ namespace Cesil.Tests
         {
             var forType = typeof(T).GetTypeInfo();
 
-            if(!MemoryPools.TryGetValue(forType, out var allocated))
+            if (!MemoryPools.TryGetValue(forType, out var allocated))
             {
                 MemoryPools[forType] = allocated = new TrackedMemoryPool<T>();
             }

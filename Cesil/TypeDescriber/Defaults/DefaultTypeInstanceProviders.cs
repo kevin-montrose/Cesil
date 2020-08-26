@@ -8,7 +8,7 @@ namespace Cesil
     {
         private static readonly ImmutableDictionary<TypeInfo, InstanceProvider> ReferenceTypeProviders = GetProviders();
 
-        internal static bool TryGetReferenceInstanceProvider(TypeInfo forType, [MaybeNullWhen(returnValue: false)]out InstanceProvider provider)
+        internal static bool TryGetReferenceInstanceProvider(TypeInfo forType, [MaybeNullWhen(returnValue: false)] out InstanceProvider provider)
         => ReferenceTypeProviders.TryGetValue(forType, out provider);
 
         // any struct can be backed by this

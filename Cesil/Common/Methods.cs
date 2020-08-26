@@ -66,5 +66,11 @@ namespace Cesil
             internal static readonly MethodInfo WellKnownSetter = Types.WellKnownRowTypes.GetMethodNonNull(nameof(Cesil.WellKnownRowTypes.WellKnownSetter), InternalStatic);
             internal static readonly MethodInfo WellKnownGetter = Types.WellKnownRowTypes.GetMethodNonNull(nameof(Cesil.WellKnownRowTypes.WellKnownGetter), InternalStatic);
         }
+
+        internal static class Utils
+        {
+            internal static readonly MethodInfo RuntimeNullableReferenceCheck = Types.Utils.GetMethodNonNull(nameof(Cesil.Utils.RuntimeNullableReferenceCheck), InternalStatic);
+            internal static readonly MethodInfo RuntimeNullableValueCheck = Types.Utils.GetMethodNonNull(nameof(Cesil.Utils.RuntimeNullableValueCheck), InternalStatic);
+        }
     }
 }

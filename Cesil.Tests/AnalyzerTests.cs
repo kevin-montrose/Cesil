@@ -1,16 +1,16 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Diagnostics;
-using Xunit;
-using Cesil.Analyzers;
-using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using Cesil.Analyzers;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
+using Xunit;
 
 namespace Cesil.Tests
 {
@@ -721,6 +721,7 @@ namespace Cesil
     public delegate void SetterByRefDelegate<T,V>(T _, V __);
     public delegate void StaticSetterDelegate<T>(T _);
     public delegate void ResetDelegate<T>(T _);
+    public delegate void ResetByRefDelegate<T>(T _);
     public delegate void StaticResetDelegate();
     public delegate void GetterDelegate<T,V>(T _, V __);
     public delegate void StaticGetterDelegate<T>(T _);
@@ -759,6 +760,7 @@ namespace Cesil
     public class Throw { }
     public class TupleDynamicParsers<T> { }
     public class WellKnownRowTypes { public class WellKnownEnumRowType<T> { } }
+    public class Utils { }
 
     // interfaces
     public interface IDynamicRowOwner { }
@@ -859,7 +861,7 @@ namespace Test
         }
 
         [DiagnosticAnalyzer(LanguageNames.CSharp)]
-        private sealed class BadAnalyzer: AnalyzerBase<object>
+        private sealed class BadAnalyzer : AnalyzerBase<object>
         {
             public BadAnalyzer() : base(false, Array.Empty<DiagnosticDescriptor>(), SyntaxKind.AbstractKeyword) { }
 
