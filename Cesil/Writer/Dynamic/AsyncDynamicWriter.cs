@@ -874,7 +874,7 @@ end:
 
         private void DiscoverColumns(dynamic o)
         {
-            // todo: remove this allocation
+            // todo: remove this allocation (tracking issue: https://github.com/kevin-montrose/Cesil/issues/30)
             var cols = new List<(string TrueName, string EncodedName)>();
 
             var ctx = WriteContext.DiscoveringColumns(Configuration.Options, Context);

@@ -867,7 +867,7 @@ tryAgain:
             Sort(rawSpan, comparer);
         }
 
-        // todo: once MemoryExtensions.Sort() lands we can remove all of this (add tracking issue?)
+        // todo: once MemoryExtensions.Sort() lands we can remove all of this (tracking issue: https://github.com/kevin-montrose/Cesil/issues/29)
         //       coming as part of .NET 5, as a consequence of https://github.com/dotnet/runtime/issues/19969
         internal static void Sort<T>(Span<T> span, Comparison<T> comparer)
         {
