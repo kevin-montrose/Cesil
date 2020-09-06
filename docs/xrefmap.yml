@@ -704,15 +704,15 @@ references:
   isSpec: "True"
   fullName: Cesil.DefaultTypeDescriber.EnumerateMembersToSerialize
   nameWithType: DefaultTypeDescriber.EnumerateMembersToSerialize
-- uid: Cesil.DefaultTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)
-  name: GetCellsForDynamicRow(WriteContext, Object)
-  href: api/Cesil.DefaultTypeDescriber.html#Cesil_DefaultTypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_
-  commentId: M:Cesil.DefaultTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)
-  name.vb: GetCellsForDynamicRow(ByRef WriteContext, Object)
-  fullName: Cesil.DefaultTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext, System.Object)
-  fullName.vb: Cesil.DefaultTypeDescriber.GetCellsForDynamicRow(ByRef Cesil.WriteContext, System.Object)
-  nameWithType: DefaultTypeDescriber.GetCellsForDynamicRow(WriteContext, Object)
-  nameWithType.vb: DefaultTypeDescriber.GetCellsForDynamicRow(ByRef WriteContext, Object)
+- uid: Cesil.DefaultTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object,Span{Cesil.DynamicCellValue})
+  name: GetCellsForDynamicRow(WriteContext, Object, Span<DynamicCellValue>)
+  href: api/Cesil.DefaultTypeDescriber.html#Cesil_DefaultTypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_Span_Cesil_DynamicCellValue__
+  commentId: M:Cesil.DefaultTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object,Span{Cesil.DynamicCellValue})
+  name.vb: GetCellsForDynamicRow(ByRef WriteContext, Object, Span(Of DynamicCellValue))
+  fullName: Cesil.DefaultTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext, System.Object, Span<Cesil.DynamicCellValue>)
+  fullName.vb: Cesil.DefaultTypeDescriber.GetCellsForDynamicRow(ByRef Cesil.WriteContext, System.Object, Span(Of Cesil.DynamicCellValue))
+  nameWithType: DefaultTypeDescriber.GetCellsForDynamicRow(WriteContext, Object, Span<DynamicCellValue>)
+  nameWithType.vb: DefaultTypeDescriber.GetCellsForDynamicRow(ByRef WriteContext, Object, Span(Of DynamicCellValue))
 - uid: Cesil.DefaultTypeDescriber.GetCellsForDynamicRow*
   name: GetCellsForDynamicRow
   href: api/Cesil.DefaultTypeDescriber.html#Cesil_DefaultTypeDescriber_GetCellsForDynamicRow_
@@ -1657,6 +1657,19 @@ references:
   commentId: T:Cesil.Formatter
   fullName: Cesil.Formatter
   nameWithType: Formatter
+- uid: Cesil.Formatter.AllowNullValues
+  name: AllowNullValues()
+  href: api/Cesil.Formatter.html#Cesil_Formatter_AllowNullValues
+  commentId: M:Cesil.Formatter.AllowNullValues
+  fullName: Cesil.Formatter.AllowNullValues()
+  nameWithType: Formatter.AllowNullValues()
+- uid: Cesil.Formatter.AllowNullValues*
+  name: AllowNullValues
+  href: api/Cesil.Formatter.html#Cesil_Formatter_AllowNullValues_
+  commentId: Overload:Cesil.Formatter.AllowNullValues
+  isSpec: "True"
+  fullName: Cesil.Formatter.AllowNullValues
+  nameWithType: Formatter.AllowNullValues
 - uid: Cesil.Formatter.Else(Cesil.Formatter)
   name: Else(Formatter)
   href: api/Cesil.Formatter.html#Cesil_Formatter_Else_Cesil_Formatter_
@@ -1689,6 +1702,19 @@ references:
   isSpec: "True"
   fullName: Cesil.Formatter.Equals
   nameWithType: Formatter.Equals
+- uid: Cesil.Formatter.ForbidNullValues
+  name: ForbidNullValues()
+  href: api/Cesil.Formatter.html#Cesil_Formatter_ForbidNullValues
+  commentId: M:Cesil.Formatter.ForbidNullValues
+  fullName: Cesil.Formatter.ForbidNullValues()
+  nameWithType: Formatter.ForbidNullValues()
+- uid: Cesil.Formatter.ForbidNullValues*
+  name: ForbidNullValues
+  href: api/Cesil.Formatter.html#Cesil_Formatter_ForbidNullValues_
+  commentId: Overload:Cesil.Formatter.ForbidNullValues
+  isSpec: "True"
+  fullName: Cesil.Formatter.ForbidNullValues
+  nameWithType: Formatter.ForbidNullValues
 - uid: Cesil.Formatter.ForDelegate*
   name: ForDelegate
   href: api/Cesil.Formatter.html#Cesil_Formatter_ForDelegate_
@@ -1826,6 +1852,32 @@ references:
   commentId: T:Cesil.Getter
   fullName: Cesil.Getter
   nameWithType: Getter
+- uid: Cesil.Getter.AllowNullRows
+  name: AllowNullRows()
+  href: api/Cesil.Getter.html#Cesil_Getter_AllowNullRows
+  commentId: M:Cesil.Getter.AllowNullRows
+  fullName: Cesil.Getter.AllowNullRows()
+  nameWithType: Getter.AllowNullRows()
+- uid: Cesil.Getter.AllowNullRows*
+  name: AllowNullRows
+  href: api/Cesil.Getter.html#Cesil_Getter_AllowNullRows_
+  commentId: Overload:Cesil.Getter.AllowNullRows
+  isSpec: "True"
+  fullName: Cesil.Getter.AllowNullRows
+  nameWithType: Getter.AllowNullRows
+- uid: Cesil.Getter.AllowNullValues
+  name: AllowNullValues()
+  href: api/Cesil.Getter.html#Cesil_Getter_AllowNullValues
+  commentId: M:Cesil.Getter.AllowNullValues
+  fullName: Cesil.Getter.AllowNullValues()
+  nameWithType: Getter.AllowNullValues()
+- uid: Cesil.Getter.AllowNullValues*
+  name: AllowNullValues
+  href: api/Cesil.Getter.html#Cesil_Getter_AllowNullValues_
+  commentId: Overload:Cesil.Getter.AllowNullValues
+  isSpec: "True"
+  fullName: Cesil.Getter.AllowNullValues
+  nameWithType: Getter.AllowNullValues
 - uid: Cesil.Getter.Equals(Cesil.Getter)
   name: Equals(Getter)
   href: api/Cesil.Getter.html#Cesil_Getter_Equals_Cesil_Getter_
@@ -1845,6 +1897,32 @@ references:
   isSpec: "True"
   fullName: Cesil.Getter.Equals
   nameWithType: Getter.Equals
+- uid: Cesil.Getter.ForbidNullRows
+  name: ForbidNullRows()
+  href: api/Cesil.Getter.html#Cesil_Getter_ForbidNullRows
+  commentId: M:Cesil.Getter.ForbidNullRows
+  fullName: Cesil.Getter.ForbidNullRows()
+  nameWithType: Getter.ForbidNullRows()
+- uid: Cesil.Getter.ForbidNullRows*
+  name: ForbidNullRows
+  href: api/Cesil.Getter.html#Cesil_Getter_ForbidNullRows_
+  commentId: Overload:Cesil.Getter.ForbidNullRows
+  isSpec: "True"
+  fullName: Cesil.Getter.ForbidNullRows
+  nameWithType: Getter.ForbidNullRows
+- uid: Cesil.Getter.ForbidNullValues
+  name: ForbidNullValues()
+  href: api/Cesil.Getter.html#Cesil_Getter_ForbidNullValues
+  commentId: M:Cesil.Getter.ForbidNullValues
+  fullName: Cesil.Getter.ForbidNullValues()
+  nameWithType: Getter.ForbidNullValues()
+- uid: Cesil.Getter.ForbidNullValues*
+  name: ForbidNullValues
+  href: api/Cesil.Getter.html#Cesil_Getter_ForbidNullValues_
+  commentId: Overload:Cesil.Getter.ForbidNullValues
+  isSpec: "True"
+  fullName: Cesil.Getter.ForbidNullValues
+  nameWithType: Getter.ForbidNullValues
 - uid: Cesil.Getter.ForDelegate*
   name: ForDelegate
   href: api/Cesil.Getter.html#Cesil_Getter_ForDelegate_
@@ -2182,6 +2260,15 @@ references:
   fullName.vb: Cesil.IAsyncWriter(Of TRow).WriteAsync
   nameWithType: IAsyncWriter<TRow>.WriteAsync
   nameWithType.vb: IAsyncWriter(Of TRow).WriteAsync
+- uid: Cesil.IAsyncWriter`1.WriteCommentAsync(ReadOnlyMemory{System.Char},CancellationToken)
+  name: WriteCommentAsync(ReadOnlyMemory<Char>, CancellationToken)
+  href: api/Cesil.IAsyncWriter-1.html#Cesil_IAsyncWriter_1_WriteCommentAsync_ReadOnlyMemory_System_Char__CancellationToken_
+  commentId: M:Cesil.IAsyncWriter`1.WriteCommentAsync(ReadOnlyMemory{System.Char},CancellationToken)
+  name.vb: WriteCommentAsync(ReadOnlyMemory(Of Char), CancellationToken)
+  fullName: Cesil.IAsyncWriter<TRow>.WriteCommentAsync(ReadOnlyMemory<System.Char>, CancellationToken)
+  fullName.vb: Cesil.IAsyncWriter(Of TRow).WriteCommentAsync(ReadOnlyMemory(Of System.Char), CancellationToken)
+  nameWithType: IAsyncWriter<TRow>.WriteCommentAsync(ReadOnlyMemory<Char>, CancellationToken)
+  nameWithType.vb: IAsyncWriter(Of TRow).WriteCommentAsync(ReadOnlyMemory(Of Char), CancellationToken)
 - uid: Cesil.IAsyncWriter`1.WriteCommentAsync(System.String,CancellationToken)
   name: WriteCommentAsync(String, CancellationToken)
   href: api/Cesil.IAsyncWriter-1.html#Cesil_IAsyncWriter_1_WriteCommentAsync_System_String_CancellationToken_
@@ -2345,6 +2432,28 @@ references:
   fullName.vb: Cesil.IBoundConfiguration(Of TRow).Options
   nameWithType: IBoundConfiguration<TRow>.Options
   nameWithType.vb: IBoundConfiguration(Of TRow).Options
+- uid: Cesil.IMemoryPoolProvider
+  name: IMemoryPoolProvider
+  href: api/Cesil.IMemoryPoolProvider.html
+  commentId: T:Cesil.IMemoryPoolProvider
+  fullName: Cesil.IMemoryPoolProvider
+  nameWithType: IMemoryPoolProvider
+- uid: Cesil.IMemoryPoolProvider.GetMemoryPool*
+  name: GetMemoryPool
+  href: api/Cesil.IMemoryPoolProvider.html#Cesil_IMemoryPoolProvider_GetMemoryPool_
+  commentId: Overload:Cesil.IMemoryPoolProvider.GetMemoryPool
+  isSpec: "True"
+  fullName: Cesil.IMemoryPoolProvider.GetMemoryPool
+  nameWithType: IMemoryPoolProvider.GetMemoryPool
+- uid: Cesil.IMemoryPoolProvider.GetMemoryPool``1
+  name: GetMemoryPool<TElement>()
+  href: api/Cesil.IMemoryPoolProvider.html#Cesil_IMemoryPoolProvider_GetMemoryPool__1
+  commentId: M:Cesil.IMemoryPoolProvider.GetMemoryPool``1
+  name.vb: GetMemoryPool(Of TElement)()
+  fullName: Cesil.IMemoryPoolProvider.GetMemoryPool<TElement>()
+  fullName.vb: Cesil.IMemoryPoolProvider.GetMemoryPool(Of TElement)()
+  nameWithType: IMemoryPoolProvider.GetMemoryPool<TElement>()
+  nameWithType.vb: IMemoryPoolProvider.GetMemoryPool(Of TElement)()
 - uid: Cesil.ImpossibleException
   name: ImpossibleException
   href: api/Cesil.ImpossibleException.html
@@ -2370,6 +2479,19 @@ references:
   commentId: T:Cesil.InstanceProvider
   fullName: Cesil.InstanceProvider
   nameWithType: InstanceProvider
+- uid: Cesil.InstanceProvider.AllowNullRows
+  name: AllowNullRows()
+  href: api/Cesil.InstanceProvider.html#Cesil_InstanceProvider_AllowNullRows
+  commentId: M:Cesil.InstanceProvider.AllowNullRows
+  fullName: Cesil.InstanceProvider.AllowNullRows()
+  nameWithType: InstanceProvider.AllowNullRows()
+- uid: Cesil.InstanceProvider.AllowNullRows*
+  name: AllowNullRows
+  href: api/Cesil.InstanceProvider.html#Cesil_InstanceProvider_AllowNullRows_
+  commentId: Overload:Cesil.InstanceProvider.AllowNullRows
+  isSpec: "True"
+  fullName: Cesil.InstanceProvider.AllowNullRows
+  nameWithType: InstanceProvider.AllowNullRows
 - uid: Cesil.InstanceProvider.Else(Cesil.InstanceProvider)
   name: Else(InstanceProvider)
   href: api/Cesil.InstanceProvider.html#Cesil_InstanceProvider_Else_Cesil_InstanceProvider_
@@ -2402,6 +2524,19 @@ references:
   isSpec: "True"
   fullName: Cesil.InstanceProvider.Equals
   nameWithType: InstanceProvider.Equals
+- uid: Cesil.InstanceProvider.ForbidNullRows
+  name: ForbidNullRows()
+  href: api/Cesil.InstanceProvider.html#Cesil_InstanceProvider_ForbidNullRows
+  commentId: M:Cesil.InstanceProvider.ForbidNullRows
+  fullName: Cesil.InstanceProvider.ForbidNullRows()
+  nameWithType: InstanceProvider.ForbidNullRows()
+- uid: Cesil.InstanceProvider.ForbidNullRows*
+  name: ForbidNullRows
+  href: api/Cesil.InstanceProvider.html#Cesil_InstanceProvider_ForbidNullRows_
+  commentId: Overload:Cesil.InstanceProvider.ForbidNullRows
+  isSpec: "True"
+  fullName: Cesil.InstanceProvider.ForbidNullRows
+  nameWithType: InstanceProvider.ForbidNullRows
 - uid: Cesil.InstanceProvider.ForConstructorWithParameters(ConstructorInfo)
   name: ForConstructorWithParameters(ConstructorInfo)
   href: api/Cesil.InstanceProvider.html#Cesil_InstanceProvider_ForConstructorWithParameters_ConstructorInfo_
@@ -2723,15 +2858,15 @@ references:
   isSpec: "True"
   fullName: Cesil.ITypeDescriber.EnumerateMembersToSerialize
   nameWithType: ITypeDescriber.EnumerateMembersToSerialize
-- uid: Cesil.ITypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)
-  name: GetCellsForDynamicRow(WriteContext, Object)
-  href: api/Cesil.ITypeDescriber.html#Cesil_ITypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_
-  commentId: M:Cesil.ITypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)
-  name.vb: GetCellsForDynamicRow(ByRef WriteContext, Object)
-  fullName: Cesil.ITypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext, System.Object)
-  fullName.vb: Cesil.ITypeDescriber.GetCellsForDynamicRow(ByRef Cesil.WriteContext, System.Object)
-  nameWithType: ITypeDescriber.GetCellsForDynamicRow(WriteContext, Object)
-  nameWithType.vb: ITypeDescriber.GetCellsForDynamicRow(ByRef WriteContext, Object)
+- uid: Cesil.ITypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object,Span{Cesil.DynamicCellValue})
+  name: GetCellsForDynamicRow(WriteContext, Object, Span<DynamicCellValue>)
+  href: api/Cesil.ITypeDescriber.html#Cesil_ITypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_Span_Cesil_DynamicCellValue__
+  commentId: M:Cesil.ITypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object,Span{Cesil.DynamicCellValue})
+  name.vb: GetCellsForDynamicRow(ByRef WriteContext, Object, Span(Of DynamicCellValue))
+  fullName: Cesil.ITypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext, System.Object, Span<Cesil.DynamicCellValue>)
+  fullName.vb: Cesil.ITypeDescriber.GetCellsForDynamicRow(ByRef Cesil.WriteContext, System.Object, Span(Of Cesil.DynamicCellValue))
+  nameWithType: ITypeDescriber.GetCellsForDynamicRow(WriteContext, Object, Span<DynamicCellValue>)
+  nameWithType.vb: ITypeDescriber.GetCellsForDynamicRow(ByRef WriteContext, Object, Span(Of DynamicCellValue))
 - uid: Cesil.ITypeDescriber.GetCellsForDynamicRow*
   name: GetCellsForDynamicRow
   href: api/Cesil.ITypeDescriber.html#Cesil_ITypeDescriber_GetCellsForDynamicRow_
@@ -2828,6 +2963,15 @@ references:
   fullName.vb: Cesil.IWriter(Of TRow).WriteAll
   nameWithType: IWriter<TRow>.WriteAll
   nameWithType.vb: IWriter(Of TRow).WriteAll
+- uid: Cesil.IWriter`1.WriteComment(ReadOnlySpan{System.Char})
+  name: WriteComment(ReadOnlySpan<Char>)
+  href: api/Cesil.IWriter-1.html#Cesil_IWriter_1_WriteComment_ReadOnlySpan_System_Char__
+  commentId: M:Cesil.IWriter`1.WriteComment(ReadOnlySpan{System.Char})
+  name.vb: WriteComment(ReadOnlySpan(Of Char))
+  fullName: Cesil.IWriter<TRow>.WriteComment(ReadOnlySpan<System.Char>)
+  fullName.vb: Cesil.IWriter(Of TRow).WriteComment(ReadOnlySpan(Of System.Char))
+  nameWithType: IWriter<TRow>.WriteComment(ReadOnlySpan<Char>)
+  nameWithType.vb: IWriter(Of TRow).WriteComment(ReadOnlySpan(Of Char))
 - uid: Cesil.IWriter`1.WriteComment(System.String)
   name: WriteComment(String)
   href: api/Cesil.IWriter-1.html#Cesil_IWriter_1_WriteComment_System_String_
@@ -2927,15 +3071,15 @@ references:
   isSpec: "True"
   fullName: Cesil.ManualTypeDescriber.Equals
   nameWithType: ManualTypeDescriber.Equals
-- uid: Cesil.ManualTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)
-  name: GetCellsForDynamicRow(WriteContext, Object)
-  href: api/Cesil.ManualTypeDescriber.html#Cesil_ManualTypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_
-  commentId: M:Cesil.ManualTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)
-  name.vb: GetCellsForDynamicRow(ByRef WriteContext, Object)
-  fullName: Cesil.ManualTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext, System.Object)
-  fullName.vb: Cesil.ManualTypeDescriber.GetCellsForDynamicRow(ByRef Cesil.WriteContext, System.Object)
-  nameWithType: ManualTypeDescriber.GetCellsForDynamicRow(WriteContext, Object)
-  nameWithType.vb: ManualTypeDescriber.GetCellsForDynamicRow(ByRef WriteContext, Object)
+- uid: Cesil.ManualTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object,Span{Cesil.DynamicCellValue})
+  name: GetCellsForDynamicRow(WriteContext, Object, Span<DynamicCellValue>)
+  href: api/Cesil.ManualTypeDescriber.html#Cesil_ManualTypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_Span_Cesil_DynamicCellValue__
+  commentId: M:Cesil.ManualTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object,Span{Cesil.DynamicCellValue})
+  name.vb: GetCellsForDynamicRow(ByRef WriteContext, Object, Span(Of DynamicCellValue))
+  fullName: Cesil.ManualTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext, System.Object, Span<Cesil.DynamicCellValue>)
+  fullName.vb: Cesil.ManualTypeDescriber.GetCellsForDynamicRow(ByRef Cesil.WriteContext, System.Object, Span(Of Cesil.DynamicCellValue))
+  nameWithType: ManualTypeDescriber.GetCellsForDynamicRow(WriteContext, Object, Span<DynamicCellValue>)
+  nameWithType.vb: ManualTypeDescriber.GetCellsForDynamicRow(ByRef WriteContext, Object, Span(Of DynamicCellValue))
 - uid: Cesil.ManualTypeDescriber.GetCellsForDynamicRow*
   name: GetCellsForDynamicRow
   href: api/Cesil.ManualTypeDescriber.html#Cesil_ManualTypeDescriber_GetCellsForDynamicRow_
@@ -3540,6 +3684,25 @@ references:
   commentId: F:Cesil.MemberRequired.Yes
   fullName: Cesil.MemberRequired.Yes
   nameWithType: MemberRequired.Yes
+- uid: Cesil.MemoryPoolProviders
+  name: MemoryPoolProviders
+  href: api/Cesil.MemoryPoolProviders.html
+  commentId: T:Cesil.MemoryPoolProviders
+  fullName: Cesil.MemoryPoolProviders
+  nameWithType: MemoryPoolProviders
+- uid: Cesil.MemoryPoolProviders.Default
+  name: Default
+  href: api/Cesil.MemoryPoolProviders.html#Cesil_MemoryPoolProviders_Default
+  commentId: P:Cesil.MemoryPoolProviders.Default
+  fullName: Cesil.MemoryPoolProviders.Default
+  nameWithType: MemoryPoolProviders.Default
+- uid: Cesil.MemoryPoolProviders.Default*
+  name: Default
+  href: api/Cesil.MemoryPoolProviders.html#Cesil_MemoryPoolProviders_Default_
+  commentId: Overload:Cesil.MemoryPoolProviders.Default
+  isSpec: "True"
+  fullName: Cesil.MemoryPoolProviders.Default
+  nameWithType: MemoryPoolProviders.Default
 - uid: Cesil.Options
   name: Options
   href: api/Cesil.Options.html
@@ -3674,19 +3837,19 @@ references:
   isSpec: "True"
   fullName: Cesil.Options.GetHashCode
   nameWithType: Options.GetHashCode
-- uid: Cesil.Options.MemoryPool
-  name: MemoryPool
-  href: api/Cesil.Options.html#Cesil_Options_MemoryPool
-  commentId: P:Cesil.Options.MemoryPool
-  fullName: Cesil.Options.MemoryPool
-  nameWithType: Options.MemoryPool
-- uid: Cesil.Options.MemoryPool*
-  name: MemoryPool
-  href: api/Cesil.Options.html#Cesil_Options_MemoryPool_
-  commentId: Overload:Cesil.Options.MemoryPool
+- uid: Cesil.Options.MemoryPoolProvider
+  name: MemoryPoolProvider
+  href: api/Cesil.Options.html#Cesil_Options_MemoryPoolProvider
+  commentId: P:Cesil.Options.MemoryPoolProvider
+  fullName: Cesil.Options.MemoryPoolProvider
+  nameWithType: Options.MemoryPoolProvider
+- uid: Cesil.Options.MemoryPoolProvider*
+  name: MemoryPoolProvider
+  href: api/Cesil.Options.html#Cesil_Options_MemoryPoolProvider_
+  commentId: Overload:Cesil.Options.MemoryPoolProvider
   isSpec: "True"
-  fullName: Cesil.Options.MemoryPool
-  nameWithType: Options.MemoryPool
+  fullName: Cesil.Options.MemoryPoolProvider
+  nameWithType: Options.MemoryPoolProvider
 - uid: Cesil.Options.op_Equality(Cesil.Options,Cesil.Options)
   name: Equality(Options, Options)
   href: api/Cesil.Options.html#Cesil_Options_op_Equality_Cesil_Options_Cesil_Options_
@@ -3933,19 +4096,19 @@ references:
   isSpec: "True"
   fullName: Cesil.OptionsBuilder.ExtraColumnTreatment
   nameWithType: OptionsBuilder.ExtraColumnTreatment
-- uid: Cesil.OptionsBuilder.MemoryPool
-  name: MemoryPool
-  href: api/Cesil.OptionsBuilder.html#Cesil_OptionsBuilder_MemoryPool
-  commentId: P:Cesil.OptionsBuilder.MemoryPool
-  fullName: Cesil.OptionsBuilder.MemoryPool
-  nameWithType: OptionsBuilder.MemoryPool
-- uid: Cesil.OptionsBuilder.MemoryPool*
-  name: MemoryPool
-  href: api/Cesil.OptionsBuilder.html#Cesil_OptionsBuilder_MemoryPool_
-  commentId: Overload:Cesil.OptionsBuilder.MemoryPool
+- uid: Cesil.OptionsBuilder.MemoryPoolProvider
+  name: MemoryPoolProvider
+  href: api/Cesil.OptionsBuilder.html#Cesil_OptionsBuilder_MemoryPoolProvider
+  commentId: P:Cesil.OptionsBuilder.MemoryPoolProvider
+  fullName: Cesil.OptionsBuilder.MemoryPoolProvider
+  nameWithType: OptionsBuilder.MemoryPoolProvider
+- uid: Cesil.OptionsBuilder.MemoryPoolProvider*
+  name: MemoryPoolProvider
+  href: api/Cesil.OptionsBuilder.html#Cesil_OptionsBuilder_MemoryPoolProvider_
+  commentId: Overload:Cesil.OptionsBuilder.MemoryPoolProvider
   isSpec: "True"
-  fullName: Cesil.OptionsBuilder.MemoryPool
-  nameWithType: OptionsBuilder.MemoryPool
+  fullName: Cesil.OptionsBuilder.MemoryPoolProvider
+  nameWithType: OptionsBuilder.MemoryPoolProvider
 - uid: Cesil.OptionsBuilder.ReadBufferSizeHint
   name: ReadBufferSizeHint
   href: api/Cesil.OptionsBuilder.html#Cesil_OptionsBuilder_ReadBufferSizeHint
@@ -4124,22 +4287,19 @@ references:
   isSpec: "True"
   fullName: Cesil.OptionsBuilder.WithExtraColumnTreatment
   nameWithType: OptionsBuilder.WithExtraColumnTreatment
-- uid: Cesil.OptionsBuilder.WithMemoryPool(MemoryPool{System.Char})
-  name: WithMemoryPool(MemoryPool<Char>)
-  href: api/Cesil.OptionsBuilder.html#Cesil_OptionsBuilder_WithMemoryPool_MemoryPool_System_Char__
-  commentId: M:Cesil.OptionsBuilder.WithMemoryPool(MemoryPool{System.Char})
-  name.vb: WithMemoryPool(MemoryPool(Of Char))
-  fullName: Cesil.OptionsBuilder.WithMemoryPool(MemoryPool<System.Char>)
-  fullName.vb: Cesil.OptionsBuilder.WithMemoryPool(MemoryPool(Of System.Char))
-  nameWithType: OptionsBuilder.WithMemoryPool(MemoryPool<Char>)
-  nameWithType.vb: OptionsBuilder.WithMemoryPool(MemoryPool(Of Char))
-- uid: Cesil.OptionsBuilder.WithMemoryPool*
-  name: WithMemoryPool
-  href: api/Cesil.OptionsBuilder.html#Cesil_OptionsBuilder_WithMemoryPool_
-  commentId: Overload:Cesil.OptionsBuilder.WithMemoryPool
+- uid: Cesil.OptionsBuilder.WithMemoryPoolProvider(Cesil.IMemoryPoolProvider)
+  name: WithMemoryPoolProvider(IMemoryPoolProvider)
+  href: api/Cesil.OptionsBuilder.html#Cesil_OptionsBuilder_WithMemoryPoolProvider_Cesil_IMemoryPoolProvider_
+  commentId: M:Cesil.OptionsBuilder.WithMemoryPoolProvider(Cesil.IMemoryPoolProvider)
+  fullName: Cesil.OptionsBuilder.WithMemoryPoolProvider(Cesil.IMemoryPoolProvider)
+  nameWithType: OptionsBuilder.WithMemoryPoolProvider(IMemoryPoolProvider)
+- uid: Cesil.OptionsBuilder.WithMemoryPoolProvider*
+  name: WithMemoryPoolProvider
+  href: api/Cesil.OptionsBuilder.html#Cesil_OptionsBuilder_WithMemoryPoolProvider_
+  commentId: Overload:Cesil.OptionsBuilder.WithMemoryPoolProvider
   isSpec: "True"
-  fullName: Cesil.OptionsBuilder.WithMemoryPool
-  nameWithType: OptionsBuilder.WithMemoryPool
+  fullName: Cesil.OptionsBuilder.WithMemoryPoolProvider
+  nameWithType: OptionsBuilder.WithMemoryPoolProvider
 - uid: Cesil.OptionsBuilder.WithReadBufferSizeHint(System.Int32)
   name: WithReadBufferSizeHint(Int32)
   href: api/Cesil.OptionsBuilder.html#Cesil_OptionsBuilder_WithReadBufferSizeHint_System_Int32_
@@ -4192,12 +4352,12 @@ references:
   isSpec: "True"
   fullName: Cesil.OptionsBuilder.WithTypeDescriber
   nameWithType: OptionsBuilder.WithTypeDescriber
-- uid: Cesil.OptionsBuilder.WithValueSeparator(System.Char)
-  name: WithValueSeparator(Char)
-  href: api/Cesil.OptionsBuilder.html#Cesil_OptionsBuilder_WithValueSeparator_System_Char_
-  commentId: M:Cesil.OptionsBuilder.WithValueSeparator(System.Char)
-  fullName: Cesil.OptionsBuilder.WithValueSeparator(System.Char)
-  nameWithType: OptionsBuilder.WithValueSeparator(Char)
+- uid: Cesil.OptionsBuilder.WithValueSeparator(System.String)
+  name: WithValueSeparator(String)
+  href: api/Cesil.OptionsBuilder.html#Cesil_OptionsBuilder_WithValueSeparator_System_String_
+  commentId: M:Cesil.OptionsBuilder.WithValueSeparator(System.String)
+  fullName: Cesil.OptionsBuilder.WithValueSeparator(System.String)
+  nameWithType: OptionsBuilder.WithValueSeparator(String)
 - uid: Cesil.OptionsBuilder.WithValueSeparator*
   name: WithValueSeparator
   href: api/Cesil.OptionsBuilder.html#Cesil_OptionsBuilder_WithValueSeparator_
@@ -4305,6 +4465,19 @@ references:
   commentId: T:Cesil.Parser
   fullName: Cesil.Parser
   nameWithType: Parser
+- uid: Cesil.Parser.AllowNullValues
+  name: AllowNullValues()
+  href: api/Cesil.Parser.html#Cesil_Parser_AllowNullValues
+  commentId: M:Cesil.Parser.AllowNullValues
+  fullName: Cesil.Parser.AllowNullValues()
+  nameWithType: Parser.AllowNullValues()
+- uid: Cesil.Parser.AllowNullValues*
+  name: AllowNullValues
+  href: api/Cesil.Parser.html#Cesil_Parser_AllowNullValues_
+  commentId: Overload:Cesil.Parser.AllowNullValues
+  isSpec: "True"
+  fullName: Cesil.Parser.AllowNullValues
+  nameWithType: Parser.AllowNullValues
 - uid: Cesil.Parser.Else(Cesil.Parser)
   name: Else(Parser)
   href: api/Cesil.Parser.html#Cesil_Parser_Else_Cesil_Parser_
@@ -4337,6 +4510,19 @@ references:
   isSpec: "True"
   fullName: Cesil.Parser.Equals
   nameWithType: Parser.Equals
+- uid: Cesil.Parser.ForbidNullValues
+  name: ForbidNullValues()
+  href: api/Cesil.Parser.html#Cesil_Parser_ForbidNullValues
+  commentId: M:Cesil.Parser.ForbidNullValues
+  fullName: Cesil.Parser.ForbidNullValues()
+  nameWithType: Parser.ForbidNullValues()
+- uid: Cesil.Parser.ForbidNullValues*
+  name: ForbidNullValues
+  href: api/Cesil.Parser.html#Cesil_Parser_ForbidNullValues_
+  commentId: Overload:Cesil.Parser.ForbidNullValues
+  isSpec: "True"
+  fullName: Cesil.Parser.ForbidNullValues
+  nameWithType: Parser.ForbidNullValues
 - uid: Cesil.Parser.ForConstructor(ConstructorInfo)
   name: ForConstructor(ConstructorInfo)
   href: api/Cesil.Parser.html#Cesil_Parser_ForConstructor_ConstructorInfo_
@@ -4900,6 +5086,19 @@ references:
   commentId: T:Cesil.Reset
   fullName: Cesil.Reset
   nameWithType: Reset
+- uid: Cesil.Reset.AllowNullRows
+  name: AllowNullRows()
+  href: api/Cesil.Reset.html#Cesil_Reset_AllowNullRows
+  commentId: M:Cesil.Reset.AllowNullRows
+  fullName: Cesil.Reset.AllowNullRows()
+  nameWithType: Reset.AllowNullRows()
+- uid: Cesil.Reset.AllowNullRows*
+  name: AllowNullRows
+  href: api/Cesil.Reset.html#Cesil_Reset_AllowNullRows_
+  commentId: Overload:Cesil.Reset.AllowNullRows
+  isSpec: "True"
+  fullName: Cesil.Reset.AllowNullRows
+  nameWithType: Reset.AllowNullRows
 - uid: Cesil.Reset.Equals(Cesil.Reset)
   name: Equals(Reset)
   href: api/Cesil.Reset.html#Cesil_Reset_Equals_Cesil_Reset_
@@ -4919,6 +5118,19 @@ references:
   isSpec: "True"
   fullName: Cesil.Reset.Equals
   nameWithType: Reset.Equals
+- uid: Cesil.Reset.ForbidNullRows
+  name: ForbidNullRows()
+  href: api/Cesil.Reset.html#Cesil_Reset_ForbidNullRows
+  commentId: M:Cesil.Reset.ForbidNullRows
+  fullName: Cesil.Reset.ForbidNullRows()
+  nameWithType: Reset.ForbidNullRows()
+- uid: Cesil.Reset.ForbidNullRows*
+  name: ForbidNullRows
+  href: api/Cesil.Reset.html#Cesil_Reset_ForbidNullRows_
+  commentId: Overload:Cesil.Reset.ForbidNullRows
+  isSpec: "True"
+  fullName: Cesil.Reset.ForbidNullRows
+  nameWithType: Reset.ForbidNullRows
 - uid: Cesil.Reset.ForDelegate(Cesil.StaticResetDelegate)
   name: ForDelegate(StaticResetDelegate)
   href: api/Cesil.Reset.html#Cesil_Reset_ForDelegate_Cesil_StaticResetDelegate_
@@ -4932,6 +5144,15 @@ references:
   isSpec: "True"
   fullName: Cesil.Reset.ForDelegate
   nameWithType: Reset.ForDelegate
+- uid: Cesil.Reset.ForDelegate``1(Cesil.ResetByRefDelegate{``0})
+  name: ForDelegate<TRow>(ResetByRefDelegate<TRow>)
+  href: api/Cesil.Reset.html#Cesil_Reset_ForDelegate__1_Cesil_ResetByRefDelegate___0__
+  commentId: M:Cesil.Reset.ForDelegate``1(Cesil.ResetByRefDelegate{``0})
+  name.vb: ForDelegate(Of TRow)(ResetByRefDelegate(Of TRow))
+  fullName: Cesil.Reset.ForDelegate<TRow>(Cesil.ResetByRefDelegate<TRow>)
+  fullName.vb: Cesil.Reset.ForDelegate(Of TRow)(Cesil.ResetByRefDelegate(Of TRow))
+  nameWithType: Reset.ForDelegate<TRow>(ResetByRefDelegate<TRow>)
+  nameWithType.vb: Reset.ForDelegate(Of TRow)(ResetByRefDelegate(Of TRow))
 - uid: Cesil.Reset.ForDelegate``1(Cesil.ResetDelegate{``0})
   name: ForDelegate<TRow>(ResetDelegate<TRow>)
   href: api/Cesil.Reset.html#Cesil_Reset_ForDelegate__1_Cesil_ResetDelegate___0__
@@ -5034,6 +5255,15 @@ references:
   isSpec: "True"
   fullName: Cesil.Reset.ToString
   nameWithType: Reset.ToString
+- uid: Cesil.ResetByRefDelegate`1
+  name: ResetByRefDelegate<TRow>
+  href: api/Cesil.ResetByRefDelegate-1.html
+  commentId: T:Cesil.ResetByRefDelegate`1
+  name.vb: ResetByRefDelegate(Of TRow)
+  fullName: Cesil.ResetByRefDelegate<TRow>
+  fullName.vb: Cesil.ResetByRefDelegate(Of TRow)
+  nameWithType: ResetByRefDelegate<TRow>
+  nameWithType.vb: ResetByRefDelegate(Of TRow)
 - uid: Cesil.ResetDelegate`1
   name: ResetDelegate<TRow>
   href: api/Cesil.ResetDelegate-1.html
@@ -5256,6 +5486,32 @@ references:
   commentId: T:Cesil.Setter
   fullName: Cesil.Setter
   nameWithType: Setter
+- uid: Cesil.Setter.AllowNullRows
+  name: AllowNullRows()
+  href: api/Cesil.Setter.html#Cesil_Setter_AllowNullRows
+  commentId: M:Cesil.Setter.AllowNullRows
+  fullName: Cesil.Setter.AllowNullRows()
+  nameWithType: Setter.AllowNullRows()
+- uid: Cesil.Setter.AllowNullRows*
+  name: AllowNullRows
+  href: api/Cesil.Setter.html#Cesil_Setter_AllowNullRows_
+  commentId: Overload:Cesil.Setter.AllowNullRows
+  isSpec: "True"
+  fullName: Cesil.Setter.AllowNullRows
+  nameWithType: Setter.AllowNullRows
+- uid: Cesil.Setter.AllowNullValues
+  name: AllowNullValues()
+  href: api/Cesil.Setter.html#Cesil_Setter_AllowNullValues
+  commentId: M:Cesil.Setter.AllowNullValues
+  fullName: Cesil.Setter.AllowNullValues()
+  nameWithType: Setter.AllowNullValues()
+- uid: Cesil.Setter.AllowNullValues*
+  name: AllowNullValues
+  href: api/Cesil.Setter.html#Cesil_Setter_AllowNullValues_
+  commentId: Overload:Cesil.Setter.AllowNullValues
+  isSpec: "True"
+  fullName: Cesil.Setter.AllowNullValues
+  nameWithType: Setter.AllowNullValues
 - uid: Cesil.Setter.Equals(Cesil.Setter)
   name: Equals(Setter)
   href: api/Cesil.Setter.html#Cesil_Setter_Equals_Cesil_Setter_
@@ -5275,6 +5531,32 @@ references:
   isSpec: "True"
   fullName: Cesil.Setter.Equals
   nameWithType: Setter.Equals
+- uid: Cesil.Setter.ForbidNullRows
+  name: ForbidNullRows()
+  href: api/Cesil.Setter.html#Cesil_Setter_ForbidNullRows
+  commentId: M:Cesil.Setter.ForbidNullRows
+  fullName: Cesil.Setter.ForbidNullRows()
+  nameWithType: Setter.ForbidNullRows()
+- uid: Cesil.Setter.ForbidNullRows*
+  name: ForbidNullRows
+  href: api/Cesil.Setter.html#Cesil_Setter_ForbidNullRows_
+  commentId: Overload:Cesil.Setter.ForbidNullRows
+  isSpec: "True"
+  fullName: Cesil.Setter.ForbidNullRows
+  nameWithType: Setter.ForbidNullRows
+- uid: Cesil.Setter.ForbidNullValues
+  name: ForbidNullValues()
+  href: api/Cesil.Setter.html#Cesil_Setter_ForbidNullValues
+  commentId: M:Cesil.Setter.ForbidNullValues
+  fullName: Cesil.Setter.ForbidNullValues()
+  nameWithType: Setter.ForbidNullValues()
+- uid: Cesil.Setter.ForbidNullValues*
+  name: ForbidNullValues
+  href: api/Cesil.Setter.html#Cesil_Setter_ForbidNullValues_
+  commentId: Overload:Cesil.Setter.ForbidNullValues
+  isSpec: "True"
+  fullName: Cesil.Setter.ForbidNullValues
+  nameWithType: Setter.ForbidNullValues
 - uid: Cesil.Setter.ForConstructorParameter(ParameterInfo)
   name: ForConstructorParameter(ParameterInfo)
   href: api/Cesil.Setter.html#Cesil_Setter_ForConstructorParameter_ParameterInfo_
@@ -5483,6 +5765,19 @@ references:
   commentId: T:Cesil.ShouldSerialize
   fullName: Cesil.ShouldSerialize
   nameWithType: ShouldSerialize
+- uid: Cesil.ShouldSerialize.AllowNullRows
+  name: AllowNullRows()
+  href: api/Cesil.ShouldSerialize.html#Cesil_ShouldSerialize_AllowNullRows
+  commentId: M:Cesil.ShouldSerialize.AllowNullRows
+  fullName: Cesil.ShouldSerialize.AllowNullRows()
+  nameWithType: ShouldSerialize.AllowNullRows()
+- uid: Cesil.ShouldSerialize.AllowNullRows*
+  name: AllowNullRows
+  href: api/Cesil.ShouldSerialize.html#Cesil_ShouldSerialize_AllowNullRows_
+  commentId: Overload:Cesil.ShouldSerialize.AllowNullRows
+  isSpec: "True"
+  fullName: Cesil.ShouldSerialize.AllowNullRows
+  nameWithType: ShouldSerialize.AllowNullRows
 - uid: Cesil.ShouldSerialize.Equals(Cesil.ShouldSerialize)
   name: Equals(ShouldSerialize)
   href: api/Cesil.ShouldSerialize.html#Cesil_ShouldSerialize_Equals_Cesil_ShouldSerialize_
@@ -5502,6 +5797,19 @@ references:
   isSpec: "True"
   fullName: Cesil.ShouldSerialize.Equals
   nameWithType: ShouldSerialize.Equals
+- uid: Cesil.ShouldSerialize.ForbidNullRows
+  name: ForbidNullRows()
+  href: api/Cesil.ShouldSerialize.html#Cesil_ShouldSerialize_ForbidNullRows
+  commentId: M:Cesil.ShouldSerialize.ForbidNullRows
+  fullName: Cesil.ShouldSerialize.ForbidNullRows()
+  nameWithType: ShouldSerialize.ForbidNullRows()
+- uid: Cesil.ShouldSerialize.ForbidNullRows*
+  name: ForbidNullRows
+  href: api/Cesil.ShouldSerialize.html#Cesil_ShouldSerialize_ForbidNullRows_
+  commentId: Overload:Cesil.ShouldSerialize.ForbidNullRows
+  isSpec: "True"
+  fullName: Cesil.ShouldSerialize.ForbidNullRows
+  nameWithType: ShouldSerialize.ForbidNullRows
 - uid: Cesil.ShouldSerialize.ForDelegate(Cesil.StaticShouldSerializeDelegate)
   name: ForDelegate(StaticShouldSerializeDelegate)
   href: api/Cesil.ShouldSerialize.html#Cesil_ShouldSerialize_ForDelegate_Cesil_StaticShouldSerializeDelegate_
@@ -5744,15 +6052,15 @@ references:
   isSpec: "True"
   fullName: Cesil.SurrogateTypeDescriber.Equals
   nameWithType: SurrogateTypeDescriber.Equals
-- uid: Cesil.SurrogateTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)
-  name: GetCellsForDynamicRow(WriteContext, Object)
-  href: api/Cesil.SurrogateTypeDescriber.html#Cesil_SurrogateTypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_
-  commentId: M:Cesil.SurrogateTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)
-  name.vb: GetCellsForDynamicRow(ByRef WriteContext, Object)
-  fullName: Cesil.SurrogateTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext, System.Object)
-  fullName.vb: Cesil.SurrogateTypeDescriber.GetCellsForDynamicRow(ByRef Cesil.WriteContext, System.Object)
-  nameWithType: SurrogateTypeDescriber.GetCellsForDynamicRow(WriteContext, Object)
-  nameWithType.vb: SurrogateTypeDescriber.GetCellsForDynamicRow(ByRef WriteContext, Object)
+- uid: Cesil.SurrogateTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object,Span{Cesil.DynamicCellValue})
+  name: GetCellsForDynamicRow(WriteContext, Object, Span<DynamicCellValue>)
+  href: api/Cesil.SurrogateTypeDescriber.html#Cesil_SurrogateTypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_Span_Cesil_DynamicCellValue__
+  commentId: M:Cesil.SurrogateTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object,Span{Cesil.DynamicCellValue})
+  name.vb: GetCellsForDynamicRow(ByRef WriteContext, Object, Span(Of DynamicCellValue))
+  fullName: Cesil.SurrogateTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext, System.Object, Span<Cesil.DynamicCellValue>)
+  fullName.vb: Cesil.SurrogateTypeDescriber.GetCellsForDynamicRow(ByRef Cesil.WriteContext, System.Object, Span(Of Cesil.DynamicCellValue))
+  nameWithType: SurrogateTypeDescriber.GetCellsForDynamicRow(WriteContext, Object, Span<DynamicCellValue>)
+  nameWithType.vb: SurrogateTypeDescriber.GetCellsForDynamicRow(ByRef WriteContext, Object, Span(Of DynamicCellValue))
 - uid: Cesil.SurrogateTypeDescriber.GetCellsForDynamicRow*
   name: GetCellsForDynamicRow
   href: api/Cesil.SurrogateTypeDescriber.html#Cesil_SurrogateTypeDescriber_GetCellsForDynamicRow_

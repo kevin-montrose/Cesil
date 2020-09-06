@@ -268,19 +268,19 @@ MUST be null for formats without an EscapedValueStartAndEnd.</p>
   </table>
   <span class="small pull-right mobile-hide">
     <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_MemoryPool.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.MemoryPool%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_MemoryPoolProvider.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.MemoryPoolProvider%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
     <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L65">View Source</a>
   </span>
-  <a id="Cesil_OptionsBuilder_MemoryPool_" data-uid="Cesil.OptionsBuilder.MemoryPool*"></a>
-  <h4 id="Cesil_OptionsBuilder_MemoryPool" data-uid="Cesil.OptionsBuilder.MemoryPool">MemoryPool</h4>
-  <div class="markdown level1 summary"><p>Which MemoryPool to use when reading or writing a CSV.</p>
+  <a id="Cesil_OptionsBuilder_MemoryPoolProvider_" data-uid="Cesil.OptionsBuilder.MemoryPoolProvider*"></a>
+  <h4 id="Cesil_OptionsBuilder_MemoryPoolProvider" data-uid="Cesil.OptionsBuilder.MemoryPoolProvider">MemoryPoolProvider</h4>
+  <div class="markdown level1 summary"><p>Provider for MemoryPools needed during reading or writing CSVs.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
   <h5 class="decalaration">Declaration</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public MemoryPool&lt;char&gt;? MemoryPool { get; }</code></pre>
+    <pre><code class="lang-csharp hljs">public IMemoryPoolProvider MemoryPoolProvider { get; }</code></pre>
   </div>
   <h5 class="propertyValue">Property Value</h5>
   <table class="table table-bordered table-striped table-condensed">
@@ -292,7 +292,7 @@ MUST be null for formats without an EscapedValueStartAndEnd.</p>
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">System.Nullable</span>&lt;<span class="xref">MemoryPool</span>&lt;<span class="xref">System.Char</span>&gt;&gt;</td>
+        <td><a class="xref" href="Cesil.IMemoryPoolProvider.html">IMemoryPoolProvider</a></td>
         <td></td>
       </tr>
     </tbody>
@@ -440,7 +440,7 @@ as the manner of their reading and writing.</p>
   <div class="markdown level1 conceptual"></div>
   <h5 class="decalaration">Declaration</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public char ValueSeparator { get; }</code></pre>
+    <pre><code class="lang-csharp hljs">public string ValueSeparator { get; }</code></pre>
   </div>
   <h5 class="propertyValue">Property Value</h5>
   <table class="table table-bordered table-striped table-condensed">
@@ -452,7 +452,7 @@ as the manner of their reading and writing.</p>
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">System.Char</span></td>
+        <td><span class="xref">System.String</span></td>
         <td></td>
       </tr>
     </tbody>
@@ -592,7 +592,7 @@ in a CSV.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_CreateBuilder.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.CreateBuilder%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L129">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L132">View Source</a>
   </span>
   <a id="Cesil_OptionsBuilder_CreateBuilder_" data-uid="Cesil.OptionsBuilder.CreateBuilder*"></a>
   <h4 id="Cesil_OptionsBuilder_CreateBuilder" data-uid="Cesil.OptionsBuilder.CreateBuilder">CreateBuilder()</h4>
@@ -623,7 +623,7 @@ in a CSV.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_CreateBuilder_Cesil_Options_.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.CreateBuilder(Cesil.Options)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L136">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L139">View Source</a>
   </span>
   <a id="Cesil_OptionsBuilder_CreateBuilder_" data-uid="Cesil.OptionsBuilder.CreateBuilder*"></a>
   <h4 id="Cesil_OptionsBuilder_CreateBuilder_Cesil_Options_" data-uid="Cesil.OptionsBuilder.CreateBuilder(Cesil.Options)">CreateBuilder(Options)</h4>
@@ -672,7 +672,7 @@ from the given Options.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_ToOptions.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.ToOptions%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L147">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L150">View Source</a>
   </span>
   <a id="Cesil_OptionsBuilder_ToOptions_" data-uid="Cesil.OptionsBuilder.ToOptions*"></a>
   <h4 id="Cesil_OptionsBuilder_ToOptions" data-uid="Cesil.OptionsBuilder.ToOptions">ToOptions()</h4>
@@ -704,7 +704,7 @@ by this builder.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_ToString.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.ToString%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L523">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L558">View Source</a>
   </span>
   <a id="Cesil_OptionsBuilder_ToString_" data-uid="Cesil.OptionsBuilder.ToString*"></a>
   <h4 id="Cesil_OptionsBuilder_ToString" data-uid="Cesil.OptionsBuilder.ToString">ToString()</h4>
@@ -738,7 +738,7 @@ by this builder.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_WithCommentCharacter_System_Nullable_System_Char__.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.WithCommentCharacter(System.Nullable%7BSystem.Char%7D)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L395">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L430">View Source</a>
   </span>
   <a id="Cesil_OptionsBuilder_WithCommentCharacter_" data-uid="Cesil.OptionsBuilder.WithCommentCharacter*"></a>
   <h4 id="Cesil_OptionsBuilder_WithCommentCharacter_System_Nullable_System_Char__" data-uid="Cesil.OptionsBuilder.WithCommentCharacter(System.Nullable{System.Char})">WithCommentCharacter(Nullable&lt;Char&gt;)</h4>
@@ -787,7 +787,7 @@ that is a comment.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_WithDynamicRowDisposal_Cesil_DynamicRowDisposal_.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.WithDynamicRowDisposal(Cesil.DynamicRowDisposal)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L461">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L496">View Source</a>
   </span>
   <a id="Cesil_OptionsBuilder_WithDynamicRowDisposal_" data-uid="Cesil.OptionsBuilder.WithDynamicRowDisposal*"></a>
   <h4 id="Cesil_OptionsBuilder_WithDynamicRowDisposal_Cesil_DynamicRowDisposal_" data-uid="Cesil.OptionsBuilder.WithDynamicRowDisposal(Cesil.DynamicRowDisposal)">WithDynamicRowDisposal(DynamicRowDisposal)</h4>
@@ -837,7 +837,7 @@ when the row is explicitly disposed.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_WithEscapedValueEscapeCharacter_System_Nullable_System_Char__.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.WithEscapedValueEscapeCharacter(System.Nullable%7BSystem.Char%7D)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L282">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L317">View Source</a>
   </span>
   <a id="Cesil_OptionsBuilder_WithEscapedValueEscapeCharacter_" data-uid="Cesil.OptionsBuilder.WithEscapedValueEscapeCharacter*"></a>
   <h4 id="Cesil_OptionsBuilder_WithEscapedValueEscapeCharacter_System_Nullable_System_Char__" data-uid="Cesil.OptionsBuilder.WithEscapedValueEscapeCharacter(System.Nullable{System.Char})">WithEscapedValueEscapeCharacter(Nullable&lt;Char&gt;)</h4>
@@ -887,7 +887,7 @@ an escaped value.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_WithEscapedValueStartAndEnd_System_Nullable_System_Char__.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.WithEscapedValueStartAndEnd(System.Nullable%7BSystem.Char%7D)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L270">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L305">View Source</a>
   </span>
   <a id="Cesil_OptionsBuilder_WithEscapedValueStartAndEnd_" data-uid="Cesil.OptionsBuilder.WithEscapedValueStartAndEnd*"></a>
   <h4 id="Cesil_OptionsBuilder_WithEscapedValueStartAndEnd_System_Nullable_System_Char__" data-uid="Cesil.OptionsBuilder.WithEscapedValueStartAndEnd(System.Nullable{System.Char})">WithEscapedValueStartAndEnd(Nullable&lt;Char&gt;)</h4>
@@ -936,7 +936,7 @@ an escaped value.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_WithExtraColumnTreatment_Cesil_ExtraColumnTreatment_.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.WithExtraColumnTreatment(Cesil.ExtraColumnTreatment)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L501">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L536">View Source</a>
   </span>
   <a id="Cesil_OptionsBuilder_WithExtraColumnTreatment_" data-uid="Cesil.OptionsBuilder.WithExtraColumnTreatment*"></a>
   <h4 id="Cesil_OptionsBuilder_WithExtraColumnTreatment_Cesil_ExtraColumnTreatment_" data-uid="Cesil.OptionsBuilder.WithExtraColumnTreatment(Cesil.ExtraColumnTreatment)">WithExtraColumnTreatment(ExtraColumnTreatment)</h4>
@@ -981,19 +981,19 @@ an escaped value.</p>
   </table>
   <span class="small pull-right mobile-hide">
     <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_WithMemoryPool_MemoryPool_System_Char__.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.WithMemoryPool(MemoryPool%7BSystem.Char%7D)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_WithMemoryPoolProvider_Cesil_IMemoryPoolProvider_.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.WithMemoryPoolProvider(Cesil.IMemoryPoolProvider)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L383">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L418">View Source</a>
   </span>
-  <a id="Cesil_OptionsBuilder_WithMemoryPool_" data-uid="Cesil.OptionsBuilder.WithMemoryPool*"></a>
-  <h4 id="Cesil_OptionsBuilder_WithMemoryPool_MemoryPool_System_Char__" data-uid="Cesil.OptionsBuilder.WithMemoryPool(MemoryPool{System.Char})">WithMemoryPool(MemoryPool&lt;Char&gt;)</h4>
-  <div class="markdown level1 summary"><p>Set the MemoryPool used during reading and writing.</p>
+  <a id="Cesil_OptionsBuilder_WithMemoryPoolProvider_" data-uid="Cesil.OptionsBuilder.WithMemoryPoolProvider*"></a>
+  <h4 id="Cesil_OptionsBuilder_WithMemoryPoolProvider_Cesil_IMemoryPoolProvider_" data-uid="Cesil.OptionsBuilder.WithMemoryPoolProvider(Cesil.IMemoryPoolProvider)">WithMemoryPoolProvider(IMemoryPoolProvider)</h4>
+  <div class="markdown level1 summary"><p>Set the MemoryPoolProvider used during reading and writing.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
   <h5 class="decalaration">Declaration</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public OptionsBuilder WithMemoryPool(MemoryPool&lt;char&gt; memoryPool)</code></pre>
+    <pre><code class="lang-csharp hljs">public OptionsBuilder WithMemoryPoolProvider(IMemoryPoolProvider memoryPoolProvider)</code></pre>
   </div>
   <h5 class="parameters">Parameters</h5>
   <table class="table table-bordered table-striped table-condensed">
@@ -1006,8 +1006,8 @@ an escaped value.</p>
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">MemoryPool</span>&lt;<span class="xref">System.Char</span>&gt;</td>
-        <td><span class="parametername">memoryPool</span></td>
+        <td><a class="xref" href="Cesil.IMemoryPoolProvider.html">IMemoryPoolProvider</a></td>
+        <td><span class="parametername">memoryPoolProvider</span></td>
         <td></td>
       </tr>
     </tbody>
@@ -1032,7 +1032,7 @@ an escaped value.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_WithReadBufferSizeHint_System_Int32_.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.WithReadBufferSizeHint(System.Int32)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L438">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L473">View Source</a>
   </span>
   <a id="Cesil_OptionsBuilder_WithReadBufferSizeHint_" data-uid="Cesil.OptionsBuilder.WithReadBufferSizeHint*"></a>
   <h4 id="Cesil_OptionsBuilder_WithReadBufferSizeHint_System_Int32_" data-uid="Cesil.OptionsBuilder.WithReadBufferSizeHint(System.Int32)">WithReadBufferSizeHint(Int32)</h4>
@@ -1084,7 +1084,7 @@ the configured MemoryPool to satisfy the request.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_WithReadHeader_Cesil_ReadHeader_.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.WithReadHeader(Cesil.ReadHeader)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L311">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L346">View Source</a>
   </span>
   <a id="Cesil_OptionsBuilder_WithReadHeader_" data-uid="Cesil.OptionsBuilder.WithReadHeader*"></a>
   <h4 id="Cesil_OptionsBuilder_WithReadHeader_Cesil_ReadHeader_" data-uid="Cesil.OptionsBuilder.WithReadHeader(Cesil.ReadHeader)">WithReadHeader(ReadHeader)</h4>
@@ -1132,7 +1132,7 @@ the configured MemoryPool to satisfy the request.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_WithRowEnding_Cesil_RowEnding_.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.WithRowEnding(Cesil.RowEnding)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L291">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L326">View Source</a>
   </span>
   <a id="Cesil_OptionsBuilder_WithRowEnding_" data-uid="Cesil.OptionsBuilder.WithRowEnding*"></a>
   <h4 id="Cesil_OptionsBuilder_WithRowEnding_Cesil_RowEnding_" data-uid="Cesil.OptionsBuilder.WithRowEnding(Cesil.RowEnding)">WithRowEnding(RowEnding)</h4>
@@ -1180,7 +1180,7 @@ the configured MemoryPool to satisfy the request.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_WithTypeDescriber_Cesil_ITypeDescriber_.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.WithTypeDescriber(Cesil.ITypeDescriber)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L352">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L387">View Source</a>
   </span>
   <a id="Cesil_OptionsBuilder_WithTypeDescriber_" data-uid="Cesil.OptionsBuilder.WithTypeDescriber*"></a>
   <h4 id="Cesil_OptionsBuilder_WithTypeDescriber_Cesil_ITypeDescriber_" data-uid="Cesil.OptionsBuilder.WithTypeDescriber(Cesil.ITypeDescriber)">WithTypeDescriber(ITypeDescriber)</h4>
@@ -1226,19 +1226,19 @@ columns that are read and written.</p>
   </table>
   <span class="small pull-right mobile-hide">
     <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_WithValueSeparator_System_Char_.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.WithValueSeparator(System.Char)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_WithValueSeparator_System_String_.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.WithValueSeparator(System.String)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L259">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L283">View Source</a>
   </span>
   <a id="Cesil_OptionsBuilder_WithValueSeparator_" data-uid="Cesil.OptionsBuilder.WithValueSeparator*"></a>
-  <h4 id="Cesil_OptionsBuilder_WithValueSeparator_System_Char_" data-uid="Cesil.OptionsBuilder.WithValueSeparator(System.Char)">WithValueSeparator(Char)</h4>
+  <h4 id="Cesil_OptionsBuilder_WithValueSeparator_System_String_" data-uid="Cesil.OptionsBuilder.WithValueSeparator(System.String)">WithValueSeparator(String)</h4>
   <div class="markdown level1 summary"><p>Set the character used to separate two values in a row.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
   <h5 class="decalaration">Declaration</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public OptionsBuilder WithValueSeparator(char valueSeparator)</code></pre>
+    <pre><code class="lang-csharp hljs">public OptionsBuilder WithValueSeparator(string valueSeparator)</code></pre>
   </div>
   <h5 class="parameters">Parameters</h5>
   <table class="table table-bordered table-striped table-condensed">
@@ -1251,7 +1251,7 @@ columns that are read and written.</p>
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">System.Char</span></td>
+        <td><span class="xref">System.String</span></td>
         <td><span class="parametername">valueSeparator</span></td>
         <td></td>
       </tr>
@@ -1277,7 +1277,7 @@ columns that are read and written.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_WithWhitespaceTreatment_Cesil_WhitespaceTreatments_.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.WithWhitespaceTreatment(Cesil.WhitespaceTreatments)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L481">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L516">View Source</a>
   </span>
   <a id="Cesil_OptionsBuilder_WithWhitespaceTreatment_" data-uid="Cesil.OptionsBuilder.WithWhitespaceTreatment*"></a>
   <h4 id="Cesil_OptionsBuilder_WithWhitespaceTreatment_Cesil_WhitespaceTreatments_" data-uid="Cesil.OptionsBuilder.WithWhitespaceTreatment(Cesil.WhitespaceTreatments)">WithWhitespaceTreatment(WhitespaceTreatments)</h4>
@@ -1325,7 +1325,7 @@ columns that are read and written.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_WithWriteBufferSizeHint_System_Nullable_System_Int32__.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.WithWriteBufferSizeHint(System.Nullable%7BSystem.Int32%7D)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L412">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L447">View Source</a>
   </span>
   <a id="Cesil_OptionsBuilder_WithWriteBufferSizeHint_" data-uid="Cesil.OptionsBuilder.WithWriteBufferSizeHint*"></a>
   <h4 id="Cesil_OptionsBuilder_WithWriteBufferSizeHint_System_Nullable_System_Int32__" data-uid="Cesil.OptionsBuilder.WithWriteBufferSizeHint(System.Nullable{System.Int32})">WithWriteBufferSizeHint(Nullable&lt;Int32&gt;)</h4>
@@ -1378,7 +1378,7 @@ the configured MemoryPool to satisfy the request.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_WithWriteHeader_Cesil_WriteHeader_.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.WithWriteHeader(Cesil.WriteHeader)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L331">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L366">View Source</a>
   </span>
   <a id="Cesil_OptionsBuilder_WithWriteHeader_" data-uid="Cesil.OptionsBuilder.WithWriteHeader*"></a>
   <h4 id="Cesil_OptionsBuilder_WithWriteHeader_Cesil_WriteHeader_" data-uid="Cesil.OptionsBuilder.WithWriteHeader(Cesil.WriteHeader)">WithWriteHeader(WriteHeader)</h4>
@@ -1426,7 +1426,7 @@ the configured MemoryPool to satisfy the request.</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_OptionsBuilder_WithWriteTrailingRowEnding_Cesil_WriteTrailingRowEnding_.md&amp;value=---%0Auid%3A%20Cesil.OptionsBuilder.WithWriteTrailingRowEnding(Cesil.WriteTrailingRowEnding)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L363">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Configuration/OptionsBuilder.cs/#L398">View Source</a>
   </span>
   <a id="Cesil_OptionsBuilder_WithWriteTrailingRowEnding_" data-uid="Cesil.OptionsBuilder.WithWriteTrailingRowEnding*"></a>
   <h4 id="Cesil_OptionsBuilder_WithWriteTrailingRowEnding_Cesil_WriteTrailingRowEnding_" data-uid="Cesil.OptionsBuilder.WithWriteTrailingRowEnding(Cesil.WriteTrailingRowEnding)">WithWriteTrailingRowEnding(WriteTrailingRowEnding)</h4>

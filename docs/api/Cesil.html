@@ -132,6 +132,9 @@ when one of the EnumerateXXX() methods are called.</p>
 <p>Creates ITypeDescribers explicitly registered members to return
 when one of the EnumerateXXX() methods are called.</p>
 </section>
+      <h4><a class="xref" href="Cesil.MemoryPoolProviders.html">MemoryPoolProviders</a></h4>
+      <section><p>Holds references to pre-allocated IMemoryPoolProviders.</p>
+</section>
       <h4><a class="xref" href="Cesil.Options.html">Options</a></h4>
       <section><p>A set of options for reading and writing CSV files.</p>
 <p>Combine with Configuration to bind to a particular
@@ -214,6 +217,11 @@ by an I(Async)Writer.</p>
       <h4><a class="xref" href="Cesil.IBoundConfiguration-1.html">IBoundConfiguration&lt;TRow&gt;</a></h4>
       <section><p>Represents and Options and Type pair.</p>
 <p>Used to create readers and writers.</p>
+</section>
+      <h4><a class="xref" href="Cesil.IMemoryPoolProvider.html">IMemoryPoolProvider</a></h4>
+      <section><p>Interface used to obtain MemoryPools.</p>
+<p>Cesil uses this during creation of IBoundConfigurations to determine
+where necessary allocations during read/writing will be placed.</p>
 </section>
       <h4><a class="xref" href="Cesil.IReader-1.html">IReader&lt;TRow&gt;</a></h4>
       <section><p>Interface for a synchronous reader.</p>
@@ -307,6 +315,9 @@ after the last row when serializing.</p>
 </section>
       <h4><a class="xref" href="Cesil.ParserDelegate-1.html">ParserDelegate&lt;TOutput&gt;</a></h4>
       <section><p>Delegate type for parsers.</p>
+</section>
+      <h4><a class="xref" href="Cesil.ResetByRefDelegate-1.html">ResetByRefDelegate&lt;TRow&gt;</a></h4>
+      <section><p>Delegate type for resets, where row is passed by ref.</p>
 </section>
       <h4><a class="xref" href="Cesil.ResetDelegate-1.html">ResetDelegate&lt;TRow&gt;</a></h4>
       <section><p>Delegate type for resets.</p>

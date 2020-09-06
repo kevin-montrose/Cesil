@@ -103,7 +103,7 @@
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_IWriter_1_Write__0_.md&amp;value=---%0Auid%3A%20Cesil.IWriter%601.Write(%600)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IWriter.cs/#L19">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IWriter.cs/#L22">View Source</a>
   </span>
   <a id="Cesil_IWriter_1_Write_" data-uid="Cesil.IWriter`1.Write*"></a>
   <h4 id="Cesil_IWriter_1_Write__0_" data-uid="Cesil.IWriter`1.Write(`0)">Write(TRow)</h4>
@@ -136,16 +136,17 @@
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_IWriter_1_WriteAll_System_Collections_Generic_IEnumerable__0__.md&amp;value=---%0Auid%3A%20Cesil.IWriter%601.WriteAll(System.Collections.Generic.IEnumerable%7B%600%7D)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IWriter.cs/#L14">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IWriter.cs/#L16">View Source</a>
   </span>
   <a id="Cesil_IWriter_1_WriteAll_" data-uid="Cesil.IWriter`1.WriteAll*"></a>
   <h4 id="Cesil_IWriter_1_WriteAll_System_Collections_Generic_IEnumerable__0__" data-uid="Cesil.IWriter`1.WriteAll(System.Collections.Generic.IEnumerable{`0})">WriteAll(IEnumerable&lt;TRow&gt;)</h4>
   <div class="markdown level1 summary"><p>Write all rows in the provided enumerable.</p>
+<p>Returns the number of rows written.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
   <h5 class="decalaration">Declaration</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">void WriteAll(IEnumerable&lt;TRow&gt; rows)</code></pre>
+    <pre><code class="lang-csharp hljs">int WriteAll(IEnumerable&lt;TRow&gt; rows)</code></pre>
   </div>
   <h5 class="parameters">Parameters</h5>
   <table class="table table-bordered table-striped table-condensed">
@@ -164,12 +165,63 @@
       </tr>
     </tbody>
   </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_IWriter_1_WriteComment_ReadOnlySpan_System_Char__.md&amp;value=---%0Auid%3A%20Cesil.IWriter%601.WriteComment(ReadOnlySpan%7BSystem.Char%7D)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IWriter.cs/#L42">View Source</a>
+  </span>
+  <a id="Cesil_IWriter_1_WriteComment_" data-uid="Cesil.IWriter`1.WriteComment*"></a>
+  <h4 id="Cesil_IWriter_1_WriteComment_ReadOnlySpan_System_Char__" data-uid="Cesil.IWriter`1.WriteComment(ReadOnlySpan{System.Char})">WriteComment(ReadOnlySpan&lt;Char&gt;)</h4>
+  <div class="markdown level1 summary"><p>Write a comment as a row.</p>
+<p>Only supported if this IWriter's configuration has a way to indicate comments.</p>
+<p>If the comment contains the row ending character sequence, it will be written as multiple
+comment lines.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">void WriteComment(ReadOnlySpan&lt;char&gt; comment)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">ReadOnlySpan</span>&lt;<span class="xref">System.Char</span>&gt;</td>
+        <td><span class="parametername">comment</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
   <span class="small pull-right mobile-hide">
     <span class="divider">|</span>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_IWriter_1_WriteComment_System_String_.md&amp;value=---%0Auid%3A%20Cesil.IWriter%601.WriteComment(System.String)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IWriter.cs/#L29">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/Interface/IWriter.cs/#L32">View Source</a>
   </span>
   <a id="Cesil_IWriter_1_WriteComment_" data-uid="Cesil.IWriter`1.WriteComment*"></a>
   <h4 id="Cesil_IWriter_1_WriteComment_System_String_" data-uid="Cesil.IWriter`1.WriteComment(System.String)">WriteComment(String)</h4>

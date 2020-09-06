@@ -86,7 +86,7 @@ as needed during operation with no guarantee about the calling thread(s).</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_ITypeDescriber_EnumerateMembersToDeserialize_TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.ITypeDescriber.EnumerateMembersToDeserialize(TypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/ITypeDescriber.cs/#L33">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/ITypeDescriber.cs/#L34">View Source</a>
   </span>
   <a id="Cesil_ITypeDescriber_EnumerateMembersToDeserialize_" data-uid="Cesil.ITypeDescriber.EnumerateMembersToDeserialize*"></a>
   <h4 id="Cesil_ITypeDescriber_EnumerateMembersToDeserialize_TypeInfo_" data-uid="Cesil.ITypeDescriber.EnumerateMembersToDeserialize(TypeInfo)">EnumerateMembersToDeserialize(TypeInfo)</h4>
@@ -134,7 +134,7 @@ as needed during operation with no guarantee about the calling thread(s).</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_ITypeDescriber_EnumerateMembersToSerialize_TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.ITypeDescriber.EnumerateMembersToSerialize(TypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/ITypeDescriber.cs/#L29">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/ITypeDescriber.cs/#L30">View Source</a>
   </span>
   <a id="Cesil_ITypeDescriber_EnumerateMembersToSerialize_" data-uid="Cesil.ITypeDescriber.EnumerateMembersToSerialize*"></a>
   <h4 id="Cesil_ITypeDescriber_EnumerateMembersToSerialize_TypeInfo_" data-uid="Cesil.ITypeDescriber.EnumerateMembersToSerialize(TypeInfo)">EnumerateMembersToSerialize(TypeInfo)</h4>
@@ -179,20 +179,24 @@ as needed during operation with no guarantee about the calling thread(s).</p>
   </table>
   <span class="small pull-right mobile-hide">
     <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_ITypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_.md&amp;value=---%0Auid%3A%20Cesil.ITypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext%40%2CSystem.Object)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+    <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_ITypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_Span_Cesil_DynamicCellValue__.md&amp;value=---%0Auid%3A%20Cesil.ITypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext%40%2CSystem.Object%2CSpan%7BCesil.DynamicCellValue%7D)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/ITypeDescriber.cs/#L62">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/ITypeDescriber.cs/#L64">View Source</a>
   </span>
   <a id="Cesil_ITypeDescriber_GetCellsForDynamicRow_" data-uid="Cesil.ITypeDescriber.GetCellsForDynamicRow*"></a>
-  <h4 id="Cesil_ITypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_" data-uid="Cesil.ITypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)">GetCellsForDynamicRow(WriteContext, Object)</h4>
+  <h4 id="Cesil_ITypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_Span_Cesil_DynamicCellValue__" data-uid="Cesil.ITypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object,Span{Cesil.DynamicCellValue})">GetCellsForDynamicRow(WriteContext, Object, Span&lt;DynamicCellValue&gt;)</h4>
   <div class="markdown level1 summary"><p>Called to determine the cells that make up the given dynamic row.</p>
-<p>Used to enumerate cells when serializing dynamically.</p>
+<p>Returns the number of cells extracted from the row.  If the given span is
+too small, its contents are ignored and GetCellsForDynamicRow is called again with one
+of at least the indicated size.</p>
+<p>The content of the given span is undefined, in particular no values are guaranteed
+to be carried forward between calls.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
   <h5 class="decalaration">Declaration</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">IEnumerable&lt;DynamicCellValue&gt; GetCellsForDynamicRow(in WriteContext context, object row)</code></pre>
+    <pre><code class="lang-csharp hljs">int GetCellsForDynamicRow(in WriteContext context, object row, Span&lt;DynamicCellValue&gt; cells)</code></pre>
   </div>
   <h5 class="parameters">Parameters</h5>
   <table class="table table-bordered table-striped table-condensed">
@@ -214,6 +218,11 @@ as needed during operation with no guarantee about the calling thread(s).</p>
         <td><span class="parametername">row</span></td>
         <td></td>
       </tr>
+      <tr>
+        <td><span class="xref">Span</span>&lt;<a class="xref" href="Cesil.DynamicCellValue.html">DynamicCellValue</a>&gt;</td>
+        <td><span class="parametername">cells</span></td>
+        <td></td>
+      </tr>
     </tbody>
   </table>
   <h5 class="returns">Returns</h5>
@@ -226,7 +235,7 @@ as needed during operation with no guarantee about the calling thread(s).</p>
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">System.Collections.Generic.IEnumerable</span>&lt;<a class="xref" href="Cesil.DynamicCellValue.html">DynamicCellValue</a>&gt;</td>
+        <td><span class="xref">System.Int32</span></td>
         <td></td>
       </tr>
     </tbody>
@@ -236,7 +245,7 @@ as needed during operation with no guarantee about the calling thread(s).</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_ITypeDescriber_GetDynamicCellParserFor_Cesil_ReadContext__TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.ITypeDescriber.GetDynamicCellParserFor(Cesil.ReadContext%40%2CTypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/ITypeDescriber.cs/#L42">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/ITypeDescriber.cs/#L43">View Source</a>
   </span>
   <a id="Cesil_ITypeDescriber_GetDynamicCellParserFor_" data-uid="Cesil.ITypeDescriber.GetDynamicCellParserFor*"></a>
   <h4 id="Cesil_ITypeDescriber_GetDynamicCellParserFor_Cesil_ReadContext__TypeInfo_" data-uid="Cesil.ITypeDescriber.GetDynamicCellParserFor(Cesil.ReadContext@,TypeInfo)">GetDynamicCellParserFor(ReadContext, TypeInfo)</h4>
@@ -290,7 +299,7 @@ as needed during operation with no guarantee about the calling thread(s).</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_ITypeDescriber_GetDynamicRowConverter_Cesil_ReadContext__System_Collections_Generic_IEnumerable_Cesil_ColumnIdentifier__TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.ITypeDescriber.GetDynamicRowConverter(Cesil.ReadContext%40%2CSystem.Collections.Generic.IEnumerable%7BCesil.ColumnIdentifier%7D%2CTypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/ITypeDescriber.cs/#L50">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/ITypeDescriber.cs/#L51">View Source</a>
   </span>
   <a id="Cesil_ITypeDescriber_GetDynamicRowConverter_" data-uid="Cesil.ITypeDescriber.GetDynamicRowConverter*"></a>
   <h4 id="Cesil_ITypeDescriber_GetDynamicRowConverter_Cesil_ReadContext__System_Collections_Generic_IEnumerable_Cesil_ColumnIdentifier__TypeInfo_" data-uid="Cesil.ITypeDescriber.GetDynamicRowConverter(Cesil.ReadContext@,System.Collections.Generic.IEnumerable{Cesil.ColumnIdentifier},TypeInfo)">GetDynamicRowConverter(ReadContext, IEnumerable&lt;ColumnIdentifier&gt;, TypeInfo)</h4>
@@ -349,7 +358,7 @@ as needed during operation with no guarantee about the calling thread(s).</p>
     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_ITypeDescriber_GetInstanceProvider_TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.ITypeDescriber.GetInstanceProvider(TypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/ITypeDescriber.cs/#L24">View Source</a>
+    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/ITypeDescriber.cs/#L25">View Source</a>
   </span>
   <a id="Cesil_ITypeDescriber_GetInstanceProvider_" data-uid="Cesil.ITypeDescriber.GetInstanceProvider*"></a>
   <h4 id="Cesil_ITypeDescriber_GetInstanceProvider_TypeInfo_" data-uid="Cesil.ITypeDescriber.GetInstanceProvider(TypeInfo)">GetInstanceProvider(TypeInfo)</h4>
@@ -404,7 +413,7 @@ as needed during operation with no guarantee about the calling thread(s).</p>
                     <a href="https://github.com/kevin-montrose/Cesil/new/master/apiSpec/new?filename=Cesil_ITypeDescriber.md&amp;value=---%0Auid%3A%20Cesil.ITypeDescriber%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
                   </li>
                   <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/ITypeDescriber.cs/#L15" class="contribution-link">View Source</a>
+                    <a href="https://github.com/kevin-montrose/Cesil/blob/master/Cesil/TypeDescriber/ITypeDescriber.cs/#L16" class="contribution-link">View Source</a>
                   </li>
                 </ul>
               </div>
