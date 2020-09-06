@@ -11,11 +11,11 @@ namespace Cesil
         SyncWriterBase<dynamic>,
         IDelegateCache
     {
-        internal new bool IsFirstRow => !ColumnNames.HasValue;
+        internal new bool IsFirstRow => ColumnNames == null;
 
         private NonNull<Comparison<DynamicCellValue>> ColumnNameSorter;
 
-        private NonNull<(string Name, string EncodedName)[]> ColumnNames;
+        private EncodedColumnTracker? ColumnNames;
 
         private readonly object[] DynamicArgumentsBuffer = new object[3];
 
@@ -68,10 +68,10 @@ namespace Cesil
 
                 var cellValuesMem = Utils.GetCells(Configuration.DynamicMemoryPool, ref CellBuffer, options.TypeDescriber, in wholeRowContext, row as object);
 
-                Utils.ForceInOrder(ColumnNames.Value, ColumnNameSorter, cellValuesMem);
-                var cellValuesEnumerableSpan = cellValuesMem.Span;
+                var columnNamesValue = Utils.NonNullValue(ColumnNames);
 
-                var columnNamesValue = ColumnNames.Value;
+                Utils.ForceInOrder(columnNamesValue, ColumnNameSorter, cellValuesMem);
+                var cellValuesEnumerableSpan = cellValuesMem.Span;
 
                 var i = 0;
                 foreach (var cell in cellValuesEnumerableSpan)
@@ -86,7 +86,8 @@ namespace Cesil
                     ColumnIdentifier ci;
                     if (i < columnNamesValue.Length)
                     {
-                        ci = ColumnIdentifier.CreateInner(i, columnNamesValue[i].Name);
+                        var name = columnNamesValue.GetColumnAt(i);
+                        ci = ColumnIdentifier.CreateInner(i, null, name);
                     }
                     else
                     {
@@ -254,7 +255,7 @@ end:
             if (Configuration.Options.WriteHeader == WriteHeader.Never)
             {
                 // nothing to write, so bail
-                ColumnNames.Value = Array.Empty<(string, string)>();
+                ColumnNames = default(EncodedColumnTracker);
                 return false;
             }
 
@@ -268,8 +269,7 @@ end:
 
         private void DiscoverColumns(dynamic o)
         {
-            // todo: remove this allocation (tracking issue: https://github.com/kevin-montrose/Cesil/issues/30)
-            var cols = new List<(string TrueName, string EncodedName)>();
+            var cols = new EncodedColumnTracker();
 
             var ctx = WriteContext.DiscoveringColumns(Configuration.Options, Context);
 
@@ -297,10 +297,10 @@ end:
                     encodedColName = Utils.Encode(encodedColName, options, Configuration.MemoryPool);
                 }
 
-                cols.Add((colName, encodedColName));
+                cols.Add(colName, encodedColName, Configuration.MemoryPool);
             }
 
-            ColumnNames.Value = cols.ToArray();
+            ColumnNames = cols;
 
             ColumnNameSorter.Value =
                 (a, b) =>
@@ -310,14 +310,16 @@ end:
                     int aIx = -1, bIx = -1;
                     for (var i = 0; i < columnNamesValue.Length; i++)
                     {
-                        var colName = columnNamesValue[i].Name;
-                        if (colName.Equals(a.Name))
+                        var colName = columnNamesValue.GetColumnAt(i);
+                        var eqA = Utils.AreEqual(colName, a.Name.AsMemory());
+                        if (eqA)
                         {
                             aIx = i;
                             if (bIx != -1) break;
                         }
 
-                        if (colName.Equals(b.Name))
+                        var eqB = Utils.AreEqual(colName, b.Name.AsMemory());
+                        if (eqB)
                         {
                             bIx = i;
                             if (aIx != -1) break;
@@ -332,7 +334,7 @@ end:
         {
             var valueSeparator = Configuration.ValueSeparatorMemory.Span;
 
-            var columnNamesValue = ColumnNames.Value;
+            var columnNamesValue = Utils.NonNullValue(ColumnNames);
             for (var i = 0; i < columnNamesValue.Length; i++)
             {
                 if (i != 0)
@@ -352,11 +354,11 @@ end:
                     }
                 }
 
-                var colName = columnNamesValue[i].EncodedName;
+                var encodedColName = columnNamesValue.GetEncodedColumnAt(i);
 
                 // can colName is always gonna be encoded correctly, because we just discovered them
                 //   (ie. they're always correct for this config)
-                PlaceAllInStaging(colName.AsSpan());
+                PlaceAllInStaging(encodedColName.Span);
             }
         }
 
@@ -393,6 +395,7 @@ end:
                     Inner.Dispose();
                     Buffer.Dispose();
                     CellBuffer?.Dispose();
+                    ColumnNames?.Dispose();
                 }
                 catch (Exception e)
                 {
@@ -405,6 +408,7 @@ end:
 
                     Buffer.Dispose();
                     CellBuffer?.Dispose();
+                    ColumnNames?.Dispose();
 
                     Throw.PoisonAndRethrow<object>(this, e);
                 }

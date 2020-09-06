@@ -5,8 +5,14 @@ namespace Cesil
     /// <summary>
     /// Identifies a particular column, either by index or 
     ///   index and name.
+    ///   
+    /// A ColumnIdentifier is only valid for as long as the 
+    ///   values used to construct it.  Accordingly, you should
+    ///   be careful when storing ColumnIdentifiers that you did
+    ///   not create yourself as they may have been created with
+    ///   ReadOnlyMemory(char)s whose lifetime you do not control.
     /// </summary>
-    public readonly struct ColumnIdentifier : IEquatable<ColumnIdentifier>
+    public struct ColumnIdentifier : IEquatable<ColumnIdentifier>
     {
         /// <summary>
         /// Index of the column, base-0.
@@ -16,14 +22,19 @@ namespace Cesil
 
         private readonly NonNull<string> _Name;
 
+        private string? MemoizedName;
+        private readonly ReadOnlyMemory<char>? _NameMemory;
+
         /// <summary>
         /// Whether this column has a known name.
         /// </summary>
         [IntentionallyExposedPrimitive("Best way to indicate something exists, it's fine")]
-        public bool HasName => _Name.HasValue;
+        public bool HasName => _Name.HasValue || _NameMemory != null;
 
         /// <summary>
-        /// The name of the column.
+        /// The name of the column, as a string.
+        /// 
+        /// Easier to work with than NameMemory, but this may allocate.
         /// 
         /// If HasName is false, this will throw an exception.
         /// </summary>
@@ -31,21 +42,54 @@ namespace Cesil
         {
             get
             {
-                // special to make the error "nicer", when most NonNull's indicate an internal error
-                if (!_Name.HasValue)
+                if (_Name.HasValue)
                 {
-                    return Throw.InvalidOperationException<string>($"{nameof(Name)} is not set, check HasName before calling this");
+                    return _Name.Value;
                 }
 
-                return _Name.Value;
+                if (_NameMemory != null)
+                {
+                    return (MemoizedName ??= new string(_NameMemory.Value.Span));
+                }
+
+                return Throw.InvalidOperationException<string>($"{nameof(Name)} is not set, check HasName before calling this");
             }
         }
 
-        private ColumnIdentifier(int ix, string? name)
+        /// <summary>
+        /// The name of the column, as a block of memory.
+        /// 
+        /// More awkward to work with than Name, but will not allocate.
+        /// 
+        /// If HasName is false, this will throw an exception.
+        /// </summary>
+        public ReadOnlyMemory<char> NameMemory
+        {
+            get
+            {
+                if(_NameMemory != null)
+                {
+                    return _NameMemory.Value;
+                }
+
+                if(_Name.HasValue)
+                {
+                    return _Name.Value.AsMemory();
+                }
+
+                return Throw.InvalidOperationException<ReadOnlyMemory<char>>($"{nameof(NameMemory)} is not set, check HasName before calling this");
+            }
+        }
+
+        private ColumnIdentifier(int ix, string? name, ReadOnlyMemory<char>? nameMem)
         {
             Index = ix;
             _Name = default;
             _Name.SetAllowNull(name);
+
+            _NameMemory = nameMem;
+
+            MemoizedName = name;
         }
 
         /// <summary>
@@ -61,7 +105,7 @@ namespace Cesil
                 return Throw.ArgumentException<ColumnIdentifier>($"Must be >= 0, found {index}", nameof(index));
             }
 
-            return CreateInner(index, null);
+            return CreateInner(index, null, null);
         }
 
         /// <summary>
@@ -80,11 +124,28 @@ namespace Cesil
 
             Utils.CheckArgumentNull(name, nameof(name));
 
-            return CreateInner(index, name);
+            return CreateInner(index, name, null);
         }
 
-        internal static ColumnIdentifier CreateInner(int index, string? name)
-        => new ColumnIdentifier(index, name);
+        /// <summary>
+        /// Create a ColumnIdentifier for the given index and name.
+        /// </summary>
+        public static ColumnIdentifier Create(
+            [IntentionallyExposedPrimitive("Best way to identify an index")]
+            int index,
+            ReadOnlyMemory<char> name
+        )
+        {
+            if (index < 0)
+            {
+                return Throw.ArgumentException<ColumnIdentifier>($"Must be >= 0, found {index}", nameof(index));
+            }
+
+            return CreateInner(index, null, name);
+        }
+
+        internal static ColumnIdentifier CreateInner(int index, string? name, ReadOnlyMemory<char>? nameMemory)
+        => new ColumnIdentifier(index, name, nameMemory);
 
         /// <summary>
         /// Returns true if the given object is equivalent to this one
@@ -120,7 +181,19 @@ namespace Cesil
         /// Returns a stable hash for this ColumnIdentifier.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(ColumnIdentifier), Index, _Name);
+        {
+            if (_Name.HasValue)
+            {
+                return HashCode.Combine(nameof(ColumnIdentifier), Index, _Name);
+            }
+
+            if(_NameMemory != null)
+            {
+                return HashCode.Combine(nameof(ColumnIdentifier), Index, _NameMemory.Value.Length);
+            }
+
+            return HashCode.Combine(nameof(ColumnIdentifier), Index);
+        }
 
         /// <summary>
         /// Describes this ColumnIdentifier.

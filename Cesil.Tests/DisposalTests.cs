@@ -281,9 +281,52 @@ namespace Cesil.Tests
                 {
                     IDisposable_OrdererNames();
                 }
+                else if (t == typeof(EncodedColumnTracker))
+                {
+                    IDisposable_EncodedColumnTracker();
+                }
                 else
                 {
                     throw new XunitException($"No test configured for .Dispose() on {t.Name}");
+                }
+            }
+
+            void IDisposable_EncodedColumnTracker()
+            {
+                // double dispose does not error
+                {
+                    var e = MakeEncodedColumnTracker();
+                    e.Dispose();
+                    e.Dispose();
+                }
+
+                // assert throws after dispose
+                {
+                    var e = MakeEncodedColumnTracker();
+                    e.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => ((ITestableDisposable)e).AssertNotDisposed());
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    using (var a = MakeEncodedColumnTracker())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(a);
+                    }
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make an adapter that's "good to go"
+                static EncodedColumnTracker MakeEncodedColumnTracker()
+                {
+                    var r = new EncodedColumnTracker();
+                    r.Add("foo", null, MemoryPool<char>.Shared);
+
+                    return r;
                 }
             }
 

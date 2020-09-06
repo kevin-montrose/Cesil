@@ -1978,7 +1978,7 @@ namespace Cesil.Tests
                     [typeof(TextReader).GetTypeInfo()] = new[] { "reader" },
                     [typeof(PipeReader).GetTypeInfo()] = new[] { "reader" },
                     [typeof(ReadOnlySpan<char>).GetTypeInfo()] = new[] { "data", "comment" },
-                    [typeof(ReadOnlyMemory<char>).GetTypeInfo()] = new[] { "comment" },
+                    [typeof(ReadOnlyMemory<char>).GetTypeInfo()] = new[] { "comment", "name" },
                     [typeof(IEnumerable<dynamic>).GetTypeInfo()] = new[] { "rows" },
                     [typeof(IAsyncEnumerable<dynamic>).GetTypeInfo()] = new[] { "rows" },
 

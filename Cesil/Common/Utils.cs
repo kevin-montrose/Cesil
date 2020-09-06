@@ -822,7 +822,7 @@ tryAgain:
         }
 
         internal static void ForceInOrder(
-            (string Name, string EncodedName)[] columnNamesValue,
+            EncodedColumnTracker columnNamesValue,
             NonNull<Comparison<DynamicCellValue>> columnNameSorter,
             Memory<DynamicCellValue> raw
         )
@@ -846,8 +846,9 @@ tryAgain:
                     return;
                 }
 
-                var (name, _) = columnNamesValue[i];
-                if (!name.Equals(x.Name))
+                var name = columnNamesValue.GetColumnAt(i);
+                var eq = AreEqual(name, x.Name.AsMemory());
+                if (!eq)
                 {
                     inOrder = false;
                     break;

@@ -3811,7 +3811,7 @@ namespace Cesil.Tests
                 Assert.Throws<ArgumentNullException>(() => DynamicRowConverter.ForConstructorTakingTypedParameters(stringCons, null));
                 Assert.Throws<InvalidOperationException>(() => DynamicRowConverter.ForConstructorTakingTypedParameters(stringCons, Array.Empty<ColumnIdentifier>()));
 
-                var badIxs = new[] { Cesil.ColumnIdentifier.CreateInner(-1, "foo") };
+                var badIxs = new[] { Cesil.ColumnIdentifier.CreateInner(-1, "foo", null) };
                 Assert.Throws<ArgumentException>(() => DynamicRowConverter.ForConstructorTakingTypedParameters(stringCons, badIxs));
             }
 
@@ -3829,7 +3829,7 @@ namespace Cesil.Tests
                 var badSetter = Setter.ForDelegate<string, string>((string a, string b, in ReadContext _) => { });
                 Assert.Throws<ArgumentException>(() => DynamicRowConverter.ForEmptyConstructorAndSetters(emptyCons, new[] { badSetter }, ixs));
 
-                var badIxs = new[] { Cesil.ColumnIdentifier.CreateInner(-1, "foo") };
+                var badIxs = new[] { Cesil.ColumnIdentifier.CreateInner(-1, "foo", null) };
                 var goodSetter = Setter.ForDelegate<_DynamicRowConverters, int>((_DynamicRowConverters r, int v, in ReadContext _) => r.Foo = v);
                 Assert.Throws<ArgumentException>(() => DynamicRowConverter.ForEmptyConstructorAndSetters(emptyCons, new[] { goodSetter }, badIxs));
             }
@@ -4667,7 +4667,7 @@ namespace Cesil.Tests
             Assert.Throws<ArgumentException>(() => Cesil.ColumnIdentifier.Create(-1));
 
             Assert.Throws<ArgumentException>(() => Cesil.ColumnIdentifier.Create(-1, "foo"));
-            Assert.Throws<ArgumentNullException>(() => Cesil.ColumnIdentifier.Create(10, null));
+            Assert.Throws<ArgumentNullException>(() => Cesil.ColumnIdentifier.Create(10, default(string)));
 
             static bool CompareHash<T>(T a, T b)
             {
