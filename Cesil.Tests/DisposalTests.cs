@@ -130,7 +130,7 @@ namespace Cesil.Tests
 
             void IDelegateCache.AddDelegate<T, V>(T key, V cached) { }
 
-            bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)]out V del)
+            bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)] out V del)
             {
                 del = default;
                 return false;
@@ -277,10 +277,48 @@ namespace Cesil.Tests
                     //   it implements IEnumerable as a necessary part of being
                     //   an ICollection
                 }
+                else if (t == typeof(NameLookup.OrdererNames))
+                {
+                    IDisposable_OrdererNames();
+                }
                 else
                 {
                     throw new XunitException($"No test configured for .Dispose() on {t.Name}");
                 }
+            }
+
+            void IDisposable_OrdererNames()
+            {
+                // double dispose does not error
+                {
+                    var a = MakeOrdererNames();
+                    a.Dispose();
+                    a.Dispose();
+                }
+
+                // assert throws after dispose
+                {
+                    var a = MakeOrdererNames();
+                    a.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => ((ITestableDisposable)a).AssertNotDisposed());
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    using (var a = MakeOrdererNames())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(a);
+                    }
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make an adapter that's "good to go"
+                static NameLookup.OrdererNames MakeOrdererNames()
+                => NameLookup.OrdererNames.Create(Array.Empty<string>(), MemoryPool<char>.Shared);
             }
 
             void IDisposable_PassthroughRowEnumerator()
@@ -883,7 +921,7 @@ namespace Cesil.Tests
                 {
                     var ret = new ReaderStateMachine();
                     ret.Initialize(
-                        CharacterLookup.MakeCharacterLookup(Options.Default, out _),
+                        CharacterLookup.MakeCharacterLookup(Options.Default, MemoryPool<char>.Shared, out _),
                         'a',
                         'b',
                         RowEnding.CarriageReturnLineFeed,
@@ -941,11 +979,19 @@ namespace Cesil.Tests
                 }
 
 
-                // WriteComment
+                // WriteComment(string)
                 {
                     var w = MakeWriter();
                     w.Dispose();
                     Assert.Throws<ObjectDisposedException>(() => w.WriteComment("foo"));
+                    testCases++;
+                }
+
+                // WriteComment(ReadOnlySpan)
+                {
+                    var w = MakeWriter();
+                    w.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => w.WriteComment("foo".AsSpan()));
                     testCases++;
                 }
 
@@ -1113,8 +1159,10 @@ namespace Cesil.Tests
                     return new RowEndingDetector(
                         new ReaderStateMachine(),
                         Options.Default,
-                        CharacterLookup.MakeCharacterLookup(Options.Default, out _),
-                        new TextReaderAdapter(TextReader.Null)
+                        MemoryPool<char>.Shared,
+                        CharacterLookup.MakeCharacterLookup(Options.Default, MemoryPool<char>.Shared, out _),
+                        new TextReaderAdapter(TextReader.Null),
+                        Options.Default.ValueSeparator.AsMemory()
                     );
                 }
             }
@@ -1158,7 +1206,7 @@ namespace Cesil.Tests
                         new HeadersReader<_IDisposable>(
                             new ReaderStateMachine(),
                             config,
-                            CharacterLookup.MakeCharacterLookup(Options.Default, out _),
+                            CharacterLookup.MakeCharacterLookup(Options.Default, MemoryPool<char>.Shared, out _),
                             new TextReaderAdapter(TextReader.Null),
                             new BufferWithPushback(
                                 MemoryPool<char>.Shared,
@@ -1263,7 +1311,7 @@ namespace Cesil.Tests
                 // make a partial that's "good to go"
                 static CharacterLookup MakeLookup()
                 {
-                    return CharacterLookup.MakeCharacterLookup(Options.Default, out _);
+                    return CharacterLookup.MakeCharacterLookup(Options.Default, MemoryPool<char>.Shared, out _);
                 }
             }
 
@@ -1635,11 +1683,19 @@ namespace Cesil.Tests
                     testCases++;
                 }
 
-                // WriteComment
+                // WriteComment(string)
                 {
                     var w = MakeWriter();
                     w.Dispose();
                     Assert.Throws<ObjectDisposedException>(() => w.WriteComment("foo"));
+                    testCases++;
+                }
+
+                // WriteComment(ReadOnlySpan)
+                {
+                    var w = MakeWriter();
+                    w.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => w.WriteComment("foo".AsSpan()));
                     testCases++;
                 }
 
@@ -2182,11 +2238,19 @@ namespace Cesil.Tests
                     testCases++;
                 }
 
-                // WriteCommentAsync
+                // WriteCommentAsync(string)
                 {
                     var w = MakeWriter();
                     await w.DisposeAsync();
                     Assert.Throws<ObjectDisposedException>(() => w.WriteCommentAsync(""));
+                    testCases++;
+                }
+
+                // WriteCommentAsync(ReadOnlyMemory)
+                {
+                    var w = MakeWriter();
+                    await w.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => w.WriteCommentAsync("".AsMemory()));
                     testCases++;
                 }
 
@@ -2334,11 +2398,19 @@ namespace Cesil.Tests
                     testCases++;
                 }
 
-                // WriteCommentAsync
+                // WriteCommentAsync(string)
                 {
                     var w = MakeWriter();
                     await w.DisposeAsync();
                     Assert.Throws<ObjectDisposedException>(() => w.WriteCommentAsync(""));
+                    testCases++;
+                }
+
+                // WriteCommentAsync(ReadOnlyMemory)
+                {
+                    var w = MakeWriter();
+                    await w.DisposeAsync();
+                    Assert.Throws<ObjectDisposedException>(() => w.WriteCommentAsync("".AsMemory()));
                     testCases++;
                 }
 

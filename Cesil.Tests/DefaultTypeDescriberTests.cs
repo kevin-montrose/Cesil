@@ -15,6 +15,43 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class DefaultTypeDescriberTests
     {
+        [Fact]
+        public void DelegateCache()
+        {
+            Action foo = () => { };
+
+            var td = new DefaultTypeDescriber();
+            var dc = (IDelegateCache)td;
+
+            Assert.False(dc.TryGetDelegate<string, Action>("hello", out _));
+
+            dc.AddDelegate("hello", foo);
+            Assert.True(dc.TryGetDelegate<string, Action>("hello", out var bar));
+            Assert.Same(foo, bar);
+        }
+
+        [Fact]
+        public void ClearCache()
+        {
+            Action foo = () => { };
+
+            var td = new DefaultTypeDescriber();
+            var dc = (IDelegateCache)td;
+
+            dc.AddDelegate("hello", foo);
+            Assert.True(dc.TryGetDelegate<string, Action>("hello", out var bar));
+            Assert.Same(foo, bar);
+
+            td.ClearCache();
+
+            Assert.False(dc.TryGetDelegate<string, Action>("hello", out _));
+
+            // tests that this is availabe on TypeDescribers.Default
+            {
+                TypeDescribers.Default.ClearCache();
+            }
+        }
+
         private sealed class _IgnoredShouldSerializes
         {
             public string Prop1 { get; set; }

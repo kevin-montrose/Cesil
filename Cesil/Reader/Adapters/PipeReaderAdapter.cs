@@ -19,7 +19,7 @@ namespace Cesil
             Inner = reader;
         }
 
-        public ValueTask<int> ReadAsync(Memory<char> into, CancellationToken cancel)
+        public ValueTask<int> ReadAsync(Memory<char> into, CancellationToken cancellationToken)
         {
             AssertNotDisposedInternal(this);
 
@@ -30,10 +30,10 @@ namespace Cesil
 
 tryAgain:
 
-            var readTask = Inner.ReadAsync(cancel);
+            var readTask = Inner.ReadAsync(cancellationToken);
             if (!readTask.IsCompletedSuccessfully(this))
             {
-                return ReadAsync_ContinueAfterReadAsync(this, readTask, into, cancel);
+                return ReadAsync_ContinueAfterReadAsync(this, readTask, into, cancellationToken);
             }
 
             var res = readTask.Result;
@@ -49,10 +49,10 @@ tryAgain:
             return new ValueTask<int>(handled);
 
             // continue after a ReadAsync call completes
-            static async ValueTask<int> ReadAsync_ContinueAfterReadAsync(PipeReaderAdapter self, ValueTask<ReadResult> waitFor, Memory<char> into, CancellationToken cancel)
+            static async ValueTask<int> ReadAsync_ContinueAfterReadAsync(PipeReaderAdapter self, ValueTask<ReadResult> waitFor, Memory<char> into, CancellationToken cancellationToken)
             {
 tryAgainAsync:
-                var res = await ConfigureCancellableAwait(self, waitFor, cancel);
+                var res = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
 
                 var handled = self.MapByteSequenceToChar(res, into);
 
@@ -60,7 +60,7 @@ tryAgainAsync:
                 //    incorrectly signal that the writer has finished
                 if (handled == 0 && !self.IsComplete)
                 {
-                    waitFor = self.Inner.ReadAsync(cancel);
+                    waitFor = self.Inner.ReadAsync(cancellationToken);
                     goto tryAgainAsync;
                 }
 
@@ -91,7 +91,9 @@ tryAgainAsync:
     // only available in DEBUG for testing purposes
     internal sealed partial class PipeReaderAdapter : ITestableCancellableProvider
     {
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int? ITestableCancellableProvider.CancelAfter { get; set; }
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int ITestableCancellableProvider.CancelCounter { get; set; }
     }
 
@@ -99,11 +101,14 @@ tryAgainAsync:
     internal sealed partial class PipeReaderAdapter : ITestableAsyncProvider
     {
         private int _GoAsyncAfter;
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int ITestableAsyncProvider.GoAsyncAfter { set { _GoAsyncAfter = value; } }
 
         private int _AsyncCounter;
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int ITestableAsyncProvider.AsyncCounter => _AsyncCounter;
 
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         bool ITestableAsyncProvider.ShouldGoAsync()
         {
             lock (this)

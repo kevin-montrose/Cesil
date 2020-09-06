@@ -27,7 +27,7 @@ namespace Cesil
             MemoryPool = memoryPool;
         }
 
-        public ValueTask WriteAsync(ReadOnlyMemory<char> chars, CancellationToken cancel)
+        public ValueTask WriteAsync(ReadOnlyMemory<char> chars, CancellationToken cancellationToken)
         {
             AssertNotDisposedInternal(this);
 
@@ -58,14 +58,14 @@ namespace Cesil
 
             if (!flushTask.IsCompletedSuccessfully(this))
             {
-                return WriteAsync_ContinueAfterFlushAsync(this, flushTask, cancel);
+                return WriteAsync_ContinueAfterFlushAsync(this, flushTask, cancellationToken);
             }
 
             return default;
 
-            static async ValueTask WriteAsync_ContinueAfterFlushAsync(PipeWriterAdapter self, ValueTask<FlushResult> waitFor, CancellationToken cancel)
+            static async ValueTask WriteAsync_ContinueAfterFlushAsync(PipeWriterAdapter self, ValueTask<FlushResult> waitFor, CancellationToken cancellationToken)
             {
-                await ConfigureCancellableAwait(self, waitFor, cancel);
+                await ConfigureCancellableAwait(self, waitFor, cancellationToken);
             }
         }
 
@@ -86,7 +86,9 @@ namespace Cesil
     // only available in DEBUG for testing purposes
     internal sealed partial class PipeWriterAdapter : ITestableCancellableProvider
     {
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int? ITestableCancellableProvider.CancelAfter { get; set; }
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int ITestableCancellableProvider.CancelCounter { get; set; }
     }
 
@@ -94,11 +96,14 @@ namespace Cesil
     internal sealed partial class PipeWriterAdapter : ITestableAsyncProvider
     {
         private int _GoAsyncAfter;
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int ITestableAsyncProvider.GoAsyncAfter { set { _GoAsyncAfter = value; } }
 
         private int _AsyncCounter;
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int ITestableAsyncProvider.AsyncCounter => _AsyncCounter;
 
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         bool ITestableAsyncProvider.ShouldGoAsync()
         {
             lock (this)

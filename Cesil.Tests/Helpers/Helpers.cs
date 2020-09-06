@@ -238,8 +238,8 @@ namespace Cesil.Tests
 
                 // leaks
                 {
-                    var leakDetector = new TrackedMemoryPool<char>();
-                    var leakDetectorConfig = bindConfig(Options.CreateBuilder(opts).WithMemoryPool(leakDetector).ToOptions());
+                    var leakDetector = new TrackedMemoryPoolProvider();
+                    var leakDetectorConfig = bindConfig(Options.CreateBuilder(opts).WithMemoryPoolProvider(leakDetector).ToOptions());
 
                     var runCount = 0;
                     run(leakDetectorConfig, str => { runCount++; return maker(str); });
@@ -324,7 +324,7 @@ namespace Cesil.Tests
                 }
             }
 
-            public async ValueTask<int> ReadAsync(Memory<char> into, CancellationToken cancel)
+            public async ValueTask<int> ReadAsync(Memory<char> into, CancellationToken cancellationToken)
             {
                 WaitingForUnpin = true;
                 var gotIt = await Semaphore.WaitAsync(TimeSpan.FromSeconds(1));
@@ -333,7 +333,7 @@ namespace Cesil.Tests
                     throw new Exception("Did not observe unpin in time, probably held a pin over an await");
                 }
 
-                return await Inner.ReadAsync(into, cancel);
+                return await Inner.ReadAsync(into, cancellationToken);
             }
         }
 
@@ -446,8 +446,8 @@ namespace Cesil.Tests
 
                 // leak detection
                 {
-                    var leakDetector = new TrackedMemoryPool<char>();
-                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).ToOptions());
+                    var leakDetector = new TrackedMemoryPoolProvider();
+                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPoolProvider(leakDetector).ToOptions());
 
                     int cancelPoints;
                     {
@@ -613,8 +613,8 @@ namespace Cesil.Tests
 
                 //run the test once, but look for leaks
                 {
-                    var leakDetector = new TrackedMemoryPool<char>();
-                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).ToOptions());
+                    var leakDetector = new TrackedMemoryPoolProvider();
+                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPoolProvider(leakDetector).ToOptions());
 
                     int runCount = 0;
                     await run(leakDetectorConfig, str => { runCount++; return readerMaker(str); });
@@ -666,8 +666,8 @@ namespace Cesil.Tests
                 forceUpTo = 0;
                 while (true)
                 {
-                    var leakDetector = new TrackedMemoryPool<char>();
-                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).ToOptions());
+                    var leakDetector = new TrackedMemoryPoolProvider();
+                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPoolProvider(leakDetector).ToOptions());
 
                     var wrappedConfig = new AsyncCountingAndForcingConfig<T>(leakDetectorConfig);
                     wrappedConfig.GoAsyncAfter = forceUpTo;
@@ -840,8 +840,8 @@ namespace Cesil.Tests
                 // default, leaks
                 (writer, getter) = maker();
                 {
-                    var leakDetector = new TrackedMemoryPool<char>();
-                    var leakConfig = bindConfig(Options.CreateBuilder(baseOptions).WithMemoryPool(leakDetector).ToOptions());
+                    var leakDetector = new TrackedMemoryPoolProvider();
+                    var leakConfig = bindConfig(Options.CreateBuilder(baseOptions).WithMemoryPoolProvider(leakDetector).ToOptions());
 
                     var gotWriter = 0;
                     var gotString = 0;
@@ -855,8 +855,8 @@ namespace Cesil.Tests
                 // no buffer, leaks
                 (writer, getter) = maker();
                 {
-                    var leakDetector = new TrackedMemoryPool<char>();
-                    var leakConfig = bindConfig(Options.CreateBuilder(baseOptions).WithMemoryPool(leakDetector).WithWriteBufferSizeHint(0).ToOptions());
+                    var leakDetector = new TrackedMemoryPoolProvider();
+                    var leakConfig = bindConfig(Options.CreateBuilder(baseOptions).WithMemoryPoolProvider(leakDetector).WithWriteBufferSizeHint(0).ToOptions());
 
                     var gotWriter = 0;
                     var gotString = 0;
@@ -1060,8 +1060,8 @@ namespace Cesil.Tests
 
                 // leaks
                 {
-                    var leakDetector = new TrackedMemoryPool<char>();
-                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).ToOptions());
+                    var leakDetector = new TrackedMemoryPoolProvider();
+                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPoolProvider(leakDetector).ToOptions());
 
                     int cancelPoints;
                     {
@@ -1174,8 +1174,8 @@ namespace Cesil.Tests
 
                 // run the test once, but look for leaks
                 {
-                    var leakDetector = new TrackedMemoryPool<char>();
-                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).ToOptions());
+                    var leakDetector = new TrackedMemoryPoolProvider();
+                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPoolProvider(leakDetector).ToOptions());
 
                     int writerCount = 0;
                     int stringCount = 0;
@@ -1234,8 +1234,8 @@ namespace Cesil.Tests
                 forceUpTo = 0;
                 while (true)
                 {
-                    var leakDetector = new TrackedMemoryPool<char>();
-                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPool(leakDetector).ToOptions());
+                    var leakDetector = new TrackedMemoryPoolProvider();
+                    var leakDetectorConfig = bind(Options.CreateBuilder(baseOpts).WithMemoryPoolProvider(leakDetector).ToOptions());
 
                     var wrappedConfig = new AsyncCountingAndForcingConfig<T>(leakDetectorConfig);
                     wrappedConfig.GoAsyncAfter = forceUpTo;
@@ -1264,6 +1264,120 @@ namespace Cesil.Tests
                 }
             }
 #endif
+        }
+
+        // won't return empty entries
+        internal static ReadOnlySequence<char> Split(ReadOnlyMemory<char> str, ReadOnlyMemory<char> with)
+        {
+            var strSpan = str.Span;
+            var withSpan = with.Span;
+
+            var ix = FindNextIx(0, strSpan, withSpan);
+
+            if (ix == -1)
+            {
+                return new ReadOnlySequence<char>(str);
+            }
+
+            ReadOnlyCharSegment head = null;
+            ReadOnlyCharSegment tail = null;
+
+            var lastIx = 0;
+            while (ix != -1)
+            {
+                var len = ix - lastIx;
+                if (len > 0)
+                {
+                    var subset = str[lastIx..ix];
+                    if (head == null)
+                    {
+                        head = new ReadOnlyCharSegment(subset, len);
+                    }
+                    else
+                    {
+                        if (tail == null)
+                        {
+                            tail = head.Append(subset, len);
+                        }
+                        else
+                        {
+                            tail = tail.Append(subset, len);
+                        }
+                    }
+                }
+
+                lastIx = ix + with.Length;
+                ix = FindNextIx(lastIx, strSpan, withSpan);
+            }
+
+            if (lastIx != str.Length)
+            {
+                var len = str.Length - lastIx;
+                var end = str.Slice(lastIx);
+                if (head == null)
+                {
+                    head = new ReadOnlyCharSegment(end, len);
+
+                }
+                else
+                {
+                    if (tail == null)
+                    {
+                        tail = head.Append(end, len);
+                    }
+                    else
+                    {
+                        tail = tail.Append(end, len);
+                    }
+                }
+            }
+
+            if (head == null)
+            {
+                return ReadOnlySequence<char>.Empty;
+            }
+
+            if (tail == null)
+            {
+                return new ReadOnlySequence<char>(head.Memory);
+            }
+
+            var ret = new ReadOnlySequence<char>(head, 0, tail, tail.Memory.Length);
+
+            return ret;
+
+            // actually figure out the next end
+            static int FindNextIx(int startAt, ReadOnlySpan<char> haystack, ReadOnlySpan<char> needle)
+            {
+                var c = needle[0];
+                var lookupFrom = startAt;
+
+tryAgain:
+
+                var ix = Utils.FindChar(haystack, lookupFrom, c);
+                if (ix == -1) return -1;
+
+                for (var i = 1; i < needle.Length; i++)
+                {
+                    var readIx = ix + i;
+                    if (readIx == haystack.Length)
+                    {
+                        // past the end
+                        return -1;
+                    }
+
+                    var shouldMatch = needle[i];
+                    var actuallyIs = haystack[readIx];
+                    if (shouldMatch != actuallyIs)
+                    {
+                        lookupFrom = readIx;
+                        goto tryAgain;
+                    }
+                }
+
+                // actually all matched, hooray!
+                return ix;
+            }
         }
     }
 }

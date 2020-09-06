@@ -5,6 +5,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
+using static Cesil.BindingFlagsConstants;
+
 namespace Cesil
 {
     /// <summary>
@@ -428,7 +430,7 @@ handleMethod:
                             fallbacks = arrBuilder.ToImmutable();
                         }
 
-                        return new InstanceProvider(consOnType, fallbacks);
+                        return new InstanceProvider(consOnType, fallbacks, builder.ConstructsNullability);
                     }
                 case BackingMode.Method:
                     return Throw.InvalidOperationException<InstanceProvider>($"Cannot map a method {nameof(InstanceProvider)} between types");
@@ -442,15 +444,15 @@ handleMethod:
         {
             if (isPublic)
             {
-                if (isStatic) return BindingFlagsConstants.PublicStatic;
+                if (isStatic) return PublicStatic;
 
-                return BindingFlagsConstants.PublicInstance;
+                return PublicInstance;
             }
             else
             {
-                if (isStatic) return BindingFlagsConstants.InternalStatic;
+                if (isStatic) return InternalStatic;
 
-                return BindingFlagsConstants.InternalInstance;
+                return InternalInstance;
             }
         }
 
@@ -565,9 +567,9 @@ handleMethod:
         /// <summary>
         /// Delegates to TypeDescriber.
         /// </summary>
-        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
-        public IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext context, object row)
-        => TypeDescriber.GetCellsForDynamicRow(in context, row);
+        [return: IntentionallyExposedPrimitive("Count, int is the best option")]
+        public int GetCellsForDynamicRow(in WriteContext context, object row, Span<DynamicCellValue> cells)
+        => TypeDescriber.GetCellsForDynamicRow(in context, row, cells);
 
         // operators
 

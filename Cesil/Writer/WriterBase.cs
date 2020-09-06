@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 
 namespace Cesil
 {
@@ -29,7 +30,7 @@ namespace Cesil
             Configuration = config;
 
             var options = Configuration.Options;
-            var memPool = options.MemoryPool;
+            var memPool = Configuration.MemoryPool;
             var writeSizeHint = options.WriteBufferSizeHint;
 
             Buffer = new MaxSizedBufferWriter(memPool, writeSizeHint);
@@ -66,30 +67,13 @@ namespace Cesil
         => Utils.FindNeedsEncode(head, 0, Configuration) != -1;
 
         // returns true if we need to flush staging
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool PlaceInStaging(char c)
         {
             StagingMemory.Span[InStaging] = c;
             InStaging++;
 
             return InStaging == StagingMemory.Length;
-        }
-
-        internal (char CommentChar, ReadOnlySequence<char> CommentLines) SplitCommentIntoLines(string comment)
-        {
-            var options = Configuration.Options;
-            var commentChar = options.CommentCharacter;
-
-            if (commentChar == null)
-            {
-                return Throw.InvalidOperationException<(char CommentChar, ReadOnlySequence<char> CommentLines)>($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
-            }
-
-            var commentMem = comment.AsMemory();
-
-            var seq = Utils.Split(commentMem, Configuration.RowEndingMemory);
-            var c = commentChar.Value;
-
-            return (c, seq);
         }
 
         internal static void CheckCanEncode(ReadOnlySpan<char> chars, Options options)
@@ -110,8 +94,8 @@ namespace Cesil
                 // we can be slow here, we're about to throw an exception
                 var carriageReturnIx = Utils.FindChar(chars, 0, '\r');
                 var newLineIx = Utils.FindChar(chars, 0, '\n');
-                var separatorIx = Utils.FindChar(chars, 0, options.ValueSeparator);
 
+                var separatorIx = Utils.Find(chars, 0, options.ValueSeparator);
                 var commentChar = options.CommentCharacter;
                 var commentIx = commentChar != null ? Utils.FindChar(chars, 0, commentChar.Value) : -1;
 
@@ -121,9 +105,15 @@ namespace Cesil
                 if (commentIx == -1) commentIx = int.MaxValue;
 
                 var offendingIx = Math.Min(carriageReturnIx, Math.Min(newLineIx, Math.Min(separatorIx, commentIx)));
-                var offendingChar = chars[offendingIx];
 
-                Throw.InvalidOperationException<object>($"Tried to write a value contain '{offendingChar}' which requires escaping a value, but no way to escape a value is configured");
+                var take =
+                    carriageReturnIx == offendingIx ||
+                    newLineIx == offendingIx ||
+                    commentIx == offendingIx ? 1 : options.ValueSeparator.Length;
+
+                var offendingText = new string(chars[offendingIx..(offendingIx + take)]);
+
+                Throw.InvalidOperationException<object>($"Tried to write a value contain '{offendingText}' which requires escaping a value, but no way to escape a value is configured");
                 return;
             }
 
@@ -158,7 +148,8 @@ namespace Cesil
                 // we can be slow here, we're about to throw an exception
                 var carriageReturnIx = Utils.FindChar(chars, 0, '\r');
                 var newLineIx = Utils.FindChar(chars, 0, '\n');
-                var separatorIx = Utils.FindChar(chars, 0, options.ValueSeparator);
+
+                var separatorIx = Utils.Find(chars, options.ValueSeparator);
 
                 var commentChar = options.CommentCharacter;
                 var commentIx = commentChar != null ? Utils.FindChar(chars, 0, commentChar.Value) : -1;
@@ -170,9 +161,14 @@ namespace Cesil
 
                 var offendingIx = Math.Min(carriageReturnIx, Math.Min(newLineIx, Math.Min(separatorIx, commentIx)));
 
-                var offendingChar = chars.Slice(offendingIx).First.Span[0];
+                var take =
+                    carriageReturnIx == offendingIx ||
+                    newLineIx == offendingIx ||
+                    commentIx == offendingIx ? 1 : options.ValueSeparator.Length;
 
-                Throw.InvalidOperationException<object>($"Tried to write a value contain '{offendingChar}' which requires escaping a value, but no way to escape a value is configured");
+                var offendingText = new string(chars.Slice(offendingIx).FirstSpan[0..take]);
+
+                Throw.InvalidOperationException<object>($"Tried to write a value contain '{offendingText}' which requires escaping a value, but no way to escape a value is configured");
                 return;
             }
 

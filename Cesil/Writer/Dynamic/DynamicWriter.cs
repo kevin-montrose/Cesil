@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+
 using static Cesil.DisposableHelper;
 
 namespace Cesil
@@ -22,9 +23,11 @@ namespace Cesil
 
         private bool HasWrittenComments;
 
+        private IMemoryOwner<DynamicCellValue>? CellBuffer;
+
         internal DynamicWriter(DynamicBoundConfiguration config, IWriterAdapter inner, object? context) : base(config, inner, context) { }
 
-        bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)]out V del)
+        bool IDelegateCache.TryGetDelegate<T, V>(T key, [MaybeNullWhen(returnValue: false)] out V del)
         {
             if (DelegateCache == null)
             {
@@ -61,20 +64,23 @@ namespace Cesil
                 var wholeRowContext = WriteContext.DiscoveringCells(Configuration.Options, RowNumber, Context);
 
                 var options = Configuration.Options;
+                var valueSeparator = Configuration.ValueSeparatorMemory.Span;
 
-                var cellValues = options.TypeDescriber.GetCellsForDynamicRow(in wholeRowContext, row as object);
-                cellValues = ForceInOrder(cellValues);
+                var cellValuesMem = Utils.GetCells(Configuration.DynamicMemoryPool, ref CellBuffer, options.TypeDescriber, in wholeRowContext, row as object);
+
+                Utils.ForceInOrder(ColumnNames.Value, ColumnNameSorter, cellValuesMem);
+                var cellValuesEnumerableSpan = cellValuesMem.Span;
 
                 var columnNamesValue = ColumnNames.Value;
 
                 var i = 0;
-                foreach (var cell in cellValues)
+                foreach (var cell in cellValuesEnumerableSpan)
                 {
                     var needsSeparator = i != 0;
 
                     if (needsSeparator)
                     {
-                        PlaceCharInStaging(options.ValueSeparator);
+                        PlaceAllInStaging(valueSeparator);
                     }
 
                     ColumnIdentifier ci;
@@ -121,12 +127,10 @@ end:
             }
         }
 
-        public override void WriteComment(string comment)
+        public override void WriteComment(ReadOnlySpan<char> comment)
         {
             AssertNotDisposed(this);
             AssertNotPoisoned(Configuration);
-
-            Utils.CheckArgumentNull(comment, nameof(comment));
 
             try
             {
@@ -155,26 +159,67 @@ end:
                     EndRecord();
                 }
 
-                var (commentChar, segments) = SplitCommentIntoLines(comment);
+                var options = Configuration.Options;
+                var commentCharNullable = options.CommentCharacter;
 
-                // we know we can write directly now
-                var isFirstRow = true;
-                foreach (var seg in segments)
+                if (commentCharNullable == null)
                 {
-                    HasWrittenComments = true;
+                    Throw.InvalidOperationException<object>($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
+                    return;
+                }
 
-                    if (!isFirstRow)
-                    {
-                        EndRecord();
-                    }
+                HasWrittenComments = true;
 
+                var commentChar = commentCharNullable.Value;
+                var rowEndingSpan = Configuration.RowEndingMemory.Span;
+
+                var splitIx = Utils.FindNextIx(0, comment, rowEndingSpan);
+                if (splitIx == -1)
+                {
+                    // single segment
                     PlaceCharInStaging(commentChar);
-                    if (seg.Span.Length > 0)
+                    if (comment.Length > 0)
                     {
-                        PlaceAllInStaging(seg.Span);
+                        PlaceAllInStaging(comment);
+                    }
+                }
+                else
+                {
+                    // multi segment
+                    var prevIx = 0;
+
+                    var isFirstRow = true;
+                    while (splitIx != -1)
+                    {
+                        if (!isFirstRow)
+                        {
+                            EndRecord();
+                        }
+
+                        PlaceCharInStaging(commentChar);
+                        var segSpan = comment[prevIx..splitIx];
+                        if (segSpan.Length > 0)
+                        {
+                            PlaceAllInStaging(segSpan);
+                        }
+
+                        prevIx = splitIx + rowEndingSpan.Length;
+                        splitIx = Utils.FindNextIx(prevIx, comment, rowEndingSpan);
+
+                        isFirstRow = false;
                     }
 
-                    isFirstRow = false;
+                    if (prevIx != comment.Length)
+                    {
+                        if (!isFirstRow)
+                        {
+                            EndRecord();
+                        }
+
+                        PlaceCharInStaging(commentChar);
+                        var segSpan = comment[prevIx..];
+                        PlaceAllInStaging(segSpan);
+                    }
                 }
             }
             catch (Exception e)
@@ -201,42 +246,6 @@ end:
             }
         }
 
-        private IEnumerable<DynamicCellValue> ForceInOrder(IEnumerable<DynamicCellValue> raw)
-        {
-            var columnNamesValue = ColumnNames.Value;
-
-            // no headers mean we write whatever we're given
-            if (columnNamesValue.Length == 0) return raw;
-
-            var inOrder = true;
-
-            var i = 0;
-            foreach (var x in raw)
-            {
-                if (i == columnNamesValue.Length)
-                {
-                    return Throw.InvalidOperationException<IEnumerable<DynamicCellValue>>("Too many cells returned, could not place in desired order");
-                }
-
-                var (name, _) = columnNamesValue[i];
-                if (!name.Equals(x.Name))
-                {
-                    inOrder = false;
-                    break;
-                }
-
-                i++;
-            }
-
-            // already in order, 
-            if (inOrder) return raw;
-
-            var ret = new List<DynamicCellValue>(raw);
-            ret.Sort(ColumnNameSorter.Value);
-
-            return ret;
-        }
-
         // returns true if it did write out headers,
         //   so we need to end a record before
         //   writing the next one
@@ -259,14 +268,18 @@ end:
 
         private void DiscoverColumns(dynamic o)
         {
+            // todo: remove this allocation
             var cols = new List<(string TrueName, string EncodedName)>();
 
             var ctx = WriteContext.DiscoveringColumns(Configuration.Options, Context);
 
             var options = Configuration.Options;
 
+            var cellsMem = Utils.GetCells(Configuration.DynamicMemoryPool, ref CellBuffer, options.TypeDescriber, in ctx, o as object);
+            var cells = cellsMem.Span;
+
             var colIx = 0;
-            foreach (var c in options.TypeDescriber.GetCellsForDynamicRow(in ctx, o as object))
+            foreach (var c in cells)
             {
                 var colName = c.Name;
 
@@ -281,7 +294,7 @@ end:
                 // encode it, if it needs encoding
                 if (NeedsEncode(encodedColName))
                 {
-                    encodedColName = Utils.Encode(encodedColName, options);
+                    encodedColName = Utils.Encode(encodedColName, options, Configuration.MemoryPool);
                 }
 
                 cols.Add((colName, encodedColName));
@@ -317,13 +330,15 @@ end:
 
         private void WriteHeaders()
         {
+            var valueSeparator = Configuration.ValueSeparatorMemory.Span;
+
             var columnNamesValue = ColumnNames.Value;
             for (var i = 0; i < columnNamesValue.Length; i++)
             {
                 if (i != 0)
                 {
                     // first value doesn't get a separator
-                    PlaceCharInStaging(Configuration.Options.ValueSeparator);
+                    PlaceAllInStaging(valueSeparator);
                 }
                 else
                 {
@@ -353,7 +368,6 @@ end:
 
                 try
                 {
-
                     if (IsFirstRow)
                     {
                         CheckHeaders(null);
@@ -378,6 +392,7 @@ end:
 
                     Inner.Dispose();
                     Buffer.Dispose();
+                    CellBuffer?.Dispose();
                 }
                 catch (Exception e)
                 {
@@ -389,6 +404,7 @@ end:
                     }
 
                     Buffer.Dispose();
+                    CellBuffer?.Dispose();
 
                     Throw.PoisonAndRethrow<object>(this, e);
                 }

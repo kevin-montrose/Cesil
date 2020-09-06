@@ -24,6 +24,7 @@ namespace Cesil
             }
         }
 
+        [ExcludeFromCoverage("Trivial, and covered by IEnumerator<T>.Current")]
         object IEnumerator.Current => Current;
 
         internal DynamicRowMemberNameEnumerator(DynamicRow row)

@@ -29,24 +29,20 @@ namespace Cesil
             }
         }
 
-        object? IEnumerator.Current
-        {
-            get
-            {
-                AssertNotDisposed(this);
-
-                return _Current;
-            }
-        }
+        [ExcludeFromCoverage("Trivial, and covered by IEnumerator<T>.Current")]
+        object? IEnumerator.Current => ((IEnumerator<T>)this).Current;
 
         internal Enumerable(IReader<T> reader)
         {
             Reader = reader;
             Enumerated = false;
             _IsDisposed = false;
+#pragma warning disable CES0005 // T is generic, and we'll overwrite it before it's used, so default! is needed
             _Current = default!;
+#pragma warning restore CES0005
         }
 
+        [ExcludeFromCoverage("Trivial, and covered by IEnumerable<T>.GetEnumerator()")]
         IEnumerator IEnumerable.GetEnumerator()
         => GetEnumerator();
 
@@ -68,7 +64,7 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
-            if(Reader.TryRead(out var c))
+            if (Reader.TryRead(out var c))
             {
                 _Current = c;
                 return true;

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace Cesil
@@ -50,15 +51,17 @@ namespace Cesil
         [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         DynamicRowConverter? GetDynamicRowConverter(in ReadContext context, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType);
 
-        // todo: IEnumerable on GetCellsForDynamicRows is... less than ideal? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/6)
-        //       an allocation per row is crummy, even if you're already in
-        //       dynamic land
-
         /// <summary>
         /// Called to determine the cells that make up the given dynamic row.
         /// 
-        /// Used to enumerate cells when serializing dynamically.
+        /// Returns the number of cells extracted from the row.  If the given span is 
+        /// too small, its contents are ignored and GetCellsForDynamicRow is called again with one 
+        /// of at least the indicated size.
+        /// 
+        /// The content of the given span is undefined, in particular no values are guaranteed
+        /// to be carried forward between calls.
         /// </summary>
-        IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext context, object row);
+        [return: IntentionallyExposedPrimitive("Count, int is the best option")]
+        int GetCellsForDynamicRow(in WriteContext context, object row, Span<DynamicCellValue> cells);
     }
 }

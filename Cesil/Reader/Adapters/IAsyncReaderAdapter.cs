@@ -6,6 +6,6 @@ namespace Cesil
 {
     internal interface IAsyncReaderAdapter : ITestableAsyncDisposable
     {
-        ValueTask<int> ReadAsync(Memory<char> into, CancellationToken cancel);
+        ValueTask<int> ReadAsync(Memory<char> into, CancellationToken cancellationToken);
     }
 }

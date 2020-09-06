@@ -116,10 +116,10 @@ namespace Cesil
                 return Throw.ArgumentException<DynamicRowConverter>($"{fallbackConverter} does not produce a value assignable to {TargetType}, and cannot be used as a fallback for this {nameof(DynamicRowConverter)}", nameof(fallbackConverter));
             }
 
-            return this.DoElse(fallbackConverter);
+            return this.DoElse(fallbackConverter, null, null);
         }
 
-        DynamicRowConverter IElseSupporting<DynamicRowConverter>.Clone(ImmutableArray<DynamicRowConverter> newFallbacks)
+        DynamicRowConverter IElseSupporting<DynamicRowConverter>.Clone(ImmutableArray<DynamicRowConverter> newFallbacks, NullHandling? _, NullHandling? __)
         {
             switch (Mode)
             {

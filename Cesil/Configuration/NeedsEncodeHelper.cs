@@ -5,14 +5,14 @@ using System.Runtime.Intrinsics.X86;
 
 namespace Cesil
 {
-    [StructLayout(LayoutKind.Explicit, Size = sizeof(short) * PROBABILITY_MAP_SIZE + sizeof(short) * AVX_REGISTER_VALUES)]
+    [StructLayout(LayoutKind.Explicit, Size = 8 + sizeof(short) * PROBABILITY_MAP_SIZE + sizeof(short) * AVX_REGISTER_VALUES)]
     internal unsafe struct NeedsEncodeHelper
     {
         private const int PROBABILITY_MAP_SIZE = 16;
         private const int AVX_REGISTER_VALUES = 5;
         private const int CHARS_PER_VECTOR = 256 / (sizeof(char) * 8);
 
-        private const int END_OF_PROBILITY_MAP = PROBABILITY_MAP_SIZE * sizeof(short);
+        private const int END_OF_PROBABILITY_MAP = PROBABILITY_MAP_SIZE * sizeof(short);
 
         // array for initializing a vector mask
         //
@@ -35,26 +35,31 @@ namespace Cesil
                 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,
             };
 
+
         [FieldOffset(0)]
+        private readonly string ValueSeparator;
+
+        [FieldOffset(8)]
         internal fixed short MAP[PROBABILITY_MAP_SIZE];
 
-        [FieldOffset(END_OF_PROBILITY_MAP)]
+        [FieldOffset(8 + PROBABILITY_MAP_SIZE)]
         private readonly short FirstChar;
 
-        [FieldOffset(END_OF_PROBILITY_MAP + sizeof(short) * 1)]
+        [FieldOffset(8 + PROBABILITY_MAP_SIZE + sizeof(short) * 1)]
         private readonly short SecondChar;
 
-        [FieldOffset(END_OF_PROBILITY_MAP + sizeof(short) * 2)]
+        [FieldOffset(8 + PROBABILITY_MAP_SIZE + sizeof(short) * 2)]
         private readonly short ThirdChar;
 
-        [FieldOffset(END_OF_PROBILITY_MAP + sizeof(short) * 3)]
+        [FieldOffset(8 + PROBABILITY_MAP_SIZE + sizeof(short) * 3)]
         private readonly short Char2Mask;
-        [FieldOffset(END_OF_PROBILITY_MAP + sizeof(short) * 4)]
+        [FieldOffset(8 + PROBABILITY_MAP_SIZE + sizeof(short) * 4)]
         private readonly short Char3Mask;
 
-        internal NeedsEncodeHelper(char c1, char? c2, char? c3)
+        internal NeedsEncodeHelper(string sep, char? c2, char? c3)
         {
-            FirstChar = (short)c1;
+            FirstChar = (short)sep[0];
+            ValueSeparator = sep;
             SecondChar = (short)(c2 ?? '\0');
             ThirdChar = (short)(c3 ?? '\0');
 
@@ -155,7 +160,9 @@ namespace Cesil
                 {
                     var charsToSkip = trailingZeros / sizeof(char);
 
-                    return i * CHARS_PER_VECTOR + charsToSkip;
+                    var charIx = i * CHARS_PER_VECTOR + charsToSkip;
+                    var r = CheckValueSeparatorPresent(charIx, strPtr + charIx, len);
+                    if (r != -1) return r;
                 }
             }
 
@@ -234,7 +241,9 @@ namespace Cesil
                 {
                     var charsToSkip = trailingZeros / sizeof(char);
 
-                    return v256Count * CHARS_PER_VECTOR + charsToSkip;
+                    var charIx = v256Count * CHARS_PER_VECTOR + charsToSkip;
+                    var r = CheckValueSeparatorPresent(charIx, strPtr + charIx, len);
+                    if (r != -1) return r;
                 }
 
                 remainingIntPtr += remainingInts;
@@ -254,7 +263,8 @@ namespace Cesil
 
                 if (needEncode)
                 {
-                    return len - 1;
+                    var charIx = len - 1;
+                    return CheckValueSeparatorPresent(charIx, strPtr + charIx, len);
                 }
             }
 
@@ -274,7 +284,8 @@ tryAgain:
             var c = *strPtr;
             if (c == '\r' || c == '\n' || c == FirstChar || c == SecondChar || c == ThirdChar)
             {
-                return ix;
+                var r = CheckValueSeparatorPresent(ix, strPtr, len);
+                if (r != -1) return r;
             }
 
             strPtr++;
@@ -282,6 +293,37 @@ tryAgain:
             if (len <= 0) return -1;
 
             goto tryAgain;
+        }
+
+        // need to check the value separator, potentially
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private readonly int CheckValueSeparatorPresent(int ix, char* strPtr, int strLen)
+        {
+            // no need to do more checks
+            if (ValueSeparator.Length == 1) return ix;
+
+            // some other character, so no checks needed
+            var isValueSep = *strPtr == FirstChar;
+            if (!isValueSep) return ix;
+
+            var valueSepIx = 1;
+            var remaining = ValueSeparator.Length - valueSepIx;
+
+            // no space
+            if (strLen - (ix + 1) < remaining) return -1;
+
+            var ptr = strPtr + 1;
+            while (valueSepIx < ValueSeparator.Length)
+            {
+                var c = *ptr;
+                var sC = ValueSeparator[valueSepIx];
+                if (c != sC) return -1;
+
+                ptr++;
+                valueSepIx++;
+            }
+
+            return ix;
         }
 
         // inspired by https://github.com/bbowyersmyth/coreclr/blob/d59b674ee9cd6d092073f9d8d321f935a757e53d/src/classlibnative/bcltype/stringnative.cpp

@@ -9,6 +9,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using Microsoft.CSharp.RuntimeBinder;
 
+using static Cesil.BindingFlagsConstants;
+
 namespace Cesil
 {
     // everything in DefaultTypeDescriber is part of a public API
@@ -53,7 +55,7 @@ namespace Cesil
         public DefaultTypeDescriber()
         {
             // only use the caches if we're not in a subclass
-            CanCache = GetType() == typeof(DefaultTypeDescriber);
+            CanCache = GetType() == Types.DefaultTypeDescriber;
 
             DelegateCache = new ConcurrentDictionary<object, Delegate>();
             DeserializableMembers = new ConcurrentDictionary<TypeInfo, IEnumerable<DeserializableMember>>();
@@ -102,7 +104,7 @@ namespace Cesil
                 //      until a non-null is found
                 var buffer = MemberOrderHelper<DeserializableMember>.Create();
 
-                foreach (var p in forType.GetProperties(BindingFlagsConstants.All))
+                foreach (var p in forType.GetProperties(All))
                 {
                     if (!ShouldDeserialize(forType, p)) continue;
 
@@ -257,7 +259,7 @@ namespace Cesil
             Utils.CheckArgumentNull(property, nameof(property));
 
             // intentionally letting this be null
-            var mtd = forType.GetMethod("Reset" + property.Name, BindingFlagsConstants.All);
+            var mtd = forType.GetMethod("Reset" + property.Name, All);
             if (mtd == null) return null;
 
             if (mtd.IsStatic)
@@ -447,7 +449,7 @@ namespace Cesil
             {
                 var buffer = MemberOrderHelper<SerializableMember>.Create();
 
-                foreach (var p in forType.GetProperties(BindingFlagsConstants.All))
+                foreach (var p in forType.GetProperties(All))
                 {
                     if (!ShouldSerialize(forType, p)) continue;
 
@@ -461,7 +463,7 @@ namespace Cesil
                     buffer.Add(order, SerializableMember.CreateInner(forType, name, getter, formatter, shouldSerialize, emitDefault));
                 }
 
-                foreach (var f in forType.GetFields(BindingFlagsConstants.All))
+                foreach (var f in forType.GetFields(All))
                 {
                     if (!ShouldSerialize(forType, f)) continue;
 
@@ -565,7 +567,7 @@ namespace Cesil
             Utils.CheckArgumentNull(property, nameof(property));
 
             // intentionally letting this be null
-            var mtd = forType.GetMethod("ShouldSerialize" + property.Name, BindingFlagsConstants.All);
+            var mtd = forType.GetMethod("ShouldSerialize" + property.Name, All);
             if (mtd == null) return null;
 
             if (mtd.ReturnType != Types.Bool) return null;
@@ -777,23 +779,27 @@ namespace Cesil
         }
 
         /// <summary>
-        /// Enumerates cells on the given dynamic row.
+        /// Discovers cells for the given dynamic row.
+        /// 
+        /// If the span is too small, the needed size is returned and the span
+        /// is left in an indeterminate state.
         /// 
         /// Null rows have no cells, but are legal.
         /// 
         /// Rows created by Cesil have their cells enumerated as strings.
         /// 
         /// Other dynamic types will have each member enumerated as either their
-        ///   actual type (if a formatter is available) or as a string.
+        /// actual type (if a formatter is available) or as a string.
         /// 
         /// Override to tweak behavior.
         /// </summary>
-        public virtual IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext context, dynamic row)
+        [return: IntentionallyExposedPrimitive("Count, int is the best option")]
+        public virtual int GetCellsForDynamicRow(in WriteContext context, dynamic row, Span<DynamicCellValue> cells)
         {
             // handle no value
             if (row is null)
             {
-                return Array.Empty<DynamicCellValue>();
+                return 0;
             }
 
             var rowObj = row as object;
@@ -803,7 +809,12 @@ namespace Cesil
             {
                 var cols = asOwnRow.Columns;
 
-                var ret = new DynamicCellValue[cols.Count];
+                // can we fit?
+                if (cols.Count > cells.Length)
+                {
+                    return cols.Count;
+                }
+
                 var nextRetIx = 0;
 
                 var ix = 0;
@@ -846,28 +857,29 @@ namespace Cesil
 
                     if (formatter == null)
                     {
-                        return Throw.InvalidOperationException<IEnumerable<DynamicCellValue>>($"No formatter returned by {nameof(GetFormatter)}");
+                        return Throw.InvalidOperationException<int>($"No formatter returned by {nameof(GetFormatter)}");
                     }
 
-                    ret[nextRetIx] = DynamicCellValue.Create(name, value, formatter);
+                    cells[nextRetIx] = DynamicCellValue.Create(name, value, formatter);
+
                     nextRetIx++;
 
 endLoop:
                     ix++;
                 }
 
-                if (nextRetIx != ret.Length)
-                {
-                    return ret.Take(nextRetIx);
-                }
-
-                return ret;
+                return nextRetIx;
             }
 
             // special case the most convenient dynamic type
             if (row is ExpandoObject asExpando)
             {
-                var ret = new DynamicCellValue[((ICollection<KeyValuePair<string, object>>)asExpando).Count];
+                var asCollection = (ICollection<KeyValuePair<string, object>>)asExpando;
+                if (asCollection.Count > cells.Length)
+                {
+                    return asCollection.Count;
+                }
+
                 var nextRetIx = 0;
 
                 foreach (var kv in asExpando)
@@ -922,16 +934,11 @@ endLoop:
                     // skip anything that isn't formattable
                     if (formatter == null) continue;
 
-                    ret[nextRetIx] = DynamicCellValue.Create(name, value, formatter);
+                    cells[nextRetIx] = DynamicCellValue.Create(name, value, formatter);
                     nextRetIx++;
                 }
 
-                if (nextRetIx != ret.Length)
-                {
-                    return ret.Take(nextRetIx);
-                }
-
-                return ret;
+                return nextRetIx;
             }
 
             var rowObjType = rowObj.GetType().GetTypeInfo();
@@ -943,10 +950,13 @@ endLoop:
                 var metaObj = asDynamic.GetMetaObject(arg);
 
                 var names = metaObj.GetDynamicMemberNames();
+                var namesCount = names.Count();
+                if (namesCount > cells.Length)
+                {
+                    return namesCount;
+                }
 
-                var ret = new DynamicCellValue[names.Count()];
                 var nextRetIx = 0;
-
                 foreach (var name in names)
                 {
                     var args = new[] { CSharpArgumentInfo.Create(default, null) };
@@ -1015,23 +1025,22 @@ endLoop:
                     // skip it, can't serialize it
                     if (formatter == null) continue;
 
-                    ret[nextRetIx] = DynamicCellValue.Create(name, value, formatter);
+                    cells[nextRetIx] = DynamicCellValue.Create(name, value, formatter);
                     nextRetIx++;
                 }
 
-                if (nextRetIx != ret.Length)
-                {
-                    return ret.Take(nextRetIx);
-                }
-
-                return ret;
+                return nextRetIx;
             }
 
             // now just plain old types
             {
                 var toSerialize = EnumerateMembersToSerialize(rowObjType);
+                var toSerializeCount = toSerialize.Count();
+                if (toSerializeCount > cells.Length)
+                {
+                    return toSerializeCount;
+                }
 
-                var ret = new DynamicCellValue[toSerialize.Count()];
                 var nextRetIx = 0;
 
                 foreach (var mem in toSerialize)
@@ -1060,23 +1069,18 @@ endLoop:
 
                     if (formatter == null)
                     {
-                        return Throw.InvalidOperationException<IEnumerable<DynamicCellValue>>($"No formatter returned by {nameof(GetFormatter)}");
+                        return Throw.InvalidOperationException<int>($"No formatter returned by {nameof(GetFormatter)}");
                     }
 
                     var delProvider = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)getter);
                     var del = delProvider.Guarantee(this);
                     var value = del(rowObj, in context);
 
-                    ret[nextRetIx] = DynamicCellValue.Create(name, value, formatter);
+                    cells[nextRetIx] = DynamicCellValue.Create(name, value, formatter);
                     nextRetIx++;
                 }
 
-                if (nextRetIx != ret.Length)
-                {
-                    return ret.Take(nextRetIx);
-                }
-
-                return ret;
+                return nextRetIx;
             }
         }
 
@@ -1085,7 +1089,7 @@ endLoop:
         /// 
         /// Override to customize behavior.
         /// </summary>
-        protected bool ShouldIncludeCell(string name, in WriteContext context, dynamic row)
+        protected virtual bool ShouldIncludeCell(string name, in WriteContext context, dynamic row)
         => true;
 
         /// <summary>
@@ -1094,7 +1098,7 @@ endLoop:
         /// Override to customize behavior.
         /// </summary>
         [return: NullableExposed("May not be known, null is cleanest way to handle it")]
-        protected Formatter? GetFormatter(TypeInfo forType, string name, in WriteContext context, dynamic row)
+        protected virtual Formatter? GetFormatter(TypeInfo forType, string name, in WriteContext context, dynamic row)
         => Formatter.GetDefault(forType);
 
         /// <summary>
@@ -1105,8 +1109,8 @@ endLoop:
         [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         public virtual Parser? GetDynamicCellParserFor(in ReadContext context, TypeInfo targetType)
         {
-            var onePCons = targetType.GetConstructor(BindingFlagsConstants.PublicInstance, null, Types.ParserConstructorOneParameter_Array, null);
-            var twoPCons = targetType.GetConstructor(BindingFlagsConstants.PublicInstance, null, Types.ParserConstructorTwoParameter_Array, null);
+            var onePCons = targetType.GetConstructor(PublicInstance, null, Types.ParserConstructorOneParameter_Array, null);
+            var twoPCons = targetType.GetConstructor(PublicInstance, null, Types.ParserConstructorTwoParameter_Array, null);
             var cons = onePCons ?? twoPCons;
             if (cons != null)
             {
@@ -1135,13 +1139,13 @@ endLoop:
             if (IsValueTuple(targetType))
             {
                 var mtd = Types.TupleDynamicParsers.MakeGenericType(targetType).GetTypeInfo();
-                var genMtd = mtd.GetMethodNonNull(nameof(TupleDynamicParsers<object>.TryConvertValueTuple), BindingFlagsConstants.InternalStatic);
+                var genMtd = mtd.GetMethodNonNull(nameof(TupleDynamicParsers<object>.TryConvertValueTuple), InternalStatic);
                 return DynamicRowConverter.ForMethod(genMtd);
             }
             else if (IsTuple(targetType))
             {
                 var mtd = Types.TupleDynamicParsers.MakeGenericType(targetType).GetTypeInfo();
-                var genMtd = mtd.GetMethodNonNull(nameof(TupleDynamicParsers<object>.TryConvertTuple), BindingFlagsConstants.InternalStatic);
+                var genMtd = mtd.GetMethodNonNull(nameof(TupleDynamicParsers<object>.TryConvertTuple), InternalStatic);
                 return DynamicRowConverter.ForMethod(genMtd);
             }
 
@@ -1152,7 +1156,7 @@ endLoop:
                 if (elementType != Types.Object)
                 {
                     var genEnum = Types.DynamicRowEnumerable.MakeGenericType(elementType).GetTypeInfo();
-                    var cons = genEnum.GetConstructorNonNull(BindingFlagsConstants.InternalInstance, null, new[] { Types.Object }, null);
+                    var cons = genEnum.GetConstructorNonNull(InternalInstance, null, new[] { Types.Object }, null);
                     return DynamicRowConverter.ForConstructorTakingDynamic(cons);
                 }
                 else
@@ -1163,7 +1167,7 @@ endLoop:
             }
             else if (targetType == Types.IEnumerable)
             {
-                var cons = Types.DynamicRowEnumerableNonGeneric.GetConstructorNonNull(BindingFlagsConstants.InternalInstance, null, new[] { Types.Object }, null);
+                var cons = Types.DynamicRowEnumerableNonGeneric.GetConstructorNonNull(InternalInstance, null, new[] { Types.Object }, null);
                 return DynamicRowConverter.ForConstructorTakingDynamic(cons);
             }
 
@@ -1220,7 +1224,7 @@ endLoop:
 
         private static ConstructorPOCOResult IsConstructorPOCO(int width, TypeInfo type)
         {
-            foreach (var cons in type.GetConstructors(BindingFlagsConstants.AllInstance))
+            foreach (var cons in type.GetConstructors(AllInstance))
             {
                 var consPs = cons.GetParameters();
                 if (consPs.Length != width) continue;
@@ -1239,13 +1243,13 @@ endLoop:
 
         private static PropertyPOCOResult IsPropertyPOCO(TypeInfo type, IEnumerable<ColumnIdentifier> columns)
         {
-            var emptyCons = type.GetConstructor(BindingFlagsConstants.AllInstance, null, Type.EmptyTypes, null);
+            var emptyCons = type.GetConstructor(AllInstance, null, Type.EmptyTypes, null);
             if (emptyCons == null)
             {
                 return PropertyPOCOResult.Empty;
             }
 
-            var allProperties = type.GetProperties(BindingFlagsConstants.All);
+            var allProperties = type.GetProperties(All);
 
             var setters = new Setter[allProperties.Length];
             var columnIndexes = new ColumnIdentifier[allProperties.Length];
@@ -1307,7 +1311,7 @@ loopEnd:
             return new PropertyPOCOResult(emptyCons, setters, columnIndexes);
         }
 
-        private bool CheckReadingWellKnownType(TypeInfo forType, [MaybeNullWhen(returnValue: false)]out DeserializableMember member)
+        private bool CheckReadingWellKnownType(TypeInfo forType, [MaybeNullWhen(returnValue: false)] out DeserializableMember member)
         {
             if (!WellKnownRowTypes.TryGetSetter(forType, out var name, out var setter))
             {
@@ -1326,7 +1330,7 @@ loopEnd:
             return true;
         }
 
-        private bool CheckWritingWellKnownType(TypeInfo forType, [MaybeNullWhen(returnValue: false)]out SerializableMember member)
+        private bool CheckWritingWellKnownType(TypeInfo forType, [MaybeNullWhen(returnValue: false)] out SerializableMember member)
         {
             if (!WellKnownRowTypes.TryGetGetter(forType, out var name, out var getter))
             {

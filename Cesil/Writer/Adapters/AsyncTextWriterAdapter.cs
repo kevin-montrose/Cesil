@@ -18,15 +18,17 @@ namespace Cesil
             Inner = inner;
         }
 
-        public ValueTask WriteAsync(ReadOnlyMemory<char> chars, CancellationToken cancel)
+        public ValueTask WriteAsync(ReadOnlyMemory<char> chars, CancellationToken cancellationToken)
         {
             AssertNotDisposedInternal(this);
 
-            var ret = Inner.WriteAsync(chars, cancel);
+#pragma warning disable CES0001 // this is a simple wrapper, don't need to introduce a transition point
+            var ret = Inner.WriteAsync(chars, cancellationToken);
             if (ret.IsCompletedSuccessfully)
             {
                 return default;
             }
+#pragma warning restore CES0001
 
             return new ValueTask(ret);
         }

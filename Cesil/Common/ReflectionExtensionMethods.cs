@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -8,9 +9,207 @@ namespace Cesil
 {
     internal static class ReflectionExtensionMethods
     {
+        internal static bool AllowsNullLikeValue(this TypeInfo type)
+        {
+            while (type.IsByRef)
+            {
+                type = type.GetElementTypeNonNull();
+            }
+
+            if (!type.IsValueType)
+            {
+                return true;
+            }
+
+            return type.IsNullableValueType(out _);
+        }
+
+        internal static NullHandling DetermineNullability(this PropertyInfo? property)
+        {
+            if (property == null)
+            {
+                return NullHandling.AllowNull;
+            }
+
+            return DetermineNullabilityImpl(property, property.CustomAttributes, property.DeclaringType?.CustomAttributes, property.PropertyType.GetTypeInfo());
+        }
+
+        internal static NullHandling DetermineNullability(this FieldInfo? field)
+        {
+            if (field == null)
+            {
+                return NullHandling.AllowNull;
+            }
+
+            return DetermineNullabilityImpl(field, field.CustomAttributes, field.DeclaringType?.CustomAttributes, field.FieldType.GetTypeInfo());
+        }
+
+        internal static NullHandling DetermineNullability(this ParameterInfo? parameter)
+        {
+            if (parameter == null)
+            {
+                return NullHandling.AllowNull;
+            }
+
+            return DetermineNullabilityImpl(parameter, parameter.CustomAttributes, parameter.Member.CustomAttributes, parameter.ParameterType.GetTypeInfo());
+        }
+
+        private static NullHandling DetermineNullabilityImpl<T>(T member, IEnumerable<CustomAttributeData> memberAttributes, IEnumerable<CustomAttributeData>? contextAttributes, TypeInfo memberType)
+        {
+            // from: https://github.com/dotnet/roslyn/blob/3182fd79a7790188d4facfc3fa2da22c598895f2/docs/features/nullable-metadata.md
+
+            // nullable annotations are either on the member itself, or on the declaring type
+            //   if on the member, it's a [Nullable]
+            //   if on the type, it's a [NullableContext]
+            //
+            // Nullable can take either a byte or a byte[], NullableContext always takes a byte
+            //
+            // we only ever care about the first byte (even if we have an array)
+            // because that refers to the "root"
+            //
+            // bytes are as follows:
+            //   0 - null oblivious
+            //   1 - non-null
+            //   2 - allow-null
+            //
+            // the absense of a nullable annotation is equivalent to null oblivious
+            //
+            // null oblivious maps to whatever is "natural" that is:
+            //  - reference types allow null
+            //  - nullable value types allow null
+            //  - value types forbid null
+
+            // need to de-ref member type, because the "ref-ness" of it doesn't matter
+            //   for nullability purposes
+            var effectiveMemberType = memberType;
+            while (effectiveMemberType.IsByRef)
+            {
+                effectiveMemberType = effectiveMemberType.GetElementTypeNonNull();
+            }
+
+            // value types can only have meaningful nullable annotations
+            //   for their generic parameters, which means we never care
+            //   about it's annotations
+            //
+            // since ints and whatnot are pretty common, this shortcut
+            //   can save some real time on type describing.
+            if (effectiveMemberType.IsValueType)
+            {
+                if (effectiveMemberType.IsNullableValueType(out _))
+                {
+                    return NullHandling.AllowNull;
+                }
+
+                return NullHandling.CannotBeNull;
+            }
+
+            // check for explicit attributes
+            foreach (var attr in memberAttributes)
+            {
+                if (attr.AttributeType.FullName == "System.Runtime.CompilerServices.NullableAttribute")
+                {
+                    var arg = attr.ConstructorArguments[0];
+                    var argType = arg.ArgumentType.GetTypeInfo();
+
+                    var val = arg.Value;
+                    if (val == null)
+                    {
+                        return Throw.ImpossibleException<NullHandling>($@"NullableAttribute with null first argument (on member {member}), this should not be possible");
+                    }
+
+                    if (argType == Types.Byte)
+                    {
+                        var valByte = (byte)val;
+                        return GetHandlingByByte(valByte, member, effectiveMemberType);
+                    }
+                    else if (argType == Types.ByteArray)
+                    {
+                        var valArr = (IReadOnlyCollection<CustomAttributeTypedArgument>)val;
+
+                        var firstArg = valArr.FirstOrDefault().Value;
+                        if (firstArg == null)
+                        {
+                            return Throw.ImpossibleException<NullHandling>($@"NullableAttribute with missing or null first argument (on member {member}), this should not be possible");
+                        }
+
+                        // we only care about the _first_ byte which describe the root reference
+                        var firstByte = (byte)firstArg;
+
+                        return GetHandlingByByte(firstByte, member, effectiveMemberType);
+                    }
+                    else
+                    {
+                        return Throw.ImpossibleException<NullHandling>($@"NullableAttribute with unexpected argument type {argType} (on member {member}), this should not be possible");
+                    }
+                }
+            }
+
+            // check for the ambient context
+            if (contextAttributes != null)
+            {
+                foreach (var attr in contextAttributes)
+                {
+                    if (attr.AttributeType.FullName == "System.Runtime.CompilerServices.NullableContextAttribute")
+                    {
+                        var arg = attr.ConstructorArguments[0];
+                        var argType = arg.ArgumentType.GetTypeInfo();
+
+                        var val = arg.Value;
+                        if (val == null)
+                        {
+                            return Throw.ImpossibleException<NullHandling>($@"NullableContextAttribute with null first argument (on member {member}), this should not be possible");
+                        }
+
+                        var valByte = (byte)val;
+                        return GetHandlingByByte(valByte, member, effectiveMemberType);
+                    }
+                }
+            }
+
+            // no annotations found, do whatever is "natural"
+            return GetObliviousNullHandling(effectiveMemberType);
+
+            // found an actual attribute and extracted the relevant bit, what does it mean?
+            static NullHandling GetHandlingByByte(byte val, T member, TypeInfo effectiveMemberType)
+            {
+                return val switch
+                {
+                    0 => GetObliviousNullHandling(effectiveMemberType),
+                    1 => NullHandling.ForbidNull,
+                    2 => NullHandling.AllowNull,
+                    _ => Throw.ImpossibleException<NullHandling>($@"NullableAttribute with unexpected argument {val} (on member {member}), this should not be possible"),
+                };
+            }
+
+            // no annotation found, do what is "natural"
+            static NullHandling GetObliviousNullHandling(TypeInfo forType)
+            {
+                if (forType.IsValueType)
+                {
+                    if (forType.IsNullableValueType(out _))
+                    {
+                        return NullHandling.AllowNull;
+                    }
+
+                    return NullHandling.CannotBeNull;
+                }
+
+                return NullHandling.AllowNull;
+            }
+        }
+
+        internal static bool IsNullableValueType(this TypeInfo type, [NotNullWhen(returnValue: true)] out TypeInfo? elementType)
+        {
+            elementType = Nullable.GetUnderlyingType(type)?.GetTypeInfo();
+            return elementType != null;
+        }
+
         internal static bool IsFlagsEnum(this TypeInfo type)
         {
-            if (!type.IsEnum) return false;
+            if (!type.IsEnum)
+            {
+                return false;
+            }
 
             return type.GetCustomAttribute<FlagsAttribute>() != null;
         }

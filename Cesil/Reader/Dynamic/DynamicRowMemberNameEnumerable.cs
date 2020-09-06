@@ -20,6 +20,7 @@ namespace Cesil
             return new DynamicRowMemberNameEnumerator(Inner);
         }
 
+        [ExcludeFromCoverage("Trivial, and covered by IEnumerable<T>.GetEnumerator()")]
         IEnumerator IEnumerable.GetEnumerator()
         => GetEnumerator();
 

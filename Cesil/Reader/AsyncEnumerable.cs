@@ -34,7 +34,9 @@ namespace Cesil
         internal AsyncEnumerable(IAsyncReader<T> reader)
         {
             Reader = reader;
+#pragma warning disable CES0005 // T is generic, and we'll overwrite it before it's used, so default! is needed
             _Current = default!;
+#pragma warning restore CES0005
             Token = CancellationToken.None;
         }
 
@@ -57,8 +59,6 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
-            CheckCancellation(this, Token);
-
             var task = Reader.TryReadAsync(Token);
             if (!task.IsCompletedSuccessfully(this))
             {
@@ -75,10 +75,9 @@ namespace Cesil
             return new ValueTask<bool>(true);
 
             // wait for a read to finish, then continue async
-            static async ValueTask<bool> MoveNextAsync_ContinueAfterReadAsync(AsyncEnumerable<T> self, ValueTask<ReadResult<T>> waitFor, CancellationToken cancel)
+            static async ValueTask<bool> MoveNextAsync_ContinueAfterReadAsync(AsyncEnumerable<T> self, ValueTask<ReadResult<T>> waitFor, CancellationToken cancellationToken)
             {
-                var res = await ConfigureCancellableAwait(self, waitFor, cancel);
-                CheckCancellation(self, cancel);
+                var res = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
 
                 if (!res.HasValue)
                 {
@@ -111,7 +110,9 @@ namespace Cesil
     // only available in DEBUG builds, so tests can force cancellation at arbitrary points
     internal sealed partial class AsyncEnumerable<T> : ITestableCancellableProvider
     {
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int? ITestableCancellableProvider.CancelAfter { get; set; }
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int ITestableCancellableProvider.CancelCounter { get; set; }
     }
 
@@ -120,11 +121,14 @@ namespace Cesil
     internal sealed partial class AsyncEnumerable<T> : ITestableAsyncProvider
     {
         private int _GoAsyncAfter;
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int ITestableAsyncProvider.GoAsyncAfter { set { _GoAsyncAfter = value; } }
 
         private int _AsyncCounter;
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int ITestableAsyncProvider.AsyncCounter => _AsyncCounter;
 
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         bool ITestableAsyncProvider.ShouldGoAsync()
         {
             lock (this)

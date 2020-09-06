@@ -235,22 +235,23 @@ namespace Cesil
         }
 
         /// <summary>
-        /// Delegates to DefaultTypeDescriber.
+        /// Operation not supported, raises exception if used.
         /// </summary>
         public Parser GetDynamicCellParserFor(in ReadContext context, TypeInfo targetType)
         => Throw.NotSupportedException<Parser>(nameof(ManualTypeDescriber), nameof(GetDynamicCellParserFor));
 
         /// <summary>
-        /// Delegates to DefaultTypeDescriber.
+        /// Operation not supported, raises exception if used.
         /// </summary>
         public DynamicRowConverter GetDynamicRowConverter(in ReadContext context, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
         => Throw.NotSupportedException<DynamicRowConverter>(nameof(ManualTypeDescriber), nameof(GetDynamicRowConverter));
 
         /// <summary>
-        /// Delegates to DefaultTypeDescriber.
+        /// Operation not supported, raises exception if used.
         /// </summary>
-        public IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext context, object row)
-        => Throw.NotSupportedException<IEnumerable<DynamicCellValue>>(nameof(ManualTypeDescriber), nameof(GetCellsForDynamicRow));
+        [return: IntentionallyExposedPrimitive("Count, int is the best option")]
+        public int GetCellsForDynamicRow(in WriteContext context, object row, Span<DynamicCellValue> cells)
+        => Throw.NotSupportedException<int>(nameof(ManualTypeDescriber), nameof(GetCellsForDynamicRow));
 
         // equatable
 

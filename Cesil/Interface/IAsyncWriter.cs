@@ -16,16 +16,22 @@ namespace Cesil
         /// Will complete synchronously if possible, but will not block
         /// if all rows are not immediately available or if the underlying
         /// sink does not complete immediately.
+        /// 
+        /// Returns the number of rows written.
         /// </summary>
-        ValueTask WriteAllAsync(IAsyncEnumerable<TRow> rows, CancellationToken cancel = default);
+        [return: IntentionallyExposedPrimitive("count is best represented as an int")]
+        ValueTask<int> WriteAllAsync(IAsyncEnumerable<TRow> rows, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Writes all rows enumerated by the given IEnumerable.
         /// 
         /// Will complete synchronously if possible, but will not block
         /// if the underlying sink does not complete immediately.
+        /// 
+        /// Returns the number of rows written.
         /// </summary>
-        ValueTask WriteAllAsync(IEnumerable<TRow> rows, CancellationToken cancel = default);
+        [return: IntentionallyExposedPrimitive("count is best represented as an int")]
+        ValueTask<int> WriteAllAsync(IEnumerable<TRow> rows, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Write a single row.
@@ -33,7 +39,7 @@ namespace Cesil
         /// Will complete synchronously if possible, but will not block
         /// if the underlying sink does not complete immediately.
         /// </summary>
-        ValueTask WriteAsync(TRow row, CancellationToken cancel = default);
+        ValueTask WriteAsync(TRow row, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Write a comment as a row.
@@ -46,6 +52,20 @@ namespace Cesil
         /// Will complete synchronously if possible, but will not block
         /// if the underlying sink does not complete immediately.
         /// </summary>
-        ValueTask WriteCommentAsync(string comment, CancellationToken cancel = default);
+
+        ValueTask WriteCommentAsync(string comment, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Write a comment as a row.
+        /// 
+        /// Only supported if this IWriter's configuration has a way to indicate comments.
+        /// 
+        /// If the comment contains the row ending character sequence, it will be written as multiple
+        /// comment lines.
+        /// 
+        /// Will complete synchronously if possible, but will not block
+        /// if the underlying sink does not complete immediately.
+        /// </summary>
+        ValueTask WriteCommentAsync(ReadOnlyMemory<char> comment, CancellationToken cancellationToken = default);
     }
 }

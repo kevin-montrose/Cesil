@@ -15,6 +15,8 @@ namespace Cesil
             Append_Character,
             Append_CarriageReturnAndCurrentCharacter,
             Append_CarriageReturnAndEndComment,
+            Append_ValueSeparator,
+            Append_CarriageReturnAndValueSeparator,
 
             Finished_Unescaped_Value,
             Finished_Escaped_Value,
@@ -23,6 +25,8 @@ namespace Cesil
             Finished_LastValueEscaped_Record,
 
             Finished_Comment,
+
+            LookAhead_MultiCharacterSeparator,
 
             Exception_InvalidState,
             Exception_StartEscapeInValue,
@@ -85,16 +89,17 @@ namespace Cesil
         {
             None = 0,
 
-            EscapeStartAndEnd,  // normally "
-            Escape,             // normally also "
-            ValueSeparator,     // normally ,
-            CarriageReturn,     // always \r
-            LineFeed,           // always \n
-            CommentStart,       // often not set, but normally # if set
-            Whitespace,         // anything considered a whitespace character
-            Other,              // any character not one of the above
+            EscapeStartAndEnd,      // normally "
+            Escape,                 // normally also "
+            ValueSeparator,         // normally ,
+            CarriageReturn,         // always \r
+            LineFeed,               // always \n
+            CommentStart,           // often not set, but normally # if set
+            Whitespace,             // anything considered a whitespace character
+            MaybeValueSeparator,    // if the value separator is multiple characters, the first character that makes it up
+            Other,                  // any character not one of the above
 
-            DataEnd             // special end of data symbol
+            DataEnd                 // special end of data symbol
         }
 
         internal readonly struct TransitionRule
@@ -111,13 +116,12 @@ namespace Cesil
             public override string ToString()
             => $" => ({NextState}, {Result})";
 
-
             public static implicit operator TransitionRule(ValueTuple<State, AdvanceResult> tuple)
             => new TransitionRule(tuple.Item1, tuple.Item2);
         }
 
         internal const int RuleCacheStateCount = 55;            // max VALUE of State enum, + 1
-        internal const int RuleCacheCharacterCount = 10;        // count of CharacterType enum
+        internal const int RuleCacheCharacterCount = 11;        // count of CharacterType enum
         internal const int RuleCacheRowEndingCount = 5;         // max VALUE of RowEndings enum + 1
 
         internal const int RuleCacheConfigCount = RuleCacheRowEndingCount * 2 * 2 * 2 * 2;              // # line endings, escape char == escape start, reading or not reading comments, trimming / not trimming leading whitespace, trimming / not trimming trailing whitespace
@@ -271,7 +275,7 @@ namespace Cesil
                 // "
                 innerRet[(int)CharacterType.EscapeStartAndEnd] = Comment_BeforeHeader_Append_CarriageReturn_And_Current_Character;
                 // ,
-                innerRet[(int)CharacterType.ValueSeparator] = Comment_BeforeHeader_Append_CarriageReturn_And_Current_Character;
+                innerRet[(int)CharacterType.ValueSeparator] = Comment_BeforeHeader_Append_CarriageReturn_And_ValueSeparator;
                 // # (or whatever)
                 innerRet[(int)CharacterType.CommentStart] = Comment_BeforeHeader_Append_CarriageReturn_And_Current_Character;
 
@@ -335,7 +339,7 @@ namespace Cesil
                 // "
                 innerRet[(int)CharacterType.EscapeStartAndEnd] = Comment_BeforeRecord_Append_CarriageReturn_And_Current_Character;
                 // ,
-                innerRet[(int)CharacterType.ValueSeparator] = Comment_BeforeRecord_Append_CarriageReturn_And_Current_Character;
+                innerRet[(int)CharacterType.ValueSeparator] = Comment_BeforeRecord_Append_CarriageReturn_And_ValueSeparator;
                 // # (or whatever)
                 innerRet[(int)CharacterType.CommentStart] = Comment_BeforeRecord_Append_CarriageReturn_And_Current_Character;
 
@@ -397,6 +401,11 @@ namespace Cesil
                     Comment_BeforeRecord_Append_Character :
                     Comment_BeforeRecord_Skip_Character;
 
+            var onValueSep =
+                readComments ?
+                    Comment_BeforeRecord_Append_ValueSeparator :
+                    Comment_BeforeRecord_Skip_Character;
+
             var commentEndTreatment =
                 readComments ?
                     Record_Start_Finished_Comment :
@@ -407,7 +416,7 @@ namespace Cesil
             // "
             innerRet[(int)CharacterType.EscapeStartAndEnd] = commentCharacterTreatment;
             // ,
-            innerRet[(int)CharacterType.ValueSeparator] = commentCharacterTreatment;
+            innerRet[(int)CharacterType.ValueSeparator] = onValueSep;
             // # (or whatever)
             innerRet[(int)CharacterType.CommentStart] = commentCharacterTreatment;
 
@@ -462,6 +471,11 @@ namespace Cesil
                     Comment_BeforeHeader_Append_Character :
                     Comment_BeforeHeader_Skip_Character;
 
+            var valueSepTreatment =
+                readComments ?
+                    Comment_BeforeHeader_Append_ValueSeparator :
+                    Comment_BeforeHeader_Skip_Character;
+
             var commentEndTreatment =
                 readComments ?
                     Header_Start_Finished_Comment :
@@ -472,7 +486,7 @@ namespace Cesil
             // "
             innerRet[(int)CharacterType.EscapeStartAndEnd] = commentCharacterTreatment;
             // ,
-            innerRet[(int)CharacterType.ValueSeparator] = commentCharacterTreatment;
+            innerRet[(int)CharacterType.ValueSeparator] = valueSepTreatment;
             // # (or whatever)
             innerRet[(int)CharacterType.CommentStart] = commentCharacterTreatment;
 
@@ -1118,7 +1132,7 @@ namespace Cesil
             }
 
             // "df,
-            innerRet[(int)CharacterType.ValueSeparator] = Record_InEscapedValue_Append_Character;
+            innerRet[(int)CharacterType.ValueSeparator] = Record_InEscapedValue_Append_ValueSeparator;
             // "df\r
             innerRet[(int)CharacterType.CarriageReturn] = Record_InEscapedValue_Append_Character;
             // "df\n

@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Buffers;
+using System.Linq;
 using System.Text;
 
 namespace Cesil
@@ -18,7 +18,7 @@ namespace Cesil
         /// 
         /// Typically a comma.
         /// </summary>
-        public char ValueSeparator { get; private set; }
+        public string ValueSeparator { get; private set; }
 
         /// <summary>
         /// Character used to start an escaped value.
@@ -60,10 +60,10 @@ namespace Cesil
         /// </summary>
         public WriteTrailingRowEnding WriteTrailingRowEnding { get; private set; }
         /// <summary>
-        /// Which MemoryPool to use when reading or writing a CSV.
+        /// Provider for MemoryPools needed during reading or writing CSVs.
         /// </summary>
         [NullableExposed("All properties on OptionsBuilder are mutable and nullable, Options handles making sure they're not null")]
-        public MemoryPool<char>? MemoryPool { get; private set; }
+        public IMemoryPoolProvider? MemoryPoolProvider { get; private set; }
         /// <summary>
         /// Which character, if any, is used to indicate the start
         /// of a comment.
@@ -102,7 +102,10 @@ namespace Cesil
         /// </summary>
         public ExtraColumnTreatment ExtraColumnTreatment { get; private set; }
 
-        internal OptionsBuilder() { }
+        internal OptionsBuilder()
+        {
+            ValueSeparator = "";
+        }
 
         internal OptionsBuilder(Options copy)
         {
@@ -114,7 +117,7 @@ namespace Cesil
             WriteHeader = copy.WriteHeader;
             TypeDescriber = copy.TypeDescriber;
             WriteTrailingRowEnding = copy.WriteTrailingRowEnding;
-            MemoryPool = copy.MemoryPool;
+            MemoryPoolProvider = copy.MemoryPoolProvider;
             CommentCharacter = copy.CommentCharacter;
             WriteBufferSizeHint = copy.WriteBufferSizeHint;
             ReadBufferSizeHint = copy.ReadBufferSizeHint;
@@ -146,13 +149,18 @@ namespace Cesil
         /// </summary>
         public Options ToOptions()
         {
+            if (string.IsNullOrEmpty(ValueSeparator))
+            {
+                return Throw.InvalidOperationException<Options>($"{nameof(ValueSeparator)} cannot be empty");
+            }
+
             // can't distinguish between the start of a value and an empty value
-            if (ValueSeparator == EscapedValueStartAndEnd)
+            if (ValueSeparator[0] == EscapedValueStartAndEnd)
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(ValueSeparator)} cannot equal {nameof(EscapedValueStartAndEnd)}, both are '{ValueSeparator}'");
             }
             // can't distinguish between the start of a comment and an empty value
-            if (ValueSeparator == CommentCharacter)
+            if (ValueSeparator[0] == CommentCharacter)
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(ValueSeparator)} cannot equal {nameof(CommentCharacter)}, both are '{ValueSeparator}'");
             }
@@ -191,10 +199,10 @@ namespace Cesil
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(WriteTrailingRowEnding)} has an unexpected value, '{WriteTrailingRowEnding}'");
             }
-            // MemoryPool not configured
-            if (MemoryPool == null)
+            // MemoryPoolProvider not configured
+            if (MemoryPoolProvider == null)
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(TypeDescriber)} has not been set");
+                return Throw.InvalidOperationException<Options>($"{nameof(MemoryPoolProvider)} has not been set");
             }
             // WriteBufferSizeHint < 0
             if (WriteBufferSizeHint.HasValue && WriteBufferSizeHint.Value < 0)
@@ -240,10 +248,26 @@ namespace Cesil
                     return Throw.InvalidOperationException<Options>($"Cannot use a whitespace removing {nameof(WhitespaceTreatment)} ({WhitespaceTreatment}) with a whitespace {nameof(EscapedValueStartAndEnd)} ('{EscapedValueStartAndEnd}')");
                 }
 
-                if (char.IsWhiteSpace(ValueSeparator))
+                if (ValueSeparator.Any(c => char.IsWhiteSpace(c)))
                 {
                     return Throw.InvalidOperationException<Options>($"Cannot use a whitespace removing {nameof(WhitespaceTreatment)} ({WhitespaceTreatment}) with a whitespace {nameof(ValueSeparator)} ('{ValueSeparator}')");
                 }
+            }
+
+            // ValueSeparator can't be the same as the expected row ending
+            var valSepFirstChar = ValueSeparator[0];
+            var valSepIsCR = valSepFirstChar == '\r';
+            var valSepIsLF = valSepFirstChar == '\n';
+            var valSepIsRowEnding = valSepIsCR || valSepIsLF;
+
+            var valueSeparatorMatchesRowEnding =
+                (RowEnding == RowEnding.CarriageReturn && valSepIsCR) ||
+                (RowEnding == RowEnding.CarriageReturnLineFeed && valSepIsCR) ||    // only the first character matters, so valSepIsCR is what we want here
+                (RowEnding == RowEnding.LineFeed && valSepIsLF) ||
+                (RowEnding == RowEnding.Detect && valSepIsRowEnding);
+            if (valueSeparatorMatchesRowEnding)
+            {
+                return Throw.InvalidOperationException<Options>($"{nameof(ValueSeparator)} cannot match the expected (or potential for {nameof(RowEnding.Detect)}) {nameof(RowEnding)}");
             }
 
             return BuildInternal();
@@ -256,7 +280,18 @@ namespace Cesil
         /// <summary>
         /// Set the character used to separate two values in a row.
         /// </summary>
-        public OptionsBuilder WithValueSeparator(char valueSeparator)
+        public OptionsBuilder WithValueSeparator(string valueSeparator)
+        {
+            Utils.CheckArgumentNull(valueSeparator, nameof(valueSeparator));
+            if (valueSeparator.Length == 0)
+            {
+                return Throw.ArgumentException<OptionsBuilder>($"{nameof(valueSeparator)} cannot be empty", nameof(valueSeparator));
+            }
+
+            return WithValueSeparatorInternal(valueSeparator);
+        }
+
+        internal OptionsBuilder WithValueSeparatorInternal(string valueSeparator)
         {
             ValueSeparator = valueSeparator;
             return this;
@@ -378,13 +413,13 @@ namespace Cesil
         }
 
         /// <summary>
-        /// Set the MemoryPool used during reading and writing.
+        /// Set the MemoryPoolProvider used during reading and writing.
         /// </summary>
-        public OptionsBuilder WithMemoryPool(MemoryPool<char> memoryPool)
+        public OptionsBuilder WithMemoryPoolProvider(IMemoryPoolProvider memoryPoolProvider)
         {
-            memoryPool ??= MemoryPool<char>.Shared;
+            memoryPoolProvider ??= MemoryPoolProviders.Default;
 
-            MemoryPool = memoryPool;
+            MemoryPoolProvider = memoryPoolProvider;
             return this;
         }
 
@@ -409,7 +444,7 @@ namespace Cesil
         /// All values are treated as hints, it's up to
         ///   the configured MemoryPool to satisfy the request.
         /// </summary>
-        public OptionsBuilder WithWriteBufferSizeHint([IntentionallyExposedPrimitive("Best way to indicate a size")]int? sizeHint)
+        public OptionsBuilder WithWriteBufferSizeHint([IntentionallyExposedPrimitive("Best way to indicate a size")] int? sizeHint)
         {
             if (sizeHint != null && sizeHint < 0)
             {
@@ -435,7 +470,7 @@ namespace Cesil
         /// All values are treated as hints, it's up to
         ///   the configured MemoryPool to satisfy the request.
         /// </summary>
-        public OptionsBuilder WithReadBufferSizeHint([IntentionallyExposedPrimitive("Best way to indicate a size")]int sizeHint)
+        public OptionsBuilder WithReadBufferSizeHint([IntentionallyExposedPrimitive("Best way to indicate a size")] int sizeHint)
         {
             if (sizeHint < 0)
             {
@@ -460,7 +495,7 @@ namespace Cesil
         /// </summary>
         public OptionsBuilder WithDynamicRowDisposal(DynamicRowDisposal dynamicRowDisposal)
         {
-            if (!Enum.IsDefined(typeof(DynamicRowDisposal), dynamicRowDisposal))
+            if (!Enum.IsDefined(Types.DynamicRowDisposal, dynamicRowDisposal))
             {
                 return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(DynamicRowDisposal)} value: {dynamicRowDisposal}", nameof(dynamicRowDisposal));
             }
@@ -528,7 +563,7 @@ namespace Cesil
             ret.Append($", {nameof(DynamicRowDisposal)}={DynamicRowDisposal}");
             ret.Append($", {nameof(EscapedValueEscapeCharacter)}={EscapedValueEscapeCharacter}");
             ret.Append($", {nameof(EscapedValueStartAndEnd)}={EscapedValueStartAndEnd}");
-            ret.Append($", {nameof(MemoryPool)}={MemoryPool}");
+            ret.Append($", {nameof(MemoryPoolProvider)}={MemoryPoolProvider}");
             ret.Append($", {nameof(ReadBufferSizeHint)}={ReadBufferSizeHint}");
             ret.Append($", {nameof(ReadHeader)}={ReadHeader}");
             ret.Append($", {nameof(RowEnding)}={RowEnding}");

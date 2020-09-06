@@ -5,6 +5,8 @@ using System.Collections.Immutable;
 using System.Linq.Expressions;
 using System.Reflection;
 
+using static Cesil.BindingFlagsConstants;
+
 namespace Cesil
 {
     /// <summary>
@@ -30,12 +32,12 @@ namespace Cesil
         private static IReadOnlyDictionary<TypeInfo, Formatter> CreateTypeFormatters()
         {
             var ret = new Dictionary<TypeInfo, Formatter>();
-            foreach (var mtd in Types.DefaultTypeFormatters.GetMethods(BindingFlagsConstants.InternalStatic))
+            foreach (var mtd in Types.DefaultTypeFormatters.GetMethods(InternalStatic))
             {
                 var firstArg = mtd.GetParameters()[0];
                 var forType = firstArg.ParameterType;
 
-                ret.Add(forType.GetTypeInfo(), Formatter.ForMethod(mtd));
+                ret.Add(forType.GetTypeInfo(), ForMethod(mtd));
             }
 
             return ret;
@@ -57,35 +59,40 @@ namespace Cesil
         internal readonly NonNull<Delegate> Delegate;
 
         internal readonly TypeInfo Takes;
+        internal readonly NullHandling TakesNullability;
 
         DynamicFormatterDelegate? ICreatesCacheableDelegate<DynamicFormatterDelegate>.CachedDelegate { get; set; }
 
         private readonly ImmutableArray<Formatter> _Fallbacks;
         ImmutableArray<Formatter> IElseSupporting<Formatter>.Fallbacks => _Fallbacks;
 
-        private Formatter(TypeInfo takes, MethodInfo method, ImmutableArray<Formatter> fallbacks)
+        private Formatter(TypeInfo takes, MethodInfo method, ImmutableArray<Formatter> fallbacks, NullHandling nullability)
         {
             Takes = takes;
+            TakesNullability = nullability;
             Method.Value = method;
             Delegate.Clear();
             _Fallbacks = fallbacks;
         }
 
-        private Formatter(TypeInfo takes, Delegate del, ImmutableArray<Formatter> fallbacks)
+        private Formatter(TypeInfo takes, Delegate del, ImmutableArray<Formatter> fallbacks, NullHandling nullability)
         {
             Takes = takes;
+            TakesNullability = nullability;
             Method.Clear();
             Delegate.Value = del;
             _Fallbacks = fallbacks;
         }
 
-        Formatter IElseSupporting<Formatter>.Clone(ImmutableArray<Formatter> newFallbacks)
+        Formatter IElseSupporting<Formatter>.Clone(ImmutableArray<Formatter> newFallbacks, NullHandling? _, NullHandling? valueHandling)
         {
+            var takesNullability = Utils.NonNullValue(valueHandling);
+
             return
                 Mode switch
                 {
-                    BackingMode.Delegate => new Formatter(Takes, Delegate.Value, newFallbacks),
-                    BackingMode.Method => new Formatter(Takes, Method.Value, newFallbacks),
+                    BackingMode.Delegate => new Formatter(Takes, Delegate.Value, newFallbacks, takesNullability),
+                    BackingMode.Method => new Formatter(Takes, Method.Value, newFallbacks, takesNullability),
                     _ => Throw.ImpossibleException<Formatter>($"Unexpected {nameof(BackingMode)}: {Mode}"),
                 };
         }
@@ -96,9 +103,28 @@ namespace Cesil
             var p1 = Expressions.Parameter_WriteContext_ByRef;
             var p2 = Expressions.Parameter_IBufferWriterOfChar;
 
-            var block = Expression.Block(MakeExpression(p0, p1, p2));
+            var takesTypeVar = Expression.Variable(Takes);
+            var asTakesType = Expression.Convert(p0, Takes);
+            var assignsToTakesType = Expression.Assign(takesTypeVar, asTakesType);
+
+            var statements = new List<Expression>();
+            statements.Add(assignsToTakesType);
+
+            var formatterExp = MakeExpression(takesTypeVar, p1, p2);
+
+            if (TakesNullability == NullHandling.ForbidNull && Takes.AllowsNullLikeValue())
+            {
+                var checkExp = Utils.MakeNullHandlingCheckExpression(Takes, takesTypeVar, $"{this} called with null value, which is not permitted");
+
+                statements.Add(checkExp);
+            }
+
+            statements.Add(formatterExp);
+
+            var block = Expression.Block(new[] { takesTypeVar }, statements);
 
             var lambda = Expression.Lambda<DynamicFormatterDelegate>(block, p0, p1, p2);
+
             var del = lambda.Compile();
 
             return del;
@@ -108,20 +134,18 @@ namespace Cesil
         {
             Expression selfExp;
 
-            var asT = Expression.Convert(objectParam, Takes);
-
             switch (Mode)
             {
                 case BackingMode.Delegate:
                     {
                         var delRef = Expression.Constant(Delegate.Value);
-                        selfExp = Expression.Invoke(delRef, asT, writeContextParam, bufferWriterParam);
+                        selfExp = Expression.Invoke(delRef, objectParam, writeContextParam, bufferWriterParam);
 
                         break;
                     }
                 case BackingMode.Method:
                     {
-                        var call = Expression.Call(Method.Value, asT, writeContextParam, bufferWriterParam);
+                        var call = Expression.Call(Method.Value, objectParam, writeContextParam, bufferWriterParam);
                         selfExp = call;
 
                         break;
@@ -143,8 +167,26 @@ namespace Cesil
         DynamicFormatterDelegate ICreatesCacheableDelegate<DynamicFormatterDelegate>.Guarantee(IDelegateCache cache)
         => IDelegateCacheHelpers.GuaranteeImpl<Formatter, DynamicFormatterDelegate>(this, cache);
 
+        private Formatter ChangeValueNullHandling(NullHandling nullHandling)
+        {
+            if (nullHandling == TakesNullability)
+            {
+                return this;
+            }
+
+            Utils.ValidateNullHandling(Takes, nullHandling);
+
+            return
+                Mode switch
+                {
+                    BackingMode.Delegate => new Formatter(Takes, Delegate.Value, _Fallbacks, nullHandling),
+                    BackingMode.Method => new Formatter(Takes, Method.Value, _Fallbacks, nullHandling),
+                    _ => Throw.ImpossibleException<Formatter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
+                };
+        }
+
         /// <summary>
-        /// Create a new formatter that will try this formatter, but if it returns false
+        /// Create a new Formatter that will try this formatter, but if it returns false
         ///   it will then try the given fallback Formatter.
         /// </summary>
         public Formatter Else(Formatter fallbackFormatter)
@@ -156,8 +198,30 @@ namespace Cesil
                 return Throw.ArgumentException<Formatter>($"{fallbackFormatter} does not take a value assignable from {Takes}, and cannot be used as a fallback for this {nameof(Formatter)}", nameof(fallbackFormatter));
             }
 
-            return this.DoElse(fallbackFormatter);
+            var newValueNullability = Utils.CommonInputNullHandling(TakesNullability, fallbackFormatter.TakesNullability);
+
+            return this.DoElse(fallbackFormatter, null, newValueNullability);
         }
+
+        /// <summary>
+        /// Returns a Formatter that differs from this by explicitly allowing
+        ///   null values to be passed to it.
+        /// 
+        /// If the backing method, or delegate does not expect null values, this may lead
+        ///   to errors at runtime.
+        /// </summary>
+        public Formatter AllowNullValues()
+        => ChangeValueNullHandling(NullHandling.AllowNull);
+
+        /// <summary>
+        /// Returns a new Formatter that differs from this by explicitly forbidding
+        ///   null values to be passed to it.
+        /// 
+        /// If the .NET runtime cannot guarantee the absense of null values, null checks
+        ///   will be injected.
+        /// </summary>
+        public Formatter ForbidNullValues()
+        => ChangeValueNullHandling(NullHandling.ForbidNull);
 
         /// <summary>
         /// Create a formatter from a method.
@@ -168,7 +232,7 @@ namespace Cesil
         ///     - the type to be formatter (or one it is assignable to)
         ///     - an in (or by ref) WriteContext
         ///     -an IBufferWriter(char)
-        ///   * return bool (false indicates insufficient space was available)
+        ///   * return bool (false indicates value could not be formatted)
         /// </summary>
         public static Formatter ForMethod(MethodInfo method)
         {
@@ -191,7 +255,9 @@ namespace Cesil
                 return Throw.ArgumentException<Formatter>($"{nameof(method)} must take 3 parameters", nameof(method));
             }
 
-            var takes = args[0].ParameterType.GetTypeInfo();
+            var arg0 = args[0];
+            var takes = arg0.ParameterType.GetTypeInfo();
+            var takesNullability = arg0.DetermineNullability();
 
             if (!args[1].IsWriteContextByRef(out var msg))
             {
@@ -203,7 +269,7 @@ namespace Cesil
                 return Throw.ArgumentException<Formatter>($"The third parameter to {nameof(method)} must be a {nameof(IBufferWriter<char>)}", nameof(method));
             }
 
-            return new Formatter(takes, method, ImmutableArray<Formatter>.Empty);
+            return new Formatter(takes, method, ImmutableArray<Formatter>.Empty, takesNullability);
         }
 
         /// <summary>
@@ -213,7 +279,9 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(del, nameof(del));
 
-            return new Formatter(typeof(TValue).GetTypeInfo(), del, ImmutableArray<Formatter>.Empty);
+            var nullability = del.Method.GetParameters()[0].DetermineNullability();
+
+            return new Formatter(typeof(TValue).GetTypeInfo(), del, ImmutableArray<Formatter>.Empty, nullability);
         }
 
         /// <summary>
@@ -227,7 +295,7 @@ namespace Cesil
             if (forType.IsEnum)
             {
                 var formattingClass = Types.DefaultEnumTypeFormatter.MakeGenericType(forType).GetTypeInfo();
-                var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryEnumFormatter), BindingFlagsConstants.InternalStatic);
+                var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryEnumFormatter), InternalStatic);
                 var formatter = (Formatter?)formatterField.GetValue(null);
 
                 return formatter;
@@ -237,7 +305,7 @@ namespace Cesil
             if (nullableElem != null && nullableElem.IsEnum)
             {
                 var formattingClass = Types.DefaultEnumTypeFormatter.MakeGenericType(nullableElem).GetTypeInfo();
-                var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryNullableEnumFormatter), BindingFlagsConstants.InternalStatic);
+                var formatterField = formattingClass.GetFieldNonNull(nameof(DefaultTypeFormatters.DefaultEnumTypeFormatter<StringComparison>.TryNullableEnumFormatter), InternalStatic);
                 var formatter = (Formatter?)formatterField.GetValue(null);
 
                 return formatter;
@@ -271,6 +339,7 @@ namespace Cesil
         {
             if (ReferenceEquals(formatter, null)) return false;
 
+            if (TakesNullability != formatter.TakesNullability) return false;
             if (Takes != formatter.Takes) return false;
 
             var otherMode = formatter.Mode;
@@ -299,7 +368,7 @@ namespace Cesil
         /// Returns a hash code for this Getter.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(Formatter), Takes, Mode, Delegate, Method, _Fallbacks.Length);
+        => HashCode.Combine(nameof(Formatter), Takes, Mode, Delegate, Method, _Fallbacks.Length, TakesNullability);
 
         /// <summary>
         /// Describes this Formatter.
@@ -313,20 +382,20 @@ namespace Cesil
                 case BackingMode.Method:
                     if (_Fallbacks.Length > 0)
                     {
-                        return $"{nameof(Formatter)} for {Takes} backed by method {Method} with fallbacks {string.Join(", ", _Fallbacks)}";
+                        return $"{nameof(Formatter)} for {Takes} ({TakesNullability}) backed by method {Method} with fallbacks {string.Join(", ", _Fallbacks)}";
                     }
                     else
                     {
-                        return $"{nameof(Formatter)} for {Takes} backed by method {Method}";
+                        return $"{nameof(Formatter)} for {Takes} ({TakesNullability}) backed by method {Method}";
                     }
                 case BackingMode.Delegate:
                     if (_Fallbacks.Length > 0)
                     {
-                        return $"{nameof(Formatter)} for {Takes} backed by delegate {Delegate} with fallbacks {string.Join(", ", _Fallbacks)}";
+                        return $"{nameof(Formatter)} for {Takes} ({TakesNullability}) backed by delegate {Delegate} with fallbacks {string.Join(", ", _Fallbacks)}";
                     }
                     else
                     {
-                        return $"{nameof(Formatter)} for {Takes} backed by delegate {Delegate}";
+                        return $"{nameof(Formatter)} for {Takes} ({TakesNullability}) backed by delegate {Delegate}";
                     }
                 default:
                     return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
@@ -355,8 +424,9 @@ namespace Cesil
             if (delType.IsGenericType && delType.GetGenericTypeDefinition() == Types.FormatterDelegate)
             {
                 var t = delType.GetGenericArguments()[0].GetTypeInfo();
+                var n = del.Method.GetParameters()[0].DetermineNullability();
 
-                return new Formatter(t, del, ImmutableArray<Formatter>.Empty);
+                return new Formatter(t, del, ImmutableArray<Formatter>.Empty, n);
             }
 
             var mtd = del.Method;
@@ -372,7 +442,9 @@ namespace Cesil
                 return Throw.InvalidOperationException<Formatter>($"Delegate must take 3 parameters");
             }
 
-            var takes = args[0].ParameterType.GetTypeInfo();
+            var arg0 = args[0];
+            var takes = arg0.ParameterType.GetTypeInfo();
+            var takesNullability = arg0.DetermineNullability();
 
             if (!args[1].IsWriteContextByRef(out var msg))
             {
@@ -389,7 +461,7 @@ namespace Cesil
 
             var reboundDel = System.Delegate.CreateDelegate(formatterDel, del, invoke);
 
-            return new Formatter(takes, reboundDel, ImmutableArray<Formatter>.Empty);
+            return new Formatter(takes, reboundDel, ImmutableArray<Formatter>.Empty, takesNullability);
         }
 
         /// <summary>

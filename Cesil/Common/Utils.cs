@@ -2,6 +2,8 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq.Expressions;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace Cesil
@@ -158,118 +160,39 @@ namespace Cesil
             return toCheck.Value;
         }
 
-        // won't return empty entries
-        internal static ReadOnlySequence<char> Split(ReadOnlyMemory<char> str, ReadOnlyMemory<char> with)
+        internal static int FindNextIx(int startAt, ReadOnlyMemory<char> haystack, ReadOnlyMemory<char> needle)
+        => FindNextIx(startAt, haystack.Span, needle.Span);
+
+        internal static int FindNextIx(int startAt, ReadOnlySpan<char> haystack, ReadOnlySpan<char> needle)
         {
-            var strSpan = str.Span;
-            var withSpan = with.Span;
-
-            var ix = FindNextIx(0, strSpan, withSpan);
-
-            if (ix == -1)
-            {
-                return new ReadOnlySequence<char>(str);
-            }
-
-            ReadOnlyCharSegment? head = null;
-            ReadOnlyCharSegment? tail = null;
-
-            var lastIx = 0;
-            while (ix != -1)
-            {
-                var len = ix - lastIx;
-                if (len > 0)
-                {
-                    var subset = str[lastIx..ix];
-                    if (head == null)
-                    {
-                        head = new ReadOnlyCharSegment(subset, len);
-                    }
-                    else
-                    {
-                        if (tail == null)
-                        {
-                            tail = head.Append(subset, len);
-                        }
-                        else
-                        {
-                            tail = tail.Append(subset, len);
-                        }
-                    }
-                }
-
-                lastIx = ix + with.Length;
-                ix = FindNextIx(lastIx, strSpan, withSpan);
-            }
-
-            if (lastIx != str.Length)
-            {
-                var len = str.Length - lastIx;
-                var end = str.Slice(lastIx);
-                if (head == null)
-                {
-                    head = new ReadOnlyCharSegment(end, len);
-
-                }
-                else
-                {
-                    if (tail == null)
-                    {
-                        tail = head.Append(end, len);
-                    }
-                    else
-                    {
-                        tail = tail.Append(end, len);
-                    }
-                }
-            }
-
-            if (head == null)
-            {
-                return ReadOnlySequence<char>.Empty;
-            }
-
-            if (tail == null)
-            {
-                return new ReadOnlySequence<char>(head.Memory);
-            }
-
-            var ret = new ReadOnlySequence<char>(head, 0, tail, tail.Memory.Length);
-
-            return ret;
-
-            // actually figure out the next end
-            static int FindNextIx(int startAt, ReadOnlySpan<char> haystack, ReadOnlySpan<char> needle)
-            {
-                var c = needle[0];
-                var lookupFrom = startAt;
+            var c = needle[0];
+            var lookupFrom = startAt;
 
 tryAgain:
 
-                var ix = FindChar(haystack, lookupFrom, c);
-                if (ix == -1) return -1;
+            var ix = FindChar(haystack, lookupFrom, c);
+            if (ix == -1) return -1;
 
-                for (var i = 1; i < needle.Length; i++)
+            for (var i = 1; i < needle.Length; i++)
+            {
+                var readIx = ix + i;
+                if (readIx == haystack.Length)
                 {
-                    var readIx = ix + i;
-                    if (readIx == haystack.Length)
-                    {
-                        // past the end
-                        return -1;
-                    }
-
-                    var shouldMatch = needle[i];
-                    var actuallyIs = haystack[readIx];
-                    if (shouldMatch != actuallyIs)
-                    {
-                        lookupFrom = readIx;
-                        goto tryAgain;
-                    }
+                    // past the end
+                    return -1;
                 }
 
-                // actually all matched, hooray!
-                return ix;
+                var shouldMatch = needle[i];
+                var actuallyIs = haystack[readIx];
+                if (shouldMatch != actuallyIs)
+                {
+                    lookupFrom = readIx;
+                    goto tryAgain;
+                }
             }
+
+            // actually all matched, hooray!
+            return ix;
         }
 
         internal static bool NullReferenceEquality<T>(T? a, T? b)
@@ -281,7 +204,9 @@ tryAgain:
             if (aNull && bNull) return true;
             if (aNull || bNull) return false;
 
+#pragma warning disable CES0005 // we've actually checked that a is non-null, but in a way the compiler can't follow
             return a!.Equals(b);
+#pragma warning restore CES0005
         }
 
         internal static IMemoryOwner<T> RentMustIncrease<T>(MemoryPool<T> pool, int newSize, int oldSize)
@@ -307,16 +232,19 @@ tryAgain:
         private const int CHARS_PER_LONG = sizeof(long) / sizeof(char);
         private const int CHARS_PER_INT = sizeof(int) / sizeof(char);
 
-        internal static unsafe bool AreEqual(ReadOnlyMemory<char> a, ReadOnlyMemory<char> b)
+        internal static bool AreEqual(ReadOnlyMemory<char> a, ReadOnlyMemory<char> b)
+        => AreEqual(a.Span, b.Span);
+
+        internal static unsafe bool AreEqual(ReadOnlySpan<char> a, ReadOnlySpan<char> b)
         {
             var aLen = a.Length;
             var bLen = b.Length;
             if (aLen != bLen) return false;
 
-            using (var aPin = a.Pin())
-            using (var bPin = b.Pin())
+            fixed (char* aPin = a)
+            fixed (char* bPin = b)
             {
-                return AreEqual(aLen, aPin.Pointer, bPin.Pointer);
+                return AreEqual(aLen, aPin, bPin);
             }
         }
 
@@ -393,6 +321,50 @@ tryAgain:
             return ret + start;
         }
 
+        internal static int Find(ReadOnlySpan<char> span, int start, string str)
+        {
+            if (str.Length == 1)
+            {
+                return FindChar(span, start, str[0]);
+            }
+
+            var c1 = str[0];
+
+            var subset = span.Slice(start);
+            var ix = 0;
+            while (true)
+            {
+                var nextIx = FindChar(subset, ix, c1);
+                if (nextIx == -1)
+                {
+                    return -1;
+                }
+
+                if (str.Length + nextIx > subset.Length)
+                {
+                    return -1;
+                }
+
+                var tryAgain = false;
+                for (var i = 1; i < str.Length; i++)
+                {
+                    if (str[i] != subset[nextIx + i])
+                    {
+                        ix = nextIx + i;
+                        tryAgain = true;
+                        break;
+                    }
+                }
+
+                if (tryAgain)
+                {
+                    continue;
+                }
+
+                return nextIx + start;
+            }
+        }
+
         private static unsafe int FindChar(ReadOnlySpan<char> span, char c)
         {
             var cQuad =
@@ -458,7 +430,7 @@ tryAgain:
                         else
                         {
                             // todo: figure out how to test this, and implement? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/2)
-                            throw new NotImplementedException();
+                            return Throw.NotImplementedException<int>("BigEndian support has not been implemented; see https://github.com/kevin-montrose/Cesil/issues/2");
                         }
                     }
 
@@ -500,7 +472,7 @@ tryAgain:
                         else
                         {
                             // todo: figure out how to test this, and implement? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/2)
-                            throw new NotImplementedException();
+                            return Throw.NotImplementedException<int>("BigEndian support has not been implemented; see https://github.com/kevin-montrose/Cesil/issues/2");
                         }
                     }
 
@@ -560,6 +532,81 @@ tryAgain:
                 }
 
                 curSegStart = curSegEnd;
+            }
+
+            return -1;
+        }
+
+        internal static int Find(ReadOnlySequence<char> head, string str)
+        {
+            if (head.IsSingleSegment)
+            {
+                return Find(head.First.Span, 0, str);
+            }
+
+            var curSegStart = 0;
+            var c1 = str[0];
+
+            var e = head.GetEnumerator();
+
+            while (e.MoveNext())
+            {
+                var searchFrom = 0;
+                var curSpan = e.Current.Span;
+
+searchCurrentSpan:
+                var firstCharInCurSpan = FindChar(curSpan, searchFrom, c1);
+                if (firstCharInCurSpan == -1)
+                {
+                    // move to next segment
+                    curSegStart += curSpan.Length;
+                    continue;
+                }
+
+                // we've found the first char, but does the rest of the string appear in this segment?
+
+                // check as much of the string as we can, given what's left in the current span
+                var offsetToRemaining = curSegStart + firstCharInCurSpan + 1;
+                var remainingStrToCheck = str[1..];
+                var remainingSpanToCheck = curSpan[(firstCharInCurSpan + 1)..];
+
+checkRemaining:
+                var toCheck = Math.Min(remainingStrToCheck.Length, remainingSpanToCheck.Length);
+                for (var i = 0; i < toCheck; i++)
+                {
+                    var cStr = remainingStrToCheck[i];
+                    var cSpan = remainingSpanToCheck[i];
+                    if (cStr != cSpan)
+                    {
+                        // no dice, start searching again but further into the span
+                        searchFrom = firstCharInCurSpan + 1;
+                        goto searchCurrentSpan;
+                    }
+                }
+
+                // found it (we checked the whole remaining string)
+                if (remainingStrToCheck.Length == toCheck)
+                {
+                    return curSegStart + firstCharInCurSpan;
+                }
+
+                // now we have checked everything in the _current_ span against str,
+                //   and found that they match up to the end of the span
+
+                offsetToRemaining += remainingSpanToCheck.Length;
+                var nextSegPos = head.GetPosition(offsetToRemaining);
+                if (!head.TryGet(ref nextSegPos, out var afterRemainingCurSpan) || afterRemainingCurSpan.IsEmpty)
+                {
+                    // we ran out of data to check, so just move on
+                    curSegStart += curSpan.Length;
+                    continue;
+                }
+
+                // we have more data to check, so move the span-y bits forward
+                //    to 
+                remainingStrToCheck = remainingStrToCheck[toCheck..];
+                remainingSpanToCheck = afterRemainingCurSpan.Span;
+                goto checkRemaining;
             }
 
             return -1;
@@ -625,12 +672,10 @@ tryAgain:
             return -1;
         }
 
-        internal static string Encode(string rawStr, Options options)
+        internal static string Encode(string rawStr, Options options, MemoryPool<char> pool)
         {
             // assume there's a single character that needs escape, so 2 chars for the start and stop and 1 for the escape
             var defaultSize = rawStr.Length + 2 + 1;
-
-            var pool = options.MemoryPool;
 
             var escapedValueStartAndStop = options.EscapedValueStartAndEnd;
 
@@ -647,7 +692,7 @@ tryAgain:
             }
 
             var raw = rawStr.AsMemory();
-            var retOwner = options.MemoryPool.Rent(defaultSize);
+            var retOwner = pool.Rent(defaultSize);
             try
             {
                 retOwner.Memory.Span[0] = escapedValueStartAndStop.Value;
@@ -681,7 +726,7 @@ tryAgain:
                 retSpan[destIx] = escapedValueStartAndStop.Value;
                 destIx++;
 
-                var retStr = new string(retSpan.Slice(0, destIx));
+                var retStr = new string(retSpan[..destIx]);
 
                 return retStr;
             }
@@ -695,11 +740,7 @@ tryAgain:
             static int CopyIntoRet(MemoryPool<char> pool, ref IMemoryOwner<char> destOwner, ReadOnlyMemory<char> raw, int copyFrom, int copyTo, int copyLength)
             {
                 var neededLength = copyTo + copyLength;
-                if (neededLength > destOwner.Memory.Length)
-                {
-                    // + 1 'cause we need space for the trailing escape end character
-                    Resize(pool, ref destOwner, neededLength + 1);
-                }
+                GrowIfNeeded(pool, ref destOwner, neededLength);
 
                 var dest = destOwner.Memory;
 
@@ -713,17 +754,24 @@ tryAgain:
             static int AddEscapedChar(MemoryPool<char> pool, ref IMemoryOwner<char> destOwner, char needsEscape, char escapeChar, int copyTo)
             {
                 var neededLength = copyTo + 2;
-                if (neededLength > destOwner.Memory.Length)
-                {
-                    // + 1 'cause we need space for the trailing escape end character
-                    Resize(pool, ref destOwner, neededLength + 1);
-                }
+                GrowIfNeeded(pool, ref destOwner, neededLength);
 
                 var dest = destOwner.Memory.Span;
                 dest[copyTo] = escapeChar;
                 dest[copyTo + 1] = needsEscape;
 
                 return 2;
+            }
+
+            // resize the given buffer if it can't fit needed length
+            //   just a small helper to DRY things up
+            static void GrowIfNeeded(MemoryPool<char> pool, ref IMemoryOwner<char> destOwner, int neededLength)
+            {
+                if (neededLength > destOwner.Memory.Length)
+                {
+                    // + 1 'cause we need space for the trailing escape end character
+                    Resize(pool, ref destOwner, neededLength + 1);
+                }
             }
 
             // update oldOwner to be a rented memory with the given size,
@@ -754,6 +802,252 @@ tryAgain:
                 default:
                     return Throw.ImpossibleException<ExtraColumnTreatment, T>($"Unexpected {nameof(ExtraColumnTreatment)}: {ect}", config);
             }
+        }
+
+        internal static Memory<DynamicCellValue> GetCells(MemoryPool<DynamicCellValue> arrPool, ref IMemoryOwner<DynamicCellValue>? buffer, ITypeDescriber describer, in WriteContext context, object rowAsObj)
+        {
+tryAgain:
+            var bufferMem = buffer?.Memory ?? Memory<DynamicCellValue>.Empty;
+            var bufferSpan = bufferMem.Span;
+
+            var numCells = describer.GetCellsForDynamicRow(context, rowAsObj, bufferSpan);
+            if (numCells > bufferSpan.Length)
+            {
+                buffer?.Dispose();
+                buffer = arrPool.Rent(numCells);
+                goto tryAgain;
+            }
+
+            return bufferMem[..numCells];
+        }
+
+        internal static void ForceInOrder(
+            (string Name, string EncodedName)[] columnNamesValue,
+            NonNull<Comparison<DynamicCellValue>> columnNameSorter,
+            Memory<DynamicCellValue> raw
+        )
+        {
+            // no headers mean we write whatever we're given
+            if (columnNamesValue.Length == 0)
+            {
+                return;
+            }
+
+            var rawSpan = raw.Span;
+
+            var inOrder = true;
+
+            var i = 0;
+            foreach (var x in rawSpan)
+            {
+                if (i == columnNamesValue.Length)
+                {
+                    Throw.InvalidOperationException<Memory<DynamicCellValue>>("Too many cells returned, could not place in desired order");
+                    return;
+                }
+
+                var (name, _) = columnNamesValue[i];
+                if (!name.Equals(x.Name))
+                {
+                    inOrder = false;
+                    break;
+                }
+
+                i++;
+            }
+
+            // already in order
+            if (inOrder)
+            {
+                return;
+            }
+
+            var comparer = columnNameSorter.Value;
+
+            Sort(rawSpan, comparer);
+        }
+
+        // todo: once MemoryExtensions.Sort() lands we can remove all of this (add tracking issue?)
+        //       coming as part of .NET 5, as a consequence of https://github.com/dotnet/runtime/issues/19969
+        internal static void Sort<T>(Span<T> span, Comparison<T> comparer)
+        {
+            // crummy quick sort implementation, all of this should get killed
+
+            var len = span.Length;
+
+            if (len <= 1)
+            {
+                return;
+            }
+
+            if (len == 2)
+            {
+                var a = span[0];
+                var b = span[1];
+
+                var res = comparer(a, b);
+                if (res > 0)
+                {
+                    span[0] = b;
+                    span[1] = a;
+                }
+
+                return;
+            }
+
+            // we only ever call this when the span isn't _already_ sorted,
+            //    so our sort can be really dumb
+            // basically Lomuto (see: https://en.wikipedia.org/wiki/Quicksort#Lomuto_partition_scheme)
+
+            var splitIx = Partition(span, comparer);
+
+            var left = span[..splitIx];
+            var right = span[(splitIx + 1)..];
+
+            Sort(left, comparer);
+            Sort(right, comparer);
+
+            // re-order subSpan such that items before the returned index are less than the value
+            //    at the returned index
+            static int Partition(Span<T> subSpan, Comparison<T> comparer)
+            {
+                var len = subSpan.Length;
+
+                var pivotIx = len - 1;
+                var pivotItem = subSpan[pivotIx];
+
+                var i = 0;
+
+                for (var j = 0; j < len; j++)
+                {
+                    var item = subSpan[j];
+                    var res = comparer(item, pivotItem);
+
+                    if (res < 0)
+                    {
+                        Swap(subSpan, i, j);
+                        i++;
+                    }
+                }
+
+                Swap(subSpan, i, pivotIx);
+
+                return i;
+            }
+
+            static void Swap(Span<T> subSpan, int i, int j)
+            {
+                var oldI = subSpan[i];
+                subSpan[i] = subSpan[j];
+                subSpan[j] = oldI;
+            }
+        }
+
+        // injected into delegates to perform runtime checks
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void RuntimeNullableValueCheck<T>(T? mustNotBeNull, string message)
+            where T : struct
+        {
+            if (mustNotBeNull == null)
+            {
+                Throw.InvalidOperationException<object>(message);
+                return;
+            }
+        }
+
+        // injected into delegates to perform runtime checks
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void RuntimeNullableReferenceCheck(object? mustNotBeNull, string message)
+        {
+            if (mustNotBeNull == null)
+            {
+                Throw.InvalidOperationException<object>(message);
+                return;
+            }
+        }
+
+        internal static void ValidateNullHandling(
+            TypeInfo runtimeType,
+            NullHandling newNullHandling
+        )
+        {
+            switch (newNullHandling)
+            {
+                case NullHandling.AllowNull:
+                    if (runtimeType.IsValueType && !runtimeType.IsNullableValueType(out _))
+                    {
+                        Throw.InvalidOperationException<object>($"Type of {runtimeType} cannot be null at runtime, it is not legal to allow nulls");
+                        return;
+                    }
+
+                    break;
+
+                // can always forbid nulls
+                case NullHandling.ForbidNull: break;
+
+                default:
+                    Throw.ImpossibleException<object>($"Unexpected {nameof(NullHandling)}: {newNullHandling}");
+                    return;
+            }
+        }
+
+        internal static Expression MakeNullHandlingCheckExpression(TypeInfo typeOfCheckedValue, ParameterExpression toCheck, string errorMessage)
+        {
+            MethodInfo validationMtd;
+            if (typeOfCheckedValue.IsNullableValueType(out var elemType))
+            {
+                validationMtd = Methods.Utils.RuntimeNullableValueCheck.MakeGenericMethod(elemType);
+            }
+            else
+            {
+                validationMtd = Methods.Utils.RuntimeNullableReferenceCheck;
+            }
+
+            var msgConstant = Expression.Constant(errorMessage);
+            var validationCall = Expression.Call(validationMtd, toCheck, msgConstant);
+
+            return validationCall;
+        }
+
+        internal static NullHandling? CommonInputNullHandling(NullHandling first, NullHandling second)
+        {
+            // if they both do the same thing, obviously the union is the same
+            if (first == second)
+            {
+                return first;
+            }
+
+            // if either FORBIDs null, then the new thing FORBIDs null
+            if (first == NullHandling.ForbidNull || second == NullHandling.ForbidNull)
+            {
+                return NullHandling.ForbidNull;
+            }
+
+            return NullHandling.AllowNull;
+        }
+
+        internal static NullHandling? CommonOutputNullHandling(NullHandling first, NullHandling second)
+        {
+            if (first == second)
+            {
+                return first;
+            }
+
+            // if the _first_ thing cannot fail to produce a non-null value, then the combo is likewise
+            //    effectively non-nullable
+            if (first == NullHandling.CannotBeNull)
+            {
+                return NullHandling.CannotBeNull;
+            }
+
+            // if _either_ could provide a null, then the combo can provide a null
+            if (first == NullHandling.AllowNull || second == NullHandling.AllowNull)
+            {
+                return NullHandling.AllowNull;
+            }
+
+            // now it's got to be a mix of forbid null and cannot be null, which is always forbid
+            return NullHandling.ForbidNull;
         }
     }
 }

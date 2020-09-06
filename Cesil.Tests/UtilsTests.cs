@@ -11,6 +11,154 @@ namespace Cesil.Tests
     public class UtilsTests
     {
         [Fact]
+        public void Sort()
+        {
+            // empty
+            {
+                var items = Span<int>.Empty;
+                Utils.Sort(items, (a, b) => a.CompareTo(b));
+
+                Assert.True(items.IsEmpty);
+            }
+
+            // single element
+            {
+                var items = new[] { 1 }.AsSpan();
+                Utils.Sort(items, (a, b) => a.CompareTo(b));
+
+                Assert.Collection(
+                    items.ToArray(),
+                    a => Assert.Equal(1, a)
+                );
+            }
+
+            // two element
+            {
+                var items1 = new[] { 1, 2 }.AsSpan();
+                var items2 = new[] { 2, 1 }.AsSpan();
+
+                Utils.Sort(items1, (a, b) => a.CompareTo(b));
+                Utils.Sort(items2, (a, b) => a.CompareTo(b));
+
+                Assert.Collection(
+                    items1.ToArray(),
+                    a => Assert.Equal(1, a),
+                    a => Assert.Equal(2, a)
+                );
+
+                Assert.Collection(
+                    items2.ToArray(),
+                    a => Assert.Equal(1, a),
+                    a => Assert.Equal(2, a)
+                );
+            }
+
+            // three element
+            {
+                var items1 = new[] { 1, 2, 3 }.AsSpan();
+                var items2 = new[] { 1, 3, 2 }.AsSpan();
+                var items3 = new[] { 2, 1, 3 }.AsSpan();
+                var items4 = new[] { 2, 3, 1 }.AsSpan();
+                var items5 = new[] { 3, 1, 2 }.AsSpan();
+                var items6 = new[] { 3, 2, 1 }.AsSpan();
+
+                Utils.Sort(items1, (a, b) => a.CompareTo(b));
+                Utils.Sort(items2, (a, b) => a.CompareTo(b));
+                Utils.Sort(items3, (a, b) => a.CompareTo(b));
+                Utils.Sort(items4, (a, b) => a.CompareTo(b));
+                Utils.Sort(items5, (a, b) => a.CompareTo(b));
+                Utils.Sort(items6, (a, b) => a.CompareTo(b));
+
+                Assert.Collection(
+                    items1.ToArray(),
+                    a => Assert.Equal(1, a),
+                    a => Assert.Equal(2, a),
+                    a => Assert.Equal(3, a)
+                );
+
+                Assert.Collection(
+                    items2.ToArray(),
+                    a => Assert.Equal(1, a),
+                    a => Assert.Equal(2, a),
+                    a => Assert.Equal(3, a)
+                );
+
+                Assert.Collection(
+                    items3.ToArray(),
+                    a => Assert.Equal(1, a),
+                    a => Assert.Equal(2, a),
+                    a => Assert.Equal(3, a)
+                );
+
+                Assert.Collection(
+                    items4.ToArray(),
+                    a => Assert.Equal(1, a),
+                    a => Assert.Equal(2, a),
+                    a => Assert.Equal(3, a)
+                );
+
+                Assert.Collection(
+                    items5.ToArray(),
+                    a => Assert.Equal(1, a),
+                    a => Assert.Equal(2, a),
+                    a => Assert.Equal(3, a)
+                );
+
+                Assert.Collection(
+                    items6.ToArray(),
+                    a => Assert.Equal(1, a),
+                    a => Assert.Equal(2, a),
+                    a => Assert.Equal(3, a)
+                );
+            }
+
+            // lots of random data
+            {
+                var rand = new Random(2020_06_21);
+                for (var i = 0; i < 1_000; i++)
+                {
+                    var len = rand.Next(1_000);
+                    var items = new List<int>();
+                    for (var j = 0; j < len; j++)
+                    {
+                        items.Add(rand.Next());
+                    }
+
+                    var span = items.ToArray().AsSpan();
+                    Utils.Sort(span, (a, b) => a.CompareTo(b));
+
+                    // make sure all the elements appear
+                    var spanArr = span.ToArray();
+                    for (var j = 0; j < items.Count; j++)
+                    {
+                        var subItem = items[j];
+                        var countInItems = items.Count(x => x == subItem);
+                        var countInSpan = spanArr.Count(x => x == subItem);
+
+                        Assert.Equal(countInItems, countInSpan);
+                    }
+
+                    if (items.Count > 0)
+                    {
+                        // check in order
+                        var prevItem = span[0];
+                        for (var j = 1; j < span.Length; j++)
+                        {
+                            var curItem = span[j];
+                            var inOrder = prevItem <= curItem;
+
+                            Assert.True(inOrder);
+                        }
+                    }
+                    else
+                    {
+                        Assert.True(span.IsEmpty);
+                    }
+                }
+            }
+        }
+
+        [Fact]
         public void EmptyMemoryOwnerIsEmpty()
         {
             var m = EmptyMemoryOwner.Singleton;
@@ -29,11 +177,29 @@ namespace Cesil.Tests
 
             var concreteConfig = Configuration.For<_WeirdImpossibleExceptions>();
             var concreteExc = ImpossibleException.Create("testing", "foo", "bar", 123, concreteConfig);
-            Assert.Equal("The impossible has happened!\r\ntesting\r\nFile: foo\r\nMember: bar\r\nLine: 123\r\nPlease report this to https://github.com/kevin-montrose/Cesil/issues/new\r\nBound to Cesil.Tests.UtilsTests+_WeirdImpossibleExceptions\r\nConcrete binding\r\nWith options: Options with CommentCharacter=, DynamicRowDisposal=OnReaderDispose, EscapedValueEscapeCharacter=\", EscapedValueStartAndEnd=\", MemoryPool=System.Buffers.ArrayMemoryPool`1[System.Char], ReadBufferSizeHint=0, ReadHeader=Detect, RowEnding=CarriageReturnLineFeed, TypeDescriber=DefaultTypeDescriber Shared Instance, ValueSeparator=,, WriteBufferSizeHint=, WriteHeader=Always, WriteTrailingRowEnding=Never, WhitespaceTreatment=Preserve, ExtraColumnTreatment=Ignore", concreteExc.Message);
+            Assert.Equal("The impossible has happened!\r\ntesting\r\nFile: foo\r\nMember: bar\r\nLine: 123\r\nPlease report this to https://github.com/kevin-montrose/Cesil/issues/new\r\nBound to Cesil.Tests.UtilsTests+_WeirdImpossibleExceptions\r\nConcrete binding\r\nWith options: Options with CommentCharacter=, DynamicRowDisposal=OnReaderDispose, EscapedValueEscapeCharacter=\", EscapedValueStartAndEnd=\", MemoryPoolProvider=DefaultMemoryPoolProvider Shared Instance, ReadBufferSizeHint=0, ReadHeader=Detect, RowEnding=CarriageReturnLineFeed, TypeDescriber=DefaultTypeDescriber Shared Instance, ValueSeparator=,, WriteBufferSizeHint=, WriteHeader=Always, WriteTrailingRowEnding=Never, WhitespaceTreatment=Preserve, ExtraColumnTreatment=Ignore", concreteExc.Message);
 
             var dynConfig = Configuration.ForDynamic();
             var dynExc = ImpossibleException.Create("testing", "foo", "bar", 123, dynConfig);
-            Assert.Equal("The impossible has happened!\r\ntesting\r\nFile: foo\r\nMember: bar\r\nLine: 123\r\nPlease report this to https://github.com/kevin-montrose/Cesil/issues/new\r\nBound to System.Object\r\nDynamic binding\r\nWith options: Options with CommentCharacter=, DynamicRowDisposal=OnReaderDispose, EscapedValueEscapeCharacter=\", EscapedValueStartAndEnd=\", MemoryPool=System.Buffers.ArrayMemoryPool`1[System.Char], ReadBufferSizeHint=0, ReadHeader=Always, RowEnding=CarriageReturnLineFeed, TypeDescriber=DefaultTypeDescriber Shared Instance, ValueSeparator=,, WriteBufferSizeHint=, WriteHeader=Always, WriteTrailingRowEnding=Never, WhitespaceTreatment=Preserve, ExtraColumnTreatment=IncludeDynamic", dynExc.Message);
+
+            Assert.Equal("The impossible has happened!\r\ntesting\r\nFile: foo\r\nMember: bar\r\nLine: 123\r\nPlease report this to https://github.com/kevin-montrose/Cesil/issues/new\r\nBound to System.Object\r\nDynamic binding\r\nWith options: Options with CommentCharacter=, DynamicRowDisposal=OnReaderDispose, EscapedValueEscapeCharacter=\", EscapedValueStartAndEnd=\", MemoryPoolProvider=DefaultMemoryPoolProvider Shared Instance, ReadBufferSizeHint=0, ReadHeader=Always, RowEnding=CarriageReturnLineFeed, TypeDescriber=DefaultTypeDescriber Shared Instance, ValueSeparator=,, WriteBufferSizeHint=, WriteHeader=Always, WriteTrailingRowEnding=Never, WhitespaceTreatment=Preserve, ExtraColumnTreatment=IncludeDynamic", dynExc.Message);
+
+            Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object>("wat"));
+            Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object>("wat", Options.Default));
+            Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object, _WeirdImpossibleExceptions>("wat", concreteConfig));
+
+            var files = new[] { "SomeFile.cs", null };
+            var members = new[] { "SomeMember", null };
+
+            foreach (var f in files)
+            {
+                foreach (var m in members)
+                {
+                    Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object>("wat", f, m));
+                    Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object>("wat", Options.Default, f, m));
+                    Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object, _WeirdImpossibleExceptions>("wat", concreteConfig, f, m));
+                }
+            }
         }
 
         [Fact]
@@ -45,6 +211,10 @@ namespace Cesil.Tests
             Assert.Throws<ImpossibleException>(() => e.Options);
             Assert.Throws<ImpossibleException>(() => e.ReleaseNameLookup());
             Assert.Throws<ImpossibleException>(() => e.Remove(new DynamicRow()));
+
+            var dc = (IDelegateCache)e;
+            Assert.Throws<ImpossibleException>(() => dc.TryGetDelegate<string, Action>("hello", out _));
+            Assert.Throws<ImpossibleException>(() => dc.AddDelegate<string, Action>("hello", () => { }));
         }
 
         [Fact]
@@ -53,6 +223,14 @@ namespace Cesil.Tests
             Assert.NotNull(Utils.NonNull("foo"));
 
             Assert.Throws<ImpossibleException>(() => Utils.NonNull(default(string)));
+        }
+
+        [Fact]
+        public void NonNullValue()
+        {
+            Assert.Equal(1, Utils.NonNullValue((int?)1));
+
+            Assert.Throws<ImpossibleException>(() => Utils.NonNullValue(default(int?)));
         }
 
         [Fact]
@@ -165,7 +343,7 @@ namespace Cesil.Tests
             Assert.Throws<InvalidOperationException>(() => t.GetFieldNonNull("Foo", BindingFlags.Static));
             Assert.Throws<InvalidOperationException>(() => t.GetMethodNonNull("Foo", BindingFlags.Static));
             Assert.Throws<InvalidOperationException>(() => t.GetMethodNonNull("Foo"));
-            Assert.Throws<InvalidOperationException>(() => t.GetMethodNonNull("Foo", BindingFlags.Static, null, Array.Empty<TypeInfo>(), null));
+            Assert.Throws<InvalidOperationException>(() => t.GetMethodNonNull("Foo", BindingFlags.Static, null, new[] { typeof(string).GetTypeInfo() }, null));
             Assert.Throws<InvalidOperationException>(() => t.GetPropertyNonNull("Foo", BindingFlags.Static));
 
             var c = typeof(_ReflectionHelpers).GetTypeInfo();
@@ -227,38 +405,22 @@ namespace Cesil.Tests
             Assert.Equal(expected, trimmedStr);
         }
 
-        [Theory]
-        [InlineData("", "\r\n")]
-        [InlineData("hello\r\nworld", "\r\n")]
-        [InlineData("hello world", " ")]
-        [InlineData("hello_world__foo_+bar_+_+_+_+wooo_+", "_+")]
-        [InlineData("\r\n", "\r\n")]
-        [InlineData(" \r\n", "\r\n")]
-        [InlineData("\r\n ", "\r\n")]
-        [InlineData(" \r\n ", "\r\n")]
-        [InlineData("#", "#")]
-        [InlineData("#", "###")]
-        [InlineData("nothing to break on", "foo")]
-        public void Split(string haystack, string needle)
-        {
-            var shouldMatch = haystack.Split(needle, StringSplitOptions.RemoveEmptyEntries);
-
-            var actually = Utils.Split(haystack.AsMemory(), needle.AsMemory());
-            var actuallySegments = new List<string>();
-            foreach (var seq in actually)
-            {
-                if (seq.Length != 0)
-                {
-                    actuallySegments.Add(new string(seq.Span));
-                }
-            }
-
-            Assert.True(shouldMatch.SequenceEqual(actuallySegments));
-        }
-
         private class _Encode
         {
             public string Foo { get; set; }
+        }
+
+        private sealed class _Encode_MemoryPoolProvider : IMemoryPoolProvider
+        {
+            public MemoryPool<T> GetMemoryPool<T>()
+            {
+                if (typeof(T) == typeof(char))
+                {
+                    return (MemoryPool<T>)(object)new _Encode_MemoryPool();
+                }
+
+                return MemoryPool<T>.Shared;
+            }
         }
 
         private sealed class _Encode_MemoryPool : MemoryPool<char>
@@ -305,17 +467,16 @@ namespace Cesil.Tests
         {
             // defaults
             {
-                var res = Utils.Encode(input, Options.Default);
+                var res = Utils.Encode(input, Options.Default, MemoryPool<char>.Shared);
 
                 Assert.Equal(expected, res);
             }
 
             // exact buffer
-
             {
-                var opts = Options.CreateBuilder(Options.Default).WithMemoryPool(new _Encode_MemoryPool()).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithMemoryPoolProvider(new _Encode_MemoryPoolProvider()).ToOptions();
 
-                var res = Utils.Encode(input, opts);
+                var res = Utils.Encode(input, opts, new _Encode_MemoryPool());
 
                 Assert.Equal(expected, res);
             }
@@ -327,12 +488,12 @@ namespace Cesil.Tests
             // no escapes at all
             var opts1 = Options.CreateBuilder(Options.Default).WithEscapedValueEscapeCharacter(null).WithEscapedValueStartAndEnd(null).ToOptions();
 
-            Assert.Throws<ImpossibleException>(() => Utils.Encode("", opts1));
+            Assert.Throws<ImpossibleException>(() => Utils.Encode("", opts1, MemoryPool<char>.Shared));
 
             // no escape char
             var opts2 = Options.CreateBuilder(opts1).WithEscapedValueEscapeCharacter(null).ToOptions();
 
-            Assert.Throws<ImpossibleException>(() => Utils.Encode("", opts2));
+            Assert.Throws<ImpossibleException>(() => Utils.Encode("", opts2, MemoryPool<char>.Shared));
         }
 
 
@@ -640,6 +801,409 @@ namespace Cesil.Tests
             var ix = Utils.FindNeedsEncode(seq, start, config);
 
             Assert.Equal(expected, ix);
+        }
+
+        [Theory]
+
+        [InlineData("hello", "world", -1)]
+
+        [InlineData(",ello", ",", 0)]
+        [InlineData("h,llo", ",", 1)]
+        [InlineData("he,lo", ",", 2)]
+        [InlineData("hel,o", ",", 3)]
+        [InlineData("hell,", ",", 4)]
+
+        [InlineData("hello", "#*", -1)]
+        [InlineData("#ello", "#*", -1)]
+        [InlineData("*ello", "#*", -1)]
+        [InlineData("#*llo", "#*", 0)]
+        [InlineData("h#*lo", "#*", 1)]
+        [InlineData("he#*o", "#*", 2)]
+        [InlineData("hel#*", "#*", 3)]
+        [InlineData("hell#", "#*", -1)]
+
+        [InlineData("##*lo", "#*", 1)]
+        [InlineData("#e#*o", "#*", 2)]
+        [InlineData("#el#*", "#*", 3)]
+        [InlineData("#ell#", "#*", -1)]
+        public void Find(string txt, string needle, int expected)
+        {
+            var ix = Utils.Find(txt, 0, needle);
+            Assert.Equal(expected, ix);
+        }
+
+        private class _DeterminingNullability
+        {
+            // fields, with annotations
+#nullable enable
+            public string NonNullField = "";
+            public string? NullField = null;
+
+            public List<string> GenericNonNullField = new List<string>();
+            public List<string>? GenericNullField = null;
+
+            public ImmutableArray<string> GenericValueNonNullField = ImmutableArray<string>.Empty;
+            public ImmutableArray<string>? GenericValueNullField = null;
+
+            public int NonNullValueField = 0;
+            public int? NullValueField = null;
+#nullable disable
+
+            // fields, without annotations
+            public string OblivousField = null;
+            public List<string> ObliviousGenericField = null;
+            public ImmutableArray<string> ObliviousGenericValueField = ImmutableArray<string>.Empty;
+            public ImmutableArray<string>? ObliviousGenericNullableValueField = null;
+            public int ObliviousValueField = 0;
+            public int? ObliviousNullValueField = null;
+
+            // properties, with annotations
+#nullable enable
+            public string NonNullProp { get; } = "";
+            public string? NullProp { get; } = null;
+
+            public List<string> GenericNonNullProp { get; } = new List<string>();
+            public List<string>? GenericNullProp { get; } = null;
+
+            public ImmutableArray<string> GenericValueNonNullProp { get; } = ImmutableArray<string>.Empty;
+            public ImmutableArray<string>? GenericValueNullProp { get; } = null;
+
+            public int NonNullValueProp { get; } = 0;
+            public int? NullValueProp { get; } = null;
+#nullable disable
+
+            // properties, without annotations
+            public string OblivousProp { get; } = null;
+            public List<string> ObliviousGenericProp { get; } = null;
+            public ImmutableArray<string> ObliviousGenericValueProp { get; } = ImmutableArray<string>.Empty;
+            public ImmutableArray<string>? ObliviousGenericNullableValueProp { get; } = null;
+            public int ObliviousValueProp { get; } = 0;
+            public int? ObliviousNullValueProp { get; } = null;
+        }
+
+#nullable enable
+        private static void _DetermineNullability_Enabled_Method(
+            string refNonNull,
+            string? refNull,
+            List<string> genRefNonNull,
+            List<string>? genRefNull,
+            ImmutableArray<string> genStructNonNull,
+            ImmutableArray<string>? genStructNull,
+            int valNonNull,
+            int? valNull,
+
+            ref string byRef_refNonNull,
+            ref string? byRef_refNull,
+            ref List<string> byRef_genRefNonNull,
+            ref List<string>? byRef_genRefNull,
+            ref ImmutableArray<string> byRef_genStructNonNull,
+            ref ImmutableArray<string>? byRef_genStructNull,
+            ref int byRef_valNonNull,
+            ref int? byRef_valNull
+        )
+        { }
+#nullable disable
+
+        private static void _DetermineNullability_Oblivious_Method(
+            string refNull,
+            List<string> genRefNull,
+            ImmutableArray<string> genStructNonNull,
+            ImmutableArray<string>? genStructNull,
+            int valNonNull,
+            int? valNull,
+
+            ref string byRef_refNull,
+            ref List<string> byRef_genRefNull,
+            ref ImmutableArray<string> byRef_genStructNonNull,
+            ref ImmutableArray<string>? byRef_genStructNull,
+            ref int byRef_valNonNull,
+            ref int? byRef_valNull
+        )
+        { }
+
+        [Fact]
+        public void DeterminingNullability()
+        {
+            // field tests
+
+            Assert.Equal(NullHandling.AllowNull, default(FieldInfo).DetermineNullability());
+
+            Assert.Equal(NullHandling.ForbidNull, Field(nameof(_DeterminingNullability.NonNullField)));
+            Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.NullField)));
+
+            Assert.Equal(NullHandling.ForbidNull, Field(nameof(_DeterminingNullability.GenericNonNullField)));
+            Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.GenericNullField)));
+
+            Assert.Equal(NullHandling.CannotBeNull, Field(nameof(_DeterminingNullability.GenericValueNonNullField)));
+            Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.GenericValueNullField)));
+
+            Assert.Equal(NullHandling.CannotBeNull, Field(nameof(_DeterminingNullability.NonNullValueField)));
+            Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.NullValueField)));
+
+            Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.OblivousField)));
+            Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.ObliviousGenericField)));
+            Assert.Equal(NullHandling.CannotBeNull, Field(nameof(_DeterminingNullability.ObliviousGenericValueField)));
+            Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.ObliviousGenericNullableValueField)));
+            Assert.Equal(NullHandling.CannotBeNull, Field(nameof(_DeterminingNullability.ObliviousValueField)));
+            Assert.Equal(NullHandling.AllowNull, Field(nameof(_DeterminingNullability.ObliviousNullValueField)));
+
+            // prop tests
+
+            Assert.Equal(NullHandling.AllowNull, default(PropertyInfo).DetermineNullability());
+
+            Assert.Equal(NullHandling.ForbidNull, Property(nameof(_DeterminingNullability.NonNullProp)));
+            Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.NullProp)));
+
+            Assert.Equal(NullHandling.ForbidNull, Property(nameof(_DeterminingNullability.GenericNonNullProp)));
+            Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.GenericNullProp)));
+
+            Assert.Equal(NullHandling.CannotBeNull, Property(nameof(_DeterminingNullability.GenericValueNonNullProp)));
+            Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.GenericValueNullProp)));
+
+            Assert.Equal(NullHandling.CannotBeNull, Property(nameof(_DeterminingNullability.NonNullValueProp)));
+            Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.NullValueProp)));
+
+            Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.OblivousProp)));
+            Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.ObliviousGenericProp)));
+            Assert.Equal(NullHandling.CannotBeNull, Property(nameof(_DeterminingNullability.ObliviousGenericValueProp)));
+            Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.ObliviousGenericNullableValueProp)));
+            Assert.Equal(NullHandling.CannotBeNull, Property(nameof(_DeterminingNullability.ObliviousValueProp)));
+            Assert.Equal(NullHandling.AllowNull, Property(nameof(_DeterminingNullability.ObliviousNullValueProp)));
+
+            // argument tests (enabled)
+
+            Assert.Equal(NullHandling.AllowNull, default(ParameterInfo).DetermineNullability());
+
+            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Enabled_Method), "refNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "refNull"));
+
+            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Enabled_Method), "genRefNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "genRefNull"));
+
+            Assert.Equal(NullHandling.CannotBeNull, Argument(nameof(_DetermineNullability_Enabled_Method), "genStructNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "genStructNull"));
+
+            Assert.Equal(NullHandling.CannotBeNull, Argument(nameof(_DetermineNullability_Enabled_Method), "valNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "valNull"));
+
+            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_refNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_refNull"));
+
+            Assert.Equal(NullHandling.ForbidNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_genRefNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_genRefNull"));
+
+            Assert.Equal(NullHandling.CannotBeNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_genStructNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_genStructNull"));
+
+            Assert.Equal(NullHandling.CannotBeNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_valNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Enabled_Method), "byRef_valNull"));
+
+            // argument tests (disabled)
+
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "refNull"));
+
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "genRefNull"));
+
+            Assert.Equal(NullHandling.CannotBeNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "genStructNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "genStructNull"));
+
+            Assert.Equal(NullHandling.CannotBeNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "valNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "valNull"));
+
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "byRef_refNull"));
+
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "byRef_genRefNull"));
+
+            Assert.Equal(NullHandling.CannotBeNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "byRef_genStructNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "byRef_genStructNull"));
+
+            Assert.Equal(NullHandling.CannotBeNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "byRef_valNonNull"));
+            Assert.Equal(NullHandling.AllowNull, Argument(nameof(_DetermineNullability_Oblivious_Method), "byRef_valNull"));
+
+            static NullHandling Field(string name)
+            {
+                var field = typeof(_DeterminingNullability).GetField(name);
+
+                Assert.NotNull(field);
+
+                return field.DetermineNullability();
+            }
+
+            static NullHandling Property(string name)
+            {
+                var prop = typeof(_DeterminingNullability).GetProperty(name);
+
+                Assert.NotNull(prop);
+
+                return prop.DetermineNullability();
+            }
+
+            static NullHandling Argument(string mtdName, string argName)
+            {
+                var mtd = typeof(UtilsTests).GetMethod(mtdName, BindingFlags.NonPublic | BindingFlags.Static);
+                Assert.NotNull(mtd);
+
+                var arg = mtd.GetParameters().Single(p => p.Name == argName);
+
+                return arg.DetermineNullability();
+            }
+        }
+
+        [Theory]
+        [InlineData(1, "foobar", "ob", 2)]
+        [InlineData(1, "foobar", "are", -1)]
+        [InlineData(0, "foofozz", "oz", 4)]
+        public void FindNextIx(int startAt, string haystack, string needle, int expected)
+        {
+            var haystackSpan = haystack.AsSpan();
+            var needleSpan = needle.AsSpan();
+
+            var res = Utils.FindNextIx(startAt, haystackSpan, needleSpan);
+            Assert.Equal(expected, res);
+        }
+
+        [Fact]
+        public void Find_Sequence()
+        {
+            // empty
+            {
+                var res = Utils.Find(ReadOnlySequence<char>.Empty, "foobar");
+                Assert.Equal(-1, res);
+            }
+
+            // single segment
+            {
+                var mem = "foobar".AsMemory();
+                var seq = new ReadOnlySequence<char>(mem);
+
+                Assert.True(seq.IsSingleSegment);
+
+                var res = Utils.Find(seq, "ba");
+                Assert.Equal(3, res);
+            }
+
+            // multi segment
+            {
+                var head = new _FindNeedsEncode_Sequence_Segment("foo", 0);
+                var tail = head;
+                var next1 = new _FindNeedsEncode_Sequence_Segment("bar", (int)(tail.RunningIndex + tail.Memory.Length));
+                tail.SetNext(next1);
+                tail = next1;
+                var next2 = new _FindNeedsEncode_Sequence_Segment("fizz", (int)(tail.RunningIndex + tail.Memory.Length));
+                tail.SetNext(next2);
+                tail = next2;
+
+                var seq = new ReadOnlySequence<char>(head, 0, tail, "fizz".Length);
+
+                Assert.False(seq.IsSingleSegment);
+
+                // found, within single span
+                var res1 = Utils.Find(seq, "ba");
+                Assert.Equal(3, res1);
+
+                // found, straddles span
+                var res2 = Utils.Find(seq, "ob");
+                Assert.Equal(2, res2);
+
+                // not found (partial match)
+                var res3 = Utils.Find(seq, "re");
+                Assert.Equal(-1, res3);
+
+                // not found (no match)
+                var res4 = Utils.Find(seq, "xz");
+                Assert.Equal(-1, res4);
+
+                // found, completely covers span
+                var res5 = Utils.Find(seq, "bar");
+                Assert.Equal(3, res5);
+
+                // found, stradles multiple spans
+                var res6 = Utils.Find(seq, "obarf");
+                Assert.Equal(2, res6);
+
+                // found, stradles multiple spans (starts in non-first span)
+                var res7 = Utils.Find(seq, "arfi");
+                Assert.Equal(4, res7);
+
+                // not found, partial stradles multiple spans
+                var res8 = Utils.Find(seq, "arfix");
+                Assert.Equal(-1, res8);
+
+                // not found, partial stradles multiple spans and ends sequence
+                var res9 = Utils.Find(seq, "arfizzy");
+                Assert.Equal(-1, res9);
+            }
+        }
+
+        [Theory]
+        // reference types, anything is legal!
+        [InlineData(typeof(object), (byte)NullHandling.ForbidNull, false)]
+        [InlineData(typeof(object), (byte)NullHandling.AllowNull, false)]
+        // value types, can't be null
+        [InlineData(typeof(int), (byte)NullHandling.AllowNull, true)]
+        [InlineData(typeof(int), (byte)NullHandling.ForbidNull, false)]
+        // nullable value types can be anything
+        [InlineData(typeof(int?), (byte)NullHandling.AllowNull, false)]
+        [InlineData(typeof(int?), (byte)NullHandling.ForbidNull, false)]
+        public void ValidateNullHandling(Type forType, byte updatedByte, bool throws)
+        {
+            var updated = (NullHandling)updatedByte;
+
+            Action toRun = () => Utils.ValidateNullHandling(forType.GetTypeInfo(), updated);
+
+            if (throws)
+            {
+                Assert.Throws<InvalidOperationException>(toRun);
+            }
+            else
+            {
+                toRun();
+            }
+        }
+
+        // what happens when chaining things _as parameters_ (stuff passed to setters, formatters, and so on)
+        [Theory]
+        [InlineData((byte)NullHandling.AllowNull, (byte)NullHandling.AllowNull, (byte)NullHandling.AllowNull)]      // if they all take null, null is OK
+        [InlineData((byte)NullHandling.AllowNull, (byte)NullHandling.ForbidNull, (byte)NullHandling.ForbidNull)]    // if either forbid null, null isn't OK
+        [InlineData((byte)NullHandling.ForbidNull, (byte)NullHandling.AllowNull, (byte)NullHandling.ForbidNull)]
+        // CannotBeNull isn't possible
+        public void CommonInputNullHandling(byte firstByte, byte secondByte, byte expectedByte)
+        {
+            var first = (NullHandling)firstByte;
+            var second = (NullHandling)secondByte;
+            var expected = (NullHandling)expectedByte;
+
+            var res = Utils.CommonInputNullHandling(first, second);
+            Assert.Equal(expected, res);
+        }
+
+        [Theory]
+        [InlineData(typeof(string), false, true)]
+        [InlineData(typeof(int), false, false)]
+        [InlineData(typeof(int?), false, true)]
+        [InlineData(typeof(string), true, true)]
+        [InlineData(typeof(int), true, false)]
+        [InlineData(typeof(int?), true, true)]
+        public void AllowsNullLikeValue(Type forType, bool byRef, bool expected)
+        {
+            var toCheck = forType;
+            if (byRef)
+            {
+                toCheck = toCheck.MakeByRefType();
+            }
+
+            var res = toCheck.GetTypeInfo().AllowsNullLikeValue();
+            Assert.Equal(expected, res);
+        }
+
+        [Theory]
+        [InlineData(typeof(int), false)]
+        [InlineData(typeof(ReadHeader), false)]
+        [InlineData(typeof(WhitespaceTreatments), true)]
+        public void IsFlagsEnum(Type forType, bool expected)
+        {
+            var res = forType.GetTypeInfo().IsFlagsEnum();
+            Assert.Equal(expected, res);
         }
     }
 }

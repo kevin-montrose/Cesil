@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Buffers;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static Cesil.DisposableHelper;
@@ -68,7 +65,6 @@ namespace Cesil
     ///  
     /// we end up with:
     ///  - count 3
-    ///  - 
     /// 
     /// 
     ///  0: 0000, 0003,     // 3 strings (each int takes 2 chars)
@@ -84,9 +80,8 @@ namespace Cesil
     /// 
     /// The length of each string can be determined from the difference between each index, with a special case for the LAST string
     ///   whose length can be calculated from the end of the memory.
-    /// 
     /// </summary>
-    internal struct NameLookup : ITestableDisposable
+    internal partial struct NameLookup : ITestableDisposable
     {
         // internal for testing purposes
         internal enum Algorithm : byte
@@ -432,18 +427,22 @@ processPrefixGroup:
             }
         }
 
-        internal static NameLookup Create(IEnumerable<string> names, MemoryPool<char> memoryPool)
+        internal static NameLookup Create(string[] names, MemoryPool<char> memoryPool)
         {
-            // todo: can we do this in a less allocate-y way? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/4)
-            // sort 'em, so we can more easily find common prefixes
-            var inOrder = names.Select((n, ix) => (Name: n, Index: ix)).OrderBy(t => t.Name, StringComparer.Ordinal);
+            using var ordered = OrdererNames.Create(names, memoryPool);
 
-            if (TryCreateAdaptiveRadixTrie(inOrder, memoryPool, out var trieOwner, out var trieMem))
+            return CreateInner(ordered, memoryPool);
+        }
+
+        // internal for testing purposes
+        internal static NameLookup CreateInner(OrdererNames ordered, MemoryPool<char> memoryPool)
+        {
+            if (TryCreateAdaptiveRadixTrie(ordered, memoryPool, out var trieOwner, out var trieMem))
             {
                 return new NameLookup(Algorithm.AdaptiveRadixTrie, trieOwner, trieMem);
             }
 
-            if (TryCreateBinarySearch(inOrder, memoryPool, out var binaryTreeOwner, out var binaryTreeMem))
+            if (TryCreateBinarySearch(ordered, memoryPool, out var binaryTreeOwner, out var binaryTreeMem))
             {
                 return new NameLookup(Algorithm.BinarySearch, binaryTreeOwner, binaryTreeMem);
             }
@@ -452,24 +451,17 @@ processPrefixGroup:
         }
 
         // internal for testing purposes
-        internal static bool TryCreateBinarySearch(IOrderedEnumerable<(string Name, int Index)> inOrder, MemoryPool<char> memoryPool, out IMemoryOwner<char> memOwner, out ReadOnlyMemory<char> mem)
+        internal static bool TryCreateBinarySearch(OrdererNames inOrder, MemoryPool<char> memoryPool, out IMemoryOwner<char> memOwner, out ReadOnlyMemory<char> mem)
         {
-            // todo: don't love allocating here? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/4)
-            var sortedNames = new List<ReadOnlyMemory<char>>();
-            var sortedNamesValues = new List<int>();
-
             var neededChars = CHARS_PER_INT;    // start at 1 int, because we need a count
 
-            foreach (var t in inOrder)
+            for (var i = 0; i < inOrder.Count; i++)
             {
-                var tMem = t.Name.AsMemory();
+                var (tMem, _) = inOrder[i];
 
                 neededChars += CHARS_PER_INT;   // 1 for the index into the string
                 neededChars += CHARS_PER_INT;   // 1 for the value
                 neededChars += tMem.Length;     // then the string itself
-
-                sortedNames.Add(tMem);
-                sortedNamesValues.Add(t.Index);
             }
 
             var writeableMemOwner = memoryPool.Rent(neededChars);
@@ -491,13 +483,12 @@ processPrefixGroup:
             var backPtr = charSpan.Length;
 
             // store the count of names
-            intSpan[frontPtr] = sortedNames.Count;
+            intSpan[frontPtr] = inOrder.Count;
             frontPtr++;
 
-            for (var i = 0; i < sortedNames.Count; i++)
+            for (var i = 0; i < inOrder.Count; i++)
             {
-                var name = sortedNames[i];
-                var value = sortedNamesValues[i];
+                var (name, value) = inOrder[i];
 
                 // copy the string to the furthest unused chunk of charSpan
                 var startOfNameIx = backPtr - name.Length;
@@ -520,48 +511,34 @@ processPrefixGroup:
             return true;
         }
 
-        internal static bool TryCreateAdaptiveRadixTrie(IOrderedEnumerable<(string Name, int Index)> inOrder, MemoryPool<char> memoryPool, out IMemoryOwner<char> memOwner, out ReadOnlyMemory<char> mem)
+        internal static bool TryCreateAdaptiveRadixTrie(OrdererNames inOrder, MemoryPool<char> memoryPool, out IMemoryOwner<char> memOwner, out ReadOnlyMemory<char> mem)
         {
-            // todo: don't love allocating here? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/4)
-            var sortedNames = new List<ReadOnlyMemory<char>>();
-            var sortedNamesValues = new List<ushort>();
-
-            foreach (var t in inOrder)
+            // check to see if any of the values are too large
+            for (var i = 0; i < inOrder.Count; i++)
             {
-                sortedNames.Add(t.Name.AsMemory());
-
-                var index = t.Index;
-
-                // this is the largest _VALUE_ we can store
-                if (index > short.MaxValue)
+                var (_, index) = inOrder[i];
+                if (index > ushort.MaxValue)
                 {
                     memOwner = EmptyMemoryOwner.Singleton;
                     mem = ReadOnlyMemory<char>.Empty;
                     return false;
                 }
-
-                var asUshort = (ushort)index;
-
-                sortedNamesValues.Add(asUshort);
             }
 
-            if (sortedNames.Count > ushort.MaxValue)
+            // is the total count of keys too large?
+            if (inOrder.Count > ushort.MaxValue)
             {
                 memOwner = EmptyMemoryOwner.Singleton;
                 mem = ReadOnlyMemory<char>.Empty;
                 return false;
             }
 
-            Debug.WriteLineIf(
-                LogConstants.NAME_LOOKUP,
-                $"{nameof(Create)}: ordered names ({string.Join(", ", sortedNames.Select(x => '"' + new string(x.Span) + '"'))})"
-            );
-
+            LogHelper.NameLookup_OrderedNames(inOrder);
 
             ushort startIx = 0;
-            ushort lastIx = (ushort)(sortedNames.Count - 1);    // we know this will fix because we check the site of sortedNames above
+            ushort lastIx = (ushort)(inOrder.Count - 1);    // we know this will fix because we check the site of sortedNames above
 
-            var neededMemory = CalculateNeededMemoryAdaptivePrefixTrie(sortedNames, startIx, lastIx, 0);
+            var neededMemory = CalculateNeededMemoryAdaptivePrefixTrie(inOrder, startIx, lastIx, 0);
 
             var writeableMemOwner = memoryPool.Rent(neededMemory);
             var writeableMem = writeableMemOwner.Memory;
@@ -578,7 +555,7 @@ processPrefixGroup:
 
             var span = writeableMem.Span;
 
-            if (!StorePrefixGroups(0, sortedNames, startIx, lastIx, sortedNamesValues, span, 0, out _))
+            if (!StorePrefixGroups(0, inOrder, startIx, lastIx, span, 0, out _))
             {
                 writeableMemOwner.Dispose();
                 memOwner = EmptyMemoryOwner.Singleton;
@@ -600,12 +577,9 @@ processPrefixGroup:
                 //   [firstNamesIx, lastNamesIx] on each call
                 // this works because names is sorted, so
                 //   we always process contiguous chunks
-                List<ReadOnlyMemory<char>> names,
+                OrdererNames names,
                 ushort firstNamesIx,
                 ushort lastNamesIx,
-                // values is boxed by the same indexes
-                //    as names
-                List<ushort> values,
                 // groupStartSpan is the origin point for writing
                 //   in this particular call.
                 // it is advanced prior to each recursion, so
@@ -646,7 +620,7 @@ processPrefixGroup:
                     var startOfPrefixGroup = firstNamesIx;
                     while (startOfPrefixGroup <= lastNamesIx)
                     {
-                        var name = names[startOfPrefixGroup].Span;
+                        var name = names[startOfPrefixGroup].Name.Span;
 
                         // increment the number of prefixes we've stored
                         //
@@ -671,10 +645,7 @@ processPrefixGroup:
                         groupStartSpan[curOffset] = prefixLenChar;
                         curOffset++;
 
-                        Debug.WriteLineIf(
-                            LogConstants.NAME_LOOKUP,
-                            $"{nameof(StorePrefixGroups)}: depth={depth}, start={startOfPrefixGroup}, prefix=\"{new string(name.Slice(0, prefixLen))}\""
-                        );
+                        LogHelper.NameLookup_StorePrefixGroups(depth, startOfPrefixGroup, name, prefixLen);
 
                         // store the actual prefix characters
                         var prefixCharsToCopy = name.Slice(ignoreCharCount, prefixLen);
@@ -712,12 +683,7 @@ processPrefixGroup:
                         var newLastNamesIx = FromEndOfPrefixGroup(groupStartSpan[groupPtr]);
                         var size = newLastNamesIx - newFirstNamesIx + 1;
 
-                        Debug.WriteLineIf(LogConstants.NAME_LOOKUP, $"Indexes: depth={depth}, start:{newFirstNamesIx}, last:{newLastNamesIx}");
-
-                        Debug.Assert(
-                            newFirstNamesIx <= newLastNamesIx,
-                            $"Indexes into group are non-sensical; {nameof(newFirstNamesIx)} ({newFirstNamesIx}) > {nameof(newLastNamesIx)} ({newLastNamesIx})"
-                        );
+                        LogHelper.NameLookup_Indexes(depth, newFirstNamesIx, newLastNamesIx);
 
                         if (size > 1)
                         {
@@ -734,7 +700,7 @@ processPrefixGroup:
                             // store the next prefix groups into the buffer, and then note that we've advanced that far
                             //   into the span
                             var newIgnoreCharCount = ignoreCharCount + prefixLen;
-                            if (!StorePrefixGroups(depth + 1, names, newFirstNamesIx, newLastNamesIx, values, nextGroupStartSpan, newIgnoreCharCount, out var sizeOfNextPrefixGroup))
+                            if (!StorePrefixGroups(depth + 1, names, newFirstNamesIx, newLastNamesIx, nextGroupStartSpan, newIgnoreCharCount, out var sizeOfNextPrefixGroup))
                             {
                                 curOffset = -1;
                                 return false;
@@ -747,7 +713,7 @@ processPrefixGroup:
                             //   so rather than actually store a 1 entry group
                             //   overload the space we'd store the offset
                             //   to instead store the final value.
-                            var value = values[newFirstNamesIx];
+                            var value = (ushort)names[newFirstNamesIx].Index;
                             var valueChar = ToValue(value);
                             groupStartSpan[groupPtr] = valueChar;
                             groupPtr++;
@@ -791,9 +757,6 @@ processPrefixGroup:
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static bool ToOffset(int offset, out char asChar)
         {
-            // offset will always be >= 1
-            Debug.Assert(offset >= 1, $"Offset out of range: {offset}");
-
             var val = -offset;
             if (val < short.MinValue || val > short.MaxValue)
             {
@@ -812,8 +775,6 @@ processPrefixGroup:
         internal static int FromOffset(char c)
         {
             short asShort = (short)c;
-
-            Debug.Assert(asShort < 0, $"Unexpected offset value, wasn't negative: {asShort}");
 
             return -asShort;
         }
@@ -834,8 +795,6 @@ processPrefixGroup:
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static bool ToPrefixLength(int len, out char asChar)
         {
-            Debug.Assert(len >= 0, $"Length out of range: {len}");
-
             if (len < 0 || len > ushort.MaxValue)
             {
                 asChar = '\0';
@@ -879,7 +838,7 @@ processPrefixGroup:
             //   [firstNamesIx, lastNamesIx] on each call
             // this works because names is sorted, so
             //   we always process contiguous chunks
-            List<ReadOnlyMemory<char>> names,
+            OrdererNames names,
             ushort firstNamesIx,
             ushort lastNamesIx,
             // rather than re-allocate names with prefixes removed
@@ -934,7 +893,7 @@ processPrefixGroup:
             //   >= first).
             // this works because names is sorted, so
             //   we always process contiguous chunks
-            List<ReadOnlyMemory<char>> names,
+            OrdererNames names,
             ushort lastNamesIx,
             ushort nameIx,
             // rather than re-allocate names with prefixes removed
@@ -950,7 +909,7 @@ processPrefixGroup:
         {
             lastIndexInPrefixGroup = nameIx;
 
-            var name = names[nameIx].Span;
+            var name = names[nameIx].Name.Span;
 
             name = name.Slice(ignoreCharCount);
 
@@ -963,7 +922,7 @@ processPrefixGroup:
 
             for (ushort j = (ushort)(nameIx + 1); j <= lastNamesIx; j++)
             {
-                var otherName = names[j].Span.Slice(ignoreCharCount);
+                var otherName = names[j].Name.Span.Slice(ignoreCharCount);
                 if (otherName[0] != firstChar)
                 {
                     break;

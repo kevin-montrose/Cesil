@@ -33,6 +33,7 @@ namespace Cesil
         }
 
         internal readonly TypeInfo ConstructsType;
+        internal readonly NullHandling ConstructsNullability;
 
         internal bool ConstructorTakesParameters
         {
@@ -55,34 +56,39 @@ namespace Cesil
         private readonly ImmutableArray<InstanceProvider> _Fallbacks;
         ImmutableArray<InstanceProvider> IElseSupporting<InstanceProvider>.Fallbacks => _Fallbacks;
 
-        internal InstanceProvider(ConstructorInfo cons, ImmutableArray<InstanceProvider> fallbacks)
+        internal InstanceProvider(ConstructorInfo cons, ImmutableArray<InstanceProvider> fallbacks, NullHandling nullability)
         {
             Constructor.Value = cons;
             ConstructsType = cons.DeclaringTypeNonNull();
+            ConstructsNullability = nullability;            // this isn't _always_ CannotBeNull because there might be fallbacks
             _Fallbacks = fallbacks;
         }
 
-        internal InstanceProvider(Delegate del, TypeInfo forType, ImmutableArray<InstanceProvider> fallbacks)
+        internal InstanceProvider(Delegate del, TypeInfo forType, ImmutableArray<InstanceProvider> fallbacks, NullHandling nullability)
         {
             Delegate.Value = del;
             ConstructsType = forType;
+            ConstructsNullability = nullability;
             _Fallbacks = fallbacks;
         }
 
-        internal InstanceProvider(MethodInfo mtd, TypeInfo forType, ImmutableArray<InstanceProvider> fallbacks)
+        internal InstanceProvider(MethodInfo mtd, TypeInfo forType, ImmutableArray<InstanceProvider> fallbacks, NullHandling nullability)
         {
             Method.Value = mtd;
             ConstructsType = forType;
+            ConstructsNullability = nullability;
             _Fallbacks = fallbacks;
         }
 
-        InstanceProvider IElseSupporting<InstanceProvider>.Clone(ImmutableArray<InstanceProvider> newFallbacks)
+        InstanceProvider IElseSupporting<InstanceProvider>.Clone(ImmutableArray<InstanceProvider> newFallbacks, NullHandling? rowHandling, NullHandling? _)
         {
+            var rowHandlingValue = Utils.NonNullValue(rowHandling);
+
             return Mode switch
             {
-                BackingMode.Constructor => new InstanceProvider(Constructor.Value, newFallbacks),
-                BackingMode.Delegate => new InstanceProvider(Delegate.Value, ConstructsType, newFallbacks),
-                BackingMode.Method => new InstanceProvider(Method.Value, ConstructsType, newFallbacks),
+                BackingMode.Constructor => new InstanceProvider(Constructor.Value, newFallbacks, rowHandlingValue),
+                BackingMode.Delegate => new InstanceProvider(Delegate.Value, ConstructsType, newFallbacks, rowHandlingValue),
+                BackingMode.Method => new InstanceProvider(Method.Value, ConstructsType, newFallbacks, rowHandlingValue),
                 _ => Throw.ImpossibleException<InstanceProvider>($"Unexpected {nameof(BackingMode)}: {Mode}")
             };
         }
@@ -100,8 +106,46 @@ namespace Cesil
                 return Throw.ArgumentException<InstanceProvider>($"{fallbackProvider} does not provide a value assignable to {ConstructsType}, and cannot be used as a fallback for this {nameof(InstanceProvider)}", nameof(fallbackProvider));
             }
 
-            return this.DoElse(fallbackProvider);
+            var newRowNullability = Utils.CommonOutputNullHandling(ConstructsNullability, fallbackProvider.ConstructsNullability);
+
+            return this.DoElse(fallbackProvider, newRowNullability, null);
         }
+
+        private InstanceProvider ChangeRowNullHandling(NullHandling nullHandling)
+        {
+            if (nullHandling == ConstructsNullability)
+            {
+                return this;
+            }
+
+            Utils.ValidateNullHandling(ConstructsType, nullHandling);
+
+            return
+                Mode switch
+                {
+                    BackingMode.Constructor => new InstanceProvider(Constructor.Value, _Fallbacks, nullHandling),
+                    BackingMode.Method => new InstanceProvider(Method.Value, ConstructsType, _Fallbacks, nullHandling),
+                    BackingMode.Delegate => new InstanceProvider(Delegate.Value, ConstructsType, _Fallbacks, nullHandling),
+                    _ => Throw.ImpossibleException<InstanceProvider>($"Unexpected {nameof(BackingMode)}: {Mode}"),
+                };
+        }
+
+        /// <summary>
+        /// Returns a InstanceProvider that differs from this by explicitly allowing
+        ///   null rows to be created by it.
+        /// </summary>
+        public InstanceProvider AllowNullRows()
+        => ChangeRowNullHandling(NullHandling.AllowNull);
+
+        /// <summary>
+        /// Returns a InstanceProvider that differs from this by explicitly forbidding
+        ///   null rows be created by it.
+        ///   
+        /// If the .NET runtime cannot guarantee that null rows will not be created at runtime, 
+        ///   null checks will be injected.
+        /// </summary>
+        public InstanceProvider ForbidNullRows()
+        => ChangeRowNullHandling(NullHandling.ForbidNull);
 
         internal Expression MakeExpression(TypeInfo resultType, ParameterExpression context, ParameterExpression outVar)
         {
@@ -205,15 +249,17 @@ namespace Cesil
                 return Throw.ArgumentException<InstanceProvider>($"Method's first parameter must be a `in {nameof(ReadContext)}`; {msg}", nameof(method));
             }
 
-            var outP = ps[1].ParameterType.GetTypeInfo();
+            var p1 = ps[1];
+            var outP = p1.ParameterType.GetTypeInfo();
             if (!outP.IsByRef)
             {
                 return Throw.ArgumentException<InstanceProvider>("Method must have a single out parameter, parameter was not by ref", nameof(method));
             }
 
             var constructs = outP.GetElementTypeNonNull();
+            var constructsNullability = p1.DetermineNullability();
 
-            return new InstanceProvider(method, constructs, ImmutableArray<InstanceProvider>.Empty);
+            return new InstanceProvider(method, constructs, ImmutableArray<InstanceProvider>.Empty, constructsNullability);
         }
 
         /// <summary>
@@ -236,7 +282,7 @@ namespace Cesil
             }
 
             var t = constructor.DeclaringTypeNonNull();
-           
+
             if (t.IsAbstract)
             {
                 return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found an abstract class", nameof(constructor));
@@ -247,7 +293,7 @@ namespace Cesil
                 return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found a generic type definition", nameof(constructor));
             }
 
-            return new InstanceProvider(constructor, ImmutableArray<InstanceProvider>.Empty);
+            return new InstanceProvider(constructor, ImmutableArray<InstanceProvider>.Empty, NullHandling.CannotBeNull);
         }
 
         /// <summary>
@@ -283,7 +329,7 @@ namespace Cesil
                 return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found a generic type definition", nameof(constructor));
             }
 
-            return new InstanceProvider(constructor, ImmutableArray<InstanceProvider>.Empty);
+            return new InstanceProvider(constructor, ImmutableArray<InstanceProvider>.Empty, NullHandling.CannotBeNull);
         }
 
         /// <summary>
@@ -296,7 +342,9 @@ namespace Cesil
         {
             Utils.CheckArgumentNull(del, nameof(del));
 
-            return new InstanceProvider(del, typeof(TInstance).GetTypeInfo(), ImmutableArray<InstanceProvider>.Empty);
+            var nullability = del.Method.GetParameters()[1].DetermineNullability();
+
+            return new InstanceProvider(del, typeof(TInstance).GetTypeInfo(), ImmutableArray<InstanceProvider>.Empty, nullability);
         }
 
         /// <summary>
@@ -382,6 +430,7 @@ namespace Cesil
 
             if (Mode != instanceProvider.Mode) return false;
 
+            if (ConstructsNullability != instanceProvider.ConstructsNullability) return false;
             if (ConstructsType != instanceProvider.ConstructsType) return false;
 
             if (_Fallbacks.Length != instanceProvider._Fallbacks.Length) return false;
@@ -408,7 +457,7 @@ namespace Cesil
         /// Returns a stable hash for this InstanceProvider.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(InstanceProvider), Constructor, ConstructsType, Delegate, Method, Mode, _Fallbacks.Length);
+        => HashCode.Combine(nameof(InstanceProvider), Constructor, ConstructsType, Delegate, Method, Mode, _Fallbacks.Length, ConstructsNullability);
 
         /// <summary>
         /// Returns a representation of this InstanceProvider object.
@@ -420,8 +469,8 @@ namespace Cesil
             return Mode switch
             {
                 BackingMode.Constructor => $"{nameof(InstanceProvider)} using parameterless constructor {Constructor} to create {ConstructsType}",
-                BackingMode.Delegate => $"{nameof(InstanceProvider)} using delegate {Delegate} to create {ConstructsType}",
-                BackingMode.Method => $"{nameof(InstanceProvider)} using method {Method} to create {ConstructsType}",
+                BackingMode.Delegate => $"{nameof(InstanceProvider)} using delegate {Delegate} to create {ConstructsType} ({ConstructsNullability})",
+                BackingMode.Method => $"{nameof(InstanceProvider)} using method {Method} to create {ConstructsType} ({ConstructsNullability})",
                 _ => Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}")
             };
         }
@@ -468,7 +517,9 @@ namespace Cesil
                     var genArgs = delType.GetGenericArguments();
                     var makes = genArgs[0].GetTypeInfo();
 
-                    return new InstanceProvider(del, makes, ImmutableArray<InstanceProvider>.Empty);
+                    var nullability = del.Method.GetParameters()[1].DetermineNullability();
+
+                    return new InstanceProvider(del, makes, ImmutableArray<InstanceProvider>.Empty, nullability);
                 }
             }
 
@@ -490,20 +541,22 @@ namespace Cesil
                 return Throw.InvalidOperationException<InstanceProvider>($"Method's first parameter must be a `in {nameof(ReadContext)}`; {msg}");
             }
 
-            var outP = ps[1].ParameterType.GetTypeInfo();
+            var p1 = ps[1];
+            var outP = p1.ParameterType.GetTypeInfo();
             if (!outP.IsByRef)
             {
                 return Throw.InvalidOperationException<InstanceProvider>("Method must have a single out parameter, parameter was not by ref");
             }
 
             var constructs = outP.GetElementTypeNonNull();
+            var constructsNullability = p1.DetermineNullability();
 
             var instanceBuilderDel = Types.InstanceProviderDelegate.MakeGenericType(constructs);
             var invoke = del.GetType().GetTypeInfo().GetMethodNonNull("Invoke");
 
             var reboundDel = System.Delegate.CreateDelegate(instanceBuilderDel, del, invoke);
 
-            return new InstanceProvider(reboundDel, constructs, ImmutableArray<InstanceProvider>.Empty);
+            return new InstanceProvider(reboundDel, constructs, ImmutableArray<InstanceProvider>.Empty, constructsNullability);
         }
 
         /// <summary>

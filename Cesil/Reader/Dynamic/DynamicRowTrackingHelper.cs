@@ -41,7 +41,7 @@
             var hasNames = columnNames.HasValue;
             var names = hasNames ? columnNames.Value : null;
 
-            dynRow.Init(self, self.RowNumber, self.Context, options.TypeDescriber, hasNames, names, 0, options.MemoryPool);
+            dynRow.Init(self, self.RowNumber, self.Context, options.TypeDescriber, hasNames, names, 0, self.Configuration.MemoryPool);
         }
 
         internal static void FreePreAllocatedOnEnd(IRowConstructor<object> builder)

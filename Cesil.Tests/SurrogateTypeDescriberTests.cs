@@ -20,8 +20,8 @@ namespace Cesil.Tests
                 new[] { typeof(string).GetTypeInfo(), typeof(long).GetTypeInfo() },
                 new[] { typeof(object).GetTypeInfo(), typeof(long).GetTypeInfo(), typeof(string).GetTypeInfo(), typeof(int).GetTypeInfo() }
             };
-            var describers = new[] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() };
-            var fallbacks = new[] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() };
+            var describers = new ITypeDescriber[] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() };
+            var fallbacks = new ITypeDescriber[] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() };
 
             var surrogates = new List<SurrogateTypeDescriber>();
 
@@ -1072,10 +1072,10 @@ namespace Cesil.Tests
             => TypeDescribers.Default.EnumerateMembersToSerialize(forType);
 
             public int GetCellsForDynamicRowCalls { get; private set; }
-            public IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext ctx, object row)
+            public int GetCellsForDynamicRow(in WriteContext ctx, object row, Span<DynamicCellValue> cells)
             {
                 GetCellsForDynamicRowCalls++;
-                return default;
+                return 0;
             }
 
             public int GetDynamicCellParserForCalls { get; private set; }
@@ -1103,7 +1103,7 @@ namespace Cesil.Tests
             var surrogateB = SurrogateTypeDescriberBuilder.CreateBuilder(SurrogateTypeDescriberFallbackBehavior.UseFallback, lower);
             var surrogate = surrogateB.ToSurrogateTypeDescriber();
 
-            surrogate.GetCellsForDynamicRow(default, default);
+            surrogate.GetCellsForDynamicRow(default, default, default);
             Assert.Equal(1, lower.GetCellsForDynamicRowCalls);
 
             surrogate.GetDynamicCellParserFor(default, default);

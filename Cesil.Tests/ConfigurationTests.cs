@@ -13,6 +13,26 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ConfigurationTests
     {
+        [Theory]
+        [InlineData(new[] { "foo", "bar" }, '"', ",", new[] { false, false })]
+        [InlineData(new[] { "foo,", "bar" }, '"', ",", new[] { true, false })]
+        [InlineData(new[] { "foo\r", "bar" }, '"', ",", new[] { true, false })]
+        [InlineData(new[] { "foo\n", "bar" }, '"', ",", new[] { true, false })]
+        [InlineData(new[] { "foo", "bar\"" }, '"', ",", new[] { false, true })]
+        [InlineData(new[] { "h#ello", "he##llo", "hel###lo", "hello###", "hello##", "hello#" }, '"', "###", new[] { false, false, true, true, false, false })]
+        public void DetermineNeedsEscape(string[] colNames, char? escapeStartEnd, string valueSep, bool[] expected)
+        {
+            var cols = new Column[colNames.Length];
+            for (var i = 0; i < colNames.Length; i++)
+            {
+                cols[i] = new Column(colNames[i], null);
+            }
+
+            var res = Configuration.DetermineNeedsEscape(cols, escapeStartEnd, valueSep);
+
+            Assert.Equal(expected, res);
+        }
+
         private sealed class _BadTypeDescribers_Row3
         {
             public string Foo { get; set; }
@@ -58,8 +78,8 @@ namespace Cesil.Tests
             public IEnumerable<SerializableMember> EnumerateMembersToSerialize(TypeInfo forType)
             => SerializableMembers;
 
-            public IEnumerable<DynamicCellValue> GetCellsForDynamicRow(in WriteContext context, object row)
-            => Enumerable.Empty<DynamicCellValue>();
+            public int GetCellsForDynamicRow(in WriteContext context, object row, Span<DynamicCellValue> cells)
+            => 0;
 
             public Parser GetDynamicCellParserFor(in ReadContext context, TypeInfo targetType)
             => null;
@@ -181,7 +201,7 @@ namespace Cesil.Tests
             var cOpts =
                 Options.CreateBuilder(Options.Default)
                     .WithEscapedValueStartAndEnd(char.MinValue)
-                    .WithValueSeparator(char.MaxValue)
+                    .WithValueSeparator(char.MaxValue.ToString())
                     .WithEscapedValueEscapeCharacter('c')
                     .WithCommentCharacter('d')
                     .ToOptions();
@@ -189,7 +209,7 @@ namespace Cesil.Tests
             var dOpts =
                 Options.CreateBuilder(Options.Default)
                     .WithEscapedValueStartAndEnd('"')
-                    .WithValueSeparator(',')
+                    .WithValueSeparator(','.ToString())
                     .WithEscapedValueEscapeCharacter('"')
                     .WithCommentCharacter('#')
                     .ToOptions();
@@ -204,10 +224,10 @@ namespace Cesil.Tests
                     .WithWhitespaceTreatment(WhitespaceTreatments.Trim)
                     .ToOptions();
 
-            using (var c = CharacterLookup.MakeCharacterLookup(cOpts, out var maxSize1))
-            using (var d = CharacterLookup.MakeCharacterLookup(dOpts, out var maxSize2))
-            using (var e = CharacterLookup.MakeCharacterLookup(eOpts, out var maxSize3))
-            using (var f = CharacterLookup.MakeCharacterLookup(fOpts, out var maxSize4))
+            using (var c = CharacterLookup.MakeCharacterLookup(cOpts, MemoryPool<char>.Shared, out var maxSize1))
+            using (var d = CharacterLookup.MakeCharacterLookup(dOpts, MemoryPool<char>.Shared, out var maxSize2))
+            using (var e = CharacterLookup.MakeCharacterLookup(eOpts, MemoryPool<char>.Shared, out var maxSize3))
+            using (var f = CharacterLookup.MakeCharacterLookup(fOpts, MemoryPool<char>.Shared, out var maxSize4))
             {
                 for (var x = 0; x <= char.MaxValue; x++)
                 {
@@ -252,14 +272,10 @@ namespace Cesil.Tests
             Assert.Throws<InvalidOperationException>(() => Configuration.For<object>());
         }
 
-        private class _OptionsEquality_MemoryPool : MemoryPool<char>
+        private class _OptionsEquality_MemoryPoolProvider : IMemoryPoolProvider
         {
-            public override int MaxBufferSize => Shared.MaxBufferSize;
-
-            public override IMemoryOwner<char> Rent(int minBufferSize = -1)
-            => Shared.Rent(minBufferSize);
-
-            protected override void Dispose(bool disposing) { }
+            public MemoryPool<T> GetMemoryPool<T>()
+            => MemoryPool<T>.Shared;
         }
 
         [Fact]
@@ -271,11 +287,11 @@ namespace Cesil.Tests
                 foreach (var drd in new[] { DynamicRowDisposal.OnExplicitDispose, DynamicRowDisposal.OnReaderDispose })
                     foreach (var escapeChar in new char[] { '"', '\\' })
                         foreach (var escapeStartChar in new char[] { '"', '!' })
-                            foreach (var memPool in new[] { MemoryPool<char>.Shared, new _OptionsEquality_MemoryPool() })
+                            foreach (var memPool in new[] { MemoryPoolProviders.Default, new _OptionsEquality_MemoryPoolProvider() })
                                 foreach (var readHint in new[] { 1, 10 })
                                     foreach (var rh in new[] { ReadHeader.Always, ReadHeader.Never })
                                         foreach (var re in new[] { RowEnding.CarriageReturn, RowEnding.Detect })
-                                            foreach (var typeDesc in new[] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() })
+                                            foreach (var typeDesc in new ITypeDescriber[] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() })
                                                 foreach (var valSepChar in new char[] { ',', ';' })
                                                     foreach (var writeHint in new int?[] { null, 10 })
                                                         foreach (var wh in new[] { WriteHeader.Always, WriteHeader.Never })
@@ -289,12 +305,12 @@ namespace Cesil.Tests
                                                                             .WithDynamicRowDisposal(drd)
                                                                             .WithEscapedValueEscapeCharacter(escapeChar)
                                                                             .WithEscapedValueStartAndEnd(escapeStartChar)
-                                                                            .WithMemoryPool(memPool)
+                                                                            .WithMemoryPoolProvider(memPool)
                                                                             .WithReadBufferSizeHint(readHint)
                                                                             .WithReadHeader(rh)
                                                                             .WithRowEnding(re)
                                                                             .WithTypeDescriber(typeDesc)
-                                                                            .WithValueSeparator(valSepChar)
+                                                                            .WithValueSeparator(valSepChar.ToString())
                                                                             .WithWriteBufferSizeHint(writeHint)
                                                                             .WithWriteHeader(wh)
                                                                             .WithWriteTrailingRowEnding(wt)
@@ -457,9 +473,15 @@ namespace Cesil.Tests
         [Fact]
         public void OptionsValidation()
         {
-            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithValueSeparator(',').WithEscapedValueStartAndEnd(',').ToOptions());
+            Assert.Throws<ArgumentNullException>(() => Options.CreateBuilder(Options.Default).WithValueSeparator(null));
+            Assert.Throws<ArgumentException>(() => Options.CreateBuilder(Options.Default).WithValueSeparator(""));
 
-            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithValueSeparator(',').WithCommentCharacter(',').ToOptions());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithValueSeparatorInternal(null).ToOptions());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithValueSeparatorInternal("").ToOptions());
+
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithValueSeparator(','.ToString()).WithEscapedValueStartAndEnd(',').ToOptions());
+
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithValueSeparator(','.ToString()).WithCommentCharacter(',').ToOptions());
 
             Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithEscapedValueStartAndEnd(',').WithCommentCharacter(',').ToOptions());
 
@@ -474,7 +496,7 @@ namespace Cesil.Tests
 
             Assert.Throws<InvalidOperationException>(
                 () =>
-                    Options.CreateBuilder().WithValueSeparator(',')
+                    Options.CreateBuilder().WithValueSeparator(','.ToString())
                     .WithRowEnding(RowEnding.CarriageReturnLineFeed)
                     .WithEscapedValueStartAndEnd('"')
                     .WithEscapedValueEscapeCharacter('"')
@@ -482,7 +504,7 @@ namespace Cesil.Tests
                     .WithWriteHeader(WriteHeader.Always)
                     //.WithTypeDescriber(TypeDescribers.Default)
                     .WithWriteTrailingRowEnding(WriteTrailingRowEnding.Never)
-                    .WithMemoryPool(MemoryPool<char>.Shared)
+                    .WithMemoryPoolProvider(MemoryPoolProviders.Default)
                     .WithWriteBufferSizeHint(null)
                     .WithCommentCharacter(null)
                     .WithReadBufferSizeHint(0)
@@ -494,7 +516,7 @@ namespace Cesil.Tests
 
             Assert.Throws<InvalidOperationException>(
                 () =>
-                    Options.CreateBuilder().WithValueSeparator(',')
+                    Options.CreateBuilder().WithValueSeparator(','.ToString())
                     .WithRowEnding(RowEnding.CarriageReturnLineFeed)
                     .WithEscapedValueStartAndEnd('"')
                     .WithEscapedValueEscapeCharacter('"')
@@ -569,7 +591,7 @@ namespace Cesil.Tests
                () =>
                    Options.CreateBuilder(Options.Default)
                        .WithWhitespaceTreatmentInternal(WhitespaceTreatments.Trim)
-                       .WithValueSeparator(' ')
+                       .WithValueSeparator(' '.ToString())
                        .ToOptions()
            );
 
@@ -577,7 +599,7 @@ namespace Cesil.Tests
                () =>
                    Options.CreateBuilder(Options.Default)
                        .WithExtraColumnTreatmentInternal(0)
-                       .WithValueSeparator(' ')
+                       .WithValueSeparator(' '.ToString())
                        .ToOptions()
            );
 
@@ -588,6 +610,78 @@ namespace Cesil.Tests
                         .WithEscapedValueEscapeCharacter('\\')
                         .ToOptions()
             );
+
+            // \r clashing
+            {
+                Options.CreateBuilder(Options.Default).WithValueSeparator("\r").WithRowEnding(RowEnding.LineFeed).ToOptions();
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\r")
+                            .WithRowEnding(RowEnding.CarriageReturn)
+                            .ToOptions()
+                );
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\r")
+                            .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                            .ToOptions()
+                );
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\r")
+                            .WithRowEnding(RowEnding.Detect)
+                            .ToOptions()
+                );
+            }
+
+            // \n clashing
+            {
+                Options.CreateBuilder(Options.Default).WithValueSeparator("\n").WithRowEnding(RowEnding.CarriageReturn).ToOptions();
+                Options.CreateBuilder(Options.Default).WithValueSeparator("\n").WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\n")
+                            .WithRowEnding(RowEnding.LineFeed)
+                            .ToOptions()
+                );
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\n")
+                            .WithRowEnding(RowEnding.Detect)
+                            .ToOptions()
+                );
+            }
+
+            // \r\n clashing
+            {
+                Options.CreateBuilder(Options.Default).WithValueSeparator("\n").WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\r\n")
+                            .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                            .ToOptions()
+                );
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\r")
+                            .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                            .ToOptions()
+                );
+                Assert.Throws<InvalidOperationException>(
+                    () =>
+                        Options.CreateBuilder(Options.Default)
+                            .WithValueSeparator("\r\n")
+                            .WithRowEnding(RowEnding.Detect)
+                            .ToOptions()
+                );
+            }
         }
 
         private class _BadCreateCalls

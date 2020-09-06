@@ -39,7 +39,9 @@ namespace Cesil
             Rows = rows;
             Enumerated = false;
             Enumerator = Rows.GetEnumerator();
+#pragma warning disable CES0005 // T is generic, and we'll overwrite it before it's used, so default! is needed
             _Current = default!;
+#pragma warning restore CES0005
             _IsDisposed = false;
         }
 
@@ -61,6 +63,7 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
+            // since we'll never go async here, check for cancellation once per call
             CheckCancellation(this, Token);
 
             if (Enumerator.MoveNext())
@@ -90,7 +93,9 @@ namespace Cesil
 #if DEBUG
     internal sealed partial class AsyncEnumerableAdapter<T> : ITestableCancellableProvider
     {
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int? ITestableCancellableProvider.CancelAfter { get; set; }
+        [ExcludeFromCoverage("Just for testing, shouldn't contribute to coverage")]
         int ITestableCancellableProvider.CancelCounter { get; set; }
     }
 #endif

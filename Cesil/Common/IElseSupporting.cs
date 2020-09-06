@@ -6,7 +6,7 @@ namespace Cesil
         where T : class, IElseSupporting<T>
     {
         ImmutableArray<T> Fallbacks { get; }
-        T Clone(ImmutableArray<T> newFallbacks);
+        T Clone(ImmutableArray<T> newFallbacks, NullHandling? newRowNullHandling, NullHandling? newValueNullHandling);
     }
 
     internal static class IElseSupportingExtensionMethods
@@ -14,7 +14,7 @@ namespace Cesil
         // this creates a new T from baseT, and sets up fallbacks such
         //   that each fallback T should be checked in reverse order
         //   of how it appears in the chain AFTER checking the returned T
-        internal static T DoElse<T>(this T baseT, T fallback)
+        internal static T DoElse<T>(this T baseT, T fallback, NullHandling? newRowNullHandling, NullHandling? newValueNullHandling)
             where T : class, IElseSupporting<T>
         {
             var builder = ImmutableArray.CreateBuilder<T>();
@@ -22,7 +22,7 @@ namespace Cesil
             builder.Add(fallback);
             builder.AddRange(fallback.Fallbacks);
 
-            return baseT.Clone(builder.ToImmutable());
+            return baseT.Clone(builder.ToImmutable(), newRowNullHandling, newValueNullHandling);
         }
     }
 }

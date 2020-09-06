@@ -4,7 +4,14 @@
         <name>Cesil</name>
     </assembly>
     <members>
-        <member name="M:Cesil.BoundConfigurationBase`1.#ctor">
+        <member name="T:Cesil.ExcludeFromCoverageAttribute">
+            <summary>
+            It appears that Coverlet uses _just the name_ to identify attributes,
+              so we can avoid taking a dependency on it and just define this
+              otherwise pointless attribute ourselves.
+            </summary>
+        </member>
+        <member name="M:Cesil.BoundConfigurationBase`1.#ctor(System.Buffers.MemoryPool{System.Char},System.Buffers.MemoryPool{Cesil.DynamicCellValue})">
             <summary>
             For some testing scenarios.
             
@@ -203,6 +210,30 @@
               during certain operations as a member on WriteContext.
             </summary>
         </member>
+        <member name="T:Cesil.IMemoryPoolProvider">
+            <summary>
+            Interface used to obtain MemoryPools.
+            
+            Cesil uses this during creation of IBoundConfigurations to determine
+              where necessary allocations during read/writing will be placed.
+            </summary>
+        </member>
+        <member name="M:Cesil.IMemoryPoolProvider.GetMemoryPool``1">
+            <summary>
+            Returns a MemoryPool for the given type.
+            </summary>
+        </member>
+        <member name="T:Cesil.MemoryPoolProviders">
+            <summary>
+            Holds references to pre-allocated IMemoryPoolProviders.
+            </summary>
+        </member>
+        <member name="P:Cesil.MemoryPoolProviders.Default">
+            <summary>
+            Returns the default IMemoryPoolProvider instance, which obtains
+            MemoryPools via MemoryPool(T).Shared.
+            </summary>
+        </member>
         <member name="T:Cesil.Options">
             <summary>
             A set of options for reading and writing CSV files.
@@ -222,7 +253,7 @@
               - detects headers when reading
               - writes headers
               - uses the default type describer
-              - uses MemoryPool.Shared
+              - uses MemoryPoolProviders.Default
               - uses the default write buffer size
               - does not write a new line after the last row
               - does not support comments
@@ -230,6 +261,7 @@
               - dynamic rows are disposed when the reader that returns them is disposed
               - whitespace is preserved
               - extra columns are ignored
+              - uses ArrayPool.Shared
             </summary>
         </member>
         <member name="F:Cesil.Options.DynamicDefault">
@@ -242,7 +274,7 @@
               - assumes headers are present
               - writes headers
               - uses the default type describer
-              - uses MemoryPool.Shared
+              - uses MemoryPoolProviders.Default
               - uses the default write buffer size
               - does not write a new line after the last row
               - does not support comments
@@ -302,9 +334,9 @@
             in a CSV.
             </summary>
         </member>
-        <member name="P:Cesil.Options.MemoryPool">
+        <member name="P:Cesil.Options.MemoryPoolProvider">
             <summary>
-            Which MemoryPool to use when reading or writing a CSV.
+            Provider for MemoryPools needed during reading or writing CSVs.
             </summary>
         </member>
         <member name="P:Cesil.Options.CommentCharacter">
@@ -450,9 +482,9 @@
             in a CSV.
             </summary>
         </member>
-        <member name="P:Cesil.OptionsBuilder.MemoryPool">
+        <member name="P:Cesil.OptionsBuilder.MemoryPoolProvider">
             <summary>
-            Which MemoryPool to use when reading or writing a CSV.
+            Provider for MemoryPools needed during reading or writing CSVs.
             </summary>
         </member>
         <member name="P:Cesil.OptionsBuilder.CommentCharacter">
@@ -513,7 +545,7 @@
             by this builder.
             </summary>
         </member>
-        <member name="M:Cesil.OptionsBuilder.WithValueSeparator(System.Char)">
+        <member name="M:Cesil.OptionsBuilder.WithValueSeparator(System.String)">
             <summary>
             Set the character used to separate two values in a row.
             </summary>
@@ -559,9 +591,9 @@
             Set whether or not to end the last row with a new line.
             </summary>
         </member>
-        <member name="M:Cesil.OptionsBuilder.WithMemoryPool(System.Buffers.MemoryPool{System.Char})">
+        <member name="M:Cesil.OptionsBuilder.WithMemoryPoolProvider(Cesil.IMemoryPoolProvider)">
             <summary>
-            Set the MemoryPool used during reading and writing.
+            Set the MemoryPoolProvider used during reading and writing.
             </summary>
         </member>
         <member name="M:Cesil.OptionsBuilder.WithCommentCharacter(System.Nullable{System.Char})">
@@ -1557,6 +1589,8 @@
             Will complete synchronously if possible, but will not block
             if all rows are not immediately available or if the underlying
             sink does not complete immediately.
+            
+            Returns the number of rows written.
             </summary>
         </member>
         <member name="M:Cesil.IAsyncWriter`1.WriteAllAsync(System.Collections.Generic.IEnumerable{`0},System.Threading.CancellationToken)">
@@ -1565,6 +1599,8 @@
             
             Will complete synchronously if possible, but will not block
             if the underlying sink does not complete immediately.
+            
+            Returns the number of rows written.
             </summary>
         </member>
         <member name="M:Cesil.IAsyncWriter`1.WriteAsync(`0,System.Threading.CancellationToken)">
@@ -1576,6 +1612,19 @@
             </summary>
         </member>
         <member name="M:Cesil.IAsyncWriter`1.WriteCommentAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Write a comment as a row.
+            
+            Only supported if this IWriter's configuration has a way to indicate comments.
+            
+            If the comment contains the row ending character sequence, it will be written as multiple
+            comment lines.
+            
+            Will complete synchronously if possible, but will not block
+            if the underlying sink does not complete immediately.
+            </summary>
+        </member>
+        <member name="M:Cesil.IAsyncWriter`1.WriteCommentAsync(System.ReadOnlyMemory{System.Char},System.Threading.CancellationToken)">
             <summary>
             Write a comment as a row.
             
@@ -1677,6 +1726,8 @@
         <member name="M:Cesil.IWriter`1.WriteAll(System.Collections.Generic.IEnumerable{`0})">
             <summary>
             Write all rows in the provided enumerable.
+            
+            Returns the number of rows written.
             </summary>
         </member>
         <member name="M:Cesil.IWriter`1.Write(`0)">
@@ -1685,6 +1736,16 @@
             </summary>
         </member>
         <member name="M:Cesil.IWriter`1.WriteComment(System.String)">
+            <summary>
+            Write a comment as a row.
+            
+            Only supported if this IWriter's configuration has a way to indicate comments.
+            
+            If the comment contains the row ending character sequence, it will be written as multiple
+            comment lines.
+            </summary>
+        </member>
+        <member name="M:Cesil.IWriter`1.WriteComment(System.ReadOnlySpan{System.Char})">
             <summary>
             Write a comment as a row.
             
@@ -1754,7 +1815,6 @@
              
             we end up with:
              - count 3
-             - 
             
             
              0: 0000, 0003,     // 3 strings (each int takes 2 chars)
@@ -1770,7 +1830,43 @@
             
             The length of each string can be determined from the difference between each index, with a special case for the LAST string
               whose length can be calculated from the end of the memory.
+            </summary>
+        </member>
+        <member name="T:Cesil.NameLookup.OrdererNames">
+            <summary>
+            In order string-int key values
             
+            Data is stored like:
+             - (index of string) (value for string)
+             - (inded of string) (value for string)
+             - ...
+             - (length of string)
+             - (string data)
+             - (value for string)
+             - (length of string)
+             - (string data)
+             - (value for string)
+            
+            So, it looks like:
+             - index of string 0
+             - index of string 1
+             - index of string 2
+             - ...
+             - (length and string and value data)
+             - (length and string and value data)
+             - (length and string and value data)
+            
+            The indexes at the front are stored sorted, but everything else isn't.  That means
+              that whenever a value is inserted, the indexes at the front may move around
+              but once written none of the string data is ever moved.
+            
+            Strings are referred to by absolute indexes.  Offsets would be more efficient
+              if we resized the array, but since we pre-allocate the correct size
+              it's just extra math.
+            
+            The variable length data being at the end and _not_ being in order
+              let's the ordering algorithm swap values just by moving fixed size
+              chunks around, never having to move string data.
             </summary>
         </member>
         <member name="T:Cesil.RowConstructor">
@@ -2166,16 +2262,19 @@
             Override to tweak behavior.
             </summary>
         </member>
-        <member name="M:Cesil.DefaultTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)">
+        <member name="M:Cesil.DefaultTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object,System.Span{Cesil.DynamicCellValue})">
             <summary>
-            Enumerates cells on the given dynamic row.
+            Discovers cells for the given dynamic row.
+            
+            If the span is too small, the needed size is returned and the span
+            is left in an indeterminate state.
             
             Null rows have no cells, but are legal.
             
             Rows created by Cesil have their cells enumerated as strings.
             
             Other dynamic types will have each member enumerated as either their
-              actual type (if a formatter is available) or as a string.
+            actual type (if a formatter is available) or as a string.
             
             Override to tweak behavior.
             </summary>
@@ -2421,11 +2520,16 @@
             Returns null if no DynamicRowConverter could be found.
             </summary>
         </member>
-        <member name="M:Cesil.ITypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)">
+        <member name="M:Cesil.ITypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object,System.Span{Cesil.DynamicCellValue})">
             <summary>
             Called to determine the cells that make up the given dynamic row.
             
-            Used to enumerate cells when serializing dynamically.
+            Returns the number of cells extracted from the row.  If the given span is 
+            too small, its contents are ignored and GetCellsForDynamicRow is called again with one 
+            of at least the indicated size.
+            
+            The content of the given span is undefined, in particular no values are guaranteed
+            to be carried forward between calls.
             </summary>
         </member>
         <member name="T:Cesil.ManualTypeDescriber">
@@ -2489,17 +2593,17 @@
         </member>
         <member name="M:Cesil.ManualTypeDescriber.GetDynamicCellParserFor(Cesil.ReadContext@,System.Reflection.TypeInfo)">
             <summary>
-            Delegates to DefaultTypeDescriber.
+            Operation not supported, raises exception if used.
             </summary>
         </member>
         <member name="M:Cesil.ManualTypeDescriber.GetDynamicRowConverter(Cesil.ReadContext@,System.Collections.Generic.IEnumerable{Cesil.ColumnIdentifier},System.Reflection.TypeInfo)">
             <summary>
-            Delegates to DefaultTypeDescriber.
+            Operation not supported, raises exception if used.
             </summary>
         </member>
-        <member name="M:Cesil.ManualTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)">
+        <member name="M:Cesil.ManualTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object,System.Span{Cesil.DynamicCellValue})">
             <summary>
-            Delegates to DefaultTypeDescriber.
+            Operation not supported, raises exception if used.
             </summary>
         </member>
         <member name="M:Cesil.ManualTypeDescriber.Equals(System.Object)">
@@ -3088,7 +3192,7 @@
             Delegates to TypeDescriber.
             </summary>
         </member>
-        <member name="M:Cesil.SurrogateTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object)">
+        <member name="M:Cesil.SurrogateTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object,System.Span{Cesil.DynamicCellValue})">
             <summary>
             Delegates to TypeDescriber.
             </summary>
@@ -3381,8 +3485,26 @@
         </member>
         <member name="M:Cesil.Formatter.Else(Cesil.Formatter)">
             <summary>
-            Create a new formatter that will try this formatter, but if it returns false
+            Create a new Formatter that will try this formatter, but if it returns false
               it will then try the given fallback Formatter.
+            </summary>
+        </member>
+        <member name="M:Cesil.Formatter.AllowNullValues">
+            <summary>
+            Returns a Formatter that differs from this by explicitly allowing
+              null values to be passed to it.
+            
+            If the backing method, or delegate does not expect null values, this may lead
+              to errors at runtime.
+            </summary>
+        </member>
+        <member name="M:Cesil.Formatter.ForbidNullValues">
+            <summary>
+            Returns a new Formatter that differs from this by explicitly forbidding
+              null values to be passed to it.
+            
+            If the .NET runtime cannot guarantee the absense of null values, null checks
+              will be injected.
             </summary>
         </member>
         <member name="M:Cesil.Formatter.ForMethod(System.Reflection.MethodInfo)">
@@ -3395,7 +3517,7 @@
                 - the type to be formatter (or one it is assignable to)
                 - an in (or by ref) WriteContext
                 -an IBufferWriter(char)
-              * return bool (false indicates insufficient space was available)
+              * return bool (false indicates value could not be formatted)
             </summary>
         </member>
         <member name="M:Cesil.Formatter.ForDelegate``1(Cesil.FormatterDelegate{``0})">
@@ -3469,6 +3591,39 @@
             Represents code used to get a value from a type.
             
             Wraps a static method, an instance method, a field, or a delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.AllowNullValues">
+            <summary>
+            Returns a Getter that differs from this by explicitly allowing
+              null values to be returned from it.
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.ForbidNullValues">
+            <summary>
+            Returns a Getter that differs from this by explicitly forbidding
+              null values to be returned from it.
+              
+            If the .NET runtime cannot guarantee that nulls will not be returned,
+              null checks will be injected.
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.AllowNullRows">
+            <summary>
+            Returns a Getter that differs from this by explicitly allowing
+              null rows to be passed to it.
+              
+            If the backing field, method, or delegate does not expect null values, this may lead
+              to errors at runtime.
+            </summary>
+        </member>
+        <member name="M:Cesil.Getter.ForbidNullRows">
+            <summary>
+            Returns a Getter that differs from this by explicitly forbidding
+              null rows be passed to it.
+              
+            If the .NET runtime cannot guarantee that nulls will not be passed to it,
+              null checks will be injected.
             </summary>
         </member>
         <member name="M:Cesil.Getter.ForProperty(System.Reflection.PropertyInfo)">
@@ -3577,6 +3732,21 @@
             <summary>
             Create a new instance provider that will try this instance provider, but if it returns false
               it will then try the given fallback InstanceProvider.
+            </summary>
+        </member>
+        <member name="M:Cesil.InstanceProvider.AllowNullRows">
+            <summary>
+            Returns a InstanceProvider that differs from this by explicitly allowing
+              null rows to be created by it.
+            </summary>
+        </member>
+        <member name="M:Cesil.InstanceProvider.ForbidNullRows">
+            <summary>
+            Returns a InstanceProvider that differs from this by explicitly forbidding
+              null rows be created by it.
+              
+            If the .NET runtime cannot guarantee that null rows will not be created at runtime, 
+              null checks will be injected.
             </summary>
         </member>
         <member name="M:Cesil.InstanceProvider.ForMethod(System.Reflection.MethodInfo)">
@@ -3706,6 +3876,21 @@
               it will then try the given fallback Parser.
             </summary>
         </member>
+        <member name="M:Cesil.Parser.AllowNullValues">
+            <summary>
+            Returns a Parser that differs from this by explicitly allowing
+              null values to be created by it.
+            </summary>
+        </member>
+        <member name="M:Cesil.Parser.ForbidNullValues">
+            <summary>
+            Returns a Parser that differs from this by explicitly forbidding
+              null values to be created by it.
+              
+            If the .NET runtime cannot guarantee that nulls will not be created,
+              null checks will be injected.
+            </summary>
+        </member>
         <member name="M:Cesil.Parser.ForMethod(System.Reflection.MethodInfo)">
             <summary>
             Create a Parser from the given method.
@@ -3804,12 +3989,35 @@
             Delegate type for resets.
             </summary>
         </member>
+        <member name="T:Cesil.ResetByRefDelegate`1">
+            <summary>
+            Delegate type for resets, where row is passed by ref.
+            </summary>
+        </member>
         <member name="T:Cesil.Reset">
             <summary>
             Represents code called before a setter is called or a field
               is set.
             
             Wraps a static method, an instance method, or a delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Reset.AllowNullRows">
+            <summary>
+            Returns a Reset that differs from this by explicitly allowing
+              null rows be passed to it.
+              
+            If the backing delegate, or method does not expect null rows
+              this could result in errors at runtime.
+            </summary>
+        </member>
+        <member name="M:Cesil.Reset.ForbidNullRows">
+            <summary>
+            Returns a Reset that differs from this by explicitly forbidding
+              null rows be passed to it.
+              
+            If the .NET runtime cannot guarantee that nulls will not be passed,
+              null checks will be injected.
             </summary>
         </member>
         <member name="M:Cesil.Reset.ForMethod(System.Reflection.MethodInfo)">
@@ -3831,6 +4039,11 @@
             </summary>
         </member>
         <member name="M:Cesil.Reset.ForDelegate``1(Cesil.ResetDelegate{``0})">
+            <summary>
+            Create a reset from a delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.Reset.ForDelegate``1(Cesil.ResetByRefDelegate{``0})">
             <summary>
             Create a reset from a delegate.
             </summary>
@@ -3907,6 +4120,42 @@
             
             Wraps a static method, an instance method, a delegate, a field, or a constructor
               parameter.
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.AllowNullRows">
+            <summary>
+            Returns a Setter that differs from this by explicitly allowing
+              null rows be passed to it.
+              
+            If the backing field, delegate, or method does not expect null rows
+              this could result in errors at runtime.
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.ForbidNullRows">
+            <summary>
+            Returns a Setter that differs from this by explicitly forbidding
+              null rows be passed to it.
+              
+            If the .NET runtime cannot guarantee that nulls will not be passed,
+              null checks will be injected.
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.AllowNullValues">
+            <summary>
+            Returns a Setter that differs from this by explicitly allowing
+              null values be passed to it.
+              
+            If the backing field, delegate, or method does not expect null values
+              this could result in errors at runtime.
+            </summary>
+        </member>
+        <member name="M:Cesil.Setter.ForbidNullValues">
+            <summary>
+            Returns a Setter that differs from this by explicitly forbidding
+              null values be passed to it.
+              
+            If the .NET runtime cannot guarantee that nulls will not be passed,
+              null checks will be injected.
             </summary>
         </member>
         <member name="M:Cesil.Setter.ForProperty(System.Reflection.PropertyInfo)">
@@ -4035,6 +4284,24 @@
             Represents code used to determine whether or not to write a value.
             
             Wraps a static method, an instance method, or a delegate.
+            </summary>
+        </member>
+        <member name="M:Cesil.ShouldSerialize.AllowNullRows">
+            <summary>
+            Returns a ShouldSerialize that differs from this by explicitly allowing
+              null rows be passed to it.
+              
+            If the backing delegate, or method does not expect null rows
+              this could result in errors at runtime.
+            </summary>
+        </member>
+        <member name="M:Cesil.ShouldSerialize.ForbidNullRows">
+            <summary>
+            Returns a ShouldSerialize that differs from this by explicitly forbidding
+              null rows be passed to it.
+              
+            If the .NET runtime cannot guarantee that nulls will not be passed,
+              null checks will be injected.
             </summary>
         </member>
         <member name="M:Cesil.ShouldSerialize.ForMethod(System.Reflection.MethodInfo)">

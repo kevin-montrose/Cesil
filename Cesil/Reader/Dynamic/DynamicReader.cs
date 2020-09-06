@@ -21,7 +21,7 @@ namespace Cesil
         private int NameLookupReferenceCount;
         private NameLookup NameLookup;
 
-        private ConcurrentDictionary<object, Delegate> DelegateCache;
+        private readonly ConcurrentDictionary<object, Delegate> DelegateCache;
 
         NameLookup IDynamicRowOwner.AcquireNameLookup()
         {
@@ -38,7 +38,7 @@ namespace Cesil
             }
         }
 
-        bool IDelegateCache.TryGetDelegate<TKey, TDelegate>(TKey key, [MaybeNullWhen(returnValue: false)]out TDelegate del)
+        bool IDelegateCache.TryGetDelegate<TKey, TDelegate>(TKey key, [MaybeNullWhen(returnValue: false)] out TDelegate del)
         {
             if (!DelegateCache.TryGetValue(key, out var untyped))
             {
@@ -87,11 +87,11 @@ namespace Cesil
 
             using (handle)
             {
-
+                var madeProgress = true;
                 while (true)
                 {
                     PreparingToWriteToBuffer();
-                    var available = Buffer.Read(Inner);
+                    var available = Buffer.Read(Inner, madeProgress);
                     if (available == 0)
                     {
                         var endRes = EndOfData();
@@ -104,7 +104,7 @@ namespace Cesil
                         StartRow();
                     }
 
-                    var res = AdvanceWork(available);
+                    var res = AdvanceWork(available, out madeProgress);
                     var possibleReturn = HandleAdvanceResult(res, returnComments, ending: false);
                     if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
                     {
@@ -164,7 +164,7 @@ namespace Cesil
                         }
 
                         Interlocked.Increment(ref NameLookupReferenceCount);
-                        NameLookup = NameLookup.Create(columnNamesValue, Configuration.Options.MemoryPool);
+                        NameLookup = NameLookup.Create(columnNamesValue, Configuration.MemoryPool);
                     }
 
                     RowBuilder.SetColumnOrder(headers);
@@ -187,7 +187,7 @@ namespace Cesil
                 return;
             }
 
-            using (var detector = new RowEndingDetector(StateMachine, options, SharedCharacterLookup, Inner))
+            using (var detector = new RowEndingDetector(StateMachine, options, Configuration.MemoryPool, SharedCharacterLookup, Inner, Configuration.ValueSeparatorMemory))
             {
                 var res = detector.Detect();
                 HandleLineEndingsDetectionResult(res);

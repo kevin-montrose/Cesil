@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+using static Cesil.AwaitHelper;
+
 namespace Cesil
 {
     /// <summary>
@@ -196,14 +198,14 @@ namespace Cesil
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
-            CancellationToken cancel = default
+            CancellationToken cancellationToken = default
         )
         {
             Utils.CheckArgumentNull(reader, nameof(reader));
 
             var c = Configuration.For<TRow>(options ?? Options.Default);
 
-            return EnumerateFromStreamImplAsync(c, reader, context, cancel);
+            return EnumerateFromStreamImplAsync(c, reader, context, cancellationToken);
         }
 
         /// <summary>
@@ -223,23 +225,23 @@ namespace Cesil
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
-            CancellationToken cancel = default
+            CancellationToken cancellationToken = default
         )
         {
             Utils.CheckArgumentNull(reader, nameof(reader));
 
             var c = Configuration.ForDynamic(options ?? Options.DynamicDefault);
 
-            return EnumerateFromStreamImplAsync(c, reader, context, cancel);
+            return EnumerateFromStreamImplAsync(c, reader, context, cancellationToken);
         }
 
-        private static async IAsyncEnumerable<T> EnumerateFromStreamImplAsync<T>(IBoundConfiguration<T> c, TextReader reader, object? context, [EnumeratorCancellation]CancellationToken cancel)
+        private static async IAsyncEnumerable<T> EnumerateFromStreamImplAsync<T>(IBoundConfiguration<T> c, TextReader reader, object? context, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await using (var csv = c.CreateAsyncReader(reader, context))
             {
-                await using (var e = csv.EnumerateAllAsync().GetAsyncEnumerator(cancel))
+                await using (var e = csv.EnumerateAllAsync().GetAsyncEnumerator(cancellationToken))
                 {
-                    while (await e.MoveNextAsync())
+                    while (await ConfigureCancellableAwait(csv, e.MoveNextAsync(), cancellationToken))
                     {
                         yield return e.Current;
                     }
@@ -265,14 +267,14 @@ namespace Cesil
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
-            CancellationToken cancel = default
+            CancellationToken cancellationToken = default
         )
         {
             Utils.CheckArgumentNull(path, nameof(path));
 
             // reader will be disposed in the EnumerateAsync call
             var reader = new StreamReader(path, true);
-            return EnumerateAsync<TRow>(reader, options, context, cancel);
+            return EnumerateAsync<TRow>(reader, options, context, cancellationToken);
         }
 
         /// <summary>
@@ -293,14 +295,14 @@ namespace Cesil
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
-            CancellationToken cancel = default
+            CancellationToken cancellationToken = default
         )
         {
             Utils.CheckArgumentNull(path, nameof(path));
 
             // reader will be disposed in the EnumerateAsync call
             var reader = new StreamReader(path, true);
-            return EnumerateDynamicAsync(reader, options, context, cancel);
+            return EnumerateDynamicAsync(reader, options, context, cancellationToken);
         }
 
         /// <summary>
@@ -320,14 +322,14 @@ namespace Cesil
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
-            CancellationToken cancel = default
+            CancellationToken cancellationToken = default
         )
         {
             Utils.CheckArgumentNull(data, nameof(data));
 
             // reader will be disposed in the EnumerateAsync call
             var reader = new StringReader(data);
-            return EnumerateAsync<TRow>(reader, options, context, cancel);
+            return EnumerateAsync<TRow>(reader, options, context, cancellationToken);
         }
 
         /// <summary>
@@ -347,14 +349,14 @@ namespace Cesil
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
-            CancellationToken cancel = default
+            CancellationToken cancellationToken = default
         )
         {
             Utils.CheckArgumentNull(data, nameof(data));
 
             // reader will be disposed in the EnumerateDynamicAsync call
             var reader = new StringReader(data);
-            return EnumerateDynamicAsync(reader, options, context, cancel);
+            return EnumerateDynamicAsync(reader, options, context, cancellationToken);
         }
 
         // sync write methods
@@ -551,13 +553,13 @@ namespace Cesil
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
-            CancellationToken cancel = default
+            CancellationToken cancellationToken = default
         )
         {
             Utils.CheckArgumentNull(rows, nameof(rows));
             Utils.CheckArgumentNull(writer, nameof(writer));
 
-            return WriteAsync(new AsyncEnumerableAdapter<TRow>(rows), writer, options, context, cancel);
+            return WriteAsync(new AsyncEnumerableAdapter<TRow>(rows), writer, options, context, cancellationToken);
         }
 
         /// <summary>
@@ -578,13 +580,13 @@ namespace Cesil
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
-            CancellationToken cancel = default
+            CancellationToken cancellationToken = default
         )
         {
             Utils.CheckArgumentNull(rows, nameof(rows));
             Utils.CheckArgumentNull(writer, nameof(writer));
 
-            return WriteDynamicAsync(new AsyncEnumerableAdapter<dynamic>(rows), writer, options, context, cancel);
+            return WriteDynamicAsync(new AsyncEnumerableAdapter<dynamic>(rows), writer, options, context, cancellationToken);
         }
 
         /// <summary>
@@ -605,7 +607,7 @@ namespace Cesil
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
-            CancellationToken cancel = default
+            CancellationToken cancellationToken = default
         )
         {
             Utils.CheckArgumentNull(rows, nameof(rows));
@@ -613,7 +615,7 @@ namespace Cesil
 
             var c = Configuration.For<TRow>(options ?? Options.Default);
 
-            return WriteImplAsync(c, rows, writer, context, cancel);
+            return WriteImplAsync(c, rows, writer, context, cancellationToken);
         }
 
         /// <summary>
@@ -634,7 +636,7 @@ namespace Cesil
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
-            CancellationToken cancel = default
+            CancellationToken cancellationToken = default
         )
         {
             Utils.CheckArgumentNull(rows, nameof(rows));
@@ -642,14 +644,14 @@ namespace Cesil
 
             var c = Configuration.ForDynamic(options ?? Options.DynamicDefault);
 
-            return WriteImplAsync(c, rows, writer, context, cancel);
+            return WriteImplAsync(c, rows, writer, context, cancellationToken);
         }
 
-        private static async ValueTask WriteImplAsync<T>(IBoundConfiguration<T> c, IAsyncEnumerable<T> rows, TextWriter writer, object? context, CancellationToken cancel)
+        private static async ValueTask WriteImplAsync<T>(IBoundConfiguration<T> c, IAsyncEnumerable<T> rows, TextWriter writer, object? context, CancellationToken cancellationToken)
         {
             await using (var csv = c.CreateAsyncWriter(writer, context))
             {
-                await csv.WriteAllAsync(rows, cancel);
+                await ConfigureCancellableAwait(csv, csv.WriteAllAsync(rows, cancellationToken), cancellationToken);
             }
         }
 
@@ -673,13 +675,13 @@ namespace Cesil
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
-            CancellationToken cancel = default
+            CancellationToken cancellationToken = default
         )
         {
             Utils.CheckArgumentNull(rows, nameof(rows));
             Utils.CheckArgumentNull(path, nameof(path));
 
-            return WriteToFileAsync(new AsyncEnumerableAdapter<TRow>(rows), path, options, context, cancel);
+            return WriteToFileAsync(new AsyncEnumerableAdapter<TRow>(rows), path, options, context, cancellationToken);
         }
 
         /// <summary>
@@ -702,13 +704,13 @@ namespace Cesil
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
-            CancellationToken cancel = default
+            CancellationToken cancellationToken = default
         )
         {
             Utils.CheckArgumentNull(rows, nameof(rows));
             Utils.CheckArgumentNull(path, nameof(path));
 
-            return WriteDynamicToFileAsync(new AsyncEnumerableAdapter<dynamic>(rows), path, options, context, cancel);
+            return WriteDynamicToFileAsync(new AsyncEnumerableAdapter<dynamic>(rows), path, options, context, cancellationToken);
         }
 
         /// <summary>
@@ -731,20 +733,23 @@ namespace Cesil
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
-            CancellationToken cancel = default
+            CancellationToken cancellationToken = default
         )
         {
             Utils.CheckArgumentNull(rows, nameof(rows));
             Utils.CheckArgumentNull(path, nameof(path));
 
-            return WriteToFileImplAsync(rows, path, options, context, cancel);
+            return WriteToFileImplAsync(rows, path, options, context, cancellationToken);
 
-            static async ValueTask WriteToFileImplAsync(IAsyncEnumerable<TRow> rows, string path, Options? options, object? context, CancellationToken cancel)
+            static async ValueTask WriteToFileImplAsync(IAsyncEnumerable<TRow> rows, string path, Options? options, object? context, CancellationToken cancellationToken)
             {
                 using (var stream = File.Create(path))
                 using (var writer = new StreamWriter(stream, Encoding.UTF8))
                 {
-                    await WriteAsync(rows, writer, options, context, cancel);
+#pragma warning disable CES0002 // WriteAsync is going to immediately check cancellation, and actually has an ITestableCancellationProvider to work with
+                    //   so don't bother wrapping this one too
+                    await WriteAsync(rows, writer, options, context, cancellationToken).ConfigureAwait(false);
+#pragma warning restore CES0002
                 }
             }
         }
@@ -769,20 +774,23 @@ namespace Cesil
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
-            CancellationToken cancel = default
+            CancellationToken cancellationToken = default
         )
         {
             Utils.CheckArgumentNull(rows, nameof(rows));
             Utils.CheckArgumentNull(path, nameof(path));
 
-            return WriteToFileImplAsync(rows, path, options, context, cancel);
+            return WriteToFileImplAsync(rows, path, options, context, cancellationToken);
 
-            static async ValueTask WriteToFileImplAsync(IAsyncEnumerable<dynamic> rows, string path, Options? options, object? context, CancellationToken cancel)
+            static async ValueTask WriteToFileImplAsync(IAsyncEnumerable<dynamic> rows, string path, Options? options, object? context, CancellationToken cancellationToken)
             {
                 using (var stream = File.Create(path))
                 using (var writer = new StreamWriter(stream, Encoding.UTF8))
                 {
-                    await WriteDynamicAsync(rows, writer, options, context, cancel);
+#pragma warning disable CES0002 // WriteDynamicAsync is going to immediately check cancellation, and actually has an ITestableCancellationProvider to work with
+                    //   so don't bother wrapping this one too
+                    await WriteDynamicAsync(rows, writer, options, context, cancellationToken).ConfigureAwait(false);
+#pragma warning restore CES0002
                 }
             }
         }
@@ -804,19 +812,22 @@ namespace Cesil
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
-            CancellationToken cancel = default
+            CancellationToken cancellationToken = default
         )
         {
             Utils.CheckArgumentNull(rows, nameof(rows));
 
-            return WriteToStringImplAsync(rows, options, context, cancel);
+            return WriteToStringImplAsync(rows, options, context, cancellationToken);
 
-            static async ValueTask<string> WriteToStringImplAsync(IEnumerable<TRow> rows, Options? options, object? context, CancellationToken cancel)
+            static async ValueTask<string> WriteToStringImplAsync(IEnumerable<TRow> rows, Options? options, object? context, CancellationToken cancellationToken)
             {
                 using (var writer = new StringWriter())
                 {
-                    await WriteAsync(rows, writer, options, context, cancel);
+#pragma warning disable CES0002 // WriteAsync is going to immediately check cancellation, and actually has an ITestableCancellationProvider to work with
+                    //   so don't bother wrapping this one too
+                    await WriteAsync(rows, writer, options, context, cancellationToken).ConfigureAwait(false);
                     return writer.ToString();
+#pragma warning restore CES0002
                 }
             }
         }
@@ -838,19 +849,22 @@ namespace Cesil
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
-            CancellationToken cancel = default
+            CancellationToken cancellationToken = default
         )
         {
             Utils.CheckArgumentNull(rows, nameof(rows));
 
-            return WriteDynamicToStringImplAsync(rows, options, context, cancel);
+            return WriteDynamicToStringImplAsync(rows, options, context, cancellationToken);
 
-            static async ValueTask<string> WriteDynamicToStringImplAsync(IEnumerable<dynamic> rows, Options? options, object? context, CancellationToken cancel)
+            static async ValueTask<string> WriteDynamicToStringImplAsync(IEnumerable<dynamic> rows, Options? options, object? context, CancellationToken cancellationToken)
             {
                 using (var writer = new StringWriter())
                 {
-                    await WriteDynamicAsync(rows, writer, options, context, cancel);
+#pragma warning disable CES0002 // WriteDynamicAsync is going to immediately check cancellation, and actually has an ITestableCancellationProvider to work with
+                    //   so don't bother wrapping this one too
+                    await WriteDynamicAsync(rows, writer, options, context, cancellationToken).ConfigureAwait(false);
                     return writer.ToString();
+#pragma warning restore CES0002
                 }
             }
         }
@@ -872,19 +886,22 @@ namespace Cesil
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
-            CancellationToken cancel = default
+            CancellationToken cancellationToken = default
         )
         {
             Utils.CheckArgumentNull(rows, nameof(rows));
 
-            return WriteToStringImplAsync(rows, options, context, cancel);
+            return WriteToStringImplAsync(rows, options, context, cancellationToken);
 
-            static async ValueTask<string> WriteToStringImplAsync(IAsyncEnumerable<TRow> rows, Options? options, object? context, CancellationToken cancel)
+            static async ValueTask<string> WriteToStringImplAsync(IAsyncEnumerable<TRow> rows, Options? options, object? context, CancellationToken cancellationToken)
             {
                 using (var writer = new StringWriter())
                 {
-                    await WriteAsync(rows, writer, options, context, cancel);
+#pragma warning disable CES0002 // WriteAsync is going to immediately check cancellation, and actually has an ITestableCancellationProvider to work with
+                    //   so don't bother wrapping this one too
+                    await WriteAsync(rows, writer, options, context, cancellationToken).ConfigureAwait(false);
                     return writer.ToString();
+#pragma warning restore CES0002
                 }
             }
         }
@@ -906,19 +923,22 @@ namespace Cesil
             Options? options = null,
             [NullableExposed("context is truly optional")]
             object? context = null,
-            CancellationToken cancel = default
+            CancellationToken cancellationToken = default
         )
         {
             Utils.CheckArgumentNull(rows, nameof(rows));
 
-            return WriteDynamicToStringImplAsync(rows, options, context, cancel);
+            return WriteDynamicToStringImplAsync(rows, options, context, cancellationToken);
 
-            static async ValueTask<string> WriteDynamicToStringImplAsync(IAsyncEnumerable<dynamic> rows, Options? options, object? context, CancellationToken cancel)
+            static async ValueTask<string> WriteDynamicToStringImplAsync(IAsyncEnumerable<dynamic> rows, Options? options, object? context, CancellationToken cancellationToken)
             {
                 using (var writer = new StringWriter())
                 {
-                    await WriteDynamicAsync(rows, writer, options, context, cancel);
+#pragma warning disable CES0002 // WriteDynamicAsync is going to immediately check cancellation, and actually has an ITestableCancellationProvider to work with
+                    //   so don't bother wrapping this one too
+                    await WriteDynamicAsync(rows, writer, options, context, cancellationToken).ConfigureAwait(false);
                     return writer.ToString();
+#pragma warning restore CES0002
                 }
             }
         }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Cesil
 {
@@ -40,7 +41,14 @@ namespace Cesil
                 bufferSize = Utils.DEFAULT_BUFFER_SIZE;
             }
 
-            var memPool = options.MemoryPool;
+            // always need to be able to store a whole value separator "character"
+            var bufferMinSize = config.ValueSeparatorMemory.Length * 2;
+            if (bufferSize < bufferMinSize)
+            {
+                bufferSize = bufferMinSize;
+            }
+
+            var memPool = config.MemoryPool;
 
             Buffer =
                 new BufferWithPushback(
@@ -49,14 +57,14 @@ namespace Cesil
                 );
             Partial = new Partial(memPool);
 
-            SharedCharacterLookup = CharacterLookup.MakeCharacterLookup(options, out _);
+            SharedCharacterLookup = CharacterLookup.MakeCharacterLookup(options, memPool, out _);
             StateMachine = new ReaderStateMachine();
             RowBuilder = rowBuilder;
 
             ExtraColumnTreatment = extraTreatment;
         }
 
-        protected internal ReadWithCommentResultType AdvanceWork(int numInBuffer)
+        protected internal ReadWithCommentResultType AdvanceWork(int numInBuffer, out bool madeProgress)
         {
             var res = ProcessBuffer(numInBuffer, out var pushBack);
             if (pushBack > 0)
@@ -65,6 +73,7 @@ namespace Cesil
                 Buffer.PushBackFromBuffer(numInBuffer, pushBack);
             }
 
+            madeProgress = pushBack != numInBuffer;
             return res;
         }
 
@@ -108,9 +117,67 @@ namespace Cesil
             for (var i = 0; i < bufferLen; i++)
             {
                 var c = buffSpan[i];
-                var res = StateMachine.Advance(c);
+                var res = StateMachine.Advance(c, false);
 
-                var state = StateMachine.CurrentState;
+                var advanceIBy = 0;
+
+                // we only see this _if_ there are multiple characters in the separator, which is rare
+                if (res == ReaderStateMachine.AdvanceResult.LookAhead_MultiCharacterSeparator)
+                {
+                    var valSepLen = Configuration.ValueSeparatorMemory.Length;
+
+                    // do we have enough in the buffer to look ahead?
+                    var canCheckForSeparator = bufferLen - i >= valSepLen;
+                    if (canCheckForSeparator)
+                    {
+                        var shouldMatch = buffSpan.Slice(i, valSepLen);
+                        var eq = Utils.AreEqual(shouldMatch, Configuration.ValueSeparatorMemory.Span);
+                        if (eq)
+                        {
+                            // treat it like a value separator
+                            res = StateMachine.AdvanceValueSeparator();
+                            // advance further to the last character in the separator
+                            advanceIBy = valSepLen - 1;
+                        }
+                        else
+                        {
+                            res = StateMachine.Advance(c, true);
+                        }
+                    }
+                    else
+                    {
+                        // we don't have enough in the buffer... so deal with any running batches and ask for more
+                        if (inBatchableResult != null)
+                        {
+                            switch (inBatchableResult.Value)
+                            {
+                                case ReaderStateMachine.AdvanceResult.Skip_Character:
+
+                                    // there's no distinction between skipping several characters and skipping one
+                                    //    so this doesn't need the length
+                                    Partial.SkipCharacter();
+                                    break;
+                                case ReaderStateMachine.AdvanceResult.Append_Character:
+                                    var length = i - consistentResultSince;
+
+                                    Partial.AppendCharacters(buffSpan, consistentResultSince, length);
+                                    break;
+                                default:
+                                    unprocessedCharacters = default;
+                                    return Throw.ImpossibleException<ReadWithCommentResultType>($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {inBatchableResult.Value}", Configuration.Options);
+                            }
+                        }
+
+                        // we need to keep everything
+                        unprocessedCharacters = bufferLen - i;
+                        return ReadWithCommentResultType.NoValue;
+                    }
+                }
+
+                var handledUpTo = i;
+
+                // we _might_ need to modify i a bit if we just processed the fallout from a multi-char value separator
+                i += advanceIBy;
 
                 // try and batch skips and appends
                 //   to save time on copying AND on 
@@ -132,7 +199,7 @@ namespace Cesil
                                 Partial.SkipCharacter();
                                 break;
                             case ReaderStateMachine.AdvanceResult.Append_Character:
-                                var length = i - consistentResultSince;
+                                var length = handledUpTo - consistentResultSince;
 
                                 Partial.AppendCharacters(buffSpan, consistentResultSince, length);
                                 break;
@@ -169,6 +236,15 @@ namespace Cesil
                     case ReaderStateMachine.AdvanceResult.Append_CarriageReturnAndCurrentCharacter:
                         Partial.AppendCarriageReturn(buffSpan);
                         Partial.AppendCharacters(buffSpan, i, 1);
+                        break;
+
+                    case ReaderStateMachine.AdvanceResult.Append_ValueSeparator:
+                        Partial.AppendCharacters(Configuration.ValueSeparatorMemory.Span);
+                        break;
+
+                    case ReaderStateMachine.AdvanceResult.Append_CarriageReturnAndValueSeparator:
+                        Partial.AppendCarriageReturn(buffSpan);
+                        Partial.AppendCharacters(Configuration.ValueSeparatorMemory.Span);
                         break;
 
                     // cannot reach ReaderStateMachine.AdvanceResult.Append_CarriageReturnAndEndComment, because that only happens
@@ -283,6 +359,7 @@ namespace Cesil
             }
         }
 
+        [DoesNotReturn]
         private ReadWithCommentResultType HandleUncommonAdvanceResults(ReaderStateMachine.AdvanceResult res, char? lastRead)
         {
             string c;

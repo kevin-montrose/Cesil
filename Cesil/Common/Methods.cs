@@ -27,9 +27,9 @@ namespace Cesil
 
         internal static class Throw
         {
-            internal static readonly MethodInfo InvalidOperationException = Types.ThrowType.GetMethodNonNull(nameof(Cesil.Throw.InvalidOperationException), InternalStatic);
-            internal static readonly MethodInfo InvalidOperationExceptionOfObject = Types.ThrowType.GetMethodNonNull(nameof(Cesil.Throw.InvalidOperationException), InternalStatic).MakeGenericMethod(Types.Object);
-            internal static readonly MethodInfo ParseFailed = Types.ThrowType.GetMethodNonNull(nameof(Cesil.Throw.ParseFailed), InternalStatic);
+            internal static readonly MethodInfo InvalidOperationException = Types.Throw.GetMethodNonNull(nameof(Cesil.Throw.InvalidOperationException), InternalStatic);
+            internal static readonly MethodInfo InvalidOperationExceptionOfObject = Types.Throw.GetMethodNonNull(nameof(Cesil.Throw.InvalidOperationException), InternalStatic).MakeGenericMethod(Types.Object);
+            internal static readonly MethodInfo ParseFailed = Types.Throw.GetMethodNonNull(nameof(Cesil.Throw.ParseFailed), InternalStatic);
         }
 
         internal static class DynamicRow
@@ -65,6 +65,12 @@ namespace Cesil
         {
             internal static readonly MethodInfo WellKnownSetter = Types.WellKnownRowTypes.GetMethodNonNull(nameof(Cesil.WellKnownRowTypes.WellKnownSetter), InternalStatic);
             internal static readonly MethodInfo WellKnownGetter = Types.WellKnownRowTypes.GetMethodNonNull(nameof(Cesil.WellKnownRowTypes.WellKnownGetter), InternalStatic);
+        }
+
+        internal static class Utils
+        {
+            internal static readonly MethodInfo RuntimeNullableReferenceCheck = Types.Utils.GetMethodNonNull(nameof(Cesil.Utils.RuntimeNullableReferenceCheck), InternalStatic);
+            internal static readonly MethodInfo RuntimeNullableValueCheck = Types.Utils.GetMethodNonNull(nameof(Cesil.Utils.RuntimeNullableValueCheck), InternalStatic);
         }
     }
 }

@@ -29,7 +29,7 @@ namespace Cesil
         /// The task will attempt to complete synchronously, 
         /// but will not block if results are not available.
         /// </summary>
-        ValueTask<TCollection> ReadAllAsync<TCollection>(TCollection into, CancellationToken cancel = default)
+        ValueTask<TCollection> ReadAllAsync<TCollection>(TCollection into, CancellationToken cancellationToken = default)
         where TCollection : class, ICollection<TRow>;
 
         /// <summary>
@@ -38,7 +38,7 @@ namespace Cesil
         /// The task will attempt to complete synchronously, 
         /// but will not block if results are not available.
         /// </summary>
-        ValueTask<List<TRow>> ReadAllAsync(CancellationToken cancel = default);
+        ValueTask<List<TRow>> ReadAllAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Try to read a single row asynchronously, returning a ReadResult that 
@@ -47,7 +47,7 @@ namespace Cesil
         /// The task will attempt to complete synchronously, 
         /// but will not block if results are not available.
         /// </summary>
-        ValueTask<ReadResult<TRow>> TryReadAsync(CancellationToken cancel = default);
+        ValueTask<ReadResult<TRow>> TryReadAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Reads a single row into the existing instance of row,
@@ -62,7 +62,7 @@ namespace Cesil
         /// The task will attempt to complete synchronously, 
         /// but will not block if results are not available.
         /// </summary>
-        ValueTask<ReadResult<TRow>> TryReadWithReuseAsync(ref TRow row, CancellationToken cancel = default);
+        ValueTask<ReadResult<TRow>> TryReadWithReuseAsync(ref TRow row, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Reads a single row or comment.
@@ -76,7 +76,7 @@ namespace Cesil
         /// The task will attempt to complete synchronously, 
         /// but will not block if results are not available.
         /// </summary>
-        ValueTask<ReadWithCommentResult<TRow>> TryReadWithCommentAsync(CancellationToken cancel = default);
+        ValueTask<ReadWithCommentResult<TRow>> TryReadWithCommentAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Reads a single row (storing into an existing instance of a row
@@ -93,6 +93,6 @@ namespace Cesil
         /// The task will attempt to complete synchronously, 
         /// but will not block if results are not available.
         /// </summary>
-        ValueTask<ReadWithCommentResult<TRow>> TryReadWithCommentReuseAsync(ref TRow row, CancellationToken cancel = default);
+        ValueTask<ReadWithCommentResult<TRow>> TryReadWithCommentReuseAsync(ref TRow row, CancellationToken cancellationToken = default);
     }
 }
