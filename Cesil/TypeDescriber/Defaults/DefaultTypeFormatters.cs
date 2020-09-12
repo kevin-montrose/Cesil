@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Linq;
 using System.Reflection;
 
 using static Cesil.BindingFlagsConstants;
@@ -17,6 +18,8 @@ namespace Cesil
             where T : struct, Enum
         {
             private static readonly string[] Names = CreateNames();
+            private static readonly ulong[] Values = CreateValues();
+            private static readonly int MaxNameLength = GetMaxNameLength();
 
             internal static readonly Formatter TryEnumFormatter = CreateTryEnumFormatter();
             internal static readonly Formatter TryNullableEnumFormatter = CreateTryNullableEnumFormatter();
@@ -36,10 +39,45 @@ namespace Cesil
                 if (enumType.IsFlagsEnum())
                 {
                     // only need the actual names if we're in Flags mode
-                    return Enum.GetNames(typeof(T).GetTypeInfo());
+                    return Enum.GetNames(enumType);
                 }
 
                 return Array.Empty<string>();
+            }
+
+            private static int GetMaxNameLength()
+            {
+                // only need this for flags, so re-using CreateNames() works fine
+                var names = CreateNames();
+
+                var maxLen = -1;
+                for(var i = 0; i < names.Length; i++)
+                {
+                    maxLen = Math.Max(maxLen, names[i].Length);
+                }
+
+                return maxLen;
+            }
+
+            private static ulong[] CreateValues()
+            {
+                var enumType = typeof(T).GetTypeInfo();
+                if (enumType.IsFlagsEnum())
+                {
+                    // only need the actual values if we're in Flags mode
+                    var values = Enum.GetValues(enumType);
+                    var ret = new ulong[values.Length];
+                    for (var i = 0; i < values.Length; i++)
+                    {
+                        var obj = values.GetValue(i);
+                        var asT = (T)Utils.NonNull(obj);
+                        ret[i] = Utils.EnumToULong(asT);
+                    }
+
+                    return ret;
+                }
+
+                return Array.Empty<ulong>();
             }
 
             private static Formatter CreateTryEnumFormatter()
@@ -121,37 +159,39 @@ namespace Cesil
 
             private static bool TryFormatFlagsEnum(T e, in WriteContext _, IBufferWriter<char> writer)
             {
-                // todo: remove allocations in this code (tracking issue: https://github.com/kevin-montrose/Cesil/issues/8)
+                // assuming that most of the time only a single flag is set, so picking the biggest name is
+                //   a solid guess
+                var charSpan = writer.GetSpan(MaxNameLength);
 
-                // this will allocate, but we don't really have a choice?
-                var valStr = e.ToString();
+                var formatRes = Utils.TryFormatFlagsEnum(e, Names, Values, charSpan);
 
-                // this will _really_ allocate... but again, we have to verify somehow
-                var parts = valStr.Split(COMMA_AND_SPACE, StringSplitOptions.RemoveEmptyEntries);
-                for (var i = 0; i < parts.Length; i++)
+                if (formatRes == 0)
                 {
-                    var part = parts[i];
-                    var isValid = false;
-                    for (var j = 0; j < Names.Length; j++)
+                    // malformed, fail
+                    return false;
+                }
+                else if (formatRes > 0)
+                {
+                    // fit in the default span, so just take it
+                    writer.Advance(formatRes);
+                    return true;
+                }
+                else
+                {
+                    // buffer wasn't big enough, get a bigger buffer and try again
+                    var neededLen = -formatRes;
+                    charSpan = writer.GetSpan(neededLen);
+
+                    var res = Utils.TryFormatFlagsEnum(e, Names, Values, charSpan);
+                    if (res <= 0)
                     {
-                        var name = Names[j];
-                        if (name.Equals(part))
-                        {
-                            isValid = true;
-                            break;
-                        }
+                        // couldn't fit, something is wildly wrong so fail
+                        return false;
                     }
 
-                    if (!isValid) return false;
+                    writer.Advance(neededLen);
+                    return true;
                 }
-
-                var charSpan = writer.GetSpan(valStr.Length);
-                if (charSpan.Length < valStr.Length) return false;
-
-                valStr.AsSpan().CopyTo(charSpan);
-                writer.Advance(valStr.Length);
-
-                return true;
             }
 
             private static bool TryFormatNullableFlagsEnum(T? e, in WriteContext _, IBufferWriter<char> writer)

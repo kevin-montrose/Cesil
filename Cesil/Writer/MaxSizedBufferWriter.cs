@@ -77,6 +77,10 @@ namespace Cesil
             {
                 SizeHint = Math.Min(DEFAULT_STAGING_SIZE, memoryPool.MaxBufferSize);
             }
+            else
+            {
+                SizeHint = sizeHint.Value;
+            }
 
             Head = Tail = Node.EmptyNode;
             HasNodes = false;
