@@ -2,9 +2,9 @@ name: Run Tests (Debug)
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, vNext ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, vNext ]
 
 jobs:
   build:
