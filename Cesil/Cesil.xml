@@ -45,6 +45,17 @@
               store (1 int + the char data).
             </summary>
         </member>
+        <member name="M:Cesil.Utils.TryFormatFlagsEnum``1(``0,System.String[],System.UInt64[],System.Span{System.Char})">
+            <summary>
+            This is _like_ calling ToString(), but it doesn't allow values
+            that aren't actually declared on the enum.
+            
+            Since copyInto might not be big enough, can return the following values:
+             * 0, if flagsEnum was invalid
+             * greater than 0, length of the value that did fit into copyInto
+             * less than 0, the negated length of a value that didn't fit into copyInto
+            </summary>
+        </member>
         <member name="M:Cesil.BoundConfigurationBase`1.#ctor(System.Buffers.MemoryPool{System.Char},System.Buffers.MemoryPool{Cesil.DynamicCellValue})">
             <summary>
             For some testing scenarios.

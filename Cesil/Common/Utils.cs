@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Buffers;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -1049,6 +1052,168 @@ tryAgain:
 
             // now it's got to be a mix of forbid null and cannot be null, which is always forbid
             return NullHandling.ForbidNull;
+        }
+
+        // separate method for testing purposes, this is dangerous stuff
+        internal static ulong EnumToULong<T>(T enumValue)
+            where T : struct, Enum
+        {
+            var underlyingType = Enum.GetUnderlyingType(typeof(T).GetTypeInfo())?.GetTypeInfo();
+            underlyingType = NonNull(underlyingType);
+
+            ulong result;
+            if (underlyingType == Types.Int)
+            {
+                // int is the default, so check it first
+                result = (ulong)Unsafe.As<T, int>(ref enumValue);
+            }
+            else if (underlyingType == Types.Byte)
+            {
+                // byte is probably the next most common
+                result = Unsafe.As<T, byte>(ref enumValue);
+            }
+            else if (underlyingType == Types.UInt)
+            {
+                // then I'd guess uint, but really everything from here is "whatever"
+                result = Unsafe.As<T, uint>(ref enumValue);
+            }
+            else if (underlyingType == Types.Long)
+            {
+                result = (ulong)Unsafe.As<T, long>(ref enumValue);
+            }
+            else if (underlyingType == Types.ULong)
+            {
+                result = Unsafe.As<T, ulong>(ref enumValue);
+            }
+            else if (underlyingType == Types.SByte)
+            {
+                result = (ulong)Unsafe.As<T, sbyte>(ref enumValue);
+            }
+            else if (underlyingType == Types.Short)
+            {
+                result = (ulong)Unsafe.As<T, short>(ref enumValue);
+            }
+            else if (underlyingType == Types.UShort)
+            {
+                result = Unsafe.As<T, ushort>(ref enumValue);
+            }
+            else
+            {
+                return Throw.ImpossibleException<ulong>($"Underlying type of an enum is impossible: {underlyingType}");
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// This is _like_ calling ToString(), but it doesn't allow values
+        /// that aren't actually declared on the enum.
+        /// 
+        /// Since copyInto might not be big enough, can return the following values:
+        ///  * 0, if flagsEnum was invalid
+        ///  * greater than 0, length of the value that did fit into copyInto
+        ///  * less than 0, the negated length of a value that didn't fit into copyInto
+        /// </summary>
+        internal static int TryFormatFlagsEnum<T>(
+            T flagsEnum,
+            string[] names,
+            ulong[] values,
+            Span<char> copyInto
+        )
+            where T : struct, Enum
+        {
+            const int MALFORMED_VALUE = 0;
+
+            // based on: https://referencesource.microsoft.com/#mscorlib/system/enum.cs,154
+
+            const string ENUM_SEPERATOR = ", ";
+
+            ulong result = EnumToULong(flagsEnum);
+
+            if (result == 0)
+            {
+                if (values.Length > 0 && values[0] == 0)
+                {
+                    // it's 0 and 0 is a value
+                    var zeroValue = names[0].AsSpan();
+                    if (copyInto.Length < zeroValue.Length)
+                    {
+                        return -zeroValue.Length;
+                    }
+
+                    zeroValue.CopyTo(copyInto);
+                    copyInto = copyInto[..zeroValue.Length];
+
+                    return zeroValue.Length;
+                }
+                else
+                {
+                    // it's 0 and 0 _isn't_ a value
+                    return MALFORMED_VALUE;
+                }
+            }
+
+            var index = values.Length - 1;
+
+            var len = 0;
+            var firstTime = true;
+            var saveResult = result;
+
+            while (index >= 0)
+            {
+                if ((index == 0) && (values[index] == 0))
+                {
+                    break;
+                }
+
+                if ((result & values[index]) == values[index])
+                {
+                    result -= values[index];
+                    if (!firstTime)
+                    {
+                        Insert(copyInto, ref len, ENUM_SEPERATOR);
+                    }
+
+                    Insert(copyInto, ref len, names[index]);
+                    firstTime = false;
+                }
+
+                index--;
+            }
+
+            // couldn't represent the value, so we fail
+            if (result != 0)
+            {
+                return MALFORMED_VALUE;
+            }
+
+            // couldn't fit, so ask for more space
+            if (len > copyInto.Length)
+            {
+                return -len;
+            }
+
+            // were able to represent the value
+            copyInto[^len..].CopyTo(copyInto);  // move everything to the _front_, 'cause we'll need an Advance() call
+            return len;
+
+            // logicaclly, insert a string at the front of the "value"
+            //
+            // but, we actually append things from the _end_, so we don't have to
+            //    copy anything around
+            static void Insert(Span<char> span, ref int len, string value)
+            {
+                var newLen = len + value.Length;
+                if (newLen > span.Length)
+                {
+                    len = newLen;
+                    return;
+                }
+
+                value.AsSpan().CopyTo(span[^newLen..]);
+
+                len = newLen;
+            }
         }
     }
 }
