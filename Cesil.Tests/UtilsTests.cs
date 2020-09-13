@@ -1330,5 +1330,141 @@ namespace Cesil.Tests
                 }
             }
         }
+
+        [Fact]
+        public void ULongToEnum()
+        {
+            // byte
+            Check(_EnumToULong_Byte.A, (byte)_EnumToULong_Byte.A);
+            Check(_EnumToULong_Byte.B, (byte)_EnumToULong_Byte.B);
+            Check((_EnumToULong_Byte)100, 100);
+
+            // sbyte
+            Check(_EnumToULong_SByte.A, (ulong)(sbyte)_EnumToULong_SByte.A);
+            Check(_EnumToULong_SByte.B, unchecked((ulong)(sbyte)_EnumToULong_SByte.B));
+            Check((_EnumToULong_SByte)(-100), unchecked((ulong)-100));
+
+            // short
+            Check(_EnumToULong_Short.A, (ulong)(short)_EnumToULong_Short.A);
+            Check(_EnumToULong_Short.B, unchecked((ulong)(short)_EnumToULong_Short.B));
+            Check((_EnumToULong_Short)100, (ulong)(short)100);
+
+            // ushort
+            Check(_EnumToULong_UShort.A, (ushort)_EnumToULong_UShort.A);
+            Check(_EnumToULong_UShort.B, (ushort)_EnumToULong_UShort.B);
+            Check((_EnumToULong_UShort)100, 100);
+
+            // int
+            Check(_EnumToULong_Int.A, (int)_EnumToULong_Int.A);
+            Check(_EnumToULong_Int.B, unchecked((ulong)(int)_EnumToULong_Int.B));
+            Check((_EnumToULong_Int)100, 100);
+
+            // uint
+            Check(_EnumToULong_UInt.A, (uint)_EnumToULong_UInt.A);
+            Check(_EnumToULong_UInt.B, (uint)_EnumToULong_UInt.B);
+            Check((_EnumToULong_UInt)100, 100);
+
+            // long
+            Check(_EnumToULong_Long.A, (long)_EnumToULong_Long.A);
+            Check(_EnumToULong_Long.B, unchecked((ulong)(long)_EnumToULong_Long.B));
+            Check((_EnumToULong_Long)(-100), unchecked((ulong)-100));
+
+            // ulong
+            Check(_EnumToULong_ULong.A, (ulong)_EnumToULong_ULong.A);
+            Check(_EnumToULong_ULong.B, (ulong)_EnumToULong_ULong.B);
+            Check((_EnumToULong_ULong)100, 100);
+
+            // test that Utils produces the right value
+            static void Check<T>(T expected, ulong rawValue)
+                where T : struct, Enum
+            {
+                var res = Utils.ULongToEnum<T>(rawValue);
+                Assert.Equal(expected, res);
+            }
+        }
+
+        [Fact]
+        public void TryParseFlagsEnum()
+        {
+            var namesTryFormatFlagsEnum = Enum.GetNames(typeof(_TryFormatFlagsEnum));
+            var valuesTryFormatFlagsEnum = Enum.GetValues(typeof(_TryFormatFlagsEnum)).Cast<ulong>().ToArray();
+
+            var namesTryFormatFlagsEnumWithZero = Enum.GetNames(typeof(_TryFormatFlagsEnum_WithZero));
+            var valuesTryFormatFlagsEnumWithZero = Enum.GetValues(typeof(_TryFormatFlagsEnum_WithZero)).Cast<ulong>().ToArray();
+
+            // no zero
+            Test(_TryFormatFlagsEnum.A, namesTryFormatFlagsEnum, valuesTryFormatFlagsEnum, true);
+            Test(_TryFormatFlagsEnum.A | _TryFormatFlagsEnum.B, namesTryFormatFlagsEnum, valuesTryFormatFlagsEnum, true);
+            Test(_TryFormatFlagsEnum.B | _TryFormatFlagsEnum.E, namesTryFormatFlagsEnum, valuesTryFormatFlagsEnum, true);
+            Test(_TryFormatFlagsEnum.A | _TryFormatFlagsEnum.B | _TryFormatFlagsEnum.C | _TryFormatFlagsEnum.D | _TryFormatFlagsEnum.E, namesTryFormatFlagsEnum, valuesTryFormatFlagsEnum, true);
+            Test((_TryFormatFlagsEnum)17, namesTryFormatFlagsEnum, valuesTryFormatFlagsEnum, false);
+            Test((_TryFormatFlagsEnum)0, namesTryFormatFlagsEnum, valuesTryFormatFlagsEnum, false);
+
+            // with zero
+            Test(_TryFormatFlagsEnum_WithZero.A, namesTryFormatFlagsEnumWithZero, valuesTryFormatFlagsEnumWithZero, true);
+            Test(_TryFormatFlagsEnum_WithZero.A | _TryFormatFlagsEnum_WithZero.B, namesTryFormatFlagsEnumWithZero, valuesTryFormatFlagsEnumWithZero, true);
+            Test(_TryFormatFlagsEnum_WithZero.B | _TryFormatFlagsEnum_WithZero.E, namesTryFormatFlagsEnumWithZero, valuesTryFormatFlagsEnumWithZero, true);
+            Test(_TryFormatFlagsEnum_WithZero.A | _TryFormatFlagsEnum_WithZero.B | _TryFormatFlagsEnum_WithZero.C | _TryFormatFlagsEnum_WithZero.D | _TryFormatFlagsEnum_WithZero.E, namesTryFormatFlagsEnumWithZero, valuesTryFormatFlagsEnumWithZero, true);
+            Test((_TryFormatFlagsEnum_WithZero)17, namesTryFormatFlagsEnumWithZero, valuesTryFormatFlagsEnumWithZero, false);
+            Test(_TryFormatFlagsEnum_WithZero.Z, namesTryFormatFlagsEnumWithZero, valuesTryFormatFlagsEnumWithZero, true);
+
+            // DRY up the test a bit
+            static void Test<T>(T enumValue, string[] names, ulong[] values, bool expectedBool)
+                where T : struct, Enum
+            {
+                {
+                    var valueText = enumValue.ToString();
+
+                    var resBool = Utils.TryParseFlagsEnum<T>(valueText.AsSpan(), names, values, out var resValue);
+                    if (!resBool)
+                    {
+                        // malformed!
+                        Assert.False(expectedBool);
+                    }
+                    else
+                    {
+                        // valid!
+                        Assert.True(expectedBool);
+                        Assert.Equal(enumValue, resValue);
+                    }
+                }
+
+                // lower case also needs to work
+                {
+                    var valueText = enumValue.ToString().ToLowerInvariant();
+
+                    var resBool = Utils.TryParseFlagsEnum<T>(valueText.AsSpan(), names, values, out var resValue);
+                    if (!resBool)
+                    {
+                        // malformed!
+                        Assert.False(expectedBool);
+                    }
+                    else
+                    {
+                        // valid!
+                        Assert.True(expectedBool);
+                        Assert.Equal(enumValue, resValue);
+                    }
+                }
+
+                // upper case also needs to work
+                {
+                    var valueText = enumValue.ToString().ToUpperInvariant();
+
+                    var resBool = Utils.TryParseFlagsEnum<T>(valueText.AsSpan(), names, values, out var resValue);
+                    if (!resBool)
+                    {
+                        // malformed!
+                        Assert.False(expectedBool);
+                    }
+                    else
+                    {
+                        // valid!
+                        Assert.True(expectedBool);
+                        Assert.Equal(enumValue, resValue);
+                    }
+                }
+            }
+        }
     }
 }
