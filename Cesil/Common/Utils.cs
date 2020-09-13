@@ -61,7 +61,26 @@ namespace Cesil
             if (skip == 0) return mem;
             if (skip == len) return ReadOnlyMemory<char>.Empty;
 
-            return mem.Slice(skip);
+            return mem[skip..];
+        }
+
+        internal static ReadOnlySpan<char> TrimLeadingWhitespace(ReadOnlySpan<char> span)
+        {
+            var skip = 0;
+            var len = span.Length;
+
+            while (skip < len)
+            {
+                var c = span[skip];
+                if (!char.IsWhiteSpace(c)) break;
+
+                skip++;
+            }
+
+            if (skip == 0) return span;
+            if (skip == len) return ReadOnlySpan<char>.Empty;
+
+            return span[skip..];
         }
 
         internal static ReadOnlyMemory<char> TrimTrailingWhitespace(ReadOnlyMemory<char> mem)
@@ -83,7 +102,27 @@ namespace Cesil
             if (skip == -1) return ReadOnlyMemory<char>.Empty;
 
 
-            return mem.Slice(0, skip + 1);
+            return mem[0..(skip + 1)];
+        }
+
+        internal static ReadOnlySpan<char> TrimTrailingWhitespace(ReadOnlySpan<char> span)
+        {
+            var len = span.Length;
+            var start = len - 1;
+            var skip = start;
+
+            while (skip >= 0)
+            {
+                var c = span[skip];
+                if (!char.IsWhiteSpace(c)) break;
+
+                skip--;
+            }
+
+            if (skip == start) return span;
+            if (skip == -1) return ReadOnlySpan<char>.Empty;
+
+            return span[0..(skip + 1)];
         }
 
         internal static bool IsLegalFlagEnum<T>(T e)
@@ -1214,6 +1253,127 @@ tryAgain:
 
                 len = newLen;
             }
+        }
+
+        // separate method for testing purposes, this is dangerous stuff
+        internal static T ULongToEnum<T>(ulong enumValue)
+            where T : struct, Enum
+        {
+            var underlyingType = Enum.GetUnderlyingType(typeof(T).GetTypeInfo())?.GetTypeInfo();
+            underlyingType = NonNull(underlyingType);
+
+            T result;
+            if (underlyingType == Types.Int)
+            {
+                // int is the default, so check it first
+                var intValue = (int)enumValue;
+                result = Unsafe.As<int, T>(ref intValue);
+            }
+            else if (underlyingType == Types.Byte)
+            {
+                // byte is probably the next most common
+                var byteValue = (byte)enumValue;
+                result = Unsafe.As<byte, T>(ref byteValue);
+            }
+            else if (underlyingType == Types.UInt)
+            {
+                // then I'd guess uint, but really everything from here is "whatever"
+                var uintValue = (uint)enumValue;
+                result = Unsafe.As<uint, T>(ref uintValue);
+            }
+            else if (underlyingType == Types.Long)
+            {
+                var longValue = (long)enumValue;
+                result = Unsafe.As<long, T>(ref longValue);
+            }
+            else if (underlyingType == Types.ULong)
+            {
+                result = Unsafe.As<ulong, T>(ref enumValue);
+            }
+            else if (underlyingType == Types.SByte)
+            {
+                var sbyteValue = (sbyte)enumValue;
+                result = Unsafe.As<sbyte, T>(ref sbyteValue);
+            }
+            else if (underlyingType == Types.Short)
+            {
+                var shortValue = (short)enumValue;
+                result = Unsafe.As<short, T>(ref shortValue);
+            }
+            else if (underlyingType == Types.UShort)
+            {
+                var ushortValue = (ushort)enumValue;
+                result = Unsafe.As<ushort, T>(ref ushortValue);
+            }
+            else
+            {
+                return Throw.ImpossibleException<T>($"Underlying type of an enum is impossible: {underlyingType}");
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// This is _like_ calling TryParse(), but it doesn't allow values
+        /// that aren't actually declared on the enum.
+        /// </summary>
+        internal static bool TryParseFlagsEnum<T>(ReadOnlySpan<char> data, string[] enumNames, ulong[] enumValues, out T resultT)
+            where T : struct, Enum
+        {
+            // based on: https://referencesource.microsoft.com/#mscorlib/system/enum.cs,432
+
+            ulong result = 0;
+
+            while (!data.IsEmpty)
+            {
+                var ix = FindChar(data, ',');
+                int startNextIx;
+
+                if (ix == -1)
+                {
+                    ix = data.Length;
+                    startNextIx = data.Length;
+                }
+                else
+                {
+                    startNextIx = ix + 1;
+                }
+
+                var value = data[..ix];
+                value = TrimLeadingWhitespace(value);
+                value = TrimTrailingWhitespace(value);
+
+                var success = false;
+
+                for (int j = 0; j < enumNames.Length; j++)
+                {
+                    var namesSpan = enumNames[j].AsSpan();
+
+                    // have to use a comparer because different casing is legal!
+                    var res = namesSpan.CompareTo(value, StringComparison.InvariantCultureIgnoreCase);
+                    if (res != 0)
+                    {
+                        continue;
+                    }
+
+                    var item = enumValues[j];
+
+                    result |= item;
+                    success = true;
+                    break;
+                }
+
+                if (!success)
+                {
+                    resultT = default;
+                    return false;
+                }
+
+                data = data[startNextIx..];
+            }
+
+            resultT = ULongToEnum<T>(result);
+            return true;
         }
     }
 }

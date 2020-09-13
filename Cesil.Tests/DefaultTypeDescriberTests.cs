@@ -303,7 +303,10 @@ namespace Cesil.Tests
                 Assert.True(del(_TestEnum.Bar.ToString(), default, out var v3));
                 Assert.Equal(_TestEnum.Bar, v3);
 
-                Assert.False(del("foo", default, out _));
+                Assert.True(del("foo", default, out var v4));
+                Assert.Equal(_TestEnum.Foo, v4);
+                
+                Assert.False(del("Fizz", default, out _));
 
                 Assert.False(del("123", default, out _));
             }
@@ -325,6 +328,9 @@ namespace Cesil.Tests
                 Assert.Equal((_TestFlagsEnum.First | _TestFlagsEnum.Second), v3);
 
                 Assert.False(del("foo", default, out _));
+
+                Assert.True(del("first", default, out var v4));
+                Assert.Equal(_TestFlagsEnum.First, v4);
 
                 Assert.False(del("123", default, out _));
             }
@@ -727,7 +733,10 @@ namespace Cesil.Tests
                 Assert.True(del("", default, out var v4));
                 Assert.Equal((_TestEnum?)null, v4);
 
-                Assert.False(del("foo", default, out _));
+                Assert.True(del("foo", default, out var v5));
+                Assert.Equal(_TestEnum.Foo, v5);
+
+                Assert.False(del("Fizz", default, out _));
 
                 Assert.False(del("123", default, out _));
             }
@@ -752,6 +761,9 @@ namespace Cesil.Tests
                 Assert.Equal((_TestFlagsEnum?)null, v4);
 
                 Assert.False(del("foo", default, out _));
+
+                Assert.True(del("first", default, out var v5));
+                Assert.Equal(_TestFlagsEnum.First, v5);
 
                 Assert.False(del("123", default, out _));
             }

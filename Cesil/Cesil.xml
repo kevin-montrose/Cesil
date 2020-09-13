@@ -56,6 +56,12 @@
              * less than 0, the negated length of a value that didn't fit into copyInto
             </summary>
         </member>
+        <member name="M:Cesil.Utils.TryParseFlagsEnum``1(System.ReadOnlySpan{System.Char},System.String[],System.UInt64[],``0@)">
+            <summary>
+            This is _like_ calling TryParse(), but it doesn't allow values
+            that aren't actually declared on the enum.
+            </summary>
+        </member>
         <member name="M:Cesil.BoundConfigurationBase`1.#ctor(System.Buffers.MemoryPool{System.Char},System.Buffers.MemoryPool{Cesil.DynamicCellValue})">
             <summary>
             For some testing scenarios.
