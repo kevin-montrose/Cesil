@@ -19,5 +19,12 @@ namespace Cesil
         {
             internal static readonly FieldInfo Row = Types.DynamicCell.GetFieldNonNull(nameof(Cesil.DynamicCell.Row), InternalInstance);
         }
+
+        internal static class DynamicRowRange
+        {
+            internal static readonly FieldInfo Length = Types.DynamicRowRange.GetFieldNonNull(nameof(Cesil.DynamicRowRange.Length), InternalInstance);
+            internal static readonly FieldInfo Offset = Types.DynamicRowRange.GetFieldNonNull(nameof(Cesil.DynamicRowRange.Offset), InternalInstance);
+            internal static readonly FieldInfo Parent = Types.DynamicRowRange.GetFieldNonNull(nameof(Cesil.DynamicRowRange.Parent), InternalInstance);
+        }
     }
 }

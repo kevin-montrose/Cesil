@@ -9,45 +9,95 @@ namespace Cesil
 
         internal static bool TryConvertTuple(object row, in ReadContext _, out T res)
         {
-            var rowDyn = (DynamicRow)row;
+            if (row is DynamicRow rowDyn)
+            {
+                var untyped = GetTupleForRow(rowDyn, ArgTypes);
+                res = (T)untyped;
 
-            var untyped = GetTuple(rowDyn, ArgTypes);
-            res = (T)untyped;
+                return true;
+            }
+            else if (row is DynamicRowRange rowRangeDyn)
+            {
+                var untyped = GetTupleForRange(rowRangeDyn, ArgTypes);
+                res = (T)untyped;
 
-            return true;
+                return true;
+            }
+            else
+            {
+#pragma warning disable CES0005 // a generic type that we aren't actually going to produce
+                res = default!;
+#pragma warning restore CES0005
+                return Throw.ImpossibleException<bool>($"Tried to convert unexpected dynamic type ({row.GetType()?.GetTypeInfo()})");
+            }
         }
 
         internal static bool TryConvertValueTuple(object row, in ReadContext _, out T res)
         {
-            var rowDyn = (DynamicRow)row;
+            if (row is DynamicRow rowDyn)
+            {
+                var untyped = GetValueTupleForRow(rowDyn, ArgTypes);
+                res = (T)untyped;
 
-            var untyped = GetValueTuple(rowDyn, ArgTypes);
-            res = (T)untyped;
+                return true;
+            }
+            else if (row is DynamicRowRange rowRangeDyn)
+            {
+                var untyped = GetValueTupleForRange(rowRangeDyn, ArgTypes);
+                res = (T)untyped;
 
-            return true;
+                return true;
+            }
+            else
+            {
+#pragma warning disable CES0005 // a generic type that we aren't actually going to produce
+                res = default!;
+#pragma warning restore CES0005
+                return Throw.ImpossibleException<bool>($"Tried to convert unexpected dynamic type ({row.GetType()?.GetTypeInfo()})");
+            }
         }
 
-        private static object GetTuple(DynamicRow row, TypeInfo[] colTypes)
+        private static object GetTupleForRow(DynamicRow row, TypeInfo[] colTypes)
         {
-            var data = MakeArrayOfObjects(row, colTypes);
+            var data = MakeArrayOfObjects(row, null, null, colTypes);
 
             return ConvertToTuple(colTypes, data, 0, Types.Tuple_Array);
         }
 
-        private static object GetValueTuple(DynamicRow row, TypeInfo[] colTypes)
+        private static object GetTupleForRange(DynamicRowRange row, TypeInfo[] colTypes)
         {
-            var data = MakeArrayOfObjects(row, colTypes);
+            var data = MakeArrayOfObjects(row.Parent, row.Offset, row.Length, colTypes);
+
+            return ConvertToTuple(colTypes, data, 0, Types.Tuple_Array);
+        }
+
+        private static object GetValueTupleForRow(DynamicRow row, TypeInfo[] colTypes)
+        {
+            var data = MakeArrayOfObjects(row, null, null, colTypes);
 
             return ConvertToTuple(colTypes, data, 0, Types.ValueTuple_Array);
         }
 
-        private static object?[] MakeArrayOfObjects(DynamicRow row, TypeInfo[] colTypes)
+        private static object GetValueTupleForRange(DynamicRowRange row, TypeInfo[] colTypes)
         {
-            var ret = new object?[colTypes.Length];
+            var data = MakeArrayOfObjects(row.Parent, row.Offset, row.Length, colTypes);
+
+            return ConvertToTuple(colTypes, data, 0, Types.ValueTuple_Array);
+        }
+
+        private static object?[] MakeArrayOfObjects(DynamicRow row, int? offset, int? length, TypeInfo[] colTypes)
+        {
+            var ret = new object?[length ?? colTypes.Length];
 
             var i = 0;
+            var retIx = 0;
             foreach (var col in row.Columns)
             {
+                if (offset.HasValue && col.Index < offset.Value)
+                {
+                    goto end;
+                }
+
                 if (!row.IsSet(i))
                 {
                     goto end;
@@ -59,7 +109,7 @@ namespace Cesil
                     return Throw.InvalidOperationException<object[]>("Unexpected null value in dynamic row cell");
                 }
 
-                var colType = colTypes[i];
+                var colType = colTypes[retIx];
 
                 var parser = cell.GetParser(colType, out var ctx);
                 if (parser == null)
@@ -77,10 +127,16 @@ namespace Cesil
                     return Throw.InvalidOperationException<object[]>($"{nameof(Parser)} {parser} returned false");
                 }
 
-                ret[i] = res;
+                ret[retIx] = res;
+                retIx++;
 
 end:
                 i++;
+
+                if (retIx == ret.Length)
+                {
+                    break;
+                }
             }
 
             return ret;

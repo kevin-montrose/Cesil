@@ -176,6 +176,27 @@ namespace Cesil
                             var colsForPs = ColumnsForParameters.Value;
                             var paramTypes = ParameterTypes.Value;
 
+                            var rowVarType = rowVar.Type.GetTypeInfo();
+
+                            Expression dynamicRowVar;
+                            Expression offsetExp, lengthExp;
+                            if (rowVarType == Types.DynamicRow)
+                            {
+                                dynamicRowVar = rowVar;
+                                offsetExp = Expressions.Constant_NullInt;
+                                lengthExp = Expressions.Constant_NullInt;
+                            }
+                            else if (rowVarType == Types.DynamicRowRange)
+                            {
+                                dynamicRowVar = Expression.Field(rowVar, Fields.DynamicRowRange.Parent);
+                                offsetExp = Expression.Field(rowVar, Fields.DynamicRowRange.Offset);
+                                lengthExp = Expression.Field(rowVar, Fields.DynamicRowRange.Length);
+                            }
+                            else
+                            {
+                                return Throw.ImpossibleException<Expression>($"Attempted to convert unexpected dynamic type ({rowVarType})");
+                            }
+
                             var ps = new List<Expression>();
                             for (var pIx = 0; pIx < colsForPs.Length; pIx++)
                             {
@@ -183,7 +204,7 @@ namespace Cesil
                                 var pType = paramTypes[pIx];
                                 var getter = Methods.DynamicRow.GetAtTyped.MakeGenericMethod(pType);
 
-                                var call = Expression.Call(rowVar, getter, Expression.Constant(colIx));
+                                var call = Expression.Call(dynamicRowVar, getter, Expression.Constant(colIx), offsetExp, lengthExp);
 
                                 ps.Add(call);
                             }
@@ -220,6 +241,27 @@ namespace Cesil
                                     retVar
                                 };
 
+                            var rowVarType = rowVar.Type.GetTypeInfo();
+
+                            Expression dynamicRowVar;
+                            Expression offsetExp, lengthExp;
+                            if (rowVarType == Types.DynamicRow)
+                            {
+                                dynamicRowVar = rowVar;
+                                offsetExp = Expressions.Constant_NullInt;
+                                lengthExp = Expressions.Constant_NullInt;
+                            }
+                            else if (rowVarType == Types.DynamicRowRange)
+                            {
+                                dynamicRowVar = Expression.Field(rowVar, Fields.DynamicRowRange.Parent);
+                                offsetExp = Expression.Field(rowVar, Fields.DynamicRowRange.Offset);
+                                lengthExp = Expression.Field(rowVar, Fields.DynamicRowRange.Length);
+                            }
+                            else
+                            {
+                                return Throw.ImpossibleException<Expression>($"Attempted to convert unexpected dynamic type ({rowVarType})");
+                            }
+
                             for (var i = 0; i < setters.Length; i++)
                             {
                                 var setter = setters[i];
@@ -227,7 +269,7 @@ namespace Cesil
 
                                 var getValueMtd = Methods.DynamicRow.GetAtTyped.MakeGenericMethod(setter.Takes);
 
-                                var getValueCall = Expression.Call(rowVar, getValueMtd, Expression.Constant(setterColumn));
+                                var getValueCall = Expression.Call(dynamicRowVar, getValueMtd, Expression.Constant(setterColumn), offsetExp, lengthExp);
                                 var valueVar = Expression.Parameter(setter.Takes);
                                 var assignValueVar = Expression.Assign(valueVar, getValueCall);
                                 locals.Add(valueVar);

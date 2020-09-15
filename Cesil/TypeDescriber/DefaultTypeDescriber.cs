@@ -871,6 +871,8 @@ endLoop:
                 return nextRetIx;
             }
 
+            // todo: add DynamicRowRange
+
             // special case the most convenient dynamic type
             if (row is ExpandoObject asExpando)
             {

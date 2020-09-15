@@ -10,6 +10,8 @@ namespace Cesil
         // this checks that reusing the underlying DynamicRow will
         //   cause a generation check failure
         private readonly DynamicRow.DynamicColumnEnumerator Enumerator;
+        private readonly int? Offset;
+        private readonly int? Length;
 
         public bool IsDisposed => Enumerator.IsDisposed;
 
@@ -26,10 +28,12 @@ namespace Cesil
         [ExcludeFromCoverage("Trivial, and covered by IEnumerator<T>.Current")]
         object? IEnumerator.Current => Current;
 
-        internal PassthroughRowEnumerator(DynamicRow row)
+        internal PassthroughRowEnumerator(DynamicRow row, int? offset, int? length)
         {
             _Current = null;
-            Enumerator = new DynamicRow.DynamicColumnEnumerator(row);
+            Enumerator = new DynamicRow.DynamicColumnEnumerator(row, offset, length);
+            Offset = offset;
+            Length = length;
         }
 
         public bool MoveNext()
@@ -44,7 +48,9 @@ namespace Cesil
 
             var col = Enumerator.Current;
 
-            var val = Enumerator.Row.GetCellAt(col.Index);
+            var trueIndex = col.Index + (Offset ?? 0);
+
+            var val = Enumerator.Row.GetCellAt(trueIndex);
             if (val == null)
             {
                 _Current = null;

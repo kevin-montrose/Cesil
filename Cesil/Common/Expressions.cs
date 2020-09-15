@@ -14,6 +14,7 @@ namespace Cesil
         internal static readonly ConstantExpression Constant_True = Expression.Constant(true);
         internal static readonly ConstantExpression Constant_False = Expression.Constant(false);
         internal static readonly ConstantExpression Constant_Null = Expression.Constant(null, Types.Object);
+        internal static readonly ConstantExpression Constant_NullInt = Expression.Constant(null, Types.NullableInt);
 
         internal static readonly ParameterExpression Variable_Bool = Expression.Variable(Types.Bool);
         internal static readonly ParameterExpression Variable_ReadOnlySpanOfChar = Expression.Variable(Types.ReadOnlySpanOfChar);
