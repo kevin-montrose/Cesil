@@ -1534,6 +1534,7 @@ namespace Cesil.Tests
         [Fact]
         public void DynamicCellDoesntSupportMethods()
         {
+            // row
             RunSyncDynamicReaderVariants(
                 Options.DynamicDefault,
                 (config, getReader) =>
@@ -1558,6 +1559,7 @@ namespace Cesil.Tests
         {
             var opts = Options.CreateBuilder(Options.DynamicDefault).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).ToOptions();
 
+            // row
             RunSyncDynamicReaderVariants(
                 opts,
                 (config, getReader) =>
@@ -1592,16 +1594,72 @@ namespace Cesil.Tests
 
                     // doesn't support other public methods
                     {
+                        using (var reader = getReader("A,B,C\r\n1,2,3"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var row = csv.EnumerateAll().Single();
+
+                            Assert.Throws<InvalidOperationException>(() => row.GetMetaObject(Expressions.Constant_True));
+
+                            row.Dispose();
+                        }
+                    }
+                },
+                expectedRuns: 3
+            );
+
+            // range
+            RunSyncDynamicReaderVariants(
+                opts,
+                (config, getReader) =>
+                {
+                    // explicit Dispose
+                    {
                         dynamic row;
+                        dynamic range;
 
                         using (var reader = getReader("A,B,C\r\n1,2,3"))
                         using (var csv = config.CreateReader(reader))
                         {
                             row = csv.EnumerateAll().Single();
+                            range = row[..];
+                        }
 
-                            Assert.Throws<InvalidOperationException>(() => row.GetMetaObject(Expressions.Constant_True));
+                        row.Dispose();
+                        range.Dispose();
+                    }
+
+                    // cast to IDisposable
+                    {
+                        dynamic row;
+                        dynamic range;
+
+                        using (var reader = getReader("A,B,C\r\n1,2,3"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            row = csv.EnumerateAll().Single();
+                            range = row[..];
+                        }
+
+                        var disposableRow = (IDisposable)row;
+                        disposableRow.Dispose();
+
+                        var disposableRange = (IDisposable)range;
+                        disposableRange.Dispose();
+                    }
+
+                    // doesn't support other public methods
+                    {
+                        using (var reader = getReader("A,B,C\r\n1,2,3"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var row = csv.EnumerateAll().Single();
+                            var range = row[..];
+
+                            Assert.Throws<InvalidOperationException>(() => range.GetMetaObject(Expressions.Constant_True));
 
                             row.Dispose();
+                            range.Dispose();
                         }
                     }
                 },

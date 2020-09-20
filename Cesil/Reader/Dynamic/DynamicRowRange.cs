@@ -29,12 +29,49 @@ namespace Cesil
         private Expression GetParent()
         => Expression.Field(AsDynamicRowRange(), Fields.DynamicRowRange.Parent);
 
-        // todo: BindInvokeMember
+        public override DynamicMetaObject BindInvokeMember(InvokeMemberBinder binder, DynamicMetaObject[] args)
+        {
+            var expressionIsDynamicRowRangeRestriction = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRowRange);
+
+            // only supported operation is .Dispose()
+            if (binder.Name == nameof(DynamicRowRange.Dispose) && args.Length == 0)
+            {
+                var castToRow = Expression.Convert(Expression, Types.DynamicRowRange);
+                var callDispose = Expression.Call(castToRow, Methods.DynamicRowRange.Dispose);
+
+                Expression final;
+
+                if (binder.ReturnType == Types.Void)
+                {
+                    final = callDispose;
+                }
+                else
+                {
+                    if (binder.ReturnType == Types.Object)
+                    {
+                        final = Expression.Block(callDispose, Expressions.Constant_Null);
+                    }
+                    else
+                    {
+                        final = Expression.Block(callDispose, Expression.Default(binder.ReturnType));
+                    }
+                }
+
+                // we can cache this forever (for this type), doesn't vary by anything else
+                return new DynamicMetaObject(final, expressionIsDynamicRowRangeRestriction);
+            }
+
+            var msg = Expression.Constant($"Only the Dispose() method is supported.");
+            var invalidOpCall = Methods.Throw.InvalidOperationExceptionOfObject;
+            var call = Expression.Call(invalidOpCall, msg);
+
+            // we can cache this forever (for this type), since there's no scenario under which a non-Dispose call
+            //    becomes legal
+            return new DynamicMetaObject(call, expressionIsDynamicRowRangeRestriction);
+        }
 
         public override DynamicMetaObject BindGetIndex(GetIndexBinder binder, DynamicMetaObject[] indexes)
         {
-            // todo: need to inject disposed checks
-
             var restrictions = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRowRange);
 
             var dynamicRow = GetParent();
@@ -48,8 +85,6 @@ namespace Cesil
 
         public override DynamicMetaObject BindGetMember(GetMemberBinder binder)
         {
-            // todo: need to inject disposed checks
-
             var restrictions = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRowRange);
 
             var dynamicRow = GetParent();
@@ -63,8 +98,6 @@ namespace Cesil
 
         public override DynamicMetaObject BindConvert(ConvertBinder binder)
         {
-            // todo: need to inject disposed checks
-
             var dynamicRow = GetParent();
             var offset = GetOffset();
             var length = GetLength();

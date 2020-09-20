@@ -46,6 +46,7 @@ namespace Cesil
 
         internal static class DynamicRowRange
         {
+            internal static readonly MethodInfo Dispose = Types.DynamicRowRange.GetMethodNonNull(nameof(Cesil.DynamicRowRange.Dispose), PublicInstance);
             internal static readonly MethodInfo GetColumns = Types.DynamicRowRange.GetMethodNonNull(nameof(Cesil.DynamicRowRange.GetColumns), InternalInstance);
         }
 
