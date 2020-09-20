@@ -6,7 +6,7 @@ using System.Dynamic;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
+using System.Threading;
 using static Cesil.DisposableHelper;
 
 namespace Cesil
@@ -108,7 +108,7 @@ namespace Cesil
             {
                 get
                 {
-                    AssertNotDisposedInternal(Row);
+                    // not checking disposal here as it could be accessed, post visible disposal, via a DynamicRowRange
 
                     string? colName = null;
 
@@ -147,6 +147,8 @@ namespace Cesil
         internal uint Generation;
 
         internal int Width;
+
+        internal volatile int OutstandingUsesOfData;
 
         public bool IsDisposed { get; private set; }
 
@@ -193,6 +195,7 @@ namespace Cesil
         internal DynamicRow()
         {
             IsDisposed = true;
+            OutstandingUsesOfData = 0;
 
             // we only keep one of these around for the lifetime of this row
             Columns = new DynamicColumnEnumerable(this);
@@ -231,7 +234,12 @@ namespace Cesil
         {
             if (!IsDisposed)
             {
-                Throw.InvalidOperationException<object>("DynamicRow not in an uninitialized state");
+                Throw.InvalidOperationException<object>($"{nameof(DynamicRow)} not in an uninitialized state");
+            }
+
+            if (OutstandingUsesOfData != 0)
+            {
+                Throw.InvalidOperationException<object>($"{nameof(DynamicRow)} data is not in an uninitialized state");
             }
 
             HasOwner = true;
@@ -256,6 +264,7 @@ namespace Cesil
             }
             Generation++;
 
+            Interlocked.Exchange(ref OutstandingUsesOfData, 1);
             IsDisposed = false;
         }
 
@@ -345,7 +354,7 @@ checkSize:
 
         internal bool TryGetDataSpan(int forCellNumber, out ReadOnlySpan<char> span)
         {
-            AssertNotDisposedInternal(this);
+            // not checking disposal here as it could be accessed, post visible disposal, via a DynamicRowRange
 
             var dataIx = GetDataIndex(forCellNumber);
             if (dataIx == -1)
@@ -365,11 +374,11 @@ checkSize:
             return true;
         }
 
-        internal object? GetAt(int index, int? offset, int? length)
+        internal object? GetAt(int index, ITestableDisposable dependsOn, int? offset, int? length)
         {
-            AssertNotDisposedInternal(this);
+            // not checking disposal here as it could be accessed, post visible disposal, via a DynamicRowRange
 
-            if (!TryGetIndex(index, out var ret, offset, length))
+            if (!TryGetIndex(index, out var ret, dependsOn, offset, length))
             {
                 return Throw.ArgumentOutOfRangeException<object>(nameof(index), index, length ?? Width);
             }
@@ -377,9 +386,9 @@ checkSize:
             return ret;
         }
 
-        internal object? GetByIndex(Index index, int? offset, int? length)
+        internal object? GetByIndex(Index index, ITestableDisposable dependsOn, int? offset, int? length)
         {
-            AssertNotDisposedInternal(this);
+            // not checking disposal here as it could be accessed, post visible disposal, via a DynamicRowRange
 
             int actualIndex;
             if (index.IsFromEnd)
@@ -391,7 +400,7 @@ checkSize:
                 actualIndex = index.Value;
             }
 
-            if (!TryGetIndex(actualIndex, out var ret, offset, length))
+            if (!TryGetIndex(actualIndex, out var ret, dependsOn, offset, length))
             {
                 return Throw.ArgumentOutOfRangeException<object>(nameof(index), index, actualIndex, Width);
             }
@@ -399,24 +408,24 @@ checkSize:
             return ret;
         }
 
-        internal T GetAtTyped<T>(in ColumnIdentifier index, int? offset, int? length)
+        internal T GetAtTyped<T>(in ColumnIdentifier index, ITestableDisposable dependsOn, int? offset, int? length)
         {
-            AssertNotDisposedInternal(this);
+            // not checking disposal here as it could be accessed, post visible disposal, via a DynamicRowRange
 
-            dynamic? toCast = GetByIdentifier(in index, offset, length);
+            dynamic? toCast = GetByIdentifier(in index, dependsOn, offset, length);
 
 #pragma warning disable CES0005 // T is generic, so we can't annotate it (could be a class or struct) but we want dynamic to try and convert regardless
             return (T)toCast!;
 #pragma warning restore CES0005
         }
 
-        internal object? GetByIdentifier(in ColumnIdentifier index, int? offset, int? length)
+        internal object? GetByIdentifier(in ColumnIdentifier index, ITestableDisposable dependsOn, int? offset, int? length)
         {
-            AssertNotDisposedInternal(this);
+            // not checking disposal here as it could be accessed, post visible disposal, via a DynamicRowRange
 
             if (index.HasName && HasNames)
             {
-                if (TryGetValue(index.Name, out var res, offset, length))
+                if (TryGetValue(index.Name, out var res, dependsOn, offset, length))
                 {
                     return res;
                 }
@@ -425,7 +434,7 @@ checkSize:
             }
             else
             {
-                if (TryGetIndex(index.Index, out var res, offset, length))
+                if (TryGetIndex(index.Index, out var res, dependsOn, offset, length))
                 {
                     return res;
                 }
@@ -434,11 +443,11 @@ checkSize:
             }
         }
 
-        internal object? GetByName(string column, int? offset, int? length)
+        internal object? GetByName(string column, ITestableDisposable dependsOn, int? offset, int? length)
         {
-            AssertNotDisposedInternal(this);
+            // not checking disposal here as it could be accessed, post visible disposal, via a DynamicRowRange
 
-            if (!TryGetValue(column, out var ret, offset, length))
+            if (!TryGetValue(column, out var ret, dependsOn, offset, length))
             {
                 return Throw.KeyNotFoundException<object>(column);
             }
@@ -446,9 +455,9 @@ checkSize:
             return ret;
         }
 
-        internal DynamicCell? GetCellAt(int ix)
+        internal DynamicCell? GetCellAt(ITestableDisposable dependsOn, int ix)
         {
-            AssertNotDisposedInternal(this);
+            // not checking disposal here as it could be accessed, post visible disposal, via a DynamicRowRange
 
             var dataIndex = GetDataIndex(ix);
             if (dataIndex == -1)
@@ -456,12 +465,12 @@ checkSize:
                 return null;
             }
 
-            return new DynamicCell(this, ix);
+            return new DynamicCell(this, dependsOn, ix);
         }
 
         internal DynamicRowRange GetRange(Range range, int? offset, int? length)
         {
-            AssertNotDisposedInternal(this);
+            // not checking disposal here as it could be accessed, post visible disposal, via a DynamicRowRange
 
             var actualStart = offset ?? 0;
             var actualWidth = length ?? Width;
@@ -503,20 +512,22 @@ checkSize:
 
             var width = rawEnd - rawStart;
 
-            // todo: track this for disposal purposes
+            // don't actually release this row until all the ranges are also gone
+            Interlocked.Increment(ref OutstandingUsesOfData);
+
             return new DynamicRowRange(this, rawStart, width);
         }
 
         internal ReadContext GetReadContext(int? offset, int? length)
         {
-            AssertNotDisposedInternal(this);
+            // not checking disposal here as it could be accessed, post visible disposal, via a DynamicRowRange
 
             var owner = Owner;
 
             return ReadContext.ConvertingRow(owner.Options, RowNumber, owner.Context);
         }
 
-        private bool TryGetIndex(int index, out object? result, int? offset, int? length)
+        private bool TryGetIndex(int index, out object? result, ITestableDisposable dependsOn, int? offset, int? length)
         {
             if (offset.HasValue && length.HasValue && index >= length.Value)
             {
@@ -540,11 +551,11 @@ checkSize:
                 return true;
             }
 
-            result = GetCellAt(actualIndex);
+            result = GetCellAt(dependsOn, actualIndex);
             return true;
         }
 
-        private bool TryGetValue(string lookingFor, out object? result, int? offset, int? length)
+        private bool TryGetValue(string lookingFor, out object? result, ITestableDisposable dependsOn, int? offset, int? length)
         {
             if (HasNames)
             {
@@ -578,7 +589,7 @@ checkSize:
                         return true;
                     }
 
-                    result = GetCellAt(adjuestedIndex);
+                    result = GetCellAt(dependsOn, adjuestedIndex);
                     return true;
                 }
             }
@@ -706,7 +717,7 @@ checkSize:
 
         internal bool IsSet(int ix)
         {
-            AssertNotDisposedInternal(this);
+            // not checking disposal here as it could be accessed, post visible disposal, via a DynamicRowRange
 
             return GetDataIndex(ix) != -1;
         }
@@ -720,10 +731,18 @@ checkSize:
             }
         }
 
-        public void Dispose()
+        internal bool TryDataDispose(bool force = false)
         {
-            if (!IsDisposed)
+            if (CurrentDataOffset == -1)
             {
+                return true;
+            }
+
+            var ret = Interlocked.Decrement(ref OutstandingUsesOfData);
+            if (ret == 0 || force)
+            {
+                IsDisposed = true;
+
                 CurrentDataOffset = -1;
                 if (HasData)
                 {
@@ -744,7 +763,18 @@ checkSize:
 
                 // important, not clearing Owner, _Next, or Previous here ; doing so will break ownership and disposal management
 
+                return true;
+            }
+
+            return false;
+        }
+
+        public void Dispose()
+        {
+            if (!IsDisposed)
+            {
                 IsDisposed = true;
+                TryDataDispose();
             }
         }
 

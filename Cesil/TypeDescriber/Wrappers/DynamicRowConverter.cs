@@ -197,6 +197,8 @@ namespace Cesil
                                 return Throw.ImpossibleException<Expression>($"Attempted to convert unexpected dynamic type ({rowVarType})");
                             }
 
+                            var iTestableDisposable = Expression.Convert(rowVar, Types.ITestableDisposable);
+
                             var ps = new List<Expression>();
                             for (var pIx = 0; pIx < colsForPs.Length; pIx++)
                             {
@@ -204,7 +206,7 @@ namespace Cesil
                                 var pType = paramTypes[pIx];
                                 var getter = Methods.DynamicRow.GetAtTyped.MakeGenericMethod(pType);
 
-                                var call = Expression.Call(dynamicRowVar, getter, Expression.Constant(colIx), offsetExp, lengthExp);
+                                var call = Expression.Call(dynamicRowVar, getter, Expression.Constant(colIx), iTestableDisposable, offsetExp, lengthExp);
 
                                 ps.Add(call);
                             }
@@ -262,6 +264,8 @@ namespace Cesil
                                 return Throw.ImpossibleException<Expression>($"Attempted to convert unexpected dynamic type ({rowVarType})");
                             }
 
+                            var iTestableDisposable = Expression.Convert(rowVar, Types.ITestableDisposable);
+
                             for (var i = 0; i < setters.Length; i++)
                             {
                                 var setter = setters[i];
@@ -269,7 +273,7 @@ namespace Cesil
 
                                 var getValueMtd = Methods.DynamicRow.GetAtTyped.MakeGenericMethod(setter.Takes);
 
-                                var getValueCall = Expression.Call(dynamicRowVar, getValueMtd, Expression.Constant(setterColumn), offsetExp, lengthExp);
+                                var getValueCall = Expression.Call(dynamicRowVar, getValueMtd, Expression.Constant(setterColumn), iTestableDisposable, offsetExp, lengthExp);
                                 var valueVar = Expression.Parameter(setter.Takes);
                                 var assignValueVar = Expression.Assign(valueVar, getValueCall);
                                 locals.Add(valueVar);

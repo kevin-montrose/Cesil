@@ -59,33 +59,33 @@ namespace Cesil
 
         private static object GetTupleForRow(DynamicRow row, TypeInfo[] colTypes)
         {
-            var data = MakeArrayOfObjects(row, null, null, colTypes);
+            var data = MakeArrayOfObjects(row, row, null, null, colTypes);
 
             return ConvertToTuple(colTypes, data, 0, Types.Tuple_Array);
         }
 
         private static object GetTupleForRange(DynamicRowRange row, TypeInfo[] colTypes)
         {
-            var data = MakeArrayOfObjects(row.Parent, row.Offset, row.Length, colTypes);
+            var data = MakeArrayOfObjects(row.Parent, row, row.Offset, row.Length, colTypes);
 
             return ConvertToTuple(colTypes, data, 0, Types.Tuple_Array);
         }
 
         private static object GetValueTupleForRow(DynamicRow row, TypeInfo[] colTypes)
         {
-            var data = MakeArrayOfObjects(row, null, null, colTypes);
+            var data = MakeArrayOfObjects(row, row, null, null, colTypes);
 
             return ConvertToTuple(colTypes, data, 0, Types.ValueTuple_Array);
         }
 
         private static object GetValueTupleForRange(DynamicRowRange row, TypeInfo[] colTypes)
         {
-            var data = MakeArrayOfObjects(row.Parent, row.Offset, row.Length, colTypes);
+            var data = MakeArrayOfObjects(row.Parent, row, row.Offset, row.Length, colTypes);
 
             return ConvertToTuple(colTypes, data, 0, Types.ValueTuple_Array);
         }
 
-        private static object?[] MakeArrayOfObjects(DynamicRow row, int? offset, int? length, TypeInfo[] colTypes)
+        private static object?[] MakeArrayOfObjects(DynamicRow row, ITestableDisposable dependsOn, int? offset, int? length, TypeInfo[] colTypes)
         {
             var ret = new object?[length ?? colTypes.Length];
 
@@ -103,7 +103,7 @@ namespace Cesil
                     goto end;
                 }
 
-                var cell = row.GetCellAt(i);
+                var cell = row.GetCellAt(dependsOn, i);
                 if (cell == null)
                 {
                     return Throw.InvalidOperationException<object[]>("Unexpected null value in dynamic row cell");

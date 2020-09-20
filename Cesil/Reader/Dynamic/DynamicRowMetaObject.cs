@@ -59,12 +59,19 @@ namespace Cesil
         }
 
         public override DynamicMetaObject BindGetIndex(GetIndexBinder binder, DynamicMetaObject[] indexes)
-        => BindGetIndexFor(BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRow), Expression, binder, indexes, null, null);
+        {
+            var restrictions = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRow);
+            var selfAsITestableDisposable = Expression.Convert(Expression, Types.ITestableDisposable);
+
+            return BindGetIndexFor(restrictions, Expression, selfAsITestableDisposable, binder, indexes, null, null);
+        }
 
         // todo: maybe move this to some common place?
         internal static DynamicMetaObject BindGetIndexFor(
             BindingRestrictions restrictions,
             Expression expression, 
+            Expression testableDisposable,
+            //MethodCallExpression assertNotDisposed,
             GetIndexBinder _, 
             DynamicMetaObject[] indexes, 
             Expression? offset, 
@@ -81,6 +88,8 @@ namespace Cesil
                 return new DynamicMetaObject(call, restrictions);
             }
 
+            var assertNotDisposed = MakeAssertNotDisposedExpression(testableDisposable);
+
             var offsetVar = offset == null ? Expressions.Constant_NullInt : offset;
             var lengthVar = length == null ? Expressions.Constant_NullInt : length;
 
@@ -95,9 +104,7 @@ namespace Cesil
 
                 var index = Expression.Convert(indexExp, Types.Int);
                 
-                var callOnSelf = Expression.Call(castToRow, Methods.DynamicRow.GetAt, index, offsetVar, lengthVar);
-
-                var assertNotDisposed = MakeAssertNotDisposedExpression(expression);
+                var callOnSelf = Expression.Call(castToRow, Methods.DynamicRow.GetAt, index, testableDisposable, offsetVar, lengthVar);
 
                 var block = Expression.Block(assertNotDisposed, callOnSelf);
 
@@ -112,9 +119,7 @@ namespace Cesil
                 var castToRow = Expression.Convert(expression, Types.DynamicRow);
 
                 var col = Expression.Convert(indexExp, Types.String);
-                var callOnSelf = Expression.Call(castToRow, Methods.DynamicRow.GetByName, col, offsetVar, lengthVar);
-
-                var assertNotDisposed = MakeAssertNotDisposedExpression(expression);
+                var callOnSelf = Expression.Call(castToRow, Methods.DynamicRow.GetByName, col, testableDisposable, offsetVar, lengthVar);
 
                 var block = Expression.Block(assertNotDisposed, callOnSelf);
 
@@ -129,9 +134,7 @@ namespace Cesil
                 var castToRow = Expression.Convert(expression, Types.DynamicRow);
 
                 var col = Expression.Convert(indexExp, Types.Index);
-                var callOnSelf = Expression.Call(castToRow, Methods.DynamicRow.GetByIndex, col, offsetVar, lengthVar);
-
-                var assertNotDisposed = MakeAssertNotDisposedExpression(expression);
+                var callOnSelf = Expression.Call(castToRow, Methods.DynamicRow.GetByIndex, col, testableDisposable, offsetVar, lengthVar);
 
                 var block = Expression.Block(assertNotDisposed, callOnSelf);
 
@@ -148,8 +151,6 @@ namespace Cesil
                 var range = Expression.Convert(indexExp, Types.Range);
                 var callOnSelf = Expression.Call(castToRow, Methods.DynamicRow.GetRange, range, offsetVar, lengthVar);
 
-                var assertNotDisposed = MakeAssertNotDisposedExpression(expression);
-
                 var block = Expression.Block(assertNotDisposed, callOnSelf);
 
                 var finalRestrictions = restrictions.Merge(indexExpressionIsRangeRestriction);
@@ -163,9 +164,7 @@ namespace Cesil
                 var castToRow = Expression.Convert(expression, Types.DynamicRow);
 
                 var colId = Expression.Convert(indexExp, Types.ColumnIdentifier);
-                var callOnSelf = Expression.Call(castToRow, Methods.DynamicRow.GetByIdentifier, colId, offsetVar, lengthVar);
-
-                var assertNotDisposed = MakeAssertNotDisposedExpression(expression);
+                var callOnSelf = Expression.Call(castToRow, Methods.DynamicRow.GetByIdentifier, colId, testableDisposable, offsetVar, lengthVar);
 
                 var block = Expression.Block(assertNotDisposed, callOnSelf);
 
@@ -185,12 +184,18 @@ namespace Cesil
         }
 
         public override DynamicMetaObject BindGetMember(GetMemberBinder binder)
-        => BindGetMemberFor(BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRow), Expression, binder, null, null);
+        {
+            var restrictions = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRow);
+            var selfAsITestable = Expression.Convert(Expression, Types.ITestableDisposable);
+
+            return BindGetMemberFor(restrictions, Expression, selfAsITestable, binder, null, null);
+        }
 
         // todo: maybe move this to some common place?
         internal static DynamicMetaObject BindGetMemberFor(
             BindingRestrictions restrictions,
             Expression expression, 
+            Expression iTestableDisposable,
             GetMemberBinder binder, 
             Expression? offset,
             Expression? length
@@ -199,11 +204,11 @@ namespace Cesil
             var offsetVar = offset == null ? Expressions.Constant_NullInt : offset;
             var lengthVar = length == null ? Expressions.Constant_NullInt : length;
 
+            var assertNotDisposed = MakeAssertNotDisposedExpression(iTestableDisposable);
+
             var name = Expression.Constant(binder.Name);
             var castToRow = Expression.Convert(expression, Types.DynamicRow);
-            var callOnSelf = Expression.Call(castToRow, Methods.DynamicRow.GetByName, name, offsetVar, lengthVar);
-
-            var assertNotDisposed = MakeAssertNotDisposedExpression(expression);
+            var callOnSelf = Expression.Call(castToRow, Methods.DynamicRow.GetByName, name, iTestableDisposable, offsetVar, lengthVar);
 
             var block = Expression.Block(assertNotDisposed, callOnSelf);
 
@@ -267,8 +272,10 @@ namespace Cesil
             }
 
             var selfAsDynamicRow = Expression.Convert(Expression, Types.DynamicRow);
+            var selfAsITestableDispoable = Expression.Convert(Expression, Types.ITestableDisposable);
+            var assertNotDisposed = MakeAssertNotDisposedExpression(selfAsITestableDispoable);
 
-            return BindConvertFor(restrictions, selfAsDynamicRow, selfAsDynamicRow, Row, retType, converter, null, null);
+            return BindConvertFor(restrictions, selfAsDynamicRow, selfAsDynamicRow, assertNotDisposed, Row, retType, converter, null, null);
         }
 
         // todo: maybe move this to some common place?
@@ -276,6 +283,7 @@ namespace Cesil
             BindingRestrictions restrictions, 
             Expression callSiteExpression,   // this needs to be either DynamicRow or DynamicRowRange typed
             Expression dynamicRowExpression, // must be DynamicRow type
+            MethodCallExpression assertNotDisposed,
             DynamicRow row, 
             TypeInfo retType,
             DynamicRowConverter? converter,
@@ -313,8 +321,6 @@ namespace Cesil
             var lengthVar = length == null ? Expressions.Constant_NullInt : length;
 
             var statements = new List<Expression>();
-
-            var assertNotDisposed = MakeAssertNotDisposedExpression(callSiteExpression);
             statements.Add(assertNotDisposed);
 
             var dynRowVar = Expressions.Variable_DynamicRow;
@@ -345,10 +351,10 @@ namespace Cesil
             return new DynamicMetaObject(block, restrictions);
         }
 
-        private static Expression MakeAssertNotDisposedExpression(Expression exp)
+        // todo: move somewhere else?
+        internal static MethodCallExpression MakeAssertNotDisposedExpression(Expression exp)
         {
-            var cast = Expression.Convert(exp, Types.ITestableDisposable);
-            var call = Expression.Call(Methods.DisposableHelper.AssertNotDisposed, cast);
+            var call = Expression.Call(Methods.DisposableHelper.AssertNotDisposed, exp);
 
             return call;
         }

@@ -1,8 +1,9 @@
 ﻿using System.Collections.Immutable;
 using System.Dynamic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+
+using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
@@ -32,28 +33,38 @@ namespace Cesil
 
         public override DynamicMetaObject BindGetIndex(GetIndexBinder binder, DynamicMetaObject[] indexes)
         {
+            // todo: need to inject disposed checks
+
             var restrictions = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRowRange);
 
             var dynamicRow = GetParent();
             var offset = GetOffset();
             var length = GetLength();
 
-            return DynamicRowMetaObject.BindGetIndexFor(restrictions, dynamicRow, binder, indexes, offset, length);
+            var selfAsITestableDisposable = Expression.Convert(Expression, Types.ITestableDisposable);
+
+            return DynamicRowMetaObject.BindGetIndexFor(restrictions, dynamicRow, selfAsITestableDisposable, binder, indexes, offset, length);
         }
 
         public override DynamicMetaObject BindGetMember(GetMemberBinder binder)
         {
+            // todo: need to inject disposed checks
+
             var restrictions = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRowRange);
 
             var dynamicRow = GetParent();
             var offset = GetOffset();
             var length = GetLength();
 
-            return DynamicRowMetaObject.BindGetMemberFor(restrictions, dynamicRow, binder, offset, length);
+            var selfAsITestableDisposable = Expression.Convert(Expression, Types.ITestableDisposable);
+
+            return DynamicRowMetaObject.BindGetMemberFor(restrictions, dynamicRow, selfAsITestableDisposable, binder, offset, length);
         }
 
         public override DynamicMetaObject BindConvert(ConvertBinder binder)
         {
+            // todo: need to inject disposed checks
+
             var dynamicRow = GetParent();
             var offset = GetOffset();
             var length = GetLength();
@@ -88,7 +99,10 @@ namespace Cesil
                 restrictions = DynamicRowMetaObject.MakeRestrictions(Types.DynamicRowRange, Expression, converter, dynamicRow, asIEnumerable, retType);
             }
 
-            return DynamicRowMetaObject.BindConvertFor(restrictions, selfAsDynamicRowRange, dynamicRow, Range.Parent, retType, converter, offset, length);
+            var selfAsITestableDisposable = Expression.Convert(Expression, Types.ITestableDisposable);
+            var assertNotDisposed = DynamicRowMetaObject.MakeAssertNotDisposedExpression(selfAsITestableDisposable);
+
+            return DynamicRowMetaObject.BindConvertFor(restrictions, selfAsDynamicRowRange, dynamicRow, assertNotDisposed, Range.Parent, retType, converter, offset, length);
         }
     }
 
@@ -111,6 +125,8 @@ namespace Cesil
 
         internal ImmutableArray<ColumnIdentifier> GetColumns()
         {
+            AssertNotDisposedInternal(this);
+
             // todo: remove allocations
             var row = Parent;
 
@@ -149,11 +165,11 @@ end:
             if (!IsDisposed)
             {
                 IsDisposed = true;
-                // todo: something?
+                Parent.TryDataDispose();
             }
         }
 
         public override string ToString()
-        => $"{nameof(DynamicRowRange)} with Offset={Offset}, Length={Length}, Parent={Parent}";
+        => $"{nameof(DynamicRowRange)} {nameof(Offset)}={Offset}, {nameof(Length)}={Length}, {nameof(Parent)}={Parent}";
     }
 }

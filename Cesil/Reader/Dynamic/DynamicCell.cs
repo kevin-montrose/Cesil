@@ -10,13 +10,15 @@ namespace Cesil
         internal readonly uint Generation;
         internal readonly DynamicRow Row;
         internal readonly int ColumnNumber;
+        internal readonly ITestableDisposable DependsOnDisposable;
 
         internal ITypeDescriber Converter => Row.Converter;
 
-        internal DynamicCell(DynamicRow row, int num)
+        internal DynamicCell(DynamicRow row, ITestableDisposable disposable, int num)
         {
             Row = row;
             Generation = row.Generation;
+            DependsOnDisposable = disposable;
             ColumnNumber = num;
         }
 
@@ -64,7 +66,7 @@ namespace Cesil
 
         internal Parser? GetParser(TypeInfo forType, out ReadContext ctx)
         {
-            var row = Row;
+            var row = SafeRowGet();
             var owner = row.Owner;
             var index = ColumnNumber;
             var converterInterface = Converter;
@@ -85,7 +87,7 @@ namespace Cesil
             var ret = Row;
             ret.AssertGenerationMatch(Generation);
 
-            DisposableHelper.AssertNotDisposedInternal(ret);
+            // not checking disposal here as it could be accessed, post visible disposal, via a DynamicRowRange
 
             return ret;
         }
