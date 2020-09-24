@@ -35,6 +35,36 @@ namespace Cesil.Tests
         }
 
         [Fact]
+        public void WriteRange()
+        {
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteHeader(WriteHeader.Never).ToOptions();
+
+            RunSyncDynamicWriterVariants(
+                opts,
+                (config, getWriter, getStr) =>
+                {
+                    var row = MakeDynamicRow($"A,B,C,D\r\n1,2,3,4");
+                    var range1 = row[1..^1];
+                    var range2 = row[1..];
+
+                    using (var writer = getWriter())
+                    using(var csv = config.CreateWriter(writer))
+                    {
+                        csv.Write(range1);
+                        csv.Write(range2);
+                    }
+
+                    var res = getStr();
+                    Assert.Equal("2,3\r\n2,3,4", res);
+
+                    row.Dispose();
+                    range1.Dispose();
+                    range2.Dispose();
+                }
+            );
+        }
+
+        [Fact]
         public void WriteCommentErrors()
         {
             RunSyncDynamicWriterVariants(
@@ -2083,6 +2113,36 @@ namespace Cesil.Tests
         }
 
         // async tests
+
+        [Fact]
+        public async Task WriteRangeAsync()
+        {
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteHeader(WriteHeader.Never).ToOptions();
+
+            await RunAsyncDynamicWriterVariants(
+                opts,
+                async (config, getWriter, getStr) =>
+                {
+                    var row = MakeDynamicRow($"A,B,C,D\r\n1,2,3,4");
+                    var range1 = row[1..^1];
+                    var range2 = row[1..];
+
+                    await using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        await csv.WriteAsync(range1);
+                        await csv.WriteAsync(range2);
+                    }
+
+                    var res = await getStr();
+                    Assert.Equal("2,3\r\n2,3,4", res);
+
+                    row.Dispose();
+                    range1.Dispose();
+                    range2.Dispose();
+                }
+            );
+        }
 
         [Fact]
         public async Task WriteCommentErrorsAsync()

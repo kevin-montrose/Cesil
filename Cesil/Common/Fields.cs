@@ -22,6 +22,7 @@ namespace Cesil
 
         internal static class DynamicRowRange
         {
+            internal static readonly FieldInfo Columns = Types.DynamicRowRange.GetFieldNonNull(nameof(Cesil.DynamicRowRange.Columns), InternalInstance);
             internal static readonly FieldInfo Length = Types.DynamicRowRange.GetFieldNonNull(nameof(Cesil.DynamicRowRange.Length), InternalInstance);
             internal static readonly FieldInfo Offset = Types.DynamicRowRange.GetFieldNonNull(nameof(Cesil.DynamicRowRange.Offset), InternalInstance);
             internal static readonly FieldInfo Parent = Types.DynamicRowRange.GetFieldNonNull(nameof(Cesil.DynamicRowRange.Parent), InternalInstance);

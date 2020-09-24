@@ -14,6 +14,28 @@ namespace Cesil.Tests
     public class WrapperTests
     {
         [Fact]
+        public void ReadResult()
+        {
+            var a = ReadResult<object>.Empty;
+            var b = new ReadResult<object>(new object());
+
+            Assert.StartsWith(nameof(ReadResult<object>) + " ", a.ToString());
+            Assert.StartsWith(nameof(ReadResult<object>) + " ", b.ToString());
+        }
+
+        [Fact]
+        public void ReadWithCommentResult()
+        {
+            var a = ReadWithCommentResult<object>.Empty;
+            var b = new ReadWithCommentResult<object>(new object());
+            var c = new ReadWithCommentResult<object>("foo");
+
+            Assert.StartsWith(nameof(ReadWithCommentResult<object>) + " ", a.ToString());
+            Assert.StartsWith(nameof(ReadWithCommentResult<object>) + " ", b.ToString());
+            Assert.StartsWith(nameof(ReadWithCommentResult<object>) + " ", c.ToString());
+        }
+
+        [Fact]
         public void CannotChangeRowNullHandling()
         {
             var g = Getter.ForDelegate((in WriteContext _) => default(int));
@@ -4627,8 +4649,9 @@ namespace Cesil.Tests
             var ci5 = Cesil.ColumnIdentifier.Create(1, "B");
             var ci6 = Cesil.ColumnIdentifier.Create(0, "B");
             var ci7 = Cesil.ColumnIdentifier.Create(2, "C");
+            var ci8 = Cesil.ColumnIdentifier.Create(3, "F".AsMemory());
 
-            var cis = new[] { ci1, ci2, ci3, ci4, ci5, ci6, ci7 };
+            var cis = new[] { ci1, ci2, ci3, ci4, ci5, ci6, ci7, ci8 };
 
             var notCi = "";
 
@@ -4644,17 +4667,20 @@ namespace Cesil.Tests
 
                     var eq = a == b;
                     var neq = a != b;
+                    var objEq = a.Equals((object)b);
                     var hashEq = CompareHash(a, b);
 
                     if (i == j)
                     {
                         Assert.True(eq);
+                        Assert.True(objEq);
                         Assert.False(neq);
                         Assert.True(hashEq);
                     }
                     else
                     {
                         Assert.False(eq);
+                        Assert.False(objEq);
                         Assert.True(neq);
                     }
                 }
@@ -4667,6 +4693,7 @@ namespace Cesil.Tests
             Assert.Throws<ArgumentException>(() => Cesil.ColumnIdentifier.Create(-1));
 
             Assert.Throws<ArgumentException>(() => Cesil.ColumnIdentifier.Create(-1, "foo"));
+            Assert.Throws<ArgumentException>(() => Cesil.ColumnIdentifier.Create(-1, "foo".AsMemory()));
             Assert.Throws<ArgumentNullException>(() => Cesil.ColumnIdentifier.Create(10, default(string)));
 
             static bool CompareHash<T>(T a, T b)
@@ -4675,6 +4702,30 @@ namespace Cesil.Tests
 
                 return code;
             }
+        }
+
+        [Fact]
+        public void ColumnIdentifierMemory()
+        {
+            var c1 = Cesil.ColumnIdentifier.Create(1, "foo");
+            var c2 = Cesil.ColumnIdentifier.Create(1, "foo".AsMemory());
+
+            var c1Hash = c1.GetHashCode();
+            var c2Hash = c2.GetHashCode();
+
+            Assert.Equal(c1Hash, c2Hash);
+            Assert.Equal(c1, c2);
+
+            Assert.NotEmpty(c1.NameMemory.ToArray());
+            Assert.NotNull(c2.Name);
+
+            var c1HashAgain = c1.GetHashCode();
+            Assert.Equal(c1HashAgain, c1Hash);
+
+            var c2HashAgain = c2.GetHashCode();
+            Assert.Equal(c2HashAgain, c2Hash);
+
+            Assert.Equal(c1, c2);
         }
 
         [Fact]

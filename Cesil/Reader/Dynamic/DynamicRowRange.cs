@@ -1,147 +1,13 @@
-﻿using System.Collections.Immutable;
+﻿using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq.Expressions;
-using System.Reflection;
-
-using static Cesil.DisposableHelper;
 
 namespace Cesil
 {
-    // todo: move this
-    internal sealed class DynamicRowRangeMetaObject : DynamicMetaObject
-    {
-        private readonly DynamicRowRange Range;
-
-        internal DynamicRowRangeMetaObject(DynamicRowRange range, Expression exp) : base(exp, BindingRestrictions.Empty, range)
-        {
-            Range = range;
-        }
-
-        private Expression AsDynamicRowRange()
-        => Expression.Convert(Expression, Types.DynamicRowRange);
-
-        private Expression GetOffset()
-        => Expression.Field(AsDynamicRowRange(), Fields.DynamicRowRange.Offset);
-
-        private Expression GetLength()
-        => Expression.Field(AsDynamicRowRange(), Fields.DynamicRowRange.Length);
-
-        private Expression GetParent()
-        => Expression.Field(AsDynamicRowRange(), Fields.DynamicRowRange.Parent);
-
-        public override DynamicMetaObject BindInvokeMember(InvokeMemberBinder binder, DynamicMetaObject[] args)
-        {
-            var expressionIsDynamicRowRangeRestriction = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRowRange);
-
-            // only supported operation is .Dispose()
-            if (binder.Name == nameof(DynamicRowRange.Dispose) && args.Length == 0)
-            {
-                var castToRow = Expression.Convert(Expression, Types.DynamicRowRange);
-                var callDispose = Expression.Call(castToRow, Methods.DynamicRowRange.Dispose);
-
-                Expression final;
-
-                if (binder.ReturnType == Types.Void)
-                {
-                    final = callDispose;
-                }
-                else
-                {
-                    if (binder.ReturnType == Types.Object)
-                    {
-                        final = Expression.Block(callDispose, Expressions.Constant_Null);
-                    }
-                    else
-                    {
-                        final = Expression.Block(callDispose, Expression.Default(binder.ReturnType));
-                    }
-                }
-
-                // we can cache this forever (for this type), doesn't vary by anything else
-                return new DynamicMetaObject(final, expressionIsDynamicRowRangeRestriction);
-            }
-
-            var msg = Expression.Constant($"Only the Dispose() method is supported.");
-            var invalidOpCall = Methods.Throw.InvalidOperationExceptionOfObject;
-            var call = Expression.Call(invalidOpCall, msg);
-
-            // we can cache this forever (for this type), since there's no scenario under which a non-Dispose call
-            //    becomes legal
-            return new DynamicMetaObject(call, expressionIsDynamicRowRangeRestriction);
-        }
-
-        public override DynamicMetaObject BindGetIndex(GetIndexBinder binder, DynamicMetaObject[] indexes)
-        {
-            var restrictions = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRowRange);
-
-            var dynamicRow = GetParent();
-            var offset = GetOffset();
-            var length = GetLength();
-
-            var selfAsITestableDisposable = Expression.Convert(Expression, Types.ITestableDisposable);
-
-            return DynamicRowMetaObject.BindGetIndexFor(restrictions, dynamicRow, selfAsITestableDisposable, binder, indexes, offset, length);
-        }
-
-        public override DynamicMetaObject BindGetMember(GetMemberBinder binder)
-        {
-            var restrictions = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRowRange);
-
-            var dynamicRow = GetParent();
-            var offset = GetOffset();
-            var length = GetLength();
-
-            var selfAsITestableDisposable = Expression.Convert(Expression, Types.ITestableDisposable);
-
-            return DynamicRowMetaObject.BindGetMemberFor(restrictions, dynamicRow, selfAsITestableDisposable, binder, offset, length);
-        }
-
-        public override DynamicMetaObject BindConvert(ConvertBinder binder)
-        {
-            var dynamicRow = GetParent();
-            var offset = GetOffset();
-            var length = GetLength();
-
-            var row = Range.Parent;
-
-            var retType = binder.ReturnType.GetTypeInfo();
-            var isIDisposable = retType == Types.IDisposable;
-
-            var selfAsDynamicRowRange = Expression.Convert(Expression, Types.DynamicRowRange);
-
-            DynamicRowConverter? converter;
-            BindingRestrictions restrictions;
-
-            if (isIDisposable)
-            {
-                converter = null;
-
-                restrictions = BindingRestrictions.GetTypeRestriction(Expression, Types.DynamicRowRange);
-            }
-            else
-            {
-                var cols = Range.GetColumns();
-
-                var ctx = row.GetReadContext(Range.Offset, Range.Length);
-                converter = row.Converter.GetDynamicRowConverter(in ctx, cols, retType);
-
-                var callGetColumn = Expression.Call(selfAsDynamicRowRange, Methods.DynamicRowRange.GetColumns);
-                var ienumerableOfColumnIdentifiers = Types.IEnumerableOfT.MakeGenericType(Types.ColumnIdentifier).GetTypeInfo();
-                var asIEnumerable = Expression.Convert(callGetColumn, ienumerableOfColumnIdentifiers);
-
-                restrictions = DynamicRowMetaObject.MakeRestrictions(Types.DynamicRowRange, Expression, converter, dynamicRow, asIEnumerable, retType);
-            }
-
-            var selfAsITestableDisposable = Expression.Convert(Expression, Types.ITestableDisposable);
-            var assertNotDisposed = DynamicRowMetaObject.MakeAssertNotDisposedExpression(selfAsITestableDisposable);
-
-            return DynamicRowMetaObject.BindConvertFor(restrictions, selfAsDynamicRowRange, dynamicRow, assertNotDisposed, Range.Parent, retType, converter, offset, length);
-        }
-    }
-
     internal sealed class DynamicRowRange : IDynamicMetaObjectProvider, ITestableDisposable
     {
         internal readonly DynamicRow Parent;
+        internal readonly IReadOnlyList<ColumnIdentifier> Columns;
 
         // keeping these nullable makes generating expressions easier
         internal readonly int? Offset;
@@ -154,40 +20,8 @@ namespace Cesil
             Parent = parent;
             Offset = offset;
             Length = length;
-        }
 
-        internal ImmutableArray<ColumnIdentifier> GetColumns()
-        {
-            AssertNotDisposedInternal(this);
-
-            // todo: remove allocations
-            var row = Parent;
-
-            var colsBuilder = ImmutableArray.CreateBuilder<ColumnIdentifier>();
-            var ix = 0;
-            foreach (var col in row.Columns)
-            {
-                if (ix < (Offset ?? 0))
-                {
-                    goto end;
-                }
-
-                if (colsBuilder.Count >= (Length ?? 0))
-                {
-                    break;
-                }
-
-                var n = col.HasName ? col.Name : "";
-
-                var newCol = ColumnIdentifier.CreateInner(colsBuilder.Count, n, null);
-
-                colsBuilder.Add(newCol);
-
-end:
-                ix++;
-            }
-
-            return colsBuilder.ToImmutable();
+            Columns = new DynamicRow.DynamicColumnEnumerable(parent, offset, length);
         }
 
         public DynamicMetaObject GetMetaObject(Expression parameter)

@@ -102,7 +102,10 @@ namespace Cesil
         {
             private readonly DynamicRow Row;
 
-            public int Count => Row.Width;
+            private readonly int? Offset;
+            private readonly int? Length;
+
+            public int Count => Length ?? Row.Width;
 
             public ColumnIdentifier this[int index]
             {
@@ -110,36 +113,50 @@ namespace Cesil
                 {
                     // not checking disposal here as it could be accessed, post visible disposal, via a DynamicRowRange
 
+                    var actualWidth = Count;
+                    if (index >= actualWidth)
+                    {
+                        return Throw.ArgumentOutOfRangeException<ColumnIdentifier>(nameof(index), index, actualWidth);
+                    }
+
+                    var actualIx = index;
+                    if (Offset.HasValue)
+                    {
+                        actualIx += Offset ?? 0;
+                    }
+
                     string? colName = null;
 
-                    var ix = index;
                     if (Row.HasNames)
                     {
                         var names = Row.Names;
                         if (index < names.Length)
                         {
-                            colName = names[ix];
+                            colName = names[actualIx];
                         }
                     }
 
-                    return ColumnIdentifier.CreateInner(ix, colName, null);
+                    // use apparent index, not actual index
+                    return ColumnIdentifier.CreateInner(index, colName, null);
                 }
             }
 
-            internal DynamicColumnEnumerable(DynamicRow row)
+            internal DynamicColumnEnumerable(DynamicRow row, int? offset, int? length)
             {
                 Row = row;
+                Offset = offset;
+                Length = length;
             }
 
             public IEnumerator<ColumnIdentifier> GetEnumerator()
-            => new DynamicColumnEnumerator(Row, null, null);
+            => new DynamicColumnEnumerator(Row, Offset, Length);
 
             [ExcludeFromCoverage("Trivial, and covered by IEnumerable<T>.GetEnumerator()")]
             IEnumerator IEnumerable.GetEnumerator()
             => GetEnumerator();
 
             public override string ToString()
-            => $"{nameof(DynamicColumnEnumerable)} backed by {Row}";
+            => $"{nameof(DynamicColumnEnumerable)} backed by {Row}, {nameof(Offset)}={Offset}, {nameof(Length)}={Length}";
         }
 
         private const int CHARS_PER_INT = sizeof(int) / sizeof(char);
@@ -198,7 +215,7 @@ namespace Cesil
             OutstandingUsesOfData = 0;
 
             // we only keep one of these around for the lifetime of this row
-            Columns = new DynamicColumnEnumerable(this);
+            Columns = new DynamicColumnEnumerable(this, null, null);
 
             // won't ever actually be used, just avoid the null
             MemoryPool = MemoryPool<char>.Shared;

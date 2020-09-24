@@ -14,13 +14,13 @@ namespace Cesil
 
         internal PassthroughRowEnumerable(object row)
         {
-            if(row is DynamicRow dynRow)
+            if (row is DynamicRow dynRow)
             {
                 Row = dynRow;
                 DependsOn = dynRow;
                 Offset = Length = null;
             }
-            else if(row is DynamicRowRange dynRowRange)
+            else if (row is DynamicRowRange dynRowRange)
             {
                 Row = dynRowRange.Parent;
                 DependsOn = dynRowRange;

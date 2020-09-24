@@ -1246,7 +1246,7 @@ namespace Cesil.Tests
                     var res = csv.ReadAll();
                     var row = res[0] as DynamicRow;
 
-                    var e = new DynamicRow.DynamicColumnEnumerable(row);
+                    var e = new DynamicRow.DynamicColumnEnumerable(row, null, null);
 
                     return e.ToString();
                 }

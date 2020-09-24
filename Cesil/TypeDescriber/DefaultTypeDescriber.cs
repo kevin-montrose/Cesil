@@ -805,7 +805,7 @@ namespace Cesil
             var rowObj = row as object;
 
             // handle serializing our own dynamic types
-            if (row is DynamicRow asOwnRow)
+            if (rowObj is DynamicRow asOwnRow)
             {
                 var cols = asOwnRow.Columns;
 
@@ -871,10 +871,78 @@ endLoop:
                 return nextRetIx;
             }
 
-            // todo: add DynamicRowRange
+            if (rowObj is DynamicRowRange asOwnRowRange)
+            {
+                var cols = asOwnRowRange.Columns;
+
+                // can we fit?
+                if (cols.Count > cells.Length)
+                {
+                    return cols.Count;
+                }
+
+                var realRow = asOwnRowRange.Parent;
+
+                var nextRetIx = 0;
+
+                var ix = 0;
+                foreach (var col in cols)
+                {
+                    var name = col.Name;
+                    if (!CanCache && !ShouldIncludeCell(name, in context, rowObj))
+                    {
+                        goto endLoop;
+                    }
+
+                    var actualIndex = ix + (asOwnRowRange.Offset ?? 0);
+
+                    string? value;
+                    if (realRow.TryGetDataSpan(actualIndex, out var valueRaw))
+                    {
+                        value = new string(valueRaw);
+                    }
+                    else
+                    {
+                        value = null;
+                    }
+
+                    Formatter? formatter;
+                    if (CanCache)
+                    {
+                        var cache = this;
+
+                        if (!cache.TryGetFormatter(Types.String, out formatter))
+                        {
+                            formatter = GetFormatter(Types.String, name, in context, rowObj);
+                            if (formatter != null)
+                            {
+                                cache.AddFormatter(Types.String, formatter);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        formatter = GetFormatter(Types.String, name, in context, rowObj);
+                    }
+
+                    if (formatter == null)
+                    {
+                        return Throw.InvalidOperationException<int>($"No formatter returned by {nameof(GetFormatter)}");
+                    }
+
+                    cells[nextRetIx] = DynamicCellValue.Create(name, value, formatter);
+
+                    nextRetIx++;
+
+endLoop:
+                    ix++;
+                }
+
+                return nextRetIx;
+            }
 
             // special case the most convenient dynamic type
-            if (row is ExpandoObject asExpando)
+            if (rowObj is ExpandoObject asExpando)
             {
                 var asCollection = (ICollection<KeyValuePair<string, object>>)asExpando;
                 if (asCollection.Count > cells.Length)

@@ -320,6 +320,12 @@ namespace Cesil.Tests
                     IEnumerable<string> enumerable = dyn;
                     Assert.Equal(new[] { "1", "2", "3" }, enumerable);
 
+                    IEnumerable<dynamic> enumerableDyn = dyn;
+                    {
+                        var asInt = enumerableDyn.Select(i => (int)i).ToList();
+                        Assert.Equal(new[] { 1, 2, 3 }, asInt);
+                    }
+
                     _DynamicRowRange_Cons1 c1 = dyn;
                     Assert.Equal(1, c1.One);
                     Assert.Equal(2, c1.Two);
@@ -338,19 +344,19 @@ namespace Cesil.Tests
                         a =>
                         {
                             Assert.Equal(0, a.Id.Index);
-                            Assert.Equal("A", a.Id.Name);
+                            AssertEqual("A", a.Id);
                             Assert.Equal("1", a.Value);
                         },
                         b =>
                         {
                             Assert.Equal(1, b.Id.Index);
-                            Assert.Equal("B", b.Id.Name);
+                            AssertEqual("B", b.Id);
                             Assert.Equal("2", b.Value);
                         },
                         c =>
                         {
                             Assert.Equal(2, c.Id.Index);
-                            Assert.Equal("C", c.Id.Name);
+                            AssertEqual("C", c.Id);
                             Assert.Equal("3", c.Value);
                         }
                     );
@@ -372,6 +378,12 @@ namespace Cesil.Tests
                     IEnumerable<string> enumerable = dyn;
                     Assert.Equal(new[] { "2", "3" }, enumerable);
 
+                    IEnumerable<dynamic> enumerableDyn = dyn;
+                    {
+                        var asInt = enumerableDyn.Select(i => (int)i).ToList();
+                        Assert.Equal(new[] { 2, 3 }, asInt);
+                    }
+
                     _DynamicRowRange_Cons1 c1 = dyn;
                     Assert.Equal(2, c1.One);
                     Assert.Equal(3, c1.Two);
@@ -390,13 +402,13 @@ namespace Cesil.Tests
                         b =>
                         {
                             Assert.Equal(0, b.Id.Index);
-                            Assert.Equal("B", b.Id.Name);
+                            AssertEqual("B", b.Id);
                             Assert.Equal("2", b.Value);
                         },
                         c =>
                         {
                             Assert.Equal(1, c.Id.Index);
-                            Assert.Equal("C", c.Id.Name);
+                            AssertEqual("C", c.Id);
                             Assert.Equal("3", c.Value);
                         }
                     );
@@ -418,6 +430,12 @@ namespace Cesil.Tests
                     IEnumerable<string> enumerable = dyn;
                     Assert.Equal(new[] { "1", "2" }, enumerable);
 
+                    IEnumerable<dynamic> enumerableDyn = dyn;
+                    {
+                        var asInt = enumerableDyn.Select(i => (int)i).ToList();
+                        Assert.Equal(new[] { 1, 2 }, asInt);
+                    }
+
                     _DynamicRowRange_Cons1 c1 = dyn;
                     Assert.Equal(1, c1.One);
                     Assert.Equal(2, c1.Two);
@@ -436,13 +454,13 @@ namespace Cesil.Tests
                         b =>
                         {
                             Assert.Equal(0, b.Id.Index);
-                            Assert.Equal("A", b.Id.Name);
+                            AssertEqual("A", b.Id);
                             Assert.Equal("1", b.Value);
                         },
                         c =>
                         {
                             Assert.Equal(1, c.Id.Index);
-                            Assert.Equal("B", c.Id.Name);
+                            AssertEqual("B", c.Id);
                             Assert.Equal("2", c.Value);
                         }
                     );
@@ -467,6 +485,12 @@ namespace Cesil.Tests
                         IEnumerable<string> enumerable = r;
                         Assert.Equal(new[] { "1", "2", "3" }, enumerable);
 
+                        IEnumerable<dynamic> enumerableDyn = r;
+                        {
+                            var asInt = enumerableDyn.Select(i => (int)i).ToList();
+                            Assert.Equal(new[] { 1, 2, 3 }, asInt);
+                        }
+
                         _DynamicRowRange_Cons1 c1 = r;
                         Assert.Equal(1, c1.One);
                         Assert.Equal(2, c1.Two);
@@ -485,19 +509,19 @@ namespace Cesil.Tests
                             a =>
                             {
                                 Assert.Equal(0, a.Id.Index);
-                                Assert.Equal("A", a.Id.Name);
+                                AssertEqual("A", a.Id);
                                 Assert.Equal("1", a.Value);
                             },
                             b =>
                             {
                                 Assert.Equal(1, b.Id.Index);
-                                Assert.Equal("B", b.Id.Name);
+                                AssertEqual("B", b.Id);
                                 Assert.Equal("2", b.Value);
                             },
                             c =>
                             {
                                 Assert.Equal(2, c.Id.Index);
-                                Assert.Equal("C", c.Id.Name);
+                                AssertEqual("C", c.Id);
                                 Assert.Equal("3", c.Value);
                             }
                         );
@@ -683,6 +707,20 @@ namespace Cesil.Tests
                     IEnumerable<string> e12 = subDyn12;
                     Assert.Equal(new[] { "1" }, e12);
                 }
+            }
+
+            // check both
+            static void AssertEqual(string expectedName, ColumnIdentifier ci)
+            {
+                Assert.Equal(expectedName, ci.Name);
+
+                var memName = ci.NameMemory;
+
+                Assert.True(Utils.AreEqual(expectedName.AsMemory(), memName));
+
+                var nameAgain = ci.NameMemory;
+
+                Assert.Equal(nameAgain, memName);
             }
         }
 

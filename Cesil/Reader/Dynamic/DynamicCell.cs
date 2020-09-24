@@ -107,13 +107,11 @@ namespace Cesil
             var byteConf = describer.GetDynamicCellParserFor(in ctx, Types.Byte);
             var charConf = describer.GetDynamicCellParserFor(in ctx, Types.Char);
             var dtConf = describer.GetDynamicCellParserFor(in ctx, Types.DateTime);
-            //var decConf = describer.GetDynamicCellParserFor(in ctx, Types.DecimalType);
             var doubleConf = describer.GetDynamicCellParserFor(in ctx, Types.Double);
             var shortConf = describer.GetDynamicCellParserFor(in ctx, Types.Short);
             var intConf = describer.GetDynamicCellParserFor(in ctx, Types.Int);
             var longConf = describer.GetDynamicCellParserFor(in ctx, Types.Long);
             var sbyteConf = describer.GetDynamicCellParserFor(in ctx, Types.SByte);
-            //var floatConf = describer.GetDynamicCellParserFor(in ctx, Types.FloatType);
             var stringConf = describer.GetDynamicCellParserFor(in ctx, Types.String);
             var ushortConf = describer.GetDynamicCellParserFor(in ctx, Types.UShort);
             var uintConf = describer.GetDynamicCellParserFor(in ctx, Types.UInt);
