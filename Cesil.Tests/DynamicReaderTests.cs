@@ -16,6 +16,26 @@ namespace Cesil.Tests
 {
     public class DynamicReaderTests
     {
+        [Fact]
+        public void SkipThenSpecial()
+        {
+            var CSV = "Column\r\n\",\"";
+
+            RunSyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader(CSV))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var row = Assert.Single(csv.ReadAll());
+
+                        Assert.Equal(",", (string)row.Column);
+                    }
+                }
+            );
+        }
+
         private sealed class _DynamicRowRange : DefaultTypeDescriber
         {
             private static readonly ConcurrentDictionary<string, DynamicRowConverter> Cache = new ConcurrentDictionary<string, DynamicRowConverter>();
@@ -7197,6 +7217,26 @@ loop:
         }
 
         // async tests
+
+        [Fact]
+        public async Task SkipThenSpecialAsync()
+        {
+            var CSV = "Column\r\n\",\"";
+
+            await RunAsyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader(CSV))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var row = Assert.Single(await csv.ReadAllAsync());
+
+                        Assert.Equal(",", (string)row.Column);
+                    }
+                }
+            );
+        }
 
         [Fact]
         public async Task DynamicRowStringLookupAsync()
