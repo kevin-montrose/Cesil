@@ -6,7 +6,7 @@ using BenchmarkDotNet.Attributes;
 
 namespace Cesil.Benchmark
 {
-    [BenchmarkCategory("Write")]
+    [BenchmarkCategory("Write", "ComparesLibraries")]
     public class WideRowWriteSyncBenchmark
     {
         [ParamsSource(nameof(KnownRowSet))]
