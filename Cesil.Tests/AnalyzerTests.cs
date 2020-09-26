@@ -772,6 +772,7 @@ namespace Cesil
     public class DynamicRow { }
     public class DynamicRowEnumerable<T> { }
     public class DynamicRowEnumerableNonGeneric { }
+    public class DynamicRowRange { }
     public class PassthroughRowEnumerable { }
     public class DefaultTypeDescriber { }
 

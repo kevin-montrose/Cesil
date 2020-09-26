@@ -23,7 +23,7 @@ namespace Cesil
         private readonly NonNull<string> _Name;
 
         private string? MemoizedName;
-        private readonly ReadOnlyMemory<char>? _NameMemory;
+        private ReadOnlyMemory<char>? _NameMemory;
 
         /// <summary>
         /// Whether this column has a known name.
@@ -67,14 +67,16 @@ namespace Cesil
         {
             get
             {
-                if(_NameMemory != null)
+                if (_NameMemory != null)
                 {
                     return _NameMemory.Value;
                 }
 
-                if(_Name.HasValue)
+                if (_Name.HasValue)
                 {
-                    return _Name.Value.AsMemory();
+                    _NameMemory = _Name.Value.AsMemory();
+
+                    return _NameMemory.Value;
                 }
 
                 return Throw.InvalidOperationException<ReadOnlyMemory<char>>($"{nameof(NameMemory)} is not set, check HasName before calling this");
@@ -182,17 +184,29 @@ namespace Cesil
         /// </summary>
         public override int GetHashCode()
         {
-            if (_Name.HasValue)
+            var ret = HashCode.Combine(nameof(ColumnIdentifier), Index);
+
+            ReadOnlyMemory<char>? mem = null;
+
+            if (_NameMemory.HasValue)
             {
-                return HashCode.Combine(nameof(ColumnIdentifier), Index, _Name);
+                mem = _NameMemory;
+            }
+            else if (_Name.HasValue)
+            {
+                mem = _Name.Value.AsMemory();
             }
 
-            if(_NameMemory != null)
+            if (mem != null)
             {
-                return HashCode.Combine(nameof(ColumnIdentifier), Index, _NameMemory.Value.Length);
+                var memVal = mem.Value.Span;
+                for (var i = 0; i < memVal.Length; i++)
+                {
+                    ret = HashCode.Combine(ret, memVal[i]);
+                }
             }
 
-            return HashCode.Combine(nameof(ColumnIdentifier), Index);
+            return ret;
         }
 
         /// <summary>

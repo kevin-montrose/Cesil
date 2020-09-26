@@ -5,12 +5,18 @@ namespace Cesil
     internal sealed class DynamicRowEnumeratorNonGeneric : IEnumerator
     {
         private readonly DynamicRow.DynamicColumnEnumerator Enumerator;
+        private readonly ITestableDisposable DependsOn;
+        private readonly int? Offset;
+        private readonly int? Length;
 
         public object? Current { get; private set; }
 
-        internal DynamicRowEnumeratorNonGeneric(DynamicRow row)
+        internal DynamicRowEnumeratorNonGeneric(DynamicRow row, ITestableDisposable dependsOn, int? offset, int? length)
         {
-            Enumerator = new DynamicRow.DynamicColumnEnumerator(row);
+            Enumerator = new DynamicRow.DynamicColumnEnumerator(row, offset, length);
+            DependsOn = dependsOn;
+            Offset = offset;
+            Length = length;
         }
 
         public bool MoveNext()
@@ -23,7 +29,9 @@ namespace Cesil
 
             var col = Enumerator.Current;
 
-            Current = Enumerator.Row.GetCellAt(col.Index);
+            var trueIx = col.Index + (Offset ?? 0);
+
+            Current = Enumerator.Row.GetCellAt(DependsOn, trueIx);
 
             return true;
         }

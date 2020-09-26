@@ -10,13 +10,15 @@ namespace Cesil
         internal readonly uint Generation;
         internal readonly DynamicRow Row;
         internal readonly int ColumnNumber;
+        internal readonly ITestableDisposable DependsOnDisposable;
 
         internal ITypeDescriber Converter => Row.Converter;
 
-        internal DynamicCell(DynamicRow row, int num)
+        internal DynamicCell(DynamicRow row, ITestableDisposable disposable, int num)
         {
             Row = row;
             Generation = row.Generation;
+            DependsOnDisposable = disposable;
             ColumnNumber = num;
         }
 
@@ -64,7 +66,7 @@ namespace Cesil
 
         internal Parser? GetParser(TypeInfo forType, out ReadContext ctx)
         {
-            var row = Row;
+            var row = SafeRowGet();
             var owner = row.Owner;
             var index = ColumnNumber;
             var converterInterface = Converter;
@@ -85,7 +87,7 @@ namespace Cesil
             var ret = Row;
             ret.AssertGenerationMatch(Generation);
 
-            DisposableHelper.AssertNotDisposedInternal(ret);
+            // not checking disposal here as it could be accessed, post visible disposal, via a DynamicRowRange
 
             return ret;
         }
@@ -105,13 +107,11 @@ namespace Cesil
             var byteConf = describer.GetDynamicCellParserFor(in ctx, Types.Byte);
             var charConf = describer.GetDynamicCellParserFor(in ctx, Types.Char);
             var dtConf = describer.GetDynamicCellParserFor(in ctx, Types.DateTime);
-            //var decConf = describer.GetDynamicCellParserFor(in ctx, Types.DecimalType);
             var doubleConf = describer.GetDynamicCellParserFor(in ctx, Types.Double);
             var shortConf = describer.GetDynamicCellParserFor(in ctx, Types.Short);
             var intConf = describer.GetDynamicCellParserFor(in ctx, Types.Int);
             var longConf = describer.GetDynamicCellParserFor(in ctx, Types.Long);
             var sbyteConf = describer.GetDynamicCellParserFor(in ctx, Types.SByte);
-            //var floatConf = describer.GetDynamicCellParserFor(in ctx, Types.FloatType);
             var stringConf = describer.GetDynamicCellParserFor(in ctx, Types.String);
             var ushortConf = describer.GetDynamicCellParserFor(in ctx, Types.UShort);
             var uintConf = describer.GetDynamicCellParserFor(in ctx, Types.UInt);

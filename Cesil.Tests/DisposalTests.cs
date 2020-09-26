@@ -18,6 +18,28 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class DisposalTests
     {
+        private sealed class _IDisposable_DynamicRowOwner : IDynamicRowOwner
+        {
+            public Options Options => Options.Default;
+
+            public object Context => null;
+
+            public NameLookup AcquireNameLookup()
+            => default;
+
+            public void ReleaseNameLookup() { }
+
+            public void Remove(DynamicRow row) { }
+
+            void IDelegateCache.AddDelegate<T, V>(T key, V cached) { }
+
+            bool IDelegateCache.TryGetDelegate<T, V>(T key, out V del)
+            {
+                del = default;
+                return false;
+            }
+        }
+
         private static IEnumerable<TypeInfo> ShouldThrowOnUseAfterDispose<TDisposeInterface>()
         {
             var disposeI = typeof(TDisposeInterface).GetTypeInfo();
@@ -285,9 +307,53 @@ namespace Cesil.Tests
                 {
                     IDisposable_EncodedColumnTracker();
                 }
+                else if (t == typeof(DynamicRowRange))
+                {
+                    IDisposable_DynamicRowRange();
+                }
                 else
                 {
                     throw new XunitException($"No test configured for .Dispose() on {t.Name}");
+                }
+            }
+
+            void IDisposable_DynamicRowRange()
+            {
+                // double dispose does not error
+                {
+                    var r = MakeDynamicRowRange();
+                    Assert.False(r.IsDisposed);
+                    r.Dispose();
+                    r.Dispose();
+                }
+
+                // assert throws after dispose
+                {
+                    var r = MakeDynamicRowRange();
+                    r.Dispose();
+                    Assert.Throws<ObjectDisposedException>(() => ((ITestableDisposable)r).AssertNotDisposed());
+                }
+
+                var testCases = 0;
+
+                // figure out how many _public_ methods need testing
+                int expectedTestCases;
+                {
+                    using (var a = MakeDynamicRowRange())
+                    {
+                        expectedTestCases = GetNumberExpectedDisposableTestCases(a);
+                    }
+                }
+
+                Assert.Equal(expectedTestCases, testCases);
+
+                // make an adapter that's "good to go"
+                static DynamicRowRange MakeDynamicRowRange()
+                {
+                    var row = new DynamicRow();
+                    row.Init(new _IDisposable_DynamicRowOwner(), 0, null, TypeDescribers.Default, false, null, 0, MemoryPool<char>.Shared);
+
+                    return new DynamicRowRange(row, 0, 0);
                 }
             }
 
@@ -296,6 +362,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var e = MakeEncodedColumnTracker();
+                    Assert.False(e.IsDisposed);
                     e.Dispose();
                     e.Dispose();
                 }
@@ -335,6 +402,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var a = MakeOrdererNames();
+                    Assert.False(a.IsDisposed);
                     a.Dispose();
                     a.Dispose();
                 }
@@ -369,6 +437,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var a = MakeEnumerator();
+                    Assert.False(a.IsDisposed);
                     a.Dispose();
                     a.Dispose();
                 }
@@ -439,6 +508,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var a = MakeLookupAdapter();
+                    Assert.False(a.IsDisposed);
                     a.Dispose();
                     a.Dispose();
                 }
@@ -476,6 +546,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var a = MakeAdapter();
+                    Assert.False(a.IsDisposed);
                     a.Dispose();
                     a.Dispose();
                 }
@@ -529,6 +600,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var a = MakeAdapter();
+                    Assert.False(a.IsDisposed);
                     a.Dispose();
                     a.Dispose();
                 }
@@ -574,6 +646,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var e = MakeEnumerator();
+                    Assert.False(e.IsDisposed);
                     e.Dispose();
                     e.Dispose();
                 }
@@ -640,6 +713,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var r = MakeReader();
+                    Assert.False(r.IsDisposed);
                     r.Dispose();
                     r.Dispose();
                 }
@@ -685,6 +759,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var w = MakeWriter();
+                    Assert.False(w.IsDisposed);
                     w.Dispose();
                     w.Dispose();
                 }
@@ -738,6 +813,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var r = MakeReader();
+                    Assert.False(r.IsDisposed);
                     r.Dispose();
                     r.Dispose();
                 }
@@ -783,6 +859,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var w = MakeWriter();
+                    Assert.False(w.IsDisposed);
                     w.Dispose();
                     w.Dispose();
                 }
@@ -836,6 +913,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var r = MakeReader();
+                    Assert.False((r as ITestableDisposable).IsDisposed);
                     r.Dispose();
                     r.Dispose();
                 }
@@ -935,6 +1013,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var r = MakeReader();
+                    Assert.False(r.IsDisposed);
                     r.Dispose();
                     r.Dispose();
                 }
@@ -983,6 +1062,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var w = MakeWriter();
+                    Assert.False((w as ITestableDisposable).IsDisposed);
                     w.Dispose();
                     w.Dispose();
                 }
@@ -1057,6 +1137,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var b = MakeBuffer();
+                    Assert.False(b.IsDisposed);
                     b.Dispose();
                     b.Dispose();
                 }
@@ -1098,6 +1179,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var b = MakeBuffer();
+                    Assert.False(b.IsDisposed);
                     b.Dispose();
                     b.Dispose();
                 }
@@ -1135,6 +1217,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var p = MakePartial();
+                    Assert.False(p.IsDisposed);
                     p.Dispose();
                     p.Dispose();
                 }
@@ -1172,6 +1255,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var d = MakeDetector();
+                    Assert.False(d.IsDisposed);
                     d.Dispose();
                     d.Dispose();
                 }
@@ -1216,6 +1300,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var r = MakeReader();
+                    Assert.False(r.IsDisposed);
                     r.Dispose();
                     r.Dispose();
                 }
@@ -1266,6 +1351,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var e = MakeEnumerator();
+                    Assert.False(e.IsDisposed);
                     e.Dispose();
                     e.Dispose();
                 }
@@ -1327,6 +1413,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var l = MakeLookup();
+                    Assert.False(l.IsDisposed);
                     l.Dispose();
                     l.Dispose();
                 }
@@ -1364,6 +1451,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var w = MakeWriter();
+                    Assert.False(w.IsDisposed);
                     w.Dispose();
                     w.Dispose();
                 }
@@ -1425,6 +1513,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var r = MakeReader();
+                    Assert.False((r as ITestableDisposable).IsDisposed);
                     r.Dispose();
                     r.Dispose();
                 }
@@ -1522,6 +1611,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var r = MakeRow();
+                    Assert.False(r.IsDisposed);
                     r.Dispose();
                     r.Dispose();
                 }
@@ -1549,7 +1639,10 @@ namespace Cesil.Tests
                 // make a reader that's "good to go"
                 static DynamicRow MakeRow()
                 {
-                    return new DynamicRow();
+                    var row = new DynamicRow();
+                    row.Init(new _IDisposable_DynamicRowOwner(), 0, null, TypeDescribers.Default, false, null, 0, MemoryPool<char>.Shared);
+
+                    return row;
                 }
             }
 
@@ -1559,6 +1652,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var r = MakeDynamicRowEnumerator();
+                    Assert.False((r as ITestableDisposable).IsDisposed);
                     r.Dispose();
                     r.Dispose();
                 }
@@ -1630,6 +1724,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var r = MakeEnumerable();
+                    Assert.False((r as ITestableDisposable).IsDisposed);
                     r.Dispose();
                     r.Dispose();
                 }
@@ -1688,6 +1783,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var w = MakeWriter();
+                    Assert.False((w as ITestableDisposable).IsDisposed);
                     w.Dispose();
                     w.Dispose();
                 }
@@ -1889,6 +1985,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var w = MakeAsyncEnumerableAdapter();
+                    Assert.False((w as ITestableAsyncDisposable).IsDisposed);
                     await w.DisposeAsync();
                     await w.DisposeAsync();
                 }
@@ -1950,6 +2047,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var w = MakeAsyncEnumerable();
+                    Assert.False((w as ITestableAsyncDisposable).IsDisposed);
                     await w.DisposeAsync();
                     await w.DisposeAsync();
                 }
@@ -2002,6 +2100,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var w = MakeWriter();
+                    Assert.False(w.IsDisposed);
                     await w.DisposeAsync();
                     await w.DisposeAsync();
                 }
@@ -2040,6 +2139,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var r = MakeReader();
+                    Assert.False(r.IsDisposed);
                     await r.DisposeAsync();
                     await r.DisposeAsync();
                 }
@@ -2078,6 +2178,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var r = MakeReader();
+                    Assert.False(r.IsDisposed);
                     await r.DisposeAsync();
                     await r.DisposeAsync();
                 }
@@ -2116,6 +2217,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var r = MakeWriter();
+                    Assert.False(r.IsDisposed);
                     await r.DisposeAsync();
                     await r.DisposeAsync();
                 }
@@ -2154,6 +2256,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var r = MakeReader();
+                    Assert.False((r as ITestableAsyncDisposable).IsDisposed);
                     await r.DisposeAsync();
                     await r.DisposeAsync();
                 }
@@ -2242,6 +2345,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var w = MakeWriter();
+                    Assert.False((w as ITestableAsyncDisposable).IsDisposed);
                     await w.DisposeAsync();
                     await w.DisposeAsync();
                 }
@@ -2314,6 +2418,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var r = MakeReader();
+                    Assert.False((r as ITestableAsyncDisposable).IsDisposed);
                     await r.DisposeAsync();
                     await r.DisposeAsync();
                 }
@@ -2402,6 +2507,7 @@ namespace Cesil.Tests
                 // double dispose does not error
                 {
                     var w = MakeWriter();
+                    Assert.False((w as ITestableAsyncDisposable).IsDisposed);
                     await w.DisposeAsync();
                     await w.DisposeAsync();
                 }

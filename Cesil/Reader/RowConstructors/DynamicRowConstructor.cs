@@ -32,13 +32,22 @@ namespace Cesil
         {
             if (checkPrealloc && prealloc is DynamicRow asObj)
             {
-                PreAlloced = asObj;
+                // dispose!  we're taking it now
                 asObj.Dispose();
+
+                // check if the _data_ is disposed
+                //   this thing could be semantically disposed by the data actually could be in use
+                //   which would be _bad_
+                if (asObj.OutstandingUsesOfData == 0)
+                {
+                    PreAlloced = asObj;
+
+                    return true;
+                }
             }
-            else
-            {
-                prealloc = PreAlloced = new DynamicRow();
-            }
+
+            // we don't have a usable row, make a new one
+            prealloc = PreAlloced = new DynamicRow();
 
             return true;
         }

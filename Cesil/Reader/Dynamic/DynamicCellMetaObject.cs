@@ -100,7 +100,6 @@ namespace Cesil
             var parserExp = parser.MakeExpression(dataSpanVar, readCtxVar, outVar);
             var assignRes = Expression.Assign(resVar, parserExp);
 
-
             statements.Add(assignRes);
 
             var invalidCallOp = Methods.Throw.InvalidOperationExceptionOfObject;
@@ -119,9 +118,8 @@ namespace Cesil
 
         private static Expression MakeAssertNotDisposedExpression(Expression exp)
         {
-            var row = Expression.Field(exp, Fields.DynamicCell.Row);
-            var cast = Expression.Convert(row, Types.ITestableDisposable);
-            var call = Expression.Call(Methods.DisposableHelper.AssertNotDisposed, cast);
+            var dependsOn = Expression.Field(exp, Fields.DynamicCell.DependsOnDisposable);
+            var call = Expression.Call(Methods.DisposableHelper.AssertNotDisposed, dependsOn);
 
             return call;
         }

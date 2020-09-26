@@ -1087,6 +1087,10 @@ namespace Cesil.Tests
                 {
                     msg = InvokeToString_DefaultMemoryPoolProvider();
                 }
+                else if (t == typeof(DynamicRowRange))
+                {
+                    msg = InvokeToString_DynamicRowRange();
+                }
                 else
                 {
                     Assert.True(false, $"No test for ToString() on {t}");
@@ -1110,6 +1114,21 @@ namespace Cesil.Tests
                 if (msg2 != null)
                 {
                     Assert.StartsWith(shouldStartWith, msg2);
+                }
+            }
+
+            static string InvokeToString_DynamicRowRange()
+            {
+                var config = Configuration.ForDynamic(Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions());
+
+                using (var str = new StringReader("foo,bar,buzz"))
+                using (var csv = config.CreateReader(str))
+                {
+                    var res = csv.ReadAll();
+                    var row = res[0];
+                    var subRange = row[1..2];
+
+                    return (subRange as DynamicRowRange).ToString();
                 }
             }
 
@@ -1227,7 +1246,7 @@ namespace Cesil.Tests
                     var res = csv.ReadAll();
                     var row = res[0] as DynamicRow;
 
-                    var e = new DynamicRow.DynamicColumnEnumerable(row);
+                    var e = new DynamicRow.DynamicColumnEnumerable(row, null, null);
 
                     return e.ToString();
                 }
@@ -1243,7 +1262,7 @@ namespace Cesil.Tests
                     var res = csv.ReadAll();
                     var row = res[0] as DynamicRow;
 
-                    using (var e = new DynamicRow.DynamicColumnEnumerator(row))
+                    using (var e = new DynamicRow.DynamicColumnEnumerator(row, null, null))
                     {
                         return e.ToString();
                     }
