@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Cesil.Benchmark": {
+      "commandName": "Project",
+      "commandLineArgs": "-g https://github.com/kevin-montrose/Cesil.git -b benchmark-improvements -c CsvHelper -j ComparesLibraries -d false -t false -o C:\\Users\\kmontrose\\Dropbox\\Cesil\\BenchmarkResults\\Summary.csv"
+    }
+  }
+}

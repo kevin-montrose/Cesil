@@ -8,7 +8,7 @@ using BenchmarkDotNet.Attributes;
 
 namespace Cesil.Benchmark
 {
-    [BenchmarkCategory("Read")]
+    [BenchmarkCategory("Read", "ComparesLibraries")]
     public class NarrowRowReadSyncBenchmark
     {
         [ParamsSource(nameof(KnownTypes))]
