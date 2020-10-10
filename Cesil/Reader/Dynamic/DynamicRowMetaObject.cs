@@ -81,7 +81,7 @@ namespace Cesil
 
             DynamicRowConverter? converter;
             BindingRestrictions restrictions;
-            
+
             if (isIDisposable)
             {
                 converter = null;

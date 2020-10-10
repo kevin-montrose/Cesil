@@ -48,7 +48,7 @@ namespace Cesil.Tests
                     var range2 = row[1..];
 
                     using (var writer = getWriter())
-                    using(var csv = config.CreateWriter(writer))
+                    using (var csv = config.CreateWriter(writer))
                     {
                         csv.Write(range1);
                         csv.Write(range2);

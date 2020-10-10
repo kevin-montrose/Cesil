@@ -49,7 +49,7 @@ namespace Cesil
 
                 var values = Enum.GetValues(enumType);
                 var ret = new ulong[values.Length];
-                for(var i = 0; i < values.Length; i++)
+                for (var i = 0; i < values.Length; i++)
                 {
                     var obj = values.GetValue(i);
                     obj = Utils.NonNull(obj);
@@ -173,7 +173,7 @@ namespace Cesil
 
             private static bool TryParseFlagsEnum(ReadOnlySpan<char> data, in ReadContext _, out T val)
             {
-                if(!Utils.TryParseFlagsEnum(data, Names, ULongValues, out val))
+                if (!Utils.TryParseFlagsEnum(data, Names, ULongValues, out val))
                 {
 #pragma warning disable CES0005     // T is generic, so we can't annotate it, but it needs a default value
                     val = default!;

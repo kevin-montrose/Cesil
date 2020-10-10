@@ -2,7 +2,6 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Linq;
 using System.Reflection;
 
 using static Cesil.BindingFlagsConstants;
@@ -51,7 +50,7 @@ namespace Cesil
                 var names = CreateNames();
 
                 var maxLen = -1;
-                for(var i = 0; i < names.Length; i++)
+                for (var i = 0; i < names.Length; i++)
                 {
                     maxLen = Math.Max(maxLen, names[i].Length);
                 }

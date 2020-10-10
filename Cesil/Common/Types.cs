@@ -174,7 +174,7 @@ namespace Cesil
         internal static readonly TypeInfo DynamicRowRange = typeof(DynamicRowRange).GetTypeInfo();
         internal static readonly TypeInfo PassthroughRowEnumerable = typeof(PassthroughRowEnumerable).GetTypeInfo();
         internal static readonly TypeInfo DefaultTypeDescriber = typeof(DefaultTypeDescriber).GetTypeInfo();
-        
+
         // constructor params
         internal static readonly TypeInfo[] ParserConstructorOneParameter_Array = new[] { typeof(ReadOnlySpan<char>).GetTypeInfo() };
         internal static readonly TypeInfo[] ParserConstructorTwoParameter_Array = new[] { typeof(ReadOnlySpan<char>).GetTypeInfo(), typeof(ReadContext).MakeByRefType().GetTypeInfo() };

@@ -1260,7 +1260,7 @@ namespace Cesil.Tests
 
             // test that Utils produces the right value
             static void Check<T>(T val, ulong expected)
-                where T: struct, Enum
+                where T : struct, Enum
             {
                 var res = Utils.EnumToULong<T>(val);
                 Assert.Equal(expected, res);
@@ -1299,12 +1299,12 @@ namespace Cesil.Tests
 
             // DRY up the test a bit
             static void Test<T>(T enumValue, string[] names, ulong[] values, bool expectedBool)
-                where T: struct, Enum
+                where T : struct, Enum
             {
                 var expectedText = enumValue.ToString();
                 Span<char> span = default;
 
-                tryAgain:
+tryAgain:
                 var res = Utils.TryFormatFlagsEnum(enumValue, names, values, span);
                 if (res == 0)
                 {
@@ -1314,7 +1314,7 @@ namespace Cesil.Tests
                 else if (res > 0)
                 {
                     // it fit!
-                    
+
                     var actualText = new string(span);
                     Assert.Equal(expectedText, actualText);
                 }

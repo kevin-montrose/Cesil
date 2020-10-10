@@ -255,7 +255,7 @@ namespace Cesil.Benchmark
 
                 foreach (var commit in validCommits)
                 {
-                    if(!results.TryGetValue(commit, out var res))
+                    if (!results.TryGetValue(commit, out var res))
                     {
                         res = new List<BenchmarkResultRow>();
                     }
@@ -553,7 +553,7 @@ runBenchmark:
                             try
                             {
                                 string line;
-                                while((line = proc.StandardOutput.ReadLine()) != null)
+                                while ((line = proc.StandardOutput.ReadLine()) != null)
                                 {
                                     if (!string.IsNullOrEmpty(line))
                                     {

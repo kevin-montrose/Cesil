@@ -305,7 +305,7 @@ namespace Cesil.Tests
 
                 Assert.True(del("foo", default, out var v4));
                 Assert.Equal(_TestEnum.Foo, v4);
-                
+
                 Assert.False(del("Fizz", default, out _));
 
                 Assert.False(del("123", default, out _));

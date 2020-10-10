@@ -10,7 +10,7 @@ namespace Cesil
         // this checks that reusing the underlying DynamicRow will
         //   cause a generation check failure
         private readonly DynamicRow.DynamicColumnEnumerator Enumerator;
-        ITestableDisposable DependsOn;
+        private ITestableDisposable DependsOn;
         private readonly int? Offset;
         private readonly int? Length;
 

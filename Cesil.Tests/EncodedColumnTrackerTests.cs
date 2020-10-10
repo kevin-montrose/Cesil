@@ -90,7 +90,7 @@ namespace Cesil.Tests
         [Fact]
         public void Simple()
         {
-            var TEST_DATA = 
+            var TEST_DATA =
                 new[]
                 {
                     // test 1
@@ -178,7 +178,7 @@ namespace Cesil.Tests
             {
                 var len = r.Next(25);
                 var chars = new char[len];
-                for(var i = 0; i < len; i++)
+                for (var i = 0; i < len; i++)
                 {
                     var c1 = r.Next(char.MaxValue + 1);
                     chars[i] = (char)c1;
