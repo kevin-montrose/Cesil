@@ -1,4 +1,14 @@
-﻿namespace Cesil.Tests
+﻿#if DEBUG
+using System;
+using System.Buffers;
+using System.IO.Pipelines;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Xunit;
+#endif
+
+namespace Cesil.Tests
 {
     public class PipeReaderAdapterTests
     {
