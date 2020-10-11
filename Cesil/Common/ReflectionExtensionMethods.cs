@@ -329,8 +329,9 @@ namespace Cesil
         {
             var declNull = cons.DeclaringType;
 
-            // technically possible, but fantastically hard to do in C#
-            // todo: find a way to test this? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/3)
+            // this is basically impossible, BUT if something has caused a constructor
+            //   to be defined in the fake-ish <Module> type in an assembly it will
+            //   happen
             if (declNull == null)
             {
                 return Throw.InvalidOperationException<TypeInfo>($"Could not find declaring type for {cons}");
@@ -343,8 +344,8 @@ namespace Cesil
         {
             var declNull = mtd.DeclaringType;
 
-            // technically possible, but fantastically hard to do in C#
-            // todo: find a way to test this? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/3)
+            // this happens if the method is declared as part of a _module_ but not a type
+            //   which is weird, but legal, so check for it
             if (declNull == null)
             {
                 return Throw.InvalidOperationException<TypeInfo>($"Could not find declaring type for {mtd}");
@@ -357,8 +358,8 @@ namespace Cesil
         {
             var declNull = field.DeclaringType;
 
-            // technically possible, but fantastically hard to do in C#
-            // todo: find a way to test this? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/3)
+            // this happens if the field is declared as part of a _module_
+            //   which is weird, but legal, so check for it
             if (declNull == null)
             {
                 return Throw.InvalidOperationException<TypeInfo>($"Could not find declaring type for {field}");
@@ -441,8 +442,8 @@ namespace Cesil
         {
             var type = builder.CreateTypeInfo();
 
-            // is this ever really possible?
-            // todo: find a way to test (tracking issue: https://github.com/kevin-montrose/Cesil/issues/3)
+            // this is possible if the TypeBuilder is making the <Module> type in the assembly
+            //   which is craaaaazy unlikely but technically possible
             if (type == null)
             {
                 return Throw.InvalidOperationException<TypeInfo>($"Created type was null");
