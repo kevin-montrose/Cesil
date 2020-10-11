@@ -282,7 +282,7 @@ namespace Cesil
 
                 var config = Setters[setterNumber.Value];
 
-                var ctx = ReadContext.ReadingColumn(options, rowNumber, ColumnIdentifier.CreateInner(columnNumber, config.Name), context);
+                var ctx = ReadContext.ReadingColumn(options, rowNumber, ColumnIdentifier.CreateInner(columnNumber, config.Name, null), context);
 
                 if (config.Required == MemberRequired.Yes && data.Length == 0)
                 {

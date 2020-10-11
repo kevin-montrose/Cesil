@@ -14,11 +14,11 @@ namespace Cesil
         AsyncWriterBase<dynamic>,
         IDelegateCache
     {
-        internal new bool IsFirstRow => !ColumnNames.HasValue;
+        internal new bool IsFirstRow => ColumnNames == null;
 
         private NonNull<Comparison<DynamicCellValue>> ColumnNameSorter;
 
-        private NonNull<(string Name, string EncodedName)[]> ColumnNames;
+        private EncodedColumnTracker? ColumnNames;
 
         private readonly object[] DynamicArgumentsBuffer = new object[3];
 
@@ -82,10 +82,10 @@ namespace Cesil
 
                 var cellValues = Utils.GetCells(Configuration.DynamicMemoryPool, ref CellBuffer, typeDescriber, in wholeRowContext, row as object);
 
-                Utils.ForceInOrder(ColumnNames.Value, ColumnNameSorter, cellValues);
-                var cellValuesInOrderSpan = cellValues.Span;
+                var columnNamesValue = Utils.NonNullValue(ColumnNames);
 
-                var columnNamesValue = ColumnNames.Value;
+                Utils.ForceInOrder(columnNamesValue, ColumnNameSorter, cellValues);
+                var cellValuesInOrderSpan = cellValues.Span;
 
                 for (var i = 0; i < cellValuesInOrderSpan.Length; i++)
                 {
@@ -105,7 +105,8 @@ namespace Cesil
                     ColumnIdentifier ci;
                     if (i < columnNamesValue.Length)
                     {
-                        ci = ColumnIdentifier.CreateInner(i, columnNamesValue[i].Name);
+                        var name = columnNamesValue.GetColumnAt(i);
+                        ci = ColumnIdentifier.CreateInner(i, null, name);
                     }
                     else
                     {
@@ -164,9 +165,9 @@ end:
 
                     var cellValues = Utils.GetCells(self.Configuration.DynamicMemoryPool, ref self.CellBuffer, typeDescriber, in wholeRowContext, row as object);
 
-                    Utils.ForceInOrder(self.ColumnNames.Value, self.ColumnNameSorter, cellValues);
+                    var selfColumnNamesValue = Utils.NonNullValue(self.ColumnNames);
 
-                    var selfColumnNamesValue = self.ColumnNames.Value;
+                    Utils.ForceInOrder(selfColumnNamesValue, self.ColumnNameSorter, cellValues);
 
                     for (var i = 0; i < cellValues.Length; i++)
                     {
@@ -183,7 +184,8 @@ end:
                         ColumnIdentifier ci;
                         if (i < selfColumnNamesValue.Length)
                         {
-                            ci = ColumnIdentifier.CreateInner(i, selfColumnNamesValue[i].Name);
+                            var name = selfColumnNamesValue.GetColumnAt(i);
+                            ci = ColumnIdentifier.CreateInner(i, null, name);
                         }
                         else
                         {
@@ -234,14 +236,15 @@ end:
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
 
-                    var selfColumnNamesValue = self.ColumnNames.Value;
+                    var selfColumnNamesValue = Utils.NonNullValue(self.ColumnNames);
 
                     // finish the loop
                     {
                         ColumnIdentifier ci;
                         if (i < selfColumnNamesValue.Length)
                         {
-                            ci = ColumnIdentifier.CreateInner(i, selfColumnNamesValue[i].Name);
+                            var name = selfColumnNamesValue.GetColumnAt(i);
+                            ci = ColumnIdentifier.CreateInner(i, null, name);
                         }
                         else
                         {
@@ -288,7 +291,8 @@ end:
                         ColumnIdentifier ci;
                         if (i < selfColumnNamesValue.Length)
                         {
-                            ci = ColumnIdentifier.CreateInner(i, selfColumnNamesValue[i].Name);
+                            var name = selfColumnNamesValue.GetColumnAt(i);
+                            ci = ColumnIdentifier.CreateInner(i, null, name);
                         }
                         else
                         {
@@ -346,7 +350,7 @@ end:
                         i++;
                     }
 
-                    var selfColumnNamesValue = self.ColumnNames.Value;
+                    var selfColumnNamesValue = Utils.NonNullValue(self.ColumnNames);
 
                     // resume
                     for (; i < e.Length; i++)
@@ -360,7 +364,8 @@ end:
                         ColumnIdentifier ci;
                         if (i < selfColumnNamesValue.Length)
                         {
-                            ci = ColumnIdentifier.CreateInner(i, selfColumnNamesValue[i].Name);
+                            var name = selfColumnNamesValue.GetColumnAt(i);
+                            ci = ColumnIdentifier.CreateInner(i, null, name);
                         }
                         else
                         {
@@ -848,7 +853,7 @@ end:
             if (Configuration.Options.WriteHeader == WriteHeader.Never)
             {
                 // nothing to write, so bail
-                ColumnNames.Value = Array.Empty<(string, string)>();
+                ColumnNames = default(EncodedColumnTracker);
                 return new ValueTask<bool>(false);
             }
 
@@ -874,8 +879,7 @@ end:
 
         private void DiscoverColumns(dynamic o)
         {
-            // todo: remove this allocation (tracking issue: https://github.com/kevin-montrose/Cesil/issues/30)
-            var cols = new List<(string TrueName, string EncodedName)>();
+            var cols = new EncodedColumnTracker();
 
             var ctx = WriteContext.DiscoveringColumns(Configuration.Options, Context);
 
@@ -902,10 +906,10 @@ end:
                     encodedColName = Utils.Encode(encodedColName, options, Configuration.MemoryPool);
                 }
 
-                cols.Add((colName, encodedColName));
+                cols.Add(colName, encodedColName, Configuration.MemoryPool);
             }
 
-            ColumnNames.Value = cols.ToArray();
+            ColumnNames = cols;
 
             ColumnNameSorter.Value =
                 (a, b) =>
@@ -914,14 +918,17 @@ end:
                     int aIx = -1, bIx = -1;
                     for (var i = 0; i < columnNamesValue.Length; i++)
                     {
-                        var colName = columnNamesValue[i].Name;
-                        if (colName.Equals(a.Name))
+                        var colName = columnNamesValue.GetColumnAt(i);
+
+                        var eqA = Utils.AreEqual(colName, a.Name.AsMemory());
+                        if (eqA)
                         {
                             aIx = i;
                             if (bIx != -1) break;
                         }
 
-                        if (colName.Equals(b.Name))
+                        var eqB = Utils.AreEqual(colName, b.Name.AsMemory());
+                        if (eqB)
                         {
                             bIx = i;
                             if (aIx != -1) break;
@@ -936,7 +943,7 @@ end:
         {
             var valueSeparator = Configuration.ValueSeparatorMemory;
 
-            var columnNamesValue = ColumnNames.Value;
+            var columnNamesValue = Utils.NonNullValue(ColumnNames);
             for (var i = 0; i < columnNamesValue.Length; i++)
             {
                 if (i != 0)
@@ -964,11 +971,11 @@ end:
                     }
                 }
 
-                var colName = columnNamesValue[i].EncodedName;
+                var encodedColName = columnNamesValue.GetEncodedColumnAt(i);
 
                 // can colName is always gonna be encoded correctly, because we just discovered them
                 //   (ie. they're always correct for this config)
-                var placeInStagingTask = PlaceAllInStagingAsync(colName.AsMemory(), cancellationToken);
+                var placeInStagingTask = PlaceAllInStagingAsync(encodedColName, cancellationToken);
                 if (!placeInStagingTask.IsCompletedSuccessfully(this))
                 {
                     return WriteHeadersAsync_ContinueAfterPlaceInStagingAsync(this, placeInStagingTask, valueSeparator, i, cancellationToken);
@@ -983,15 +990,15 @@ end:
             {
                 await ConfigureCancellableAwait(self, waitFor, cancellationToken);
 
-                var selfColumnNamesValue = self.ColumnNames.Value;
+                var selfColumnNamesValue = Utils.NonNullValue(self.ColumnNames);
 
                 // finish the loop
                 {
-                    var colName = selfColumnNamesValue[i].EncodedName;
+                    var encodedColName = selfColumnNamesValue.GetEncodedColumnAt(i);
 
                     // can colName is always gonna be encoded correctly, because we just discovered them
                     //   (ie. they're always correct for this config)
-                    var placeTask = self.PlaceAllInStagingAsync(colName.AsMemory(), cancellationToken);
+                    var placeTask = self.PlaceAllInStagingAsync(encodedColName, cancellationToken);
                     await ConfigureCancellableAwait(self, placeTask, cancellationToken);
 
                     i++;
@@ -1003,11 +1010,11 @@ end:
                     var secondPlaceTask = self.PlaceAllInStagingAsync(valueSeparator, cancellationToken);
                     await ConfigureCancellableAwait(self, secondPlaceTask, cancellationToken);
 
-                    var colName = selfColumnNamesValue[i].EncodedName;
+                    var encodedColName = selfColumnNamesValue.GetEncodedColumnAt(i);
 
                     // can colName is always gonna be encoded correctly, because we just discovered them
                     //   (ie. they're always correct for this config)
-                    var thirdPlaceTask = self.PlaceAllInStagingAsync(colName.AsMemory(), cancellationToken);
+                    var thirdPlaceTask = self.PlaceAllInStagingAsync(encodedColName, cancellationToken);
                     await ConfigureCancellableAwait(self, thirdPlaceTask, cancellationToken);
                 }
             }
@@ -1016,7 +1023,7 @@ end:
             {
                 await ConfigureCancellableAwait(self, waitFor, cancellationToken);
 
-                var selfColumnNamesValue = self.ColumnNames.Value;
+                var selfColumnNamesValue = Utils.NonNullValue(self.ColumnNames);
 
                 i++;
 
@@ -1026,11 +1033,11 @@ end:
                     var placeTask = self.PlaceAllInStagingAsync(valueSeparator, cancellationToken);
                     await ConfigureCancellableAwait(self, placeTask, cancellationToken);
 
-                    var colName = selfColumnNamesValue[i].EncodedName;
+                    var encodedColName = selfColumnNamesValue.GetEncodedColumnAt(i);
 
                     // can colName is always gonna be encoded correctly, because we just discovered them
                     //   (ie. they're always correct for this config)
-                    var secondPlaceTask = self.PlaceAllInStagingAsync(colName.AsMemory(), cancellationToken);
+                    var secondPlaceTask = self.PlaceAllInStagingAsync(encodedColName, cancellationToken);
                     await ConfigureCancellableAwait(self, secondPlaceTask, cancellationToken);
                 }
             }
@@ -1094,6 +1101,7 @@ end:
                     Buffer.Dispose();
 
                     CellBuffer?.Dispose();
+                    ColumnNames?.Dispose();
                 }
                 catch (Exception e)
                 {
@@ -1112,6 +1120,7 @@ end:
 
                     Buffer.Dispose();
                     CellBuffer?.Dispose();
+                    ColumnNames?.Dispose();
 
                     return Throw.PoisonAndRethrow<ValueTask>(this, e);
                 }
@@ -1156,6 +1165,7 @@ end:
                     self.Buffer.Dispose();
 
                     self.CellBuffer?.Dispose();
+                    self.ColumnNames?.Dispose();
                 }
                 catch (Exception e)
                 {
@@ -1174,6 +1184,7 @@ end:
 
                     self.Buffer.Dispose();
                     self.CellBuffer?.Dispose();
+                    self.ColumnNames?.Dispose();
 
                     Throw.PoisonAndRethrow<object>(self, e);
                 }
@@ -1207,8 +1218,10 @@ end:
                         self.OneCharOwner.Value.Dispose();
                         self.OneCharOwner.Clear();
                     }
+
                     self.Buffer.Dispose();
                     self.CellBuffer?.Dispose();
+                    self.ColumnNames?.Dispose();
                 }
                 catch (Exception e)
                 {
@@ -1227,6 +1240,7 @@ end:
 
                     self.Buffer.Dispose();
                     self.CellBuffer?.Dispose();
+                    self.ColumnNames?.Dispose();
 
                     Throw.PoisonAndRethrow<object>(self, e);
                 }
@@ -1253,6 +1267,7 @@ end:
 
                     self.Buffer.Dispose();
                     self.CellBuffer?.Dispose();
+                    self.ColumnNames?.Dispose();
                 }
                 catch (Exception e)
                 {
@@ -1271,6 +1286,7 @@ end:
 
                     self.Buffer.Dispose();
                     self.CellBuffer?.Dispose();
+                    self.ColumnNames?.Dispose();
 
                     Throw.PoisonAndRethrow<object>(self, e);
                 }
@@ -1290,6 +1306,7 @@ end:
 
                     self.Buffer.Dispose();
                     self.CellBuffer?.Dispose();
+                    self.ColumnNames?.Dispose();
                 }
                 catch (Exception e)
                 {
@@ -1301,6 +1318,7 @@ end:
 
                     self.Buffer.Dispose();
                     self.CellBuffer?.Dispose();
+                    self.ColumnNames?.Dispose();
 
                     Throw.PoisonAndRethrow<object>(self, e);
                 }

@@ -11,6 +11,57 @@
               otherwise pointless attribute ourselves.
             </summary>
         </member>
+        <member name="T:Cesil.EncodedColumnTracker">
+            <summary>
+            Helper for tracking column names.  Stores two versions if the 
+              column name needed to be encoded, otherwise just stores one.
+              
+            Backed by a Memory(char), low offsets have string data and high offsets
+               have pointers into the slab.
+               
+            Data
+            ----
+             (string data 0)
+             (string data 1)
+             (string data 2)
+             ...
+             (index of string 2) 
+             (index of string 1)
+             (index of string 0)
+             
+            We store indexes in reverse order so both data and indexes can grow towards
+              the center.
+              
+            If index is positive, the name is only stored once (ie. encoded and unencoded are the same)
+              if it is negative then we store encoded first then unencoded.  We also increment indexes by 1 
+              (before any negation) so we can distinguish between 0 and -0.
+            
+            The length of the total chunk of string data can be figured out from available memory and the
+              offset of the following string data chunk (if any).  If the encoded and unencoded string are the
+              same, then the string is just the data.  If they are different, then the unencoded string appears
+              first and prefixed by an int with it's length - the encoded string is not prefixed with it's length.
+              
+            All and all, this means that for the common case where column is not encoded this will only
+              store (1 int + the char data).
+            </summary>
+        </member>
+        <member name="M:Cesil.Utils.TryFormatFlagsEnum``1(``0,System.String[],System.UInt64[],System.Span{System.Char})">
+            <summary>
+            This is _like_ calling ToString(), but it doesn't allow values
+            that aren't actually declared on the enum.
+            
+            Since copyInto might not be big enough, can return the following values:
+             * 0, if flagsEnum was invalid
+             * greater than 0, length of the value that did fit into copyInto
+             * less than 0, the negated length of a value that didn't fit into copyInto
+            </summary>
+        </member>
+        <member name="M:Cesil.Utils.TryParseFlagsEnum``1(System.ReadOnlySpan{System.Char},System.String[],System.UInt64[],``0@)">
+            <summary>
+            This is _like_ calling TryParse(), but it doesn't allow values
+            that aren't actually declared on the enum.
+            </summary>
+        </member>
         <member name="M:Cesil.BoundConfigurationBase`1.#ctor(System.Buffers.MemoryPool{System.Char},System.Buffers.MemoryPool{Cesil.DynamicCellValue})">
             <summary>
             For some testing scenarios.
@@ -813,6 +864,12 @@
             <summary>
             Identifies a particular column, either by index or 
               index and name.
+              
+            A ColumnIdentifier is only valid for as long as the 
+              values used to construct it.  Accordingly, you should
+              be careful when storing ColumnIdentifiers that you did
+              not create yourself as they may have been created with
+              ReadOnlyMemory(char)s whose lifetime you do not control.
             </summary>
         </member>
         <member name="P:Cesil.ColumnIdentifier.Index">
@@ -827,7 +884,18 @@
         </member>
         <member name="P:Cesil.ColumnIdentifier.Name">
             <summary>
-            The name of the column.
+            The name of the column, as a string.
+            
+            Easier to work with than NameMemory, but this may allocate.
+            
+            If HasName is false, this will throw an exception.
+            </summary>
+        </member>
+        <member name="P:Cesil.ColumnIdentifier.NameMemory">
+            <summary>
+            The name of the column, as a block of memory.
+            
+            More awkward to work with than Name, but will not allocate.
             
             If HasName is false, this will throw an exception.
             </summary>
@@ -838,6 +906,11 @@
             </summary>
         </member>
         <member name="M:Cesil.ColumnIdentifier.Create(System.Int32,System.String)">
+            <summary>
+            Create a ColumnIdentifier for the given index and name.
+            </summary>
+        </member>
+        <member name="M:Cesil.ColumnIdentifier.Create(System.Int32,System.ReadOnlyMemory{System.Char})">
             <summary>
             Create a ColumnIdentifier for the given index and name.
             </summary>

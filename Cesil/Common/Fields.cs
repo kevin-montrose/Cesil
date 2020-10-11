@@ -17,7 +17,15 @@ namespace Cesil
 
         internal static class DynamicCell
         {
-            internal static readonly FieldInfo Row = Types.DynamicCell.GetFieldNonNull(nameof(Cesil.DynamicCell.Row), InternalInstance);
+            internal static readonly FieldInfo DependsOnDisposable = Types.DynamicCell.GetFieldNonNull(nameof(Cesil.DynamicCell.DependsOnDisposable), InternalInstance);
+        }
+
+        internal static class DynamicRowRange
+        {
+            internal static readonly FieldInfo Columns = Types.DynamicRowRange.GetFieldNonNull(nameof(Cesil.DynamicRowRange.Columns), InternalInstance);
+            internal static readonly FieldInfo Length = Types.DynamicRowRange.GetFieldNonNull(nameof(Cesil.DynamicRowRange.Length), InternalInstance);
+            internal static readonly FieldInfo Offset = Types.DynamicRowRange.GetFieldNonNull(nameof(Cesil.DynamicRowRange.Offset), InternalInstance);
+            internal static readonly FieldInfo Parent = Types.DynamicRowRange.GetFieldNonNull(nameof(Cesil.DynamicRowRange.Parent), InternalInstance);
         }
     }
 }

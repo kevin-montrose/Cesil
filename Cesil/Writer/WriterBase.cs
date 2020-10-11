@@ -185,7 +185,7 @@ namespace Cesil
             WriteContexts = new WriteContext[Columns.Length];
             for (var i = 0; i < WriteContexts.Length; i++)
             {
-                WriteContexts[i] = WriteContext.WritingColumn(Configuration.Options, 0, ColumnIdentifier.CreateInner(i, Columns[i].Name), Context);
+                WriteContexts[i] = WriteContext.WritingColumn(Configuration.Options, 0, ColumnIdentifier.CreateInner(i, Columns[i].Name, null), Context);
             }
         }
     }

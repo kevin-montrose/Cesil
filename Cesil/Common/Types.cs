@@ -44,6 +44,7 @@ namespace Cesil
                 typeof(ValueTuple<,,,,,,,>).GetTypeInfo()
            };
         internal static readonly TypeInfo ReadOnlySpanOfChar = typeof(ReadOnlySpan<char>).GetTypeInfo();
+        internal static readonly TypeInfo NullableInt = typeof(int?).GetTypeInfo();
 
         // System classes
         internal static readonly TypeInfo Object = typeof(object).GetTypeInfo();
@@ -170,6 +171,7 @@ namespace Cesil
         internal static readonly TypeInfo DynamicRow = typeof(DynamicRow).GetTypeInfo();
         internal static readonly TypeInfo DynamicRowEnumerable = typeof(DynamicRowEnumerable<>).GetTypeInfo();
         internal static readonly TypeInfo DynamicRowEnumerableNonGeneric = typeof(DynamicRowEnumerableNonGeneric).GetTypeInfo();
+        internal static readonly TypeInfo DynamicRowRange = typeof(DynamicRowRange).GetTypeInfo();
         internal static readonly TypeInfo PassthroughRowEnumerable = typeof(PassthroughRowEnumerable).GetTypeInfo();
         internal static readonly TypeInfo DefaultTypeDescriber = typeof(DefaultTypeDescriber).GetTypeInfo();
 

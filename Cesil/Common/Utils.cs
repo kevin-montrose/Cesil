@@ -58,7 +58,26 @@ namespace Cesil
             if (skip == 0) return mem;
             if (skip == len) return ReadOnlyMemory<char>.Empty;
 
-            return mem.Slice(skip);
+            return mem[skip..];
+        }
+
+        internal static ReadOnlySpan<char> TrimLeadingWhitespace(ReadOnlySpan<char> span)
+        {
+            var skip = 0;
+            var len = span.Length;
+
+            while (skip < len)
+            {
+                var c = span[skip];
+                if (!char.IsWhiteSpace(c)) break;
+
+                skip++;
+            }
+
+            if (skip == 0) return span;
+            if (skip == len) return ReadOnlySpan<char>.Empty;
+
+            return span[skip..];
         }
 
         internal static ReadOnlyMemory<char> TrimTrailingWhitespace(ReadOnlyMemory<char> mem)
@@ -80,7 +99,27 @@ namespace Cesil
             if (skip == -1) return ReadOnlyMemory<char>.Empty;
 
 
-            return mem.Slice(0, skip + 1);
+            return mem[0..(skip + 1)];
+        }
+
+        internal static ReadOnlySpan<char> TrimTrailingWhitespace(ReadOnlySpan<char> span)
+        {
+            var len = span.Length;
+            var start = len - 1;
+            var skip = start;
+
+            while (skip >= 0)
+            {
+                var c = span[skip];
+                if (!char.IsWhiteSpace(c)) break;
+
+                skip--;
+            }
+
+            if (skip == start) return span;
+            if (skip == -1) return ReadOnlySpan<char>.Empty;
+
+            return span[0..(skip + 1)];
         }
 
         internal static bool IsLegalFlagEnum<T>(T e)
@@ -822,7 +861,7 @@ tryAgain:
         }
 
         internal static void ForceInOrder(
-            (string Name, string EncodedName)[] columnNamesValue,
+            EncodedColumnTracker columnNamesValue,
             NonNull<Comparison<DynamicCellValue>> columnNameSorter,
             Memory<DynamicCellValue> raw
         )
@@ -846,8 +885,9 @@ tryAgain:
                     return;
                 }
 
-                var (name, _) = columnNamesValue[i];
-                if (!name.Equals(x.Name))
+                var name = columnNamesValue.GetColumnAt(i);
+                var eq = AreEqual(name, x.Name.AsMemory());
+                if (!eq)
                 {
                     inOrder = false;
                     break;
@@ -1048,6 +1088,289 @@ tryAgain:
 
             // now it's got to be a mix of forbid null and cannot be null, which is always forbid
             return NullHandling.ForbidNull;
+        }
+
+        // separate method for testing purposes, this is dangerous stuff
+        internal static ulong EnumToULong<T>(T enumValue)
+            where T : struct, Enum
+        {
+            var underlyingType = Enum.GetUnderlyingType(typeof(T).GetTypeInfo())?.GetTypeInfo();
+            underlyingType = NonNull(underlyingType);
+
+            ulong result;
+            if (underlyingType == Types.Int)
+            {
+                // int is the default, so check it first
+                result = (ulong)Unsafe.As<T, int>(ref enumValue);
+            }
+            else if (underlyingType == Types.Byte)
+            {
+                // byte is probably the next most common
+                result = Unsafe.As<T, byte>(ref enumValue);
+            }
+            else if (underlyingType == Types.UInt)
+            {
+                // then I'd guess uint, but really everything from here is "whatever"
+                result = Unsafe.As<T, uint>(ref enumValue);
+            }
+            else if (underlyingType == Types.Long)
+            {
+                result = (ulong)Unsafe.As<T, long>(ref enumValue);
+            }
+            else if (underlyingType == Types.ULong)
+            {
+                result = Unsafe.As<T, ulong>(ref enumValue);
+            }
+            else if (underlyingType == Types.SByte)
+            {
+                result = (ulong)Unsafe.As<T, sbyte>(ref enumValue);
+            }
+            else if (underlyingType == Types.Short)
+            {
+                result = (ulong)Unsafe.As<T, short>(ref enumValue);
+            }
+            else if (underlyingType == Types.UShort)
+            {
+                result = Unsafe.As<T, ushort>(ref enumValue);
+            }
+            else
+            {
+                return Throw.ImpossibleException<ulong>($"Underlying type of an enum is impossible: {underlyingType}");
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// This is _like_ calling ToString(), but it doesn't allow values
+        /// that aren't actually declared on the enum.
+        /// 
+        /// Since copyInto might not be big enough, can return the following values:
+        ///  * 0, if flagsEnum was invalid
+        ///  * greater than 0, length of the value that did fit into copyInto
+        ///  * less than 0, the negated length of a value that didn't fit into copyInto
+        /// </summary>
+        internal static int TryFormatFlagsEnum<T>(
+            T flagsEnum,
+            string[] names,
+            ulong[] values,
+            Span<char> copyInto
+        )
+            where T : struct, Enum
+        {
+            const int MALFORMED_VALUE = 0;
+
+            // based on: https://referencesource.microsoft.com/#mscorlib/system/enum.cs,154
+
+            const string ENUM_SEPERATOR = ", ";
+
+            ulong result = EnumToULong(flagsEnum);
+
+            if (result == 0)
+            {
+                if (values.Length > 0 && values[0] == 0)
+                {
+                    // it's 0 and 0 is a value
+                    var zeroValue = names[0].AsSpan();
+                    if (copyInto.Length < zeroValue.Length)
+                    {
+                        return -zeroValue.Length;
+                    }
+
+                    zeroValue.CopyTo(copyInto);
+                    copyInto = copyInto[..zeroValue.Length];
+
+                    return zeroValue.Length;
+                }
+                else
+                {
+                    // it's 0 and 0 _isn't_ a value
+                    return MALFORMED_VALUE;
+                }
+            }
+
+            var index = values.Length - 1;
+
+            var len = 0;
+            var firstTime = true;
+            var saveResult = result;
+
+            while (index >= 0)
+            {
+                if ((index == 0) && (values[index] == 0))
+                {
+                    break;
+                }
+
+                if ((result & values[index]) == values[index])
+                {
+                    result -= values[index];
+                    if (!firstTime)
+                    {
+                        Insert(copyInto, ref len, ENUM_SEPERATOR);
+                    }
+
+                    Insert(copyInto, ref len, names[index]);
+                    firstTime = false;
+                }
+
+                index--;
+            }
+
+            // couldn't represent the value, so we fail
+            if (result != 0)
+            {
+                return MALFORMED_VALUE;
+            }
+
+            // couldn't fit, so ask for more space
+            if (len > copyInto.Length)
+            {
+                return -len;
+            }
+
+            // were able to represent the value
+            copyInto[^len..].CopyTo(copyInto);  // move everything to the _front_, 'cause we'll need an Advance() call
+            return len;
+
+            // logicaclly, insert a string at the front of the "value"
+            //
+            // but, we actually append things from the _end_, so we don't have to
+            //    copy anything around
+            static void Insert(Span<char> span, ref int len, string value)
+            {
+                var newLen = len + value.Length;
+                if (newLen > span.Length)
+                {
+                    len = newLen;
+                    return;
+                }
+
+                value.AsSpan().CopyTo(span[^newLen..]);
+
+                len = newLen;
+            }
+        }
+
+        // separate method for testing purposes, this is dangerous stuff
+        internal static T ULongToEnum<T>(ulong enumValue)
+            where T : struct, Enum
+        {
+            var underlyingType = Enum.GetUnderlyingType(typeof(T).GetTypeInfo())?.GetTypeInfo();
+            underlyingType = NonNull(underlyingType);
+
+            T result;
+            if (underlyingType == Types.Int)
+            {
+                // int is the default, so check it first
+                var intValue = (int)enumValue;
+                result = Unsafe.As<int, T>(ref intValue);
+            }
+            else if (underlyingType == Types.Byte)
+            {
+                // byte is probably the next most common
+                var byteValue = (byte)enumValue;
+                result = Unsafe.As<byte, T>(ref byteValue);
+            }
+            else if (underlyingType == Types.UInt)
+            {
+                // then I'd guess uint, but really everything from here is "whatever"
+                var uintValue = (uint)enumValue;
+                result = Unsafe.As<uint, T>(ref uintValue);
+            }
+            else if (underlyingType == Types.Long)
+            {
+                var longValue = (long)enumValue;
+                result = Unsafe.As<long, T>(ref longValue);
+            }
+            else if (underlyingType == Types.ULong)
+            {
+                result = Unsafe.As<ulong, T>(ref enumValue);
+            }
+            else if (underlyingType == Types.SByte)
+            {
+                var sbyteValue = (sbyte)enumValue;
+                result = Unsafe.As<sbyte, T>(ref sbyteValue);
+            }
+            else if (underlyingType == Types.Short)
+            {
+                var shortValue = (short)enumValue;
+                result = Unsafe.As<short, T>(ref shortValue);
+            }
+            else if (underlyingType == Types.UShort)
+            {
+                var ushortValue = (ushort)enumValue;
+                result = Unsafe.As<ushort, T>(ref ushortValue);
+            }
+            else
+            {
+                return Throw.ImpossibleException<T>($"Underlying type of an enum is impossible: {underlyingType}");
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// This is _like_ calling TryParse(), but it doesn't allow values
+        /// that aren't actually declared on the enum.
+        /// </summary>
+        internal static bool TryParseFlagsEnum<T>(ReadOnlySpan<char> data, string[] enumNames, ulong[] enumValues, out T resultT)
+            where T : struct, Enum
+        {
+            // based on: https://referencesource.microsoft.com/#mscorlib/system/enum.cs,432
+
+            ulong result = 0;
+
+            while (!data.IsEmpty)
+            {
+                var ix = FindChar(data, ',');
+                int startNextIx;
+
+                if (ix == -1)
+                {
+                    ix = data.Length;
+                    startNextIx = data.Length;
+                }
+                else
+                {
+                    startNextIx = ix + 1;
+                }
+
+                var value = data[..ix];
+                value = TrimLeadingWhitespace(value);
+                value = TrimTrailingWhitespace(value);
+
+                var success = false;
+
+                for (int j = 0; j < enumNames.Length; j++)
+                {
+                    var namesSpan = enumNames[j].AsSpan();
+
+                    // have to use a comparer because different casing is legal!
+                    var res = namesSpan.CompareTo(value, StringComparison.InvariantCultureIgnoreCase);
+                    if (res != 0)
+                    {
+                        continue;
+                    }
+
+                    var item = enumValues[j];
+
+                    result |= item;
+                    success = true;
+                    break;
+                }
+
+                if (!success)
+                {
+                    resultT = default;
+                    return false;
+                }
+
+                data = data[startNextIx..];
+            }
+
+            resultT = ULongToEnum<T>(result);
+            return true;
         }
     }
 }

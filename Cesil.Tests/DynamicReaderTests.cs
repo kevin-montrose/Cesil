@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Globalization;
@@ -15,6 +16,734 @@ namespace Cesil.Tests
 {
     public class DynamicReaderTests
     {
+        [Fact]
+        public void SkipThenSpecial()
+        {
+            var CSV = "Column\r\n\",\"";
+
+            RunSyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader(CSV))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var row = Assert.Single(csv.ReadAll());
+
+                        Assert.Equal(",", (string)row.Column);
+                    }
+                }
+            );
+        }
+
+        private sealed class _DynamicRowRange : DefaultTypeDescriber
+        {
+            private static readonly ConcurrentDictionary<string, DynamicRowConverter> Cache = new ConcurrentDictionary<string, DynamicRowConverter>();
+
+            private static readonly DynamicRowConverter TwoParamCons =
+                DynamicRowConverter.ForConstructorTakingTypedParameters(
+                    typeof(_DynamicRowRange_Cons1).GetConstructor(new[] { typeof(int), typeof(int) }),
+                    new[] { ColumnIdentifier.Create(0), ColumnIdentifier.Create(1) }
+                );
+
+            private static readonly DynamicRowConverter OneParamCons =
+                DynamicRowConverter.ForConstructorTakingDynamic(
+                    typeof(_DynamicRowRange_Cons2).GetConstructor(new[] { typeof(object) })
+                );
+
+            private static readonly DynamicRowConverter ZeroParamCons_ABC =
+                DynamicRowConverter.ForEmptyConstructorAndSetters(
+                    typeof(_DynamicRowRange_Cons3).GetConstructor(Array.Empty<Type>()),
+                    new[]
+                    {
+                        Setter.ForDelegate((_DynamicRowRange_Cons3 row, int a, in ReadContext _) => {row.A = a; }),
+                        Setter.ForDelegate((_DynamicRowRange_Cons3 row, int b, in ReadContext _) => {row.B = b; }),
+                        Setter.ForDelegate((_DynamicRowRange_Cons3 row, int c, in ReadContext _) => {row.C = c; }),
+                    },
+                    new[]
+                    {
+                        ColumnIdentifier.Create(0),
+                        ColumnIdentifier.Create(1),
+                        ColumnIdentifier.Create(2)
+                    }
+                );
+
+            private static readonly DynamicRowConverter ZeroParamCons_AB =
+                DynamicRowConverter.ForEmptyConstructorAndSetters(
+                    typeof(_DynamicRowRange_Cons3).GetConstructor(Array.Empty<Type>()),
+                    new[]
+                    {
+                        Setter.ForDelegate((_DynamicRowRange_Cons3 row, int a, in ReadContext _) => {row.A = a; }),
+                        Setter.ForDelegate((_DynamicRowRange_Cons3 row, int b, in ReadContext _) => {row.B = b; }),
+                    },
+                    new[]
+                    {
+                        ColumnIdentifier.Create(0),
+                        ColumnIdentifier.Create(1)
+                    }
+                );
+
+            private static readonly DynamicRowConverter ZeroParamCons_BC =
+               DynamicRowConverter.ForEmptyConstructorAndSetters(
+                   typeof(_DynamicRowRange_Cons3).GetConstructor(Array.Empty<Type>()),
+                   new[]
+                   {
+                        Setter.ForDelegate((_DynamicRowRange_Cons3 row, int b, in ReadContext _) => {row.B = b; }),
+                        Setter.ForDelegate((_DynamicRowRange_Cons3 row, int c, in ReadContext _) => {row.C = c; }),
+                   },
+                   new[]
+                   {
+                        ColumnIdentifier.Create(0),
+                        ColumnIdentifier.Create(1)
+                   }
+               );
+
+            public override DynamicRowConverter GetDynamicRowConverter(in ReadContext context, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
+            {
+                if (targetType == typeof(List<(ColumnIdentifier Id, string Value)>).GetTypeInfo())
+                {
+                    var key = string.Join(", ", columns.Select(c => $"{c.Index},{c.Name}"));
+
+                    if (Cache.TryGetValue(key, out var ret))
+                    {
+                        return ret;
+                    }
+
+                    ret =
+                        DynamicRowConverter.ForDelegate(
+                            (dynamic row, in ReadContext context, out List<(ColumnIdentifier Id, string Value)> result) =>
+                            {
+                                result = new List<(ColumnIdentifier Id, string Value)>();
+
+                                foreach (var col in columns)
+                                {
+                                    string val = row[col.Index];
+                                    result.Add((col, val));
+                                }
+
+                                return true;
+                            }
+                        );
+
+                    Cache.TryAdd(key, ret);
+
+                    return ret;
+                }
+
+                if (targetType == typeof(_DynamicRowRange_Cons1).GetTypeInfo())
+                {
+                    return TwoParamCons;
+                }
+
+                if (targetType == typeof(_DynamicRowRange_Cons2).GetTypeInfo())
+                {
+                    return OneParamCons;
+                }
+
+                if (targetType == typeof(_DynamicRowRange_Cons3).GetTypeInfo())
+                {
+                    switch (columns.Count())
+                    {
+                        case 3: return ZeroParamCons_ABC;
+                        case 2:
+                            if (columns.Any(c => c.Name == "A"))
+                            {
+                                return ZeroParamCons_AB;
+                            }
+
+                            return ZeroParamCons_BC;
+                        default: throw new Exception("Wat");
+                    }
+                }
+
+                return base.GetDynamicRowConverter(in context, columns, targetType);
+            }
+        }
+
+        private sealed class _DynamicRowRange_Cons1
+        {
+            public int One { get; set; }
+            public int Two { get; set; }
+
+            public _DynamicRowRange_Cons1(int one, int two)
+            {
+                One = one;
+                Two = two;
+            }
+        }
+
+        private sealed class _DynamicRowRange_Cons2
+        {
+            public IEnumerable<string> Values { get; set; }
+
+            public _DynamicRowRange_Cons2(dynamic val)
+            {
+                IEnumerable<string> e = val;
+
+                Values = e.ToList();
+            }
+        }
+
+        private sealed class _DynamicRowRange_Cons3
+        {
+            public int A { get; set; }
+            public int B { get; set; }
+            public int C { get; set; }
+
+            public _DynamicRowRange_Cons3() { }
+        }
+
+        [Fact]
+        public void DynamicRowRange()
+        {
+            var opts = Options.CreateBuilder(Options.DynamicDefault).WithTypeDescriber(new _DynamicRowRange()).ToOptions();
+            var config = Configuration.ForDynamic(opts);
+
+            using var reader = new StringReader("A,B,C\r\n1,2,3");
+            using var csv = config.CreateReader(reader);
+
+            var row = csv.ReadAll().Single() as DynamicRow;
+            Assert.NotNull(row);
+
+            // BindGetMember & BindGetIndex
+            {
+                // no change
+                {
+                    var range = new DynamicRowRange(row, 0, 3);
+                    dynamic dyn = range;
+
+                    Assert.Equal(1, (int)dyn[0]);
+                    Assert.Equal(1, (int)dyn[(Index)0]);
+                    Assert.Equal(1, (int)dyn[^3]);
+                    Assert.Equal(1, (int)dyn.A);
+                    Assert.Equal(1, (int)dyn["A"]);
+                    Assert.Equal(1, (int)dyn[ColumnIdentifier.Create(0)]);
+                    Assert.Equal(1, (int)dyn[ColumnIdentifier.Create(0, "A")]);
+
+                    Assert.Equal(2, (int)dyn[1]);
+                    Assert.Equal(2, (int)dyn[(Index)1]);
+                    Assert.Equal(2, (int)dyn[^2]);
+                    Assert.Equal(2, (int)dyn.B);
+                    Assert.Equal(2, (int)dyn["B"]);
+                    Assert.Equal(2, (int)dyn[ColumnIdentifier.Create(1)]);
+                    Assert.Equal(2, (int)dyn[ColumnIdentifier.Create(1, "B")]);
+
+                    Assert.Equal(3, (int)dyn[2]);
+                    Assert.Equal(3, (int)dyn[(Index)2]);
+                    Assert.Equal(3, (int)dyn[^1]);
+                    Assert.Equal(3, (int)dyn.C);
+                    Assert.Equal(3, (int)dyn["C"]);
+                    Assert.Equal(3, (int)dyn[ColumnIdentifier.Create(2)]);
+                    Assert.Equal(3, (int)dyn[ColumnIdentifier.Create(2, "C")]);
+                }
+
+                // shift right
+                {
+                    var range = new DynamicRowRange(row, 1, 2);
+                    dynamic dyn = range;
+
+                    Assert.Throws<ArgumentOutOfRangeException>(() => dyn[2]);
+                    Assert.Throws<KeyNotFoundException>(() => dyn.A);
+
+                    Assert.Equal(2, (int)dyn[0]);
+                    Assert.Equal(2, (int)dyn[(Index)0]);
+                    Assert.Equal(2, (int)dyn[^2]);
+                    Assert.Equal(2, (int)dyn.B);
+                    Assert.Equal(2, (int)dyn["B"]);
+                    Assert.Equal(2, (int)dyn[ColumnIdentifier.Create(0)]);
+                    Assert.Equal(2, (int)dyn[ColumnIdentifier.Create(0, "B")]);
+
+                    Assert.Equal(3, (int)dyn[1]);
+                    Assert.Equal(3, (int)dyn[(Index)1]);
+                    Assert.Equal(3, (int)dyn[^1]);
+                    Assert.Equal(3, (int)dyn.C);
+                    Assert.Equal(3, (int)dyn["C"]);
+                    Assert.Equal(3, (int)dyn[ColumnIdentifier.Create(1)]);
+                    Assert.Equal(3, (int)dyn[ColumnIdentifier.Create(1, "C")]);
+                }
+
+                // shift left
+                {
+                    var range = new DynamicRowRange(row, 0, 2);
+                    dynamic dyn = range;
+
+                    Assert.Throws<ArgumentOutOfRangeException>(() => dyn[2]);
+                    Assert.Throws<KeyNotFoundException>(() => dyn.C);
+
+                    Assert.Equal(1, (int)dyn[0]);
+                    Assert.Equal(1, (int)dyn[(Index)0]);
+                    Assert.Equal(1, (int)dyn[^2]);
+                    Assert.Equal(1, (int)dyn.A);
+                    Assert.Equal(1, (int)dyn["A"]);
+                    Assert.Equal(1, (int)dyn[ColumnIdentifier.Create(0)]);
+                    Assert.Equal(1, (int)dyn[ColumnIdentifier.Create(0, "A")]);
+
+                    Assert.Equal(2, (int)dyn[1]);
+                    Assert.Equal(2, (int)dyn[(Index)1]);
+                    Assert.Equal(2, (int)dyn[^1]);
+                    Assert.Equal(2, (int)dyn.B);
+                    Assert.Equal(2, (int)dyn["B"]);
+                    Assert.Equal(2, (int)dyn[ColumnIdentifier.Create(1)]);
+                    Assert.Equal(2, (int)dyn[ColumnIdentifier.Create(1, "B")]);
+                }
+
+                // swap dynamic types
+                {
+                    var rows = new[] { (dynamic)row, (dynamic)new DynamicRowRange(row, 0, 3) };
+
+                    foreach (var r in rows)
+                    {
+                        Assert.Equal(1, (int)r[0]);
+                        Assert.Equal(1, (int)r[(Index)0]);
+                        Assert.Equal(1, (int)r[^3]);
+                        Assert.Equal(1, (int)r.A);
+                        Assert.Equal(1, (int)r["A"]);
+                        Assert.Equal(1, (int)r[ColumnIdentifier.Create(0)]);
+                        Assert.Equal(1, (int)r[ColumnIdentifier.Create(0, "A")]);
+
+                        Assert.Equal(2, (int)r[1]);
+                        Assert.Equal(2, (int)r[(Index)1]);
+                        Assert.Equal(2, (int)r[^2]);
+                        Assert.Equal(2, (int)r.B);
+                        Assert.Equal(2, (int)r["B"]);
+                        Assert.Equal(2, (int)r[ColumnIdentifier.Create(1)]);
+                        Assert.Equal(2, (int)r[ColumnIdentifier.Create(1, "B")]);
+
+                        Assert.Equal(3, (int)r[2]);
+                        Assert.Equal(3, (int)r[(Index)2]);
+                        Assert.Equal(3, (int)r[^1]);
+                        Assert.Equal(3, (int)r.C);
+                        Assert.Equal(3, (int)r["C"]);
+                        Assert.Equal(3, (int)r[ColumnIdentifier.Create(2)]);
+                        Assert.Equal(3, (int)r[ColumnIdentifier.Create(2, "C")]);
+                    }
+                }
+            }
+
+            // conversions
+            {
+                // no change
+                {
+                    var range = new DynamicRowRange(row, 0, 3);
+                    dynamic dyn = range;
+
+                    (int First, int Second, int Third) tuple = dyn;
+                    Assert.Equal(1, tuple.First);
+                    Assert.Equal(2, tuple.Second);
+                    Assert.Equal(3, tuple.Third);
+
+                    Tuple<int, int, int> refTuple = dyn;
+                    Assert.Equal(1, refTuple.Item1);
+                    Assert.Equal(2, refTuple.Item2);
+                    Assert.Equal(3, refTuple.Item3);
+
+                    IEnumerable<string> enumerable = dyn;
+                    Assert.Equal(new[] { "1", "2", "3" }, enumerable);
+
+                    IEnumerable<dynamic> enumerableDyn = dyn;
+                    {
+                        var asInt = enumerableDyn.Select(i => (int)i).ToList();
+                        Assert.Equal(new[] { 1, 2, 3 }, asInt);
+                    }
+
+                    _DynamicRowRange_Cons1 c1 = dyn;
+                    Assert.Equal(1, c1.One);
+                    Assert.Equal(2, c1.Two);
+
+                    _DynamicRowRange_Cons2 c2 = dyn;
+                    Assert.Equal(new[] { "1", "2", "3" }, c2.Values);
+
+                    _DynamicRowRange_Cons3 c3 = dyn;
+                    Assert.Equal(1, c3.A);
+                    Assert.Equal(2, c3.B);
+                    Assert.Equal(3, c3.C);
+
+                    List<(ColumnIdentifier Id, string Value)> extracted = dyn;
+                    Assert.Collection(
+                        extracted,
+                        a =>
+                        {
+                            Assert.Equal(0, a.Id.Index);
+                            AssertEqual("A", a.Id);
+                            Assert.Equal("1", a.Value);
+                        },
+                        b =>
+                        {
+                            Assert.Equal(1, b.Id.Index);
+                            AssertEqual("B", b.Id);
+                            Assert.Equal("2", b.Value);
+                        },
+                        c =>
+                        {
+                            Assert.Equal(2, c.Id.Index);
+                            AssertEqual("C", c.Id);
+                            Assert.Equal("3", c.Value);
+                        }
+                    );
+                }
+
+                // shift left
+                {
+                    var range = new DynamicRowRange(row, 1, 2);
+                    dynamic dyn = range;
+
+                    (int First, int Second) tuple = dyn;
+                    Assert.Equal(2, tuple.First);
+                    Assert.Equal(3, tuple.Second);
+
+                    Tuple<int, int> refTuple = dyn;
+                    Assert.Equal(2, refTuple.Item1);
+                    Assert.Equal(3, refTuple.Item2);
+
+                    IEnumerable<string> enumerable = dyn;
+                    Assert.Equal(new[] { "2", "3" }, enumerable);
+
+                    IEnumerable<dynamic> enumerableDyn = dyn;
+                    {
+                        var asInt = enumerableDyn.Select(i => (int)i).ToList();
+                        Assert.Equal(new[] { 2, 3 }, asInt);
+                    }
+
+                    _DynamicRowRange_Cons1 c1 = dyn;
+                    Assert.Equal(2, c1.One);
+                    Assert.Equal(3, c1.Two);
+
+                    _DynamicRowRange_Cons2 c2 = dyn;
+                    Assert.Equal(new[] { "2", "3" }, c2.Values);
+
+                    _DynamicRowRange_Cons3 c3 = dyn;
+                    Assert.Equal(0, c3.A);
+                    Assert.Equal(2, c3.B);
+                    Assert.Equal(3, c3.C);
+
+                    List<(ColumnIdentifier Id, string Value)> extracted = dyn;
+                    Assert.Collection(
+                        extracted,
+                        b =>
+                        {
+                            Assert.Equal(0, b.Id.Index);
+                            AssertEqual("B", b.Id);
+                            Assert.Equal("2", b.Value);
+                        },
+                        c =>
+                        {
+                            Assert.Equal(1, c.Id.Index);
+                            AssertEqual("C", c.Id);
+                            Assert.Equal("3", c.Value);
+                        }
+                    );
+                }
+
+                // shift right
+                {
+                    var range = new DynamicRowRange(row, 0, 2);
+                    dynamic dyn = range;
+
+                    (int First, int Second) tuple = dyn;
+                    Assert.Equal(1, tuple.First);
+                    Assert.Equal(2, tuple.Second);
+
+                    Tuple<int, int> refTuple = dyn;
+                    Assert.Equal(1, refTuple.Item1);
+                    Assert.Equal(2, refTuple.Item2);
+
+                    IEnumerable<string> enumerable = dyn;
+                    Assert.Equal(new[] { "1", "2" }, enumerable);
+
+                    IEnumerable<dynamic> enumerableDyn = dyn;
+                    {
+                        var asInt = enumerableDyn.Select(i => (int)i).ToList();
+                        Assert.Equal(new[] { 1, 2 }, asInt);
+                    }
+
+                    _DynamicRowRange_Cons1 c1 = dyn;
+                    Assert.Equal(1, c1.One);
+                    Assert.Equal(2, c1.Two);
+
+                    _DynamicRowRange_Cons2 c2 = dyn;
+                    Assert.Equal(new[] { "1", "2" }, c2.Values);
+
+                    _DynamicRowRange_Cons3 c3 = dyn;
+                    Assert.Equal(1, c3.A);
+                    Assert.Equal(2, c3.B);
+                    Assert.Equal(0, c3.C);
+
+                    List<(ColumnIdentifier Id, string Value)> extracted = dyn;
+                    Assert.Collection(
+                        extracted,
+                        b =>
+                        {
+                            Assert.Equal(0, b.Id.Index);
+                            AssertEqual("A", b.Id);
+                            Assert.Equal("1", b.Value);
+                        },
+                        c =>
+                        {
+                            Assert.Equal(1, c.Id.Index);
+                            AssertEqual("B", c.Id);
+                            Assert.Equal("2", c.Value);
+                        }
+                    );
+                }
+
+                // swap dynamic types
+                {
+                    var rows = new[] { (dynamic)row, (dynamic)new DynamicRowRange(row, 0, 3) };
+
+                    foreach (var r in rows)
+                    {
+                        (int First, int Second, int Third) tuple = r;
+                        Assert.Equal(1, tuple.First);
+                        Assert.Equal(2, tuple.Second);
+                        Assert.Equal(3, tuple.Third);
+
+                        Tuple<int, int, int> refTuple = r;
+                        Assert.Equal(1, refTuple.Item1);
+                        Assert.Equal(2, refTuple.Item2);
+                        Assert.Equal(3, refTuple.Item3);
+
+                        IEnumerable<string> enumerable = r;
+                        Assert.Equal(new[] { "1", "2", "3" }, enumerable);
+
+                        IEnumerable<dynamic> enumerableDyn = r;
+                        {
+                            var asInt = enumerableDyn.Select(i => (int)i).ToList();
+                            Assert.Equal(new[] { 1, 2, 3 }, asInt);
+                        }
+
+                        _DynamicRowRange_Cons1 c1 = r;
+                        Assert.Equal(1, c1.One);
+                        Assert.Equal(2, c1.Two);
+
+                        _DynamicRowRange_Cons2 c2 = r;
+                        Assert.Equal(new[] { "1", "2", "3" }, c2.Values);
+
+                        _DynamicRowRange_Cons3 c3 = r;
+                        Assert.Equal(1, c3.A);
+                        Assert.Equal(2, c3.B);
+                        Assert.Equal(3, c3.C);
+
+                        List<(ColumnIdentifier Id, string Value)> extracted = r;
+                        Assert.Collection(
+                            extracted,
+                            a =>
+                            {
+                                Assert.Equal(0, a.Id.Index);
+                                AssertEqual("A", a.Id);
+                                Assert.Equal("1", a.Value);
+                            },
+                            b =>
+                            {
+                                Assert.Equal(1, b.Id.Index);
+                                AssertEqual("B", b.Id);
+                                Assert.Equal("2", b.Value);
+                            },
+                            c =>
+                            {
+                                Assert.Equal(2, c.Id.Index);
+                                AssertEqual("C", c.Id);
+                                Assert.Equal("3", c.Value);
+                            }
+                        );
+                    }
+                }
+            }
+
+            // (sub)ranges
+            {
+                // no change
+                {
+                    var range = new DynamicRowRange(row, 0, 3);
+                    dynamic dyn = range;
+
+                    var subDyn1 = dyn[..];
+                    var subDyn2 = dyn[0..];
+                    var subDyn3 = dyn[0..3];
+                    var subDyn4 = dyn[^3..^0];
+
+                    IEnumerable<string> e1 = subDyn1;
+                    Assert.Equal(new[] { "1", "2", "3" }, e1);
+
+                    IEnumerable<string> e2 = subDyn2;
+                    Assert.Equal(new[] { "1", "2", "3" }, e2);
+
+                    IEnumerable<string> e3 = subDyn3;
+                    Assert.Equal(new[] { "1", "2", "3" }, e3);
+
+                    IEnumerable<string> e4 = subDyn4;
+                    Assert.Equal(new[] { "1", "2", "3" }, e4);
+
+                    // trim left
+                    var subDyn5 = dyn[1..];
+                    var subDyn6 = dyn[1..3];
+                    var subDyn7 = dyn[^2..3];
+                    var subDyn8 = dyn[^2..^0];
+
+                    IEnumerable<string> e5 = subDyn5;
+                    Assert.Equal(new[] { "2", "3" }, e5);
+
+                    IEnumerable<string> e6 = subDyn6;
+                    Assert.Equal(new[] { "2", "3" }, e6);
+
+                    IEnumerable<string> e7 = subDyn7;
+                    Assert.Equal(new[] { "2", "3" }, e7);
+
+                    IEnumerable<string> e8 = subDyn8;
+                    Assert.Equal(new[] { "2", "3" }, e8);
+
+                    // trim right
+                    var subDyn9 = dyn[..2];
+                    var subDyn10 = dyn[0..2];
+                    var subDyn11 = dyn[^3..2];
+                    var subDyn12 = dyn[^3..^1];
+
+                    IEnumerable<string> e9 = subDyn9;
+                    Assert.Equal(new[] { "1", "2" }, e9);
+
+                    IEnumerable<string> e10 = subDyn10;
+                    Assert.Equal(new[] { "1", "2" }, e10);
+
+                    IEnumerable<string> e11 = subDyn11;
+                    Assert.Equal(new[] { "1", "2" }, e11);
+
+                    IEnumerable<string> e12 = subDyn12;
+                    Assert.Equal(new[] { "1", "2" }, e12);
+                }
+
+                // trim left
+                {
+                    var range = new DynamicRowRange(row, 1, 2);
+                    dynamic dyn = range;
+
+                    var subDyn1 = dyn[..];
+                    var subDyn2 = dyn[0..];
+                    var subDyn3 = dyn[0..2];
+                    var subDyn4 = dyn[^2..^0];
+
+                    IEnumerable<string> e1 = subDyn1;
+                    Assert.Equal(new[] { "2", "3" }, e1);
+
+                    IEnumerable<string> e2 = subDyn2;
+                    Assert.Equal(new[] { "2", "3" }, e2);
+
+                    IEnumerable<string> e3 = subDyn3;
+                    Assert.Equal(new[] { "2", "3" }, e3);
+
+                    IEnumerable<string> e4 = subDyn4;
+                    Assert.Equal(new[] { "2", "3" }, e4);
+
+                    // trim left
+                    var subDyn5 = dyn[1..];
+                    var subDyn6 = dyn[1..2];
+                    var subDyn7 = dyn[^1..2];
+                    var subDyn8 = dyn[^1..^0];
+
+                    IEnumerable<string> e5 = subDyn5;
+                    Assert.Equal(new[] { "3" }, e5);
+
+                    IEnumerable<string> e6 = subDyn6;
+                    Assert.Equal(new[] { "3" }, e6);
+
+                    IEnumerable<string> e7 = subDyn7;
+                    Assert.Equal(new[] { "3" }, e7);
+
+                    IEnumerable<string> e8 = subDyn8;
+                    Assert.Equal(new[] { "3" }, e8);
+
+                    // trim right
+                    var subDyn9 = dyn[..1];
+                    var subDyn10 = dyn[0..1];
+                    var subDyn11 = dyn[^2..1];
+                    var subDyn12 = dyn[^2..^1];
+
+                    IEnumerable<string> e9 = subDyn9;
+                    Assert.Equal(new[] { "2" }, e9);
+
+                    IEnumerable<string> e10 = subDyn10;
+                    Assert.Equal(new[] { "2" }, e10);
+
+                    IEnumerable<string> e11 = subDyn11;
+                    Assert.Equal(new[] { "2" }, e11);
+
+                    IEnumerable<string> e12 = subDyn12;
+                    Assert.Equal(new[] { "2" }, e12);
+                }
+
+                // trim right
+                {
+                    var range = new DynamicRowRange(row, 0, 2);
+                    dynamic dyn = range;
+
+                    var subDyn1 = dyn[..];
+                    var subDyn2 = dyn[0..];
+                    var subDyn3 = dyn[0..2];
+                    var subDyn4 = dyn[^2..^0];
+
+                    IEnumerable<string> e1 = subDyn1;
+                    Assert.Equal(new[] { "1", "2" }, e1);
+
+                    IEnumerable<string> e2 = subDyn2;
+                    Assert.Equal(new[] { "1", "2" }, e2);
+
+                    IEnumerable<string> e3 = subDyn3;
+                    Assert.Equal(new[] { "1", "2" }, e3);
+
+                    IEnumerable<string> e4 = subDyn4;
+                    Assert.Equal(new[] { "1", "2" }, e4);
+
+                    // trim left
+                    var subDyn5 = dyn[1..];
+                    var subDyn6 = dyn[1..2];
+                    var subDyn7 = dyn[^1..2];
+                    var subDyn8 = dyn[^1..^0];
+
+                    IEnumerable<string> e5 = subDyn5;
+                    Assert.Equal(new[] { "2" }, e5);
+
+                    IEnumerable<string> e6 = subDyn6;
+                    Assert.Equal(new[] { "2" }, e6);
+
+                    IEnumerable<string> e7 = subDyn7;
+                    Assert.Equal(new[] { "2" }, e7);
+
+                    IEnumerable<string> e8 = subDyn8;
+                    Assert.Equal(new[] { "2" }, e8);
+
+                    // trim right
+                    var subDyn9 = dyn[..1];
+                    var subDyn10 = dyn[0..1];
+                    var subDyn11 = dyn[^2..1];
+                    var subDyn12 = dyn[^2..^1];
+
+                    IEnumerable<string> e9 = subDyn9;
+                    Assert.Equal(new[] { "1" }, e9);
+
+                    IEnumerable<string> e10 = subDyn10;
+                    Assert.Equal(new[] { "1" }, e10);
+
+                    IEnumerable<string> e11 = subDyn11;
+                    Assert.Equal(new[] { "1" }, e11);
+
+                    IEnumerable<string> e12 = subDyn12;
+                    Assert.Equal(new[] { "1" }, e12);
+                }
+            }
+
+            // check both
+            static void AssertEqual(string expectedName, ColumnIdentifier ci)
+            {
+                Assert.Equal(expectedName, ci.Name);
+
+                var memName = ci.NameMemory;
+
+                Assert.True(Utils.AreEqual(expectedName.AsMemory(), memName));
+
+                var nameAgain = ci.NameMemory;
+
+                Assert.Equal(nameAgain, memName);
+            }
+        }
+
         private sealed class _DynamicRowGetDataIndex : IDynamicRowOwner
         {
             public Options Options => Options.Default;
@@ -863,6 +1592,7 @@ namespace Cesil.Tests
         [Fact]
         public void DynamicCellDoesntSupportMethods()
         {
+            // row
             RunSyncDynamicReaderVariants(
                 Options.DynamicDefault,
                 (config, getReader) =>
@@ -887,6 +1617,7 @@ namespace Cesil.Tests
         {
             var opts = Options.CreateBuilder(Options.DynamicDefault).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).ToOptions();
 
+            // row
             RunSyncDynamicReaderVariants(
                 opts,
                 (config, getReader) =>
@@ -921,16 +1652,72 @@ namespace Cesil.Tests
 
                     // doesn't support other public methods
                     {
+                        using (var reader = getReader("A,B,C\r\n1,2,3"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var row = csv.EnumerateAll().Single();
+
+                            Assert.Throws<InvalidOperationException>(() => row.GetMetaObject(Expressions.Constant_True));
+
+                            row.Dispose();
+                        }
+                    }
+                },
+                expectedRuns: 3
+            );
+
+            // range
+            RunSyncDynamicReaderVariants(
+                opts,
+                (config, getReader) =>
+                {
+                    // explicit Dispose
+                    {
                         dynamic row;
+                        dynamic range;
 
                         using (var reader = getReader("A,B,C\r\n1,2,3"))
                         using (var csv = config.CreateReader(reader))
                         {
                             row = csv.EnumerateAll().Single();
+                            range = row[..];
+                        }
 
-                            Assert.Throws<InvalidOperationException>(() => row.GetMetaObject(Expressions.Constant_True));
+                        row.Dispose();
+                        range.Dispose();
+                    }
+
+                    // cast to IDisposable
+                    {
+                        dynamic row;
+                        dynamic range;
+
+                        using (var reader = getReader("A,B,C\r\n1,2,3"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            row = csv.EnumerateAll().Single();
+                            range = row[..];
+                        }
+
+                        var disposableRow = (IDisposable)row;
+                        disposableRow.Dispose();
+
+                        var disposableRange = (IDisposable)range;
+                        disposableRange.Dispose();
+                    }
+
+                    // doesn't support other public methods
+                    {
+                        using (var reader = getReader("A,B,C\r\n1,2,3"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var row = csv.EnumerateAll().Single();
+                            var range = row[..];
+
+                            Assert.Throws<InvalidOperationException>(() => range.GetMetaObject(Expressions.Constant_True));
 
                             row.Dispose();
+                            range.Dispose();
                         }
                     }
                 },
@@ -6430,6 +7217,26 @@ loop:
         }
 
         // async tests
+
+        [Fact]
+        public async Task SkipThenSpecialAsync()
+        {
+            var CSV = "Column\r\n\",\"";
+
+            await RunAsyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader(CSV))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var row = Assert.Single(await csv.ReadAllAsync());
+
+                        Assert.Equal(",", (string)row.Column);
+                    }
+                }
+            );
+        }
 
         [Fact]
         public async Task DynamicRowStringLookupAsync()

@@ -17,6 +17,31 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class ReaderTests
     {
+        private sealed class _SkipThenSpecial<T>
+        {
+            public T Column { get; set; }
+        }
+
+        [Fact]
+        public void SkipThenSpecial()
+        {
+            var CSV = "Column\r\n\",\"";
+
+            RunSyncReaderVariants<_SkipThenSpecial<string>>(
+                Options.Default,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader(CSV))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var row = Assert.Single(csv.ReadAll());
+
+                        Assert.Equal(",", row.Column);
+                    }
+                }
+            );
+        }
+
         private sealed class _ByRefResets
         {
             public int A { get; set; }
@@ -6119,6 +6144,26 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         }
 
         // asyn tests
+
+        [Fact]
+        public async Task SkipThenSpecialAsync()
+        {
+            var CSV = "Column\r\n\",\"";
+
+            await RunAsyncReaderVariants<_SkipThenSpecial<string>>(
+                Options.Default,
+                async (config, getReader) =>
+                {
+                    await using (var reader = await getReader(CSV))
+                    await using (var csv = config.CreateAsyncReader(reader))
+                    {
+                        var row = Assert.Single(await csv.ReadAllAsync());
+
+                        Assert.Equal(",", row.Column);
+                    }
+                }
+            );
+        }
 
         [Fact]
         public async Task ByRefResetsAsync()

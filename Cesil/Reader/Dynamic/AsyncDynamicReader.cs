@@ -438,6 +438,7 @@ namespace Cesil
             while (NotifyOnDisposeHead != null)
             {
                 NotifyOnDisposeHead.Dispose();
+                NotifyOnDisposeHead.TryDataDispose(force: true);
                 NotifyOnDisposeHead.Remove(ref NotifyOnDisposeHead, NotifyOnDisposeHead);
             }
 

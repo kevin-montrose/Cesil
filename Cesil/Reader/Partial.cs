@@ -50,9 +50,9 @@ namespace Cesil
             PendingCharacters.Append(from, atIndex, length);
         }
 
-        internal void AppendCharacters(ReadOnlySpan<char> from)
+        internal void AppendCharactersFromDifferentBuffer(ReadOnlySpan<char> from, ReadOnlySpan<char> other)
         {
-            PendingCharacters.Append(from, 0, from.Length);
+            PendingCharacters.AppendDifferentBuffer(from, other);
         }
 
         internal void SkipCharacter()

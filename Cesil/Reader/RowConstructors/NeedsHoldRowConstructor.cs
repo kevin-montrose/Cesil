@@ -391,7 +391,7 @@ namespace Cesil
                     RequiredTracker.MarkSet(columnNumber);
                 }
 
-                var ci = ColumnIdentifier.CreateInner(columnNumber, name);
+                var ci = ColumnIdentifier.CreateInner(columnNumber, name, null);
                 var ctx = ReadContext.ReadingColumn(options, rowNumber, ci, context);
 
                 if (required == MemberRequired.Yes && data.Length == 0)
@@ -421,7 +421,7 @@ namespace Cesil
                     RequiredTracker.MarkSet(columnNumber);
                 }
 
-                var ci = ColumnIdentifier.CreateInner(columnNumber, name);
+                var ci = ColumnIdentifier.CreateInner(columnNumber, name, null);
                 var ctx = ReadContext.ReadingColumn(options, rowNumber, ci, context);
 
                 if (required == MemberRequired.Yes && data.Length == 0)
@@ -460,7 +460,7 @@ namespace Cesil
 
                             var (nameInner, _, _, moveToRow, _) = SimpleMembers[simpleMemberInner.Value];
 
-                            var realCi = ColumnIdentifier.CreateInner(shallowCtx.ColumnIndex, nameInner);
+                            var realCi = ColumnIdentifier.CreateInner(shallowCtx.ColumnIndex, nameInner, null);
 
                             var realCtx = ReadContext.ReadingColumn(options, shallowCtx.RowNumber, realCi, context);
 

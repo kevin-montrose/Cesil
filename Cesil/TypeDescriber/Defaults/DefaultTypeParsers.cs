@@ -16,6 +16,7 @@ namespace Cesil
             where T : struct, Enum
         {
             private static readonly T[] Values = CreateValues();
+            private static readonly ulong[] ULongValues = CreateULongValues();
             private static readonly string[] Names = CreateNames();
 
             internal static readonly Parser TryParseEnumParser = CreateTryParseEnumParser();
@@ -31,7 +32,31 @@ namespace Cesil
                     return Array.Empty<T>();
                 }
 
-                return Enum.GetValues(typeof(T).GetTypeInfo()).Cast<T>().ToArray();
+                return Enum.GetValues(enumType).Cast<T>().ToArray();
+            }
+
+            private static ulong[] CreateULongValues()
+            {
+                var enumType = typeof(T).GetTypeInfo();
+
+                // note that this is different from CreateValues()
+                //   which means these don't match like they do in formatting
+                if (!enumType.IsFlagsEnum())
+                {
+                    // only need ULongValues for [Flags] enums
+                    return Array.Empty<ulong>();
+                }
+
+                var values = Enum.GetValues(enumType);
+                var ret = new ulong[values.Length];
+                for (var i = 0; i < values.Length; i++)
+                {
+                    var obj = values.GetValue(i);
+                    obj = Utils.NonNull(obj);
+                    ret[i] = Utils.EnumToULong((T)obj);
+                }
+
+                return ret;
             }
 
             private static string[] CreateNames()
@@ -115,7 +140,8 @@ namespace Cesil
                 for (var i = 0; i < Names.Length; i++)
                 {
                     var name = Names[i];
-                    var cmp = span.CompareTo(name.AsSpan(), StringComparison.InvariantCulture);
+                    // use CompareTo because we need to allow different casings
+                    var cmp = span.CompareTo(name.AsSpan(), StringComparison.InvariantCultureIgnoreCase);
                     if (cmp == 0)
                     {
                         val = Values[i];
@@ -147,39 +173,12 @@ namespace Cesil
 
             private static bool TryParseFlagsEnum(ReadOnlySpan<char> data, in ReadContext _, out T val)
             {
-                // no real choice but to make a copy
-                // todo: get rid of this allocation once https://github.com/dotnet/corefx/issues/15453 (tracking issue: https://github.com/kevin-montrose/Cesil/issues/7)
-                //       is fixed, introducing a ReadOnlySpan<char> taking TryParse
-                var str = new string(data);
-
-                if (!Enum.TryParse(str, out val))
+                if (!Utils.TryParseFlagsEnum(data, Names, ULongValues, out val))
                 {
-                    return false;
-                }
-
-                // have to check to see if it's valid
-                var pieces = str.Split(DefaultTypeFormatters.COMMA_AND_SPACE, StringSplitOptions.RemoveEmptyEntries);
-                for (var i = 0; i < pieces.Length; i++)
-                {
-                    var piece = pieces[i];
-                    var found = false;
-                    for (var j = 0; j < Names.Length; j++)
-                    {
-                        var name = Names[j];
-                        if (piece.Equals(name, StringComparison.InvariantCulture))
-                        {
-                            found = true;
-                            break;
-                        }
-                    }
-
-                    if (!found)
-                    {
 #pragma warning disable CES0005     // T is generic, so we can't annotate it, but it needs a default value
-                        val = default!;
-#pragma warning restore CES0005
-                        return false;
-                    }
+                    val = default!;
+#pragma warning restore CES0005     
+                    return false;
                 }
 
                 return true;

@@ -239,12 +239,12 @@ namespace Cesil
                         break;
 
                     case ReaderStateMachine.AdvanceResult.Append_ValueSeparator:
-                        Partial.AppendCharacters(Configuration.ValueSeparatorMemory.Span);
+                        Partial.AppendCharactersFromDifferentBuffer(buffSpan, Configuration.ValueSeparatorMemory.Span);
                         break;
 
                     case ReaderStateMachine.AdvanceResult.Append_CarriageReturnAndValueSeparator:
                         Partial.AppendCarriageReturn(buffSpan);
-                        Partial.AppendCharacters(Configuration.ValueSeparatorMemory.Span);
+                        Partial.AppendCharactersFromDifferentBuffer(buffSpan, Configuration.ValueSeparatorMemory.Span);
                         break;
 
                     // cannot reach ReaderStateMachine.AdvanceResult.Append_CarriageReturnAndEndComment, because that only happens

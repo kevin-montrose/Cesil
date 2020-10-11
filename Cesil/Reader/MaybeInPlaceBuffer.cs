@@ -63,6 +63,22 @@ namespace Cesil
             }
         }
 
+        // only call this with a buffer OTHER than the one we're actively reading
+        internal void AppendDifferentBuffer(ReadOnlySpan<T> fromBuffer, ReadOnlySpan<T> otherBuffer)
+        {
+            SwitchToCopy(fromBuffer);
+
+            var desiredSize = Length + otherBuffer.Length;
+            if (desiredSize >= Copy.Length)
+            {
+                ResizeCopy(desiredSize * 2);
+            }
+
+            otherBuffer.CopyTo(Copy.Slice(Length));
+            Length += otherBuffer.Length;
+        }
+
+        // only call this with the buffer we're actively reading from
         internal void Append(ReadOnlySpan<T> fromBuffer, int index, int length)
         {
             // we figured out that we can't be in place on
@@ -105,6 +121,8 @@ namespace Cesil
 
         private void ResizeCopy(int newDesiredSize)
         {
+            newDesiredSize = Math.Max(1, newDesiredSize);
+
             var oldSize = CopyOwner.HasValue ? CopyOwner.Value.Memory.Length : 0;
             var newCopy = Utils.RentMustIncrease(MemoryPool, newDesiredSize, oldSize);
 
@@ -122,8 +140,6 @@ namespace Cesil
         {
             // if we're already copying, nothing to switch to
             if (CurrentMode == Mode.Copy) return;
-            // if nothing has been appended, there's nothing to copy
-            if (CurrentMode == Mode.Uninitialized) return;
 
             if (!CopyOwner.HasValue || Copy.Length < Length)
             {
