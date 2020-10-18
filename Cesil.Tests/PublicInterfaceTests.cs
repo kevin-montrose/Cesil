@@ -782,6 +782,61 @@ namespace Cesil.Tests
                     Assert.False(exNull1 == ex);
                     Assert.True(exNull1 == exNull2);
                 }
+                else if (t == typeof(GeneratedSourceVersionAttribute))
+                {
+                    var attr = new GeneratedSourceVersionAttribute("1.0.0", Types.String, 1);
+                    var attrNull1 = default(GeneratedSourceVersionAttribute);
+                    var attrNull2 = default(GeneratedSourceVersionAttribute);
+
+                    CommonNonOperatorChecks(attr, attrNull1, attrNull2);
+                    Assert.False(attr == attrNull1);
+                    Assert.False(attrNull1 == attr);
+                    Assert.True(attrNull1 == attrNull2);
+                }
+                else if (t == typeof(GenerateSerializableAttribute))
+                {
+                    var attr = new GenerateSerializableAttribute();
+                    var attrNull1 = default(GenerateSerializableAttribute);
+                    var attrNull2 = default(GenerateSerializableAttribute);
+
+                    CommonNonOperatorChecks(attr, attrNull1, attrNull2);
+                    Assert.False(attr == attrNull1);
+                    Assert.False(attrNull1 == attr);
+                    Assert.True(attrNull1 == attrNull2);
+                }
+                else if (t == typeof(GenerateSerializableMemberAttribute))
+                {
+                    var attr = new GenerateSerializableMemberAttribute();
+                    var attrNull1 = default(GenerateSerializableMemberAttribute);
+                    var attrNull2 = default(GenerateSerializableMemberAttribute);
+
+                    CommonNonOperatorChecks(attr, attrNull1, attrNull2);
+                    Assert.False(attr == attrNull1);
+                    Assert.False(attrNull1 == attr);
+                    Assert.True(attrNull1 == attrNull2);
+                }
+                else if (t == typeof(AheadOfTimeTypeDescriber))
+                {
+                    var td = new AheadOfTimeTypeDescriber();
+                    var tdNull1 = default(AheadOfTimeTypeDescriber);
+                    var tdNull2 = default(AheadOfTimeTypeDescriber);
+
+                    CommonNonOperatorChecks(td, tdNull1, tdNull2);
+                    Assert.False(td == tdNull1);
+                    Assert.False(tdNull1 == td);
+                    Assert.True(tdNull1 == tdNull2);
+                }
+                else if (t == typeof(DoesNotEmitDefaultValueAttribute))
+                {
+                    var attr = new DoesNotEmitDefaultValueAttribute();
+                    var attrNull1 = default(DoesNotEmitDefaultValueAttribute);
+                    var attrNull2 = default(DoesNotEmitDefaultValueAttribute);
+
+                    CommonNonOperatorChecks(attr, attrNull1, attrNull2);
+                    Assert.False(attr == attrNull1);
+                    Assert.False(attrNull1 == attr);
+                    Assert.True(attrNull1 == attrNull2);
+                }
                 else
                 {
                     Assert.True(false, $"({t.Name}) doesn't have a test for null checks");
@@ -1091,6 +1146,26 @@ namespace Cesil.Tests
                 {
                     msg = InvokeToString_DynamicRowRange();
                 }
+                else if (t == typeof(AheadOfTimeTypeDescriber))
+                {
+                    msg = InvokeToString_AheadOfTimeTypeDescriber();
+                }
+                else if (t == typeof(GenerateSerializableAttribute))
+                {
+                    msg = InvokeToString_GenerateSerializableAttribute();
+                }
+                else if (t == typeof(GenerateSerializableMemberAttribute))
+                {
+                    msg = InvokeToString_GenerateSerializableMemberAttribute();
+                }
+                else if (t == typeof(GeneratedSourceVersionAttribute))
+                {
+                    msg = InvokeToString_GeneratedSourceVersionAttribute();
+                }
+                else if (t == typeof(DoesNotEmitDefaultValueAttribute))
+                {
+                    msg = InvokeToString_DoesNotEmitDefaultValueAttribute();
+                }
                 else
                 {
                     Assert.True(false, $"No test for ToString() on {t}");
@@ -1115,6 +1190,36 @@ namespace Cesil.Tests
                 {
                     Assert.StartsWith(shouldStartWith, msg2);
                 }
+            }
+
+            static string InvokeToString_DoesNotEmitDefaultValueAttribute()
+            {
+                var attr = new DoesNotEmitDefaultValueAttribute();
+                return attr.ToString();
+            }
+
+            static string InvokeToString_GeneratedSourceVersionAttribute()
+            {
+                var attr = new GeneratedSourceVersionAttribute("1.0.0", Types.Int, 1);
+                return attr.ToString();
+            }
+
+            static string InvokeToString_GenerateSerializableMemberAttribute()
+            {
+                var attr = new GenerateSerializableMemberAttribute();
+                return attr.ToString();
+            }
+
+            static string InvokeToString_GenerateSerializableAttribute()
+            {
+                var attr = new GenerateSerializableAttribute();
+                return attr.ToString();
+            }
+
+            static string InvokeToString_AheadOfTimeTypeDescriber()
+            {
+                var inst = new AheadOfTimeTypeDescriber();
+                return inst.ToString();
             }
 
             static string InvokeToString_DynamicRowRange()
@@ -1737,6 +1842,12 @@ namespace Cesil.Tests
                     var pType = prop.PropertyType.GetTypeInfo();
                     if (pType.IsValueType) continue;
 
+                    var declaredOn = prop.DeclaringType;
+                    var declaredOnName = declaredOn.FullName;
+
+                    // skip things declared by BCL types
+                    if (declaredOnName.StartsWith("System.")) continue;
+
                     var thing = $"{t.Name}.{prop.Name} property";
 
                     var pAttrs = prop.CustomAttributes.ToList();
@@ -1982,8 +2093,9 @@ namespace Cesil.Tests
                     [typeof(object).GetTypeInfo()] = new[] { "obj", "context", "row", "value" },
                     [typeof(int).GetTypeInfo()] = new[] { "index", "sizeHint" },
                     [typeof(int?).GetTypeInfo()] = new[] { "sizeHint" },
-                    [typeof(string).GetTypeInfo()] = new[] { "name", "comment", "path", "data", "valueSeparator" },
+                    [typeof(string).GetTypeInfo()] = new[] { "name", "comment", "path", "data", "valueSeparator", "version" },
                     [typeof(char?).GetTypeInfo()] = new[] { "commentStart", "escapeStart", "escape" },
+                    [typeof(byte).GetTypeInfo()] = new[] { "kind" },
 
                     // system types
                     [typeof(CancellationToken).GetTypeInfo()] = new[] { "cancellationToken" },
@@ -2002,6 +2114,7 @@ namespace Cesil.Tests
                     [typeof(IAsyncEnumerable<dynamic>).GetTypeInfo()] = new[] { "rows" },
 
                     // reflection types
+                    [typeof(Type).GetTypeInfo()] = new[] { "forType" },
                     [typeof(TypeInfo).GetTypeInfo()] = new[] { "forType", "targetType", "surrogateType" },
                     [typeof(MethodInfo).GetTypeInfo()] = new[] { "method" },
                     [typeof(PropertyInfo).GetTypeInfo()] = new[] { "property" },
@@ -2031,6 +2144,11 @@ namespace Cesil.Tests
                     [typeof(ExtraColumnTreatment).GetTypeInfo()] = new[] { "extraColumnTreatment" },
                     [typeof(IMemoryPoolProvider).GetTypeInfo()] = new[] { "memoryPoolProvider" },
                     [typeof(NullHandling).GetTypeInfo()] = new[] { "nullHandling" },
+                    [typeof(AheadOfTimeTypeDescriber).GetTypeInfo()] = new[] { "typeDescriber" },
+                    [typeof(GeneratedSourceVersionAttribute).GetTypeInfo()] = new[] { "attribute" },
+                    [typeof(GenerateSerializableAttribute).GetTypeInfo()] = new[] { "attribute" },
+                    [typeof(GenerateSerializableMemberAttribute).GetTypeInfo()] = new[] { "attribute" },
+                    [typeof(DoesNotEmitDefaultValueAttribute).GetTypeInfo()] = new[] { "attribute" },
 
                     // wrapper types
                     [typeof(DynamicCellValue).GetTypeInfo()] = new[] { "value" },
@@ -2118,6 +2236,9 @@ namespace Cesil.Tests
 
                 // skip operators
                 if (m.Name.StartsWith("op_")) continue;
+
+                // skip properties
+                if (m.IsSpecialName) continue;
 
                 if (m.IsGenericMethodDefinition)
                 {

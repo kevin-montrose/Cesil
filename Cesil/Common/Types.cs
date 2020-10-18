@@ -49,6 +49,7 @@ namespace Cesil
         // System classes
         internal static readonly TypeInfo Object = typeof(object).GetTypeInfo();
         internal static readonly TypeInfo String = typeof(string).GetTypeInfo();
+        internal static readonly TypeInfo Type = typeof(Type).GetTypeInfo();
         internal static readonly TypeInfo Uri = typeof(Uri).GetTypeInfo();
         internal static readonly TypeInfo Version = typeof(Version).GetTypeInfo();
         internal static readonly TypeInfo[] Tuple_Array =
@@ -111,6 +112,7 @@ namespace Cesil
             };
 
         // Cesil delegates
+        internal static readonly TypeInfo ColumnWriterDelegate = typeof(ColumnWriterDelegate).GetTypeInfo();
         internal static readonly TypeInfo ParserDelegate = typeof(ParserDelegate<>).GetTypeInfo();
         internal static readonly TypeInfo SetterDelegate = typeof(SetterDelegate<,>).GetTypeInfo();
         internal static readonly TypeInfo SetterByRefDelegate = typeof(SetterByRefDelegate<,>).GetTypeInfo();
@@ -174,6 +176,9 @@ namespace Cesil
         internal static readonly TypeInfo DynamicRowRange = typeof(DynamicRowRange).GetTypeInfo();
         internal static readonly TypeInfo PassthroughRowEnumerable = typeof(PassthroughRowEnumerable).GetTypeInfo();
         internal static readonly TypeInfo DefaultTypeDescriber = typeof(DefaultTypeDescriber).GetTypeInfo();
+
+        // Cesil attributes
+        internal static readonly TypeInfo GeneratedSourceVersionAttribute = typeof(GeneratedSourceVersionAttribute).GetTypeInfo();
 
         // constructor params
         internal static readonly TypeInfo[] ParserConstructorOneParameter_Array = new[] { typeof(ReadOnlySpan<char>).GetTypeInfo() };

@@ -9,6 +9,17 @@ namespace Cesil
 {
     internal static class ReflectionExtensionMethods
     {
+        internal static object GetValueNonNull(this FieldInfo field, object? obj)
+        {
+            var ret = field.GetValue(obj);
+            if (ret == null)
+            {
+                return Throw.InvalidOperationException<object>($"Expected non-null value when reading field {field}, but was null");
+            }
+
+            return ret;
+        }
+
         internal static bool AllowsNullLikeValue(this TypeInfo type)
         {
             while (type.IsByRef)
