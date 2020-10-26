@@ -21,6 +21,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cesil.Analyzers", "Cesil.An
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cesil.SourceGenerator", "Cesil.SourceGenerator\Cesil.SourceGenerator.csproj", "{17B0FDA9-4C3F-49EF-980B-066CFC1DF031}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cesil.SourceGenerator.Tests", "Cesil.SourceGenerator.Tests\Cesil.SourceGenerator.Tests.csproj", "{EC956E6B-32E4-4FC3-821A-B6B6B90172D9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +53,10 @@ Global
 		{17B0FDA9-4C3F-49EF-980B-066CFC1DF031}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{17B0FDA9-4C3F-49EF-980B-066CFC1DF031}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{17B0FDA9-4C3F-49EF-980B-066CFC1DF031}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EC956E6B-32E4-4FC3-821A-B6B6B90172D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC956E6B-32E4-4FC3-821A-B6B6B90172D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC956E6B-32E4-4FC3-821A-B6B6B90172D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC956E6B-32E4-4FC3-821A-B6B6B90172D9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
