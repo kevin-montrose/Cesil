@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Linq;
+using System.Net.WebSockets;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -27,6 +28,88 @@ namespace Cesil.SourceGenerator
             ShouldSerialize = shouldSerialize;
             EmitDefaultValue = emitDefaultValue;
             Order = order;
+        }
+
+        internal static (SerializableMember? Member, ImmutableArray<Diagnostic> Diagnostics) ForMethod(Compilation compilation, INamedTypeSymbol serializingType, IMethodSymbol mtd, ImmutableArray<AttributeSyntax> attrs)
+        {
+            var diags = ImmutableArray<Diagnostic>.Empty;
+
+            var mtdLoc = mtd.Locations.FirstOrDefault();
+
+            var attrName = GetNameFromAttributes(compilation, mtdLoc, attrs, ref diags);
+            if (attrName == null)
+            {
+                var diag = Diagnostic.Create(Diagnostics.SerializableMemberMustHaveNameSetForMethod, mtdLoc, mtd.Name);
+                diags = diags.Add(diag);
+
+                attrName = "--UNKNOWN--";
+            }
+
+            var mtdType = mtd.ReturnType;
+            if (mtdType.SpecialType == SpecialType.System_Void)
+            {
+                var diag = Diagnostic.Create(Diagnostics.MethodMustReturnNonVoid, mtdLoc, mtd.Name);
+                diags = diags.Add(diag);
+            }
+
+            var getter = new Getter(mtd);
+
+            int? order = GetOrderFromAttributes(compilation, mtdLoc, attrs, ref diags);
+
+            var emitDefaultValue = true;
+            var attrEmitDefaultValue = GetEmitDefaultValueFromAttributes(compilation, mtdLoc, attrs, ref diags);
+            emitDefaultValue = attrEmitDefaultValue ?? emitDefaultValue;
+
+            var formatter = mtdType.SpecialType == SpecialType.System_Void ? null : GetFormatter(compilation, mtdType, mtdLoc, attrs, ref diags);
+            var shouldSerialize = GetShouldSerialize(compilation, serializingType, mtdLoc, attrs, ref diags);
+
+            if (diags.IsEmpty)
+            {
+                // todo: defaults!
+                if (formatter == null)
+                {
+                    throw new System.Exception();
+                }
+
+                return (new SerializableMember(attrName, getter, formatter, shouldSerialize, emitDefaultValue, order), ImmutableArray<Diagnostic>.Empty);
+            }
+
+            return (null, diags);
+        }
+
+        internal static (SerializableMember? Member, ImmutableArray<Diagnostic> Diagnostics) ForField(Compilation compilation, INamedTypeSymbol serializingType, IFieldSymbol field, ImmutableArray<AttributeSyntax> attrs)
+        {
+            var diags = ImmutableArray<Diagnostic>.Empty;
+
+            var fieldLoc = field.Locations.FirstOrDefault();
+
+            var name = field.Name;
+            var attrName = GetNameFromAttributes(compilation, fieldLoc, attrs, ref diags);
+            name = attrName ?? name;
+
+            var getter = new Getter(field);
+
+            int? order = GetOrderFromAttributes(compilation, fieldLoc, attrs, ref diags);
+
+            var emitDefaultValue = true;
+            var attrEmitDefaultValue = GetEmitDefaultValueFromAttributes(compilation, fieldLoc, attrs, ref diags);
+            emitDefaultValue = attrEmitDefaultValue ?? emitDefaultValue;
+
+            var formatter = GetFormatter(compilation, field.Type, fieldLoc, attrs, ref diags);
+            var shouldSerialize = GetShouldSerialize(compilation, serializingType, fieldLoc, attrs, ref diags);
+
+            if (diags.IsEmpty)
+            {
+                // todo: defaults!
+                if (formatter == null)
+                {
+                    throw new System.Exception();
+                }
+
+                return (new SerializableMember(name, getter, formatter, shouldSerialize, emitDefaultValue, order), ImmutableArray<Diagnostic>.Empty);
+            }
+
+            return (null, diags);
         }
 
         internal static (SerializableMember? Member, ImmutableArray<Diagnostic> Diagnostics) ForProperty(Compilation compilation, INamedTypeSymbol serializingType, IPropertySymbol prop, ImmutableArray<AttributeSyntax> attrs)
@@ -551,7 +634,83 @@ namespace Cesil.SourceGenerator
 
         private static int? GetOrderFromAttributes(Compilation compilation, Location? location, ImmutableArray<AttributeSyntax> attrs, ref ImmutableArray<Diagnostic> diags)
         {
+            if (attrs.IsEmpty)
+            {
+                return null;
+            }
 
+            var cesilMemberAttr = compilation.GetTypeByMetadataName("Cesil.GenerateSerializableMemberAttribute");
+            if (cesilMemberAttr == null)
+            {
+                throw new System.Exception();
+            }
+
+            // this might be legitimately not included
+            var dataMemberAttr = compilation.GetTypeByMetadataName("System.Runtime.Serialization.DataMemberAttribute");
+
+            var values = ImmutableArray.CreateBuilder<int>();
+
+            foreach (var attr in attrs)
+            {
+                var model = compilation.GetSemanticModel(attr.Name.SyntaxTree);
+                var type = model.GetTypeInfo(attr.Name).Type;
+
+                if (type == null)
+                {
+                    continue;
+                }
+
+                if (type.Equals(cesilMemberAttr, SymbolEqualityComparer.Default))
+                {
+                    var value = GetConstantsWithName<int?>(compilation, ImmutableArray.Create(attr), "Order", ref diags);
+                    foreach (var val in value)
+                    {
+                        if (val == null)
+                        {
+                            continue;
+                        }
+                        values.Add(val.Value);
+                    }
+
+                    continue;
+                }
+
+                if (dataMemberAttr != null && type.Equals(dataMemberAttr, SymbolEqualityComparer.Default))
+                {
+                    var value = GetConstantsWithName<int>(compilation, ImmutableArray.Create(attr), "Order", ref diags);
+                    foreach (var val in value)
+                    {
+                        if (val == -1)
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            values.Add(val);
+                        }
+                    }
+
+                    continue;
+                }
+            }
+
+            var vs = values.ToImmutable();
+
+            if (vs.IsEmpty)
+            {
+                return null;
+            }
+            else if (vs.Length == 1)
+            {
+                return vs[0];
+            }
+            else
+            {
+                var diag = Diagnostic.Create(Diagnostics.OrderSpecifiedMultipleTimes, location);
+                diags = diags.Add(diag);
+
+                return null;
+            }
         }
 
         private static ImmutableArray<T> GetConstantsWithName<T>(Compilation compilation, ImmutableArray<AttributeSyntax> attrs, string name, ref ImmutableArray<Diagnostic> diags)

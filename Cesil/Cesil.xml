@@ -1168,6 +1168,142 @@
             Both a row and a column are specified during this operation.
             </summary>
         </member>
+        <member name="T:Cesil.GenerateSerializableAttribute">
+            <summary>
+            When using Cesil's Source Generator (see Nuget.org for Cesil.SourceGenerator) marks a class or struct
+            as needing a serializer generated at compile time.
+            
+            When using the DefaultTypeDescriber or the SourceGeneratorTypeDescriber, the created I(Async)Writers
+            for this type will do no runtime code generation.
+            
+            You can customize the behavior of the generated serialize with [DataMemberAttribute],
+            and [GenerateSerializableMemberAttribute] attributes.
+            </summary>
+        </member>
+        <member name="M:Cesil.GenerateSerializableAttribute.#ctor">
+            <summary>
+            Create a GenerateSerializableAttribute attribute.
+            </summary>
+        </member>
+        <member name="T:Cesil.GenerateSerializableMemberAttribute">
+            <summary>
+            Attach this attribute to a method, field, or property to expose it as serializable and configure it's "ShouldSerialize" and
+            "Formatter" behaviors.
+            
+            If attached to a property, the propery must have a getter and take no parameters.
+            
+            If attached to a method, the method must return a non-null value and either:
+             - be an instance method and
+               * take no parameters
+               * take one parameter, an in WriteContext
+             - be static and
+               * take no parameters
+               * take one parameter either
+                 - an in WriteContext or
+                 - a type to which the declaring type of this member can be assigned
+               * take two parameters
+                 1. a type to which the declaring type of this member can be assigned
+                 2. in WriteContext
+            </summary>
+        </member>
+        <member name="P:Cesil.GenerateSerializableMemberAttribute.Name">
+            <summary>
+            The name of the column this member's returned value will be serialized under.
+            
+            For fields and properties, this defaults to their declared name.
+            
+            For methods, this must be explicitly set.
+            </summary>
+        </member>
+        <member name="P:Cesil.GenerateSerializableMemberAttribute.Order">
+            <summary>
+            Value used to order columns.
+            
+            Set to null to leave order unspecified.
+            
+            Orders with explicit values are sorted before those with null values.
+            </summary>
+        </member>
+        <member name="P:Cesil.GenerateSerializableMemberAttribute.FormatterType">
+            <summary>
+            Type to lookup a formatter method on, used with FormatterMethodName.
+            
+            If null, defaults to a built in Formatter for the type
+            of this member (if any).
+            
+            If non-null, FormatterMethodName must also be set.  
+            
+            The type must be public (or internal, if declared in the same assembly as the annotated type).
+            </summary>
+        </member>
+        <member name="P:Cesil.GenerateSerializableMemberAttribute.FormatterMethodName">
+            <summary>
+            Name of formatter method, used with FormatterType.
+            
+            If non-null, FormatterType must also be set.
+            
+            The method must:
+             - be public (or internal, if declared in the same assembly as the annotated type)
+             - static
+             - return bool
+             - have three paramters:
+               1. a type which the annotated member's type can be assigned to
+               2. in WriteContext
+               3. IBufferWriter(char)
+            </summary>
+        </member>
+        <member name="P:Cesil.GenerateSerializableMemberAttribute.ShouldSerializeType">
+            <summary>
+            Type to lookup a should serialize method on, used with ShouldSerializeMethodName.
+            
+            If null, no should seralize is used.
+            
+            If non-null, ShouldSerializeMethodName must also be set.
+            
+            The type must be public (or internal, if declared in the same assembly as the annotated type).
+            </summary>
+        </member>
+        <member name="P:Cesil.GenerateSerializableMemberAttribute.ShouldSerializeMethodName">
+            <summary>
+            Name of should serialize method, used with ShouldSerializeType.
+            
+            If non-null, ShouldSerializeType must also be set.
+            
+            The method must either
+             - be public (or internal, if declared in the same assembly as the annotated type)
+             - instance method
+             - take 
+               1. no parameters
+               2. one in WriteContext parameter
+             - return bool
+            or
+             - be public (or internal, if declared in the same assembly as the annotated type)
+             - static
+             - take 
+               1. no parameters
+               2. one parameter of a type which declares the annotated member
+               3. two parameters
+                  1. a type which declares the annotated member
+                  2. in WriteContext
+             - return bool
+            </summary>
+        </member>
+        <member name="P:Cesil.GenerateSerializableMemberAttribute.EmitDefaultValue">
+            <summary>
+            Whether or not to emit the default value.
+            
+            Defaults to true.
+            </summary>
+        </member>
+        <member name="M:Cesil.GenerateSerializableMemberAttribute.#ctor">
+            <summary>
+            Create a GenerateSerializableMemberAttribute attribute.
+            
+            This will expose the member for serialization if it would not otherwise be exposed.
+            
+            If on a method, a Name must be set.
+            </summary>
+        </member>
         <member name="T:Cesil.CesilUtils">
             <summary>
             A collection of convenience methods for reading and writing using streams or files.

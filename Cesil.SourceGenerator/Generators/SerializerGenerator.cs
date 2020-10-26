@@ -29,7 +29,7 @@ namespace Cesil.SourceGenerator
             }
 
             var cesilMemberAttr = compilation.GetTypeByMetadataName("Cesil.GenerateSerializableMemberAttribute");
-            if(cesilMemberAttr == null)
+            if (cesilMemberAttr == null)
             {
                 var diag = Diagnostic.Create(Diagnostics.NoCesilReference, null);
                 context.ReportDiagnostic(diag);
@@ -41,7 +41,7 @@ namespace Cesil.SourceGenerator
 
             foreach (var decl in toGenerate)
             {
-                var serializerSource = GenerateSerializer(context, compilation, decl, cesilMemberAttr, dataMemberAttr);
+                GenerateSerializer(context, compilation, decl, cesilMemberAttr, dataMemberAttr);
             }
         }
 
@@ -65,28 +65,50 @@ namespace Cesil.SourceGenerator
                 return null;
             }
 
-            
+            var members = GetSerializableMembers(context, compilation, namedType, cesilAttr, namedType);
+            // todo: actually do a thing!
+            return null;
         }
 
-        private static ImmutableArray<SerializableMember> GetSerializableMembers(Compilation compilation, INamedTypeSymbol namedType, INamedTypeSymbol cesilAttr, INamedTypeSymbol? dataMemberAttr)
+        private static ImmutableArray<SerializableMember> GetSerializableMembers(SourceGeneratorContext context, Compilation compilation, INamedTypeSymbol namedType, INamedTypeSymbol cesilAttr, INamedTypeSymbol? dataMemberAttr)
         {
+            var hasErrors = false;
             var ret = ImmutableArray.CreateBuilder<SerializableMember>();
 
             foreach (var member in namedType.GetMembers())
             {
-                var serializableMember = GetSerializableMember(compilation, member, cesilAttr, dataMemberAttr);
-                if(serializableMember == null)
+                var res = GetSerializableMember(compilation, namedType, member, cesilAttr, dataMemberAttr);
+                if (res == null)
                 {
                     continue;
                 }
 
-                ret.Add(serializableMember);
+                var (serializableMember, diags) = res.Value;
+
+                if (serializableMember != null)
+                {
+                    ret.Add(serializableMember);
+                }
+                else
+                {
+                    hasErrors = true;
+
+                    foreach (var diag in diags)
+                    {
+                        context.ReportDiagnostic(diag);
+                    }
+                }
+            }
+
+            if (hasErrors)
+            {
+                return ImmutableArray<SerializableMember>.Empty;
             }
 
             return ret.ToImmutable();
         }
 
-        private static SerializableMember? GetSerializableMember(Compilation compilation, ISymbol member, INamedTypeSymbol cesilAttr, INamedTypeSymbol? dataMemberAttr)
+        private static (SerializableMember? Member, ImmutableArray<Diagnostic> Diagnostics)? GetSerializableMember(Compilation compilation, INamedTypeSymbol serializingType, ISymbol member, INamedTypeSymbol cesilAttr, INamedTypeSymbol? dataMemberAttr)
         {
             if (member is IPropertySymbol prop)
             {
@@ -101,8 +123,8 @@ namespace Cesil.SourceGenerator
                 {
                     return null;
                 }
-                
-                return SerializableMember.ForProperty(compilation, prop, configAttrs);
+
+                return SerializableMember.ForProperty(compilation, serializingType, prop, configAttrs);
             }
             else if (member is IFieldSymbol field)
             {
@@ -114,19 +136,19 @@ namespace Cesil.SourceGenerator
                     return null;
                 }
 
-                return SerializableMember.ForField(compilation, field, configAttrs);
+                return SerializableMember.ForField(compilation, serializingType, field, configAttrs);
             }
             else if (member is IMethodSymbol method)
             {
-                var configAttrs = GetConfigurationAttributes(compilation, member, cesilAttr, dataMemberAttr);
-                
+                var configAttrs = GetConfigurationAttributes(compilation, member, cesilAttr, null);
+
                 // must be annotated to include
                 if (configAttrs.IsEmpty)
                 {
                     return null;
                 }
 
-                return SerializableMember.ForMethod(compilation, method, configAttrs);
+                return SerializableMember.ForMethod(compilation, serializingType, method, configAttrs);
             }
 
             return null;

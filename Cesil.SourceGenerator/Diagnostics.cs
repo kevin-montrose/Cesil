@@ -1,5 +1,8 @@
 ﻿using Microsoft.CodeAnalysis;
 
+// todo: actual track these
+#pragma warning disable RS2008
+
 namespace Cesil.SourceGenerator
 {
     internal static class Diagnostics
@@ -246,9 +249,39 @@ namespace Cesil.SourceGenerator
 
         internal static readonly DiagnosticDescriptor BadShouldSerializeParameters_InstanceOne =
            new DiagnosticDescriptor(
-               "CES1020",
+               "CES1023",
                "Invalid ShouldSerialize method parameters",
                "Method {0}, which is instance and takes one parameter, should take in WriteContext.",
+               "Cesil",
+               DiagnosticSeverity.Error,
+               true
+           );
+
+        internal static readonly DiagnosticDescriptor OrderSpecifiedMultipleTimes =
+            new DiagnosticDescriptor(
+               "CES1024",
+               "Member's Order was specified multiple times",
+               "Only one attribute may specify Order per member",
+               "Cesil",
+               DiagnosticSeverity.Error,
+               true
+           );
+
+        internal static readonly DiagnosticDescriptor MethodMustReturnNonVoid =
+            new DiagnosticDescriptor(
+               "CES1025",
+               "Method cannot return void",
+               "Method {0} must return a value, found void.",
+               "Cesil",
+               DiagnosticSeverity.Error,
+               true
+           );
+
+        internal static readonly DiagnosticDescriptor SerializableMemberMustHaveNameSetForMethod =
+            new DiagnosticDescriptor(
+               "CES1026",
+               "SerializableMemberAttribute must have Name set",
+               "Method {0} with [SerializableMember] must have property Name explicitly set.",
                "Cesil",
                DiagnosticSeverity.Error,
                true
