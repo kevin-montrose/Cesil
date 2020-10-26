@@ -81,6 +81,7 @@ namespace Cesil
         /// The method must:
         ///  - be public (or internal, if declared in the same assembly as the annotated type)
         ///  - static
+        ///  - return bool
         ///  - have three paramters:
         ///    1. a type which the annotated member's type can be assigned to
         ///    2. in WriteContext
