@@ -15,10 +15,24 @@ namespace Cesil.SourceGenerator.Tests
     public class SerializerGeneratorTests
     {
         [Fact]
-        public async Task PropertiesAsync()
+        public async Task SimpleAsync()
         {
             var gen = new SerializerGenerator();
-            var (comp, diags) = await RunSourceGeneratorAsync("namespace Foo { }", gen);
+            var (comp, diags) = await RunSourceGeneratorAsync(
+@"
+namespace Foo 
+{   
+    [Cesil.GenerateSerializableAttribute]
+    class WriteMe
+    {
+        [Cesil.GenerateSerializableMemberAttribute]
+        public int Bar { get; set; }
+        [Cesil.GenerateSerializableMemberAttribute]
+        public string Fizz;
+        [Cesil.GenerateSerializableMemberAttribute(Name=""Hello"")]
+        public string SomeMtd() => ""World"";
+    }
+}", gen);
 
             Assert.Empty(diags);
         }
@@ -113,6 +127,34 @@ namespace Cesil.SourceGenerator.Tests
             var project = solution.GetProject(projectId);
 
             project = project.AddDocument(csFile, testFile).Project;
+
+            // find the Cesil folder to include code from
+            string cesilRootDir;
+            {
+                cesilRootDir = Environment.CurrentDirectory;
+                while (cesilRootDir != null)
+                {
+                    if (Directory.GetDirectories(cesilRootDir).Any(c => Path.GetFileName(c) == "Cesil"))
+                    {
+                        cesilRootDir = Path.Combine(cesilRootDir, "Cesil");
+                        break;
+                    }
+
+                    cesilRootDir = Path.GetDirectoryName(cesilRootDir);
+                }
+
+                if (cesilRootDir == null)
+                {
+                    throw new Exception("Couldn't find Cesil root directory, are tests not being run from within the solution?");
+                }
+            }
+
+            var toAddFilePath = Path.Combine(cesilRootDir, "Interface");
+            toAddFilePath = Path.Combine(toAddFilePath, "Attributes");
+            toAddFilePath = Path.Combine(toAddFilePath, "SerializeAttributes.cs");
+
+            var fileText = File.ReadAllText(toAddFilePath);
+            project = project.AddDocument(Path.GetFileName(toAddFilePath), fileText).Project;
 
             return project.GetCompilationAsync();
         }

@@ -9,40 +9,78 @@ namespace Cesil.SourceGenerator
 {
     public sealed class SerializerGenerator : ISourceGenerator
     {
+        internal INamedTypeSymbol? GenerateSerializableAttribute;
+        internal INamedTypeSymbol? GenerateSerializableMemberAttribute;
+        internal INamedTypeSymbol? DataMemberAttribute;
+
+        internal ImmutableArray<TypeDeclarationSyntax> ToGenerateFor = ImmutableArray<TypeDeclarationSyntax>.Empty;
+
+        internal ImmutableDictionary<INamedTypeSymbol, ImmutableArray<SerializableMember>> Members = ImmutableDictionary<INamedTypeSymbol, ImmutableArray<SerializableMember>>.Empty;
+
         public void Execute(SourceGeneratorContext context)
         {
             var compilation = context.Compilation;
 
-            var rootAttr = compilation.GetTypeByMetadataName("Cesil.GenerateSerializableAttribute");
-            if (rootAttr == null)
+            (GenerateSerializableAttribute, GenerateSerializableMemberAttribute, DataMemberAttribute) = GetAttributeTypes(compilation);
+
+            if (GenerateSerializableAttribute == null)
             {
                 var diag = Diagnostic.Create(Diagnostics.NoCesilReference, null);
                 context.ReportDiagnostic(diag);
                 return;
             }
 
-            var toGenerate = GetTypesToGenerate(compilation, rootAttr);
-
-            if (toGenerate.IsEmpty)
-            {
-                return;
-            }
-
-            var cesilMemberAttr = compilation.GetTypeByMetadataName("Cesil.GenerateSerializableMemberAttribute");
-            if (cesilMemberAttr == null)
+            if (GenerateSerializableMemberAttribute == null)
             {
                 var diag = Diagnostic.Create(Diagnostics.NoCesilReference, null);
                 context.ReportDiagnostic(diag);
                 return;
             }
 
-            // this might be legitimately not included
-            var dataMemberAttr = compilation.GetTypeByMetadataName("System.Runtime.Serialization.DataMemberAttribute");
+            ToGenerateFor = GetTypesToGenerateFor(compilation, GenerateSerializableAttribute);
 
-            foreach (var decl in toGenerate)
+            if (ToGenerateFor.IsEmpty)
             {
-                GenerateSerializer(context, compilation, decl, cesilMemberAttr, dataMemberAttr);
+                return;
             }
+
+            Members = GetMembersToGenerateFor(context, compilation, ToGenerateFor, GenerateSerializableMemberAttribute, DataMemberAttribute);
+
+            // todo: actually write some C#
+        }
+
+        private static ImmutableDictionary<INamedTypeSymbol, ImmutableArray<SerializableMember>> GetMembersToGenerateFor(SourceGeneratorContext context, Compilation compilation, ImmutableArray<TypeDeclarationSyntax> toGenerateFor, INamedTypeSymbol cesilAttr, INamedTypeSymbol? dataAttr)
+        {
+            var ret = ImmutableDictionary.CreateBuilder<INamedTypeSymbol, ImmutableArray<SerializableMember>>();
+
+            foreach(var decl in toGenerateFor)
+            {
+                var model = compilation.GetSemanticModel(decl.SyntaxTree);
+                var namedType = model.GetDeclaredSymbol(decl);
+                if (namedType == null)
+                {
+                    var diag = Diagnostic.Create(Diagnostics.GenericError, decl.GetLocation(), "Type identified, but not named");
+                    context.ReportDiagnostic(diag);
+                    continue;
+                }
+
+                var members = GetSerializableMembers(context, compilation, namedType, cesilAttr, namedType);
+                if (!members.IsEmpty)
+                {
+                    ret.Add(namedType, members);
+                }
+            }
+
+            return ret.ToImmutable();
+        }
+
+        private static (INamedTypeSymbol? GenerateSerializable, INamedTypeSymbol? GenerateSerializableMember, INamedTypeSymbol? DataMember) GetAttributeTypes(Compilation compilation)
+        {
+            var generateSerializable = compilation.GetTypeByMetadataName("Cesil.GenerateSerializableAttribute");
+            var generateSerializableMember = compilation.GetTypeByMetadataName("Cesil.GenerateSerializableMemberAttribute");
+            var dataMember = compilation.GetTypeByMetadataName("System.Runtime.Serialization.DataMemberAttribute");
+
+            return (generateSerializable, generateSerializableMember, dataMember);
         }
 
         private static string? GenerateSerializer(SourceGeneratorContext context, Compilation compilation, TypeDeclarationSyntax decl, INamedTypeSymbol cesilAttr, INamedTypeSymbol? dataMemberAttr)
@@ -210,7 +248,7 @@ namespace Cesil.SourceGenerator
             return relevantAttributes.ToImmutable();
         }
 
-        private static ImmutableArray<TypeDeclarationSyntax> GetTypesToGenerate(Compilation compilation, ITypeSymbol generateAttr)
+        private static ImmutableArray<TypeDeclarationSyntax> GetTypesToGenerateFor(Compilation compilation, ITypeSymbol generateAttr)
         {
             var ret = ImmutableArray.CreateBuilder<TypeDeclarationSyntax>();
 
