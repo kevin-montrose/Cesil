@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -7,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Xunit;
 
@@ -20,21 +22,69 @@ namespace Cesil.SourceGenerator.Tests
             var gen = new SerializerGenerator();
             var (comp, diags) = await RunSourceGeneratorAsync(
 @"
+using System;
+using System.Buffers;
+using Cesil;
+
 namespace Foo 
 {   
     [Cesil.GenerateSerializableAttribute]
     class WriteMe
     {
-        [Cesil.GenerateSerializableMemberAttribute]
+        [Cesil.GenerateSerializableMemberAttribute(FormatterType=typeof(WriteMe), FormatterMethodName=nameof(ForInt))]
         public int Bar { get; set; }
-        [Cesil.GenerateSerializableMemberAttribute]
+        [Cesil.GenerateSerializableMemberAttribute(FormatterType=typeof(WriteMe), FormatterMethodName=nameof(ForString))]
         public string Fizz;
-        [Cesil.GenerateSerializableMemberAttribute(Name=""Hello"")]
-        public string SomeMtd() => ""World"";
+        [Cesil.GenerateSerializableMemberAttribute(Name=""Hello"", FormatterType=typeof(WriteMe), FormatterMethodName=nameof(ForDateTime))]
+        public DateTime SomeMtd() => ""World"";
+
+        public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
+        public static bool ForString(string val, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
+        public static bool ForDateTime(DateTime val, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
     }
 }", gen);
 
             Assert.Empty(diags);
+
+            var shouldBeWriteMe = Assert.Single(gen.ToGenerateFor);
+            Assert.Equal("WriteMe", shouldBeWriteMe.Identifier.ValueText);
+
+            var members = gen.Members.First().Value;
+
+            // Bar
+            {
+                var bar = Assert.Single(members, x => x.Name == "Bar");
+                Assert.True(bar.EmitDefaultValue);
+                Assert.Equal("ForInt", (bar.Formatter.Method.DeclaringSyntaxReferences.Single().GetSyntax() as MethodDeclarationSyntax).Identifier.ValueText);
+                Assert.Equal("Bar", bar.Getter.Property.Name);
+                Assert.Null(bar.Order);
+                Assert.Null(bar.ShouldSerialize);
+            }
+
+            // Fizz
+            {
+                var fizz = Assert.Single(members, x => x.Name == "Fizz");
+                Assert.True(fizz.EmitDefaultValue);
+                Assert.Equal("ForString", (fizz.Formatter.Method.DeclaringSyntaxReferences.Single().GetSyntax() as MethodDeclarationSyntax).Identifier.ValueText);
+                Assert.Equal("Fizz", fizz.Getter.Field.Name);
+                Assert.Null(fizz.Order);
+                Assert.Null(fizz.ShouldSerialize);
+            }
+
+            // Hello
+            {
+                var hello = Assert.Single(members, x => x.Name == "Hello");
+                Assert.True(hello.EmitDefaultValue);
+                Assert.Equal("ForDateTime", (hello.Formatter.Method.DeclaringSyntaxReferences.Single().GetSyntax() as MethodDeclarationSyntax).Identifier.ValueText);
+                Assert.Equal("SomeMtd", hello.Getter.Method.Name);
+                Assert.Null(hello.Order);
+                Assert.Null(hello.ShouldSerialize);
+            }
         }
 
         private static async Task<(Compilation Compilation, ImmutableArray<Diagnostic> Diagnostic)> RunSourceGeneratorAsync(
@@ -44,7 +94,7 @@ namespace Foo
         )
         {
             var compilation = await GetCompilationAsync(testFile, caller);
-            
+
             var generators = ImmutableArray.Create(generator);
 
             GeneratorDriver driver = new CSharpGeneratorDriver(parseOptions: new CSharpParseOptions(LanguageVersion.CSharp8), generators, new DefaultAnalyzerConfigOptionsProvider(), ImmutableArray<AdditionalText>.Empty);
@@ -149,12 +199,24 @@ namespace Foo
                 }
             }
 
-            var toAddFilePath = Path.Combine(cesilRootDir, "Interface");
-            toAddFilePath = Path.Combine(toAddFilePath, "Attributes");
-            toAddFilePath = Path.Combine(toAddFilePath, "SerializeAttributes.cs");
+            var files =
+                new[]
+                {
+                    new [] { "Interface", "Attributes", "SerializeAttributes.cs" },
+                    new [] { "Context", "WriteContext.cs" },
+                };
 
-            var fileText = File.ReadAllText(toAddFilePath);
-            project = project.AddDocument(Path.GetFileName(toAddFilePath), fileText).Project;
+            foreach (var fileParts in files)
+            {
+                var toAddFilePath = cesilRootDir;
+                foreach (var part in fileParts)
+                {
+                    toAddFilePath = Path.Combine(toAddFilePath, part);
+                }
+
+                var fileText = File.ReadAllText(toAddFilePath);
+                project = project.AddDocument(Path.GetFileName(toAddFilePath), fileText).Project;
+            }
 
             return project.GetCompilationAsync();
         }

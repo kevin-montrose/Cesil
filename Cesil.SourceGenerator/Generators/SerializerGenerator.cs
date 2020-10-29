@@ -13,6 +13,9 @@ namespace Cesil.SourceGenerator
         internal INamedTypeSymbol? GenerateSerializableMemberAttribute;
         internal INamedTypeSymbol? DataMemberAttribute;
 
+        internal INamedTypeSymbol? WriteContext;
+        internal INamedTypeSymbol? IBufferWriterChar;
+
         internal ImmutableArray<TypeDeclarationSyntax> ToGenerateFor = ImmutableArray<TypeDeclarationSyntax>.Empty;
 
         internal ImmutableDictionary<INamedTypeSymbol, ImmutableArray<SerializableMember>> Members = ImmutableDictionary<INamedTypeSymbol, ImmutableArray<SerializableMember>>.Empty;
@@ -37,6 +40,22 @@ namespace Cesil.SourceGenerator
                 return;
             }
 
+            (WriteContext, IBufferWriterChar) = GetSpecialTypes(compilation);
+
+            if (WriteContext == null)
+            {
+                var diag = Diagnostic.Create(Diagnostics.NoCesilReference, null);
+                context.ReportDiagnostic(diag);
+                return;
+            }
+
+            if (IBufferWriterChar == null)
+            {
+                var diag = Diagnostic.Create(Diagnostics.NoSystemMemoryReference, null);
+                context.ReportDiagnostic(diag);
+                return;
+            }
+
             ToGenerateFor = GetTypesToGenerateFor(compilation, GenerateSerializableAttribute);
 
             if (ToGenerateFor.IsEmpty)
@@ -44,16 +63,24 @@ namespace Cesil.SourceGenerator
                 return;
             }
 
-            Members = GetMembersToGenerateFor(context, compilation, ToGenerateFor, GenerateSerializableMemberAttribute, DataMemberAttribute);
+            Members = GetMembersToGenerateFor(context, compilation, ToGenerateFor, GenerateSerializableMemberAttribute, DataMemberAttribute, WriteContext, IBufferWriterChar);
 
             // todo: actually write some C#
         }
 
-        private static ImmutableDictionary<INamedTypeSymbol, ImmutableArray<SerializableMember>> GetMembersToGenerateFor(SourceGeneratorContext context, Compilation compilation, ImmutableArray<TypeDeclarationSyntax> toGenerateFor, INamedTypeSymbol cesilAttr, INamedTypeSymbol? dataAttr)
+        private static ImmutableDictionary<INamedTypeSymbol, ImmutableArray<SerializableMember>> GetMembersToGenerateFor(
+            SourceGeneratorContext context,
+            Compilation compilation,
+            ImmutableArray<TypeDeclarationSyntax> toGenerateFor,
+            INamedTypeSymbol cesilAttr,
+            INamedTypeSymbol? dataAttr,
+            INamedTypeSymbol writeContext,
+            INamedTypeSymbol iBufferWriterOfChar
+        )
         {
             var ret = ImmutableDictionary.CreateBuilder<INamedTypeSymbol, ImmutableArray<SerializableMember>>();
 
-            foreach(var decl in toGenerateFor)
+            foreach (var decl in toGenerateFor)
             {
                 var model = compilation.GetSemanticModel(decl.SyntaxTree);
                 var namedType = model.GetDeclaredSymbol(decl);
@@ -64,7 +91,7 @@ namespace Cesil.SourceGenerator
                     continue;
                 }
 
-                var members = GetSerializableMembers(context, compilation, namedType, cesilAttr, namedType);
+                var members = GetSerializableMembers(context, compilation, namedType, cesilAttr, dataAttr, writeContext, iBufferWriterOfChar);
                 if (!members.IsEmpty)
                 {
                     ret.Add(namedType, members);
@@ -83,39 +110,31 @@ namespace Cesil.SourceGenerator
             return (generateSerializable, generateSerializableMember, dataMember);
         }
 
-        private static string? GenerateSerializer(SourceGeneratorContext context, Compilation compilation, TypeDeclarationSyntax decl, INamedTypeSymbol cesilAttr, INamedTypeSymbol? dataMemberAttr)
+        private static (INamedTypeSymbol? WriteContext, INamedTypeSymbol? IBufferWriteOfChar) GetSpecialTypes(Compilation compilation)
         {
-            var model = compilation.GetSemanticModel(decl.SyntaxTree);
-            var typeInfo = model.GetTypeInfo(decl);
-            var type = typeInfo.Type;
-            if (type == null)
-            {
-                var diag = Diagnostic.Create(Diagnostics.GenericError, decl.GetLocation(), "Could not identify type");
-                context.ReportDiagnostic(diag);
-                return null;
-            }
+            var writeContext = compilation.GetTypeByMetadataName("Cesil.WriteContext");
+            var iBufferWriter = compilation.GetTypeByMetadataName("System.Buffers.IBufferWriter`1");
+            var iBufferWriterOfChar = iBufferWriter?.Construct(compilation.GetSpecialType(SpecialType.System_Char));
 
-            var namedType = type as INamedTypeSymbol;
-            if (namedType == null)
-            {
-                var diag = Diagnostic.Create(Diagnostics.GenericError, decl.GetLocation(), "Type identified, but not named");
-                context.ReportDiagnostic(diag);
-                return null;
-            }
-
-            var members = GetSerializableMembers(context, compilation, namedType, cesilAttr, namedType);
-            // todo: actually do a thing!
-            return null;
+            return (writeContext, iBufferWriterOfChar);
         }
 
-        private static ImmutableArray<SerializableMember> GetSerializableMembers(SourceGeneratorContext context, Compilation compilation, INamedTypeSymbol namedType, INamedTypeSymbol cesilAttr, INamedTypeSymbol? dataMemberAttr)
+        private static ImmutableArray<SerializableMember> GetSerializableMembers(
+            SourceGeneratorContext context,
+            Compilation compilation,
+            INamedTypeSymbol namedType,
+            INamedTypeSymbol cesilAttr,
+            INamedTypeSymbol? dataMemberAttr,
+            INamedTypeSymbol writeContext,
+            INamedTypeSymbol iBufferWriterOfChar
+        )
         {
             var hasErrors = false;
             var ret = ImmutableArray.CreateBuilder<SerializableMember>();
 
             foreach (var member in namedType.GetMembers())
             {
-                var res = GetSerializableMember(compilation, namedType, member, cesilAttr, dataMemberAttr);
+                var res = GetSerializableMember(compilation, namedType, member, cesilAttr, dataMemberAttr, writeContext, iBufferWriterOfChar);
                 if (res == null)
                 {
                     continue;
@@ -146,7 +165,15 @@ namespace Cesil.SourceGenerator
             return ret.ToImmutable();
         }
 
-        private static (SerializableMember? Member, ImmutableArray<Diagnostic> Diagnostics)? GetSerializableMember(Compilation compilation, INamedTypeSymbol serializingType, ISymbol member, INamedTypeSymbol cesilAttr, INamedTypeSymbol? dataMemberAttr)
+        private static (SerializableMember? Member, ImmutableArray<Diagnostic> Diagnostics)? GetSerializableMember(
+            Compilation compilation,
+            INamedTypeSymbol serializingType,
+            ISymbol member,
+            INamedTypeSymbol cesilAttr,
+            INamedTypeSymbol? dataMemberAttr,
+            INamedTypeSymbol writeContext,
+            INamedTypeSymbol iBufferWriterOfChar
+        )
         {
             if (member is IPropertySymbol prop)
             {
@@ -162,7 +189,7 @@ namespace Cesil.SourceGenerator
                     return null;
                 }
 
-                return SerializableMember.ForProperty(compilation, serializingType, prop, configAttrs);
+                return SerializableMember.ForProperty(compilation, serializingType, writeContext, iBufferWriterOfChar, prop, configAttrs);
             }
             else if (member is IFieldSymbol field)
             {
@@ -174,9 +201,9 @@ namespace Cesil.SourceGenerator
                     return null;
                 }
 
-                return SerializableMember.ForField(compilation, serializingType, field, configAttrs);
+                return SerializableMember.ForField(compilation, serializingType, writeContext, iBufferWriterOfChar, field, configAttrs);
             }
-            else if (member is IMethodSymbol method)
+            else if (member is IMethodSymbol method && method.MethodKind == MethodKind.Ordinary)
             {
                 var configAttrs = GetConfigurationAttributes(compilation, member, cesilAttr, null);
 
@@ -186,7 +213,7 @@ namespace Cesil.SourceGenerator
                     return null;
                 }
 
-                return SerializableMember.ForMethod(compilation, serializingType, method, configAttrs);
+                return SerializableMember.ForMethod(compilation, serializingType, writeContext, iBufferWriterOfChar, method, configAttrs);
             }
 
             return null;
@@ -201,16 +228,20 @@ namespace Cesil.SourceGenerator
                 var syntax = syntaxRef.GetSyntax();
                 var syntaxModel = compilation.GetSemanticModel(syntax.SyntaxTree);
 
+                var method = syntax.ParentOrSelfOfType<MethodDeclarationSyntax>();
+                var field = syntax.ParentOrSelfOfType<FieldDeclarationSyntax>();
+                var prop = syntax.ParentOrSelfOfType<PropertyDeclarationSyntax>();
+
                 SyntaxList<AttributeListSyntax> attrLists;
-                if (syntax is MethodDeclarationSyntax method)
+                if (method != null)
                 {
                     attrLists = method.AttributeLists;
                 }
-                else if (syntax is FieldDeclarationSyntax field)
+                else if (field != null)
                 {
                     attrLists = field.AttributeLists;
                 }
-                else if (syntax is PropertyDeclarationSyntax prop)
+                else if (prop != null)
                 {
                     attrLists = prop.AttributeLists;
                 }

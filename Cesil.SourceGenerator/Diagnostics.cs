@@ -287,6 +287,16 @@ namespace Cesil.SourceGenerator
                true
            );
 
+        internal static readonly DiagnosticDescriptor NoSystemMemoryReference =
+            new DiagnosticDescriptor(
+               "CES1027",
+               "Missing system.Memory Reference",
+               "Could not find a type exported by System.Memory, are you missing a reference?",
+               "Cesil",
+               DiagnosticSeverity.Error,
+               true
+           );
+
         internal static readonly DiagnosticDescriptor GenericError =
             new DiagnosticDescriptor(
                 "CES1999",
