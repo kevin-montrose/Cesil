@@ -31,9 +31,8 @@ namespace Cesil.SourceGenerator
 
         internal static (SerializableMember? Member, ImmutableArray<Diagnostic> Diagnostics) ForMethod(
             Compilation compilation,
+            SerializerTypes types,
             INamedTypeSymbol serializingType,
-            INamedTypeSymbol writeContext,
-            INamedTypeSymbol iBufferWriterOfChar,
             IMethodSymbol mtd,
             ImmutableArray<AttributeSyntax> attrs
         )
@@ -66,8 +65,8 @@ namespace Cesil.SourceGenerator
             var attrEmitDefaultValue = GetEmitDefaultValueFromAttributes(compilation, mtdLoc, attrs, ref diags);
             emitDefaultValue = attrEmitDefaultValue ?? emitDefaultValue;
 
-            var formatter = mtdType.SpecialType == SpecialType.System_Void ? null : GetFormatter(compilation, mtdType, writeContext, iBufferWriterOfChar, mtdLoc, attrs, ref diags);
-            var shouldSerialize = GetShouldSerialize(compilation, serializingType, writeContext, mtdLoc, attrs, ref diags);
+            var formatter = mtdType.SpecialType == SpecialType.System_Void ? null : GetFormatter(compilation, types, mtdType, mtdLoc, attrs, ref diags);
+            var shouldSerialize = GetShouldSerialize(compilation, types, serializingType, mtdLoc, attrs, ref diags);
 
             if (diags.IsEmpty)
             {
@@ -85,9 +84,8 @@ namespace Cesil.SourceGenerator
 
         internal static (SerializableMember? Member, ImmutableArray<Diagnostic> Diagnostics) ForField(
             Compilation compilation,
+            SerializerTypes types,
             INamedTypeSymbol serializingType,
-            INamedTypeSymbol writeContext,
-            INamedTypeSymbol iBufferWriterOfChar,
             IFieldSymbol field,
             ImmutableArray<AttributeSyntax> attrs
         )
@@ -108,8 +106,8 @@ namespace Cesil.SourceGenerator
             var attrEmitDefaultValue = GetEmitDefaultValueFromAttributes(compilation, fieldLoc, attrs, ref diags);
             emitDefaultValue = attrEmitDefaultValue ?? emitDefaultValue;
 
-            var formatter = GetFormatter(compilation, field.Type, writeContext, iBufferWriterOfChar, fieldLoc, attrs, ref diags);
-            var shouldSerialize = GetShouldSerialize(compilation, serializingType, writeContext, fieldLoc, attrs, ref diags);
+            var formatter = GetFormatter(compilation, types, field.Type, fieldLoc, attrs, ref diags);
+            var shouldSerialize = GetShouldSerialize(compilation, types, serializingType, fieldLoc, attrs, ref diags);
 
             if (diags.IsEmpty)
             {
@@ -127,9 +125,8 @@ namespace Cesil.SourceGenerator
 
         internal static (SerializableMember? Member, ImmutableArray<Diagnostic> Diagnostics) ForProperty(
             Compilation compilation,
+            SerializerTypes types,
             INamedTypeSymbol serializingType,
-            INamedTypeSymbol writeContext,
-            INamedTypeSymbol iBufferWriterOfChar,
             IPropertySymbol prop,
             ImmutableArray<AttributeSyntax> attrs
         )
@@ -162,8 +159,8 @@ namespace Cesil.SourceGenerator
             var attrEmitDefaultValue = GetEmitDefaultValueFromAttributes(compilation, propLoc, attrs, ref diags);
             emitDefaultValue = attrEmitDefaultValue ?? emitDefaultValue;
 
-            var formatter = GetFormatter(compilation, prop.Type, writeContext, iBufferWriterOfChar, propLoc, attrs, ref diags);
-            var shouldSerialize = GetShouldSerialize(compilation, serializingType, writeContext, propLoc, attrs, ref diags);
+            var formatter = GetFormatter(compilation, types, prop.Type, propLoc, attrs, ref diags);
+            var shouldSerialize = GetShouldSerialize(compilation, types, serializingType, propLoc, attrs, ref diags);
 
             if (diags.IsEmpty)
             {
@@ -181,8 +178,8 @@ namespace Cesil.SourceGenerator
 
         private static ShouldSerialize? GetShouldSerialize(
             Compilation compilation,
+            SerializerTypes types,
             INamedTypeSymbol declaringType,
-            INamedTypeSymbol writeContext,
             Location? location,
             ImmutableArray<AttributeSyntax> attrs,
             ref ImmutableArray<Diagnostic> diags
@@ -235,10 +232,7 @@ namespace Cesil.SourceGenerator
                 return null;
             }
 
-            // todo: only look this up once
-            var boolType = compilation.GetSpecialType(SpecialType.System_Boolean);
-
-            if (!shouldSerializeMtd.ReturnType.Equals(boolType, SymbolEqualityComparer.Default))
+            if (!shouldSerializeMtd.ReturnType.Equals(types.BuiltIn.Bool, SymbolEqualityComparer.Default))
             {
                 var diag = Diagnostic.Create(Diagnostics.MethodMustReturnBool, location, shouldSerializeMtd.Name);
                 diags = diags.Add(diag);
@@ -320,7 +314,7 @@ namespace Cesil.SourceGenerator
                     }
 
                     var p1Type = p1.Type;
-                    if (!p1Type.Equals(writeContext, SymbolEqualityComparer.Default))
+                    if (!p1Type.Equals(types.OurTypes.WriteContext, SymbolEqualityComparer.Default))
                     {
                         var diag = Diagnostic.Create(Diagnostics.BadShouldSerializeParameters_StaticTwo, location, shouldSerializeMtd.Name, declaringType.Name);
                         diags = diags.Add(diag);
@@ -370,7 +364,7 @@ namespace Cesil.SourceGenerator
                     }
 
                     var p0Type = p0.Type;
-                    if (!p0Type.Equals(writeContext, SymbolEqualityComparer.Default))
+                    if (!p0Type.Equals(types.OurTypes.WriteContext, SymbolEqualityComparer.Default))
                     {
                         var diag = Diagnostic.Create(Diagnostics.BadShouldSerializeParameters_InstanceOne, location, shouldSerializeMtd.Name, declaringType.Name);
                         diags = diags.Add(diag);
@@ -394,9 +388,8 @@ namespace Cesil.SourceGenerator
 
         private static Formatter? GetFormatter(
             Compilation compilation,
+            SerializerTypes types,
             ITypeSymbol toFormatType,
-            INamedTypeSymbol writeContext,
-            INamedTypeSymbol iBufferWriterOfChar,
             Location? location,
             ImmutableArray<AttributeSyntax> attrs,
             ref ImmutableArray<Diagnostic> diags
@@ -458,10 +451,7 @@ namespace Cesil.SourceGenerator
                 return null;
             }
 
-            // todo: only look this up once
-            var boolType = compilation.GetSpecialType(SpecialType.System_Boolean);
-
-            if (!formatterMtd.ReturnType.Equals(boolType, SymbolEqualityComparer.Default))
+            if (!formatterMtd.ReturnType.Equals(types.BuiltIn.Bool, SymbolEqualityComparer.Default))
             {
                 var diag = Diagnostic.Create(Diagnostics.MethodMustReturnBool, location, formatterMtd.Name);
                 diags = diags.Add(diag);
@@ -508,7 +498,7 @@ namespace Cesil.SourceGenerator
             }
 
             var shouldBeWriteContext = p1.Type;
-            if (!shouldBeWriteContext.Equals(writeContext, SymbolEqualityComparer.Default))
+            if (!shouldBeWriteContext.Equals(types.OurTypes.WriteContext, SymbolEqualityComparer.Default))
             {
                 var diag = Diagnostic.Create(Diagnostics.BadFormatterParameters, location, formatterMtd.Name, toFormatType.Name);
                 diags = diags.Add(diag);
@@ -526,7 +516,7 @@ namespace Cesil.SourceGenerator
             }
 
             var shouldBeIBufferWriterChar = p2.Type;
-            if (!shouldBeIBufferWriterChar.Equals(iBufferWriterOfChar, SymbolEqualityComparer.Default))
+            if (!shouldBeIBufferWriterChar.Equals(types.Framework.IBufferWriterOfChar, SymbolEqualityComparer.Default))
             {
                 var diag = Diagnostic.Create(Diagnostics.BadFormatterParameters, location, formatterMtd.Name, toFormatType.Name);
                 diags = diags.Add(diag);

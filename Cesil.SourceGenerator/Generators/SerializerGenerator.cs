@@ -10,21 +10,7 @@ namespace Cesil.SourceGenerator
 {
     public sealed class SerializerGenerator : ISourceGenerator
     {
-        internal sealed class Types
-        {
-            internal BuiltInTypes BuiltIn;
-            internal FrameworkTypes Framework;
-            internal CesilTypes OurTypes;
-
-            internal Types(BuiltInTypes builtIn, FrameworkTypes framework, CesilTypes ourTypes)
-            {
-                BuiltIn = builtIn;
-                Framework = framework;
-                OurTypes = ourTypes;
-            }
-        }
-
-        internal Types? NeededTypes;
+        internal SerializerTypes? NeededTypes;
 
         internal ImmutableArray<TypeDeclarationSyntax> ToGenerateFor = ImmutableArray<TypeDeclarationSyntax>.Empty;
 
@@ -51,7 +37,7 @@ namespace Cesil.SourceGenerator
             // todo: actually write some C#
         }
 
-        private static bool TryCreateNeededTypes(Compilation compilation, SourceGeneratorContext context, [MaybeNullWhen(returnValue: false)]out Types neededTypes)
+        private static bool TryCreateNeededTypes(Compilation compilation, SourceGeneratorContext context, [MaybeNullWhen(returnValue: false)]out SerializerTypes neededTypes)
         {
             var builtIn = BuiltInTypes.Create(compilation);
 
@@ -71,7 +57,7 @@ namespace Cesil.SourceGenerator
                 return false;
             }
 
-            neededTypes = new Types(builtIn, framework, types);
+            neededTypes = new SerializerTypes(builtIn, framework, types);
             return true;
         }
 
@@ -79,7 +65,7 @@ namespace Cesil.SourceGenerator
             SourceGeneratorContext context,
             Compilation compilation,
             ImmutableArray<TypeDeclarationSyntax> toGenerateFor,
-            Types types
+            SerializerTypes types
         )
         {
             var ret = ImmutableDictionary.CreateBuilder<INamedTypeSymbol, ImmutableArray<SerializableMember>>();
@@ -108,7 +94,7 @@ namespace Cesil.SourceGenerator
         private static ImmutableArray<SerializableMember> GetSerializableMembers(
             SourceGeneratorContext context,
             Compilation compilation,
-            Types types,
+            SerializerTypes types,
             INamedTypeSymbol namedType
         )
         {
@@ -150,7 +136,7 @@ namespace Cesil.SourceGenerator
 
         private static (SerializableMember? Member, ImmutableArray<Diagnostic> Diagnostics)? GetSerializableMember(
             Compilation compilation,
-            Types types,
+            SerializerTypes types,
             INamedTypeSymbol serializingType,
             ISymbol member
         )
@@ -169,7 +155,7 @@ namespace Cesil.SourceGenerator
                     return null;
                 }
 
-                return SerializableMember.ForProperty(compilation, serializingType, types.OurTypes.WriteContext, types.Framework.IBufferWriterOfChar, prop, configAttrs);
+                return SerializableMember.ForProperty(compilation, types, serializingType, prop, configAttrs);
             }
             else if (member is IFieldSymbol field)
             {
@@ -181,7 +167,7 @@ namespace Cesil.SourceGenerator
                     return null;
                 }
 
-                return SerializableMember.ForField(compilation, serializingType, types.OurTypes.WriteContext, types.Framework.IBufferWriterOfChar, field, configAttrs);
+                return SerializableMember.ForField(compilation, types, serializingType, field, configAttrs);
             }
             else if (member is IMethodSymbol method && method.MethodKind == MethodKind.Ordinary)
             {
@@ -193,13 +179,13 @@ namespace Cesil.SourceGenerator
                     return null;
                 }
 
-                return SerializableMember.ForMethod(compilation, serializingType, types.OurTypes.WriteContext, types.Framework.IBufferWriterOfChar, method, configAttrs);
+                return SerializableMember.ForMethod(compilation, types, serializingType, method, configAttrs);
             }
 
             return null;
         }
 
-        private static ImmutableArray<AttributeSyntax> GetConfigurationAttributes(Compilation compilation, Types types, ISymbol member)
+        private static ImmutableArray<AttributeSyntax> GetConfigurationAttributes(Compilation compilation, SerializerTypes types, ISymbol member)
         {
             var relevantAttributes = ImmutableArray.CreateBuilder<AttributeSyntax>();
 
@@ -259,7 +245,7 @@ namespace Cesil.SourceGenerator
             return relevantAttributes.ToImmutable();
         }
 
-        private static ImmutableArray<TypeDeclarationSyntax> GetTypesToGenerateFor(Compilation compilation, Types types)
+        private static ImmutableArray<TypeDeclarationSyntax> GetTypesToGenerateFor(Compilation compilation, SerializerTypes types)
         {
             var ret = ImmutableArray.CreateBuilder<TypeDeclarationSyntax>();
 
