@@ -261,18 +261,7 @@ namespace Cesil.SourceGenerator
                 else if (shouldSerializeParams.Length == 1)
                 {
                     var p0 = shouldSerializeParams[0];
-                    if (p0.RefKind != RefKind.None)
-                    {
-                        var diag = Diagnostic.Create(Diagnostics.BadShouldSerializeParameters_StaticOne, location, shouldSerializeMtd.Name, declaringType.Name);
-                        diags = diags.Add(diag);
-
-                        return null;
-                    }
-
-                    var shouldSerializeTakes = p0.Type;
-                    var conversion = compilation.ClassifyConversion(declaringType, shouldSerializeTakes);
-                    var canConvert = conversion.IsImplicit || conversion.IsIdentity;
-                    if (!canConvert)
+                    if (!p0.IsNormalParameterOfType(compilation, declaringType))
                     {
                         var diag = Diagnostic.Create(Diagnostics.BadShouldSerializeParameters_StaticOne, location, shouldSerializeMtd.Name, declaringType.Name);
                         diags = diags.Add(diag);
@@ -285,18 +274,7 @@ namespace Cesil.SourceGenerator
                 else if (shouldSerializeParams.Length == 2)
                 {
                     var p0 = shouldSerializeParams[0];
-                    if (p0.RefKind != RefKind.None)
-                    {
-                        var diag = Diagnostic.Create(Diagnostics.BadShouldSerializeParameters_StaticTwo, location, shouldSerializeMtd.Name, declaringType.Name);
-                        diags = diags.Add(diag);
-
-                        return null;
-                    }
-
-                    var shouldSerializeTakes = p0.Type;
-                    var conversion = compilation.ClassifyConversion(declaringType, shouldSerializeTakes);
-                    var canConvert = conversion.IsImplicit || conversion.IsIdentity;
-                    if (!canConvert)
+                    if (!p0.IsNormalParameterOfType(compilation, declaringType))
                     {
                         var diag = Diagnostic.Create(Diagnostics.BadShouldSerializeParameters_StaticTwo, location, shouldSerializeMtd.Name, declaringType.Name);
                         diags = diags.Add(diag);
@@ -305,16 +283,7 @@ namespace Cesil.SourceGenerator
                     }
 
                     var p1 = shouldSerializeParams[1];
-                    if (p1.RefKind != RefKind.In)
-                    {
-                        var diag = Diagnostic.Create(Diagnostics.BadShouldSerializeParameters_StaticTwo, location, shouldSerializeMtd.Name, declaringType.Name);
-                        diags = diags.Add(diag);
-
-                        return null;
-                    }
-
-                    var p1Type = p1.Type;
-                    if (!p1Type.Equals(types.OurTypes.WriteContext, SymbolEqualityComparer.Default))
+                    if(!p1.IsInWriteContext(types.OurTypes))
                     {
                         var diag = Diagnostic.Create(Diagnostics.BadShouldSerializeParameters_StaticTwo, location, shouldSerializeMtd.Name, declaringType.Name);
                         diags = diags.Add(diag);
@@ -355,16 +324,7 @@ namespace Cesil.SourceGenerator
                 else if (shouldSerializeParams.Length == 1)
                 {
                     var p0 = shouldSerializeParams[0];
-                    if (p0.RefKind != RefKind.In)
-                    {
-                        var diag = Diagnostic.Create(Diagnostics.BadShouldSerializeParameters_InstanceOne, location, shouldSerializeMtd.Name, declaringType.Name);
-                        diags = diags.Add(diag);
-
-                        return null;
-                    }
-
-                    var p0Type = p0.Type;
-                    if (!p0Type.Equals(types.OurTypes.WriteContext, SymbolEqualityComparer.Default))
+                    if(!p0.IsInWriteContext(types.OurTypes))
                     {
                         var diag = Diagnostic.Create(Diagnostics.BadShouldSerializeParameters_InstanceOne, location, shouldSerializeMtd.Name, declaringType.Name);
                         diags = diags.Add(diag);
@@ -469,18 +429,7 @@ namespace Cesil.SourceGenerator
             }
 
             var p0 = formatterParams[0];
-            if (p0.RefKind != RefKind.None)
-            {
-                var diag = Diagnostic.Create(Diagnostics.BadFormatterParameters, location, formatterMtd.Name, toFormatType.Name);
-                diags = diags.Add(diag);
-
-                return null;
-            }
-
-            var formatterTakes = p0.Type;
-            var conversion = compilation.ClassifyConversion(toFormatType, formatterTakes);
-            var canConvert = conversion.IsImplicit || conversion.IsIdentity;
-            if (!canConvert)
+            if(!p0.IsNormalParameterOfType(compilation, toFormatType))
             {
                 var diag = Diagnostic.Create(Diagnostics.BadFormatterParameters, location, formatterMtd.Name, toFormatType.Name);
                 diags = diags.Add(diag);
@@ -489,34 +438,16 @@ namespace Cesil.SourceGenerator
             }
 
             var p1 = formatterParams[1];
-            if (p1.RefKind != RefKind.In)
+            if (!p1.IsInWriteContext(types.OurTypes))
             {
                 var diag = Diagnostic.Create(Diagnostics.BadFormatterParameters, location, formatterMtd.Name, toFormatType.Name);
                 diags = diags.Add(diag);
 
                 return null;
             }
-
-            var shouldBeWriteContext = p1.Type;
-            if (!shouldBeWriteContext.Equals(types.OurTypes.WriteContext, SymbolEqualityComparer.Default))
-            {
-                var diag = Diagnostic.Create(Diagnostics.BadFormatterParameters, location, formatterMtd.Name, toFormatType.Name);
-                diags = diags.Add(diag);
-
-                return null;
-            }
-
+           
             var p2 = formatterParams[2];
-            if (p2.RefKind != RefKind.None)
-            {
-                var diag = Diagnostic.Create(Diagnostics.BadFormatterParameters, location, formatterMtd.Name, toFormatType.Name);
-                diags = diags.Add(diag);
-
-                return null;
-            }
-
-            var shouldBeIBufferWriterChar = p2.Type;
-            if (!shouldBeIBufferWriterChar.Equals(types.Framework.IBufferWriterOfChar, SymbolEqualityComparer.Default))
+            if(!p2.IsNormalParameterOfType(compilation, types.Framework.IBufferWriterOfChar))
             {
                 var diag = Diagnostic.Create(Diagnostics.BadFormatterParameters, location, formatterMtd.Name, toFormatType.Name);
                 diags = diags.Add(diag);
