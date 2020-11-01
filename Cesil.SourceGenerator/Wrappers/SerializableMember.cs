@@ -250,7 +250,7 @@ namespace Cesil.SourceGenerator
                 // 1. no parameters
                 // 2. one parameter of a type which declares the annotated member
                 // 3. two parameters
-                //    1. a type which declares the annotated member
+                //    1. the type which declares the annotated member, or one which can be assigned to it
                 //    2. in WriteContext
 
                 if (shouldSerializeParams.Length == 0)

@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using System.Threading.Tasks.Sources;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -632,6 +631,500 @@ namespace Foo
                     {
                         Assert.Equal(Diagnostics.BadFormatterParameters.Id, d.Id);
                         Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                    }
+                );
+            }
+        }
+
+        [Fact]
+        public async Task BadShouldSerializeAsync()
+        {
+            // not paired (missing method)
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+
+namespace Foo 
+{   
+    [Cesil.GenerateSerializableAttribute]
+    class BadShouldSerializes
+    {
+        [Cesil.GenerateSerializableMemberAttribute(
+            FormatterType=typeof(BadShouldSerializes),
+            FormatterMethodName = nameof(ForInt),
+
+            ShouldSerializeType = typeof(BadShouldSerializes)
+        )]
+        public int Bar { get; set; }
+
+        public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
+        public static bool ShouldSerializeBar()
+        => false;
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d =>
+                    {
+                        Assert.Equal(Diagnostics.ShouldSerializeBothMustBeSet.Id, d.Id);
+                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                    }
+                );
+            }
+
+            // not paired (missing type)
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+
+namespace Foo 
+{   
+    [Cesil.GenerateSerializableAttribute]
+    class BadShouldSerializes
+    {
+        [Cesil.GenerateSerializableMemberAttribute(
+            FormatterType=typeof(BadShouldSerializes),
+            FormatterMethodName = nameof(ForInt),
+
+            ShouldSerializeMethodName = nameof(ShouldSerializeBar)
+        )]
+        public int Bar { get; set; }
+
+        public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
+        public static bool ShouldSerializeBar()
+        => false;
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d =>
+                    {
+                        Assert.Equal(Diagnostics.ShouldSerializeBothMustBeSet.Id, d.Id);
+                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                    }
+                );
+            }
+
+            // static, too many parameters
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+
+namespace Foo 
+{   
+    [Cesil.GenerateSerializableAttribute]
+    class BadShouldSerializes
+    {
+        [Cesil.GenerateSerializableMemberAttribute(
+            FormatterType=typeof(BadShouldSerializes),
+            FormatterMethodName = nameof(ForInt),
+
+            ShouldSerializeType = typeof(BadShouldSerializes),
+            ShouldSerializeMethodName = nameof(ShouldSerializeBar)
+        )]
+        public int Bar { get; set; }
+
+        public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
+        public static bool ShouldSerializeBar(int a, int b, int c, int d)
+        => false;
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d =>
+                    {
+                        Assert.Equal(Diagnostics.BadShouldSerializeParameters_TooMany.Id, d.Id);
+                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                    }
+                );
+            }
+
+            // static, one parameter by ref
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+
+namespace Foo 
+{   
+    [Cesil.GenerateSerializableAttribute]
+    class BadShouldSerializes
+    {
+        [Cesil.GenerateSerializableMemberAttribute(
+            FormatterType=typeof(BadShouldSerializes),
+            FormatterMethodName = nameof(ForInt),
+
+            ShouldSerializeType = typeof(BadShouldSerializes),
+            ShouldSerializeMethodName = nameof(ShouldSerializeBar)
+        )]
+        public int Bar { get; set; }
+
+        public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
+        public static bool ShouldSerializeBar(ref BadShouldSerializes a)
+        => false;
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d =>
+                    {
+                        Assert.Equal(Diagnostics.BadShouldSerializeParameters_StaticOne.Id, d.Id);
+                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                    }
+                );
+            }
+
+            // static, one parameter wrong type
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+
+namespace Foo 
+{   
+    [Cesil.GenerateSerializableAttribute]
+    class BadShouldSerializes
+    {
+        [Cesil.GenerateSerializableMemberAttribute(
+            FormatterType=typeof(BadShouldSerializes),
+            FormatterMethodName = nameof(ForInt),
+
+            ShouldSerializeType = typeof(BadShouldSerializes),
+            ShouldSerializeMethodName = nameof(ShouldSerializeBar)
+        )]
+        public int Bar { get; set; }
+
+        public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
+        public static bool ShouldSerializeBar(int a)
+        => false;
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d =>
+                    {
+                        Assert.Equal(Diagnostics.BadShouldSerializeParameters_StaticOne.Id, d.Id);
+                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                    }
+                );
+            }
+
+            // static, two parameters first by ref
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+
+namespace Foo 
+{   
+    [Cesil.GenerateSerializableAttribute]
+    class BadShouldSerializes
+    {
+        [Cesil.GenerateSerializableMemberAttribute(
+            FormatterType=typeof(BadShouldSerializes),
+            FormatterMethodName = nameof(ForInt),
+
+            ShouldSerializeType = typeof(BadShouldSerializes),
+            ShouldSerializeMethodName = nameof(ShouldSerializeBar)
+        )]
+        public int Bar { get; set; }
+
+        public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
+        public static bool ShouldSerializeBar(ref BadShouldSerializes a, in WriteContext ctx)
+        => false;
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d =>
+                    {
+                        Assert.Equal(Diagnostics.BadShouldSerializeParameters_StaticTwo.Id, d.Id);
+                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                    }
+                );
+            }
+
+            // static, two parameters first wrong type
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+
+namespace Foo 
+{   
+    [Cesil.GenerateSerializableAttribute]
+    class BadShouldSerializes
+    {
+        [Cesil.GenerateSerializableMemberAttribute(
+            FormatterType=typeof(BadShouldSerializes),
+            FormatterMethodName = nameof(ForInt),
+
+            ShouldSerializeType = typeof(BadShouldSerializes),
+            ShouldSerializeMethodName = nameof(ShouldSerializeBar)
+        )]
+        public int Bar { get; set; }
+
+        public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
+        public static bool ShouldSerializeBar(int a, in WriteContext ctx)
+        => false;
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d =>
+                    {
+                        Assert.Equal(Diagnostics.BadShouldSerializeParameters_StaticTwo.Id, d.Id);
+                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                    }
+                );
+            }
+
+            // static, two parameters second not by in
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+
+namespace Foo 
+{   
+    [Cesil.GenerateSerializableAttribute]
+    class BadShouldSerializes
+    {
+        [Cesil.GenerateSerializableMemberAttribute(
+            FormatterType=typeof(BadShouldSerializes),
+            FormatterMethodName = nameof(ForInt),
+
+            ShouldSerializeType = typeof(BadShouldSerializes),
+            ShouldSerializeMethodName = nameof(ShouldSerializeBar)
+        )]
+        public int Bar { get; set; }
+
+        public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
+        public static bool ShouldSerializeBar(BadShouldSerializes a, WriteContext ctx)
+        => false;
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d =>
+                    {
+                        Assert.Equal(Diagnostics.BadShouldSerializeParameters_StaticTwo.Id, d.Id);
+                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                    }
+                );
+            }
+
+            // static, two parameters second wrong type
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+
+namespace Foo 
+{   
+    [Cesil.GenerateSerializableAttribute]
+    class BadShouldSerializes
+    {
+        [Cesil.GenerateSerializableMemberAttribute(
+            FormatterType=typeof(BadShouldSerializes),
+            FormatterMethodName = nameof(ForInt),
+
+            ShouldSerializeType = typeof(BadShouldSerializes),
+            ShouldSerializeMethodName = nameof(ShouldSerializeBar)
+        )]
+        public int Bar { get; set; }
+
+        public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
+        public static bool ShouldSerializeBar(BadShouldSerializes a, in object ctx)
+        => false;
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d =>
+                    {
+                        Assert.Equal(Diagnostics.BadShouldSerializeParameters_StaticTwo.Id, d.Id);
+                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                    }
+                );
+            }
+
+            // instance, too many parameters
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+
+namespace Foo 
+{   
+    [Cesil.GenerateSerializableAttribute]
+    class BadShouldSerializes
+    {
+        [Cesil.GenerateSerializableMemberAttribute(
+            FormatterType=typeof(BadShouldSerializes),
+            FormatterMethodName = nameof(ForInt),
+
+            ShouldSerializeType = typeof(BadShouldSerializes),
+            ShouldSerializeMethodName = nameof(ShouldSerializeBar)
+        )]
+        public int Bar { get; set; }
+
+        public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
+        public bool ShouldSerializeBar(int a, int b)
+        => false;
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d =>
+                    {
+                        Assert.Equal(Diagnostics.BadShouldSerializeParameters_TooMany.Id, d.Id);
+                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                    }
+                );
+            }
+
+            // instance, first parameter not in
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+
+namespace Foo 
+{   
+    [Cesil.GenerateSerializableAttribute]
+    class BadShouldSerializes
+    {
+        [Cesil.GenerateSerializableMemberAttribute(
+            FormatterType=typeof(BadShouldSerializes),
+            FormatterMethodName = nameof(ForInt),
+
+            ShouldSerializeType = typeof(BadShouldSerializes),
+            ShouldSerializeMethodName = nameof(ShouldSerializeBar)
+        )]
+        public int Bar { get; set; }
+
+        public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
+        public bool ShouldSerializeBar(WriteContext ctx)
+        => false;
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d =>
+                    {
+                        Assert.Equal(Diagnostics.BadShouldSerializeParameters_InstanceOne.Id, d.Id);
+                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                    }
+                );
+            }
+
+            // instance, first parameter wrong type
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+
+namespace Foo 
+{   
+    [Cesil.GenerateSerializableAttribute]
+    class BadShouldSerializes
+    {
+        [Cesil.GenerateSerializableMemberAttribute(
+            FormatterType=typeof(BadShouldSerializes),
+            FormatterMethodName = nameof(ForInt),
+
+            ShouldSerializeType = typeof(BadShouldSerializes),
+            ShouldSerializeMethodName = nameof(ShouldSerializeBar)
+        )]
+        public int Bar { get; set; }
+
+        public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
+        public bool ShouldSerializeBar(in object ctx)
+        => false;
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d =>
+                    {
+                        Assert.Equal(Diagnostics.BadShouldSerializeParameters_InstanceOne.Id, d.Id);
+                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
