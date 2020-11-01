@@ -2,10 +2,11 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Net.WebSockets;
+using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Cesil.SourceGenerator
 {
@@ -35,10 +36,203 @@ namespace Cesil.SourceGenerator
 
             Members = GetMembersToGenerateFor(context, compilation, ToGenerateFor, NeededTypes);
 
-            // todo: actually write some C#
+            foreach (var kv in Members)
+            {
+                var rowType = kv.Key;
+                var columns = kv.Value;
+
+                var inOrder = columns.Sort(
+                    (a, b) =>
+                    {
+                        var aCurIx = columns.IndexOf(a);
+                        var bCurIx = columns.IndexOf(b);
+
+                        // if equal, preserve discovered order
+                        if (a.Order == b.Order)
+                        {
+                            return aCurIx.CompareTo(bCurIx);
+                        }
+
+                        // sort nulls to the end
+                        if (a.Order == null)
+                        {
+                            return 1;
+                        }
+
+                        if (b.Order == null)
+                        {
+                            return -1;
+                        }
+
+                        return a.Order.Value.CompareTo(b.Order.Value);
+                    }
+                );
+
+                var source = GenerateSerializerType(compilation, rowType, inOrder);
+
+                context.AddSource($"Cesil_Generated_{rowType.Name}.cs", SourceText.From(source));
+            }
         }
 
-        private static bool TryCreateNeededTypes(Compilation compilation, SourceGeneratorContext context, [MaybeNullWhen(returnValue: false)]out SerializerTypes neededTypes)
+        private static string GenerateSerializerType(Compilation compilation, INamedTypeSymbol rowType, ImmutableArray<SerializableMember> columns)
+        {
+            var fullyQualifiedFormat = new SymbolDisplayFormat(typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces);
+
+            var fullyQualifiedRowType = rowType.ToDisplayString(fullyQualifiedFormat);
+
+            var ret = new StringBuilder();
+
+            ret.AppendLine("namespace Cesil.SourceGenerator.Generated");
+            ret.AppendLine("{");
+
+            ret.AppendLine("  internal sealed class Generated_" + rowType.Name);
+            ret.AppendLine("  {");
+
+            ret.AppendLine("    public const int COLUMN_COUNT = " + columns.Length + ";");
+
+
+            for (var i = 0; i < columns.Length; i++)
+            {
+                var col = columns[i];
+
+                ret.AppendLine();
+                ret.AppendLine("    public static bool Column_" + i + "(System.Object rowObj, in Cesil.WriteContext ctx, System.Buffers.IBufferWriter<char> writer)");
+                ret.AppendLine("    {");
+                ret.AppendLine("      var row = (" + fullyQualifiedRowType + ")rowObj;");
+
+                if (col.ShouldSerialize != null)
+                {
+                    var ss = col.ShouldSerialize;
+
+                    var mtdName = ss.Method.Name;
+
+                    string invokeStatement;
+                    if (ss.IsStatic)
+                    {
+                        var onType = ss.Method.ContainingType.ToDisplayString(fullyQualifiedFormat);
+
+                        invokeStatement = onType + "." + mtdName + "(";
+
+                        if (ss.TakesRow)
+                        {
+                            invokeStatement += "row";
+
+
+                            if (ss.TakesContext)
+                            {
+                                invokeStatement += ", in ctx";
+                            }
+                        }
+                        else
+                        {
+                            if (ss.TakesContext)
+                            {
+                                invokeStatement += "in ctx";
+                            }
+                        }
+
+                        invokeStatement += ")";
+                    }
+                    else
+                    {
+                        invokeStatement = "row." + mtdName + "(";
+
+                        if (ss.TakesContext)
+                        {
+                            invokeStatement += "in ctx";
+                        }
+
+                        invokeStatement += ")";
+                    }
+
+                    ret.AppendLine("      var shouldSerialize = " + invokeStatement + ";");
+                    ret.AppendLine("      if(!shouldSerialize) { return true; }");
+                }
+
+                var getter = col.Getter;
+
+                string getStatement;
+
+                if (getter.Field != null)
+                {
+                    var f = getter.Field;
+                    if (f.IsStatic)
+                    {
+                        getStatement = fullyQualifiedRowType + "." + f.Name;
+                    }
+                    else
+                    {
+                        getStatement = "row." + f.Name;
+                    }
+                }
+                else if (getter.Property != null)
+                {
+                    var p = getter.Property;
+                    if (p.IsStatic)
+                    {
+                        getStatement = fullyQualifiedRowType + "." + p.Name;
+                    }
+                    else
+                    {
+                        getStatement = "row." + p.Name;
+                    }
+                }
+                else if (getter.Method != null)
+                {
+                    var mtd = getter.Method;
+                    if (mtd.IsStatic)
+                    {
+                        getStatement = fullyQualifiedRowType + "." + mtd.Name;
+                    }
+                    else
+                    {
+                        getStatement = "row." + mtd.Name;
+                    }
+
+                    getStatement += "(";
+                    if (getter.MethodTakesRow)
+                    {
+                        getStatement += "row";
+                        if (getter.MethodTakesContext)
+                        {
+                            getStatement += ", in ctx";
+                        }
+                    }
+                    else
+                    {
+                        if (getter.MethodTakesContext)
+                        {
+                            getStatement += "in ctx";
+                        }
+                    }
+
+                    getStatement += ")";
+                }
+                else
+                {
+                    throw new Exception("Shouldn't be possible");
+                }
+
+                ret.AppendLine("      var value = " + getStatement + ";");
+
+                var formatter = col.Formatter;
+                var formatterType = formatter.Method.ContainingType.ToDisplayString(fullyQualifiedFormat);
+
+                var formatterStatement = formatterType + "." + formatter.Method.Name + "(value, in ctx, buffer)";
+
+                ret.AppendLine("      var res = " + formatterStatement + ";");
+                ret.AppendLine();
+                ret.AppendLine("      return res;");
+                ret.AppendLine("    }");
+            }
+
+            ret.AppendLine("  }");
+            ret.AppendLine("}");
+
+            return ret.ToString();
+        }
+
+        private static bool TryCreateNeededTypes(Compilation compilation, SourceGeneratorContext context, [MaybeNullWhen(returnValue: false)] out SerializerTypes neededTypes)
         {
             var builtIn = BuiltInTypes.Create(compilation);
 
@@ -216,7 +410,7 @@ namespace Cesil.SourceGenerator
                 {
                     attrLists = prop.AttributeLists;
                 }
-                else if(indexer != null)
+                else if (indexer != null)
                 {
                     attrLists = indexer.AttributeLists;
                 }

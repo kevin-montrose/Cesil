@@ -244,6 +244,7 @@ namespace Cesil.SourceGenerator
 
             var isStatic = shouldSerializeMtd.IsStatic;
             bool takesContext;
+            bool takesRow;
             if (isStatic)
             {
                 // can legally take
@@ -257,6 +258,7 @@ namespace Cesil.SourceGenerator
                 {
                     // fine!
                     takesContext = false;
+                    takesRow = false;
                 }
                 else if (shouldSerializeParams.Length == 1)
                 {
@@ -269,6 +271,7 @@ namespace Cesil.SourceGenerator
                         return null;
                     }
 
+                    takesRow = true;
                     takesContext = false;
                 }
                 else if (shouldSerializeParams.Length == 2)
@@ -291,6 +294,7 @@ namespace Cesil.SourceGenerator
                         return null;
                     }
 
+                    takesRow = true;
                     takesContext = true;
                 }
                 else
@@ -316,6 +320,8 @@ namespace Cesil.SourceGenerator
 
                     return null;
                 }
+
+                takesRow = true;
 
                 if (shouldSerializeParams.Length == 0)
                 {
@@ -343,7 +349,7 @@ namespace Cesil.SourceGenerator
                 }
             }
 
-            return new ShouldSerialize(shouldSerializeMtd, isStatic, takesContext);
+            return new ShouldSerialize(shouldSerializeMtd, isStatic, takesRow, takesContext);
         }
 
         private static Formatter? GetFormatter(
