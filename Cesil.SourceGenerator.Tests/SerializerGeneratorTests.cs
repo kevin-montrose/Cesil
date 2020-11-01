@@ -1389,6 +1389,78 @@ namespace Foo
             );
         }
 
+        [Fact]
+        public async Task DataMemberOrderUnspecifiedAsync()
+        {
+            // implicit
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+using System.Runtime.Serialization;
+
+namespace Foo 
+{   
+    [Cesil.GenerateSerializableAttribute]
+    class DataMemberOrderUnspecifieds
+    {
+        [Cesil.GenerateSerializableMemberAttribute(
+            FormatterType = typeof(DataMemberOrderUnspecifieds),
+            FormatterMethodName = nameof(Formatter)
+        )]
+        [DataMember]
+        public int Bar;
+
+        internal static bool Formatter(int val, in WriteContext cxt, IBufferWriter<char> buffer)
+        => false;
+    }
+}", gen);
+
+                Assert.Empty(diags);
+
+                var member = gen.Members.Single().Value.Single();
+
+                Assert.Null(member.Order);
+            }
+
+            // explicitly -1
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+using System.Runtime.Serialization;
+
+namespace Foo 
+{   
+    [Cesil.GenerateSerializableAttribute]
+    class DataMemberOrderUnspecifieds
+    {
+        [Cesil.GenerateSerializableMemberAttribute(
+            FormatterType = typeof(DataMemberOrderUnspecifieds),
+            FormatterMethodName = nameof(Formatter)
+        )]
+        [DataMember(Order = -1)]
+        public int Bar;
+
+        internal static bool Formatter(int val, in WriteContext cxt, IBufferWriter<char> buffer)
+        => false;
+    }
+}", gen);
+
+                Assert.Empty(diags);
+
+                var member = gen.Members.Single().Value.Single();
+
+                Assert.Null(member.Order);
+            }
+        }
+
         private static string GetFlaggedSource(Diagnostic diag)
         {
             var tree = diag.Location.SourceTree;
