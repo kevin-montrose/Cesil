@@ -1130,6 +1130,104 @@ namespace Foo
             }
         }
 
+        [Fact]
+        public async Task BadEmitDefaultValueAsync()
+        {
+            // multiple declarations
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+using System.Runtime.Serialization;
+
+namespace Foo 
+{   
+    [Cesil.GenerateSerializableAttribute]
+    class BadEmitDefaultValues
+    {
+        [Cesil.GenerateSerializableMemberAttribute(
+            FormatterType=typeof(BadEmitDefaultValues),
+            FormatterMethodName = nameof(ForInt),
+
+            ShouldSerializeType = typeof(BadEmitDefaultValues),
+            ShouldSerializeMethodName = nameof(ShouldSerializeBar),
+
+            EmitDefaultValue = false
+        )]
+        [DataMember(EmitDefaultValue = false)]
+        public int Bar { get; set; }
+
+        public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
+        public static bool ShouldSerializeBar(BadEmitDefaultValues row, in WriteContext ctx)
+        => false;
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d =>
+                    {
+                        Assert.Equal(Diagnostics.EmitDefaultValueSpecifiedMultipleTimes.Id, d.Id);
+                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadEmitDefaultValues),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadEmitDefaultValues),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar),\r\n\r\n            EmitDefaultValue = false\r\n        )]\r\n        [DataMember(EmitDefaultValue = false)]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                    }
+                );
+            }
+        }
+
+        [Fact]
+        public async Task BadOrderAsync()
+        {
+            // multiple declarations
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+using System.Runtime.Serialization;
+
+namespace Foo 
+{   
+    [Cesil.GenerateSerializableAttribute]
+    class BadOrders
+    {
+        [Cesil.GenerateSerializableMemberAttribute(
+            FormatterType=typeof(BadOrders),
+            FormatterMethodName = nameof(ForInt),
+
+            ShouldSerializeType = typeof(BadOrders),
+            ShouldSerializeMethodName = nameof(ShouldSerializeBar),
+
+            Order = 2
+        )]
+        [DataMember(Order = 2)]
+        public int Bar { get; set; }
+
+        public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
+        public static bool ShouldSerializeBar(BadOrders row, in WriteContext ctx)
+        => false;
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d =>
+                    {
+                        Assert.Equal(Diagnostics.OrderSpecifiedMultipleTimes.Id, d.Id);
+                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadOrders),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadOrders),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar),\r\n\r\n            Order = 2\r\n        )]\r\n        [DataMember(Order = 2)]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                    }
+                );
+            }
+        }
+
         private static string GetFlaggedSource(Diagnostic diag)
         {
             var tree = diag.Location.SourceTree;
