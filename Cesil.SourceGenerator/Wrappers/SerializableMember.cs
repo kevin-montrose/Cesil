@@ -138,13 +138,13 @@ namespace Cesil.SourceGenerator
             if (prop.GetMethod == null)
             {
                 var diag = Diagnostic.Create(Diagnostics.NoGetterOnSerializableProperty, propLoc);
-                diags.Add(diag);
+                diags = diags.Add(diag);
             }
 
             if (prop.Parameters.Any())
             {
                 var diag = Diagnostic.Create(Diagnostics.SerializablePropertyCannotHaveParameters, propLoc);
-                diags.Add(diag);
+                diags = diags.Add(diag);
             }
 
             var name = prop.Name;

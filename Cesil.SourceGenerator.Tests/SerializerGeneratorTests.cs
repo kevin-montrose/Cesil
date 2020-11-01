@@ -1228,6 +1228,167 @@ namespace Foo
             }
         }
 
+        [Fact]
+        public async Task MissingMethodNameAsync()
+        {
+            var gen = new SerializerGenerator();
+            var (_, diags) = await RunSourceGeneratorAsync(
+@"
+using System;
+using System.Buffers;
+using Cesil;
+using System.Runtime.Serialization;
+
+namespace Foo 
+{   
+    [Cesil.GenerateSerializableAttribute]
+    class MissingMethodNames
+    {
+        [Cesil.GenerateSerializableMemberAttribute(
+            FormatterType = typeof(MissingMethodNames),
+            FormatterMethodName = nameof(ForInt),
+        )]
+        public int Bar() => 1;
+
+        public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
+        public static bool ShouldSerializeBar(BadOrders row, in WriteContext ctx)
+        => false;
+    }
+}", gen);
+
+            Assert.Collection(
+                diags,
+                d =>
+                {
+                    Assert.Equal(Diagnostics.SerializableMemberMustHaveNameSetForMethod.Id, d.Id);
+                    Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType = typeof(MissingMethodNames),\r\n            FormatterMethodName = nameof(ForInt),\r\n        )]\r\n        public int Bar() => 1;\r\n", GetFlaggedSource(d));
+                }
+            );
+        }
+
+        [Fact]
+        public async Task MethodCannotReturnVoidAsync()
+        {
+            var gen = new SerializerGenerator();
+            var (_, diags) = await RunSourceGeneratorAsync(
+@"
+using System;
+using System.Buffers;
+using Cesil;
+using System.Runtime.Serialization;
+
+namespace Foo 
+{   
+    [Cesil.GenerateSerializableAttribute]
+    class MethodCannotReturnVoids
+    {
+        [Cesil.GenerateSerializableMemberAttribute(
+            FormatterType = typeof(MethodCannotReturnVoids),
+            FormatterMethodName = nameof(ForInt),
+            Name = ""Bar""
+        )]
+        public void Bar() { }
+
+        public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
+        public static bool ShouldSerializeBar(MethodCannotReturnVoids row, in WriteContext ctx)
+        => false;
+    }
+}", gen);
+
+            Assert.Collection(
+                diags,
+                d =>
+                {
+                    Assert.Equal(Diagnostics.MethodMustReturnNonVoid.Id, d.Id);
+                    Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType = typeof(MethodCannotReturnVoids),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public void Bar() { }\r\n", GetFlaggedSource(d));
+                }
+            );
+        }
+
+        [Fact]
+        public async Task PropertyMustHaveGetterAsync()
+        {
+            var gen = new SerializerGenerator();
+            var (_, diags) = await RunSourceGeneratorAsync(
+@"
+using System;
+using System.Buffers;
+using Cesil;
+using System.Runtime.Serialization;
+
+namespace Foo 
+{   
+    [Cesil.GenerateSerializableAttribute]
+    class PropertyMustHaveGetters
+    {
+        [Cesil.GenerateSerializableMemberAttribute(
+            FormatterType = typeof(PropertyMustHaveGetters),
+            FormatterMethodName = nameof(ForInt)
+        )]
+        public int Bar { set; }
+
+        public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
+        public static bool ShouldSerializeBar(PropertyMustHaveGetters row, in WriteContext ctx)
+        => false;
+    }
+}", gen);
+
+            Assert.Collection(
+                diags,
+                d =>
+                {
+                    Assert.Equal(Diagnostics.NoGetterOnSerializableProperty.Id, d.Id);
+                    Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType = typeof(PropertyMustHaveGetters),\r\n            FormatterMethodName = nameof(ForInt)\r\n        )]\r\n        public int Bar { set; }\r\n", GetFlaggedSource(d));
+                }
+            );
+        }
+
+        [Fact]
+        public async Task PropertyCannotHaveParametersAsync()
+        {
+            var gen = new SerializerGenerator();
+            var (_, diags) = await RunSourceGeneratorAsync(
+@"
+using System;
+using System.Buffers;
+using Cesil;
+using System.Runtime.Serialization;
+
+namespace Foo 
+{   
+    [Cesil.GenerateSerializableAttribute]
+    class PropertyCannotHaveParameters
+    {
+        [Cesil.GenerateSerializableMemberAttribute(
+            FormatterType = typeof(PropertyCannotHaveParameters),
+            FormatterMethodName = nameof(ForInt)
+        )]
+        public int this[int ix] { get => 2; }
+
+        public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
+        public static bool ShouldSerializeBar(PropertyCannotHaveParameters row, in WriteContext ctx)
+        => false;
+    }
+}", gen);
+
+            Assert.Collection(
+                diags,
+                d =>
+                {
+                    Assert.Equal(Diagnostics.SerializablePropertyCannotHaveParameters.Id, d.Id);
+                    Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType = typeof(PropertyCannotHaveParameters),\r\n            FormatterMethodName = nameof(ForInt)\r\n        )]\r\n        public int this[int ix] { get => 2; }\r\n", GetFlaggedSource(d));
+                }
+            );
+        }
+
         private static string GetFlaggedSource(Diagnostic diag)
         {
             var tree = diag.Location.SourceTree;

@@ -2,6 +2,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Net.WebSockets;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -146,7 +147,7 @@ namespace Cesil.SourceGenerator
                 var configAttrs = GetConfigurationAttributes(compilation, types, member);
 
                 var isVisible =
-                    member.DeclaredAccessibility == Accessibility.Public |
+                    member.DeclaredAccessibility == Accessibility.Public ||
                     !configAttrs.IsEmpty;
 
                 // either visible or annotated to include
@@ -198,6 +199,10 @@ namespace Cesil.SourceGenerator
                 var field = syntax.ParentOrSelfOfType<FieldDeclarationSyntax>();
                 var prop = syntax.ParentOrSelfOfType<PropertyDeclarationSyntax>();
 
+                // property attribute usage allows indexers to be annotated... so need
+                //   to read them here so we can report errors later
+                var indexer = syntax.ParentOrSelfOfType<IndexerDeclarationSyntax>();
+
                 SyntaxList<AttributeListSyntax> attrLists;
                 if (method != null)
                 {
@@ -210,6 +215,10 @@ namespace Cesil.SourceGenerator
                 else if (prop != null)
                 {
                     attrLists = prop.AttributeLists;
+                }
+                else if(indexer != null)
+                {
+                    attrLists = indexer.AttributeLists;
                 }
                 else
                 {
