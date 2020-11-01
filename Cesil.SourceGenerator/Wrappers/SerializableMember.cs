@@ -1,5 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Transactions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -50,14 +52,7 @@ namespace Cesil.SourceGenerator
                 attrName = "--UNKNOWN--";
             }
 
-            var mtdType = mtd.ReturnType;
-            if (mtdType.SpecialType == SpecialType.System_Void)
-            {
-                var diag = Diagnostic.Create(Diagnostics.MethodMustReturnNonVoid, mtdLoc, mtd.Name);
-                diags = diags.Add(diag);
-            }
-
-            var getter = new Getter(mtd);
+            var getter = GetGetterForMethod(compilation, types, serializingType, mtd, mtdLoc, ref diags);
 
             int? order = GetOrderFromAttributes(compilation, mtdLoc, attrs, ref diags);
 
@@ -65,8 +60,15 @@ namespace Cesil.SourceGenerator
             var attrEmitDefaultValue = GetEmitDefaultValueFromAttributes(compilation, mtdLoc, attrs, ref diags);
             emitDefaultValue = attrEmitDefaultValue ?? emitDefaultValue;
 
-            var formatter = mtdType.SpecialType == SpecialType.System_Void ? null : GetFormatter(compilation, types, mtdType, mtdLoc, attrs, ref diags);
             var shouldSerialize = GetShouldSerialize(compilation, types, serializingType, mtdLoc, attrs, ref diags);
+
+            // after this point, we need to know what we're working with
+            if (getter == null)
+            {
+                return (null, diags);
+            }
+
+            var formatter = GetFormatter(compilation, types, getter.ForType, mtdLoc, attrs, ref diags);
 
             if (diags.IsEmpty)
             {
@@ -286,7 +288,7 @@ namespace Cesil.SourceGenerator
                     }
 
                     var p1 = shouldSerializeParams[1];
-                    if(!p1.IsInWriteContext(types.OurTypes))
+                    if (!p1.IsInWriteContext(types.OurTypes))
                     {
                         var diag = Diagnostic.Create(Diagnostics.BadShouldSerializeParameters_StaticTwo, location, shouldSerializeMtd.Name, declaringType.Name);
                         diags = diags.Add(diag);
@@ -330,7 +332,7 @@ namespace Cesil.SourceGenerator
                 else if (shouldSerializeParams.Length == 1)
                 {
                     var p0 = shouldSerializeParams[0];
-                    if(!p0.IsInWriteContext(types.OurTypes))
+                    if (!p0.IsInWriteContext(types.OurTypes))
                     {
                         var diag = Diagnostic.Create(Diagnostics.BadShouldSerializeParameters_InstanceOne, location, shouldSerializeMtd.Name, declaringType.Name);
                         diags = diags.Add(diag);
@@ -350,6 +352,137 @@ namespace Cesil.SourceGenerator
             }
 
             return new ShouldSerialize(shouldSerializeMtd, isStatic, takesRow, takesContext);
+        }
+
+        private static Getter? GetGetterForMethod(
+            Compilation compilation,
+            SerializerTypes types,
+            ITypeSymbol rowType,
+            IMethodSymbol method,
+            Location? location,
+            ref ImmutableArray<Diagnostic> diags
+        )
+        {
+            var methodReturnType = method.ReturnType;
+            if (methodReturnType.SpecialType == SpecialType.System_Void)
+            {
+                var diag = Diagnostic.Create(Diagnostics.MethodMustReturnNonVoid, location, method.Name);
+                diags = diags.Add(diag);
+
+                return null;
+            }
+
+            if (method.IsGenericMethod)
+            {
+                var diag = Diagnostic.Create(Diagnostics.MethodCannotBeGeneric, location, method.Name);
+                diags = diags.Add(diag);
+
+                return null;
+            }
+
+            bool takesContext;
+            bool takesRow;
+
+            if (method.IsStatic)
+            {
+                // 0 parameters are allow
+                // if there is 1 parameter, it may be an `in WriteContext` or the row type
+                // if there are 2 parameters, the first must be the row type, and the second must be `in WriteContext`
+
+                var ps = method.Parameters;
+                if (ps.Length == 0)
+                {
+                    takesContext = false;
+                    takesRow = false;
+                }
+                else if (ps.Length == 1)
+                {
+                    var p0 = ps[0];
+                    if (p0.IsInWriteContext(types.OurTypes))
+                    {
+                        takesContext = true;
+                        takesRow = false;
+                    }
+                    else if (p0.IsNormalParameterOfType(compilation, rowType))
+                    {
+                        takesContext = false;
+                        takesRow = true;
+                    }
+                    else
+                    {
+                        var diag = Diagnostic.Create(Diagnostics.BadGetterParameters_StaticOne, location, method.Name, rowType.Name);
+                        diags = diags.Add(diag);
+
+                        return null;
+                    }
+                }
+                else if (ps.Length == 2)
+                {
+                    var p0 = ps[0];
+                    if (!p0.IsNormalParameterOfType(compilation, rowType))
+                    {
+                        var diag = Diagnostic.Create(Diagnostics.BadGetterParameters_StaticTwo, location, method.Name, rowType.Name);
+                        diags = diags.Add(diag);
+
+                        return null;
+                    }
+
+                    var p1 = ps[1];
+                    if (!p1.IsInWriteContext(types.OurTypes))
+                    {
+                        var diag = Diagnostic.Create(Diagnostics.BadGetterParameters_StaticTwo, location, method.Name, rowType.Name);
+                        diags = diags.Add(diag);
+
+                        return null;
+                    }
+
+                    takesContext = true;
+                    takesRow = true;
+                }
+                else
+                {
+                    var diag = Diagnostic.Create(Diagnostics.BadGetterParameters_TooMany, location, method.Name);
+                    diags = diags.Add(diag);
+
+                    return null;
+                }
+            }
+            else
+            {
+                // 0 is allowed
+                // if it takes a parameter, it must be an `in WriteContext`
+
+                takesRow = true;
+
+                var ps = method.Parameters;
+
+                if (ps.Length == 0)
+                {
+                    takesContext = false;
+                }
+                else if (ps.Length == 1)
+                {
+                    var p0 = ps[0];
+                    if (!p0.IsInWriteContext(types.OurTypes))
+                    {
+                        var diag = Diagnostic.Create(Diagnostics.BadGetterParameters_InstanceOne, location, method.Name);
+                        diags = diags.Add(diag);
+
+                        return null;
+                    }
+
+                    takesContext = true;
+                }
+                else
+                {
+                    var diag = Diagnostic.Create(Diagnostics.BadGetterParameters_TooMany, location, method.Name);
+                    diags = diags.Add(diag);
+
+                    return null;
+                }
+            }
+
+            return new Getter(method, takesRow, takesContext);
         }
 
         private static Formatter? GetFormatter(
@@ -435,7 +568,7 @@ namespace Cesil.SourceGenerator
             }
 
             var p0 = formatterParams[0];
-            if(!p0.IsNormalParameterOfType(compilation, toFormatType))
+            if (!p0.IsNormalParameterOfType(compilation, toFormatType))
             {
                 var diag = Diagnostic.Create(Diagnostics.BadFormatterParameters, location, formatterMtd.Name, toFormatType.Name);
                 diags = diags.Add(diag);
@@ -451,9 +584,9 @@ namespace Cesil.SourceGenerator
 
                 return null;
             }
-           
+
             var p2 = formatterParams[2];
-            if(!p2.IsNormalParameterOfType(compilation, types.Framework.IBufferWriterOfChar))
+            if (!p2.IsNormalParameterOfType(compilation, types.Framework.IBufferWriterOfChar))
             {
                 var diag = Diagnostic.Create(Diagnostics.BadFormatterParameters, location, formatterMtd.Name, toFormatType.Name);
                 diags = diags.Add(diag);

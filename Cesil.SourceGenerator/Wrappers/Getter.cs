@@ -4,6 +4,8 @@ namespace Cesil.SourceGenerator
 {
     internal sealed class Getter
     {
+        internal readonly ITypeSymbol ForType;
+
         internal readonly IMethodSymbol? Method;
         internal readonly bool MethodTakesRow;
         internal readonly bool MethodTakesContext;
@@ -17,6 +19,8 @@ namespace Cesil.SourceGenerator
             MethodTakesRow = takesRow;
             MethodTakesContext = takesContext;
 
+            ForType = method.ReturnType;
+
             Property = null;
             Field = null;
         }
@@ -26,6 +30,8 @@ namespace Cesil.SourceGenerator
             Method = null;
             Property = prop;
             Field = null;
+
+            ForType = prop.Type;
         }
 
         internal Getter(IFieldSymbol field)
@@ -33,6 +39,8 @@ namespace Cesil.SourceGenerator
             Method = null;
             Property = null;
             Field = field;
+
+            ForType = field.Type;
         }
     }
 }

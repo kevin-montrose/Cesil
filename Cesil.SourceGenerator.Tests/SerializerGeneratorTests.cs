@@ -1461,6 +1461,8 @@ namespace Foo
             }
         }
 
+        // todo: bad getter parameters
+
         private static string GetFlaggedSource(Diagnostic diag)
         {
             var tree = diag.Location.SourceTree;

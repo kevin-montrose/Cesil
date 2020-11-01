@@ -297,6 +297,46 @@ namespace Cesil.SourceGenerator
                true
            );
 
+        internal static readonly DiagnosticDescriptor BadGetterParameters_StaticOne =
+           new DiagnosticDescriptor(
+               "CES1028",
+               "Invalid Getter method parameters",
+               "Method {0}, which is static and takes one parameter, should take {1} (or a type it can be assigned to), or in WriteContext.",
+               "Cesil",
+               DiagnosticSeverity.Error,
+               true
+           );
+
+        internal static readonly DiagnosticDescriptor BadGetterParameters_StaticTwo =
+           new DiagnosticDescriptor(
+               "CES1029",
+               "Invalid Getter method parameters",
+               "Method {0}, which is static and takes two parameters, should take {1} (or a type it can be assigned to) and in WriteContext.",
+               "Cesil",
+               DiagnosticSeverity.Error,
+               true
+           );
+
+        internal static readonly DiagnosticDescriptor BadGetterParameters_TooMany =
+           new DiagnosticDescriptor(
+               "CES1030",
+               "Invalid Getter method parameters",
+               "Method {0} takes too many parameters.",
+               "Cesil",
+               DiagnosticSeverity.Error,
+               true
+           );
+
+        internal static readonly DiagnosticDescriptor BadGetterParameters_InstanceOne =
+           new DiagnosticDescriptor(
+               "CES1031",
+               "Invalid Getter method parameters",
+               "Method {0}, which is an instance method and takes one parameter, should in WriteContext.",
+               "Cesil",
+               DiagnosticSeverity.Error,
+               true
+           );
+
         internal static readonly DiagnosticDescriptor GenericError =
             new DiagnosticDescriptor(
                 "CES1999",
