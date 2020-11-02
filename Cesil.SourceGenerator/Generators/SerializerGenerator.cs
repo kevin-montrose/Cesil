@@ -12,6 +12,8 @@ namespace Cesil.SourceGenerator
 {
     public sealed class SerializerGenerator : ISourceGenerator
     {
+        private const string EXPECTED_CESIL_VERSION = "0.7.0";
+
         internal SerializerTypes? NeededTypes;
 
         internal ImmutableArray<TypeDeclarationSyntax> ToGenerateFor = ImmutableArray<TypeDeclarationSyntax>.Empty;
@@ -68,13 +70,13 @@ namespace Cesil.SourceGenerator
                     }
                 );
 
-                var source = GenerateSerializerType(compilation, rowType, inOrder);
+                var source = GenerateSerializerType(rowType, inOrder);
 
                 context.AddSource($"Cesil_Generated_{rowType.Name}.cs", SourceText.From(source));
             }
         }
 
-        private static string GenerateSerializerType(Compilation compilation, INamedTypeSymbol rowType, ImmutableArray<SerializableMember> columns)
+        private static string GenerateSerializerType(INamedTypeSymbol rowType, ImmutableArray<SerializableMember> columns)
         {
             var fullyQualifiedFormat = new SymbolDisplayFormat(typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces);
 
@@ -85,6 +87,7 @@ namespace Cesil.SourceGenerator
             sb.AppendLine("namespace Cesil.SourceGenerator.Generated");
             sb.AppendLine("{");
 
+            sb.AppendLine("  [Cesil.GeneratedSourceVersionAttribute(\"" + EXPECTED_CESIL_VERSION + "\", typeof(" + fullyQualifiedRowType + "))]");
             sb.AppendLine("  internal sealed class Generated_" + rowType.Name);
             sb.AppendLine("  {");
 
