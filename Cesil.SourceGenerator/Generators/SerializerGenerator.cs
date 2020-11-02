@@ -80,25 +80,38 @@ namespace Cesil.SourceGenerator
 
             var fullyQualifiedRowType = rowType.ToDisplayString(fullyQualifiedFormat);
 
-            var ret = new StringBuilder();
+            var sb = new StringBuilder();
 
-            ret.AppendLine("namespace Cesil.SourceGenerator.Generated");
-            ret.AppendLine("{");
+            sb.AppendLine("namespace Cesil.SourceGenerator.Generated");
+            sb.AppendLine("{");
 
-            ret.AppendLine("  internal sealed class Generated_" + rowType.Name);
-            ret.AppendLine("  {");
+            sb.AppendLine("  internal sealed class Generated_" + rowType.Name);
+            sb.AppendLine("  {");
 
-            ret.AppendLine("    public const int COLUMN_COUNT = " + columns.Length + ";");
-
+            sb.Append("    public static readonly System.String[] ColumnNames = new System.String[] { ");
 
             for (var i = 0; i < columns.Length; i++)
             {
                 var col = columns[i];
 
-                ret.AppendLine();
-                ret.AppendLine("    public static bool Column_" + i + "(System.Object rowObj, in Cesil.WriteContext ctx, System.Buffers.IBufferWriter<char> writer)");
-                ret.AppendLine("    {");
-                ret.AppendLine("      var row = (" + fullyQualifiedRowType + ")rowObj;");
+                if (i != 0)
+                {
+                    sb.Append(", ");
+                }
+
+                var escaped = SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(col.Name)).ToFullString();
+                sb.Append(escaped);
+            }
+            sb.AppendLine(" };");
+
+            for (var i = 0; i < columns.Length; i++)
+            {
+                var col = columns[i];
+
+                sb.AppendLine();
+                sb.AppendLine("    public static System.Boolean Column_" + i + "(System.Object rowObj, in Cesil.WriteContext ctx, System.Buffers.IBufferWriter<char> writer)");
+                sb.AppendLine("    {");
+                sb.AppendLine("      var row = (" + fullyQualifiedRowType + ")rowObj;");
 
                 if (col.ShouldSerialize != null)
                 {
@@ -145,8 +158,8 @@ namespace Cesil.SourceGenerator
                         invokeStatement += ")";
                     }
 
-                    ret.AppendLine("      var shouldSerialize = " + invokeStatement + ";");
-                    ret.AppendLine("      if(!shouldSerialize) { return true; }");
+                    sb.AppendLine("      var shouldSerialize = " + invokeStatement + ";");
+                    sb.AppendLine("      if(!shouldSerialize) { return true; }");
                 }
 
                 var getter = col.Getter;
@@ -213,23 +226,29 @@ namespace Cesil.SourceGenerator
                     throw new Exception("Shouldn't be possible");
                 }
 
-                ret.AppendLine("      var value = " + getStatement + ";");
+                sb.AppendLine("      var value = " + getStatement + ";");
 
                 var formatter = col.Formatter;
                 var formatterType = formatter.Method.ContainingType.ToDisplayString(fullyQualifiedFormat);
 
                 var formatterStatement = formatterType + "." + formatter.Method.Name + "(value, in ctx, buffer)";
 
-                ret.AppendLine("      var res = " + formatterStatement + ";");
-                ret.AppendLine();
-                ret.AppendLine("      return res;");
-                ret.AppendLine("    }");
+                sb.AppendLine("      var res = " + formatterStatement + ";");
+                sb.AppendLine();
+                sb.AppendLine("      return res;");
+                sb.AppendLine("    }");
             }
 
-            ret.AppendLine("  }");
-            ret.AppendLine("}");
+            sb.AppendLine("  }");
+            sb.AppendLine("}");
 
-            return ret.ToString();
+            var generatedCS = sb.ToString();
+
+            var parsed = SyntaxFactory.ParseCompilationUnit(generatedCS);
+            var normalized = parsed.NormalizeWhitespace();
+            var ret = normalized.ToFullString();
+
+            return ret;
         }
 
         private static bool TryCreateNeededTypes(Compilation compilation, SourceGeneratorContext context, [MaybeNullWhen(returnValue: false)] out SerializerTypes neededTypes)
