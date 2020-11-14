@@ -3531,10 +3531,10 @@ namespace Cesil.Tests
             // getters
             Assert.Collection(
                 cols,
-                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.GetButNoSet)).GetMethod, a.Getter.Method.Value),
-                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.GetAndSet)).GetMethod, a.Getter.Method.Value),
-                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.ShouldSerializeProp)).GetMethod, a.Getter.Method.Value),
-                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.ShouldSerializeStaticProp)).GetMethod, a.Getter.Method.Value)
+                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.GetButNoSet)).GetMethod, a.Getter.Value.Method.Value),
+                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.GetAndSet)).GetMethod, a.Getter.Value.Method.Value),
+                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.ShouldSerializeProp)).GetMethod, a.Getter.Value.Method.Value),
+                a => Assert.Same(typeof(_Serialize).GetProperty(nameof(_Serialize.ShouldSerializeStaticProp)).GetMethod, a.Getter.Value.Method.Value)
             );
 
             // should serialize
@@ -3549,10 +3549,10 @@ namespace Cesil.Tests
             // formatter
             Assert.Collection(
                 cols,
-                a => Assert.Same(Formatter.GetDefault(typeof(int).GetTypeInfo()), a.Formatter),
-                b => Assert.Same(Formatter.GetDefault(typeof(string).GetTypeInfo()), b.Formatter),
-                c => Assert.Same(Formatter.GetDefault(typeof(char?).GetTypeInfo()), c.Formatter),
-                d => Assert.Same(Formatter.GetDefault(typeof(DateTimeOffset).GetTypeInfo()), d.Formatter)
+                a => Assert.Same(Formatter.GetDefault(typeof(int).GetTypeInfo()), a.Formatter.Value),
+                b => Assert.Same(Formatter.GetDefault(typeof(string).GetTypeInfo()), b.Formatter.Value),
+                c => Assert.Same(Formatter.GetDefault(typeof(char?).GetTypeInfo()), c.Formatter.Value),
+                d => Assert.Same(Formatter.GetDefault(typeof(DateTimeOffset).GetTypeInfo()), d.Formatter.Value)
             );
         }
 
@@ -3597,10 +3597,10 @@ namespace Cesil.Tests
             // getters
             Assert.Collection(
                 cols,
-                a => Assert.Same(typeof(_SerializeDataMember).GetField("Field"), a.Getter.Field.Value),
-                a => Assert.Same(typeof(_SerializeDataMember).GetProperty("WORLD").GetMethod, a.Getter.Method.Value),
-                a => Assert.Same(typeof(_SerializeDataMember).GetProperty("Bar").GetMethod, a.Getter.Method.Value),
-                a => Assert.Same(typeof(_SerializeDataMember).GetProperty("Yeaaaah", BindingFlags.Instance | BindingFlags.NonPublic).GetMethod, a.Getter.Method.Value)
+                a => Assert.Same(typeof(_SerializeDataMember).GetField("Field"), a.Getter.Value.Field.Value),
+                a => Assert.Same(typeof(_SerializeDataMember).GetProperty("WORLD").GetMethod, a.Getter.Value.Method.Value),
+                a => Assert.Same(typeof(_SerializeDataMember).GetProperty("Bar").GetMethod, a.Getter.Value.Method.Value),
+                a => Assert.Same(typeof(_SerializeDataMember).GetProperty("Yeaaaah", BindingFlags.Instance | BindingFlags.NonPublic).GetMethod, a.Getter.Value.Method.Value)
             );
 
             // should serialize
@@ -3615,10 +3615,10 @@ namespace Cesil.Tests
             // formatter
             Assert.Collection(
                 cols,
-                a => Assert.Same(Formatter.GetDefault(typeof(int?).GetTypeInfo()).Method.Value, a.Formatter.Method.Value),
-                a => Assert.Same(Formatter.GetDefault(typeof(double).GetTypeInfo()).Method.Value, a.Formatter.Method.Value),
-                a => Assert.Same(Formatter.GetDefault(typeof(string).GetTypeInfo()).Method.Value, a.Formatter.Method.Value),
-                a => Assert.Same(Formatter.GetDefault(typeof(StringComparison).GetTypeInfo()).Method.Value, a.Formatter.Method.Value)
+                a => Assert.Same(Formatter.GetDefault(typeof(int?).GetTypeInfo()).Method.Value, a.Formatter.Value.Method.Value),
+                a => Assert.Same(Formatter.GetDefault(typeof(double).GetTypeInfo()).Method.Value, a.Formatter.Value.Method.Value),
+                a => Assert.Same(Formatter.GetDefault(typeof(string).GetTypeInfo()).Method.Value, a.Formatter.Value.Method.Value),
+                a => Assert.Same(Formatter.GetDefault(typeof(StringComparison).GetTypeInfo()).Method.Value, a.Formatter.Value.Method.Value)
             );
 
             // emitDefaultValue

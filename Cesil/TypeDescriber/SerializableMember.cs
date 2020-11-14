@@ -13,20 +13,37 @@ namespace Cesil
         /// </summary>
         public string Name { get; }
 
-        internal Getter Getter { get; }
-        internal Formatter Formatter { get; }
+        internal bool IsBackedByGeneratedMethod => GeneratedMethod.HasValue;
+
+        internal NonNull<Getter> Getter;
+        internal NonNull<Formatter> Formatter;
 
         internal NonNull<ShouldSerialize> ShouldSerialize;
 
-        internal bool EmitDefaultValue { get; }
+        internal bool? EmitDefaultValue;
+
+        internal NonNull<MethodInfo> GeneratedMethod;
 
         private SerializableMember(string name, Getter getter, Formatter formatter, ShouldSerialize? shouldSerialize, bool emitDefault)
         {
             Name = name;
-            Getter = getter;
-            Formatter = formatter;
+            Getter.Value = getter;
+            Formatter.Value = formatter;
             ShouldSerialize.SetAllowNull(shouldSerialize);
             EmitDefaultValue = emitDefault;
+
+            GeneratedMethod.Clear();
+        }
+
+        private SerializableMember(string name, MethodInfo generatedMethod)
+        {
+            Name = name;
+            GeneratedMethod.Value = generatedMethod;
+            
+            Getter.Clear();
+            Formatter.Clear();
+            ShouldSerialize.Clear();
+            EmitDefaultValue = null;
         }
 
         /// <summary>
@@ -35,7 +52,7 @@ namespace Cesil
         public static SerializableMember ForProperty(PropertyInfo property)
         {
             var propType = property?.PropertyType;
-            var formatter = propType != null ? Formatter.GetDefault(propType.GetTypeInfo()) : null;
+            var formatter = propType != null ? Cesil.Formatter.GetDefault(propType.GetTypeInfo()) : null;
             return CreateInner(property?.DeclaringType?.GetTypeInfo(), property?.Name, (Getter?)property?.GetMethod, formatter, null, Cesil.EmitDefaultValue.Yes);
         }
 
@@ -45,7 +62,7 @@ namespace Cesil
         public static SerializableMember ForProperty(PropertyInfo property, string name)
         {
             var propType = property?.PropertyType;
-            var formatter = propType != null ? Formatter.GetDefault(propType.GetTypeInfo()) : null;
+            var formatter = propType != null ? Cesil.Formatter.GetDefault(propType.GetTypeInfo()) : null;
             return CreateInner(property?.DeclaringType?.GetTypeInfo(), name, (Getter?)property?.GetMethod, formatter, null, Cesil.EmitDefaultValue.Yes);
         }
 
@@ -73,7 +90,7 @@ namespace Cesil
         public static SerializableMember ForField(FieldInfo field)
         {
             var fieldType = field?.FieldType;
-            var formatter = fieldType != null ? Formatter.GetDefault(fieldType.GetTypeInfo()) : null;
+            var formatter = fieldType != null ? Cesil.Formatter.GetDefault(fieldType.GetTypeInfo()) : null;
             return CreateInner(field?.DeclaringType?.GetTypeInfo(), field?.Name, (Getter?)field, formatter, null, Cesil.EmitDefaultValue.Yes);
         }
 
@@ -83,7 +100,7 @@ namespace Cesil
         public static SerializableMember ForField(FieldInfo field, string name)
         {
             var fieldType = field?.FieldType;
-            var formatter = fieldType != null ? Formatter.GetDefault(fieldType.GetTypeInfo()) : null;
+            var formatter = fieldType != null ? Cesil.Formatter.GetDefault(fieldType.GetTypeInfo()) : null;
             return CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Getter?)field, formatter, null, Cesil.EmitDefaultValue.Yes);
         }
 
@@ -166,6 +183,61 @@ namespace Cesil
             return new SerializableMember(name, getter, formatter, shouldSerialize, emitDefaultValueBool);
         }
 
+        internal static SerializableMember ForGeneratedMethod(string name, MethodInfo generated)
+        {
+            if (name == null)
+            {
+                return Throw.ArgumentNullException<SerializableMember>(nameof(name));
+            }
+
+            if (generated == null)
+            {
+                return Throw.ArgumentNullException<SerializableMember>(nameof(generated));
+            }
+
+            if (!generated.IsPublic)
+            {
+                return Throw.ArgumentException<SerializableMember>(nameof(generated), "Generated method should be public, but wasn't");
+            }
+
+            if (!generated.IsStatic)
+            {
+                return Throw.ArgumentException<SerializableMember>(nameof(generated), "Generated method should be static, but wasn't");
+            }
+
+            if (generated.ReturnType != Types.Bool)
+            {
+                return Throw.ArgumentException<SerializableMember>(nameof(generated), "Generated method should return bool, but doesn't");
+            }
+
+            var ps = generated.GetParameters();
+            if (ps.Length != 3)
+            {
+                return Throw.ArgumentException<SerializableMember>(nameof(generated), "Generated method should take 3 parameters, but doesn't");
+            }
+
+            var p0 = ps[0].ParameterType.GetTypeInfo();
+
+            if (p0 != Types.Object)
+            {
+                return Throw.ArgumentException<SerializableMember>(nameof(generated), $"Generated method's first parameter should be object, but was {p0}");
+            }
+
+            var p1 = ps[1];
+            if (!p1.IsWriteContextByRef(out var error))
+            {
+                return Throw.ArgumentException<SerializableMember>(nameof(generated), $"Generated method's second parameter should be in WriteContext; {error}");
+            }
+
+            var p2 = ps[2].ParameterType.GetTypeInfo();
+            if (p2 != Types.IBufferWriterOfChar)
+            {
+                return Throw.ArgumentException<SerializableMember>(nameof(generated), $"Generated method's third parameter should be IBufferWriter<char>, but was {p2}");
+            }
+
+            return new SerializableMember(name, generated);
+        }
+
         private static void CheckShouldSerializeMethod(ShouldSerialize? shouldSerialize, NonNull<TypeInfo> onTypeNull)
         {
             if (shouldSerialize == null) return;
@@ -205,6 +277,17 @@ namespace Cesil
         {
             if (ReferenceEquals(serializableMember, null)) return false;
 
+            if (IsBackedByGeneratedMethod)
+            {
+                if (!serializableMember.IsBackedByGeneratedMethod) return false;
+
+                return GeneratedMethod.Value == serializableMember.GeneratedMethod.Value;
+            }
+            else
+            {
+                if (serializableMember.IsBackedByGeneratedMethod) return false;
+            }
+
             if (ShouldSerialize.HasValue)
             {
                 if (!serializableMember.ShouldSerialize.HasValue) return false;
@@ -218,8 +301,8 @@ namespace Cesil
 
             return
                 serializableMember.EmitDefaultValue == EmitDefaultValue &&
-                serializableMember.Formatter == Formatter &&
-                serializableMember.Getter == Getter &&
+                serializableMember.Formatter.Value == Formatter.Value &&
+                serializableMember.Getter.Value == Getter.Value &&
                 serializableMember.Name == Name;
         }
 
@@ -235,7 +318,7 @@ namespace Cesil
         /// This is provided for debugging purposes, and the format is not guaranteed to be stable between releases.
         /// </summary>
         public override string ToString()
-        => $"{nameof(SerializableMember)} with {nameof(Name)}: {Name}\r\n{nameof(Getter)}: {Getter}\r\n{nameof(Formatter)}: {Formatter}\r\n{nameof(ShouldSerialize)}: {ShouldSerialize}";
+        => $"{nameof(SerializableMember)} with {nameof(Name)}: {Name}\r\n{nameof(Getter)}: {Getter}\r\n{nameof(Formatter)}: {Formatter}\r\n{nameof(ShouldSerialize)}: {ShouldSerialize}\r\n{nameof(GeneratedMethod)}: {GeneratedMethod}";
 
         /// <summary>
         /// Compare two SerializableMembers for equality

@@ -87,7 +87,7 @@ namespace Cesil.SourceGenerator
             sb.AppendLine("namespace Cesil.SourceGenerator.Generated");
             sb.AppendLine("{");
 
-            sb.AppendLine("  [Cesil.GeneratedSourceVersionAttribute(\"" + EXPECTED_CESIL_VERSION + "\", typeof(" + fullyQualifiedRowType + "))]");
+            sb.AppendLine("  [Cesil.GeneratedSourceVersionAttribute(\"" + EXPECTED_CESIL_VERSION + "\", typeof(" + fullyQualifiedRowType + "), 1)]");
             sb.AppendLine("  internal sealed class Generated_" + rowType.Name);
             sb.AppendLine("  {");
 

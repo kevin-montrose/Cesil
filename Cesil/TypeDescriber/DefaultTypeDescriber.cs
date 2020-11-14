@@ -1115,10 +1115,16 @@ endLoop:
 
                 foreach (var mem in toSerialize)
                 {
+                    // todo: probably refactor a bit to make this workable?
+                    if (mem.IsBackedByGeneratedMethod)
+                    {
+                        return Throw.InvalidOperationException<int>($"{nameof(GetCellsForDynamicRow)} cannot dynamically access members backed by source generated serializers");
+                    }
+
                     var name = mem.Name;
                     if (!CanCache && !ShouldIncludeCell(name, in context, rowObj)) continue;
 
-                    var getter = mem.Getter;
+                    var getter = mem.Getter.Value;
 
                     Formatter? formatter;
                     if (CanCache)

@@ -293,6 +293,11 @@ namespace Cesil
 
         private static SerializableMember Map(TypeInfo ontoType, SerializableMember member)
         {
+            if(member.IsBackedByGeneratedMethod)
+            {
+                return Throw.InvalidOperationException<SerializableMember>($"Cannot map {nameof(SerializableMember)} that is backed by a source generator provided method");
+            }
+
             ShouldSerialize? shouldSerializeOnType;
 
             if (member.ShouldSerialize.HasValue)
@@ -327,7 +332,7 @@ namespace Cesil
                 shouldSerializeOnType = null;
             }
 
-            var surrogateGetterWrapper = member.Getter;
+            var surrogateGetterWrapper = member.Getter.Value;
             switch (surrogateGetterWrapper.Mode)
             {
                 case BackingMode.Field:
@@ -346,8 +351,9 @@ namespace Cesil
                             return Throw.InvalidOperationException<SerializableMember>($"Field {fieldOnType} type ({fieldOnType.FieldType}) does not match surrogate field {surrogateField} type ({surrogateField.FieldType})");
                         }
 
-                        var emitDefaultField = GetEquivalentEmitFor(member.EmitDefaultValue);
-                        return SerializableMember.CreateInner(ontoType, member.Name, (Getter?)fieldOnType, member.Formatter, shouldSerializeOnType, emitDefaultField);
+                        var emitDefaultValue = Utils.NonNullValue(member.EmitDefaultValue);
+                        var emitDefaultField = GetEquivalentEmitFor(emitDefaultValue);
+                        return SerializableMember.CreateInner(ontoType, member.Name, (Getter?)fieldOnType, member.Formatter.Value, shouldSerializeOnType, emitDefaultField);
                     }
                 case BackingMode.Delegate:
                     return Throw.InvalidOperationException<SerializableMember>($"Cannot map getter {surrogateGetterWrapper} onto {ontoType}, getter isn't backed by a method");
@@ -387,8 +393,9 @@ handleMethod:
                 }
             }
 
-            var emitDefault = GetEquivalentEmitFor(member.EmitDefaultValue);
-            return SerializableMember.CreateInner(ontoType, member.Name, (Getter?)getterOnType, member.Formatter, shouldSerializeOnType, emitDefault);
+            var emitDefaultValueOuter = Utils.NonNullValue(member.EmitDefaultValue);
+            var emitDefault = GetEquivalentEmitFor(emitDefaultValueOuter);
+            return SerializableMember.CreateInner(ontoType, member.Name, (Getter?)getterOnType, member.Formatter.Value, shouldSerializeOnType, emitDefault);
         }
 
         private static InstanceProvider Map(TypeInfo ontoType, InstanceProvider builder)
