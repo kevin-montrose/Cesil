@@ -116,6 +116,10 @@ namespace Cesil.SourceGenerator
                 var formatter = AddFormatterMethod(sb, i, fullyQualifiedFormat, col.Formatter);
 
                 sb.AppendLine();
+                if (!col.EmitDefaultValue)
+                {
+                    sb.AppendLine("    [Cesil.DoesNotEmitDefaultValueAttribute]");
+                }
                 sb.AppendLine("    public static System.Boolean __Column_" + i + "(System.Object rowObj, in Cesil.WriteContext ctx, System.Buffers.IBufferWriter<char> writer)");
                 sb.AppendLine("    {");
                 sb.AppendLine("      var row = (" + fullyQualifiedRowType + ")rowObj;");

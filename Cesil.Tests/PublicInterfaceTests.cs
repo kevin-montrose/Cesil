@@ -826,6 +826,17 @@ namespace Cesil.Tests
                     Assert.False(tdNull1 == td);
                     Assert.True(tdNull1 == tdNull2);
                 }
+                else if (t == typeof(DoesNotEmitDefaultValueAttribute))
+                {
+                    var attr = new DoesNotEmitDefaultValueAttribute();
+                    var attrNull1 = default(DoesNotEmitDefaultValueAttribute);
+                    var attrNull2 = default(DoesNotEmitDefaultValueAttribute);
+
+                    CommonNonOperatorChecks(attr, attrNull1, attrNull2);
+                    Assert.False(attr == attrNull1);
+                    Assert.False(attrNull1 == attr);
+                    Assert.True(attrNull1 == attrNull2);
+                }
                 else
                 {
                     Assert.True(false, $"({t.Name}) doesn't have a test for null checks");
@@ -1151,6 +1162,10 @@ namespace Cesil.Tests
                 {
                     msg = InvokeToString_GeneratedSourceVersionAttribute();
                 }
+                else if (t == typeof(DoesNotEmitDefaultValueAttribute))
+                {
+                    msg = InvokeToString_DoesNotEmitDefaultValueAttribute();
+                }
                 else
                 {
                     Assert.True(false, $"No test for ToString() on {t}");
@@ -1175,6 +1190,12 @@ namespace Cesil.Tests
                 {
                     Assert.StartsWith(shouldStartWith, msg2);
                 }
+            }
+
+            static string InvokeToString_DoesNotEmitDefaultValueAttribute()
+            {
+                var attr = new DoesNotEmitDefaultValueAttribute();
+                return attr.ToString();
             }
 
             static string InvokeToString_GeneratedSourceVersionAttribute()
@@ -2127,6 +2148,7 @@ namespace Cesil.Tests
                     [typeof(GeneratedSourceVersionAttribute).GetTypeInfo()] = new[] { "attribute" },
                     [typeof(GenerateSerializableAttribute).GetTypeInfo()] = new[] { "attribute" },
                     [typeof(GenerateSerializableMemberAttribute).GetTypeInfo()] = new[] { "attribute" },
+                    [typeof(DoesNotEmitDefaultValueAttribute).GetTypeInfo()] = new[] { "attribute" },
 
                     // wrapper types
                     [typeof(DynamicCellValue).GetTypeInfo()] = new[] { "value" },

@@ -293,11 +293,6 @@ namespace Cesil
 
         private static SerializableMember Map(TypeInfo ontoType, SerializableMember member)
         {
-            if(member.IsBackedByGeneratedMethod)
-            {
-                return Throw.InvalidOperationException<SerializableMember>($"Cannot map {nameof(SerializableMember)} that is backed by a source generator provided method");
-            }
-
             ShouldSerialize? shouldSerializeOnType;
 
             if (member.ShouldSerialize.HasValue)
@@ -351,8 +346,7 @@ namespace Cesil
                             return Throw.InvalidOperationException<SerializableMember>($"Field {fieldOnType} type ({fieldOnType.FieldType}) does not match surrogate field {surrogateField} type ({surrogateField.FieldType})");
                         }
 
-                        var emitDefaultValue = Utils.NonNullValue(member.EmitDefaultValue);
-                        var emitDefaultField = GetEquivalentEmitFor(emitDefaultValue);
+                        var emitDefaultField = GetEquivalentEmitFor(member.EmitDefaultValue);
                         return SerializableMember.CreateInner(ontoType, member.Name, (Getter?)fieldOnType, member.Formatter, shouldSerializeOnType, emitDefaultField);
                     }
                 case BackingMode.Delegate:
@@ -393,8 +387,7 @@ handleMethod:
                 }
             }
 
-            var emitDefaultValueOuter = Utils.NonNullValue(member.EmitDefaultValue);
-            var emitDefault = GetEquivalentEmitFor(emitDefaultValueOuter);
+            var emitDefault = GetEquivalentEmitFor(member.EmitDefaultValue);
             return SerializableMember.CreateInner(ontoType, member.Name, (Getter?)getterOnType, member.Formatter, shouldSerializeOnType, emitDefault);
         }
 

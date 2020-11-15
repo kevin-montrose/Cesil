@@ -73,6 +73,8 @@ namespace Cesil
                 var colWriterName = $"__Column_{i}";
                 var colWriterMtd = paired.GetMethodNonNull(colWriterName, PublicStatic);
 
+                var emitsDefaultValue = colWriterMtd.GetCustomAttribute<DoesNotEmitDefaultValueAttribute>() == null;
+
                 var shouldSerializeName = $"__Column_{i}_ShouldSerialize";
                 var shouldSerializeMtd = paired.GetMethod(shouldSerializeName, PublicStatic);
                 var shouldSerialize = (ShouldSerialize?)shouldSerializeMtd;
@@ -85,7 +87,7 @@ namespace Cesil
                 var formatterMtd = paired.GetMethodNonNull(formatterName, PublicStatic);
                 var formatter = Formatter.ForMethod(formatterMtd);
 
-                ret.Add(SerializableMember.ForGeneratedMethod(name, colWriterMtd, getter, formatter, shouldSerialize));
+                ret.Add(SerializableMember.ForGeneratedMethod(name, colWriterMtd, getter, formatter, shouldSerialize, emitsDefaultValue));
             }
 
             return ret.ToImmutable();

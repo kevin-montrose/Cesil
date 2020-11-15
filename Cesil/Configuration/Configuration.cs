@@ -239,8 +239,7 @@ namespace Cesil
                 }
                 else
                 {
-                    var emitDefault = Utils.NonNullValue(col.EmitDefaultValue);
-                    writer = ColumnWriter.Create(t, opts, col.Formatter, col.ShouldSerialize, col.Getter, emitDefault);
+                    writer = ColumnWriter.Create(t, opts, col.Formatter, col.ShouldSerialize, col.Getter, col.EmitDefaultValue);
                 }
 
                 ret.Add(new Column(col.Name, writer));

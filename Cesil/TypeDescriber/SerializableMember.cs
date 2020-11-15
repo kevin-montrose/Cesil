@@ -20,8 +20,7 @@ namespace Cesil
 
         internal NonNull<ShouldSerialize> ShouldSerialize;
 
-        // todo: remove this ?
-        internal bool? EmitDefaultValue;
+        internal bool EmitDefaultValue;
 
         internal NonNull<MethodInfo> GeneratedMethod;
 
@@ -36,16 +35,14 @@ namespace Cesil
             GeneratedMethod.Clear();
         }
 
-        private SerializableMember(string name, MethodInfo generatedMethod, Getter getter, Formatter formatter, ShouldSerialize? shouldSerialize)
+        private SerializableMember(string name, MethodInfo generatedMethod, Getter getter, Formatter formatter, ShouldSerialize? shouldSerialize, bool emitDefault)
         {
             Name = name;
             GeneratedMethod.Value = generatedMethod;
-
             Getter = getter;
             Formatter = formatter;
             ShouldSerialize.SetAllowNull(shouldSerialize);
-
-            EmitDefaultValue = null;
+            EmitDefaultValue = emitDefault;
         }
 
         /// <summary>
@@ -185,7 +182,7 @@ namespace Cesil
             return new SerializableMember(name, getter, formatter, shouldSerialize, emitDefaultValueBool);
         }
 
-        internal static SerializableMember ForGeneratedMethod(string name, MethodInfo generated, Getter getter, Formatter formatter, ShouldSerialize? shouldSerialize)
+        internal static SerializableMember ForGeneratedMethod(string name, MethodInfo generated, Getter getter, Formatter formatter, ShouldSerialize? shouldSerialize, bool emitDefaultValue)
         {
             if (name == null)
             {
@@ -252,7 +249,7 @@ namespace Cesil
                 return Throw.ArgumentException<SerializableMember>(nameof(generated), $"Generated method's third parameter should be IBufferWriter<char>, but was {p2}");
             }
 
-            return new SerializableMember(name, generated, getter, formatter, shouldSerialize);
+            return new SerializableMember(name, generated, getter, formatter, shouldSerialize, emitDefaultValue);
         }
 
         private static void CheckShouldSerializeMethod(ShouldSerialize? shouldSerialize, NonNull<TypeInfo> onTypeNull)

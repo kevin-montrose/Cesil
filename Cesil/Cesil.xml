@@ -1168,6 +1168,54 @@
             Both a row and a column are specified during this operation.
             </summary>
         </member>
+        <member name="T:Cesil.DoesNotEmitDefaultValueAttribute">
+            <summary>
+            Automatically attached to generated methods depending on runtime behavior.
+            
+            You should not use this directly.
+            </summary>
+        </member>
+        <member name="M:Cesil.DoesNotEmitDefaultValueAttribute.#ctor">
+            <summary>
+            Create a new DoesNotEmitDefaultValueAttribute.
+            
+            You should not use this directly.
+            </summary>
+        </member>
+        <member name="M:Cesil.DoesNotEmitDefaultValueAttribute.Equals(System.Object)">
+            <summary>
+            Return true if the given object is a DoesNotEmitDefaultValueAttribute 
+              equal to this one.
+            </summary>
+        </member>
+        <member name="M:Cesil.DoesNotEmitDefaultValueAttribute.Equals(Cesil.DoesNotEmitDefaultValueAttribute)">
+            <summary>
+            Returns true if the given DoesNotEmitDefaultValueAttribute is equal
+              to this one.
+            </summary>
+        </member>
+        <member name="M:Cesil.DoesNotEmitDefaultValueAttribute.GetHashCode">
+            <summary>
+            Returns a stable hash code for this DoesNotEmitDefaultValueAttribute.
+            </summary>
+        </member>
+        <member name="M:Cesil.DoesNotEmitDefaultValueAttribute.op_Equality(Cesil.DoesNotEmitDefaultValueAttribute,Cesil.DoesNotEmitDefaultValueAttribute)">
+            <summary>
+            Compare two DoesNotEmitDefaultValueAttributes for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.DoesNotEmitDefaultValueAttribute.op_Inequality(Cesil.DoesNotEmitDefaultValueAttribute,Cesil.DoesNotEmitDefaultValueAttribute)">
+            <summary>
+            Compare two DoesNotEmitDefaultValueAttributes for inequality
+            </summary>
+        </member>
+        <member name="M:Cesil.DoesNotEmitDefaultValueAttribute.ToString">
+            <summary>
+            Returns a representation of this DoesNotEmitDefaultValueAttribute object.
+            
+            Only for debugging, this value is not guaranteed to be stable.
+            </summary>
+        </member>
         <member name="T:Cesil.GeneratedSourceVersionAttribute">
             <summary>
             Automatically attached to generated types to track compatibility.
