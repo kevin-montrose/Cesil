@@ -69,10 +69,23 @@ namespace Cesil
             for (var i = 0; i < colNames.Length; i++)
             {
                 var name = colNames[i];
-                var methodName = $"Column_{i}";
-                var method = paired.GetMethodNonNull(methodName, PublicStatic);
 
-                ret.Add(SerializableMember.ForGeneratedMethod(name, method));
+                var colWriterName = $"__Column_{i}";
+                var colWriterMtd = paired.GetMethodNonNull(colWriterName, PublicStatic);
+
+                var shouldSerializeName = $"__Column_{i}_ShouldSerialize";
+                var shouldSerializeMtd = paired.GetMethod(shouldSerializeName, PublicStatic);
+                var shouldSerialize = (ShouldSerialize?)shouldSerializeMtd;
+
+                var getterName = $"__Column_{i}_Getter";
+                var getterMtd = paired.GetMethodNonNull(getterName, PublicStatic);
+                var getter = Getter.ForMethod(getterMtd);
+
+                var formatterName = $"__Column_{i}_Formatter";
+                var formatterMtd = paired.GetMethodNonNull(formatterName, PublicStatic);
+                var formatter = Formatter.ForMethod(formatterMtd);
+
+                ret.Add(SerializableMember.ForGeneratedMethod(name, colWriterMtd, getter, formatter, shouldSerialize));
             }
 
             return ret.ToImmutable();

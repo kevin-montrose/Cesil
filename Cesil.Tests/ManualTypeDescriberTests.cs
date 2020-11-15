@@ -582,7 +582,7 @@ namespace Cesil.Tests
                 mem =>
                 {
                     Assert.Equal("Hello", mem.Name);
-                    Assert.Equal(getter, mem.Getter.Value);
+                    Assert.Equal(getter, mem.Getter);
                 }
             );
         }

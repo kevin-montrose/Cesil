@@ -2178,8 +2178,8 @@ namespace Cesil.Tests
 
                     var s1 = SerializableMember.ForField(f);
                     Assert.True(s1.EmitDefaultValue);
-                    Assert.Equal(Formatter.GetDefault(typeof(string).GetTypeInfo()), s1.Formatter.Value);
-                    Assert.Equal(Getter.ForField(f), s1.Getter.Value);
+                    Assert.Equal(Formatter.GetDefault(typeof(string).GetTypeInfo()), s1.Formatter);
+                    Assert.Equal(Getter.ForField(f), s1.Getter);
                     Assert.Equal("Field", s1.Name);
                     Assert.False(s1.ShouldSerialize.HasValue);
                 }
@@ -2191,8 +2191,8 @@ namespace Cesil.Tests
 
                     var s2 = SerializableMember.ForField(f, "Nope");
                     Assert.True(s2.EmitDefaultValue);
-                    Assert.Equal(Formatter.GetDefault(typeof(string).GetTypeInfo()), s2.Formatter.Value);
-                    Assert.Equal(Getter.ForField(f), s2.Getter.Value);
+                    Assert.Equal(Formatter.GetDefault(typeof(string).GetTypeInfo()), s2.Formatter);
+                    Assert.Equal(Getter.ForField(f), s2.Getter);
                     Assert.Equal("Nope", s2.Name);
                     Assert.False(s2.ShouldSerialize.HasValue);
                 }
@@ -2213,8 +2213,8 @@ namespace Cesil.Tests
 
                     var s3 = SerializableMember.ForField(f, "Yep", formatter);
                     Assert.True(s3.EmitDefaultValue);
-                    Assert.Equal(formatter, s3.Formatter.Value);
-                    Assert.Equal(Getter.ForField(f), s3.Getter.Value);
+                    Assert.Equal(formatter, s3.Formatter);
+                    Assert.Equal(Getter.ForField(f), s3.Getter);
                     Assert.Equal("Yep", s3.Name);
                     Assert.False(s3.ShouldSerialize.HasValue);
                 }
@@ -2233,8 +2233,8 @@ namespace Cesil.Tests
 
                     var s4 = SerializableMember.ForField(f, "Fizz", formatter, shouldSerialize);
                     Assert.True(s4.EmitDefaultValue);
-                    Assert.Equal(formatter, s4.Formatter.Value);
-                    Assert.Equal(Getter.ForField(f), s4.Getter.Value);
+                    Assert.Equal(formatter, s4.Formatter);
+                    Assert.Equal(Getter.ForField(f), s4.Getter);
                     Assert.Equal("Fizz", s4.Name);
                     Assert.Equal(shouldSerialize, s4.ShouldSerialize.Value);
                 }
@@ -2249,8 +2249,8 @@ namespace Cesil.Tests
 
                     var s5 = SerializableMember.ForField(f, "Buzz", formatter, shouldSerialize, Cesil.EmitDefaultValue.No);
                     Assert.False(s5.EmitDefaultValue);
-                    Assert.Equal(formatter, s5.Formatter.Value);
-                    Assert.Equal(Getter.ForField(f), s5.Getter.Value);
+                    Assert.Equal(formatter, s5.Formatter);
+                    Assert.Equal(Getter.ForField(f), s5.Getter);
                     Assert.Equal("Buzz", s5.Name);
                     Assert.Equal(shouldSerialize, s5.ShouldSerialize.Value);
                 }
@@ -2266,8 +2266,8 @@ namespace Cesil.Tests
 
                     var s1 = SerializableMember.ForProperty(p);
                     Assert.True(s1.EmitDefaultValue);
-                    Assert.Equal(Formatter.GetDefault(typeof(int).GetTypeInfo()), s1.Formatter.Value);
-                    Assert.Equal((Getter)p.GetMethod, s1.Getter.Value);
+                    Assert.Equal(Formatter.GetDefault(typeof(int).GetTypeInfo()), s1.Formatter);
+                    Assert.Equal((Getter)p.GetMethod, s1.Getter);
                     Assert.Equal("Prop", s1.Name);
                     Assert.False(s1.ShouldSerialize.HasValue);
                 }
@@ -2279,8 +2279,8 @@ namespace Cesil.Tests
 
                     var s2 = SerializableMember.ForProperty(p, "Hello");
                     Assert.True(s2.EmitDefaultValue);
-                    Assert.Equal(Formatter.GetDefault(typeof(int).GetTypeInfo()), s2.Formatter.Value);
-                    Assert.Equal((Getter)p.GetMethod, s2.Getter.Value);
+                    Assert.Equal(Formatter.GetDefault(typeof(int).GetTypeInfo()), s2.Formatter);
+                    Assert.Equal((Getter)p.GetMethod, s2.Getter);
                     Assert.Equal("Hello", s2.Name);
                     Assert.False(s2.ShouldSerialize.HasValue);
                 }
@@ -2301,8 +2301,8 @@ namespace Cesil.Tests
 
                     var s3 = SerializableMember.ForProperty(p, "World", formatter);
                     Assert.True(s3.EmitDefaultValue);
-                    Assert.Equal(formatter, s3.Formatter.Value);
-                    Assert.Equal((Getter)p.GetMethod, s3.Getter.Value);
+                    Assert.Equal(formatter, s3.Formatter);
+                    Assert.Equal((Getter)p.GetMethod, s3.Getter);
                     Assert.Equal("World", s3.Name);
                     Assert.False(s3.ShouldSerialize.HasValue);
                 }
@@ -2321,8 +2321,8 @@ namespace Cesil.Tests
 
                     var s4 = SerializableMember.ForProperty(p, "Blogo", formatter, shouldSerialize);
                     Assert.True(s4.EmitDefaultValue);
-                    Assert.Equal(formatter, s4.Formatter.Value);
-                    Assert.Equal((Getter)p.GetMethod, s4.Getter.Value);
+                    Assert.Equal(formatter, s4.Formatter);
+                    Assert.Equal((Getter)p.GetMethod, s4.Getter);
                     Assert.Equal("Blogo", s4.Name);
                     Assert.Equal(shouldSerialize, s4.ShouldSerialize.Value);
                 }
@@ -2337,8 +2337,8 @@ namespace Cesil.Tests
 
                     var s5 = SerializableMember.ForProperty(p, "Sphere", formatter, shouldSerialize, Cesil.EmitDefaultValue.No);
                     Assert.False(s5.EmitDefaultValue);
-                    Assert.Equal(formatter, s5.Formatter.Value);
-                    Assert.Equal((Getter)p.GetMethod, s5.Getter.Value);
+                    Assert.Equal(formatter, s5.Formatter);
+                    Assert.Equal((Getter)p.GetMethod, s5.Getter);
                     Assert.Equal("Sphere", s5.Name);
                     Assert.Equal(shouldSerialize, s5.ShouldSerialize.Value);
                 }

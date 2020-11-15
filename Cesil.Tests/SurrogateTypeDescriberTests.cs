@@ -403,10 +403,10 @@ namespace Cesil.Tests
             var surrogate = surrogateB.ToSurrogateTypeDescriber();
 
             var res = surrogate.EnumerateMembersToSerialize(typeof(_Getters_Real).GetTypeInfo()).ToList();
-            var a = res.Single(r => r.Name == nameof(_Getters_Real.Foo)).Getter.Value;
+            var a = res.Single(r => r.Name == nameof(_Getters_Real.Foo)).Getter;
             Assert.Equal(BackingMode.Method, a.Mode);
             Assert.Equal(typeof(_Getters_Real).GetProperty(nameof(_Getters_Real.Foo)).GetMethod, a.Method.Value);
-            var b = res.Single(r => r.Name == nameof(_Getters_Real.Bar)).Getter.Value;
+            var b = res.Single(r => r.Name == nameof(_Getters_Real.Bar)).Getter;
             Assert.Equal(BackingMode.Field, b.Mode);
             Assert.Equal(typeof(_Getters_Real).GetField(nameof(_Getters_Real.Bar)), b.Field.Value);
 
@@ -711,11 +711,11 @@ namespace Cesil.Tests
                     a =>
                     {
                         Assert.True(a.EmitDefaultValue);
-                        Assert.False(a.Getter.Value.Field.HasValue);
-                        Assert.False(a.Getter.Value.Delegate.HasValue);
-                        Assert.Equal(Formatter.GetDefault(typeof(string).GetTypeInfo()), a.Formatter.Value);
+                        Assert.False(a.Getter.Field.HasValue);
+                        Assert.False(a.Getter.Delegate.HasValue);
+                        Assert.Equal(Formatter.GetDefault(typeof(string).GetTypeInfo()), a.Formatter);
                         Assert.Equal("bar", a.Name);
-                        Assert.Equal(typeof(_Simple_Real).GetProperty(nameof(_Simple_Real.Foo)).GetMethod, a.Getter.Value.Method.Value);
+                        Assert.Equal(typeof(_Simple_Real).GetProperty(nameof(_Simple_Real.Foo)).GetMethod, a.Getter.Method.Value);
                         Assert.False(a.ShouldSerialize.HasValue);
                     }
                 );
@@ -730,11 +730,11 @@ namespace Cesil.Tests
                     a =>
                     {
                         Assert.True(a.EmitDefaultValue);
-                        Assert.False(a.Getter.Value.Field.HasValue);
-                        Assert.False(a.Getter.Value.Delegate.HasValue);
-                        Assert.Equal(Formatter.GetDefault(typeof(string).GetTypeInfo()), a.Formatter.Value);
+                        Assert.False(a.Getter.Field.HasValue);
+                        Assert.False(a.Getter.Delegate.HasValue);
+                        Assert.Equal(Formatter.GetDefault(typeof(string).GetTypeInfo()), a.Formatter);
                         Assert.Equal("bar", a.Name);
-                        Assert.Equal(typeof(_Simple_Surrogate).GetProperty(nameof(_Simple_Surrogate.Foo)).GetMethod, a.Getter.Value.Method.Value);
+                        Assert.Equal(typeof(_Simple_Surrogate).GetProperty(nameof(_Simple_Surrogate.Foo)).GetMethod, a.Getter.Method.Value);
                         Assert.False(a.ShouldSerialize.HasValue);
                     }
                 );

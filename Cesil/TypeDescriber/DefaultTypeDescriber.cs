@@ -1124,7 +1124,7 @@ endLoop:
                     var name = mem.Name;
                     if (!CanCache && !ShouldIncludeCell(name, in context, rowObj)) continue;
 
-                    var getter = mem.Getter.Value;
+                    var getter = mem.Getter;
 
                     Formatter? formatter;
                     if (CanCache)

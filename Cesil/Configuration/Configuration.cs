@@ -240,7 +240,7 @@ namespace Cesil
                 else
                 {
                     var emitDefault = Utils.NonNullValue(col.EmitDefaultValue);
-                    writer = ColumnWriter.Create(t, opts, col.Formatter.Value, col.ShouldSerialize, col.Getter.Value, emitDefault);
+                    writer = ColumnWriter.Create(t, opts, col.Formatter, col.ShouldSerialize, col.Getter, emitDefault);
                 }
 
                 ret.Add(new Column(col.Name, writer));

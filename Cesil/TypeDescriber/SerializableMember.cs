@@ -15,11 +15,12 @@ namespace Cesil
 
         internal bool IsBackedByGeneratedMethod => GeneratedMethod.HasValue;
 
-        internal NonNull<Getter> Getter;
-        internal NonNull<Formatter> Formatter;
+        internal Getter Getter;
+        internal Formatter Formatter;
 
         internal NonNull<ShouldSerialize> ShouldSerialize;
 
+        // todo: remove this ?
         internal bool? EmitDefaultValue;
 
         internal NonNull<MethodInfo> GeneratedMethod;
@@ -27,22 +28,23 @@ namespace Cesil
         private SerializableMember(string name, Getter getter, Formatter formatter, ShouldSerialize? shouldSerialize, bool emitDefault)
         {
             Name = name;
-            Getter.Value = getter;
-            Formatter.Value = formatter;
+            Getter = getter;
+            Formatter = formatter;
             ShouldSerialize.SetAllowNull(shouldSerialize);
             EmitDefaultValue = emitDefault;
 
             GeneratedMethod.Clear();
         }
 
-        private SerializableMember(string name, MethodInfo generatedMethod)
+        private SerializableMember(string name, MethodInfo generatedMethod, Getter getter, Formatter formatter, ShouldSerialize? shouldSerialize)
         {
             Name = name;
             GeneratedMethod.Value = generatedMethod;
-            
-            Getter.Clear();
-            Formatter.Clear();
-            ShouldSerialize.Clear();
+
+            Getter = getter;
+            Formatter = formatter;
+            ShouldSerialize.SetAllowNull(shouldSerialize);
+
             EmitDefaultValue = null;
         }
 
@@ -183,7 +185,7 @@ namespace Cesil
             return new SerializableMember(name, getter, formatter, shouldSerialize, emitDefaultValueBool);
         }
 
-        internal static SerializableMember ForGeneratedMethod(string name, MethodInfo generated)
+        internal static SerializableMember ForGeneratedMethod(string name, MethodInfo generated, Getter getter, Formatter formatter, ShouldSerialize? shouldSerialize)
         {
             if (name == null)
             {
@@ -193,6 +195,21 @@ namespace Cesil
             if (generated == null)
             {
                 return Throw.ArgumentNullException<SerializableMember>(nameof(generated));
+            }
+
+            if(getter == null)
+            {
+                return Throw.ArgumentNullException<SerializableMember>(nameof(getter));
+            }
+
+            if (formatter == null)
+            {
+                return Throw.ArgumentNullException<SerializableMember>(nameof(formatter));
+            }
+
+            if (shouldSerialize == null)
+            {
+                return Throw.ArgumentNullException<SerializableMember>(nameof(shouldSerialize));
             }
 
             if (!generated.IsPublic)
@@ -235,7 +252,7 @@ namespace Cesil
                 return Throw.ArgumentException<SerializableMember>(nameof(generated), $"Generated method's third parameter should be IBufferWriter<char>, but was {p2}");
             }
 
-            return new SerializableMember(name, generated);
+            return new SerializableMember(name, generated, getter, formatter, shouldSerialize);
         }
 
         private static void CheckShouldSerializeMethod(ShouldSerialize? shouldSerialize, NonNull<TypeInfo> onTypeNull)
@@ -281,6 +298,7 @@ namespace Cesil
             {
                 if (!serializableMember.IsBackedByGeneratedMethod) return false;
 
+                // this is fine because the getter, formatter, and so on are derived from this method
                 return GeneratedMethod.Value == serializableMember.GeneratedMethod.Value;
             }
             else
@@ -301,8 +319,8 @@ namespace Cesil
 
             return
                 serializableMember.EmitDefaultValue == EmitDefaultValue &&
-                serializableMember.Formatter.Value == Formatter.Value &&
-                serializableMember.Getter.Value == Getter.Value &&
+                serializableMember.Formatter == Formatter &&
+                serializableMember.Getter == Getter &&
                 serializableMember.Name == Name;
         }
 
@@ -310,7 +328,7 @@ namespace Cesil
         /// Returns a stable hash for this SerializableMember.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(SerializableMember), EmitDefaultValue, Formatter, Getter, Name, ShouldSerialize);
+        => HashCode.Combine(nameof(SerializableMember), EmitDefaultValue, Formatter, Getter, Name, ShouldSerialize, GeneratedMethod);
 
         /// <summary>
         /// Describes this SerializableMember.

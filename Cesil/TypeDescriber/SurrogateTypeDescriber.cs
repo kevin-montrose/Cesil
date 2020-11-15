@@ -332,7 +332,7 @@ namespace Cesil
                 shouldSerializeOnType = null;
             }
 
-            var surrogateGetterWrapper = member.Getter.Value;
+            var surrogateGetterWrapper = member.Getter;
             switch (surrogateGetterWrapper.Mode)
             {
                 case BackingMode.Field:
@@ -353,7 +353,7 @@ namespace Cesil
 
                         var emitDefaultValue = Utils.NonNullValue(member.EmitDefaultValue);
                         var emitDefaultField = GetEquivalentEmitFor(emitDefaultValue);
-                        return SerializableMember.CreateInner(ontoType, member.Name, (Getter?)fieldOnType, member.Formatter.Value, shouldSerializeOnType, emitDefaultField);
+                        return SerializableMember.CreateInner(ontoType, member.Name, (Getter?)fieldOnType, member.Formatter, shouldSerializeOnType, emitDefaultField);
                     }
                 case BackingMode.Delegate:
                     return Throw.InvalidOperationException<SerializableMember>($"Cannot map getter {surrogateGetterWrapper} onto {ontoType}, getter isn't backed by a method");
@@ -395,7 +395,7 @@ handleMethod:
 
             var emitDefaultValueOuter = Utils.NonNullValue(member.EmitDefaultValue);
             var emitDefault = GetEquivalentEmitFor(emitDefaultValueOuter);
-            return SerializableMember.CreateInner(ontoType, member.Name, (Getter?)getterOnType, member.Formatter.Value, shouldSerializeOnType, emitDefault);
+            return SerializableMember.CreateInner(ontoType, member.Name, (Getter?)getterOnType, member.Formatter, shouldSerializeOnType, emitDefault);
         }
 
         private static InstanceProvider Map(TypeInfo ontoType, InstanceProvider builder)
