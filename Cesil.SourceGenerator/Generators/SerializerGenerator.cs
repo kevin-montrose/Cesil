@@ -131,6 +131,12 @@ namespace Cesil.SourceGenerator
                 }
 
                 sb.AppendLine("      var value = " + getter + "(row, in ctx);");
+
+                if (!col.EmitDefaultValue)
+                {
+                    AddEmitDefaultEarlyReturn(sb, fullyQualifiedFormat, col.Formatter.TakesType);
+                }
+
                 sb.AppendLine("      var res = " + formatter + "(value, in ctx, writer);");
                 sb.AppendLine();
                 sb.AppendLine("      return res;");
@@ -147,6 +153,54 @@ namespace Cesil.SourceGenerator
             var ret = normalized.ToFullString();
 
             return ret;
+
+            // add some code to return true IF the value we see is a default value
+            static void AddEmitDefaultEarlyReturn(StringBuilder sb, SymbolDisplayFormat fullyQualifiedFormat, ITypeSymbol type)
+            {
+                var typeFullyQualifiedName = type.ToDisplayString(fullyQualifiedFormat);
+
+                var ops = type.GetMembers().OfType<IMethodSymbol>().Where(m => m.MethodKind == MethodKind.BuiltinOperator);
+                var eqOp = ops.Any(o => o.MetadataName == "op_Equality");
+
+                bool isPrimitive;
+                switch (type.SpecialType)
+                {
+                    case SpecialType.System_Boolean:
+                    case SpecialType.System_Char:
+                    case SpecialType.System_SByte:
+                    case SpecialType.System_Byte:
+                    case SpecialType.System_Int16:
+                    case SpecialType.System_UInt16:
+                    case SpecialType.System_Int32:
+                    case SpecialType.System_UInt32:
+                    case SpecialType.System_Int64:
+                    case SpecialType.System_UInt64:
+                    case SpecialType.System_Single:
+                    case SpecialType.System_Double:
+                    case SpecialType.System_Decimal:
+                        isPrimitive = true;
+                        break;
+
+                    default:
+                        isPrimitive = false;
+                        break;
+                }
+
+                var defaultExp = "default(" + typeFullyQualifiedName + ")";
+
+                string isDefaultExp;
+
+                if (type.IsReferenceType || type.TypeKind == TypeKind.Enum || isPrimitive || eqOp)
+                {
+                    isDefaultExp = "value == " + defaultExp;
+                }
+                else
+                {
+                    isDefaultExp = "value.Equals(" + defaultExp + ")";
+                }
+
+                sb.AppendLine("      if(" + isDefaultExp + ") { return true; }");
+            }
 
             // add a method that does the real "formatter" work and returns the name of that method
             static string AddFormatterMethod(StringBuilder sb, int colIx, SymbolDisplayFormat fullyQualifiedFormat, Formatter formatter)
