@@ -111,63 +111,66 @@ namespace Cesil.SourceGenerator
             {
                 var col = columns[i];
 
+                var shouldSerialize = AddShouldSerializeMethod(sb, i, fullyQualifiedFormat, fullyQualifiedRowType, col.ShouldSerialize);
+                var getter = AddGetterMethod(sb, i, fullyQualifiedFormat, fullyQualifiedRowType, col.Getter);
+                var formatter = AddFormatterMethod(sb, i, fullyQualifiedFormat, col.Formatter);
+
                 sb.AppendLine();
-                sb.AppendLine("    public static System.Boolean Column_" + i + "(System.Object rowObj, in Cesil.WriteContext ctx, System.Buffers.IBufferWriter<char> writer)");
+                sb.AppendLine("    public static System.Boolean __Column_" + i + "(System.Object rowObj, in Cesil.WriteContext ctx, System.Buffers.IBufferWriter<char> writer)");
                 sb.AppendLine("    {");
                 sb.AppendLine("      var row = (" + fullyQualifiedRowType + ")rowObj;");
 
-                if (col.ShouldSerialize != null)
+                if (shouldSerialize != null)
                 {
-                    var ss = col.ShouldSerialize;
-
-                    var mtdName = ss.Method.Name;
-
-                    string invokeStatement;
-                    if (ss.IsStatic)
-                    {
-                        var onType = ss.Method.ContainingType.ToDisplayString(fullyQualifiedFormat);
-
-                        invokeStatement = onType + "." + mtdName + "(";
-
-                        if (ss.TakesRow)
-                        {
-                            invokeStatement += "row";
-
-
-                            if (ss.TakesContext)
-                            {
-                                invokeStatement += ", in ctx";
-                            }
-                        }
-                        else
-                        {
-                            if (ss.TakesContext)
-                            {
-                                invokeStatement += "in ctx";
-                            }
-                        }
-
-                        invokeStatement += ")";
-                    }
-                    else
-                    {
-                        invokeStatement = "row." + mtdName + "(";
-
-                        if (ss.TakesContext)
-                        {
-                            invokeStatement += "in ctx";
-                        }
-
-                        invokeStatement += ")";
-                    }
-
-                    sb.AppendLine("      var shouldSerialize = " + invokeStatement + ";");
+                    sb.AppendLine("      var shouldSerialize = " + shouldSerialize + "(row, in ctx);");
                     sb.AppendLine("      if(!shouldSerialize) { return true; }");
                 }
 
-                var getter = col.Getter;
+                sb.AppendLine("      var value = " + getter + "(row, in ctx);");
+                sb.AppendLine("      var res = " + formatter + "(value, in ctx, writer);");
+                sb.AppendLine();
+                sb.AppendLine("      return res;");
+                sb.AppendLine("    }");
+            }
 
+            sb.AppendLine("  }");
+            sb.AppendLine("}");
+
+            var generatedCS = sb.ToString();
+
+            var parsed = SyntaxFactory.ParseCompilationUnit(generatedCS);
+            var normalized = parsed.NormalizeWhitespace();
+            var ret = normalized.ToFullString();
+
+            return ret;
+
+            // add a method that does the real "formatter" work and returns the name of that method
+            static string AddFormatterMethod(StringBuilder sb, int colIx, SymbolDisplayFormat fullyQualifiedFormat, Formatter formatter)
+            {
+                var takingType = formatter.TakesType.ToDisplayString(fullyQualifiedFormat);
+                var formatterType = formatter.Method.ContainingType.ToDisplayString(fullyQualifiedFormat);
+
+                var formatterStatement = formatterType + "." + formatter.Method.Name + "(value, in ctx, writer)";
+
+                var formatterMethodName = "__Column_" + colIx + "_Formatter";
+
+                sb.AppendLine();
+                sb.AppendLine("    [System.Runtime.CompilerServices.MethodImplAttribute(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
+                sb.AppendLine("    public static System.Boolean " + formatterMethodName + "(" + takingType + " value, in Cesil.WriteContext ctx, System.Buffers.IBufferWriter<char> writer)");
+                sb.AppendLine("    {");
+                sb.AppendLine("      var ret = " + formatterStatement + ";");
+                sb.AppendLine("      return ret;");
+                sb.AppendLine("    }");
+
+                return formatterMethodName;
+            }
+
+            // add a method that does the real "getter" work and returns the name of that method
+            static string AddGetterMethod(StringBuilder sb, int colIx, SymbolDisplayFormat fullyQualifiedFormat, string fullyQualifiedRowType, Getter getter)
+            {
                 string getStatement;
+
+                var returnedFullyQualifiedTypeName = getter.ForType.ToDisplayString(fullyQualifiedFormat);
 
                 if (getter.Field != null)
                 {
@@ -229,29 +232,80 @@ namespace Cesil.SourceGenerator
                     throw new Exception("Shouldn't be possible");
                 }
 
-                sb.AppendLine("      var value = " + getStatement + ";");
+                var getterMethodName = "__Column_" + colIx + "_Getter";
 
-                var formatter = col.Formatter;
-                var formatterType = formatter.Method.ContainingType.ToDisplayString(fullyQualifiedFormat);
-
-                var formatterStatement = formatterType + "." + formatter.Method.Name + "(value, in ctx, buffer)";
-
-                sb.AppendLine("      var res = " + formatterStatement + ";");
                 sb.AppendLine();
-                sb.AppendLine("      return res;");
+                sb.AppendLine("    [System.Runtime.CompilerServices.MethodImplAttribute(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
+                sb.AppendLine("    public static " + returnedFullyQualifiedTypeName + " " + getterMethodName + "(" + fullyQualifiedRowType + " row, in Cesil.WriteContext ctx)");
+                sb.AppendLine("    {");
+                sb.AppendLine("      var ret = " + getStatement + ";");
+                sb.AppendLine("      return ret;");
                 sb.AppendLine("    }");
+
+                return getterMethodName;
             }
 
-            sb.AppendLine("  }");
-            sb.AppendLine("}");
+            // add a method that does the real "should serialize" work and returns the name of that method, if there is one
+            static string? AddShouldSerializeMethod(StringBuilder sb, int colIx, SymbolDisplayFormat fullyQualifiedFormat, string fullyQualifiedRowType, ShouldSerialize? shouldSerialize)
+            {
+                if (shouldSerialize == null)
+                {
+                    return null;
+                }
 
-            var generatedCS = sb.ToString();
+                var mtdName = shouldSerialize.Method.Name;
 
-            var parsed = SyntaxFactory.ParseCompilationUnit(generatedCS);
-            var normalized = parsed.NormalizeWhitespace();
-            var ret = normalized.ToFullString();
+                string invokeStatement;
+                if (shouldSerialize.IsStatic)
+                {
+                    var onType = shouldSerialize.Method.ContainingType.ToDisplayString(fullyQualifiedFormat);
 
-            return ret;
+                    invokeStatement = onType + "." + mtdName + "(";
+
+                    if (shouldSerialize.TakesRow)
+                    {
+                        invokeStatement += "row";
+
+
+                        if (shouldSerialize.TakesContext)
+                        {
+                            invokeStatement += ", in ctx";
+                        }
+                    }
+                    else
+                    {
+                        if (shouldSerialize.TakesContext)
+                        {
+                            invokeStatement += "in ctx";
+                        }
+                    }
+
+                    invokeStatement += ")";
+                }
+                else
+                {
+                    invokeStatement = "row." + mtdName + "(";
+
+                    if (shouldSerialize.TakesContext)
+                    {
+                        invokeStatement += "in ctx";
+                    }
+
+                    invokeStatement += ")";
+                }
+
+                var shouldSerializeMethodName = "__Column_" + colIx + "_ShouldSerialize";
+
+                sb.AppendLine();
+                sb.AppendLine("    [System.Runtime.CompilerServices.MethodImplAttribute(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
+                sb.AppendLine("    public static System.Boolean " + shouldSerializeMethodName + "(" + fullyQualifiedRowType + " row, in Cesil.WriteContext ctx)");
+                sb.AppendLine("    {");
+                sb.AppendLine("      var ret = " + invokeStatement + ";");
+                sb.AppendLine("      return ret;");
+                sb.AppendLine("    }");
+
+                return shouldSerializeMethodName;
+            }
         }
 
         private static bool TryCreateNeededTypes(Compilation compilation, SourceGeneratorContext context, [MaybeNullWhen(returnValue: false)] out SerializerTypes neededTypes)

@@ -594,7 +594,7 @@ namespace Cesil.SourceGenerator
                 return null;
             }
 
-            return new Formatter(formatterMtd);
+            return new Formatter(formatterMtd, toFormatType);
         }
 
         private static IMethodSymbol? GetMethod(ITypeSymbol type, string mtd, Location? location, ref ImmutableArray<Diagnostic> diags)
