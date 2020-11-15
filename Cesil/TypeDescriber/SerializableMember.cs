@@ -204,10 +204,7 @@ namespace Cesil
                 return Throw.ArgumentNullException<SerializableMember>(nameof(formatter));
             }
 
-            if (shouldSerialize == null)
-            {
-                return Throw.ArgumentNullException<SerializableMember>(nameof(shouldSerialize));
-            }
+            // ok for shouldSerialize to be null
 
             if (!generated.IsPublic)
             {

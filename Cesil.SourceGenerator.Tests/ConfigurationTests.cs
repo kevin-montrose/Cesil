@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -8,12 +7,11 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Xunit;
 
 namespace Cesil.SourceGenerator.Tests
 {
-    public class SerializerGeneratorTests
+    public class ConfigurationTests
     {
         [Fact]
         public async Task SimpleAsync()
@@ -35,7 +33,7 @@ namespace Foo
         [Cesil.GenerateSerializableMemberAttribute(FormatterType=typeof(WriteMe), FormatterMethodName=nameof(ForString))]
         public string Fizz;
         [Cesil.GenerateSerializableMemberAttribute(Name=""Hello"", FormatterType=typeof(WriteMe), FormatterMethodName=nameof(ForDateTime))]
-        public DateTime SomeMtd() => ""World"";
+        public DateTime SomeMtd() => DateTime.Now;
 
         public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
         => false;
@@ -1941,28 +1939,6 @@ namespace Foo
             return (producedCompilation, diagnostics);
         }
 
-        private sealed class DefaultAnalyzerConfigOptionsProvider : AnalyzerConfigOptionsProvider
-        {
-            private sealed class DefaultAnalyzerConfigOptions : AnalyzerConfigOptions
-            {
-                public override bool TryGetValue(string key, [NotNullWhen(true)] out string value)
-                {
-                    value = null;
-                    return false;
-                }
-            }
-
-            internal DefaultAnalyzerConfigOptionsProvider() { }
-
-            public override AnalyzerConfigOptions GlobalOptions { get; }
-
-            public override AnalyzerConfigOptions GetOptions(SyntaxTree tree)
-            => new DefaultAnalyzerConfigOptions();
-
-            public override AnalyzerConfigOptions GetOptions(AdditionalText textFile)
-            => new DefaultAnalyzerConfigOptions();
-        }
-
         private static Task<Compilation> GetCompilationAsync(
             string testFile,
             string caller
@@ -1973,7 +1949,7 @@ namespace Foo
 
             var references = systemAssemblies.Select(s => MetadataReference.CreateFromFile(s)).ToList();
 
-            var projectName = $"Cesil.SourceGenerator.Tests.{nameof(SerializerGeneratorTests)}";
+            var projectName = $"Cesil.SourceGenerator.Tests.{nameof(ConfigurationTests)}";
             var projectId = ProjectId.CreateNewId(projectName);
 
             var compilationOptions =
@@ -2040,6 +2016,7 @@ namespace Foo
                 new[]
                 {
                     new [] { "Interface", "Attributes", "SerializeAttributes.cs" },
+                    new [] { "Interface", "Attributes", "GeneratedSourceVersionAttribute.cs" },
                     new [] { "Context", "WriteContext.cs" },
                 };
 

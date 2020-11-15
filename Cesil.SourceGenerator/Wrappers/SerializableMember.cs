@@ -452,7 +452,7 @@ namespace Cesil.SourceGenerator
                 // 0 is allowed
                 // if it takes a parameter, it must be an `in WriteContext`
 
-                takesRow = true;
+                takesRow = false;
 
                 var ps = method.Parameters;
 
