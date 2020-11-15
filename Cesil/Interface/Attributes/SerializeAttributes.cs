@@ -96,16 +96,44 @@ namespace Cesil
         [NullableExposed("Truly optional, except with method backed getters")]
         public string? Name { get; set; }
 
+        private int? _Order;
+
+        /// <summary>
+        /// Returns true if Order has been explicitly set.
+        /// 
+        /// Getting Order when HasOrder is false will throw an exception.
+        /// </summary>
+        [IntentionallyExposedPrimitive("Best way to indicate if set")]
+        public bool HasOrder => _Order.HasValue;
+
         /// <summary>
         /// Value used to order columns.
         /// 
         /// Set to null to leave order unspecified.
         /// 
-        /// Orders with explicit values are sorted before those with null values.
+        /// Orders with explicit values are sorted before those without values.
+        /// 
+        /// Check HashOrder before getting Order, or an exception will be thrown.
         /// </summary>
         [IntentionallyExposedPrimitive("Matches Order on SerializableMember")]
         [NullableExposed("Truly optional")]
-        public int? Order { get; set; }
+        public int Order
+        {
+            get
+            {
+                if (_Order == null)
+                {
+                    return Throw.InvalidOperationException<int>($"{nameof(Order)} not set, check {nameof(HasOrder)} before calling this.");
+                }
+
+                return _Order.Value;
+            }
+
+            set
+            {
+                _Order = value;
+            }
+        }
 
         /// <summary>
         /// Type to lookup a formatter method on, used with FormatterMethodName.
@@ -208,7 +236,7 @@ namespace Cesil
                 attribute.FormatterMethodName == FormatterMethodName &&
                 attribute.FormatterType == FormatterType &&
                 attribute.Name == Name &&
-                attribute.Order == Order &&
+                attribute._Order == _Order &&
                 attribute.ShouldSerializeMethodName == ShouldSerializeMethodName &&
                 attribute.ShouldSerializeType == ShouldSerializeType;
         }
@@ -225,7 +253,7 @@ namespace Cesil
         /// Returns a stable hash code for this GeneratedSourceVersionAttribute.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(EmitDefaultValue, FormatterMethodName, FormatterType, Name, Order, ShouldSerializeMethodName, ShouldSerializeType);
+        => HashCode.Combine(EmitDefaultValue, FormatterMethodName, FormatterType, Name, _Order, ShouldSerializeMethodName, ShouldSerializeType);
 
         /// <summary>
         /// Compare two GenerateSerializableAttributes for equality
@@ -245,6 +273,6 @@ namespace Cesil
         /// Only for debugging, this value is not guaranteed to be stable.
         /// </summary>
         public override string ToString()
-        => $"{nameof(GenerateSerializableMemberAttribute)} with {nameof(EmitDefaultValue)}={EmitDefaultValue}, {nameof(FormatterMethodName)}={FormatterMethodName}, {nameof(FormatterType)}={FormatterType}, {nameof(Name)}={Name}, {nameof(Order)}={Order}, {nameof(ShouldSerializeMethodName)}={ShouldSerializeMethodName}, {nameof(ShouldSerializeType)}={ShouldSerializeType}";
+        => $"{nameof(GenerateSerializableMemberAttribute)} with {nameof(EmitDefaultValue)}={EmitDefaultValue}, {nameof(FormatterMethodName)}={FormatterMethodName}, {nameof(FormatterType)}={FormatterType}, {nameof(Name)}={Name}, {nameof(HasOrder)}={HasOrder}, {nameof(Order)}={_Order}, {nameof(ShouldSerializeMethodName)}={ShouldSerializeMethodName}, {nameof(ShouldSerializeType)}={ShouldSerializeType}";
     }
 }

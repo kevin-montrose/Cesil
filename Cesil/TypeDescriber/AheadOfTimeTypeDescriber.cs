@@ -62,7 +62,7 @@ namespace Cesil
             }
 
             var colNamesField = paired.GetFieldNonNull("ColumnNames", PublicStatic);
-            var colNames = (string[])colNamesField.GetValueNonNull(null);
+            var colNames = (ImmutableArray<string>)colNamesField.GetValueNonNull(null);
 
             var ret = ImmutableArray.CreateBuilder<SerializableMember>(colNames.Length);
 
@@ -84,8 +84,18 @@ namespace Cesil
                 var getter = Getter.ForMethod(getterMtd);
 
                 var formatterName = $"__Column_{i}_Formatter";
-                var formatterMtd = paired.GetMethodNonNull(formatterName, PublicStatic);
-                var formatter = Formatter.ForMethod(formatterMtd);
+                var formatterMtd = paired.GetMethod(formatterName, PublicStatic);
+                Formatter formatter;
+                if(formatterMtd == null)
+                {
+                    // if a method isn't provided, it must be using the default
+                    formatter = Utils.NonNull(Formatter.GetDefault(getter.Returns));
+                }
+                else
+                {
+                    formatter = Formatter.ForMethod(formatterMtd);
+                }
+                
 
                 ret.Add(SerializableMember.ForGeneratedMethod(name, colWriterMtd, getter, formatter, shouldSerialize, emitsDefaultValue));
             }

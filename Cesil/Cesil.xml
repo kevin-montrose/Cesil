@@ -45,17 +45,6 @@
               store (1 int + the char data).
             </summary>
         </member>
-        <member name="M:Cesil.Utils.TryFormatFlagsEnum``1(``0,System.String[],System.UInt64[],System.Span{System.Char})">
-            <summary>
-            This is _like_ calling ToString(), but it doesn't allow values
-            that aren't actually declared on the enum.
-            
-            Since copyInto might not be big enough, can return the following values:
-             * 0, if flagsEnum was invalid
-             * greater than 0, length of the value that did fit into copyInto
-             * less than 0, the negated length of a value that didn't fit into copyInto
-            </summary>
-        </member>
         <member name="M:Cesil.Utils.TryParseFlagsEnum``1(System.ReadOnlySpan{System.Char},System.String[],System.UInt64[],``0@)">
             <summary>
             This is _like_ calling TryParse(), but it doesn't allow values
@@ -1364,13 +1353,22 @@
             For methods, this must be explicitly set.
             </summary>
         </member>
+        <member name="P:Cesil.GenerateSerializableMemberAttribute.HasOrder">
+            <summary>
+            Returns true if Order has been explicitly set.
+            
+            Getting Order when HasOrder is false will throw an exception.
+            </summary>
+        </member>
         <member name="P:Cesil.GenerateSerializableMemberAttribute.Order">
             <summary>
             Value used to order columns.
             
             Set to null to leave order unspecified.
             
-            Orders with explicit values are sorted before those with null values.
+            Orders with explicit values are sorted before those without values.
+            
+            Check HashOrder before getting Order, or an exception will be thrown.
             </summary>
         </member>
         <member name="P:Cesil.GenerateSerializableMemberAttribute.FormatterType">
@@ -2457,6 +2455,17 @@
         <member name="M:Cesil.AheadOfTimeTypeDescriber.op_Inequality(Cesil.AheadOfTimeTypeDescriber,Cesil.AheadOfTimeTypeDescriber)">
             <summary>
             Compare two AheadOfTimeTypeDescribers for inequality
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultTypeFormatters.DefaultEnumTypeFormatter`1.FormatFlagsEnumImpl(`0,System.String[],System.UInt64[],System.Span{System.Char})">
+            <summary>
+            This is _like_ calling ToString(), but it doesn't allow values
+            that aren't actually declared on the enum.
+            
+            Since copyInto might not be big enough, can return the following values:
+             * 0, if flagsEnum was invalid
+             * greater than 0, length of the value that did fit into copyInto
+             * less than 0, the negated length of a value that didn't fit into copyInto
             </summary>
         </member>
         <member name="T:Cesil.DefaultTypeDescriber">

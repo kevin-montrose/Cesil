@@ -20,6 +20,8 @@ namespace Cesil.SourceGenerator
 
         internal ImmutableDictionary<INamedTypeSymbol, ImmutableArray<SerializableMember>> Members = ImmutableDictionary<INamedTypeSymbol, ImmutableArray<SerializableMember>>.Empty;
 
+        internal ImmutableArray<Formatter> NeededDefaultFormatters = ImmutableArray<Formatter>.Empty;
+
         public void Execute(SourceGeneratorContext context)
         {
             var compilation = context.Compilation;
@@ -37,6 +39,22 @@ namespace Cesil.SourceGenerator
             }
 
             Members = GetMembersToGenerateFor(context, compilation, ToGenerateFor, NeededTypes);
+
+            NeededDefaultFormatters = Members.SelectMany(m => m.Value.Select(v => v.Formatter).Where(f => f.IsDefault)).Distinct().ToImmutableArray();
+
+            var defaultFormatterFullyQualifiedTypeName = "--NONE--";
+            var defaultFormatters = GenerateDefaultFormatterType(NeededDefaultFormatters);
+            if (defaultFormatters != null)
+            {
+                string defaultFormattersSource;
+                (defaultFormatterFullyQualifiedTypeName, defaultFormattersSource) = defaultFormatters.Value;
+
+                var defaultFormatterFileName = "__Cesil_Generated_DefaultFormatters.cs";
+
+                defaultFormattersSource = RemoveUnusedUsings(compilation, defaultFormattersSource);
+
+                context.AddSource(defaultFormatterFileName, SourceText.From(defaultFormattersSource));
+            }
 
             foreach (var kv in Members)
             {
@@ -70,28 +88,144 @@ namespace Cesil.SourceGenerator
                     }
                 );
 
-                var source = GenerateSerializerType(rowType, inOrder);
+                var source = GenerateSerializerType(defaultFormatterFullyQualifiedTypeName, rowType, inOrder);
+                source = RemoveUnusedUsings(compilation, source);
 
-                context.AddSource($"Cesil_Generated_{rowType.Name}.cs", SourceText.From(source));
+                var generatedFileName = "__Cesil_Generated_Serializer_" + rowType.ToFullyQualifiedName().Replace(".", "_") + ".cs";
+
+                context.AddSource(generatedFileName, SourceText.From(source));
             }
         }
 
-        private static string GenerateSerializerType(INamedTypeSymbol rowType, ImmutableArray<SerializableMember> columns)
+        private static string RemoveUnusedUsings(Compilation compilation, string source)
         {
-            var fullyQualifiedFormat = new SymbolDisplayFormat(typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces);
+            const string UNUSED_USING = "CS8019";
 
-            var fullyQualifiedRowType = rowType.ToDisplayString(fullyQualifiedFormat);
+            var syntax = SyntaxFactory.ParseCompilationUnit(source);
+            var syntaxTree = syntax.SyntaxTree;
+            var withFile = compilation.AddSyntaxTrees(syntaxTree);
+            var model = withFile.GetSemanticModel(syntaxTree);
+
+            var diags = model.GetDiagnostics();
+            var relevantDiags = diags.Where(i => i.Id == UNUSED_USING).ToImmutableArray();
+            var usingsToRemove = syntax.Usings.Where(u => relevantDiags.Any(d => u.Span.Contains(d.Location.SourceSpan))).ToImmutableArray();
+
+            var updatedSyntax = Utils.NonNull(syntax.RemoveNodes(usingsToRemove, SyntaxRemoveOptions.KeepNoTrivia));
+            updatedSyntax = updatedSyntax.NormalizeWhitespace();
+
+            return updatedSyntax.ToFullString();
+        }
+
+        private static (string FullyQualifiedTypeName, string Source)? GenerateDefaultFormatterType(ImmutableArray<Formatter> formatters)
+        {
+            if (formatters.IsEmpty)
+            {
+                return null;
+            }
 
             var sb = new StringBuilder();
 
+            sb.AppendLine("#nullable disable warnings");
+            sb.AppendLine("#nullable enable annotations");
+            sb.AppendLine("#pragma warning disable CS0162 // ignore unreachable code, this can happen because of inlining values that are known at source generation time");
+            sb.AppendLine();
+            sb.AppendLine("using System;");
+            sb.AppendLine("using System.Buffers;");
+            sb.AppendLine("using System.Reflection;");
+            sb.AppendLine();
+            sb.AppendLine("namespace Cesil.SourceGenerator.Generated");
+            sb.AppendLine("{");
+
+            var defaultFormatterName = "__DefaultFormatters";
+
+            sb.AppendLine("  internal static class " + defaultFormatterName);
+            sb.AppendLine("  {");
+
+            foreach (var formatter in formatters)
+            {
+                var forType = Utils.NonNull(formatter.ForDefaultType);
+                var code = Utils.NonNull(formatter.DefaultCode);
+
+                if (formatter.DefaultIsMethod)
+                {
+                    var formatterMethodName = GetDefaultFormatterMethodName(forType);
+                    var parsedMethod = (MethodDeclarationSyntax)Utils.NonNull(SyntaxFactory.ParseMemberDeclaration(code));
+                    var parsedMethodBody = Utils.NonNull(parsedMethod.Body);
+
+                    sb.AppendLine();
+                    sb.AppendLine("    internal static System.Boolean " + formatterMethodName + "(" + formatter.ForDefaultType + " value, in Cesil.WriteContext ctx, System.Buffers.IBufferWriter<char> writer)");
+                    sb.AppendLine("    {");
+                    sb.AppendLine(parsedMethodBody.ToFullString());
+                    sb.AppendLine("    }");
+                }
+                else
+                {
+                    var formatterClassName = GetDefaultFormatterClassName(forType);
+                    var parsedClass = (ClassDeclarationSyntax)Utils.NonNull(SyntaxFactory.ParseMemberDeclaration(code));
+                    var renamed = parsedClass.WithIdentifier(SyntaxFactory.ParseToken(formatterClassName));
+
+                    sb.AppendLine();
+                    sb.AppendLine(renamed.ToFullString());
+                    sb.AppendLine();
+                }
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("  }");
+            sb.AppendLine("}");
+            sb.AppendLine();
+            sb.AppendLine("#pragma warning restore CS0162");
+            sb.AppendLine("#nullable restore");
+
+            var generatedCS = sb.ToString();
+
+            var parsed = SyntaxFactory.ParseCompilationUnit(generatedCS);
+            var normalized = parsed.NormalizeWhitespace();
+            var source = normalized.ToFullString();
+
+            return (defaultFormatterName, source);
+        }
+
+        private static string GetDefaultFormatterClassName(string forType)
+        {
+            var formatterClassName = "__Class_Formatter_" + forType.Replace(".", "_").TrimEnd('?');
+            if (forType.EndsWith("?"))
+            {
+                formatterClassName += "_Nullable";
+            }
+
+            return formatterClassName;
+        }
+
+        private static string GetDefaultFormatterMethodName(string forType)
+        {
+            var formatterMethodName = "__Formatter_" + forType.Replace(".", "_").TrimEnd('?');
+            if (forType.EndsWith("?"))
+            {
+                formatterMethodName += "_Nullable";
+            }
+
+            return formatterMethodName;
+        }
+
+        private static string GenerateSerializerType(string defaultFormatterFullyQualifiedTypeName, INamedTypeSymbol rowType, ImmutableArray<SerializableMember> columns)
+        {
+            var fullyQualifiedRowType = rowType.ToFullyQualifiedName();
+            var generatedTypeName = "__Generated_" + fullyQualifiedRowType.Replace(".", "_");
+
+            var sb = new StringBuilder();
+
+            sb.AppendLine("#nullable disable warnings");
+            sb.AppendLine("#nullable enable annotations");
+            sb.AppendLine();
             sb.AppendLine("namespace Cesil.SourceGenerator.Generated");
             sb.AppendLine("{");
 
             sb.AppendLine("  [Cesil.GeneratedSourceVersionAttribute(\"" + EXPECTED_CESIL_VERSION + "\", typeof(" + fullyQualifiedRowType + "), 1)]");
-            sb.AppendLine("  internal sealed class Generated_" + rowType.Name);
+            sb.AppendLine("  internal sealed class " + generatedTypeName);
             sb.AppendLine("  {");
 
-            sb.Append("    public static readonly System.String[] ColumnNames = new System.String[] { ");
+            sb.Append("    public static readonly System.Collections.Immutable.ImmutableArray<System.String> ColumnNames = System.Collections.Immutable.ImmutableArray.CreateRange(new System.String[] { ");
 
             for (var i = 0; i < columns.Length; i++)
             {
@@ -105,15 +239,15 @@ namespace Cesil.SourceGenerator
                 var escaped = SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(col.Name)).ToFullString();
                 sb.Append(escaped);
             }
-            sb.AppendLine(" };");
+            sb.AppendLine(" });");
 
             for (var i = 0; i < columns.Length; i++)
             {
                 var col = columns[i];
 
-                var shouldSerialize = AddShouldSerializeMethod(sb, i, fullyQualifiedFormat, fullyQualifiedRowType, col.ShouldSerialize);
-                var getter = AddGetterMethod(sb, i, fullyQualifiedFormat, fullyQualifiedRowType, col.Getter);
-                var formatter = AddFormatterMethod(sb, i, fullyQualifiedFormat, col.Formatter);
+                var shouldSerialize = AddShouldSerializeMethod(sb, i, fullyQualifiedRowType, col.ShouldSerialize);
+                var getter = AddGetterMethod(sb, i, fullyQualifiedRowType, col.Getter);
+                var formatter = AddFormatterMethod(sb, defaultFormatterFullyQualifiedTypeName, i, col.Formatter);
 
                 sb.AppendLine();
                 if (!col.EmitDefaultValue)
@@ -134,7 +268,8 @@ namespace Cesil.SourceGenerator
 
                 if (!col.EmitDefaultValue)
                 {
-                    AddEmitDefaultEarlyReturn(sb, fullyQualifiedFormat, col.Formatter.TakesType);
+                    var takesType = col.Getter.ForType;
+                    AddEmitDefaultEarlyReturn(sb, takesType);
                 }
 
                 sb.AppendLine("      var res = " + formatter + "(value, in ctx, writer);");
@@ -145,6 +280,8 @@ namespace Cesil.SourceGenerator
 
             sb.AppendLine("  }");
             sb.AppendLine("}");
+            sb.AppendLine();
+            sb.AppendLine("#nullable restore");
 
             var generatedCS = sb.ToString();
 
@@ -155,9 +292,9 @@ namespace Cesil.SourceGenerator
             return ret;
 
             // add some code to return true IF the value we see is a default value
-            static void AddEmitDefaultEarlyReturn(StringBuilder sb, SymbolDisplayFormat fullyQualifiedFormat, ITypeSymbol type)
+            static void AddEmitDefaultEarlyReturn(StringBuilder sb, ITypeSymbol type)
             {
-                var typeFullyQualifiedName = type.ToDisplayString(fullyQualifiedFormat);
+                var typeFullyQualifiedName = type.ToFullyQualifiedName();
 
                 var ops = type.GetMembers().OfType<IMethodSymbol>().Where(m => m.MethodKind == MethodKind.BuiltinOperator);
                 var eqOp = ops.Any(o => o.MetadataName == "op_Equality");
@@ -203,32 +340,64 @@ namespace Cesil.SourceGenerator
             }
 
             // add a method that does the real "formatter" work and returns the name of that method
-            static string AddFormatterMethod(StringBuilder sb, int colIx, SymbolDisplayFormat fullyQualifiedFormat, Formatter formatter)
+            static string AddFormatterMethod(StringBuilder sb, string defaultFormatterFullyQualifiedTypeName, int colIx, Formatter formatter)
             {
-                var takingType = formatter.TakesType.ToDisplayString(fullyQualifiedFormat);
-                var formatterType = formatter.Method.ContainingType.ToDisplayString(fullyQualifiedFormat);
+                if (formatter.IsDefault)
+                {
+                    var forType = Utils.NonNull(formatter.ForDefaultType);
 
-                var formatterStatement = formatterType + "." + formatter.Method.Name + "(value, in ctx, writer)";
+                    if (formatter.DefaultIsMethod)
+                    {
+                        var formatterMethodName = GetDefaultFormatterMethodName(forType);
 
-                var formatterMethodName = "__Column_" + colIx + "_Formatter";
+                        return defaultFormatterFullyQualifiedTypeName + "." + formatterMethodName;
+                    }
+                    else
+                    {
+                        var formatterClassName = GetDefaultFormatterClassName(forType);
 
-                sb.AppendLine();
-                sb.AppendLine("    [System.Runtime.CompilerServices.MethodImplAttribute(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
-                sb.AppendLine("    public static System.Boolean " + formatterMethodName + "(" + takingType + " value, in Cesil.WriteContext ctx, System.Buffers.IBufferWriter<char> writer)");
-                sb.AppendLine("    {");
-                sb.AppendLine("      var ret = " + formatterStatement + ";");
-                sb.AppendLine("      return ret;");
-                sb.AppendLine("    }");
+                        return defaultFormatterFullyQualifiedTypeName + "." + formatterClassName + ".__TryFormat";
+                    }
+                }
+                else
+                {
+                    var takesType = Utils.NonNull(formatter.TakesType);
+                    var method = Utils.NonNull(formatter.Method);
 
-                return formatterMethodName;
+                    var takingType = takesType.ToFullyQualifiedName();
+                    if (takesType.NullableAnnotation == NullableAnnotation.Annotated && takesType.TypeKind != TypeKind.Struct)
+                    {
+                        takingType += "?";
+                    }
+
+                    var formatterType = method.ContainingType.ToFullyQualifiedName();
+
+                    var formatterStatement = formatterType + "." + method.Name + "(value, in ctx, writer)";
+
+                    var formatterMethodName = "__Column_" + colIx + "_Formatter";
+
+                    sb.AppendLine();
+                    sb.AppendLine("    [System.Runtime.CompilerServices.MethodImplAttribute(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
+                    sb.AppendLine("    public static System.Boolean " + formatterMethodName + "(" + takingType + " value, in Cesil.WriteContext ctx, System.Buffers.IBufferWriter<char> writer)");
+                    sb.AppendLine("    {");
+                    sb.AppendLine("      var ret = " + formatterStatement + ";");
+                    sb.AppendLine("      return ret;");
+                    sb.AppendLine("    }");
+
+                    return formatterMethodName;
+                }
             }
 
             // add a method that does the real "getter" work and returns the name of that method
-            static string AddGetterMethod(StringBuilder sb, int colIx, SymbolDisplayFormat fullyQualifiedFormat, string fullyQualifiedRowType, Getter getter)
+            static string AddGetterMethod(StringBuilder sb, int colIx, string fullyQualifiedRowType, Getter getter)
             {
                 string getStatement;
 
-                var returnedFullyQualifiedTypeName = getter.ForType.ToDisplayString(fullyQualifiedFormat);
+                var returnedFullyQualifiedTypeName = getter.ForType.ToFullyQualifiedName();
+                if (getter.ForType.NullableAnnotation == NullableAnnotation.Annotated && getter.ForType.TypeKind != TypeKind.Struct)
+                {
+                    returnedFullyQualifiedTypeName += "?";
+                }
 
                 if (getter.Field != null)
                 {
@@ -304,7 +473,7 @@ namespace Cesil.SourceGenerator
             }
 
             // add a method that does the real "should serialize" work and returns the name of that method, if there is one
-            static string? AddShouldSerializeMethod(StringBuilder sb, int colIx, SymbolDisplayFormat fullyQualifiedFormat, string fullyQualifiedRowType, ShouldSerialize? shouldSerialize)
+            static string? AddShouldSerializeMethod(StringBuilder sb, int colIx, string fullyQualifiedRowType, ShouldSerialize? shouldSerialize)
             {
                 if (shouldSerialize == null)
                 {
@@ -316,7 +485,7 @@ namespace Cesil.SourceGenerator
                 string invokeStatement;
                 if (shouldSerialize.IsStatic)
                 {
-                    var onType = shouldSerialize.Method.ContainingType.ToDisplayString(fullyQualifiedFormat);
+                    var onType = shouldSerialize.Method.ContainingType.ToFullyQualifiedName();
 
                     invokeStatement = onType + "." + mtdName + "(";
 

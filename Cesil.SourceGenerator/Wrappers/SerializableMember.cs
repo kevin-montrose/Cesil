@@ -72,10 +72,11 @@ namespace Cesil.SourceGenerator
 
             if (diags.IsEmpty)
             {
-                // todo: defaults!
-                if (formatter == null)
+                if (formatter == null && !Formatter.TryGetDefault(types, getter.ForType, out formatter))
                 {
-                    throw new System.Exception();
+                    var diag = Diagnostic.Create(Diagnostics.NoBuiltInFormatter, mtdLoc, getter.ForType.Name);
+                    diags = diags.Add(diag);
+                    return (null, diags);
                 }
 
                 return (new SerializableMember(attrName, getter, formatter, shouldSerialize, emitDefaultValue, order), ImmutableArray<Diagnostic>.Empty);
@@ -113,10 +114,11 @@ namespace Cesil.SourceGenerator
 
             if (diags.IsEmpty)
             {
-                // todo: defaults!
-                if (formatter == null)
+                if (formatter == null && !Formatter.TryGetDefault(types, getter.ForType, out formatter))
                 {
-                    throw new System.Exception();
+                    var diag = Diagnostic.Create(Diagnostics.NoBuiltInFormatter, fieldLoc, getter.ForType.Name);
+                    diags = diags.Add(diag);
+                    return (null, diags);
                 }
 
                 return (new SerializableMember(name, getter, formatter, shouldSerialize, emitDefaultValue, order), ImmutableArray<Diagnostic>.Empty);
@@ -166,10 +168,11 @@ namespace Cesil.SourceGenerator
 
             if (diags.IsEmpty)
             {
-                // todo: defaults!
-                if (formatter == null)
+                if (formatter == null && !Formatter.TryGetDefault(types, getter.ForType, out formatter))
                 {
-                    throw new System.Exception();
+                    var diag = Diagnostic.Create(Diagnostics.NoBuiltInFormatter, propLoc, getter.ForType.Name);
+                    diags = diags.Add(diag);
+                    return (null, diags);
                 }
 
                 return (new SerializableMember(name, getter, formatter, shouldSerialize, emitDefaultValue, order), ImmutableArray<Diagnostic>.Empty);
@@ -733,14 +736,10 @@ namespace Cesil.SourceGenerator
 
                 if (type.Equals(cesilMemberAttr, SymbolEqualityComparer.Default))
                 {
-                    var value = GetConstantsWithName<int?>(compilation, ImmutableArray.Create(attr), "Order", ref diags);
+                    var value = GetConstantsWithName<int>(compilation, ImmutableArray.Create(attr), "Order", ref diags);
                     foreach (var val in value)
                     {
-                        if (val == null)
-                        {
-                            continue;
-                        }
-                        values.Add(val.Value);
+                        values.Add(val);
                     }
 
                     continue;

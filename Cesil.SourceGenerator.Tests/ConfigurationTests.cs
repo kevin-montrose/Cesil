@@ -1906,6 +1906,52 @@ namespace Foo
                 );
             }
         }
+
+        [Fact]
+        public async Task DefaultFormattersAsync()
+        {
+            var gen = new SerializerGenerator();
+            var (_, diags) = await RunSourceGeneratorAsync(
+@"
+using System;
+using System.Buffers;
+using Cesil;
+
+namespace Foo 
+{   
+    [GenerateSerializable]
+    class WriteMe
+    {
+        [GenerateSerializableMember]
+        public int Bar { get; set; }
+        [GenerateSerializableMember]
+        public string Fizz;
+        [GenerateSerializableMember(Name=""Hello"")]
+        public DateTime SomeMtd() => DateTime.Now;
+    }
+}", gen);
+
+            Assert.Empty(diags);
+
+            Assert.Collection(
+                gen.NeededDefaultFormatters,
+                forBar =>
+                {
+                    Assert.True(forBar.IsDefault);
+                    Assert.Equal("System.Int32", forBar.ForDefaultType);
+                },
+                forFizz =>
+                {
+                    Assert.True(forFizz.IsDefault);
+                    Assert.Equal("System.String?", forFizz.ForDefaultType);
+                },
+                forHello =>
+                {
+                    Assert.True(forHello.IsDefault);
+                    Assert.Equal("System.DateTime", forHello.ForDefaultType);
+                }
+            );
+        }
         
         private static string GetFlaggedSource(Diagnostic diag)
         {

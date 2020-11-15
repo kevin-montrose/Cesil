@@ -337,6 +337,16 @@ namespace Cesil.SourceGenerator
                true
            );
 
+        internal static readonly DiagnosticDescriptor NoBuiltInFormatter =
+            new DiagnosticDescriptor(
+               "CES1032",
+               "No default Formatter",
+               "There is no default Formatter for {0}, you must provide one.",
+               "Cesil",
+               DiagnosticSeverity.Error,
+               true
+           );
+
         internal static readonly DiagnosticDescriptor GenericError =
             new DiagnosticDescriptor(
                 "CES1999",
