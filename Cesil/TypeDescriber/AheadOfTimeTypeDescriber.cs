@@ -33,7 +33,7 @@ namespace Cesil
         /// </summary>
         public IEnumerable<DeserializableMember> EnumerateMembersToDeserialize(TypeInfo forType)
         // todo: implement!
-        => Throw.NotImplementedException<IEnumerable<DeserializableMember>>("Not implemented yet");
+        => Enumerable.Empty<DeserializableMember>();
 
         /// <summary>
         /// Returns an InstanceProvider that can be used to create new instance of the given type
@@ -45,7 +45,7 @@ namespace Cesil
         [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         public InstanceProvider? GetInstanceProvider(TypeInfo forType)
         // todo: implement!
-        => Throw.NotImplementedException<InstanceProvider>("Not implemented yet");
+        => null;
 
         /// <summary>
         /// Enumerate members which will be serialized for the given type.

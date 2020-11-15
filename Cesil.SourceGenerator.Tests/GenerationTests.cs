@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
@@ -28,7 +29,7 @@ using Cesil;
 namespace Foo 
 {   
     [Cesil.GenerateSerializableAttribute]
-    class WriteMe
+    public class WriteMe
     {
         [Cesil.GenerateSerializableMemberAttribute(FormatterType=typeof(WriteMe), FormatterMethodName=nameof(ForInt))]
         public int Bar { get; set; }
@@ -37,14 +38,40 @@ namespace Foo
         [Cesil.GenerateSerializableMemberAttribute(Name=""Hello"", FormatterType=typeof(WriteMe), FormatterMethodName=nameof(ForDateTime))]
         public DateTime SomeMtd() => new DateTime(2020, 11, 15, 0, 0, 0);
 
+        public WriteMe() { }
+
         public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
-        => false;
+        {
+            var span = buffer.GetSpan(100);
+            if(!val.TryFormat(span, out var written))
+            {
+                return false;
+            }
+
+            buffer.Advance(written);
+            return true;
+        }
 
         public static bool ForString(string val, in WriteContext ctx, IBufferWriter<char> buffer)
-        => false;
+        {
+            var span = buffer.GetSpan(val.Length);
+            val.AsSpan().CopyTo(span);
+
+            buffer.Advance(val.Length);
+            return true;
+        }
 
         public static bool ForDateTime(DateTime val, in WriteContext ctx, IBufferWriter<char> buffer)
-        => false;
+        {
+            var span = buffer.GetSpan(4);
+            if(!val.Year.TryFormat(span, out var written))
+            {
+                return false;
+            }
+
+            buffer.Advance(written);
+            return true;
+        }
     }
 }");
 
@@ -56,8 +83,8 @@ namespace Foo
                     Assert.True(bar.IsBackedByGeneratedMethod);
                     Assert.Equal("Bar", bar.Name);
                     Assert.True(bar.EmitDefaultValue);
-                    Assert.Equal("ForInt", bar.Formatter.Method.Value.Name);
-                    Assert.Equal("get_Bar", bar.Getter.Method.Value.Name);
+                    Assert.Equal("__Column_0_Formatter", bar.Formatter.Method.Value.Name);
+                    Assert.Equal("__Column_0_Getter", bar.Getter.Method.Value.Name);
                     Assert.False(bar.ShouldSerialize.HasValue);
                 },
                 fizz =>
@@ -65,8 +92,8 @@ namespace Foo
                     Assert.True(fizz.IsBackedByGeneratedMethod);
                     Assert.Equal("Fizz", fizz.Name);
                     Assert.True(fizz.EmitDefaultValue);
-                    Assert.Equal("ForString", fizz.Formatter.Method.Value.Name);
-                    Assert.Equal("Fizz", fizz.Getter.Field.Value.Name);
+                    Assert.Equal("__Column_1_Formatter", fizz.Formatter.Method.Value.Name);
+                    Assert.Equal("__Column_1_Getter", fizz.Getter.Method.Value.Name);
                     Assert.False(fizz.ShouldSerialize.HasValue);
                 },
                 hello =>
@@ -74,12 +101,63 @@ namespace Foo
                     Assert.True(hello.IsBackedByGeneratedMethod);
                     Assert.Equal("Hello", hello.Name);
                     Assert.True(hello.EmitDefaultValue);
-                    Assert.Equal("ForDateTime", hello.Formatter.Method.Value.Name);
-                    Assert.Equal("SomeMtd", hello.Getter.Method.Value.Name);
+                    Assert.Equal("__Column_2_Formatter", hello.Formatter.Method.Value.Name);
+                    Assert.Equal("__Column_2_Getter", hello.Getter.Method.Value.Name);
                     Assert.False(hello.ShouldSerialize.HasValue);
                 }
             );
 
+            var rows =
+                Create(
+                    type,
+                    r => { r.Bar = 123; r.Fizz = "abcd"; },
+                    r => { r.Bar = 456; r.Fizz = "hello world"; },
+                    r => { r.Bar = 789; r.Fizz = ""; }
+                );
+
+            var csv = Write(type, rows);
+            Assert.Equal("Bar,Fizz,Hello\r\n123,abcd,2020\r\n456,hello world,2020\r\n789,,2020", csv);
+        }
+
+        private static string Write(System.Reflection.TypeInfo rowType, ImmutableArray<object> rows)
+        {
+            var writeImpl = WriteImplOfT.MakeGenericMethod(rowType);
+
+            var ret = writeImpl.Invoke(null, new object[] { rows });
+
+            return (string)ret;
+        }
+
+        private static readonly MethodInfo WriteImplOfT = typeof(GenerationTests).GetMethod(nameof(WriteImpl), BindingFlags.NonPublic | BindingFlags.Static);
+        private static string WriteImpl<T>(ImmutableArray<object> rows)
+        {
+            var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(TypeDescribers.AheadOfTime).ToOptions();
+            var config = Configuration.For<T>(opts);
+
+            using (var str = new StringWriter())
+            {
+                using (var csv = config.CreateWriter(str))
+                {
+                    csv.WriteAll(rows.Cast<T>());
+
+                }
+
+                return str.ToString();
+            }
+        }
+
+        private static ImmutableArray<dynamic> Create(System.Reflection.TypeInfo rowType, params Action<dynamic>[] callbacks)
+        {
+            var builder = ImmutableArray.CreateBuilder<dynamic>();
+
+            foreach(var callback in callbacks)
+            {
+                var row = Activator.CreateInstance(rowType);
+                callback(row);
+                builder.Add(row);
+            }
+
+            return builder.ToImmutable();
         }
 
         private static async Task<System.Reflection.TypeInfo> RunSourceGeneratorAsync(
