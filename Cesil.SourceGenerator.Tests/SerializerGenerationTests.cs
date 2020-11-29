@@ -25,14 +25,14 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     public class WriteMe
     {
-        [Cesil.GenerateSerializableMemberAttribute(FormatterType=typeof(WriteMe), FormatterMethodName=nameof(ForInt))]
+        [SerializerMember(FormatterType=typeof(WriteMe), FormatterMethodName=nameof(ForInt))]
         public int Bar { get; set; }
-        [Cesil.GenerateSerializableMemberAttribute(FormatterType=typeof(WriteMe), FormatterMethodName=nameof(ForString))]
+        [SerializerMember(FormatterType=typeof(WriteMe), FormatterMethodName=nameof(ForString))]
         public string Fizz = """";
-        [Cesil.GenerateSerializableMemberAttribute(Name=""Hello"", FormatterType=typeof(WriteMe), FormatterMethodName=nameof(ForDateTime))]
+        [SerializerMember(Name=""Hello"", FormatterType=typeof(WriteMe), FormatterMethodName=nameof(ForDateTime))]
         public DateTime SomeMtd() => new DateTime(2020, 11, 15, 0, 0, 0);
 
         public WriteMe() { }
@@ -145,96 +145,100 @@ namespace Foo
         Bar = 3
     }
 
-    [GenerateSerializableAttribute]
+    [GenerateSerializer]
     public class Everything
     {
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
+        public bool Bool { get; set; }
+        [SerializerMember]
         public byte Byte { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public sbyte SByte { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public short Short { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public ushort UShort { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public int Int { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public uint UInt { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public long Long { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public ulong ULong { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public float Float { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public double Double { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public decimal Decimal { get; set; }
 
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
+        public bool? NullableBool { get; set; }
+        [SerializerMember]
         public byte? NullableByte { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public sbyte? NullableSByte { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public short? NullableShort { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public ushort? NullableUShort { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public int? NullableInt { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public uint? NullableUInt { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public long? NullableLong { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public ulong? NullableULong { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public float? NullableFloat { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public double? NullableDouble { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public decimal? NullableDecimal { get; set; }
 
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public string? String { get; set; }
 
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public char Char { get; set; }
 
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public char? NullableChar { get; set; }
 
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public Guid Guid { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public Guid? NullableGuid { get; set; }
 
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public DateTime DateTime { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public DateTimeOffset DateTimeOffset { get; set; }
 
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public DateTime? NullableDateTime { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public DateTimeOffset? NullableDateTimeOffset { get; set; }
 
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public Uri? Uri { get; set; }
 
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public TimeSpan TimeSpan { get; set; }
 
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public TimeSpan? NullableTimeSpan { get; set; }
 
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public WideRowEnum Enum { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public WideRowFlagsEnum FlagsEnum { get; set; }
 
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public WideRowEnum? NullableEnum { get; set; }
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public WideRowFlagsEnum? NullableFlagsEnum { get; set; }
 
         public Everything() { }
@@ -259,6 +263,7 @@ namespace Foo
                 type,
                 row1 =>
                 {
+                    row1.Bool = true;
                     row1.Byte = (byte)1;
                     row1.SByte = (sbyte)-1;
                     row1.Short = (short)-11;
@@ -271,6 +276,7 @@ namespace Foo
                     row1.Double = (double)3.4;
                     row1.Decimal = (decimal)4.5m;
 
+                    row1.NullableBool = false;
                     row1.NullableByte = (byte)2;
                     row1.NullableSByte = (sbyte)-2;
                     row1.NullableShort = (short)-22;
@@ -310,6 +316,7 @@ namespace Foo
                 },
                 row2 =>
                 {
+                    row2.Bool = false;
                     row2.Byte = (byte)3;
                     row2.SByte = (sbyte)-3;
                     row2.Short = (short)-33;
@@ -322,6 +329,7 @@ namespace Foo
                     row2.Double = (double)4.5;
                     row2.Decimal = (decimal)6.7m;
 
+                    row2.NullableBool = (bool?)null;
                     row2.NullableByte = (byte?)null;
                     row2.NullableSByte = (sbyte?)null;
                     row2.NullableShort = (short?)null;
@@ -363,7 +371,7 @@ namespace Foo
 
             var csv = Write(type, rows);
 
-            Assert.Equal("Byte,SByte,Short,UShort,Int,UInt,Long,ULong,Float,Double,Decimal,NullableByte,NullableSByte,NullableShort,NullableUShort,NullableInt,NullableUInt,NullableLong,NullableULong,NullableFloat,NullableDouble,NullableDecimal,String,Char,NullableChar,Guid,NullableGuid,DateTime,DateTimeOffset,NullableDateTime,NullableDateTimeOffset,Uri,TimeSpan,NullableTimeSpan,Enum,FlagsEnum,NullableEnum,NullableFlagsEnum\r\n1,-1,-11,11,-111,111,-1111,1111,1.20000005,3.3999999999999999,4.5,2,-2,-22,22,-222,222,-2222,2222,6.69999981,8.9000000000000004,0.1,hello,a,b,6e3687af-99a8-4415-9cde-c0d90d182171,7e3687af-99a8-4415-9cde-c0d90d182171,2020-11-15 00:00:00Z,2020-11-15 00:00:00Z,2021-11-15 00:00:00Z,2021-11-15 00:00:00Z,https://example.com/example,01:02:03,04:05:06,None,Empty,Foo,Hello\r\n3,-3,-33,33,-333,333,-3333,3333,2.29999995,4.5,6.7,,,,,,,,,,,,,c,,8e3687af-99a8-4415-9cde-c0d90d182171,,2022-11-15 00:00:00Z,2022-11-15 00:00:00Z,,,,07:08:09,,Foo,Hello,,", csv);
+            Assert.Equal("Bool,Byte,SByte,Short,UShort,Int,UInt,Long,ULong,Float,Double,Decimal,NullableBool,NullableByte,NullableSByte,NullableShort,NullableUShort,NullableInt,NullableUInt,NullableLong,NullableULong,NullableFloat,NullableDouble,NullableDecimal,String,Char,NullableChar,Guid,NullableGuid,DateTime,DateTimeOffset,NullableDateTime,NullableDateTimeOffset,Uri,TimeSpan,NullableTimeSpan,Enum,FlagsEnum,NullableEnum,NullableFlagsEnum\r\nTrue,1,-1,-11,11,-111,111,-1111,1111,1.20000005,3.3999999999999999,4.5,False,2,-2,-22,22,-222,222,-2222,2222,6.69999981,8.9000000000000004,0.1,hello,a,b,6e3687af-99a8-4415-9cde-c0d90d182171,7e3687af-99a8-4415-9cde-c0d90d182171,2020-11-15 00:00:00Z,2020-11-15 00:00:00Z,2021-11-15 00:00:00Z,2021-11-15 00:00:00Z,https://example.com/example,01:02:03,04:05:06,None,Empty,Foo,Hello\r\nFalse,3,-3,-33,33,-333,333,-3333,3333,2.29999995,4.5,6.7,,,,,,,,,,,,,,c,,8e3687af-99a8-4415-9cde-c0d90d182171,,2022-11-15 00:00:00Z,2022-11-15 00:00:00Z,,,,07:08:09,,Foo,Hello,,", csv);
         }
 
         [Fact]
@@ -376,25 +384,25 @@ using Cesil;
 
 namespace Foo 
 {   
-    [GenerateSerializableAttribute]
+    [GenerateSerializer]
     public class ShouldSerializeAsync
     {
         public bool SerializeByte;
         public static bool SerializeInt;
 
-        [GenerateSerializableMemberAttribute(ShouldSerializeType = typeof(ShouldSerializeAsync), ShouldSerializeMethodName=""ShouldSerializeByte"")]
+        [SerializerMember(ShouldSerializeType = typeof(ShouldSerializeAsync), ShouldSerializeMethodName=""ShouldSerializeByte"")]
         public byte Byte { get; set; }
         
-        [GenerateSerializableMemberAttribute(ShouldSerializeType = typeof(ShouldSerializeAsync), ShouldSerializeMethodName=""ShouldSerializeInt"")]
+        [SerializerMember(ShouldSerializeType = typeof(ShouldSerializeAsync), ShouldSerializeMethodName=""ShouldSerializeInt"")]
         public int Int { get; set; }
 
-        [GenerateSerializableMemberAttribute(ShouldSerializeType = typeof(ShouldSerializeAsync), ShouldSerializeMethodName=""ShouldSerializeShort"")]
+        [SerializerMember(ShouldSerializeType = typeof(ShouldSerializeAsync), ShouldSerializeMethodName=""ShouldSerializeShort"")]
         public short Short { get; set; }
 
-        [GenerateSerializableMemberAttribute(ShouldSerializeType = typeof(ShouldSerializeAsync), ShouldSerializeMethodName=""ShouldSerializeLong"")]
+        [SerializerMember(ShouldSerializeType = typeof(ShouldSerializeAsync), ShouldSerializeMethodName=""ShouldSerializeLong"")]
         public long Long { get; set; }
 
-        [GenerateSerializableMemberAttribute(ShouldSerializeType = typeof(ShouldSerializeAsync), ShouldSerializeMethodName=""ShouldSerializeDouble"")]
+        [SerializerMember(ShouldSerializeType = typeof(ShouldSerializeAsync), ShouldSerializeMethodName=""ShouldSerializeDouble"")]
         public double Double { get; set; }
 
         internal bool ShouldSerializeByte()
@@ -476,31 +484,31 @@ using Cesil;
 
 namespace Foo 
 {   
-    [GenerateSerializableAttribute]
+    [GenerateSerializer]
     public class GetterAsync
     {
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public string Field = """";
 
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public string Prop { get; set; } = """";
 
-        [GenerateSerializableMemberAttribute(Name = ""InstanceMethod1"")]
+        [SerializerMember(Name = ""InstanceMethod1"")]
         public string InstanceMethod() => ""foo"";
 
-        [GenerateSerializableMemberAttribute(Name = ""InstanceMethod2"")]
+        [SerializerMember(Name = ""InstanceMethod2"")]
         public string InstanceMethod(in WriteContext ctx) => ""bar""+ctx.RowNumber;
 
-        [GenerateSerializableMemberAttribute(Name = ""StaticMethod1"")]
+        [SerializerMember(Name = ""StaticMethod1"")]
         public static string StaticMethod() => ""fizz"";
 
-        [GenerateSerializableMemberAttribute(Name = ""StaticMethod2"")]
+        [SerializerMember(Name = ""StaticMethod2"")]
         public static string StaticMethod(GetterAsync row) => ""buzz"";
 
-        [GenerateSerializableMemberAttribute(Name = ""StaticMethod3"")]
+        [SerializerMember(Name = ""StaticMethod3"")]
         public static string StaticMethod(in WriteContext ctx) => ""hello""+ctx.RowNumber;
 
-        [GenerateSerializableMemberAttribute(Name = ""StaticMethod4"")]
+        [SerializerMember(Name = ""StaticMethod4"")]
         public static string StaticMethod(GetterAsync row, in WriteContext ctx) => ""world""+ctx.RowNumber;
     }
 }");
@@ -533,22 +541,22 @@ using Cesil;
 
 namespace Foo 
 {   
-    [GenerateSerializableAttribute]
+    [GenerateSerializer]
     public class OrderAsync
     {
-        [GenerateSerializableMemberAttribute(Order = 1)]
+        [SerializerMember(Order = 1)]
         public string? A;
 
-        [GenerateSerializableMemberAttribute(Order = 0)]
+        [SerializerMember(Order = 0)]
         public string? B;
 
-        [GenerateSerializableMemberAttribute(Order = 999)]
+        [SerializerMember(Order = 999)]
         public string? C;
 
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public string? D;
 
-        [GenerateSerializableMemberAttribute(Order = 7)]
+        [SerializerMember(Order = 7)]
         public string? E;
     }
 }");
@@ -588,22 +596,22 @@ using Cesil;
 
 namespace Foo 
 {   
-    [GenerateSerializableAttribute]
+    [GenerateSerializer]
     public class EmitDefaultValueAsync
     {
-        [GenerateSerializableMemberAttribute(EmitDefaultValue = false)]
+        [SerializerMember(EmitDefaultValue = EmitDefaultValue.No)]
         public int A { get; set; }
 
-        [GenerateSerializableMemberAttribute(EmitDefaultValue = false)]
+        [SerializerMember(EmitDefaultValue = EmitDefaultValue.No)]
         public int? B { get; set; }
 
-        [GenerateSerializableMemberAttribute(EmitDefaultValue = false)]
+        [SerializerMember(EmitDefaultValue = EmitDefaultValue.No)]
         public string? C { get; set; }
 
-        [GenerateSerializableMemberAttribute(EmitDefaultValue = false)]
+        [SerializerMember(EmitDefaultValue = EmitDefaultValue.No)]
         public Guid D { get; set; }
 
-        [GenerateSerializableMemberAttribute(EmitDefaultValue = false)]
+        [SerializerMember(EmitDefaultValue = EmitDefaultValue.No)]
         public Guid? E { get; set; }
     }
 }");
@@ -653,10 +661,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [GenerateSerializableAttribute]
+    [GenerateSerializer]
     public class DisabledNullableAnnotationsAsync
     {
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public string A { get; set; } = null;
     }
 }",
@@ -693,10 +701,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [GenerateSerializableAttribute]
+    [GenerateSerializer]
     public class DisabledNullableAnnotationsAsync
     {
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public string? A { get; set; } = null;
     }
 }",
@@ -733,12 +741,12 @@ using Cesil;
 
 namespace Foo 
 {   
-    [GenerateSerializableAttribute]
+    [GenerateSerializer]
     public class DisabledNullableAnnotationsAsync
     {
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public string? A { get; set; } = null;
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public string B { get; set; } = null;
     }
 }",
@@ -778,10 +786,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [GenerateSerializableAttribute]
+    [GenerateSerializer]
     public class DisabledNullableAnnotationsAsync
     {
-        [GenerateSerializableMemberAttribute]
+        [SerializerMember]
         public string A { get; set; } = null;
     }
 }",
@@ -808,6 +816,186 @@ namespace Foo
 
                 Assert.Equal("A\r\nhello\r\n\r\n", csv);
             }
+        }
+
+        [Fact]
+        public async Task DefaultIncludedMembersAsync()
+        {
+            // public properties included by default, but can be ignored
+            {
+                var type =
+                    await RunSourceGeneratorAsync(
+                        "Foo.IgnoreMembersAsync",
+                        @"
+using Cesil;
+using System.Runtime.Serialization;
+
+namespace Foo 
+{   
+    [GenerateSerializer]
+    public class IgnoreMembersAsync
+    {
+        public string? A { get; set; }
+
+        [IgnoreDataMember]
+        public string? B { get; set; }
+
+        public string? C { get; set; }
+    }
+}"
+                    );
+
+                var rows = Create(
+                        type,
+                        row1 =>
+                        {
+                            row1.A = "hello";
+                            row1.B = "fizz";
+                            row1.C = "foo";
+                        },
+                        row2 =>
+                        {
+                            row2.A = "world";
+                            row2.B = "buzz";
+                            row2.C = "bar";
+                        }
+                    );
+
+                var csv = Write(type, rows);
+
+                Assert.Equal("A,C\r\nhello,foo\r\nworld,bar", csv);
+            }
+
+            // internal, private, and static properties ignored by default
+            {
+                var type =
+                    await RunSourceGeneratorAsync(
+                        "Foo.IgnoreMembersAsync",
+                        @"
+using Cesil;
+
+namespace Foo 
+{   
+    [GenerateSerializer]
+    public class IgnoreMembersAsync
+    {
+        public string? A { get; set; }
+
+        internal string? B => ""foo"";
+
+        private string? C => ""whatever"";
+
+        public static string? D => ""nada"";
+
+        public string? E { get; set; }
+    }
+}"
+                    );
+
+                var rows = Create(
+                        type,
+                        row1 =>
+                        {
+                            row1.A = "hello";
+                            row1.E = "world";
+                        },
+                        row2 =>
+                        {
+                            row2.A = "fizz";
+                            row2.E = "buzz";
+                        }
+                    );
+
+                var csv = Write(type, rows);
+
+                Assert.Equal("A,E\r\nhello,world\r\nfizz,buzz", csv);
+            }
+
+            // public property, but no getter, should be excluded
+            {
+                var type =
+                    await RunSourceGeneratorAsync(
+                        "Foo.IgnoreMembersAsync",
+                        @"
+using Cesil;
+
+namespace Foo 
+{   
+    [GenerateSerializer]
+    public class IgnoreMembersAsync
+    {
+        public string? A { get; set; }
+
+        private string? _B;
+        public string? B
+        {
+            set
+            {
+                _B = value;
+            }
+        }
+    }
+}"
+                    );
+
+                var rows = Create(
+                        type,
+                        row1 =>
+                        {
+                            row1.A = "hello";
+                            row1.B = "world";
+                        },
+                        row2 =>
+                        {
+                            row2.A = "fizz";
+                            row2.B = "buzz";
+                        }
+                    );
+
+                var csv = Write(type, rows);
+
+                Assert.Equal("A\r\nhello\r\nfizz", csv);
+            }
+        }
+
+        [Fact]
+        public async Task ValueTypeAsync()
+        {
+            var type =
+                    await RunSourceGeneratorAsync(
+                        "Foo.IgnoreMembersAsync",
+                        @"
+using Cesil;
+
+namespace Foo 
+{   
+    [GenerateSerializer]
+    public struct IgnoreMembersAsync
+    {
+        public string? A { get; set; }
+
+        public string? B { get; set; }
+    }
+}"
+                    );
+
+            var rows = Create(
+                    type,
+                    row1 =>
+                    {
+                        row1.A = "hello";
+                        row1.B = "world";
+                    },
+                    row2 =>
+                    {
+                        row2.A = "fizz";
+                        row2.B = "buzz";
+                    }
+                );
+
+            var csv = Write(type, rows);
+
+            Assert.Equal("A,B\r\nhello,world\r\nfizz,buzz", csv);
         }
 
         private static string Write(System.Reflection.TypeInfo rowType, ImmutableArray<object> rows)
@@ -858,15 +1046,9 @@ namespace Foo
             [CallerMemberName] string caller = null
         )
         {
-            // todo: add DeserializerGenerator once we have it
             var serializer = new SerializerGenerator();
-            var generators = ImmutableArray.Create<ISourceGenerator>(serializer);
 
-            var compilation = await GetCompilationAsync(testFile, caller, nullableContext);
-
-            GeneratorDriver driver = new CSharpGeneratorDriver(parseOptions: new CSharpParseOptions(LanguageVersion.CSharp8), generators, new DefaultAnalyzerConfigOptionsProvider(), ImmutableArray<AdditionalText>.Empty);
-
-            driver.RunFullGeneration(compilation, out var producedCompilation, out var diagnostics);
+            var (producedCompilation, diagnostics) = await TestHelper.RunSourceGeneratorAsync(testFile, serializer, nullableContext, caller);
 
             Assert.Empty(diagnostics);
 
@@ -874,80 +1056,13 @@ namespace Foo
 
             var res = producedCompilation.Emit(outputFile);
 
-            Assert.True(res.Success);
             Assert.Empty(res.Diagnostics);
-
+            Assert.True(res.Success);
+            
             var asm = Assembly.LoadFile(outputFile);
             var ret = Assert.Single(asm.GetTypes().Where(t => t.FullName == typeName));
 
             return ret.GetTypeInfo();
-        }
-
-        private static Task<Compilation> GetCompilationAsync(
-            string testFile,
-            string caller,
-            NullableContextOptions nullableContext
-        )
-        {
-            var trustedAssemblies = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")).Split(Path.PathSeparator);
-            var systemAssemblies = trustedAssemblies.Where(p => Path.GetFileName(p).StartsWith("System.")).ToList();
-
-            var references = systemAssemblies.Select(s => MetadataReference.CreateFromFile(s)).ToList();
-
-            var projectName = $"Cesil.SourceGenerator.Tests.{nameof(ConfigurationTests)}";
-            var projectId = ProjectId.CreateNewId(projectName);
-
-            var compilationOptions =
-                new CSharpCompilationOptions(
-                    OutputKind.DynamicallyLinkedLibrary,
-                    allowUnsafe: true,
-                    nullableContextOptions: nullableContext
-                );
-
-            var parseOptions = new CSharpParseOptions(LanguageVersion.CSharp8);
-
-            var projectInfo =
-                ProjectInfo.Create(
-                    projectId,
-                    VersionStamp.Create(),
-                    projectName,
-                    projectName,
-                    LanguageNames.CSharp,
-                    compilationOptions: compilationOptions,
-                    parseOptions: parseOptions
-                );
-
-            var workspace = new AdhocWorkspace();
-
-            var solution =
-                workspace
-                    .CurrentSolution
-                    .AddProject(projectInfo);
-
-            foreach (var reference in references)
-            {
-                solution = solution.AddMetadataReference(projectId, reference);
-            }
-
-            var csFile = $"{caller}.cs";
-            var docId = DocumentId.CreateNewId(projectId, csFile);
-
-            var project = solution.GetProject(projectId);
-
-            var cesil = CompileCesilToAssembly();
-            project = project.AddMetadataReference(cesil);
-
-            project = project.AddDocument(csFile, testFile).Project;
-
-            return project.GetCompilationAsync();
-        }
-
-        private static MetadataReference CompileCesilToAssembly()
-        {
-            var optsType = typeof(Options);
-            var cesilLoc = optsType.Assembly.Location;
-
-            return MetadataReference.CreateFromFile(cesilLoc);
         }
     }
 }

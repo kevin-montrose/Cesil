@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -41,6 +42,11 @@ namespace Cesil
             IEnumerable<DeserializableMember> setters
         )
         {
+            if (IsAheadOfTime(instanceProvider, setters, out var aotType))
+            {
+                return AheadOfTimeRowConstructor<TRow>.Create(aotType);
+            }
+
             var settersWithIndex = setters.Select((s, ix) => (Index: ix, Member: s));
 
             var needHolding = settersWithIndex.Where(s => s.Member.Setter.Mode == BackingMode.ConstructorParameter).ToList();
@@ -57,7 +63,12 @@ namespace Cesil
 
                 if (member.Reset.HasValue)
                 {
-                    return Throw.InvalidOperationException<IRowConstructor<TRow>>($"Cannot attach a {nameof(Reset)} to a member whose {nameof(Setter)} is backed by a constructor parameter; found {member.Reset} associated with {member.Setter}");
+                    var reset = member.Reset.Value;
+
+                    if (reset.RowType.HasValue || !reset.IsStatic)
+                    {
+                        return Throw.InvalidOperationException<IRowConstructor<TRow>>($"Cannot attach a {nameof(Reset)} that requires the row be available to a member whose {nameof(Setter)} is backed by a constructor parameter; found {member.Reset} associated with {member.Setter}");
+                    }
                 }
             }
 
@@ -67,7 +78,7 @@ namespace Cesil
         private static IRowConstructor<TRow> CreateSimpleRowConstructor<TRow>(
             MemoryPool<char> pool,
             InstanceProvider instanceProvider,
-            IEnumerable<DeserializableMember> settersAndParsers
+            IEnumerable<DeserializableMember> members
         )
         {
             var rowType = typeof(TRow).GetTypeInfo();
@@ -75,7 +86,7 @@ namespace Cesil
             var instanceDel = MakeInstanceProviderDelegate(instanceProvider);
 
             var arr = ImmutableArray.CreateBuilder<(string Name, MemberRequired Required, ParseAndSetOnDelegate<TRow> Setter)>();
-            foreach (var sp in settersAndParsers)
+            foreach (var sp in members)
             {
                 var name = sp.Name;
                 var required = sp.IsRequired ? MemberRequired.Yes : MemberRequired.No;
@@ -122,6 +133,34 @@ namespace Cesil
 
                 return del;
             }
+        }
+
+        private static bool IsAheadOfTime(InstanceProvider instanceProvider, IEnumerable<DeserializableMember> members, [MaybeNullWhen(returnValue: false)] out TypeInfo aheadOfTimeType)
+        {
+            if (!instanceProvider.IsBackedByGeneratedMethod)
+            {
+                aheadOfTimeType = null;
+                return false;
+            }
+
+            var allShouldBe = instanceProvider.AheadOfTimeGeneratedType.Value;
+            foreach (var member in members)
+            {
+                if (!member.IsBackedByGeneratedMethod)
+                {
+                    aheadOfTimeType = null;
+                    return false;
+                }
+
+                if (member.AheadOfTimeGeneratedType.Value != allShouldBe)
+                {
+                    aheadOfTimeType = null;
+                    return false;
+                }
+            }
+
+            aheadOfTimeType = allShouldBe;
+            return true;
         }
 
         internal static IRowConstructor<TRow> CreateNeedsHoldRowConstructor<TRow>(

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 
@@ -16,7 +15,10 @@ namespace Cesil
     public sealed class AheadOfTimeTypeDescriber : ITypeDescriber, IEquatable<AheadOfTimeTypeDescriber>
     {
         private const string CURRENT_CESIL_VERSION = "0.7.0";
-        private const byte SERIALIZER_KIND = 1;
+#pragma warning disable CS0618 // Obsolete to prevent clients from using them directly, but fine for us
+        private const GeneratedSourceVersionAttribute.GeneratedTypeKind SERIALIZER_KIND = GeneratedSourceVersionAttribute.GeneratedTypeKind.Serializer;
+        private const GeneratedSourceVersionAttribute.GeneratedTypeKind DESERIALIZER_KIND = GeneratedSourceVersionAttribute.GeneratedTypeKind.Deserializer;
+#pragma warning restore CS0618
 
         /// <summary>
         /// Create a new AheadOfTimeTypeDescriber.
@@ -24,16 +26,6 @@ namespace Cesil
         /// Note that a pre-allocated instance is also available on TypeDescribers.
         /// </summary>
         public AheadOfTimeTypeDescriber() { }
-
-        /// <summary>
-        /// Enumerate members which will be deserialized for the given type.
-        /// 
-        /// Note that these members are generated ahead of time with a source gneerator, 
-        ///   and cannot be changed at runtime.
-        /// </summary>
-        public IEnumerable<DeserializableMember> EnumerateMembersToDeserialize(TypeInfo forType)
-        // todo: implement!
-        => Enumerable.Empty<DeserializableMember>();
 
         /// <summary>
         /// Returns an InstanceProvider that can be used to create new instance of the given type
@@ -44,8 +36,124 @@ namespace Cesil
         /// </summary>
         [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         public InstanceProvider? GetInstanceProvider(TypeInfo forType)
-        // todo: implement!
-        => null;
+        {
+            var paired = GetPairedType(forType, DESERIALIZER_KIND);
+            if (paired == null)
+            {
+                return null;
+            }
+
+            var instanceMtd = paired.GetMethodNonNull("__InstanceProvider", PublicStatic);
+
+#pragma warning disable CS0618 // This obsolete to prevent clients from using them, but they are fine for us.
+            var forConstructorAttrs = instanceMtd.GetCustomAttributes<ConstructorInstanceProviderAttribute>();
+#pragma warning restore CS0618
+
+            if (forConstructorAttrs.Any())
+            {
+                var consOnTypes = forConstructorAttrs.Select(x => x.ForType).Distinct().ToImmutableArray();
+                if (consOnTypes.Length > 1)
+                {
+                    return Throw.ImpossibleException<InstanceProvider?>($"Generated type {forType} claims multiple constructors for an InstanceProvider.");
+                }
+
+                var consOnType = consOnTypes.Single();
+                var consParams = forConstructorAttrs.OrderBy(x => x.ParameterIndex).Select(i => i.ParameterType).ToArray();
+
+                var cons = consOnType.GetConstructor(AllInstance, null, consParams, null);
+                if (cons == null)
+                {
+                    return Throw.ImpossibleException<InstanceProvider?>($"Generated type {forType} claims a constructor for an InstanceProvider that could not be found.");
+                }
+
+                return InstanceProvider.ForConstructorWithParametersInner(cons, paired);
+            }
+
+            return InstanceProvider.ForMethodInner(instanceMtd, paired);
+        }
+
+        /// <summary>
+        /// Enumerate members which will be deserialized for the given type.
+        /// 
+        /// Note that these members are generated ahead of time with a source gneerator, 
+        ///   and cannot be changed at runtime.
+        /// </summary>
+        public IEnumerable<DeserializableMember> EnumerateMembersToDeserialize(TypeInfo forType)
+        {
+            var paired = GetPairedType(forType, DESERIALIZER_KIND);
+            if (paired == null)
+            {
+                return Enumerable.Empty<DeserializableMember>();
+            }
+
+            var colNamesProp = paired.GetPropertyNonNull("__ColumnNames", PublicStatic);
+            var colNames = (ImmutableArray<string>)colNamesProp.GetValueNonNull(null);
+
+            var ret = ImmutableArray.CreateBuilder<DeserializableMember>(colNames.Length);
+
+            ParameterInfo[]? consPs = null;
+
+            for (var i = 0; i < colNames.Length; i++)
+            {
+                var name = colNames[i];
+
+                var colReaderName = $"__Column_{i}";
+                var colReaderMtd = paired.GetMethodNonNull(colReaderName, PublicInstance);
+
+#pragma warning disable CS0618 // These are obsolete to prevent clients from using them, but they are fine for us.
+                var isRequired = colReaderMtd.GetCustomAttribute<IsRequiredAttribute>() != null;
+                var setterBackedByParameter = colReaderMtd.GetCustomAttribute<SetterBackedByConstructorParameterAttribute>();
+#pragma warning restore CS0618
+
+                Setter setter;
+
+                if (setterBackedByParameter == null)
+                {
+                    var setterName = $"__Column_{i}_Setter";
+                    var setterMtd = paired.GetMethodNonNull(setterName, PublicStatic);
+                    setter = Setter.ForMethod(setterMtd);
+                }
+                else
+                {
+                    if (consPs == null)
+                    {
+                        var ip = GetInstanceProvider(forType);
+                        ip = Utils.NonNull(ip);
+
+                        var cons = ip.Constructor.Value;
+                        consPs = cons.GetParameters();
+                    }
+
+                    if (setterBackedByParameter.Index < 0 || setterBackedByParameter.Index >= consPs.Length)
+                    {
+                        return Throw.ImpossibleException<IEnumerable<DeserializableMember>>($"Setter for column {i} claims to be backed by constructor parameter, but its position is out of bound");
+                    }
+
+                    var p = consPs[setterBackedByParameter.Index];
+                    setter = Setter.ForConstructorParameter(p);
+                }
+
+                var resetMethodName = $"__Column_{i}_Reset";
+                var resetMtd = paired.GetMethod(resetMethodName, PublicStatic);
+                var reset = (Reset?)resetMtd;
+
+                var parserMethodName = $"__Column_{i}_Parser";
+                var parserMtd = paired.GetMethod(parserMethodName, PublicStatic);
+                Parser? parser;
+                if (parserMtd != null)
+                {
+                    parser = Parser.ForMethod(parserMtd);
+                }
+                else
+                {
+                    parser = Utils.NonNull(Parser.GetDefault(setter.Takes));
+                }
+
+                ret.Add(DeserializableMember.CreateInner(forType, name, setter, parser, isRequired ? MemberRequired.Yes : MemberRequired.No, reset, paired));
+            }
+
+            return ret.ToImmutable();
+        }
 
         /// <summary>
         /// Enumerate members which will be serialized for the given type.
@@ -73,7 +181,9 @@ namespace Cesil
                 var colWriterName = $"__Column_{i}";
                 var colWriterMtd = paired.GetMethodNonNull(colWriterName, PublicStatic);
 
+#pragma warning disable CS0618 // This is obsolete to prevent clients from using them, but they are fine for us.
                 var emitsDefaultValue = colWriterMtd.GetCustomAttribute<DoesNotEmitDefaultValueAttribute>() == null;
+#pragma warning restore CS0618
 
                 var shouldSerializeName = $"__Column_{i}_ShouldSerialize";
                 var shouldSerializeMtd = paired.GetMethod(shouldSerializeName, PublicStatic);
@@ -86,7 +196,7 @@ namespace Cesil
                 var formatterName = $"__Column_{i}_Formatter";
                 var formatterMtd = paired.GetMethod(formatterName, PublicStatic);
                 Formatter formatter;
-                if(formatterMtd == null)
+                if (formatterMtd == null)
                 {
                     // if a method isn't provided, it must be using the default
                     formatter = Utils.NonNull(Formatter.GetDefault(getter.Returns));
@@ -95,7 +205,7 @@ namespace Cesil
                 {
                     formatter = Formatter.ForMethod(formatterMtd);
                 }
-                
+
 
                 ret.Add(SerializableMember.ForGeneratedMethod(name, colWriterMtd, getter, formatter, shouldSerialize, emitsDefaultValue));
             }
@@ -103,7 +213,12 @@ namespace Cesil
             return ret.ToImmutable();
         }
 
-        private static TypeInfo? GetPairedType(Type forType, byte forMode)
+        private static TypeInfo? GetPairedType(
+            Type forType,
+#pragma warning disable CS0618 // This is obsolete to prevent clients from using them, but they are fine for us.
+            GeneratedSourceVersionAttribute.GeneratedTypeKind forMode
+#pragma warning restore CS0618
+        )
         {
             var inAssembly = forType.Assembly;
             var candidateTypes = inAssembly.GetTypes();
@@ -114,58 +229,25 @@ namespace Cesil
             {
                 var t = tRaw.GetTypeInfo();
 
-                var attrs = t.CustomAttributes;
-                if (!attrs.Any())
+#pragma warning disable CS0618 // This is obsolete to prevent clients from using them, but they are fine for us.
+                var attr = t.GetCustomAttribute<GeneratedSourceVersionAttribute>();
+#pragma warning restore CS0618
+
+                if(!(attr is object))
                 {
                     continue;
                 }
 
-                IList<CustomAttributeTypedArgument>? config = null;
+                var version = attr.Version;
 
-                foreach (var attr in attrs)
+                if (version != CURRENT_CESIL_VERSION)
                 {
-                    if (attr.AttributeType == Types.GeneratedSourceVersionAttribute)
-                    {
-                        config = attr.ConstructorArguments;
-                        break;
-                    }
+                    return Throw.InvalidOperationException<TypeInfo>($"Found a generated type ({t}) with an unexpected version ({version}), suggesting the generated source does not match the version ({CURRENT_CESIL_VERSION}) of Cesil in use.");
                 }
 
-                if (config == null)
-                {
-                    continue;
-                }
-
-                if (config.Count != 3)
-                {
-                    return Throw.InvalidOperationException<TypeInfo>($"Found a generated type ({t}) with the incorrect number of attribute arguments, suggesting the generated source does not match the version of Cesil in use.");
-                }
-
-                var version = config[0];
-                if (version.ArgumentType != Types.String || (version.Value as string) != CURRENT_CESIL_VERSION)
-                {
-                    return Throw.InvalidOperationException<TypeInfo>($"Found a generated type ({t}) with an unexpected version ({version.Value}), suggesting the generated source does not match the version of Cesil in use.");
-                }
-
-                var meantForType = config[1];
-                if (meantForType.ArgumentType != Types.Type)
-                {
-                    return Throw.InvalidOperationException<TypeInfo>($"Found a generated type ({t}) with an unexpected second attribute parameter type ({meantForType}, expected System.Type), suggesting the generated source does not match the version of Cesil in use.");
-                }
-
-                var mode = config[2];
-                if (mode.ArgumentType != Types.Byte)
-                {
-                    return Throw.InvalidOperationException<TypeInfo>($"Found a generated type ({t}) with an unexpected third attribute parameter type ({meantForType}, expected byte), suggesting the generated source does not match the version of Cesil in use.");
-                }
-
-                var candidateType = (meantForType.Value as Type)?.GetTypeInfo();
-                if (candidateType != forType)
-                {
-                    continue;
-                }
-
-                var candidateMode = mode.Value as byte?;
+                var meantForType = attr.ForType.GetTypeInfo();
+                var candidateMode = attr.Kind;
+                
                 if (candidateMode != forMode)
                 {
                     continue;

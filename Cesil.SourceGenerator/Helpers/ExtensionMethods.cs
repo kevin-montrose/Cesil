@@ -5,6 +5,9 @@ namespace Cesil.SourceGenerator
 {
     internal static class ExtensionMethods
     {
+        internal static string EscapeCSharp(this string text)
+        =>SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(text)).ToFullString();
+
         internal static T? ParentOrSelfOfType<T>(this SyntaxNode self)
             where T : SyntaxNode
         {
@@ -40,6 +43,12 @@ namespace Cesil.SourceGenerator
         }
 
         internal static bool IsInWriteContext(this IParameterSymbol p, CesilTypes types)
+        => IsInOfType(p, types.WriteContext);
+
+        internal static bool IsInReadContext(this IParameterSymbol p, CesilTypes types)
+        => IsInOfType(p, types.ReadContext);
+
+        private static bool IsInOfType(this IParameterSymbol p, ITypeSymbol type)
         {
             if (p.RefKind != RefKind.In)
             {
@@ -47,8 +56,8 @@ namespace Cesil.SourceGenerator
             }
 
             var pType = p.Type;
-            
-            return pType.Equals(types.WriteContext, SymbolEqualityComparer.Default);
+
+            return pType.Equals(type, SymbolEqualityComparer.Default);
         }
     }
 }

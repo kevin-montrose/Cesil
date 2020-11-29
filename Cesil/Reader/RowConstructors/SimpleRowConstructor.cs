@@ -106,7 +106,7 @@ namespace Cesil
             _IsDisposed = false;
         }
 
-        public IRowConstructor<TRow> Clone()
+        public IRowConstructor<TRow> Clone(Options options)
         {
             RequiredSet tracker;
 
@@ -130,7 +130,7 @@ namespace Cesil
             return new SimpleRowConstructor<TRow>(MemoryPool, InstanceProvider, Setters, HasRequired, tracker);
         }
 
-        public void SetColumnOrder(HeadersReader<TRow>.HeaderEnumerator columns)
+        public void SetColumnOrder(Options options, HeadersReader<TRow>.HeaderEnumerator columns)
         {
             var totalRequired = 0;
             foreach (var col in Setters)
@@ -303,7 +303,7 @@ namespace Cesil
         {
             if (!CurrentPopulated)
             {
-                return Throw.ImpossibleException<TRow>($"No current row available, shouldn't be trying to finish a row");
+                return Throw.ImpossibleException<TRow>("No current row available, shouldn't be trying to finish a row");
             }
 
             if (!RequiredTracker.CheckRequiredAndClear(out var missingIx))

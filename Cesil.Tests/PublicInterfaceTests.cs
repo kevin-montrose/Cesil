@@ -782,33 +782,22 @@ namespace Cesil.Tests
                     Assert.False(exNull1 == ex);
                     Assert.True(exNull1 == exNull2);
                 }
-                else if (t == typeof(GeneratedSourceVersionAttribute))
+                else if (t == typeof(GenerateSerializerAttribute))
                 {
-                    var attr = new GeneratedSourceVersionAttribute("1.0.0", Types.String, 1);
-                    var attrNull1 = default(GeneratedSourceVersionAttribute);
-                    var attrNull2 = default(GeneratedSourceVersionAttribute);
+                    var attr = new GenerateSerializerAttribute();
+                    var attrNull1 = default(GenerateSerializerAttribute);
+                    var attrNull2 = default(GenerateSerializerAttribute);
 
                     CommonNonOperatorChecks(attr, attrNull1, attrNull2);
                     Assert.False(attr == attrNull1);
                     Assert.False(attrNull1 == attr);
                     Assert.True(attrNull1 == attrNull2);
                 }
-                else if (t == typeof(GenerateSerializableAttribute))
+                else if (t == typeof(SerializerMemberAttribute))
                 {
-                    var attr = new GenerateSerializableAttribute();
-                    var attrNull1 = default(GenerateSerializableAttribute);
-                    var attrNull2 = default(GenerateSerializableAttribute);
-
-                    CommonNonOperatorChecks(attr, attrNull1, attrNull2);
-                    Assert.False(attr == attrNull1);
-                    Assert.False(attrNull1 == attr);
-                    Assert.True(attrNull1 == attrNull2);
-                }
-                else if (t == typeof(GenerateSerializableMemberAttribute))
-                {
-                    var attr = new GenerateSerializableMemberAttribute();
-                    var attrNull1 = default(GenerateSerializableMemberAttribute);
-                    var attrNull2 = default(GenerateSerializableMemberAttribute);
+                    var attr = new SerializerMemberAttribute();
+                    var attrNull1 = default(SerializerMemberAttribute);
+                    var attrNull2 = default(SerializerMemberAttribute);
 
                     CommonNonOperatorChecks(attr, attrNull1, attrNull2);
                     Assert.False(attr == attrNull1);
@@ -826,6 +815,51 @@ namespace Cesil.Tests
                     Assert.False(tdNull1 == td);
                     Assert.True(tdNull1 == tdNull2);
                 }
+                else if (t == typeof(DeserializerMemberAttribute))
+                {
+                    var attr = new DeserializerMemberAttribute();
+                    var attrNull1 = default(DeserializerMemberAttribute);
+                    var attrNull2 = default(DeserializerMemberAttribute);
+
+                    CommonNonOperatorChecks(attr, attrNull1, attrNull2);
+                    Assert.False(attr == attrNull1);
+                    Assert.False(attrNull1 == attr);
+                    Assert.True(attrNull1 == attrNull2);
+                }
+                else if (t == typeof(GenerateDeserializerAttribute))
+                {
+                    var attr = new GenerateDeserializerAttribute();
+                    var attrNull1 = default(GenerateDeserializerAttribute);
+                    var attrNull2 = default(GenerateDeserializerAttribute);
+
+                    CommonNonOperatorChecks(attr, attrNull1, attrNull2);
+                    Assert.False(attr == attrNull1);
+                    Assert.False(attrNull1 == attr);
+                    Assert.True(attrNull1 == attrNull2);
+                }
+                else if (t == typeof(DeserializerInstanceProviderAttribute))
+                {
+                    var attr = new DeserializerInstanceProviderAttribute();
+                    var attrNull1 = default(DeserializerInstanceProviderAttribute);
+                    var attrNull2 = default(DeserializerInstanceProviderAttribute);
+
+                    CommonNonOperatorChecks(attr, attrNull1, attrNull2);
+                    Assert.False(attr == attrNull1);
+                    Assert.False(attrNull1 == attr);
+                    Assert.True(attrNull1 == attrNull2);
+                }
+#pragma warning disable CS0618 // Obsolete to prevent clients from using it
+                else if (t == typeof(GeneratedSourceVersionAttribute))
+                {
+                    var attr = new GeneratedSourceVersionAttribute("1.0.0", Types.String, GeneratedSourceVersionAttribute.GeneratedTypeKind.Serializer);
+                    var attrNull1 = default(GeneratedSourceVersionAttribute);
+                    var attrNull2 = default(GeneratedSourceVersionAttribute);
+
+                    CommonNonOperatorChecks(attr, attrNull1, attrNull2);
+                    Assert.False(attr == attrNull1);
+                    Assert.False(attrNull1 == attr);
+                    Assert.True(attrNull1 == attrNull2);
+                }
                 else if (t == typeof(DoesNotEmitDefaultValueAttribute))
                 {
                     var attr = new DoesNotEmitDefaultValueAttribute();
@@ -837,6 +871,40 @@ namespace Cesil.Tests
                     Assert.False(attrNull1 == attr);
                     Assert.True(attrNull1 == attrNull2);
                 }
+                else if (t == typeof(IsRequiredAttribute))
+                {
+                    var attr = new IsRequiredAttribute();
+                    var attrNull1 = default(IsRequiredAttribute);
+                    var attrNull2 = default(IsRequiredAttribute);
+
+                    CommonNonOperatorChecks(attr, attrNull1, attrNull2);
+                    Assert.False(attr == attrNull1);
+                    Assert.False(attrNull1 == attr);
+                    Assert.True(attrNull1 == attrNull2);
+                }
+                else if (t == typeof(SetterBackedByConstructorParameterAttribute))
+                {
+                    var attr = new SetterBackedByConstructorParameterAttribute(1);
+                    var attrNull1 = default(SetterBackedByConstructorParameterAttribute);
+                    var attrNull2 = default(SetterBackedByConstructorParameterAttribute);
+
+                    CommonNonOperatorChecks(attr, attrNull1, attrNull2);
+                    Assert.False(attr == attrNull1);
+                    Assert.False(attrNull1 == attr);
+                    Assert.True(attrNull1 == attrNull2);
+                }
+                else if (t == typeof(ConstructorInstanceProviderAttribute))
+                {
+                    var attr = new ConstructorInstanceProviderAttribute(typeof(object), typeof(object), 1);
+                    var attrNull1 = default(ConstructorInstanceProviderAttribute);
+                    var attrNull2 = default(ConstructorInstanceProviderAttribute);
+
+                    CommonNonOperatorChecks(attr, attrNull1, attrNull2);
+                    Assert.False(attr == attrNull1);
+                    Assert.False(attrNull1 == attr);
+                    Assert.True(attrNull1 == attrNull2);
+                }
+#pragma warning restore CS0618
                 else
                 {
                     Assert.True(false, $"({t.Name}) doesn't have a test for null checks");
@@ -1150,14 +1218,15 @@ namespace Cesil.Tests
                 {
                     msg = InvokeToString_AheadOfTimeTypeDescriber();
                 }
-                else if (t == typeof(GenerateSerializableAttribute))
+                else if (t == typeof(GenerateSerializerAttribute))
                 {
                     msg = InvokeToString_GenerateSerializableAttribute();
                 }
-                else if (t == typeof(GenerateSerializableMemberAttribute))
+                else if (t == typeof(SerializerMemberAttribute))
                 {
                     msg = InvokeToString_GenerateSerializableMemberAttribute();
                 }
+#pragma warning disable CS0618 // Obsolete to prevent clients from using them
                 else if (t == typeof(GeneratedSourceVersionAttribute))
                 {
                     msg = InvokeToString_GeneratedSourceVersionAttribute();
@@ -1165,6 +1234,31 @@ namespace Cesil.Tests
                 else if (t == typeof(DoesNotEmitDefaultValueAttribute))
                 {
                     msg = InvokeToString_DoesNotEmitDefaultValueAttribute();
+                }
+                else if (t == typeof(IsRequiredAttribute))
+                {
+                    msg = InvokeToString_IsRequiredAttribute();
+                }
+                else if (t == typeof(SetterBackedByConstructorParameterAttribute))
+                {
+                    msg = InvokeToString_SetterBackedByConstructorParameterAttribute();
+                }
+                else if (t == typeof(ConstructorInstanceProviderAttribute))
+                {
+                    msg = InvokeToString_ConstructorInstanceProviderAttribute();
+                }
+#pragma warning restore CS0618
+                else if (t == typeof(DeserializerMemberAttribute))
+                {
+                    msg = InvokeToString_GenerateDeserializableMemberAttribute();
+                }
+                else if (t == typeof(GenerateDeserializerAttribute))
+                {
+                    msg = InvokeToString_GenerateDeserializableAttribute();
+                }
+                else if (t == typeof(DeserializerInstanceProviderAttribute))
+                {
+                    msg = InvokeToString_GenerateDeserializableInstanceProviderAttribute();
                 }
                 else
                 {
@@ -1192,6 +1286,25 @@ namespace Cesil.Tests
                 }
             }
 
+#pragma warning disable CS0618 // Obsolete to prevent clients from using them
+            static string InvokeToString_ConstructorInstanceProviderAttribute()
+            {
+                var attr = new ConstructorInstanceProviderAttribute(typeof(object), typeof(object), 1);
+                return attr.ToString();
+            }
+
+            static string InvokeToString_SetterBackedByConstructorParameterAttribute()
+            {
+                var attr = new SetterBackedByConstructorParameterAttribute(1);
+                return attr.ToString();
+            }
+
+            static string InvokeToString_IsRequiredAttribute()
+            {
+                var attr = new IsRequiredAttribute();
+                return attr.ToString();
+            }
+
             static string InvokeToString_DoesNotEmitDefaultValueAttribute()
             {
                 var attr = new DoesNotEmitDefaultValueAttribute();
@@ -1200,19 +1313,38 @@ namespace Cesil.Tests
 
             static string InvokeToString_GeneratedSourceVersionAttribute()
             {
-                var attr = new GeneratedSourceVersionAttribute("1.0.0", Types.Int, 1);
+                var attr = new GeneratedSourceVersionAttribute("1.0.0", Types.Int, GeneratedSourceVersionAttribute.GeneratedTypeKind.Serializer);
+                return attr.ToString();
+            }
+#pragma warning restore CS0618
+
+            static string InvokeToString_GenerateDeserializableInstanceProviderAttribute()
+            {
+                var attr = new DeserializerInstanceProviderAttribute();
+                return attr.ToString();
+            }
+
+            static string InvokeToString_GenerateDeserializableMemberAttribute()
+            {
+                var attr = new DeserializerMemberAttribute();
+                return attr.ToString();
+            }
+
+            static string InvokeToString_GenerateDeserializableAttribute()
+            {
+                var attr = new GenerateDeserializerAttribute();
                 return attr.ToString();
             }
 
             static string InvokeToString_GenerateSerializableMemberAttribute()
             {
-                var attr = new GenerateSerializableMemberAttribute();
+                var attr = new SerializerMemberAttribute();
                 return attr.ToString();
             }
 
             static string InvokeToString_GenerateSerializableAttribute()
             {
-                var attr = new GenerateSerializableAttribute();
+                var attr = new GenerateSerializerAttribute();
                 return attr.ToString();
             }
 
@@ -2114,7 +2246,7 @@ namespace Cesil.Tests
                     [typeof(IAsyncEnumerable<dynamic>).GetTypeInfo()] = new[] { "rows" },
 
                     // reflection types
-                    [typeof(Type).GetTypeInfo()] = new[] { "forType" },
+                    [typeof(Type).GetTypeInfo()] = new[] { "forType", "parameterType" },
                     [typeof(TypeInfo).GetTypeInfo()] = new[] { "forType", "targetType", "surrogateType" },
                     [typeof(MethodInfo).GetTypeInfo()] = new[] { "method" },
                     [typeof(PropertyInfo).GetTypeInfo()] = new[] { "property" },
@@ -2145,10 +2277,19 @@ namespace Cesil.Tests
                     [typeof(IMemoryPoolProvider).GetTypeInfo()] = new[] { "memoryPoolProvider" },
                     [typeof(NullHandling).GetTypeInfo()] = new[] { "nullHandling" },
                     [typeof(AheadOfTimeTypeDescriber).GetTypeInfo()] = new[] { "typeDescriber" },
+                    [typeof(GenerateSerializerAttribute).GetTypeInfo()] = new[] { "attribute" },
+                    [typeof(SerializerMemberAttribute).GetTypeInfo()] = new[] { "attribute" },
+                    [typeof(GenerateDeserializerAttribute).GetTypeInfo()] = new[] { "attribute" },
+                    [typeof(DeserializerMemberAttribute).GetTypeInfo()] = new[] { "attribute" },
+                    [typeof(DeserializerInstanceProviderAttribute).GetTypeInfo()] = new[] { "attribute" },
+#pragma warning disable CS0618 // Obsolete to prevent clients from using
                     [typeof(GeneratedSourceVersionAttribute).GetTypeInfo()] = new[] { "attribute" },
-                    [typeof(GenerateSerializableAttribute).GetTypeInfo()] = new[] { "attribute" },
-                    [typeof(GenerateSerializableMemberAttribute).GetTypeInfo()] = new[] { "attribute" },
+                    [typeof(GeneratedSourceVersionAttribute.GeneratedTypeKind).GetTypeInfo()] = new[] { "kind" },
                     [typeof(DoesNotEmitDefaultValueAttribute).GetTypeInfo()] = new[] { "attribute" },
+                    [typeof(IsRequiredAttribute).GetTypeInfo()] = new[] { "attribute" },
+                    [typeof(ConstructorInstanceProviderAttribute).GetTypeInfo()] = new[] { "attribute" },
+                    [typeof(SetterBackedByConstructorParameterAttribute).GetTypeInfo()] = new[] { "attribute" },
+#pragma warning restore CS0618
 
                     // wrapper types
                     [typeof(DynamicCellValue).GetTypeInfo()] = new[] { "value" },

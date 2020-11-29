@@ -5,41 +5,87 @@ namespace Cesil.SourceGenerator
 {
     internal sealed class CesilTypes
     {
-        internal readonly INamedTypeSymbol GenerateSerializableAttribute;
-        internal readonly INamedTypeSymbol GenerateSerializableMemberAttribute;
+        internal readonly INamedTypeSymbol GenerateSerializerAttribute;
+        internal readonly INamedTypeSymbol SerializerMemberAttribute;
         internal readonly INamedTypeSymbol WriteContext;
 
-        private CesilTypes(INamedTypeSymbol generateSerializableAttribute, INamedTypeSymbol generateSerializableMemberAttribute, INamedTypeSymbol writeContext)
+        internal readonly INamedTypeSymbol GenerateDeserializerAttribute;
+        internal readonly INamedTypeSymbol DeserializerMemberAttribute;
+        internal readonly INamedTypeSymbol DeserializerInstanceProviderAttribute;
+        internal readonly INamedTypeSymbol ReadContext;
+
+        private CesilTypes(
+            INamedTypeSymbol generateSerializerAttribute,
+            INamedTypeSymbol serializerMemberAttribute,
+            INamedTypeSymbol writeContext,
+            INamedTypeSymbol generateDeserializerAttribute,
+            INamedTypeSymbol deserializerMemberAttribute,
+            INamedTypeSymbol deserializerInstanceProviderAttribute,
+            INamedTypeSymbol readContext
+        )
         {
-            GenerateSerializableAttribute = generateSerializableAttribute;
-            GenerateSerializableMemberAttribute = generateSerializableMemberAttribute;
+            GenerateSerializerAttribute = generateSerializerAttribute;
+            SerializerMemberAttribute = serializerMemberAttribute;
             WriteContext = writeContext;
+
+            GenerateDeserializerAttribute = generateDeserializerAttribute;
+            DeserializerMemberAttribute = deserializerMemberAttribute;
+            DeserializerInstanceProviderAttribute = deserializerInstanceProviderAttribute;
+            ReadContext = readContext;
         }
 
-        internal static bool TryCreate(Compilation compilation, [MaybeNullWhen(returnValue: false)]out CesilTypes types)
+        internal static bool TryCreate(Compilation compilation, out CesilTypes? types)
         {
-            var generateSerializable = compilation.GetTypeByMetadataName("Cesil.GenerateSerializableAttribute");
-            if(generateSerializable == null)
+            var generateSerializerAttribute = compilation.GetTypeByMetadataName("Cesil.GenerateSerializerAttribute");
+            if (generateSerializerAttribute == null)
             {
                 types = null;
                 return false;
             }
 
-            var generateSerializableMember = compilation.GetTypeByMetadataName("Cesil.GenerateSerializableMemberAttribute");
-            if (generateSerializableMember == null)
+            var serializerMemberAttribute = compilation.GetTypeByMetadataName("Cesil.SerializerMemberAttribute");
+            if (serializerMemberAttribute == null)
             {
                 types = null;
                 return false;
             }
-            
+
             var writeContext = compilation.GetTypeByMetadataName("Cesil.WriteContext");
-            if(writeContext == null)
+            if (writeContext == null)
             {
                 types = null;
                 return false;
             }
 
-            types = new CesilTypes(generateSerializable, generateSerializableMember, writeContext);
+            var generateDeserializerAttribute = compilation.GetTypeByMetadataName("Cesil.GenerateDeserializerAttribute");
+            if (generateDeserializerAttribute == null)
+            {
+                types = null;
+                return false;
+            }
+
+            var deserializerMemberAttribute = compilation.GetTypeByMetadataName("Cesil.DeserializerMemberAttribute");
+            if (deserializerMemberAttribute == null)
+            {
+                types = null;
+                return false;
+            }
+
+            var deserializerInstanceProviderAttribute = compilation.GetTypeByMetadataName("Cesil.DeserializerInstanceProviderAttribute");
+            if (deserializerInstanceProviderAttribute == null)
+            {
+                types = null;
+                return false;
+            }
+
+            var readContext = compilation.GetTypeByMetadataName("Cesil.ReadContext");
+            if (readContext == null)
+            {
+                types = null;
+                return false;
+            }
+
+            types = new CesilTypes(generateSerializerAttribute, serializerMemberAttribute, writeContext, generateDeserializerAttribute, deserializerMemberAttribute, deserializerInstanceProviderAttribute, readContext);
             return true;
         }
     }

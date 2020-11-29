@@ -4,68 +4,35 @@ using System.Reflection;
 namespace Cesil
 {
     /// <summary>
-    /// Automatically attached to generated methods depending on runtime behavior.
-    /// 
-    /// You should not use this directly.
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-    public sealed class DoesNotEmitDefaultValueAttribute : Attribute, IEquatable<DoesNotEmitDefaultValueAttribute>
-    {
-        /// <summary>
-        /// Create a new DoesNotEmitDefaultValueAttribute.
-        /// 
-        /// You should not use this directly.
-        /// </summary>
-        public DoesNotEmitDefaultValueAttribute() { }
-
-        /// <summary>
-        /// Return true if the given object is a DoesNotEmitDefaultValueAttribute 
-        ///   equal to this one.
-        /// </summary>
-        public override bool Equals(object? obj)
-        => Equals(obj as DoesNotEmitDefaultValueAttribute);
-
-        /// <summary>
-        /// Returns true if the given DoesNotEmitDefaultValueAttribute is equal
-        ///   to this one.
-        /// </summary>
-        public bool Equals(DoesNotEmitDefaultValueAttribute? attribute)
-        => !ReferenceEquals(attribute, null);
-
-        /// <summary>
-        /// Returns a stable hash code for this DoesNotEmitDefaultValueAttribute.
-        /// </summary>
-        public override int GetHashCode()
-        => 0;
-
-        /// <summary>
-        /// Compare two DoesNotEmitDefaultValueAttributes for equality
-        /// </summary>
-        public static bool operator ==(DoesNotEmitDefaultValueAttribute? a, DoesNotEmitDefaultValueAttribute? b)
-        => Utils.NullReferenceEquality(a, b);
-
-        /// <summary>
-        /// Compare two DoesNotEmitDefaultValueAttributes for inequality
-        /// </summary>
-        public static bool operator !=(DoesNotEmitDefaultValueAttribute? a, DoesNotEmitDefaultValueAttribute? b)
-        => !(a == b);
-
-        /// <summary>
-        /// Returns a representation of this DoesNotEmitDefaultValueAttribute object.
-        /// 
-        /// Only for debugging, this value is not guaranteed to be stable.
-        /// </summary>
-        public override string ToString()
-        => $"{nameof(DoesNotEmitDefaultValueAttribute)} instance";
-    }
-
-    /// <summary>
     /// Automatically attached to generated types to track compatibility.
     /// 
     /// You should not use this directly.
     /// </summary>
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+    [Obsolete("You should not use this directly, it may not be present in future versions.")]
     public sealed class GeneratedSourceVersionAttribute : Attribute, IEquatable<GeneratedSourceVersionAttribute>
     {
+        /// <summary>
+        /// Used by GeneratedSourceVersionAttribute.
+        /// 
+        /// You should not use this directly.
+        /// </summary>
+        public enum GeneratedTypeKind : byte
+        {
+            /// <summary>
+            /// You should not use this directly.
+            /// </summary>
+            None = 0,
+            /// <summary>
+            /// You should not use this directly.
+            /// </summary>
+            Serializer = 1,
+            /// <summary>
+            /// You should not use this directly.
+            /// </summary>
+            Deserializer = 2,
+        }
+
         /// <summary>
         /// The version of Cesil the associated source was generated for.
         /// 
@@ -85,17 +52,15 @@ namespace Cesil
         /// 
         /// You should not use this directly.
         /// </summary>
-        [IntentionallyExposedPrimitive("We generate this (so it's not really user facing), and attributes are constrained in terms of what types they can take")]
-        public byte Kind { get; }
+        public GeneratedTypeKind Kind { get; }
 
         /// <summary>
         /// Construct a new GeneratedSourceVersionAttribute.
         /// </summary>
         public GeneratedSourceVersionAttribute(
-            string version, 
+            string version,
             Type forType,
-            [IntentionallyExposedPrimitive("We generate this (so it's not really user facing), and attributes are constrained in terms of what types they can take")] 
-            byte kind
+            GeneratedTypeKind kind
         )
         {
             Version = version;

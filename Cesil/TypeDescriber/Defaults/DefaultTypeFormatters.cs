@@ -4,7 +4,6 @@
 // don't edit it all willy-nilly
 using System;
 using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 using static Cesil.BindingFlagsConstants;
@@ -13,8 +12,9 @@ using static Cesil.BindingFlagsConstants;
 
 namespace Cesil
 {
-    [SuppressMessage("", "IDE0051", Justification = "Used via reflection")]
-    [SuppressMessage("", "IDE0060", Justification = "Unused paramters are required")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("", "IDE0051", Justification = "Used via reflection")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("", "IDE0060", Justification = "Unused paramters are required")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("", "IDE0002", Justification = "Pattern is important for source generation")]
     internal static class DefaultTypeFormatters
     {
         internal static class DefaultEnumTypeFormatter<T>
