@@ -716,6 +716,7 @@ namespace Test
 namespace Cesil
 {
     // delegates
+    public delegate bool ColumnWriterDelegate();
     public delegate void ParserDelegate<T>(T _);
     public delegate void SetterDelegate<T,V>(T _, V __);
     public delegate void SetterByRefDelegate<T,V>(T _, V __);
@@ -775,6 +776,8 @@ namespace Cesil
     public class DynamicRowRange { }
     public class PassthroughRowEnumerable { }
     public class DefaultTypeDescriber { }
+    public class GeneratedSourceVersionAttribute { }
+    
 
     public class ReaderStateMachine
     {

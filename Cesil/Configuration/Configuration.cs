@@ -231,7 +231,16 @@ namespace Cesil
 
             foreach (var col in cols)
             {
-                var writer = ColumnWriter.Create(t, opts, col.Formatter, col.ShouldSerialize, col.Getter, col.EmitDefaultValue);
+                ColumnWriterDelegate writer;
+
+                if (col.IsBackedByGeneratedMethod)
+                {
+                    writer = (ColumnWriterDelegate)System.Delegate.CreateDelegate(Types.ColumnWriterDelegate, col.GeneratedMethod.Value);
+                }
+                else
+                {
+                    writer = ColumnWriter.Create(t, opts, col.Formatter, col.ShouldSerialize, col.Getter, col.EmitDefaultValue);
+                }
 
                 ret.Add(new Column(col.Name, writer));
             }

@@ -1394,7 +1394,7 @@ namespace Cesil.Tests
                 Span<char> span = default;
 
 tryAgain:
-                var res = Utils.TryFormatFlagsEnum(enumValue, names, values, span);
+                var res = DefaultTypeFormatters.DefaultEnumTypeFormatter<T>.FormatFlagsEnumImpl(enumValue, names, values, span);
                 if (res == 0)
                 {
                     // malformed!
