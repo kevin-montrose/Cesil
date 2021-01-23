@@ -45,12 +45,6 @@
               store (1 int + the char data).
             </summary>
         </member>
-        <member name="M:Cesil.Utils.TryParseFlagsEnum``1(System.ReadOnlySpan{System.Char},System.String[],System.UInt64[],``0@)">
-            <summary>
-            This is _like_ calling TryParse(), but it doesn't allow values
-            that aren't actually declared on the enum.
-            </summary>
-        </member>
         <member name="M:Cesil.BoundConfigurationBase`1.#ctor(System.Buffers.MemoryPool{System.Char},System.Buffers.MemoryPool{Cesil.DynamicCellValue})">
             <summary>
             For some testing scenarios.
@@ -1157,176 +1151,345 @@
             Both a row and a column are specified during this operation.
             </summary>
         </member>
-        <member name="T:Cesil.DoesNotEmitDefaultValueAttribute">
+        <member name="T:Cesil.DeserializerInstanceProviderAttribute">
             <summary>
-            Automatically attached to generated methods depending on runtime behavior.
+            When using Cesil's Source Generator (see Nuget.org for Cesil.SourceGenerator) marks a constructor as the InstanceProvider
+            for the containing type.
             
-            You should not use this directly.
+            To use a method instead of a constructor, use the InstanceProviderType and InstanceProviderMethodName properties on
+            [GenerateDeserializableAttribute].
             </summary>
         </member>
-        <member name="M:Cesil.DoesNotEmitDefaultValueAttribute.#ctor">
+        <member name="M:Cesil.DeserializerInstanceProviderAttribute.#ctor">
             <summary>
-            Create a new DoesNotEmitDefaultValueAttribute.
-            
-            You should not use this directly.
+            Create a DeserializerInstanceProviderAttribute attribute.
             </summary>
         </member>
-        <member name="M:Cesil.DoesNotEmitDefaultValueAttribute.Equals(System.Object)">
+        <member name="M:Cesil.DeserializerInstanceProviderAttribute.Equals(Cesil.DeserializerInstanceProviderAttribute)">
             <summary>
-            Return true if the given object is a DoesNotEmitDefaultValueAttribute 
-              equal to this one.
-            </summary>
-        </member>
-        <member name="M:Cesil.DoesNotEmitDefaultValueAttribute.Equals(Cesil.DoesNotEmitDefaultValueAttribute)">
-            <summary>
-            Returns true if the given DoesNotEmitDefaultValueAttribute is equal
-              to this one.
-            </summary>
-        </member>
-        <member name="M:Cesil.DoesNotEmitDefaultValueAttribute.GetHashCode">
-            <summary>
-            Returns a stable hash code for this DoesNotEmitDefaultValueAttribute.
-            </summary>
-        </member>
-        <member name="M:Cesil.DoesNotEmitDefaultValueAttribute.op_Equality(Cesil.DoesNotEmitDefaultValueAttribute,Cesil.DoesNotEmitDefaultValueAttribute)">
-            <summary>
-            Compare two DoesNotEmitDefaultValueAttributes for equality
-            </summary>
-        </member>
-        <member name="M:Cesil.DoesNotEmitDefaultValueAttribute.op_Inequality(Cesil.DoesNotEmitDefaultValueAttribute,Cesil.DoesNotEmitDefaultValueAttribute)">
-            <summary>
-            Compare two DoesNotEmitDefaultValueAttributes for inequality
-            </summary>
-        </member>
-        <member name="M:Cesil.DoesNotEmitDefaultValueAttribute.ToString">
-            <summary>
-            Returns a representation of this DoesNotEmitDefaultValueAttribute object.
-            
-            Only for debugging, this value is not guaranteed to be stable.
-            </summary>
-        </member>
-        <member name="T:Cesil.GeneratedSourceVersionAttribute">
-            <summary>
-            Automatically attached to generated types to track compatibility.
-            
-            You should not use this directly.
-            </summary>
-        </member>
-        <member name="P:Cesil.GeneratedSourceVersionAttribute.Version">
-            <summary>
-            The version of Cesil the associated source was generated for.
-            
-            You should not use this directly.
-            </summary>
-        </member>
-        <member name="P:Cesil.GeneratedSourceVersionAttribute.ForType">
-            <summary>
-            The type associated with generated code.
-            
-            You should not use this directly.
-            </summary>
-        </member>
-        <member name="P:Cesil.GeneratedSourceVersionAttribute.Kind">
-            <summary>
-            The kind of operation this type is intended to support.
-            
-            You should not use this directly.
-            </summary>
-        </member>
-        <member name="M:Cesil.GeneratedSourceVersionAttribute.#ctor(System.String,System.Type,System.Byte)">
-            <summary>
-            Construct a new GeneratedSourceVersionAttribute.
-            </summary>
-        </member>
-        <member name="M:Cesil.GeneratedSourceVersionAttribute.Equals(Cesil.GeneratedSourceVersionAttribute)">
-            <summary>
-            Returns true if the given GeneratedSourceVersionAttribute is equal
+            Returns true if the given DeserializerInstanceProviderAttribute is equal
             to this one.
             </summary>
         </member>
-        <member name="M:Cesil.GeneratedSourceVersionAttribute.Equals(System.Object)">
+        <member name="M:Cesil.DeserializerInstanceProviderAttribute.Equals(System.Object)">
             <summary>
-            Return true if the given object is a GeneratedSourceVersionAttribute 
+            Return true if the given object is a DeserializerInstanceProviderAttribute 
               equal to this one.
             </summary>
         </member>
-        <member name="M:Cesil.GeneratedSourceVersionAttribute.GetHashCode">
+        <member name="M:Cesil.DeserializerInstanceProviderAttribute.GetHashCode">
             <summary>
-            Returns a stable hash code for this GeneratedSourceVersionAttribute.
+            Returns a stable hash code for this DeserializerInstanceProviderAttribute.
             </summary>
         </member>
-        <member name="M:Cesil.GeneratedSourceVersionAttribute.op_Equality(Cesil.GeneratedSourceVersionAttribute,Cesil.GeneratedSourceVersionAttribute)">
+        <member name="M:Cesil.DeserializerInstanceProviderAttribute.op_Equality(Cesil.DeserializerInstanceProviderAttribute,Cesil.DeserializerInstanceProviderAttribute)">
             <summary>
-            Compare two GeneratedSourceVersionAttributes for equality
+            Compare two DeserializerInstanceProviderAttributes for equality
             </summary>
         </member>
-        <member name="M:Cesil.GeneratedSourceVersionAttribute.op_Inequality(Cesil.GeneratedSourceVersionAttribute,Cesil.GeneratedSourceVersionAttribute)">
+        <member name="M:Cesil.DeserializerInstanceProviderAttribute.op_Inequality(Cesil.DeserializerInstanceProviderAttribute,Cesil.DeserializerInstanceProviderAttribute)">
             <summary>
-            Compare two GeneratedSourceVersionAttributes for inequality
+            Compare two DeserializerInstanceProviderAttributes for inequality
             </summary>
         </member>
-        <member name="M:Cesil.GeneratedSourceVersionAttribute.ToString">
+        <member name="M:Cesil.DeserializerInstanceProviderAttribute.ToString">
             <summary>
-            Returns a representation of this GeneratedSourceVersionAttribute object.
+            Returns a representation of this DeserializerInstanceProviderAttribute object.
             
             Only for debugging, this value is not guaranteed to be stable.
             </summary>
         </member>
-        <member name="T:Cesil.GenerateSerializableAttribute">
+        <member name="T:Cesil.DeserializerMemberAttribute">
+            <summary>
+            Attach this attribute to a method, field, property, or parameter to expose it as deserializable and configure it's "Parser", 
+            "MemberRequired", "Reset", and "Order" behaviors.
+            
+            If attached to a property, the propery must have a setter and take no parameters.
+            
+            If attached to a method it must return void.
+            
+            If attached to a parameter, the parameter must be to a constructor, all parameters to the constructor must also be annotated, 
+            and the constructor itself must be annotated with DeserializerInstanceProviderAttribute.
+            
+            If attached to a static method it may:
+             - take 1 parameter (the result of the parser) or
+             - take 2 parameters, the result of the parser and an `in ReadContext` or
+             - take 2 parameters, the row type (which may be passed by ref), and the result of the parser or
+             - take 3 parameters, the row type (which may be passed by ref), the result of the parser, and `in ReadContext`
+            
+            If attached to an instance method it may:
+             - be on the row type, and take 1 parameter (the result of the parser) or
+             - be on the row type, and take 2 parameters, the result of the parser and an `in ReadContext`
+            </summary>
+        </member>
+        <member name="P:Cesil.DeserializerMemberAttribute.Name">
+            <summary>
+            The name of the column which maps to this member.
+            
+            For fields and properties, this defaults to their declared name.
+            
+            For methods, this must be explicitly set.
+            </summary>
+        </member>
+        <member name="P:Cesil.DeserializerMemberAttribute.ParserType">
+            <summary>
+            Type to lookup a parser method on, used with ParserMethodName.
+            
+            If null, defaults to a built in Parser for the type
+            of this member (if any).
+            
+            If non-null, ParserMethodName must also be set.  
+            
+            The type must be public (or internal, if declared in the same assembly as the annotated type).
+            </summary>
+        </member>
+        <member name="P:Cesil.DeserializerMemberAttribute.ParserMethodName">
+            <summary>
+            Name of parser method, used with ParserType.
+            
+            If non-null, ParserType must also be set.
+            
+             The method must:
+             - be static
+             - return a bool
+             - have 3 parameters
+                * ReadOnlySpan(char)
+                * in ReadContext, 
+                * out assignable to outputType
+            </summary>
+        </member>
+        <member name="P:Cesil.DeserializerMemberAttribute.MemberRequired">
+            <summary>
+            Whether or not this column is required.
+            
+            Defaults to No, except for on constructor parameters (where it
+            must be Yes).
+            </summary>
+        </member>
+        <member name="P:Cesil.DeserializerMemberAttribute.ResetType">
+            <summary>
+            Type to lookup a reset method on, used with ResetMethodName.
+            
+            If non-null, ResetMethodName must also be set.
+            </summary>
+        </member>
+        <member name="P:Cesil.DeserializerMemberAttribute.ResetMethodName">
+            <summary>
+            Name of reset method, used with ResetType.
+            
+            If non-null, ResetType must also be set.
+            
+            The method must return void.
+            
+            If referring to an instance method it can take:
+             - zero parameters or 
+             - a single `in ReadContext` parameter.
+            
+            If referring to a static method it can take:
+             - zero parameters or
+             - a single parameter of the row type or
+             - a single parameter of `in ReadContext` or
+             - two parameters, the first of the row type (which may be by ref) and the second of `in ReadContext`
+            </summary>
+        </member>
+        <member name="P:Cesil.DeserializerMemberAttribute.HasOrder">
+            <summary>
+            Returns true if Order has been explicitly set.
+            
+            Getting Order when HasOrder is false will throw an exception.
+            </summary>
+        </member>
+        <member name="P:Cesil.DeserializerMemberAttribute.Order">
+            <summary>
+            Value used to order columns.
+            
+            Set to null to leave order unspecified.
+            
+            Orders with explicit values are sorted before those without values.
+            
+            Check HashOrder before getting Order, or an exception will be thrown.
+            </summary>
+        </member>
+        <member name="M:Cesil.DeserializerMemberAttribute.#ctor">
+            <summary>
+            Create a GenerateDeserializableAttribute attribute.
+            </summary>
+        </member>
+        <member name="M:Cesil.DeserializerMemberAttribute.Equals(Cesil.DeserializerMemberAttribute)">
+            <summary>
+            Returns true if the given GenerateDeserializableMemberAttribute is equal
+            to this one.
+            </summary>
+        </member>
+        <member name="M:Cesil.DeserializerMemberAttribute.Equals(System.Object)">
+            <summary>
+            Return true if the given object is a GenerateDeserializableMemberAttribute 
+              equal to this one.
+            </summary>
+        </member>
+        <member name="M:Cesil.DeserializerMemberAttribute.GetHashCode">
+            <summary>
+            Returns a stable hash code for this GenerateDeserializableMemberAttribute.
+            </summary>
+        </member>
+        <member name="M:Cesil.DeserializerMemberAttribute.op_Equality(Cesil.DeserializerMemberAttribute,Cesil.DeserializerMemberAttribute)">
+            <summary>
+            Compare two GenerateDeserializableMemberAttribute for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.DeserializerMemberAttribute.op_Inequality(Cesil.DeserializerMemberAttribute,Cesil.DeserializerMemberAttribute)">
+            <summary>
+            Compare two GenerateDeserializableMemberAttribute for inequality
+            </summary>
+        </member>
+        <member name="M:Cesil.DeserializerMemberAttribute.ToString">
+            <summary>
+            Returns a representation of this GenerateDeserializableMemberAttribute object.
+            
+            Only for debugging, this value is not guaranteed to be stable.
+            </summary>
+        </member>
+        <member name="T:Cesil.GenerateDeserializerAttribute">
+            <summary>
+            When using Cesil's Source Generator (see Nuget.org for Cesil.SourceGenerator) marks a class or struct
+            as needing a deserializer generated at compile time.
+            
+            InstanceProviderType and InstanceProviderMethodName are used to indicate how to obtain an instance
+            of the annotated type from a method.  If not set, the type's parameterless constructor is used by default.
+            To use a constructor other than the parameterless, use the [DeserializerInstanceProvider].
+            
+            When using the AheadOfTimeTypeDescriber, the created I(Async)Readers
+            for this type will do no runtime code generation.
+            
+            You can customize the behavior of the generated deserializer with [DataMemberAttribute],
+            and [GenerateDeserializableMemberAttribute] attributes.
+            </summary>
+        </member>
+        <member name="P:Cesil.GenerateDeserializerAttribute.InstanceProviderType">
+            <summary>
+            Type to lookup an InstanceProvider method or constructor on, used with InstanceProviderMethodName.
+            
+            If null, defaults to the parameterless constructor of the annotated type.
+            
+            If non-null, InstanceProviderMethodName must also be set.  
+            
+            The type must be public (or internal, if declared in the same assembly as the annotated type).
+            </summary>
+        </member>
+        <member name="P:Cesil.GenerateDeserializerAttribute.InstanceProviderMethodName">
+            <summary>
+            Name of InstanceProvider method or constructor, used with InstanceProviderType.
+            
+            If null, defaults to the parameterless constructor of the annotated type.
+            
+            If non-null, InstanceProviderType must also be set.
+            
+            If pointing at a method, it must:
+              - be static
+              - return a bool
+              - have two parameters
+              - the first must be an in ReadContext
+              - the second must be an out parameter of the constructed type
+              
+            If pointing at a constructor, it must either:
+              1. take no parameters or
+              2. each parameter must have a [GenerateDeserializableMember] annotation
+            </summary>
+        </member>
+        <member name="M:Cesil.GenerateDeserializerAttribute.#ctor">
+            <summary>
+            Create a GenerateDeserializableAttribute attribute.
+            </summary>
+        </member>
+        <member name="M:Cesil.GenerateDeserializerAttribute.Equals(Cesil.GenerateDeserializerAttribute)">
+            <summary>
+            Returns true if the given GenerateDeserializableAttribute is equal
+            to this one.
+            </summary>
+        </member>
+        <member name="M:Cesil.GenerateDeserializerAttribute.Equals(System.Object)">
+            <summary>
+            Return true if the given object is a GenerateDeserializableAttribute 
+              equal to this one.
+            </summary>
+        </member>
+        <member name="M:Cesil.GenerateDeserializerAttribute.GetHashCode">
+            <summary>
+            Returns a stable hash code for this GenerateDeserializableAttribute.
+            </summary>
+        </member>
+        <member name="M:Cesil.GenerateDeserializerAttribute.op_Equality(Cesil.GenerateDeserializerAttribute,Cesil.GenerateDeserializerAttribute)">
+            <summary>
+            Compare two GenerateDeserializableAttribute for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.GenerateDeserializerAttribute.op_Inequality(Cesil.GenerateDeserializerAttribute,Cesil.GenerateDeserializerAttribute)">
+            <summary>
+            Compare two GenerateDeserializableAttribute for inequality
+            </summary>
+        </member>
+        <member name="M:Cesil.GenerateDeserializerAttribute.ToString">
+            <summary>
+            Returns a representation of this GenerateDeserializableAttribute object.
+            
+            Only for debugging, this value is not guaranteed to be stable.
+            </summary>
+        </member>
+        <member name="T:Cesil.GenerateSerializerAttribute">
             <summary>
             When using Cesil's Source Generator (see Nuget.org for Cesil.SourceGenerator) marks a class or struct
             as needing a serializer generated at compile time.
             
-            When using the DefaultTypeDescriber or the SourceGeneratorTypeDescriber, the created I(Async)Writers
+            When using the AheadOfTimeTypeDescriber, the created I(Async)Writers
             for this type will do no runtime code generation.
             
             You can customize the behavior of the generated serialize with [DataMemberAttribute],
             and [GenerateSerializableMemberAttribute] attributes.
             </summary>
         </member>
-        <member name="M:Cesil.GenerateSerializableAttribute.#ctor">
+        <member name="M:Cesil.GenerateSerializerAttribute.#ctor">
             <summary>
-            Create a GenerateSerializableAttribute attribute.
+            Create a GenerateSerializerAttribute attribute.
             </summary>
         </member>
-        <member name="M:Cesil.GenerateSerializableAttribute.Equals(Cesil.GenerateSerializableAttribute)">
+        <member name="M:Cesil.GenerateSerializerAttribute.Equals(Cesil.GenerateSerializerAttribute)">
             <summary>
-            Returns true if the given GenerateSerializableAttribute is equal
+            Returns true if the given GenerateSerializerAttribute is equal
             to this one.
             </summary>
         </member>
-        <member name="M:Cesil.GenerateSerializableAttribute.Equals(System.Object)">
+        <member name="M:Cesil.GenerateSerializerAttribute.Equals(System.Object)">
             <summary>
-            Return true if the given object is a GenerateSerializableAttribute 
+            Return true if the given object is a GenerateSerializerAttribute 
               equal to this one.
             </summary>
         </member>
-        <member name="M:Cesil.GenerateSerializableAttribute.GetHashCode">
+        <member name="M:Cesil.GenerateSerializerAttribute.GetHashCode">
             <summary>
-            Returns a stable hash code for this GeneratedSourceVersionAttribute.
+            Returns a stable hash code for this GenerateSerializerAttribute.
             </summary>
         </member>
-        <member name="M:Cesil.GenerateSerializableAttribute.op_Equality(Cesil.GenerateSerializableAttribute,Cesil.GenerateSerializableAttribute)">
+        <member name="M:Cesil.GenerateSerializerAttribute.op_Equality(Cesil.GenerateSerializerAttribute,Cesil.GenerateSerializerAttribute)">
             <summary>
-            Compare two GenerateSerializableAttributes for equality
+            Compare two GenerateSerializerAttributes for equality
             </summary>
         </member>
-        <member name="M:Cesil.GenerateSerializableAttribute.op_Inequality(Cesil.GenerateSerializableAttribute,Cesil.GenerateSerializableAttribute)">
+        <member name="M:Cesil.GenerateSerializerAttribute.op_Inequality(Cesil.GenerateSerializerAttribute,Cesil.GenerateSerializerAttribute)">
             <summary>
-            Compare two GenerateSerializableAttributes for inequality
+            Compare two GenerateSerializerAttributes for inequality
             </summary>
         </member>
-        <member name="M:Cesil.GenerateSerializableAttribute.ToString">
+        <member name="M:Cesil.GenerateSerializerAttribute.ToString">
             <summary>
-            Returns a representation of this GenerateSerializableAttribute object.
+            Returns a representation of this GenerateSerializerAttribute object.
             
             Only for debugging, this value is not guaranteed to be stable.
             </summary>
         </member>
-        <member name="T:Cesil.GenerateSerializableMemberAttribute">
+        <member name="T:Cesil.SerializerMemberAttribute">
             <summary>
-            Attach this attribute to a method, field, or property to expose it as serializable and configure it's "ShouldSerialize" and
-            "Formatter" behaviors.
+            Attach this attribute to a method, field, or property to expose it as serializable and configure it's "ShouldSerialize",
+            "Formatter", "Order", and "EmitDefaultValue" behaviors.
             
             If attached to a property, the propery must have a getter and take no parameters.
             
@@ -1344,7 +1507,7 @@
                  2. in WriteContext
             </summary>
         </member>
-        <member name="P:Cesil.GenerateSerializableMemberAttribute.Name">
+        <member name="P:Cesil.SerializerMemberAttribute.Name">
             <summary>
             The name of the column this member's returned value will be serialized under.
             
@@ -1353,14 +1516,14 @@
             For methods, this must be explicitly set.
             </summary>
         </member>
-        <member name="P:Cesil.GenerateSerializableMemberAttribute.HasOrder">
+        <member name="P:Cesil.SerializerMemberAttribute.HasOrder">
             <summary>
             Returns true if Order has been explicitly set.
             
             Getting Order when HasOrder is false will throw an exception.
             </summary>
         </member>
-        <member name="P:Cesil.GenerateSerializableMemberAttribute.Order">
+        <member name="P:Cesil.SerializerMemberAttribute.Order">
             <summary>
             Value used to order columns.
             
@@ -1371,7 +1534,7 @@
             Check HashOrder before getting Order, or an exception will be thrown.
             </summary>
         </member>
-        <member name="P:Cesil.GenerateSerializableMemberAttribute.FormatterType">
+        <member name="P:Cesil.SerializerMemberAttribute.FormatterType">
             <summary>
             Type to lookup a formatter method on, used with FormatterMethodName.
             
@@ -1383,7 +1546,7 @@
             The type must be public (or internal, if declared in the same assembly as the annotated type).
             </summary>
         </member>
-        <member name="P:Cesil.GenerateSerializableMemberAttribute.FormatterMethodName">
+        <member name="P:Cesil.SerializerMemberAttribute.FormatterMethodName">
             <summary>
             Name of formatter method, used with FormatterType.
             
@@ -1399,7 +1562,7 @@
                3. IBufferWriter(char)
             </summary>
         </member>
-        <member name="P:Cesil.GenerateSerializableMemberAttribute.ShouldSerializeType">
+        <member name="P:Cesil.SerializerMemberAttribute.ShouldSerializeType">
             <summary>
             Type to lookup a should serialize method on, used with ShouldSerializeMethodName.
             
@@ -1410,7 +1573,7 @@
             The type must be public (or internal, if declared in the same assembly as the annotated type).
             </summary>
         </member>
-        <member name="P:Cesil.GenerateSerializableMemberAttribute.ShouldSerializeMethodName">
+        <member name="P:Cesil.SerializerMemberAttribute.ShouldSerializeMethodName">
             <summary>
             Name of should serialize method, used with ShouldSerializeType.
             
@@ -1435,52 +1598,52 @@
              - return bool
             </summary>
         </member>
-        <member name="P:Cesil.GenerateSerializableMemberAttribute.EmitDefaultValue">
+        <member name="P:Cesil.SerializerMemberAttribute.EmitDefaultValue">
             <summary>
             Whether or not to emit the default value.
             
-            Defaults to true.
+            Defaults to Yes.
             </summary>
         </member>
-        <member name="M:Cesil.GenerateSerializableMemberAttribute.#ctor">
+        <member name="M:Cesil.SerializerMemberAttribute.#ctor">
             <summary>
-            Create a GenerateSerializableMemberAttribute attribute.
+            Create a SerializerMemberAttribute attribute.
             
             This will expose the member for serialization if it would not otherwise be exposed.
             
             If on a method, a Name must be set.
             </summary>
         </member>
-        <member name="M:Cesil.GenerateSerializableMemberAttribute.Equals(Cesil.GenerateSerializableMemberAttribute)">
+        <member name="M:Cesil.SerializerMemberAttribute.Equals(Cesil.SerializerMemberAttribute)">
             <summary>
-            Returns true if the given GenerateSerializableMemberAttribute is equal
+            Returns true if the given SerializerMemberAttribute is equal
             to this one.
             </summary>
         </member>
-        <member name="M:Cesil.GenerateSerializableMemberAttribute.Equals(System.Object)">
+        <member name="M:Cesil.SerializerMemberAttribute.Equals(System.Object)">
             <summary>
-            Return true if the given object is a GenerateSerializableMemberAttribute 
+            Return true if the given object is a SerializerMemberAttribute 
               equal to this one.
             </summary>
         </member>
-        <member name="M:Cesil.GenerateSerializableMemberAttribute.GetHashCode">
+        <member name="M:Cesil.SerializerMemberAttribute.GetHashCode">
             <summary>
-            Returns a stable hash code for this GeneratedSourceVersionAttribute.
+            Returns a hash code for this SerializerMemberAttribute.
             </summary>
         </member>
-        <member name="M:Cesil.GenerateSerializableMemberAttribute.op_Equality(Cesil.GenerateSerializableMemberAttribute,Cesil.GenerateSerializableMemberAttribute)">
+        <member name="M:Cesil.SerializerMemberAttribute.op_Equality(Cesil.SerializerMemberAttribute,Cesil.SerializerMemberAttribute)">
             <summary>
-            Compare two GenerateSerializableAttributes for equality
+            Compare two SerializerMemberAttributes for equality
             </summary>
         </member>
-        <member name="M:Cesil.GenerateSerializableMemberAttribute.op_Inequality(Cesil.GenerateSerializableMemberAttribute,Cesil.GenerateSerializableMemberAttribute)">
+        <member name="M:Cesil.SerializerMemberAttribute.op_Inequality(Cesil.SerializerMemberAttribute,Cesil.SerializerMemberAttribute)">
             <summary>
-            Compare two GenerateSerializableAttributes for inequality
+            Compare two SerializerMemberAttributes for inequality
             </summary>
         </member>
-        <member name="M:Cesil.GenerateSerializableMemberAttribute.ToString">
+        <member name="M:Cesil.SerializerMemberAttribute.ToString">
             <summary>
-            Returns a representation of this GenerateSerializableMemberAttribute object.
+            Returns a representation of this SerializerMemberAttribute object.
             
             Only for debugging, this value is not guaranteed to be stable.
             </summary>
@@ -2385,20 +2548,20 @@
             Note that a pre-allocated instance is also available on TypeDescribers.
             </summary>
         </member>
-        <member name="M:Cesil.AheadOfTimeTypeDescriber.EnumerateMembersToDeserialize(System.Reflection.TypeInfo)">
-            <summary>
-            Enumerate members which will be deserialized for the given type.
-            
-            Note that these members are generated ahead of time with a source gneerator, 
-              and cannot be changed at runtime.
-            </summary>
-        </member>
         <member name="M:Cesil.AheadOfTimeTypeDescriber.GetInstanceProvider(System.Reflection.TypeInfo)">
             <summary>
             Returns an InstanceProvider that can be used to create new instance of the given type
               while deserializing.
               
             Note that this InstanceProvider is generated ahead of time with a source gneerator, 
+              and cannot be changed at runtime.
+            </summary>
+        </member>
+        <member name="M:Cesil.AheadOfTimeTypeDescriber.EnumerateMembersToDeserialize(System.Reflection.TypeInfo)">
+            <summary>
+            Enumerate members which will be deserialized for the given type.
+            
+            Note that these members are generated ahead of time with a source gneerator, 
               and cannot be changed at runtime.
             </summary>
         </member>
@@ -2466,6 +2629,12 @@
              * 0, if flagsEnum was invalid
              * greater than 0, length of the value that did fit into copyInto
              * less than 0, the negated length of a value that didn't fit into copyInto
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultTypeParsers.DefaultEnumTypeParser`1.ParseFlagsEnumImpl(System.ReadOnlySpan{System.Char},System.String[],System.UInt64[],`0@)">
+            <summary>
+            This is _like_ calling TryParse(), but it doesn't allow values
+            that aren't actually declared on the enum.
             </summary>
         </member>
         <member name="T:Cesil.DefaultTypeDescriber">
@@ -2964,6 +3133,307 @@
             Compare two DynamicCellValues for inequality
             </summary>
         </member>
+        <member name="T:Cesil.ConstructorInstanceProviderAttribute">
+            <summary>
+            Automatically attached to generated methods depending on runtime behavior.
+            
+            You should not use this directly.
+            </summary>
+        </member>
+        <member name="P:Cesil.ConstructorInstanceProviderAttribute.ForType">
+            <summary>
+            Type that declares the constructor.
+            </summary>
+        </member>
+        <member name="P:Cesil.ConstructorInstanceProviderAttribute.ParameterType">
+            <summary>
+            Type of one of the parameter that corresponds to this attribute.
+            </summary>
+        </member>
+        <member name="P:Cesil.ConstructorInstanceProviderAttribute.ParameterIndex">
+            <summary>
+            Index of the parameter that corresponds to this attribute.
+            </summary>
+        </member>
+        <member name="M:Cesil.ConstructorInstanceProviderAttribute.#ctor(System.Type,System.Type,System.Int32)">
+            <summary>
+            Create a new ConstructorInstanceProviderAttribute.
+            
+            You should not use this directly.
+            </summary>
+        </member>
+        <member name="M:Cesil.ConstructorInstanceProviderAttribute.Equals(System.Object)">
+            <summary>
+            Return true if the given object is a ConstructorInstanceProviderAttribute 
+              equal to this one.
+            </summary>
+        </member>
+        <member name="M:Cesil.ConstructorInstanceProviderAttribute.Equals(Cesil.ConstructorInstanceProviderAttribute)">
+            <summary>
+            Returns true if the given ConstructorInstanceProviderAttribute is equal
+              to this one.
+            </summary>
+        </member>
+        <member name="M:Cesil.ConstructorInstanceProviderAttribute.GetHashCode">
+            <summary>
+            Returns a stable hash code for this ConstructorInstanceProviderAttribute.
+            </summary>
+        </member>
+        <member name="M:Cesil.ConstructorInstanceProviderAttribute.op_Equality(Cesil.ConstructorInstanceProviderAttribute,Cesil.ConstructorInstanceProviderAttribute)">
+            <summary>
+            Compare two ConstructorInstanceProviderAttributes for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.ConstructorInstanceProviderAttribute.op_Inequality(Cesil.ConstructorInstanceProviderAttribute,Cesil.ConstructorInstanceProviderAttribute)">
+            <summary>
+            Compare two ConstructorInstanceProviderAttributes for inequality
+            </summary>
+        </member>
+        <member name="M:Cesil.ConstructorInstanceProviderAttribute.ToString">
+            <summary>
+            Returns a representation of this ConstructorInstanceProviderAttribute object.
+            
+            Only for debugging, this value is not guaranteed to be stable.
+            </summary>
+        </member>
+        <member name="T:Cesil.DoesNotEmitDefaultValueAttribute">
+            <summary>
+            Automatically attached to generated methods depending on runtime behavior.
+            
+            You should not use this directly.
+            </summary>
+        </member>
+        <member name="M:Cesil.DoesNotEmitDefaultValueAttribute.#ctor">
+            <summary>
+            Create a new DoesNotEmitDefaultValueAttribute.
+            
+            You should not use this directly.
+            </summary>
+        </member>
+        <member name="M:Cesil.DoesNotEmitDefaultValueAttribute.Equals(System.Object)">
+            <summary>
+            Return true if the given object is a DoesNotEmitDefaultValueAttribute 
+              equal to this one.
+            </summary>
+        </member>
+        <member name="M:Cesil.DoesNotEmitDefaultValueAttribute.Equals(Cesil.DoesNotEmitDefaultValueAttribute)">
+            <summary>
+            Returns true if the given DoesNotEmitDefaultValueAttribute is equal
+              to this one.
+            </summary>
+        </member>
+        <member name="M:Cesil.DoesNotEmitDefaultValueAttribute.GetHashCode">
+            <summary>
+            Returns a stable hash code for this DoesNotEmitDefaultValueAttribute.
+            </summary>
+        </member>
+        <member name="M:Cesil.DoesNotEmitDefaultValueAttribute.op_Equality(Cesil.DoesNotEmitDefaultValueAttribute,Cesil.DoesNotEmitDefaultValueAttribute)">
+            <summary>
+            Compare two DoesNotEmitDefaultValueAttributes for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.DoesNotEmitDefaultValueAttribute.op_Inequality(Cesil.DoesNotEmitDefaultValueAttribute,Cesil.DoesNotEmitDefaultValueAttribute)">
+            <summary>
+            Compare two DoesNotEmitDefaultValueAttributes for inequality
+            </summary>
+        </member>
+        <member name="M:Cesil.DoesNotEmitDefaultValueAttribute.ToString">
+            <summary>
+            Returns a representation of this DoesNotEmitDefaultValueAttribute object.
+            
+            Only for debugging, this value is not guaranteed to be stable.
+            </summary>
+        </member>
+        <member name="T:Cesil.GeneratedSourceVersionAttribute">
+            <summary>
+            Automatically attached to generated types to track compatibility.
+            
+            You should not use this directly.
+            </summary>
+        </member>
+        <member name="T:Cesil.GeneratedSourceVersionAttribute.GeneratedTypeKind">
+            <summary>
+            Used by GeneratedSourceVersionAttribute.
+            
+            You should not use this directly.
+            </summary>
+        </member>
+        <member name="F:Cesil.GeneratedSourceVersionAttribute.GeneratedTypeKind.None">
+            <summary>
+            You should not use this directly.
+            </summary>
+        </member>
+        <member name="F:Cesil.GeneratedSourceVersionAttribute.GeneratedTypeKind.Serializer">
+            <summary>
+            You should not use this directly.
+            </summary>
+        </member>
+        <member name="F:Cesil.GeneratedSourceVersionAttribute.GeneratedTypeKind.Deserializer">
+            <summary>
+            You should not use this directly.
+            </summary>
+        </member>
+        <member name="P:Cesil.GeneratedSourceVersionAttribute.Version">
+            <summary>
+            The version of Cesil the associated source was generated for.
+            
+            You should not use this directly.
+            </summary>
+        </member>
+        <member name="P:Cesil.GeneratedSourceVersionAttribute.ForType">
+            <summary>
+            The type associated with generated code.
+            
+            You should not use this directly.
+            </summary>
+        </member>
+        <member name="P:Cesil.GeneratedSourceVersionAttribute.Kind">
+            <summary>
+            The kind of operation this type is intended to support.
+            
+            You should not use this directly.
+            </summary>
+        </member>
+        <member name="M:Cesil.GeneratedSourceVersionAttribute.#ctor(System.String,System.Type,Cesil.GeneratedSourceVersionAttribute.GeneratedTypeKind)">
+            <summary>
+            Construct a new GeneratedSourceVersionAttribute.
+            </summary>
+        </member>
+        <member name="M:Cesil.GeneratedSourceVersionAttribute.Equals(Cesil.GeneratedSourceVersionAttribute)">
+            <summary>
+            Returns true if the given GeneratedSourceVersionAttribute is equal
+            to this one.
+            </summary>
+        </member>
+        <member name="M:Cesil.GeneratedSourceVersionAttribute.Equals(System.Object)">
+            <summary>
+            Return true if the given object is a GeneratedSourceVersionAttribute 
+              equal to this one.
+            </summary>
+        </member>
+        <member name="M:Cesil.GeneratedSourceVersionAttribute.GetHashCode">
+            <summary>
+            Returns a stable hash code for this GeneratedSourceVersionAttribute.
+            </summary>
+        </member>
+        <member name="M:Cesil.GeneratedSourceVersionAttribute.op_Equality(Cesil.GeneratedSourceVersionAttribute,Cesil.GeneratedSourceVersionAttribute)">
+            <summary>
+            Compare two GeneratedSourceVersionAttributes for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.GeneratedSourceVersionAttribute.op_Inequality(Cesil.GeneratedSourceVersionAttribute,Cesil.GeneratedSourceVersionAttribute)">
+            <summary>
+            Compare two GeneratedSourceVersionAttributes for inequality
+            </summary>
+        </member>
+        <member name="M:Cesil.GeneratedSourceVersionAttribute.ToString">
+            <summary>
+            Returns a representation of this GeneratedSourceVersionAttribute object.
+            
+            Only for debugging, this value is not guaranteed to be stable.
+            </summary>
+        </member>
+        <member name="T:Cesil.IsRequiredAttribute">
+            <summary>
+            Automatically attached to generated methods depending on runtime behavior.
+            
+            You should not use this directly.
+            </summary>
+        </member>
+        <member name="M:Cesil.IsRequiredAttribute.#ctor">
+            <summary>
+            Create a new IsRequiredAttribute.
+            
+            You should not use this directly.
+            </summary>
+        </member>
+        <member name="M:Cesil.IsRequiredAttribute.Equals(System.Object)">
+            <summary>
+            Return true if the given object is a IsRequiredAttribute 
+              equal to this one.
+            </summary>
+        </member>
+        <member name="M:Cesil.IsRequiredAttribute.Equals(Cesil.IsRequiredAttribute)">
+            <summary>
+            Returns true if the given IsRequiredAttribute is equal
+              to this one.
+            </summary>
+        </member>
+        <member name="M:Cesil.IsRequiredAttribute.GetHashCode">
+            <summary>
+            Returns a stable hash code for this IsRequiredAttribute.
+            </summary>
+        </member>
+        <member name="M:Cesil.IsRequiredAttribute.op_Equality(Cesil.IsRequiredAttribute,Cesil.IsRequiredAttribute)">
+            <summary>
+            Compare two IsRequiredAttributes for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.IsRequiredAttribute.op_Inequality(Cesil.IsRequiredAttribute,Cesil.IsRequiredAttribute)">
+            <summary>
+            Compare two IsRequiredAttributes for inequality
+            </summary>
+        </member>
+        <member name="M:Cesil.IsRequiredAttribute.ToString">
+            <summary>
+            Returns a representation of this IsRequiredAttribute object.
+            
+            Only for debugging, this value is not guaranteed to be stable.
+            </summary>
+        </member>
+        <member name="T:Cesil.SetterBackedByConstructorParameterAttribute">
+            <summary>
+            Automatically attached to generated methods depending on runtime behavior.
+            
+            You should not use this directly.
+            </summary>
+        </member>
+        <member name="P:Cesil.SetterBackedByConstructorParameterAttribute.Index">
+            <summary>
+            Index of parameter in InstanceProvider constructor that the annotated method's column corresponds to.
+            </summary>
+        </member>
+        <member name="M:Cesil.SetterBackedByConstructorParameterAttribute.#ctor(System.Int32)">
+            <summary>
+            Create a new SetterBackedByConstructorParameterAttribute.
+            
+            You should not use this directly.
+            </summary>
+        </member>
+        <member name="M:Cesil.SetterBackedByConstructorParameterAttribute.Equals(System.Object)">
+            <summary>
+            Return true if the given object is a SetterBackedByConstructorParameterAttribute 
+              equal to this one.
+            </summary>
+        </member>
+        <member name="M:Cesil.SetterBackedByConstructorParameterAttribute.Equals(Cesil.SetterBackedByConstructorParameterAttribute)">
+            <summary>
+            Returns true if the given SetterBackedByConstructorParameterAttribute is equal
+              to this one.
+            </summary>
+        </member>
+        <member name="M:Cesil.SetterBackedByConstructorParameterAttribute.GetHashCode">
+            <summary>
+            Returns a stable hash code for this SetterBackedByConstructorParameterAttribute.
+            </summary>
+        </member>
+        <member name="M:Cesil.SetterBackedByConstructorParameterAttribute.op_Equality(Cesil.SetterBackedByConstructorParameterAttribute,Cesil.SetterBackedByConstructorParameterAttribute)">
+            <summary>
+            Compare two SetterBackedByConstructorParameterAttributes for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.SetterBackedByConstructorParameterAttribute.op_Inequality(Cesil.SetterBackedByConstructorParameterAttribute,Cesil.SetterBackedByConstructorParameterAttribute)">
+            <summary>
+            Compare two SetterBackedByConstructorParameterAttributes for inequality
+            </summary>
+        </member>
+        <member name="M:Cesil.SetterBackedByConstructorParameterAttribute.ToString">
+            <summary>
+            Returns a representation of this SetterBackedByConstructorParameterAttribute object.
+            
+            Only for debugging, this value is not guaranteed to be stable.
+            </summary>
+        </member>
         <member name="T:Cesil.ITypeDescriber">
             <summary>
             The interface used to discover the members to (de)serialize for a type.
@@ -3447,23 +3917,6 @@
         <member name="F:Cesil.ManualTypeDescriberFallbackBehavior.UseFallback">
             <summary>
             Use a fallback ITypeDescriber if no type is configured.
-            </summary>
-        </member>
-        <member name="T:Cesil.MemberRequired">
-            <summary>
-            Whether or not a member is required during deserialization.
-            </summary>
-        </member>
-        <member name="F:Cesil.MemberRequired.Yes">
-            <summary>
-            A member must be present, it is
-            an error to omit it.
-            </summary>
-        </member>
-        <member name="F:Cesil.MemberRequired.No">
-            <summary>
-            A member does not have to be present,
-            it is not an error if it is omitted.
             </summary>
         </member>
         <member name="T:Cesil.SerializableMember">
@@ -4349,6 +4802,23 @@
             Compare two InstanceProvider for inequality
             </summary>
         </member>
+        <member name="T:Cesil.MemberRequired">
+            <summary>
+            Whether or not a member is required during deserialization.
+            </summary>
+        </member>
+        <member name="F:Cesil.MemberRequired.Yes">
+            <summary>
+            A member must be present, it is
+            an error to omit it.
+            </summary>
+        </member>
+        <member name="F:Cesil.MemberRequired.No">
+            <summary>
+            A member does not have to be present,
+            it is not an error if it is omitted.
+            </summary>
+        </member>
         <member name="T:Cesil.ParserDelegate`1">
             <summary>
             Delegate type for parsers.
@@ -4517,6 +4987,8 @@
             <summary>
             Create a reset from a method.
             
+            The method must return void.
+            
             If method is an instance, it can take:
              - zero parameters or 
              - a single `in ReadContext` parameter.
@@ -4525,7 +4997,7 @@
              - zero parameters or
              - a single parameter of the row type or
              - a single parameter of `in ReadContext` or
-             - two parameters, the first of the row type and the second of `in ReadContext`
+             - two parameters, the first of the row type (which may be by ref) and the second of `in ReadContext`
             
             If the reset is instance or takes a of the row type parameter, the instance or parameter
               type must be assignable from the type being deserialized.

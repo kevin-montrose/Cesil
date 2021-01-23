@@ -56,5 +56,4 @@ Changes
   <ItemGroup>
     <ProjectReference Include="..\Cesil.Analyzers\Cesil.Analyzers.csproj" PrivateAssets="all" ReferenceOutputAssembly="false" OutputItemType="Analyzer" />
   </ItemGroup>
-
 </Project>

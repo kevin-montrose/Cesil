@@ -1504,7 +1504,7 @@ tryAgain:
                 {
                     var valueText = enumValue.ToString();
 
-                    var resBool = Utils.TryParseFlagsEnum<T>(valueText.AsSpan(), names, values, out var resValue);
+                    var resBool = DefaultTypeParsers.DefaultEnumTypeParser<T>.ParseFlagsEnumImpl(valueText.AsSpan(), names, values, out var resValue);
                     if (!resBool)
                     {
                         // malformed!
@@ -1522,7 +1522,7 @@ tryAgain:
                 {
                     var valueText = enumValue.ToString().ToLowerInvariant();
 
-                    var resBool = Utils.TryParseFlagsEnum<T>(valueText.AsSpan(), names, values, out var resValue);
+                    var resBool = DefaultTypeParsers.DefaultEnumTypeParser<T>.ParseFlagsEnumImpl(valueText.AsSpan(), names, values, out var resValue);
                     if (!resBool)
                     {
                         // malformed!
@@ -1540,7 +1540,7 @@ tryAgain:
                 {
                     var valueText = enumValue.ToString().ToUpperInvariant();
 
-                    var resBool = Utils.TryParseFlagsEnum<T>(valueText.AsSpan(), names, values, out var resValue);
+                    var resBool = DefaultTypeParsers.DefaultEnumTypeParser<T>.ParseFlagsEnumImpl(valueText.AsSpan(), names, values, out var resValue);
                     if (!resBool)
                     {
                         // malformed!

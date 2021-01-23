@@ -12,7 +12,7 @@ namespace Cesil
 
         bool TryPreAllocate(in ReadContext ctx, bool checkPrealloc, ref TRow prealloc);
 
-        void SetColumnOrder(HeadersReader<TRow>.HeaderEnumerator columns);
+        void SetColumnOrder(Options options, HeadersReader<TRow>.HeaderEnumerator columns);
 
         void StartRow(in ReadContext ctx);
 
@@ -20,6 +20,6 @@ namespace Cesil
 
         TRow FinishRow();
 
-        IRowConstructor<TRow> Clone();
+        IRowConstructor<TRow> Clone(Options options);
     }
 }

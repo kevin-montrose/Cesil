@@ -1,9 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Transactions;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Cesil.SourceGenerator
@@ -43,10 +40,10 @@ namespace Cesil.SourceGenerator
 
             var mtdLoc = mtd.Locations.FirstOrDefault();
 
-            var attrName = GetNameFromAttributes(compilation, mtdLoc, attrs, ref diags);
+            var attrName = Utils.GetNameFromAttributes(compilation, mtdLoc, attrs, ref diags);
             if (attrName == null)
             {
-                var diag = Diagnostic.Create(Diagnostics.SerializableMemberMustHaveNameSetForMethod, mtdLoc, mtd.Name);
+                var diag = Diagnostics.SerializableMemberMustHaveNameSetForMethod(mtdLoc, mtd);
                 diags = diags.Add(diag);
 
                 attrName = "--UNKNOWN--";
@@ -54,7 +51,7 @@ namespace Cesil.SourceGenerator
 
             var getter = GetGetterForMethod(compilation, types, serializingType, mtd, mtdLoc, ref diags);
 
-            int? order = GetOrderFromAttributes(compilation, mtdLoc, attrs, ref diags);
+            int? order = Utils.GetOrderFromAttributes(compilation, mtdLoc, types.Framework, types.OurTypes.SerializerMemberAttribute, attrs, ref diags);
 
             var emitDefaultValue = true;
             var attrEmitDefaultValue = GetEmitDefaultValueFromAttributes(compilation, mtdLoc, attrs, ref diags);
@@ -70,19 +67,7 @@ namespace Cesil.SourceGenerator
 
             var formatter = GetFormatter(compilation, types, getter.ForType, mtdLoc, attrs, ref diags);
 
-            if (diags.IsEmpty)
-            {
-                if (formatter == null && !Formatter.TryGetDefault(types, getter.ForType, out formatter))
-                {
-                    var diag = Diagnostic.Create(Diagnostics.NoBuiltInFormatter, mtdLoc, getter.ForType.Name);
-                    diags = diags.Add(diag);
-                    return (null, diags);
-                }
-
-                return (new SerializableMember(attrName, getter, formatter, shouldSerialize, emitDefaultValue, order), ImmutableArray<Diagnostic>.Empty);
-            }
-
-            return (null, diags);
+            return MakeMember(mtdLoc, types, attrName, getter, formatter, shouldSerialize, emitDefaultValue, order, diags);
         }
 
         internal static (SerializableMember? Member, ImmutableArray<Diagnostic> Diagnostics) ForField(
@@ -98,12 +83,12 @@ namespace Cesil.SourceGenerator
             var fieldLoc = field.Locations.FirstOrDefault();
 
             var name = field.Name;
-            var attrName = GetNameFromAttributes(compilation, fieldLoc, attrs, ref diags);
+            var attrName = Utils.GetNameFromAttributes(compilation, fieldLoc, attrs, ref diags);
             name = attrName ?? name;
 
             var getter = new Getter(field);
 
-            int? order = GetOrderFromAttributes(compilation, fieldLoc, attrs, ref diags);
+            int? order = Utils.GetOrderFromAttributes(compilation, fieldLoc, types.Framework, types.OurTypes.SerializerMemberAttribute, attrs, ref diags);
 
             var emitDefaultValue = true;
             var attrEmitDefaultValue = GetEmitDefaultValueFromAttributes(compilation, fieldLoc, attrs, ref diags);
@@ -112,19 +97,7 @@ namespace Cesil.SourceGenerator
             var formatter = GetFormatter(compilation, types, field.Type, fieldLoc, attrs, ref diags);
             var shouldSerialize = GetShouldSerialize(compilation, types, serializingType, fieldLoc, attrs, ref diags);
 
-            if (diags.IsEmpty)
-            {
-                if (formatter == null && !Formatter.TryGetDefault(types, getter.ForType, out formatter))
-                {
-                    var diag = Diagnostic.Create(Diagnostics.NoBuiltInFormatter, fieldLoc, getter.ForType.Name);
-                    diags = diags.Add(diag);
-                    return (null, diags);
-                }
-
-                return (new SerializableMember(name, getter, formatter, shouldSerialize, emitDefaultValue, order), ImmutableArray<Diagnostic>.Empty);
-            }
-
-            return (null, diags);
+            return MakeMember(fieldLoc, types, name, getter, formatter, shouldSerialize, emitDefaultValue, order, diags);
         }
 
         internal static (SerializableMember? Member, ImmutableArray<Diagnostic> Diagnostics) ForProperty(
@@ -141,23 +114,23 @@ namespace Cesil.SourceGenerator
 
             if (prop.GetMethod == null)
             {
-                var diag = Diagnostic.Create(Diagnostics.NoGetterOnSerializableProperty, propLoc);
+                var diag = Diagnostics.NoGetterOnSerializableProperty(propLoc);
                 diags = diags.Add(diag);
             }
 
             if (prop.Parameters.Any())
             {
-                var diag = Diagnostic.Create(Diagnostics.SerializablePropertyCannotHaveParameters, propLoc);
+                var diag = Diagnostics.SerializablePropertyCannotHaveParameters(propLoc);
                 diags = diags.Add(diag);
             }
 
             var name = prop.Name;
-            var attrName = GetNameFromAttributes(compilation, propLoc, attrs, ref diags);
+            var attrName = Utils.GetNameFromAttributes(compilation, propLoc, attrs, ref diags);
             name = attrName ?? name;
 
             var getter = new Getter(prop);
 
-            int? order = GetOrderFromAttributes(compilation, propLoc, attrs, ref diags);
+            int? order = Utils.GetOrderFromAttributes(compilation, propLoc, types.Framework, types.OurTypes.SerializerMemberAttribute, attrs, ref diags);
 
             var emitDefaultValue = true;
             var attrEmitDefaultValue = GetEmitDefaultValueFromAttributes(compilation, propLoc, attrs, ref diags);
@@ -166,14 +139,31 @@ namespace Cesil.SourceGenerator
             var formatter = GetFormatter(compilation, types, prop.Type, propLoc, attrs, ref diags);
             var shouldSerialize = GetShouldSerialize(compilation, types, serializingType, propLoc, attrs, ref diags);
 
+            return MakeMember(propLoc, types, name, getter, formatter, shouldSerialize, emitDefaultValue, order, diags);
+        }
+
+        private static (SerializableMember? Member, ImmutableArray<Diagnostic> Diagnostics) MakeMember(
+            Location? location,
+            SerializerTypes types,
+            string name,
+            Getter getter,
+            Formatter? formatter,
+            ShouldSerialize? shouldSerialize,
+            bool emitDefaultValue,
+            int? order,
+            ImmutableArray<Diagnostic> diags
+        )
+        {
             if (diags.IsEmpty)
             {
                 if (formatter == null && !Formatter.TryGetDefault(types, getter.ForType, out formatter))
                 {
-                    var diag = Diagnostic.Create(Diagnostics.NoBuiltInFormatter, propLoc, getter.ForType.Name);
+                    var diag = Diagnostics.NoBuiltInFormatter(location, getter.ForType);
                     diags = diags.Add(diag);
                     return (null, diags);
                 }
+
+                formatter = Utils.NonNull(formatter);
 
                 return (new SerializableMember(name, getter, formatter, shouldSerialize, emitDefaultValue, order), ImmutableArray<Diagnostic>.Empty);
             }
@@ -190,7 +180,7 @@ namespace Cesil.SourceGenerator
             ref ImmutableArray<Diagnostic> diags
         )
         {
-            var shouldSerialize = GetMethodFromAttribute(
+            var shouldSerialize = Utils.GetMethodFromAttribute(
                     compilation,
                     "ShouldSerializeType",
                     Diagnostics.ShouldSerializeTypeSpecifiedMultipleTimes,
@@ -209,7 +199,7 @@ namespace Cesil.SourceGenerator
 
             var (type, mtd) = shouldSerialize.Value;
 
-            var shouldSerializeMtd = GetMethod(type, mtd, location, ref diags);
+            var shouldSerializeMtd = Utils.GetMethod(type, mtd, location, ref diags);
 
             if (shouldSerializeMtd == null)
             {
@@ -218,7 +208,7 @@ namespace Cesil.SourceGenerator
 
             if (shouldSerializeMtd.IsGenericMethod)
             {
-                var diag = Diagnostic.Create(Diagnostics.MethodCannotBeGeneric, location, shouldSerializeMtd.Name);
+                var diag = Diagnostics.MethodCannotBeGeneric(location, shouldSerializeMtd);
                 diags = diags.Add(diag);
 
                 return null;
@@ -231,7 +221,7 @@ namespace Cesil.SourceGenerator
 
             if (!accessible)
             {
-                var diag = Diagnostic.Create(Diagnostics.MethodNotPublicOrInternal, location, shouldSerializeMtd.Name);
+                var diag = Diagnostics.MethodNotPublicOrInternal(location, shouldSerializeMtd);
                 diags = diags.Add(diag);
 
                 return null;
@@ -239,7 +229,7 @@ namespace Cesil.SourceGenerator
 
             if (!shouldSerializeMtd.ReturnType.Equals(types.BuiltIn.Bool, SymbolEqualityComparer.Default))
             {
-                var diag = Diagnostic.Create(Diagnostics.MethodMustReturnBool, location, shouldSerializeMtd.Name);
+                var diag = Diagnostics.MethodMustReturnBool(location, shouldSerializeMtd);
                 diags = diags.Add(diag);
 
                 return null;
@@ -270,7 +260,7 @@ namespace Cesil.SourceGenerator
                     var p0 = shouldSerializeParams[0];
                     if (!p0.IsNormalParameterOfType(compilation, declaringType))
                     {
-                        var diag = Diagnostic.Create(Diagnostics.BadShouldSerializeParameters_StaticOne, location, shouldSerializeMtd.Name, declaringType.Name);
+                        var diag = Diagnostics.BadShouldSerializeParameters_StaticOne(location, shouldSerializeMtd, declaringType);
                         diags = diags.Add(diag);
 
                         return null;
@@ -284,7 +274,7 @@ namespace Cesil.SourceGenerator
                     var p0 = shouldSerializeParams[0];
                     if (!p0.IsNormalParameterOfType(compilation, declaringType))
                     {
-                        var diag = Diagnostic.Create(Diagnostics.BadShouldSerializeParameters_StaticTwo, location, shouldSerializeMtd.Name, declaringType.Name);
+                        var diag = Diagnostics.BadShouldSerializeParameters_StaticTwo(location, shouldSerializeMtd, declaringType);
                         diags = diags.Add(diag);
 
                         return null;
@@ -293,7 +283,7 @@ namespace Cesil.SourceGenerator
                     var p1 = shouldSerializeParams[1];
                     if (!p1.IsInWriteContext(types.OurTypes))
                     {
-                        var diag = Diagnostic.Create(Diagnostics.BadShouldSerializeParameters_StaticTwo, location, shouldSerializeMtd.Name, declaringType.Name);
+                        var diag = Diagnostics.BadShouldSerializeParameters_StaticTwo(location, shouldSerializeMtd, declaringType);
                         diags = diags.Add(diag);
 
                         return null;
@@ -304,7 +294,7 @@ namespace Cesil.SourceGenerator
                 }
                 else
                 {
-                    var diag = Diagnostic.Create(Diagnostics.BadShouldSerializeParameters_TooMany, location, shouldSerializeMtd.Name);
+                    var diag = Diagnostics.BadShouldSerializeParameters_TooMany(location, shouldSerializeMtd);
                     diags = diags.Add(diag);
 
                     return null;
@@ -320,7 +310,7 @@ namespace Cesil.SourceGenerator
 
                 if (!onType.Equals(declaringType, SymbolEqualityComparer.Default))
                 {
-                    var diag = Diagnostic.Create(Diagnostics.ShouldSerializeInstanceOnWrongType, location, shouldSerializeMtd.Name, declaringType.Name);
+                    var diag = Diagnostics.ShouldSerializeInstanceOnWrongType(location, shouldSerializeMtd, declaringType);
                     diags = diags.Add(diag);
 
                     return null;
@@ -337,7 +327,7 @@ namespace Cesil.SourceGenerator
                     var p0 = shouldSerializeParams[0];
                     if (!p0.IsInWriteContext(types.OurTypes))
                     {
-                        var diag = Diagnostic.Create(Diagnostics.BadShouldSerializeParameters_InstanceOne, location, shouldSerializeMtd.Name, declaringType.Name);
+                        var diag = Diagnostics.BadShouldSerializeParameters_InstanceOne(location, shouldSerializeMtd);
                         diags = diags.Add(diag);
 
                         return null;
@@ -347,7 +337,7 @@ namespace Cesil.SourceGenerator
                 }
                 else
                 {
-                    var diag = Diagnostic.Create(Diagnostics.BadShouldSerializeParameters_TooMany, location, shouldSerializeMtd.Name);
+                    var diag = Diagnostics.BadShouldSerializeParameters_TooMany(location, shouldSerializeMtd);
                     diags = diags.Add(diag);
 
                     return null;
@@ -369,7 +359,7 @@ namespace Cesil.SourceGenerator
             var methodReturnType = method.ReturnType;
             if (methodReturnType.SpecialType == SpecialType.System_Void)
             {
-                var diag = Diagnostic.Create(Diagnostics.MethodMustReturnNonVoid, location, method.Name);
+                var diag = Diagnostics.MethodMustReturnNonVoid(location, method);
                 diags = diags.Add(diag);
 
                 return null;
@@ -377,7 +367,7 @@ namespace Cesil.SourceGenerator
 
             if (method.IsGenericMethod)
             {
-                var diag = Diagnostic.Create(Diagnostics.MethodCannotBeGeneric, location, method.Name);
+                var diag = Diagnostics.MethodCannotBeGeneric(location, method);
                 diags = diags.Add(diag);
 
                 return null;
@@ -413,7 +403,7 @@ namespace Cesil.SourceGenerator
                     }
                     else
                     {
-                        var diag = Diagnostic.Create(Diagnostics.BadGetterParameters_StaticOne, location, method.Name, rowType.Name);
+                        var diag = Diagnostics.BadGetterParameters_StaticOne(location, method, rowType);
                         diags = diags.Add(diag);
 
                         return null;
@@ -424,7 +414,7 @@ namespace Cesil.SourceGenerator
                     var p0 = ps[0];
                     if (!p0.IsNormalParameterOfType(compilation, rowType))
                     {
-                        var diag = Diagnostic.Create(Diagnostics.BadGetterParameters_StaticTwo, location, method.Name, rowType.Name);
+                        var diag = Diagnostics.BadGetterParameters_StaticTwo(location, method, rowType);
                         diags = diags.Add(diag);
 
                         return null;
@@ -433,7 +423,7 @@ namespace Cesil.SourceGenerator
                     var p1 = ps[1];
                     if (!p1.IsInWriteContext(types.OurTypes))
                     {
-                        var diag = Diagnostic.Create(Diagnostics.BadGetterParameters_StaticTwo, location, method.Name, rowType.Name);
+                        var diag = Diagnostics.BadGetterParameters_StaticTwo(location, method, rowType);
                         diags = diags.Add(diag);
 
                         return null;
@@ -444,7 +434,7 @@ namespace Cesil.SourceGenerator
                 }
                 else
                 {
-                    var diag = Diagnostic.Create(Diagnostics.BadGetterParameters_TooMany, location, method.Name);
+                    var diag = Diagnostics.BadGetterParameters_TooMany(location, method);
                     diags = diags.Add(diag);
 
                     return null;
@@ -468,7 +458,7 @@ namespace Cesil.SourceGenerator
                     var p0 = ps[0];
                     if (!p0.IsInWriteContext(types.OurTypes))
                     {
-                        var diag = Diagnostic.Create(Diagnostics.BadGetterParameters_InstanceOne, location, method.Name);
+                        var diag = Diagnostics.BadGetterParameters_InstanceOne(location, method);
                         diags = diags.Add(diag);
 
                         return null;
@@ -478,7 +468,7 @@ namespace Cesil.SourceGenerator
                 }
                 else
                 {
-                    var diag = Diagnostic.Create(Diagnostics.BadGetterParameters_TooMany, location, method.Name);
+                    var diag = Diagnostics.BadGetterParameters_TooMany(location, method);
                     diags = diags.Add(diag);
 
                     return null;
@@ -498,7 +488,7 @@ namespace Cesil.SourceGenerator
         )
         {
             var formatter =
-                GetMethodFromAttribute(
+                Utils.GetMethodFromAttribute(
                     compilation,
                     "FormatterType",
                     Diagnostics.FormatterTypeSpecifiedMultipleTimes,
@@ -517,7 +507,7 @@ namespace Cesil.SourceGenerator
 
             var (type, mtd) = formatter.Value;
 
-            var formatterMtd = GetMethod(type, mtd, location, ref diags);
+            var formatterMtd = Utils.GetMethod(type, mtd, location, ref diags);
 
             if (formatterMtd == null)
             {
@@ -526,7 +516,7 @@ namespace Cesil.SourceGenerator
 
             if (formatterMtd.IsGenericMethod)
             {
-                var diag = Diagnostic.Create(Diagnostics.MethodCannotBeGeneric, location, formatterMtd.Name);
+                var diag = Diagnostics.MethodCannotBeGeneric(location, formatterMtd);
                 diags = diags.Add(diag);
 
                 return null;
@@ -539,7 +529,7 @@ namespace Cesil.SourceGenerator
 
             if (!accessible)
             {
-                var diag = Diagnostic.Create(Diagnostics.MethodNotPublicOrInternal, location, formatterMtd.Name);
+                var diag = Diagnostics.MethodNotPublicOrInternal(location, formatterMtd);
                 diags = diags.Add(diag);
 
                 return null;
@@ -547,7 +537,7 @@ namespace Cesil.SourceGenerator
 
             if (!formatterMtd.IsStatic)
             {
-                var diag = Diagnostic.Create(Diagnostics.MethodNotStatic, location, formatterMtd.Name);
+                var diag = Diagnostics.MethodNotStatic(location, formatterMtd);
                 diags = diags.Add(diag);
 
                 return null;
@@ -555,7 +545,7 @@ namespace Cesil.SourceGenerator
 
             if (!formatterMtd.ReturnType.Equals(types.BuiltIn.Bool, SymbolEqualityComparer.Default))
             {
-                var diag = Diagnostic.Create(Diagnostics.MethodMustReturnBool, location, formatterMtd.Name);
+                var diag = Diagnostics.MethodMustReturnBool(location, formatterMtd);
                 diags = diags.Add(diag);
 
                 return null;
@@ -564,7 +554,7 @@ namespace Cesil.SourceGenerator
             var formatterParams = formatterMtd.Parameters;
             if (formatterParams.Length != 3)
             {
-                var diag = Diagnostic.Create(Diagnostics.BadFormatterParameters, location, formatterMtd.Name, toFormatType.Name);
+                var diag = Diagnostics.BadFormatterParameters(location, formatterMtd, toFormatType);
                 diags = diags.Add(diag);
 
                 return null;
@@ -573,7 +563,7 @@ namespace Cesil.SourceGenerator
             var p0 = formatterParams[0];
             if (!p0.IsNormalParameterOfType(compilation, toFormatType))
             {
-                var diag = Diagnostic.Create(Diagnostics.BadFormatterParameters, location, formatterMtd.Name, toFormatType.Name);
+                var diag = Diagnostics.BadFormatterParameters(location, formatterMtd, toFormatType);
                 diags = diags.Add(diag);
 
                 return null;
@@ -582,7 +572,7 @@ namespace Cesil.SourceGenerator
             var p1 = formatterParams[1];
             if (!p1.IsInWriteContext(types.OurTypes))
             {
-                var diag = Diagnostic.Create(Diagnostics.BadFormatterParameters, location, formatterMtd.Name, toFormatType.Name);
+                var diag = Diagnostics.BadFormatterParameters(location, formatterMtd, toFormatType);
                 diags = diags.Add(diag);
 
                 return null;
@@ -591,7 +581,7 @@ namespace Cesil.SourceGenerator
             var p2 = formatterParams[2];
             if (!p2.IsNormalParameterOfType(compilation, types.Framework.IBufferWriterOfChar))
             {
-                var diag = Diagnostic.Create(Diagnostics.BadFormatterParameters, location, formatterMtd.Name, toFormatType.Name);
+                var diag = Diagnostics.BadFormatterParameters(location, formatterMtd, toFormatType);
                 diags = diags.Add(diag);
 
                 return null;
@@ -600,263 +590,40 @@ namespace Cesil.SourceGenerator
             return new Formatter(formatterMtd, toFormatType);
         }
 
-        private static IMethodSymbol? GetMethod(ITypeSymbol type, string mtd, Location? location, ref ImmutableArray<Diagnostic> diags)
-        {
-            var mtds = type.GetMembers().OfType<IMethodSymbol>().Where(m => m.Name == mtd).ToImmutableArray();
-            if (mtds.Length == 0)
-            {
-                var diag = Diagnostic.Create(Diagnostics.CouldNotFindMethod, location, type.Name, mtd);
-                diags = diags.Add(diag);
-
-                return null;
-            }
-            else if (mtds.Length > 1)
-            {
-                var diag = Diagnostic.Create(Diagnostics.MultipleMethodsFound, location, type.Name, mtd);
-                diags = diags.Add(diag);
-
-                return null;
-            }
-
-            return mtds.Single();
-        }
-
-        private static (INamedTypeSymbol Type, string Method)? GetMethodFromAttribute(
-            Compilation compilation,
-            string typeNameProperty,
-            DiagnosticDescriptor multipleTypeDefinitionDiagnostic,
-            string methodNameProperty,
-            DiagnosticDescriptor multipleMethodDefinitionDiagnostic,
-            DiagnosticDescriptor notBothSetDefinitionDiagnostic,
-            Location? location,
-            ImmutableArray<AttributeSyntax> attrs,
-            ref ImmutableArray<Diagnostic> diags
-        )
-        {
-            var types = GetTypeConstantWithName(compilation, attrs, typeNameProperty, ref diags);
-            if (types.Length > 1)
-            {
-                var diag = Diagnostic.Create(multipleTypeDefinitionDiagnostic, location);
-                diags = diags.Add(diag);
-
-                return null;
-            }
-
-            var type = types.SingleOrDefault();
-
-            var methods = GetConstantsWithName<string>(compilation, attrs, methodNameProperty, ref diags);
-            if (methods.Length > 1)
-            {
-                var diag = Diagnostic.Create(multipleMethodDefinitionDiagnostic, location);
-                diags = diags.Add(diag);
-
-                return null;
-            }
-
-            var method = methods.SingleOrDefault();
-
-            if (type == null && method == null)
-            {
-                return null;
-            }
-
-            if (type == null || method == null)
-            {
-                var diag = Diagnostic.Create(notBothSetDefinitionDiagnostic, location);
-                diags = diags.Add(diag);
-
-                return null;
-            }
-
-            return (type, method);
-        }
-
-        private static string? GetNameFromAttributes(Compilation compilation, Location? location, ImmutableArray<AttributeSyntax> attrs, ref ImmutableArray<Diagnostic> diags)
-        {
-            var names = GetConstantsWithName<string>(compilation, attrs, "Name", ref diags);
-
-            if (names.Length > 1)
-            {
-                var diag = Diagnostic.Create(Diagnostics.NameSpecifiedMultipleTimes, location);
-                diags = diags.Add(diag);
-
-                return null;
-            }
-
-            return names.SingleOrDefault();
-        }
-
         private static bool? GetEmitDefaultValueFromAttributes(Compilation compilation, Location? location, ImmutableArray<AttributeSyntax> attrs, ref ImmutableArray<Diagnostic> diags)
         {
-            var emits = GetConstantsWithName<bool>(compilation, attrs, "EmitDefaultValue", ref diags);
+            var (emitsByte, emitsBool) = Utils.GetConstantsWithName<byte, bool>(compilation, attrs, "EmitDefaultValue", ref diags);
 
-            if (emits.Length > 1)
+            var total = emitsByte.Length + emitsBool.Length;
+
+            if (total > 1)
             {
-                var diag = Diagnostic.Create(Diagnostics.EmitDefaultValueSpecifiedMultipleTimes, location);
+                var diag = Diagnostics.EmitDefaultValueSpecifiedMultipleTimes(location);
                 diags = diags.Add(diag);
 
                 return null;
             }
 
-            if (emits.Length == 0)
+            if (total == 0)
             {
                 return null;
             }
 
-            return emits.Single();
-        }
-
-        private static int? GetOrderFromAttributes(Compilation compilation, Location? location, ImmutableArray<AttributeSyntax> attrs, ref ImmutableArray<Diagnostic> diags)
-        {
-            if (attrs.IsEmpty)
+            if (emitsByte.Length == 1)
             {
-                return null;
-            }
+                var byteVal = emitsByte.Single();
 
-            var cesilMemberAttr = compilation.GetTypeByMetadataName("Cesil.GenerateSerializableMemberAttribute");
-            if (cesilMemberAttr == null)
-            {
-                throw new System.Exception();
-            }
-
-            // this might be legitimately not included
-            var dataMemberAttr = compilation.GetTypeByMetadataName("System.Runtime.Serialization.DataMemberAttribute");
-
-            var values = ImmutableArray.CreateBuilder<int>();
-
-            foreach (var attr in attrs)
-            {
-                var model = compilation.GetSemanticModel(attr.Name.SyntaxTree);
-                var type = model.GetTypeInfo(attr.Name).Type;
-
-                if (type == null)
-                {
-                    continue;
-                }
-
-                if (type.Equals(cesilMemberAttr, SymbolEqualityComparer.Default))
-                {
-                    var value = GetConstantsWithName<int>(compilation, ImmutableArray.Create(attr), "Order", ref diags);
-                    foreach (var val in value)
+                return
+                    byteVal switch
                     {
-                        values.Add(val);
-                    }
-
-                    continue;
-                }
-
-                if (dataMemberAttr != null && type.Equals(dataMemberAttr, SymbolEqualityComparer.Default))
-                {
-                    var value = GetConstantsWithName<int>(compilation, ImmutableArray.Create(attr), "Order", ref diags);
-                    foreach (var val in value)
-                    {
-                        if (val == -1)
-                        {
-                            continue;
-                        }
-                        else
-                        {
-                            values.Add(val);
-                        }
-                    }
-
-                    continue;
-                }
+                        1 => true,
+                        2 => false,
+                        _ => null
+                    };
             }
 
-            var vs = values.ToImmutable();
-
-            if (vs.IsEmpty)
-            {
-                return null;
-            }
-            else if (vs.Length == 1)
-            {
-                return vs[0];
-            }
-            else
-            {
-                var diag = Diagnostic.Create(Diagnostics.OrderSpecifiedMultipleTimes, location);
-                diags = diags.Add(diag);
-
-                return null;
-            }
-        }
-
-        private static ImmutableArray<INamedTypeSymbol> GetTypeConstantWithName(Compilation compilation, ImmutableArray<AttributeSyntax> attrs, string name, ref ImmutableArray<Diagnostic> diags)
-        {
-            var ret = ImmutableArray<INamedTypeSymbol>.Empty;
-
-            foreach (var attr in attrs)
-            {
-                var argList = attr.ArgumentList;
-                if (argList == null) continue;
-
-                var model = compilation.GetSemanticModel(attr.SyntaxTree);
-
-                var values = argList.Arguments.Where(a => a.NameEquals != null && a.NameEquals.Name.Identifier.ValueText == name);
-                foreach (var value in values)
-                {
-
-                    if (value.Expression is TypeOfExpressionSyntax typeofExp)
-                    {
-                        var type = model.GetTypeInfo(typeofExp.Type);
-
-                        if (type.Type is INamedTypeSymbol namedType)
-                        {
-                            ret = ret.Add(namedType);
-                        }
-                        else
-                        {
-                            var diag = Diagnostic.Create(Diagnostics.CouldNotExtractConstantValue, value.Expression.GetLocation());
-                            diags = diags.Add(diag);
-                            continue;
-                        }
-                    }
-                }
-            }
-
-            return ret;
-
-        }
-
-        private static ImmutableArray<T> GetConstantsWithName<T>(Compilation compilation, ImmutableArray<AttributeSyntax> attrs, string name, ref ImmutableArray<Diagnostic> diags)
-        {
-            var ret = ImmutableArray<T>.Empty;
-
-            foreach (var attr in attrs)
-            {
-                var argList = attr.ArgumentList;
-                if (argList == null) continue;
-
-                var model = compilation.GetSemanticModel(attr.SyntaxTree);
-
-                var values = argList.Arguments.Where(a => a.NameEquals != null && a.NameEquals.Name.Identifier.ValueText == name);
-                foreach (var value in values)
-                {
-                    var trueValue = model.GetConstantValue(value.Expression);
-                    if (!trueValue.HasValue)
-                    {
-                        var diag = Diagnostic.Create(Diagnostics.CouldNotExtractConstantValue, value.Expression.GetLocation());
-                        diags = diags.Add(diag);
-                        continue;
-                    }
-
-                    if (trueValue.Value is T asT)
-                    {
-                        ret = ret.Add(asT);
-                    }
-                    else
-                    {
-                        var actualType = trueValue.Value?.GetType()?.Name ?? "null";
-                        var diag = Diagnostic.Create(Diagnostics.UnexpectedConstantValueType, value.Expression.GetLocation(), new[] { typeof(T).Name, actualType });
-                        diags = diags.Add(diag);
-                        continue;
-                    }
-                }
-            }
-
-            return ret;
+            var boolVal = emitsBool.Single();
+            return boolVal;
         }
     }
 }

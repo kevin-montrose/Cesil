@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Reflection;
 
 namespace Cesil
@@ -21,6 +22,11 @@ namespace Cesil
         internal static readonly TypeInfo Float = typeof(float).GetTypeInfo();
         internal static readonly TypeInfo Double = typeof(double).GetTypeInfo();
         internal static readonly TypeInfo Decimal = typeof(decimal).GetTypeInfo();
+
+        // System delegates
+        internal static readonly TypeInfo FuncOfT = typeof(Func<>).GetTypeInfo();
+        internal static readonly TypeInfo FuncOfBool = typeof(Func<bool>).GetTypeInfo();
+        internal static readonly TypeInfo FuncOfImmutableArrayOfString = typeof(Func<ImmutableArray<string>>).GetTypeInfo();
 
         // System structs
         internal static readonly TypeInfo Void = typeof(void).GetTypeInfo();
@@ -132,6 +138,10 @@ namespace Cesil
         internal static readonly TypeInfo ClearHoldDelegate = typeof(ClearHoldDelegate<>).GetTypeInfo();
         internal static readonly TypeInfo InstanceProviderDelegate = typeof(InstanceProviderDelegate<>).GetTypeInfo();
         internal static readonly TypeInfo NeedsHoldRowConstructor = typeof(NeedsHoldRowConstructor<,>).GetTypeInfo();
+        internal static readonly TypeInfo StartRowDelegate = typeof(StartRowDelegate).GetTypeInfo();
+        internal static readonly TypeInfo TryPreAllocateDelegateOfT = typeof(TryPreAllocateDelegate<>).GetTypeInfo();
+        internal static readonly TypeInfo GeneratedColumnAvailableDelegate = typeof(GeneratedColumnAvailableDelegate).GetTypeInfo();
+        internal static readonly TypeInfo GetColumnMapDelegate = typeof(GetColumnMapDelegate).GetTypeInfo();
 
         // Cesil enums
         internal static readonly TypeInfo RowEnding = typeof(RowEnding).GetTypeInfo();
@@ -176,9 +186,6 @@ namespace Cesil
         internal static readonly TypeInfo DynamicRowRange = typeof(DynamicRowRange).GetTypeInfo();
         internal static readonly TypeInfo PassthroughRowEnumerable = typeof(PassthroughRowEnumerable).GetTypeInfo();
         internal static readonly TypeInfo DefaultTypeDescriber = typeof(DefaultTypeDescriber).GetTypeInfo();
-
-        // Cesil attributes
-        internal static readonly TypeInfo GeneratedSourceVersionAttribute = typeof(GeneratedSourceVersionAttribute).GetTypeInfo();
 
         // constructor params
         internal static readonly TypeInfo[] ParserConstructorOneParameter_Array = new[] { typeof(ReadOnlySpan<char>).GetTypeInfo() };

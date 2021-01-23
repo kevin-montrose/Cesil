@@ -66,7 +66,6 @@ namespace Cesil
             char? escapeStartEnd = options.EscapedValueStartAndEnd;
             var valueSep = options.ValueSeparator;
 
-
             // this is entirely knowable now, so go ahead and calculate
             //   and save for future use
             var needsEscape = DetermineNeedsEscape(serializeColumns, escapeStartEnd, valueSep);

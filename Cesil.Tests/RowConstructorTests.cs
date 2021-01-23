@@ -58,7 +58,7 @@ namespace Cesil.Tests
                 var res = reader.Read();
 
                 var cons = new DynamicRowConstructor();
-                cons.SetColumnOrder(res.Headers);
+                cons.SetColumnOrder(config.Options, res.Headers);
 
                 object row = null;
                 cons.TryPreAllocate(default, false, ref row);
@@ -461,7 +461,7 @@ namespace Cesil.Tests
 
                 var builder = RowConstructor.Create<_Simple>(MemoryPool<char>.Shared, ip, new[] { dmFoo, dmBar });
 
-                return builder.Clone();
+                return builder.Clone(Options.Default);
             }
 
             static IRowConstructor<_Mixed> CreateHeldConstructor()
@@ -502,7 +502,7 @@ namespace Cesil.Tests
                         }
                     );
 
-                return builder.Clone();
+                return builder.Clone(Options.Default);
             }
         }
 
@@ -604,7 +604,7 @@ namespace Cesil.Tests
                         }
                     );
 
-                return builder.Clone();
+                return builder.Clone(Options.Default);
             }
         }
 
@@ -661,7 +661,7 @@ namespace Cesil.Tests
 
                 var builder = RowConstructor.Create<_Simple>(MemoryPool<char>.Shared, ip, new[] { dmFoo, dmBar });
 
-                return builder.Clone();
+                return builder.Clone(Options.Default);
             }
         }
 
@@ -689,7 +689,7 @@ namespace Cesil.Tests
             var dmFoo = DeserializableMember.Create(t, nameof(_Simple.Foo), sFoo, pFoo, MemberRequired.No, null);
             var dmBar = DeserializableMember.Create(t, nameof(_Simple.Bar), sBar, pBar, MemberRequired.No, null);
 
-            using var builder = RowConstructor.Create<_Simple>(MemoryPool<char>.Shared, ip, new[] { dmFoo, dmBar }).Clone();
+            using var builder = RowConstructor.Create<_Simple>(MemoryPool<char>.Shared, ip, new[] { dmFoo, dmBar }).Clone(Options.Default);
 
             _Simple _ = null;
 
@@ -792,7 +792,7 @@ namespace Cesil.Tests
             // no change
             {
                 using var builder = MakeConstructor();
-                builder.SetColumnOrder(CreateHeadersReader<_Simple>("Foo,Bar"));
+                builder.SetColumnOrder(Options.Default, CreateHeadersReader<_Simple>("Foo,Bar"));
 
                 _Simple _ = null;
                 Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
@@ -808,7 +808,7 @@ namespace Cesil.Tests
             // reverse
             {
                 using var builder = MakeConstructor();
-                builder.SetColumnOrder(CreateHeadersReader<_Simple>("Bar,Foo"));
+                builder.SetColumnOrder(Options.Default, CreateHeadersReader<_Simple>("Bar,Foo"));
 
                 _Simple _ = null;
                 Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
@@ -824,7 +824,7 @@ namespace Cesil.Tests
             // missing Foo
             {
                 using var builder = MakeConstructor();
-                builder.SetColumnOrder(CreateHeadersReader<_Simple>("Foo"));
+                builder.SetColumnOrder(Options.Default, CreateHeadersReader<_Simple>("Foo"));
 
                 _Simple _ = null;
                 Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
@@ -839,7 +839,7 @@ namespace Cesil.Tests
             // missing Bar
             {
                 using var builder = MakeConstructor();
-                builder.SetColumnOrder(CreateHeadersReader<_Simple>("Bar"));
+                builder.SetColumnOrder(Options.Default, CreateHeadersReader<_Simple>("Bar"));
 
                 _Simple _ = null;
                 Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
@@ -854,7 +854,7 @@ namespace Cesil.Tests
             // empty
             {
                 using var builder = MakeConstructor();
-                builder.SetColumnOrder(CreateHeadersReader<_Simple>(""));
+                builder.SetColumnOrder(Options.Default, CreateHeadersReader<_Simple>(""));
 
                 _Simple _ = null;
                 Assert.True(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
@@ -917,7 +917,7 @@ namespace Cesil.Tests
             var dmFoo = DeserializableMember.Create(t, nameof(_ConstructorParameters.Foo), sFoo, pFoo, MemberRequired.Yes, null);
             var dmBar = DeserializableMember.Create(t, nameof(_ConstructorParameters.Bar), sBar, pBar, MemberRequired.Yes, null);
 
-            using var builder = RowConstructor.Create<_ConstructorParameters>(MemoryPool<char>.Shared, ip, new[] { dmFoo, dmBar }).Clone();
+            using var builder = RowConstructor.Create<_ConstructorParameters>(MemoryPool<char>.Shared, ip, new[] { dmFoo, dmBar }).Clone(Options.Default);
 
             _ConstructorParameters _ = null;
 
@@ -950,7 +950,7 @@ namespace Cesil.Tests
             // no change
             {
                 using var builder = MakeConstructor();
-                builder.SetColumnOrder(CreateHeadersReader<_ConstructorParameters>("Foo,Bar"));
+                builder.SetColumnOrder(Options.Default, CreateHeadersReader<_ConstructorParameters>("Foo,Bar"));
 
                 _ConstructorParameters _ = null;
                 Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
@@ -966,7 +966,7 @@ namespace Cesil.Tests
             // reverse
             {
                 using var builder = MakeConstructor();
-                builder.SetColumnOrder(CreateHeadersReader<_ConstructorParameters>("Bar,Foo"));
+                builder.SetColumnOrder(Options.Default, CreateHeadersReader<_ConstructorParameters>("Bar,Foo"));
 
                 _ConstructorParameters _ = null;
                 Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
@@ -999,7 +999,7 @@ namespace Cesil.Tests
 
                 var builder = RowConstructor.Create<_ConstructorParameters>(MemoryPool<char>.Shared, ip, new[] { dmFoo, dmBar });
 
-                return builder.Clone();
+                return builder.Clone(Options.Default);
             }
         }
 
@@ -1057,7 +1057,7 @@ namespace Cesil.Tests
                         dmFizz,
                         dmBuzz
                     }
-                ).Clone();
+                ).Clone(Options.Default);
 
             _Mixed _ = null;
 
@@ -1247,7 +1247,7 @@ namespace Cesil.Tests
                 _Mixed _ = null;
 
                 using var builder = MakeConstructor(out var td);
-                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Foo,Bar,Fizz,Buzz", td));
+                builder.SetColumnOrder(Options.Default, CreateHeadersReader<_Mixed>("Foo,Bar,Fizz,Buzz", td));
 
                 Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
@@ -1268,7 +1268,7 @@ namespace Cesil.Tests
                 _Mixed _ = null;
 
                 using var builder = MakeConstructor(out var td);
-                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Buzz,Fizz,Bar,Foo", td));
+                builder.SetColumnOrder(Options.Default, CreateHeadersReader<_Mixed>("Buzz,Fizz,Bar,Foo", td));
 
                 Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
@@ -1289,7 +1289,7 @@ namespace Cesil.Tests
                 _Mixed _ = null;
 
                 using var builder = MakeConstructor(out var td);
-                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Foo,Bar,Buzz", td));
+                builder.SetColumnOrder(Options.Default, CreateHeadersReader<_Mixed>("Foo,Bar,Buzz", td));
 
                 Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
@@ -1309,7 +1309,7 @@ namespace Cesil.Tests
                 _Mixed _ = null;
 
                 using var builder = MakeConstructor(out var td);
-                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Buzz,Bar,Foo", td));
+                builder.SetColumnOrder(Options.Default, CreateHeadersReader<_Mixed>("Buzz,Bar,Foo", td));
 
                 Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
@@ -1329,7 +1329,7 @@ namespace Cesil.Tests
                 _Mixed _ = null;
 
                 using var builder = MakeConstructor(out var td);
-                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Foo,Bar,Fizz", td));
+                builder.SetColumnOrder(Options.Default, CreateHeadersReader<_Mixed>("Foo,Bar,Fizz", td));
 
                 Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
@@ -1349,7 +1349,7 @@ namespace Cesil.Tests
                 _Mixed _ = null;
 
                 using var builder = MakeConstructor(out var td);
-                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Fizz,Bar,Foo", td));
+                builder.SetColumnOrder(Options.Default, CreateHeadersReader<_Mixed>("Fizz,Bar,Foo", td));
 
                 Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
@@ -1371,7 +1371,7 @@ namespace Cesil.Tests
                 _Mixed _ = null;
 
                 using var builder = MakeConstructor(out var td);
-                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Foo,Bar", td));
+                builder.SetColumnOrder(Options.Default, CreateHeadersReader<_Mixed>("Foo,Bar", td));
 
                 Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
@@ -1390,7 +1390,7 @@ namespace Cesil.Tests
                 _Mixed _ = null;
 
                 using var builder = MakeConstructor(out var td);
-                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Bar,Foo", td));
+                builder.SetColumnOrder(Options.Default, CreateHeadersReader<_Mixed>("Bar,Foo", td));
 
                 Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
@@ -1445,7 +1445,7 @@ namespace Cesil.Tests
                         }
                     );
 
-                return builder.Clone();
+                return builder.Clone(Options.Default);
             }
         }
 
@@ -1456,7 +1456,7 @@ namespace Cesil.Tests
             {
                 _Mixed _ = null;
 
-                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Buzz,Fizz,Bar,Foo", describer));
+                builder.SetColumnOrder(Options.Default, CreateHeadersReader<_Mixed>("Buzz,Fizz,Bar,Foo", describer));
 
                 Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
@@ -1476,7 +1476,7 @@ namespace Cesil.Tests
             {
                 _Mixed _ = null;
 
-                builder.SetColumnOrder(CreateHeadersReader<_Mixed>("Fizz,Bar,Foo,Buzz", describer));
+                builder.SetColumnOrder(Options.Default, CreateHeadersReader<_Mixed>("Fizz,Bar,Foo,Buzz", describer));
 
                 Assert.False(builder.TryPreAllocate(ReadContext.ReadingRow(Options.Default, 0, null), false, ref _));
                 builder.StartRow(ReadContext.ReadingRow(Options.Default, 0, null));
@@ -1527,7 +1527,7 @@ namespace Cesil.Tests
                         }
                     );
 
-                return builder.Clone();
+                return builder.Clone(Options.Default);
             }
         }
 

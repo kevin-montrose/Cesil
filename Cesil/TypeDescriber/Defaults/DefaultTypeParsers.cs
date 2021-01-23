@@ -1,17 +1,22 @@
-﻿using System;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
+﻿// be aware, this file is also included in Cesil.SourceGenerator
+//   so it is _very_ particular in strucutre
+//
+// don't edit it all willy-nilly
+using System;
 using System.Linq;
 using System.Reflection;
 
 using static Cesil.BindingFlagsConstants;
 
+// todo: analyzer to enforce all the conventions needed for Cesil.SourceGenerator to work
+
 namespace Cesil
 {
-    [SuppressMessage("", "IDE0051", Justification = "Used via reflection")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("", "IDE0051", Justification = "Used via reflection")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("", "IDE0060", Justification = "Unused paramters are required")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("", "IDE0002", Justification = "Pattern is important for source generation")]
     internal static class DefaultTypeParsers
     {
-
         internal static class DefaultEnumTypeParser<T>
             where T : struct, Enum
         {
@@ -131,7 +136,7 @@ namespace Cesil
                 return Parser.ForMethod(enumParsingMtd);
             }
 
-            private static bool TryParseEnum(ReadOnlySpan<char> span, in ReadContext _, out T val)
+            private static bool TryParseEnum(ReadOnlySpan<char> span, in ReadContext ctx, out T val)
             {
                 // todo: use a better method when one is available (tracking issue: https://github.com/kevin-montrose/Cesil/issues/7)
                 //       maybe after https://github.com/dotnet/corefx/issues/15453 lands?
@@ -153,7 +158,7 @@ namespace Cesil
                 return false;
             }
 
-            private static bool TryParseNullableEnum(ReadOnlySpan<char> data, in ReadContext _, out T? val)
+            private static bool TryParseNullableEnum(ReadOnlySpan<char> data, in ReadContext ctx, out T? val)
             {
                 if (data.Length == 0)
                 {
@@ -161,7 +166,7 @@ namespace Cesil
                     return true;
                 }
 
-                if (!TryParseEnum(data, _, out var pVal))
+                if (!TryParseEnum(data, ctx, out var pVal))
                 {
                     val = null;
                     return false;
@@ -171,9 +176,9 @@ namespace Cesil
                 return true;
             }
 
-            private static bool TryParseFlagsEnum(ReadOnlySpan<char> data, in ReadContext _, out T val)
+            private static bool TryParseFlagsEnum(ReadOnlySpan<char> data, in ReadContext ctx, out T val)
             {
-                if (!Utils.TryParseFlagsEnum(data, Names, ULongValues, out val))
+                if (!ParseFlagsEnumImpl(data, Names, ULongValues, out val))
                 {
 #pragma warning disable CES0005     // T is generic, so we can't annotate it, but it needs a default value
                     val = default!;
@@ -184,7 +189,7 @@ namespace Cesil
                 return true;
             }
 
-            private static bool TryParseNullableFlagsEnum(ReadOnlySpan<char> data, in ReadContext _, out T? val)
+            private static bool TryParseNullableFlagsEnum(ReadOnlySpan<char> data, in ReadContext ctx, out T? val)
             {
                 if (data.Length == 0)
                 {
@@ -192,7 +197,7 @@ namespace Cesil
                     return true;
                 }
 
-                if (!TryParseFlagsEnum(data, _, out var pVal))
+                if (!TryParseFlagsEnum(data, ctx, out var pVal))
                 {
                     val = null;
                     return false;
@@ -201,9 +206,110 @@ namespace Cesil
                 val = pVal;
                 return true;
             }
+
+            /// <summary>
+            /// This is _like_ calling TryParse(), but it doesn't allow values
+            /// that aren't actually declared on the enum.
+            /// </summary>
+            internal static bool ParseFlagsEnumImpl(ReadOnlySpan<char> data, string[] enumNames, ulong[] enumValues, out T resultT)
+            {
+                // based on: https://referencesource.microsoft.com/#mscorlib/system/enum.cs,432
+
+                ulong result = 0;
+
+                while (!data.IsEmpty)
+                {
+                    var ix = MemoryExtensions.IndexOf(data, ',');
+                    int startNextIx;
+
+                    if (ix == -1)
+                    {
+                        ix = data.Length;
+                        startNextIx = data.Length;
+                    }
+                    else
+                    {
+                        startNextIx = ix + 1;
+                    }
+
+                    var value = data[..ix];
+                    value = TrimLeadingWhitespace(value);
+                    value = TrimTrailingWhitespace(value);
+
+                    var success = false;
+
+                    for (int j = 0; j < enumNames.Length; j++)
+                    {
+                        var namesSpan = enumNames[j].AsSpan();
+
+                        // have to use a comparer because different casing is legal!
+                        var res = namesSpan.CompareTo(value, StringComparison.InvariantCultureIgnoreCase);
+                        if (res != 0)
+                        {
+                            continue;
+                        }
+
+                        var item = enumValues[j];
+
+                        result |= item;
+                        success = true;
+                        break;
+                    }
+
+                    if (!success)
+                    {
+                        resultT = default;
+                        return false;
+                    }
+
+                    data = data[startNextIx..];
+                }
+
+                resultT = Utils.ULongToEnum<T>(result);
+                return true;
+            }
+
+            static ReadOnlySpan<char> TrimLeadingWhitespace(ReadOnlySpan<char> span)
+            {
+                var skip = 0;
+                var len = span.Length;
+
+                while (skip < len)
+                {
+                    var c = span[skip];
+                    if (!char.IsWhiteSpace(c)) break;
+
+                    skip++;
+                }
+
+                if (skip == 0) return span;
+                if (skip == len) return ReadOnlySpan<char>.Empty;
+
+                return span[skip..];
+            }
+
+            static ReadOnlySpan<char> TrimTrailingWhitespace(ReadOnlySpan<char> span)
+            {
+                var len = span.Length;
+                var start = len - 1;
+                var skip = start;
+
+                while (skip >= 0)
+                {
+                    var c = span[skip];
+                    if (!char.IsWhiteSpace(c)) break;
+
+                    skip--;
+                }
+
+                if (skip == start) return span;
+                if (skip == -1) return ReadOnlySpan<char>.Empty;
+
+                return span[0..(skip + 1)];
+            }
         }
 
-        private static bool TryParseString(ReadOnlySpan<char> span, in ReadContext _, out string val)
+        private static bool TryParseString(ReadOnlySpan<char> span, in ReadContext ctx, out string val)
         {
             if (span.Length == 0)
             {
@@ -215,26 +321,30 @@ namespace Cesil
             return true;
         }
 
-        private static bool TryParseVersion(ReadOnlySpan<char> span, in ReadContext _, out Version? val)
-        => Version.TryParse(span, out val);
-
-        private static bool TryParseUri(ReadOnlySpan<char> span, in ReadContext _, out Uri? val)
+        private static bool TryParseVersion(ReadOnlySpan<char> span, in ReadContext ctx, out Version? val)
         {
-            if (!TryParseString(span, in _, out var asStr))
+            return Version.TryParse(span, out val);
+        }
+
+        private static bool TryParseUri(ReadOnlySpan<char> span, in ReadContext ctx, out Uri? val)
+        {
+            if (DefaultTypeParsers.TryParseString(span, in ctx, out var asStr))
             {
-                val = default;
-                return false;
+                return Uri.TryCreate(asStr, UriKind.RelativeOrAbsolute, out val);
             }
 
-            return Uri.TryCreate(asStr, UriKind.RelativeOrAbsolute, out val);
+            val = default;
+            return false;
         }
 
         // non-null
 
-        private static bool TryParseBool(ReadOnlySpan<char> span, in ReadContext _, out bool val)
-        => bool.TryParse(span, out val);
+        private static bool TryParseBool(ReadOnlySpan<char> span, in ReadContext ctx, out bool val)
+        {
+            return bool.TryParse(span, out val);
+        }
 
-        private static bool TryParseChar(ReadOnlySpan<char> span, in ReadContext _, out char val)
+        private static bool TryParseChar(ReadOnlySpan<char> span, in ReadContext ctx, out char val)
         {
             if (span.Length != 1)
             {
@@ -246,63 +356,88 @@ namespace Cesil
             return true;
         }
 
-        private static bool TryParseDateTime(ReadOnlySpan<char> span, in ReadContext _, out DateTime val)
-        => DateTime.TryParse(span, CultureInfo.InvariantCulture, DateTimeStyles.None, out val);
+        private static bool TryParseDateTime(ReadOnlySpan<char> span, in ReadContext ctx, out DateTime val)
+        {
+            return DateTime.TryParse(span, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out val);
+        }
 
-        private static bool TryParseDateTimeOffset(ReadOnlySpan<char> span, in ReadContext _, out DateTimeOffset val)
-        => DateTimeOffset.TryParse(span, CultureInfo.InvariantCulture, DateTimeStyles.None, out val);
+        private static bool TryParseDateTimeOffset(ReadOnlySpan<char> span, in ReadContext ctx, out DateTimeOffset val)
+        {
+            return DateTimeOffset.TryParse(span, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out val);
+        }
 
+        private static bool TryParseByte(ReadOnlySpan<char> span, in ReadContext ctx, out byte val)
+        {
+            return byte.TryParse(span, System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out val);
+        }
 
-        private static bool TryParseByte(ReadOnlySpan<char> span, in ReadContext _, out byte val)
-        => byte.TryParse(span, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out val);
+        private static bool TryParseSByte(ReadOnlySpan<char> span, in ReadContext ctx, out sbyte val)
+        {
+            return sbyte.TryParse(span, System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out val);
+        }
 
+        private static bool TryParseShort(ReadOnlySpan<char> span, in ReadContext ctx, out short val)
+        {
+            return short.TryParse(span, System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out val);
+        }
 
-        private static bool TryParseSByte(ReadOnlySpan<char> span, in ReadContext _, out sbyte val)
-        => sbyte.TryParse(span, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out val);
+        private static bool TryParseUShort(ReadOnlySpan<char> span, in ReadContext ctx, out ushort val)
+        {
+            return ushort.TryParse(span, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out val);
+        }
 
+        private static bool TryParseInt(ReadOnlySpan<char> span, in ReadContext ctx, out int val)
+        {
+            return int.TryParse(span, System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out val);
+        }
 
-        private static bool TryParseShort(ReadOnlySpan<char> span, in ReadContext _, out short val)
-        => short.TryParse(span, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out val);
+        private static bool TryParseUInt(ReadOnlySpan<char> span, in ReadContext ctx, out uint val)
+        {
+            return uint.TryParse(span, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out val);
+        }
 
+        private static bool TryParseLong(ReadOnlySpan<char> span, in ReadContext ctx, out long val)
+        {
+            return long.TryParse(span, System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out val);
+        }
 
-        private static bool TryParseUShort(ReadOnlySpan<char> span, in ReadContext _, out ushort val)
-        => ushort.TryParse(span, NumberStyles.None, CultureInfo.InvariantCulture, out val);
+        private static bool TryParseULong(ReadOnlySpan<char> span, in ReadContext ctx, out ulong val)
+        {
+            return ulong.TryParse(span, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out val);
+        }
 
+        private static bool TryParseFloat(ReadOnlySpan<char> span, in ReadContext ctx, out float val)
+        {
+            const System.Globalization.NumberStyles STYLE = System.Globalization.NumberStyles.AllowLeadingSign | System.Globalization.NumberStyles.AllowDecimalPoint | System.Globalization.NumberStyles.AllowExponent;
 
-        private static bool TryParseInt(ReadOnlySpan<char> span, in ReadContext _, out int val)
-        => int.TryParse(span, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out val);
+            return float.TryParse(span, STYLE, System.Globalization.CultureInfo.InvariantCulture, out val);
+        }
 
+        private static bool TryParseDouble(ReadOnlySpan<char> span, in ReadContext ctx, out double val)
+        {
+            const System.Globalization.NumberStyles STYLE = System.Globalization.NumberStyles.AllowLeadingSign | System.Globalization.NumberStyles.AllowDecimalPoint | System.Globalization.NumberStyles.AllowExponent;
 
-        private static bool TryParseUInt(ReadOnlySpan<char> span, in ReadContext _, out uint val)
-        => uint.TryParse(span, NumberStyles.None, CultureInfo.InvariantCulture, out val);
+            return double.TryParse(span, STYLE, System.Globalization.CultureInfo.InvariantCulture, out val);
+        }
 
+        private static bool TryParseDecimal(ReadOnlySpan<char> span, in ReadContext ctx, out decimal val)
+        {
+            const System.Globalization.NumberStyles STYLE = System.Globalization.NumberStyles.AllowLeadingSign | System.Globalization.NumberStyles.AllowDecimalPoint | System.Globalization.NumberStyles.AllowExponent;
 
-        private static bool TryParseLong(ReadOnlySpan<char> span, in ReadContext _, out long val)
-        => long.TryParse(span, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out val);
+            return decimal.TryParse(span, STYLE, System.Globalization.CultureInfo.InvariantCulture, out val);
+        }
 
+        private static bool TryParseGuid(ReadOnlySpan<char> span, in ReadContext ctx, out Guid val)
+        {
+            return Guid.TryParse(span, out val);
+        }
 
-        private static bool TryParseULong(ReadOnlySpan<char> span, in ReadContext _, out ulong val)
-        => ulong.TryParse(span, NumberStyles.None, CultureInfo.InvariantCulture, out val);
+        private static bool TryParseTimeSpan(ReadOnlySpan<char> span, in ReadContext ctx, out TimeSpan val)
+        {
+            return TimeSpan.TryParse(span, out val);
+        }
 
-
-        private static bool TryParseFloat(ReadOnlySpan<char> span, in ReadContext _, out float val)
-        => float.TryParse(span, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent, CultureInfo.InvariantCulture, out val);
-
-
-        private static bool TryParseDouble(ReadOnlySpan<char> span, in ReadContext _, out double val)
-        => double.TryParse(span, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent, CultureInfo.InvariantCulture, out val);
-
-
-        private static bool TryParseDecimal(ReadOnlySpan<char> span, in ReadContext _, out decimal val)
-        => decimal.TryParse(span, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent, CultureInfo.InvariantCulture, out val);
-
-        private static bool TryParseGUID(ReadOnlySpan<char> span, in ReadContext _, out Guid val)
-        => Guid.TryParse(span, out val);
-
-        private static bool TryParseTimeSpan(ReadOnlySpan<char> span, in ReadContext _, out TimeSpan val)
-        => TimeSpan.TryParse(span, out val);
-
-        private static bool TryParseIndex(ReadOnlySpan<char> span, in ReadContext _, out Index val)
+        private static bool TryParseIndex(ReadOnlySpan<char> span, in ReadContext ctx, out Index val)
         {
             if (span.Length == 0)
             {
@@ -313,7 +448,7 @@ namespace Cesil
             var fromEnd = span[0] == '^';
             var ixSpan = fromEnd ? span.Slice(1) : span;
 
-            if (!TryParseInt(ixSpan, in _, out var ix))
+            if (!TryParseInt(ixSpan, in ctx, out var ix))
             {
                 val = default;
                 return false;
@@ -323,7 +458,7 @@ namespace Cesil
             return true;
         }
 
-        private static bool TryParseRange(ReadOnlySpan<char> span, in ReadContext _, out Range val)
+        private static bool TryParseRange(ReadOnlySpan<char> span, in ReadContext ctx, out Range val)
         {
             if (span.Length == 0)
             {
@@ -356,7 +491,7 @@ namespace Cesil
 
             Index start, end;
 
-            if (!TryParseNullableIndex(startChars, in _, out var startNullable))
+            if (!TryParseNullableIndex(startChars, in ctx, out var startNullable))
             {
                 val = default;
                 return false;
@@ -366,7 +501,7 @@ namespace Cesil
                 start = startNullable ?? Index.Start;
             }
 
-            if (!TryParseNullableIndex(endChars, in _, out var endNullable))
+            if (!TryParseNullableIndex(endChars, in ctx, out var endNullable))
             {
                 val = default;
                 return false;
@@ -382,7 +517,7 @@ namespace Cesil
 
         // nullable
 
-        private static bool TryParseNullableBool(ReadOnlySpan<char> span, in ReadContext _, out bool? val)
+        private static bool TryParseNullableBool(ReadOnlySpan<char> span, in ReadContext ctx, out bool? val)
         {
             if (span.Length == 0)
             {
@@ -390,17 +525,17 @@ namespace Cesil
                 return true;
             }
 
-            if (!TryParseBool(span, _, out var pVal))
+            if (DefaultTypeParsers.TryParseBool(span, in ctx, out var pVal))
             {
-                val = null;
-                return false;
+                val = pVal;
+                return true;
             }
 
-            val = pVal;
-            return true;
+            val = null;
+            return false;
         }
 
-        private static bool TryParseNullableChar(ReadOnlySpan<char> span, in ReadContext _, out char? val)
+        private static bool TryParseNullableChar(ReadOnlySpan<char> span, in ReadContext ctx, out char? val)
         {
             if (span.Length == 0)
             {
@@ -418,7 +553,7 @@ namespace Cesil
             return true;
         }
 
-        private static bool TryParseNullableDateTime(ReadOnlySpan<char> span, in ReadContext _, out DateTime? val)
+        private static bool TryParseNullableDateTime(ReadOnlySpan<char> span, in ReadContext ctx, out DateTime? val)
         {
             if (span.Length == 0)
             {
@@ -426,18 +561,17 @@ namespace Cesil
                 return true;
             }
 
-            if (!TryParseDateTime(span, _, out var pVal))
+            if (DefaultTypeParsers.TryParseDateTime(span, in ctx, out var pVal))
             {
-                val = null;
-                return false;
+                val = pVal;
+                return true;
             }
 
-            val = pVal;
-            return true;
+            val = null;
+            return false;
         }
 
-
-        private static bool TryParseNullableDateTimeOffset(ReadOnlySpan<char> span, in ReadContext _, out DateTimeOffset? val)
+        private static bool TryParseNullableDateTimeOffset(ReadOnlySpan<char> span, in ReadContext ctx, out DateTimeOffset? val)
         {
             if (span.Length == 0)
             {
@@ -445,18 +579,17 @@ namespace Cesil
                 return true;
             }
 
-            if (!TryParseDateTimeOffset(span, _, out var pVal))
+            if (DefaultTypeParsers.TryParseDateTimeOffset(span, in ctx, out var pVal))
             {
-                val = null;
-                return false;
+                val = pVal;
+                return true;
             }
 
-            val = pVal;
-            return true;
+            val = null;
+            return false;
         }
 
-
-        private static bool TryParseNullableByte(ReadOnlySpan<char> span, in ReadContext _, out byte? val)
+        private static bool TryParseNullableByte(ReadOnlySpan<char> span, in ReadContext ctx, out byte? val)
         {
             if (span.Length == 0)
             {
@@ -464,18 +597,17 @@ namespace Cesil
                 return true;
             }
 
-            if (!TryParseByte(span, _, out var pVal))
+            if (DefaultTypeParsers.TryParseByte(span, in ctx, out var pVal))
             {
-                val = null;
-                return false;
+                val = pVal;
+                return true;
             }
 
-            val = pVal;
-            return true;
+            val = null;
+            return false;
         }
 
-
-        private static bool TryParseNullableSByte(ReadOnlySpan<char> span, in ReadContext _, out sbyte? val)
+        private static bool TryParseNullableSByte(ReadOnlySpan<char> span, in ReadContext ctx, out sbyte? val)
         {
             if (span.Length == 0)
             {
@@ -483,18 +615,17 @@ namespace Cesil
                 return true;
             }
 
-            if (!TryParseSByte(span, _, out var pVal))
+            if (DefaultTypeParsers.TryParseSByte(span, in ctx, out var pVal))
             {
-                val = null;
-                return false;
+                val = pVal;
+                return true;
             }
 
-            val = pVal;
-            return true;
+            val = null;
+            return false;
         }
 
-
-        private static bool TryParseNullableShort(ReadOnlySpan<char> span, in ReadContext _, out short? val)
+        private static bool TryParseNullableShort(ReadOnlySpan<char> span, in ReadContext ctx, out short? val)
         {
             if (span.Length == 0)
             {
@@ -502,18 +633,17 @@ namespace Cesil
                 return true;
             }
 
-            if (!TryParseShort(span, _, out var pVal))
+            if (DefaultTypeParsers.TryParseShort(span, in ctx, out var pVal))
             {
-                val = null;
-                return false;
+                val = pVal;
+                return true;
             }
 
-            val = pVal;
-            return true;
+            val = null;
+            return false;
         }
 
-
-        private static bool TryParseNullableUShort(ReadOnlySpan<char> span, in ReadContext _, out ushort? val)
+        private static bool TryParseNullableUShort(ReadOnlySpan<char> span, in ReadContext ctx, out ushort? val)
         {
             if (span.Length == 0)
             {
@@ -521,18 +651,17 @@ namespace Cesil
                 return true;
             }
 
-            if (!TryParseUShort(span, _, out var pVal))
+            if (DefaultTypeParsers.TryParseUShort(span, in ctx, out var pVal))
             {
-                val = null;
-                return false;
+                val = pVal;
+                return true;
             }
 
-            val = pVal;
-            return true;
+            val = null;
+            return false;
         }
 
-
-        private static bool TryParseNullableInt(ReadOnlySpan<char> span, in ReadContext _, out int? val)
+        private static bool TryParseNullableInt(ReadOnlySpan<char> span, in ReadContext ctx, out int? val)
         {
             if (span.Length == 0)
             {
@@ -540,18 +669,17 @@ namespace Cesil
                 return true;
             }
 
-            if (!TryParseInt(span, _, out var pVal))
+            if (DefaultTypeParsers.TryParseInt(span, in ctx, out var pVal))
             {
-                val = null;
-                return false;
+                val = pVal;
+                return true;
             }
 
-            val = pVal;
-            return true;
+            val = null;
+            return false;
         }
 
-
-        private static bool TryParseNullableUInt(ReadOnlySpan<char> span, in ReadContext _, out uint? val)
+        private static bool TryParseNullableUInt(ReadOnlySpan<char> span, in ReadContext ctx, out uint? val)
         {
             if (span.Length == 0)
             {
@@ -559,18 +687,17 @@ namespace Cesil
                 return true;
             }
 
-            if (!TryParseUInt(span, _, out var pVal))
+            if (DefaultTypeParsers.TryParseUInt(span, in ctx, out var pVal))
             {
-                val = null;
-                return false;
+                val = pVal;
+                return true;
             }
 
-            val = pVal;
-            return true;
+            val = null;
+            return false;
         }
 
-
-        private static bool TryParseNullableLong(ReadOnlySpan<char> span, in ReadContext _, out long? val)
+        private static bool TryParseNullableLong(ReadOnlySpan<char> span, in ReadContext ctx, out long? val)
         {
             if (span.Length == 0)
             {
@@ -578,18 +705,17 @@ namespace Cesil
                 return true;
             }
 
-            if (!TryParseLong(span, _, out var pVal))
+            if (DefaultTypeParsers.TryParseLong(span, in ctx, out var pVal))
             {
-                val = null;
-                return false;
+                val = pVal;
+                return true;
             }
 
-            val = pVal;
-            return true;
+            val = null;
+            return false;
         }
 
-
-        private static bool TryParseNullableULong(ReadOnlySpan<char> span, in ReadContext _, out ulong? val)
+        private static bool TryParseNullableULong(ReadOnlySpan<char> span, in ReadContext ctx, out ulong? val)
         {
             if (span.Length == 0)
             {
@@ -597,18 +723,17 @@ namespace Cesil
                 return true;
             }
 
-            if (!TryParseULong(span, _, out var pVal))
+            if (DefaultTypeParsers.TryParseULong(span, in ctx, out var pVal))
             {
-                val = null;
-                return false;
+                val = pVal;
+                return true;
             }
 
-            val = pVal;
-            return true;
+            val = null;
+            return false;
         }
 
-
-        private static bool TryParseNullableFloat(ReadOnlySpan<char> span, in ReadContext _, out float? val)
+        private static bool TryParseNullableFloat(ReadOnlySpan<char> span, in ReadContext ctx, out float? val)
         {
             if (span.Length == 0)
             {
@@ -616,18 +741,17 @@ namespace Cesil
                 return true;
             }
 
-            if (!TryParseFloat(span, _, out var pVal))
+            if (DefaultTypeParsers.TryParseFloat(span, in ctx, out var pVal))
             {
-                val = null;
-                return false;
+                val = pVal;
+                return true;
             }
 
-            val = pVal;
-            return true;
+            val = null;
+            return false;
         }
 
-
-        private static bool TryParseNullableDouble(ReadOnlySpan<char> span, in ReadContext _, out double? val)
+        private static bool TryParseNullableDouble(ReadOnlySpan<char> span, in ReadContext ctx, out double? val)
         {
             if (span.Length == 0)
             {
@@ -635,18 +759,17 @@ namespace Cesil
                 return true;
             }
 
-            if (!TryParseDouble(span, _, out var pVal))
+            if (DefaultTypeParsers.TryParseDouble(span, in ctx, out var pVal))
             {
-                val = null;
-                return false;
+                val = pVal;
+                return true;
             }
 
-            val = pVal;
-            return true;
+            val = null;
+            return false;
         }
 
-
-        private static bool TryParseNullableDecimal(ReadOnlySpan<char> span, in ReadContext _, out decimal? val)
+        private static bool TryParseNullableDecimal(ReadOnlySpan<char> span, in ReadContext ctx, out decimal? val)
         {
             if (span.Length == 0)
             {
@@ -654,17 +777,17 @@ namespace Cesil
                 return true;
             }
 
-            if (!TryParseDecimal(span, _, out var pVal))
+            if (DefaultTypeParsers.TryParseDecimal(span, in ctx, out var pVal))
             {
-                val = null;
-                return false;
+                val = pVal;
+                return true;
             }
 
-            val = pVal;
-            return true;
+            val = null;
+            return false;
         }
 
-        private static bool TryParseNullableGUID(ReadOnlySpan<char> span, in ReadContext _, out Guid? val)
+        private static bool TryParseNullableGuid(ReadOnlySpan<char> span, in ReadContext ctx, out Guid? val)
         {
             if (span.Length == 0)
             {
@@ -672,17 +795,17 @@ namespace Cesil
                 return true;
             }
 
-            if (!TryParseGUID(span, _, out var pVal))
+            if (DefaultTypeParsers.TryParseGuid(span, in ctx, out var pVal))
             {
-                val = null;
-                return false;
+                val = pVal;
+                return true;
             }
 
-            val = pVal;
-            return true;
+            val = null;
+            return false;
         }
 
-        private static bool TryParseNullableTimeSpan(ReadOnlySpan<char> span, in ReadContext _, out TimeSpan? val)
+        private static bool TryParseNullableTimeSpan(ReadOnlySpan<char> span, in ReadContext ctx, out TimeSpan? val)
         {
             if (span.Length == 0)
             {
@@ -690,17 +813,17 @@ namespace Cesil
                 return true;
             }
 
-            if (!TryParseTimeSpan(span, _, out var pVal))
+            if (DefaultTypeParsers.TryParseTimeSpan(span, in ctx, out var pVal))
             {
-                val = null;
-                return false;
+                val = pVal;
+                return true;
             }
 
-            val = pVal;
-            return true;
+            val = null;
+            return false;
         }
 
-        private static bool TryParseNullableIndex(ReadOnlySpan<char> span, in ReadContext _, out Index? val)
+        private static bool TryParseNullableIndex(ReadOnlySpan<char> span, in ReadContext ctx, out Index? val)
         {
             if (span.Length == 0)
             {
@@ -708,17 +831,17 @@ namespace Cesil
                 return true;
             }
 
-            if (!TryParseIndex(span, in _, out var pVal))
+            if (DefaultTypeParsers.TryParseIndex(span, in ctx, out var pVal))
             {
-                val = null;
-                return false;
+                val = pVal;
+                return true;
             }
 
-            val = pVal;
-            return true;
+            val = null;
+            return false;
         }
 
-        private static bool TryParseNullableRange(ReadOnlySpan<char> span, in ReadContext _, out Range? val)
+        private static bool TryParseNullableRange(ReadOnlySpan<char> span, in ReadContext ctx, out Range? val)
         {
             if (span.Length == 0)
             {
@@ -726,14 +849,14 @@ namespace Cesil
                 return true;
             }
 
-            if (!TryParseRange(span, in _, out var pVal))
+            if (DefaultTypeParsers.TryParseRange(span, in ctx, out var pVal))
             {
-                val = null;
-                return false;
+                val = pVal;
+                return true;
             }
 
-            val = pVal;
-            return true;
+            val = null;
+            return false;
         }
     }
 }

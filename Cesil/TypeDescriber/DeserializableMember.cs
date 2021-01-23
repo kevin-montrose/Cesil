@@ -21,12 +21,17 @@ namespace Cesil
 
         internal readonly NonNull<Reset> Reset;
 
+        internal readonly NonNull<TypeInfo> AheadOfTimeGeneratedType;
+
+        internal bool IsBackedByGeneratedMethod => AheadOfTimeGeneratedType.HasValue;
+
         private DeserializableMember(
             string name,
             Setter setter,
             Parser parser,
             bool isRequired,
-            Reset? reset
+            Reset? reset,
+            TypeInfo? aheadOfTimeGeneratedType
         )
         {
             Name = name;
@@ -34,6 +39,7 @@ namespace Cesil
             Parser = parser;
             IsRequired = isRequired;
             Reset.SetAllowNull(reset);
+            AheadOfTimeGeneratedType.SetAllowNull(aheadOfTimeGeneratedType);
         }
 
         /// <summary>
@@ -43,7 +49,7 @@ namespace Cesil
         {
             var propType = property?.PropertyType.GetTypeInfo();
             var parser = propType != null ? Parser.GetDefault(propType) : null;
-            return CreateInner(property?.DeclaringType?.GetTypeInfo(), property?.Name, (Setter?)property?.SetMethod, parser, MemberRequired.No, null);
+            return CreateInner(property?.DeclaringType?.GetTypeInfo(), property?.Name, (Setter?)property?.SetMethod, parser, MemberRequired.No, null, null);
         }
 
         /// <summary>
@@ -53,26 +59,26 @@ namespace Cesil
         {
             var propType = property?.PropertyType.GetTypeInfo();
             var parser = propType != null ? Parser.GetDefault(propType) : null;
-            return CreateInner(property?.DeclaringType?.GetTypeInfo(), name, (Setter?)property?.SetMethod, parser, MemberRequired.No, null);
+            return CreateInner(property?.DeclaringType?.GetTypeInfo(), name, (Setter?)property?.SetMethod, parser, MemberRequired.No, null, null);
         }
 
         /// <summary>
         /// Creates a DeserializableMember for the given property, with the given name and parser.
         /// </summary>
         public static DeserializableMember ForProperty(PropertyInfo property, string name, Parser parser)
-        => CreateInner(property?.DeclaringType?.GetTypeInfo(), name, (Setter?)property?.SetMethod, parser, MemberRequired.No, null);
+        => CreateInner(property?.DeclaringType?.GetTypeInfo(), name, (Setter?)property?.SetMethod, parser, MemberRequired.No, null, null);
 
         /// <summary>
         /// Creates a DeserializableMember for the given property, with the given name, parser, and whether it is required.
         /// </summary>
         public static DeserializableMember ForProperty(PropertyInfo property, string name, Parser parser, MemberRequired required)
-        => CreateInner(property?.DeclaringType?.GetTypeInfo(), name, (Setter?)property?.SetMethod, parser, required, null);
+        => CreateInner(property?.DeclaringType?.GetTypeInfo(), name, (Setter?)property?.SetMethod, parser, required, null, null);
 
         /// <summary>
         /// Creates a DeserializableMember for the given property, with the given name, parser, whether it is required, and a reset method.
         /// </summary>
         public static DeserializableMember ForProperty(PropertyInfo property, string name, Parser parser, MemberRequired required, Reset reset)
-        => CreateInner(property?.DeclaringType?.GetTypeInfo(), name, (Setter?)property?.SetMethod, parser, required, reset);
+        => CreateInner(property?.DeclaringType?.GetTypeInfo(), name, (Setter?)property?.SetMethod, parser, required, reset, null);
 
         /// <summary>
         /// Creates a DeserializableMember for the given field.
@@ -81,7 +87,7 @@ namespace Cesil
         {
             var fieldType = field?.FieldType.GetTypeInfo();
             var parser = fieldType != null ? Parser.GetDefault(fieldType) : null;
-            return CreateInner(field?.DeclaringType?.GetTypeInfo(), field?.Name, (Setter?)field, parser, MemberRequired.No, null);
+            return CreateInner(field?.DeclaringType?.GetTypeInfo(), field?.Name, (Setter?)field, parser, MemberRequired.No, null, null);
         }
 
         /// <summary>
@@ -91,26 +97,26 @@ namespace Cesil
         {
             var fieldType = field?.FieldType.GetTypeInfo();
             var parser = fieldType != null ? Parser.GetDefault(fieldType) : null;
-            return CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Setter?)field, parser, MemberRequired.No, null);
+            return CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Setter?)field, parser, MemberRequired.No, null, null);
         }
 
         /// <summary>
         /// Creates a DeserializableMember for the given field, with the given name and parser.
         /// </summary>
         public static DeserializableMember ForField(FieldInfo field, string name, Parser parser)
-        => CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Setter?)field, parser, MemberRequired.No, null);
+        => CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Setter?)field, parser, MemberRequired.No, null, null);
 
         /// <summary>
         /// Creates a DeserializableMember for the given property, with the given name, parser, and whether it is required.
         /// </summary>
         public static DeserializableMember ForField(FieldInfo field, string name, Parser parser, MemberRequired required)
-        => CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Setter?)field, parser, required, null);
+        => CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Setter?)field, parser, required, null, null);
 
         /// <summary>
         /// Creates a DeserializableMember for the given property, with the given name, parser, whether it is required, and a reset method.
         /// </summary>
         public static DeserializableMember ForField(FieldInfo field, string name, Parser parser, MemberRequired required, Reset reset)
-        => CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Setter?)field, parser, required, reset);
+        => CreateInner(field?.DeclaringType?.GetTypeInfo(), name, (Setter?)field, parser, required, reset, null);
 
         /// <summary>
         /// Create a DeserializableMember with an explicit type being serialized, name, setter, parser, whether it is required, and a reset method.
@@ -124,9 +130,17 @@ namespace Cesil
             [NullableExposed("Reset is truly optional here, it's required and validated elsewhere")]
             Reset? reset
         )
-        => CreateInner(forType, name, setter, parser, required, reset);
+        => CreateInner(forType, name, setter, parser, required, reset, null);
 
-        internal static DeserializableMember CreateInner(TypeInfo? beingDeserializedType, string? name, Setter? setter, Parser? parser, MemberRequired isRequired, Reset? reset)
+        internal static DeserializableMember CreateInner(
+            TypeInfo? beingDeserializedType, 
+            string? name, 
+            Setter? setter, 
+            Parser? parser, 
+            MemberRequired isRequired, 
+            Reset? reset,
+            TypeInfo? aheadOfTimeGeneratedType
+        )
         {
             if (beingDeserializedType == null)
             {
@@ -187,7 +201,7 @@ namespace Cesil
                 return Throw.InvalidOperationException<DeserializableMember>($"{nameof(Setter)} that is backed by a constructor parameter can only be used with {nameof(MemberRequired)}.{nameof(MemberRequired.Yes)}; {nameof(setter)} was {setter}");
             }
 
-            return new DeserializableMember(name, setter, parser, isRequiredBool, reset);
+            return new DeserializableMember(name, setter, parser, isRequiredBool, reset, aheadOfTimeGeneratedType);
         }
 
         /// <summary>
@@ -221,6 +235,17 @@ namespace Cesil
                 if (deserializableMember.Reset.HasValue) return false;
             }
 
+            if (AheadOfTimeGeneratedType.HasValue)
+            {
+                if (!deserializableMember.AheadOfTimeGeneratedType.HasValue) return false;
+
+                if (AheadOfTimeGeneratedType.Value != deserializableMember.AheadOfTimeGeneratedType.Value) return false;
+            }
+            else
+            {
+                if (deserializableMember.AheadOfTimeGeneratedType.HasValue) return false;
+            }
+
             return
                 deserializableMember.IsRequired == IsRequired &&
                 deserializableMember.Name == Name &&
@@ -232,7 +257,7 @@ namespace Cesil
         /// Returns a stable hash for this DeserializableMember.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(DeserializableMember), IsRequired, Name, Parser, Reset, Setter);
+        => HashCode.Combine(nameof(DeserializableMember), IsRequired, Name, Parser, Reset, Setter, AheadOfTimeGeneratedType);
 
         /// <summary>
         /// Describes this DeserializableMember.
@@ -240,7 +265,7 @@ namespace Cesil
         /// This is provided for debugging purposes, and the format is not guaranteed to be stable between releases.
         /// </summary>
         public override string ToString()
-        => $"{nameof(DeserializableMember)} with {nameof(Name)}: {Name}\r\n{nameof(Setter)}: {Setter}\r\n{Parser}\r\n{nameof(IsRequired)}: {IsRequired}\r\n{nameof(Reset)}: {Reset}";
+        => $"{nameof(DeserializableMember)} with {nameof(Name)}: {Name}\r\n{nameof(Setter)}: {Setter}\r\n{Parser}\r\n{nameof(IsRequired)}: {IsRequired}\r\n{nameof(Reset)}: {Reset}\r\n{nameof(AheadOfTimeGeneratedType)}: {AheadOfTimeGeneratedType}";
 
         /// <summary>
         /// Compare two DeserializableMembers for equality

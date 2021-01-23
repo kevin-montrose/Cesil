@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -8,38 +7,22 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
+using static Cesil.SourceGenerator.Constants;
+
 namespace Cesil.SourceGenerator
 {
-    public sealed class SerializerGenerator : ISourceGenerator
+    [Generator]
+    internal sealed class SerializerGenerator : GeneratorBase<SerializerTypes, SerializableMember>
     {
-        private const string EXPECTED_CESIL_VERSION = "0.7.0";
-
-        internal SerializerTypes? NeededTypes;
-
-        internal ImmutableArray<TypeDeclarationSyntax> ToGenerateFor = ImmutableArray<TypeDeclarationSyntax>.Empty;
-
-        internal ImmutableDictionary<INamedTypeSymbol, ImmutableArray<SerializableMember>> Members = ImmutableDictionary<INamedTypeSymbol, ImmutableArray<SerializableMember>>.Empty;
-
         internal ImmutableArray<Formatter> NeededDefaultFormatters = ImmutableArray<Formatter>.Empty;
 
-        public void Execute(SourceGeneratorContext context)
+        internal override void GenerateSource(
+            Compilation compilation,
+            GeneratorExecutionContext context,
+            SerializerTypes types,
+            ImmutableDictionary<INamedTypeSymbol, ImmutableArray<SerializableMember>> toGenerate
+        )
         {
-            var compilation = context.Compilation;
-
-            if (!TryCreateNeededTypes(compilation, context, out NeededTypes))
-            {
-                return;
-            }
-
-            ToGenerateFor = GetTypesToGenerateFor(compilation, NeededTypes);
-
-            if (ToGenerateFor.IsEmpty)
-            {
-                return;
-            }
-
-            Members = GetMembersToGenerateFor(context, compilation, ToGenerateFor, NeededTypes);
-
             NeededDefaultFormatters = Members.SelectMany(m => m.Value.Select(v => v.Formatter).Where(f => f.IsDefault)).Distinct().ToImmutableArray();
 
             var defaultFormatterFullyQualifiedTypeName = "--NONE--";
@@ -51,9 +34,9 @@ namespace Cesil.SourceGenerator
 
                 var defaultFormatterFileName = "__Cesil_Generated_DefaultFormatters.cs";
 
-                defaultFormattersSource = RemoveUnusedUsings(compilation, defaultFormattersSource);
+                defaultFormattersSource = Utils.RemoveUnusedUsings(compilation, defaultFormattersSource);
 
-                context.AddSource(defaultFormatterFileName, SourceText.From(defaultFormattersSource));
+                context.AddSource(defaultFormatterFileName, SourceText.From(defaultFormattersSource, Encoding.UTF8));
             }
 
             foreach (var kv in Members)
@@ -61,59 +44,15 @@ namespace Cesil.SourceGenerator
                 var rowType = kv.Key;
                 var columns = kv.Value;
 
-                var inOrder = columns.Sort(
-                    (a, b) =>
-                    {
-                        var aCurIx = columns.IndexOf(a);
-                        var bCurIx = columns.IndexOf(b);
-
-                        // if equal, preserve discovered order
-                        if (a.Order == b.Order)
-                        {
-                            return aCurIx.CompareTo(bCurIx);
-                        }
-
-                        // sort nulls to the end
-                        if (a.Order == null)
-                        {
-                            return 1;
-                        }
-
-                        if (b.Order == null)
-                        {
-                            return -1;
-                        }
-
-                        return a.Order.Value.CompareTo(b.Order.Value);
-                    }
-                );
+                var inOrder = Utils.SortColumns(columns, a => a.Order);
 
                 var source = GenerateSerializerType(defaultFormatterFullyQualifiedTypeName, rowType, inOrder);
-                source = RemoveUnusedUsings(compilation, source);
+                source = Utils.RemoveUnusedUsings(compilation, source);
 
                 var generatedFileName = "__Cesil_Generated_Serializer_" + rowType.ToFullyQualifiedName().Replace(".", "_") + ".cs";
 
-                context.AddSource(generatedFileName, SourceText.From(source));
+                context.AddSource(generatedFileName, SourceText.From(source, Encoding.UTF8));
             }
-        }
-
-        private static string RemoveUnusedUsings(Compilation compilation, string source)
-        {
-            const string UNUSED_USING = "CS8019";
-
-            var syntax = SyntaxFactory.ParseCompilationUnit(source);
-            var syntaxTree = syntax.SyntaxTree;
-            var withFile = compilation.AddSyntaxTrees(syntaxTree);
-            var model = withFile.GetSemanticModel(syntaxTree);
-
-            var diags = model.GetDiagnostics();
-            var relevantDiags = diags.Where(i => i.Id == UNUSED_USING).ToImmutableArray();
-            var usingsToRemove = syntax.Usings.Where(u => relevantDiags.Any(d => u.Span.Contains(d.Location.SourceSpan))).ToImmutableArray();
-
-            var updatedSyntax = Utils.NonNull(syntax.RemoveNodes(usingsToRemove, SyntaxRemoveOptions.KeepNoTrivia));
-            updatedSyntax = updatedSyntax.NormalizeWhitespace();
-
-            return updatedSyntax.ToFullString();
         }
 
         private static (string FullyQualifiedTypeName, string Source)? GenerateDefaultFormatterType(ImmutableArray<Formatter> formatters)
@@ -211,7 +150,7 @@ namespace Cesil.SourceGenerator
         private static string GenerateSerializerType(string defaultFormatterFullyQualifiedTypeName, INamedTypeSymbol rowType, ImmutableArray<SerializableMember> columns)
         {
             var fullyQualifiedRowType = rowType.ToFullyQualifiedName();
-            var generatedTypeName = "__Generated_" + fullyQualifiedRowType.Replace(".", "_");
+            var generatedTypeName = "__Cesil_Generated_Serializer_" + fullyQualifiedRowType.Replace(".", "_");
 
             var sb = new StringBuilder();
 
@@ -221,7 +160,9 @@ namespace Cesil.SourceGenerator
             sb.AppendLine("namespace Cesil.SourceGenerator.Generated");
             sb.AppendLine("{");
 
-            sb.AppendLine("  [Cesil.GeneratedSourceVersionAttribute(\"" + EXPECTED_CESIL_VERSION + "\", typeof(" + fullyQualifiedRowType + "), 1)]");
+            sb.AppendLine("  #pragma warning disable CS0618 // only Obsolete to prevent direct use");
+            sb.AppendLine("  [Cesil.GeneratedSourceVersionAttribute(\"" + EXPECTED_CESIL_VERSION + "\", typeof(" + fullyQualifiedRowType + "), Cesil.GeneratedSourceVersionAttribute.GeneratedTypeKind.Serializer)]");
+            sb.AppendLine("  #pragma warning restore CS0618");
             sb.AppendLine("  internal sealed class " + generatedTypeName);
             sb.AppendLine("  {");
 
@@ -236,7 +177,7 @@ namespace Cesil.SourceGenerator
                     sb.Append(", ");
                 }
 
-                var escaped = SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(col.Name)).ToFullString();
+                var escaped = col.Name.EscapeCSharp();
                 sb.Append(escaped);
             }
             sb.AppendLine(" });");
@@ -252,7 +193,9 @@ namespace Cesil.SourceGenerator
                 sb.AppendLine();
                 if (!col.EmitDefaultValue)
                 {
+                    sb.AppendLine("    #pragma warning disable CS0618 // only Obsolete to prevent direct use");
                     sb.AppendLine("    [Cesil.DoesNotEmitDefaultValueAttribute]");
+                    sb.AppendLine("    #pragma warning restore CS0618");
                 }
                 sb.AppendLine("    public static System.Boolean __Column_" + i + "(System.Object rowObj, in Cesil.WriteContext ctx, System.Buffers.IBufferWriter<char> writer)");
                 sb.AppendLine("    {");
@@ -348,44 +291,42 @@ namespace Cesil.SourceGenerator
 
                     if (formatter.DefaultIsMethod)
                     {
-                        var formatterMethodName = GetDefaultFormatterMethodName(forType);
+                        var defaultFormatterMethodName = GetDefaultFormatterMethodName(forType);
 
-                        return defaultFormatterFullyQualifiedTypeName + "." + formatterMethodName;
+                        return defaultFormatterFullyQualifiedTypeName + "." + defaultFormatterMethodName;
                     }
                     else
                     {
-                        var formatterClassName = GetDefaultFormatterClassName(forType);
+                        var defaultFormatterClassName = GetDefaultFormatterClassName(forType);
 
-                        return defaultFormatterFullyQualifiedTypeName + "." + formatterClassName + ".__TryFormat";
+                        return defaultFormatterFullyQualifiedTypeName + "." + defaultFormatterClassName + ".__TryFormat";
                     }
                 }
-                else
+
+                var takesType = Utils.NonNull(formatter.TakesType);
+                var method = Utils.NonNull(formatter.Method);
+
+                var takingType = takesType.ToFullyQualifiedName();
+                if (takesType.NullableAnnotation == NullableAnnotation.Annotated && takesType.TypeKind != TypeKind.Struct)
                 {
-                    var takesType = Utils.NonNull(formatter.TakesType);
-                    var method = Utils.NonNull(formatter.Method);
-
-                    var takingType = takesType.ToFullyQualifiedName();
-                    if (takesType.NullableAnnotation == NullableAnnotation.Annotated && takesType.TypeKind != TypeKind.Struct)
-                    {
-                        takingType += "?";
-                    }
-
-                    var formatterType = method.ContainingType.ToFullyQualifiedName();
-
-                    var formatterStatement = formatterType + "." + method.Name + "(value, in ctx, writer)";
-
-                    var formatterMethodName = "__Column_" + colIx + "_Formatter";
-
-                    sb.AppendLine();
-                    sb.AppendLine("    [System.Runtime.CompilerServices.MethodImplAttribute(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
-                    sb.AppendLine("    public static System.Boolean " + formatterMethodName + "(" + takingType + " value, in Cesil.WriteContext ctx, System.Buffers.IBufferWriter<char> writer)");
-                    sb.AppendLine("    {");
-                    sb.AppendLine("      var ret = " + formatterStatement + ";");
-                    sb.AppendLine("      return ret;");
-                    sb.AppendLine("    }");
-
-                    return formatterMethodName;
+                    takingType += "?";
                 }
+
+                var formatterType = method.ContainingType.ToFullyQualifiedName();
+
+                var formatterStatement = formatterType + "." + method.Name + "(value, in ctx, writer)";
+
+                var formatterMethodName = "__Column_" + colIx + "_Formatter";
+
+                sb.AppendLine();
+                sb.AppendLine("    [System.Runtime.CompilerServices.MethodImplAttribute(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
+                sb.AppendLine("    public static System.Boolean " + formatterMethodName + "(" + takingType + " value, in Cesil.WriteContext ctx, System.Buffers.IBufferWriter<char> writer)");
+                sb.AppendLine("    {");
+                sb.AppendLine("      var ret = " + formatterStatement + ";");
+                sb.AppendLine("      return ret;");
+                sb.AppendLine("    }");
+
+                return formatterMethodName;
             }
 
             // add a method that does the real "getter" work and returns the name of that method
@@ -535,21 +476,21 @@ namespace Cesil.SourceGenerator
             }
         }
 
-        private static bool TryCreateNeededTypes(Compilation compilation, SourceGeneratorContext context, [MaybeNullWhen(returnValue: false)] out SerializerTypes neededTypes)
+        internal override bool TryCreateNeededTypes(Compilation compilation, GeneratorExecutionContext context, out SerializerTypes? neededTypes)
         {
             var builtIn = BuiltInTypes.Create(compilation);
 
-            if (!FrameworkTypes.TryCreate(compilation, builtIn, out var framework))
+            if (!FrameworkTypes.TryCreate(compilation, builtIn, out var framework) || framework == null)
             {
-                var diag = Diagnostic.Create(Diagnostics.NoSystemMemoryReference, null);
+                var diag = Diagnostics.NoSystemMemoryReference(null);
                 context.ReportDiagnostic(diag);
                 neededTypes = null;
                 return false;
             }
 
-            if (!CesilTypes.TryCreate(compilation, out var types))
+            if (!CesilTypes.TryCreate(compilation, out var types) || types == null)
             {
-                var diag = Diagnostic.Create(Diagnostics.NoCesilReference, null);
+                var diag = Diagnostics.NoCesilReference(null);
                 context.ReportDiagnostic(diag);
                 neededTypes = null;
                 return false;
@@ -559,8 +500,8 @@ namespace Cesil.SourceGenerator
             return true;
         }
 
-        private static ImmutableDictionary<INamedTypeSymbol, ImmutableArray<SerializableMember>> GetMembersToGenerateFor(
-            SourceGeneratorContext context,
+        internal override ImmutableDictionary<INamedTypeSymbol, ImmutableArray<SerializableMember>> GetMembersToGenerateFor(
+            GeneratorExecutionContext context,
             Compilation compilation,
             ImmutableArray<TypeDeclarationSyntax> toGenerateFor,
             SerializerTypes types
@@ -574,7 +515,7 @@ namespace Cesil.SourceGenerator
                 var namedType = model.GetDeclaredSymbol(decl);
                 if (namedType == null)
                 {
-                    var diag = Diagnostic.Create(Diagnostics.GenericError, decl.GetLocation(), "Type identified, but not named");
+                    var diag = Diagnostics.GenericError(decl.GetLocation(), "Type identified, but not named");
                     context.ReportDiagnostic(diag);
                     continue;
                 }
@@ -590,7 +531,7 @@ namespace Cesil.SourceGenerator
         }
 
         private static ImmutableArray<SerializableMember> GetSerializableMembers(
-            SourceGeneratorContext context,
+            GeneratorExecutionContext context,
             Compilation compilation,
             SerializerTypes types,
             INamedTypeSymbol namedType
@@ -641,13 +582,24 @@ namespace Cesil.SourceGenerator
         {
             if (member is IPropertySymbol prop)
             {
-                var configAttrs = GetConfigurationAttributes(compilation, types, member);
+                if (IsIgnored(member, types.Framework))
+                {
+                    return null;
+                }
+
+                var configAttrs = GetConfigurationAttributes(compilation, types.OurTypes.SerializerMemberAttribute, types.Framework, member);
+
+                // skip properties if they have no getter _unless_ they're attributed (in which case there's an error we need to report)
+                if (configAttrs.IsEmpty && prop.GetMethod == null)
+                { 
+                    return null;
+                }
 
                 var isVisible =
-                    member.DeclaredAccessibility == Accessibility.Public ||
+                    (member.DeclaredAccessibility == Accessibility.Public && !member.IsStatic) ||
                     !configAttrs.IsEmpty;
 
-                // either visible or annotated to include
+                // neither visible or annotated to include
                 if (!isVisible)
                 {
                     return null;
@@ -657,7 +609,7 @@ namespace Cesil.SourceGenerator
             }
             else if (member is IFieldSymbol field)
             {
-                var configAttrs = GetConfigurationAttributes(compilation, types, member);
+                var configAttrs = GetConfigurationAttributes(compilation, types.OurTypes.SerializerMemberAttribute, types.Framework, member);
 
                 // must be annotated to include
                 if (configAttrs.IsEmpty)
@@ -669,7 +621,7 @@ namespace Cesil.SourceGenerator
             }
             else if (member is IMethodSymbol method && method.MethodKind == MethodKind.Ordinary)
             {
-                var configAttrs = GetConfigurationAttributes(compilation, types, member);
+                var configAttrs = GetConfigurationAttributes(compilation, types.OurTypes.SerializerMemberAttribute, types.Framework, member);
 
                 // must be annotated to include
                 if (configAttrs.IsEmpty)
@@ -683,75 +635,7 @@ namespace Cesil.SourceGenerator
             return null;
         }
 
-        private static ImmutableArray<AttributeSyntax> GetConfigurationAttributes(Compilation compilation, SerializerTypes types, ISymbol member)
-        {
-            var relevantAttributes = ImmutableArray.CreateBuilder<AttributeSyntax>();
-
-            foreach (var syntaxRef in member.DeclaringSyntaxReferences)
-            {
-                var syntax = syntaxRef.GetSyntax();
-                var syntaxModel = compilation.GetSemanticModel(syntax.SyntaxTree);
-
-                var method = syntax.ParentOrSelfOfType<MethodDeclarationSyntax>();
-                var field = syntax.ParentOrSelfOfType<FieldDeclarationSyntax>();
-                var prop = syntax.ParentOrSelfOfType<PropertyDeclarationSyntax>();
-
-                // property attribute usage allows indexers to be annotated... so need
-                //   to read them here so we can report errors later
-                var indexer = syntax.ParentOrSelfOfType<IndexerDeclarationSyntax>();
-
-                SyntaxList<AttributeListSyntax> attrLists;
-                if (method != null)
-                {
-                    attrLists = method.AttributeLists;
-                }
-                else if (field != null)
-                {
-                    attrLists = field.AttributeLists;
-                }
-                else if (prop != null)
-                {
-                    attrLists = prop.AttributeLists;
-                }
-                else if (indexer != null)
-                {
-                    attrLists = indexer.AttributeLists;
-                }
-                else
-                {
-                    throw new Exception("This shouldn't be possible");
-                }
-
-                foreach (var attrList in attrLists)
-                {
-                    foreach (var attr in attrList.Attributes)
-                    {
-                        var attrTypeInfo = syntaxModel.GetTypeInfo(attr);
-
-                        var attrType = attrTypeInfo.Type;
-                        if (attrType == null)
-                        {
-                            continue;
-                        }
-
-                        if (attrType.Equals(types.OurTypes.GenerateSerializableMemberAttribute, SymbolEqualityComparer.Default))
-                        {
-                            relevantAttributes.Add(attr);
-                            continue;
-                        }
-
-                        if (types.Framework.DataMemberAttribute != null && attrType.Equals(types.Framework.DataMemberAttribute, SymbolEqualityComparer.Default))
-                        {
-                            relevantAttributes.Add(attr);
-                        }
-                    }
-                }
-            }
-
-            return relevantAttributes.ToImmutable();
-        }
-
-        private static ImmutableArray<TypeDeclarationSyntax> GetTypesToGenerateFor(Compilation compilation, SerializerTypes types)
+        internal override ImmutableArray<TypeDeclarationSyntax> GetTypesToGenerateFor(Compilation compilation, SerializerTypes types)
         {
             var ret = ImmutableArray.CreateBuilder<TypeDeclarationSyntax>();
 
@@ -776,7 +660,7 @@ namespace Cesil.SourceGenerator
                                 continue;
                             }
 
-                            if (attrType.Equals(types.OurTypes.GenerateSerializableAttribute, SymbolEqualityComparer.Default))
+                            if (attrType.Equals(types.OurTypes.GenerateSerializerAttribute, SymbolEqualityComparer.Default))
                             {
                                 ret.Add(decl);
                             }
@@ -786,11 +670,6 @@ namespace Cesil.SourceGenerator
             }
 
             return ret.ToImmutable();
-        }
-
-        public void Initialize(InitializationContext context)
-        {
-            // nothing to do
         }
     }
 }

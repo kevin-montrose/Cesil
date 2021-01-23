@@ -1,18 +1,52 @@
 using System;
-using System.Collections.Immutable;
-using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Xunit;
 
+using static Cesil.SourceGenerator.Tests.TestHelper;
+
 namespace Cesil.SourceGenerator.Tests
 {
-    public class ConfigurationTests
+    public class SerializerConfigurationFixture : IAsyncLifetime
     {
+        internal IMethodSymbol Method { get; private set; }
+        internal ITypeSymbol Type { get; private set; }
+
+        public async Task InitializeAsync()
+        {
+            var gen = new SerializerGenerator();
+            var (comp, diags) = await RunSourceGeneratorAsync(
+@"
+namespace Foo 
+{   
+    class Foo
+    {
+    }
+}", gen);
+
+            Assert.Empty(diags);
+
+            Type = Utils.NonNull(comp.GetTypeByMetadataName("System.String"));
+            Method = Type.GetMembers().OfType<IMethodSymbol>().First();
+        }
+
+        public Task DisposeAsync()
+        => Task.CompletedTask;
+    }
+
+    public class SerializerConfigurationTests: IClassFixture<SerializerConfigurationFixture>
+    {
+        private readonly ITypeSymbol Type;
+        private readonly IMethodSymbol Method;
+
+        public SerializerConfigurationTests(SerializerConfigurationFixture fixture)
+        {
+            Type = fixture.Type;
+            Method = fixture.Method;
+        }
+
         [Fact]
         public async Task SimpleAsync()
         {
@@ -25,14 +59,14 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class WriteMe
     {
-        [Cesil.GenerateSerializableMemberAttribute(FormatterType=typeof(WriteMe), FormatterMethodName=nameof(ForInt))]
+        [SerializerMember(FormatterType=typeof(WriteMe), FormatterMethodName=nameof(ForInt))]
         public int Bar { get; set; }
-        [Cesil.GenerateSerializableMemberAttribute(FormatterType=typeof(WriteMe), FormatterMethodName=nameof(ForString))]
+        [SerializerMember(FormatterType=typeof(WriteMe), FormatterMethodName=nameof(ForString))]
         public string Fizz;
-        [Cesil.GenerateSerializableMemberAttribute(Name=""Hello"", FormatterType=typeof(WriteMe), FormatterMethodName=nameof(ForDateTime))]
+        [SerializerMember(Name=""Hello"", FormatterType=typeof(WriteMe), FormatterMethodName=nameof(ForDateTime))]
         public DateTime SomeMtd() => DateTime.Now;
 
         public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
@@ -98,10 +132,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadFormatters
     {
-        [Cesil.GenerateSerializableMemberAttribute(FormatterType=typeof(BadFormatters))]
+        [SerializerMember(FormatterType=typeof(BadFormatters))]
         public int Bar { get; set; }
 
         public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
@@ -113,8 +147,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.FormatterBothMustBeSet.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(FormatterType=typeof(BadFormatters))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.FormatterBothMustBeSet, d);
+                        Assert.Equal("        [SerializerMember(FormatterType=typeof(BadFormatters))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -130,10 +164,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadFormatters
     {
-        [Cesil.GenerateSerializableMemberAttribute(FormatterMethodName=nameof(ForInt))]
+        [SerializerMember(FormatterMethodName=nameof(ForInt))]
         public int Bar { get; set; }
 
         public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
@@ -145,8 +179,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.FormatterBothMustBeSet.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.FormatterBothMustBeSet, d);
+                        Assert.Equal("        [SerializerMember(FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -162,10 +196,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadFormatters
     {
-        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=""SomethingElse"")]
+        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=""SomethingElse"")]
         public int Bar { get; set; }
 
         public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
@@ -177,8 +211,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.CouldNotFindMethod.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=\"SomethingElse\")]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.CouldNotFindMethod, d);
+                        Assert.Equal("        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=\"SomethingElse\")]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -194,10 +228,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadFormatters
     {
-        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
+        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
         public int Bar { get; set; }
 
         public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
@@ -212,8 +246,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.MultipleMethodsFound.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.MultipleMethodsFound, d);
+                        Assert.Equal("        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -229,10 +263,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadFormatters
     {
-        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
+        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
         public int Bar { get; set; }
 
         public static bool ForInt<T>(int val, in WriteContext ctx, IBufferWriter<char> buffer)
@@ -244,8 +278,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.MethodCannotBeGeneric.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.MethodCannotBeGeneric, d);
+                        Assert.Equal("        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -261,10 +295,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadFormatters
     {
-        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
+        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
         public int Bar { get; set; }
 
         private static bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
@@ -276,8 +310,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.MethodNotPublicOrInternal.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.MethodNotPublicOrInternal, d);
+                        Assert.Equal("        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -293,10 +327,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadFormatters
     {
-        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
+        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
         public int Bar { get; set; }
 
         public bool ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
@@ -308,8 +342,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.MethodNotStatic.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.MethodNotStatic, d);
+                        Assert.Equal("        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -325,10 +359,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadFormatters
     {
-        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
+        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
         public int Bar { get; set; }
 
         public static string ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer)
@@ -340,8 +374,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.MethodMustReturnBool.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.MethodMustReturnBool, d);
+                        Assert.Equal("        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -357,10 +391,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadFormatters
     {
-        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
+        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
         public int Bar { get; set; }
 
         public static void ForInt(int val, in WriteContext ctx, IBufferWriter<char> buffer){ }
@@ -371,8 +405,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.MethodMustReturnBool.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.MethodMustReturnBool, d);
+                        Assert.Equal("        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -388,10 +422,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadFormatters
     {
-        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
+        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
         public int Bar { get; set; }
 
         public static bool ForInt() 
@@ -403,8 +437,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadFormatterParameters.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadFormatterParameters, d);
+                        Assert.Equal("        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -420,10 +454,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadFormatters
     {
-        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
+        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
         public int Bar { get; set; }
 
         public static bool ForInt(string val, in WriteContext ctx, IBufferWriter<char> buffer)
@@ -435,8 +469,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadFormatterParameters.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadFormatterParameters, d);
+                        Assert.Equal("        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -452,10 +486,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadFormatters
     {
-        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
+        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
         public int Bar { get; set; }
 
         public static bool ForInt(ref int val, in WriteContext ctx, IBufferWriter<char> buffer)
@@ -467,8 +501,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadFormatterParameters.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadFormatterParameters, d);
+                        Assert.Equal("        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -484,10 +518,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadFormatters
     {
-        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
+        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
         public int Bar { get; set; }
 
         public static bool ForInt(int val, WriteContext ctx, IBufferWriter<char> buffer)
@@ -499,8 +533,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadFormatterParameters.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadFormatterParameters, d);
+                        Assert.Equal("        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -516,10 +550,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadFormatters
     {
-        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
+        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
         public int Bar { get; set; }
 
         public static bool ForInt(int val, in string ctx, IBufferWriter<char> buffer)
@@ -531,8 +565,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadFormatterParameters.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadFormatterParameters, d);
+                        Assert.Equal("        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -548,10 +582,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadFormatters
     {
-        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
+        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
         public int Bar { get; set; }
 
         public static bool ForInt(int val, in WriteContext ctx, ref IBufferWriter<char> buffer)
@@ -563,8 +597,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadFormatterParameters.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadFormatterParameters, d);
+                        Assert.Equal("        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -580,10 +614,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadFormatters
     {
-        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
+        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
         public int Bar { get; set; }
 
         public static bool ForInt(int val, in WriteContext ctx, IBufferWriter<int> buffer)
@@ -595,8 +629,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadFormatterParameters.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadFormatterParameters, d);
+                        Assert.Equal("        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -612,10 +646,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadFormatters
     {
-        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
+        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]
         public int Bar { get; set; }
 
         public static bool ForInt(int val, in WriteContext ctx, string buffer)
@@ -627,8 +661,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadFormatterParameters.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadFormatterParameters, d);
+                        Assert.Equal("        [SerializerMember(FormatterType = typeof(BadFormatters), FormatterMethodName=nameof(ForInt))]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -648,10 +682,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadShouldSerializes
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType=typeof(BadShouldSerializes),
             FormatterMethodName = nameof(ForInt),
 
@@ -671,8 +705,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.ShouldSerializeBothMustBeSet.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.ShouldSerializeBothMustBeSet, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -688,10 +722,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadShouldSerializes
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType=typeof(BadShouldSerializes),
             FormatterMethodName = nameof(ForInt),
 
@@ -711,8 +745,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.ShouldSerializeBothMustBeSet.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.ShouldSerializeBothMustBeSet, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -728,10 +762,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadShouldSerializes
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType=typeof(BadShouldSerializes),
             FormatterMethodName = nameof(ForInt),
 
@@ -752,8 +786,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadShouldSerializeParameters_TooMany.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadShouldSerializeParameters_TooMany, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -769,10 +803,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadShouldSerializes
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType=typeof(BadShouldSerializes),
             FormatterMethodName = nameof(ForInt),
 
@@ -793,8 +827,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadShouldSerializeParameters_StaticOne.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadShouldSerializeParameters_StaticOne, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -810,10 +844,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadShouldSerializes
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType=typeof(BadShouldSerializes),
             FormatterMethodName = nameof(ForInt),
 
@@ -834,8 +868,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadShouldSerializeParameters_StaticOne.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadShouldSerializeParameters_StaticOne, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -851,10 +885,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadShouldSerializes
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType=typeof(BadShouldSerializes),
             FormatterMethodName = nameof(ForInt),
 
@@ -875,8 +909,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadShouldSerializeParameters_StaticTwo.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadShouldSerializeParameters_StaticTwo, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -892,10 +926,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadShouldSerializes
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType=typeof(BadShouldSerializes),
             FormatterMethodName = nameof(ForInt),
 
@@ -916,8 +950,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadShouldSerializeParameters_StaticTwo.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadShouldSerializeParameters_StaticTwo, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -933,10 +967,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadShouldSerializes
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType=typeof(BadShouldSerializes),
             FormatterMethodName = nameof(ForInt),
 
@@ -957,8 +991,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadShouldSerializeParameters_StaticTwo.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadShouldSerializeParameters_StaticTwo, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -974,10 +1008,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadShouldSerializes
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType=typeof(BadShouldSerializes),
             FormatterMethodName = nameof(ForInt),
 
@@ -998,8 +1032,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadShouldSerializeParameters_StaticTwo.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadShouldSerializeParameters_StaticTwo, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -1015,10 +1049,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadShouldSerializes
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType=typeof(BadShouldSerializes),
             FormatterMethodName = nameof(ForInt),
 
@@ -1039,8 +1073,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadShouldSerializeParameters_TooMany.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadShouldSerializeParameters_TooMany, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -1056,10 +1090,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadShouldSerializes
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType=typeof(BadShouldSerializes),
             FormatterMethodName = nameof(ForInt),
 
@@ -1080,8 +1114,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadShouldSerializeParameters_InstanceOne.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadShouldSerializeParameters_InstanceOne, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -1097,10 +1131,10 @@ using Cesil;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadShouldSerializes
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType=typeof(BadShouldSerializes),
             FormatterMethodName = nameof(ForInt),
 
@@ -1121,8 +1155,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadShouldSerializeParameters_InstanceOne.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadShouldSerializeParameters_InstanceOne, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType=typeof(BadShouldSerializes),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadShouldSerializes),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar)\r\n        )]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -1143,17 +1177,17 @@ using System.Runtime.Serialization;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadEmitDefaultValues
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType=typeof(BadEmitDefaultValues),
             FormatterMethodName = nameof(ForInt),
 
             ShouldSerializeType = typeof(BadEmitDefaultValues),
             ShouldSerializeMethodName = nameof(ShouldSerializeBar),
 
-            EmitDefaultValue = false
+            EmitDefaultValue = EmitDefaultValue.No
         )]
         [DataMember(EmitDefaultValue = false)]
         public int Bar { get; set; }
@@ -1170,8 +1204,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.EmitDefaultValueSpecifiedMultipleTimes.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadEmitDefaultValues),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadEmitDefaultValues),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar),\r\n\r\n            EmitDefaultValue = false\r\n        )]\r\n        [DataMember(EmitDefaultValue = false)]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.EmitDefaultValueSpecifiedMultipleTimes, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType=typeof(BadEmitDefaultValues),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadEmitDefaultValues),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar),\r\n\r\n            EmitDefaultValue = EmitDefaultValue.No\r\n        )]\r\n        [DataMember(EmitDefaultValue = false)]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -1192,10 +1226,10 @@ using System.Runtime.Serialization;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadOrders
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType=typeof(BadOrders),
             FormatterMethodName = nameof(ForInt),
 
@@ -1219,8 +1253,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.OrderSpecifiedMultipleTimes.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType=typeof(BadOrders),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadOrders),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar),\r\n\r\n            Order = 2\r\n        )]\r\n        [DataMember(Order = 2)]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.OrderSpecifiedMultipleTimes, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType=typeof(BadOrders),\r\n            FormatterMethodName = nameof(ForInt),\r\n\r\n            ShouldSerializeType = typeof(BadOrders),\r\n            ShouldSerializeMethodName = nameof(ShouldSerializeBar),\r\n\r\n            Order = 2\r\n        )]\r\n        [DataMember(Order = 2)]\r\n        public int Bar { get; set; }\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -1239,10 +1273,10 @@ using System.Runtime.Serialization;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class MissingMethodNames
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType = typeof(MissingMethodNames),
             FormatterMethodName = nameof(ForInt),
         )]
@@ -1260,8 +1294,8 @@ namespace Foo
                 diags,
                 d =>
                 {
-                    Assert.Equal(Diagnostics.SerializableMemberMustHaveNameSetForMethod.Id, d.Id);
-                    Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType = typeof(MissingMethodNames),\r\n            FormatterMethodName = nameof(ForInt),\r\n        )]\r\n        public int Bar() => 1;\r\n", GetFlaggedSource(d));
+                    AssertDiagnostic(Diagnostics.SerializableMemberMustHaveNameSetForMethod, d);
+                    Assert.Equal("        [SerializerMember(\r\n            FormatterType = typeof(MissingMethodNames),\r\n            FormatterMethodName = nameof(ForInt),\r\n        )]\r\n        public int Bar() => 1;\r\n", GetFlaggedSource(d));
                 }
             );
         }
@@ -1279,10 +1313,10 @@ using System.Runtime.Serialization;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class MethodCannotReturnVoids
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType = typeof(MethodCannotReturnVoids),
             FormatterMethodName = nameof(ForInt),
             Name = ""Bar""
@@ -1301,8 +1335,8 @@ namespace Foo
                 diags,
                 d =>
                 {
-                    Assert.Equal(Diagnostics.MethodMustReturnNonVoid.Id, d.Id);
-                    Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType = typeof(MethodCannotReturnVoids),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public void Bar() { }\r\n", GetFlaggedSource(d));
+                    AssertDiagnostic(Diagnostics.MethodMustReturnNonVoid, d);
+                    Assert.Equal("        [SerializerMember(\r\n            FormatterType = typeof(MethodCannotReturnVoids),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public void Bar() { }\r\n", GetFlaggedSource(d));
                 }
             );
         }
@@ -1320,10 +1354,10 @@ using System.Runtime.Serialization;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class PropertyMustHaveGetters
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType = typeof(PropertyMustHaveGetters),
             FormatterMethodName = nameof(ForInt)
         )]
@@ -1341,8 +1375,8 @@ namespace Foo
                 diags,
                 d =>
                 {
-                    Assert.Equal(Diagnostics.NoGetterOnSerializableProperty.Id, d.Id);
-                    Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType = typeof(PropertyMustHaveGetters),\r\n            FormatterMethodName = nameof(ForInt)\r\n        )]\r\n        public int Bar { set; }\r\n", GetFlaggedSource(d));
+                    AssertDiagnostic(Diagnostics.NoGetterOnSerializableProperty, d);
+                    Assert.Equal("        [SerializerMember(\r\n            FormatterType = typeof(PropertyMustHaveGetters),\r\n            FormatterMethodName = nameof(ForInt)\r\n        )]\r\n        public int Bar { set; }\r\n", GetFlaggedSource(d));
                 }
             );
         }
@@ -1360,10 +1394,10 @@ using System.Runtime.Serialization;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class PropertyCannotHaveParameters
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType = typeof(PropertyCannotHaveParameters),
             FormatterMethodName = nameof(ForInt)
         )]
@@ -1381,8 +1415,8 @@ namespace Foo
                 diags,
                 d =>
                 {
-                    Assert.Equal(Diagnostics.SerializablePropertyCannotHaveParameters.Id, d.Id);
-                    Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType = typeof(PropertyCannotHaveParameters),\r\n            FormatterMethodName = nameof(ForInt)\r\n        )]\r\n        public int this[int ix] { get => 2; }\r\n", GetFlaggedSource(d));
+                    AssertDiagnostic(Diagnostics.SerializablePropertyCannotHaveParameters, d);
+                    Assert.Equal("        [SerializerMember(\r\n            FormatterType = typeof(PropertyCannotHaveParameters),\r\n            FormatterMethodName = nameof(ForInt)\r\n        )]\r\n        public int this[int ix] { get => 2; }\r\n", GetFlaggedSource(d));
                 }
             );
         }
@@ -1402,10 +1436,10 @@ using System.Runtime.Serialization;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class DataMemberOrderUnspecifieds
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType = typeof(DataMemberOrderUnspecifieds),
             FormatterMethodName = nameof(Formatter)
         )]
@@ -1436,10 +1470,10 @@ using System.Runtime.Serialization;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class DataMemberOrderUnspecifieds
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType = typeof(DataMemberOrderUnspecifieds),
             FormatterMethodName = nameof(Formatter)
         )]
@@ -1474,10 +1508,10 @@ using System.Runtime.Serialization;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadGetterMethodParameters
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType = typeof(BadGetterMethodParameters),
             FormatterMethodName = nameof(ForInt),
             Name = ""Bar""
@@ -1493,8 +1527,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadGetterParameters_TooMany.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public static int Bar(int a, int b, int c) => 1;\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadGetterParameters_TooMany, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public static int Bar(int a, int b, int c) => 1;\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -1511,10 +1545,10 @@ using System.Runtime.Serialization;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadGetterMethodParameters
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType = typeof(BadGetterMethodParameters),
             FormatterMethodName = nameof(ForInt),
             Name = ""Bar""
@@ -1530,8 +1564,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadGetterParameters_StaticOne.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public static int Bar(WriteContext ctx) => 1;\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadGetterParameters_StaticOne, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public static int Bar(WriteContext ctx) => 1;\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -1548,10 +1582,10 @@ using System.Runtime.Serialization;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadGetterMethodParameters
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType = typeof(BadGetterMethodParameters),
             FormatterMethodName = nameof(ForInt),
             Name = ""Bar""
@@ -1567,8 +1601,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadGetterParameters_StaticOne.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public static int Bar(string row) => 1;\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadGetterParameters_StaticOne, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public static int Bar(string row) => 1;\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -1585,10 +1619,10 @@ using System.Runtime.Serialization;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadGetterMethodParameters
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType = typeof(BadGetterMethodParameters),
             FormatterMethodName = nameof(ForInt),
             Name = ""Bar""
@@ -1604,8 +1638,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadGetterParameters_StaticOne.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public static int Bar(in BadGetterMethodParameters row) => 1;\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadGetterParameters_StaticOne, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public static int Bar(in BadGetterMethodParameters row) => 1;\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -1622,10 +1656,10 @@ using System.Runtime.Serialization;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadGetterMethodParameters
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType = typeof(BadGetterMethodParameters),
             FormatterMethodName = nameof(ForInt),
             Name = ""Bar""
@@ -1641,8 +1675,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadGetterParameters_StaticTwo.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public static int Bar(string row, in WriteContext ctx) => 1;\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadGetterParameters_StaticTwo, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public static int Bar(string row, in WriteContext ctx) => 1;\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -1659,10 +1693,10 @@ using System.Runtime.Serialization;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadGetterMethodParameters
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType = typeof(BadGetterMethodParameters),
             FormatterMethodName = nameof(ForInt),
             Name = ""Bar""
@@ -1678,8 +1712,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadGetterParameters_StaticTwo.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public static int Bar(in BadGetterMethodParameters row, in WriteContext ctx) => 1;\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadGetterParameters_StaticTwo, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public static int Bar(in BadGetterMethodParameters row, in WriteContext ctx) => 1;\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -1696,10 +1730,10 @@ using System.Runtime.Serialization;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadGetterMethodParameters
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType = typeof(BadGetterMethodParameters),
             FormatterMethodName = nameof(ForInt),
             Name = ""Bar""
@@ -1715,8 +1749,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadGetterParameters_StaticTwo.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public static int Bar(BadGetterMethodParameters row, WriteContext ctx) => 1;\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadGetterParameters_StaticTwo, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public static int Bar(BadGetterMethodParameters row, WriteContext ctx) => 1;\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -1733,10 +1767,10 @@ using System.Runtime.Serialization;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadGetterMethodParameters
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType = typeof(BadGetterMethodParameters),
             FormatterMethodName = nameof(ForInt),
             Name = ""Bar""
@@ -1752,8 +1786,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadGetterParameters_StaticTwo.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public static int Bar(BadGetterMethodParameters row, in string ctx) => 1;\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadGetterParameters_StaticTwo, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public static int Bar(BadGetterMethodParameters row, in string ctx) => 1;\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -1770,10 +1804,10 @@ using System.Runtime.Serialization;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadGetterMethodParameters
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType = typeof(BadGetterMethodParameters),
             FormatterMethodName = nameof(ForInt),
             Name = ""Bar""
@@ -1789,8 +1823,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadGetterParameters_TooMany.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public int Bar(int a, int b, int c) => 1;\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadGetterParameters_TooMany, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public int Bar(int a, int b, int c) => 1;\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -1807,10 +1841,10 @@ using System.Runtime.Serialization;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadGetterMethodParameters
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType = typeof(BadGetterMethodParameters),
             FormatterMethodName = nameof(ForInt),
             Name = ""Bar""
@@ -1826,8 +1860,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadGetterParameters_InstanceOne.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public int Bar(int a) => 1;\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadGetterParameters_InstanceOne, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public int Bar(int a) => 1;\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -1844,10 +1878,10 @@ using System.Runtime.Serialization;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadGetterMethodParameters
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType = typeof(BadGetterMethodParameters),
             FormatterMethodName = nameof(ForInt),
             Name = ""Bar""
@@ -1863,8 +1897,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadGetterParameters_InstanceOne.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public int Bar(WriteContext ctx) => 1;\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadGetterParameters_InstanceOne, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public int Bar(WriteContext ctx) => 1;\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -1881,10 +1915,10 @@ using System.Runtime.Serialization;
 
 namespace Foo 
 {   
-    [Cesil.GenerateSerializableAttribute]
+    [GenerateSerializer]
     class BadGetterMethodParameters
     {
-        [Cesil.GenerateSerializableMemberAttribute(
+        [SerializerMember(
             FormatterType = typeof(BadGetterMethodParameters),
             FormatterMethodName = nameof(ForInt),
             Name = ""Bar""
@@ -1900,8 +1934,8 @@ namespace Foo
                     diags,
                     d =>
                     {
-                        Assert.Equal(Diagnostics.BadGetterParameters_InstanceOne.Id, d.Id);
-                        Assert.Equal("        [Cesil.GenerateSerializableMemberAttribute(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public int Bar(in string ctx) => 1;\r\n", GetFlaggedSource(d));
+                        AssertDiagnostic(Diagnostics.BadGetterParameters_InstanceOne, d);
+                        Assert.Equal("        [SerializerMember(\r\n            FormatterType = typeof(BadGetterMethodParameters),\r\n            FormatterMethodName = nameof(ForInt),\r\n            Name = \"Bar\"\r\n        )]\r\n        public int Bar(in string ctx) => 1;\r\n", GetFlaggedSource(d));
                     }
                 );
             }
@@ -1919,14 +1953,14 @@ using Cesil;
 
 namespace Foo 
 {   
-    [GenerateSerializable]
+    [GenerateSerializer]
     class WriteMe
     {
-        [GenerateSerializableMember]
+        [SerializerMember]
         public int Bar { get; set; }
-        [GenerateSerializableMember]
+        [SerializerMember]
         public string Fizz;
-        [GenerateSerializableMember(Name=""Hello"")]
+        [SerializerMember(Name=""Hello"")]
         public DateTime SomeMtd() => DateTime.Now;
     }
 }", gen);
@@ -1952,133 +1986,29 @@ namespace Foo
                 }
             );
         }
-        
-        private static string GetFlaggedSource(Diagnostic diag)
+
+        private static void AssertDiagnostic(Func<Location, Diagnostic> shouldBe, Diagnostic actuallyIs)
         {
-            var tree = diag.Location.SourceTree;
-            if (tree == null)
-            {
-                throw new Exception("Couldn't find source for diagnostic");
-            }
-
-            var root = tree.GetRoot();
-            var node = root.FindNode(diag.Location.SourceSpan);
-            var sourceFlagged = node.ToFullString();
-
-            return sourceFlagged;
+            var id = shouldBe(null).Id;
+            Assert.Equal(id, actuallyIs.Id);
         }
 
-        private static async Task<(Compilation Compilation, ImmutableArray<Diagnostic> Diagnostic)> RunSourceGeneratorAsync(
-            string testFile,
-            ISourceGenerator generator,
-            [CallerMemberName] string caller = null
-        )
+        private void AssertDiagnostic(Func<Location, IMethodSymbol, Diagnostic> shouldBe, Diagnostic actuallyIs)
         {
-            var compilation = await GetCompilationAsync(testFile, caller);
-
-            var generators = ImmutableArray.Create(generator);
-
-            GeneratorDriver driver = new CSharpGeneratorDriver(parseOptions: new CSharpParseOptions(LanguageVersion.CSharp8), generators, new DefaultAnalyzerConfigOptionsProvider(), ImmutableArray<AdditionalText>.Empty);
-
-            driver.RunFullGeneration(compilation, out var producedCompilation, out var diagnostics);
-
-            return (producedCompilation, diagnostics);
+            var id = shouldBe(null, Method).Id;
+            Assert.Equal(id, actuallyIs.Id);
         }
 
-        private static Task<Compilation> GetCompilationAsync(
-            string testFile,
-            string caller
-        )
+        private void AssertDiagnostic(Func<Location, string, string, Diagnostic> shouldBe, Diagnostic actuallyIs)
         {
-            var trustedAssemblies = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")).Split(Path.PathSeparator);
-            var systemAssemblies = trustedAssemblies.Where(p => Path.GetFileName(p).StartsWith("System.")).ToList();
+            var id = shouldBe(null, "a", "b").Id;
+            Assert.Equal(id, actuallyIs.Id);
+        }
 
-            var references = systemAssemblies.Select(s => MetadataReference.CreateFromFile(s)).ToList();
-
-            var projectName = $"Cesil.SourceGenerator.Tests.{nameof(ConfigurationTests)}";
-            var projectId = ProjectId.CreateNewId(projectName);
-
-            var compilationOptions =
-                new CSharpCompilationOptions(
-                    OutputKind.DynamicallyLinkedLibrary,
-                    allowUnsafe: true,
-                    nullableContextOptions: NullableContextOptions.Enable
-                );
-
-            var parseOptions = new CSharpParseOptions(LanguageVersion.CSharp8);
-
-            var projectInfo =
-                ProjectInfo.Create(
-                    projectId,
-                    VersionStamp.Create(),
-                    projectName,
-                    projectName,
-                    LanguageNames.CSharp,
-                    compilationOptions: compilationOptions,
-                    parseOptions: parseOptions
-                );
-
-            var workspace = new AdhocWorkspace();
-
-            var solution =
-                workspace
-                    .CurrentSolution
-                    .AddProject(projectInfo);
-
-            foreach (var reference in references)
-            {
-                solution = solution.AddMetadataReference(projectId, reference);
-            }
-
-            var csFile = $"{caller}.cs";
-            var docId = DocumentId.CreateNewId(projectId, csFile);
-
-            var project = solution.GetProject(projectId);
-
-            project = project.AddDocument(csFile, testFile).Project;
-
-            // find the Cesil folder to include code from
-            string cesilRootDir;
-            {
-                cesilRootDir = Environment.CurrentDirectory;
-                while (cesilRootDir != null)
-                {
-                    if (Directory.GetDirectories(cesilRootDir).Any(c => Path.GetFileName(c) == "Cesil"))
-                    {
-                        cesilRootDir = Path.Combine(cesilRootDir, "Cesil");
-                        break;
-                    }
-
-                    cesilRootDir = Path.GetDirectoryName(cesilRootDir);
-                }
-
-                if (cesilRootDir == null)
-                {
-                    throw new Exception("Couldn't find Cesil root directory, are tests not being run from within the solution?");
-                }
-            }
-
-            var files =
-                new[]
-                {
-                    new [] { "Interface", "Attributes", "SerializeAttributes.cs" },
-                    new [] { "Interface", "Attributes", "GeneratedSourceVersionAttribute.cs" },
-                    new [] { "Context", "WriteContext.cs" },
-                };
-
-            foreach (var fileParts in files)
-            {
-                var toAddFilePath = cesilRootDir;
-                foreach (var part in fileParts)
-                {
-                    toAddFilePath = Path.Combine(toAddFilePath, part);
-                }
-
-                var fileText = File.ReadAllText(toAddFilePath);
-                project = project.AddDocument(Path.GetFileName(toAddFilePath), fileText).Project;
-            }
-
-            return project.GetCompilationAsync();
+        private void AssertDiagnostic(Func<Location, IMethodSymbol, ITypeSymbol, Diagnostic> shouldBe, Diagnostic actuallyIs)
+        {
+            var id = shouldBe(null, Method, Type).Id;
+            Assert.Equal(id, actuallyIs.Id);
         }
     }
 }

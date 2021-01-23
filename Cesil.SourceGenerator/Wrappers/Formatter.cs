@@ -1,18 +1,16 @@
 ﻿using System;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Cesil.SourceGenerator
 {
-    internal sealed class Formatter
+    internal sealed class Formatter : IEquatable<Formatter?>
     {
+        private const string DEFAULT_TYPE_FORMATTERS_RESOURCE_NAME = "Cesil.SourceGenerator.Resources.DefaultTypeFormatters.cs";
+
         private static readonly ImmutableDictionary<string, Formatter> DefaultLookup = BuildDefaultLookup();
 
         private static readonly ImmutableHashSet<string> RemoveEnumFormatterMethods =
@@ -87,7 +85,7 @@ namespace Cesil.SourceGenerator
             TakesType = null;
         }
 
-        internal static bool TryGetDefault(SerializerTypes types, ITypeSymbol forType, [NotNullWhen(returnValue: true)] out Formatter? formatter)
+        internal static bool TryGetDefault(SerializerTypes types, ITypeSymbol forType, out Formatter? formatter)
         {
             if (forType.TypeKind == TypeKind.Enum)
             {
@@ -112,21 +110,21 @@ namespace Cesil.SourceGenerator
             return DefaultLookup.TryGetValue(key, out formatter);
         }
 
-        private static bool TryCreateNullableEnumDefaultFormatter(FrameworkTypes types, ITypeSymbol forNullableEnum, [NotNullWhen(returnValue: true)] out Formatter? formatter)
+        private static bool TryCreateNullableEnumDefaultFormatter(FrameworkTypes types, ITypeSymbol forNullableEnum, out Formatter? formatter)
         {
             var forEnum = ((INamedTypeSymbol)forNullableEnum).TypeArguments.Single();
-            if (!TryCreateEnumDefaultFormatter(types, forEnum, out var nonNullFormatter))
+            if (!TryCreateEnumDefaultFormatter(types, forEnum, out var nonNullFormatter) || nonNullFormatter == null)
             {
                 formatter = null;
                 return false;
             }
 
-            var isFlags = IsFlagsEnum(types, forEnum);
+            var isFlags = Utils.IsFlagsEnum(types, forEnum);
             var forEnumFullyQualified = forEnum.ToFullyQualifiedName();
             var forNullableEnumFullyQualified = forNullableEnum.ToFullyQualifiedName();
 
             // get the formatter method for the nullable enum
-            var nonGeneric = MakeNonGenericDefaultTypeFormatter(forEnumFullyQualified);
+            var nonGeneric = Utils.MakeNonGenericType(EnumTypeFormatterTemplate, "T", forEnumFullyQualified);
             var nullableMtd =
                 nonGeneric
                     .Members
@@ -151,7 +149,7 @@ namespace Cesil.SourceGenerator
                 // just a method, simple inlining is sufficient
                 isMethod = true;
 
-                nullableFinal = ReplaceIn(nullableMtd, toReplace.ToImmutable());
+                nullableFinal = Utils.ReplaceIn(nullableMtd, toReplace.ToImmutable());
             }
             else
             {
@@ -162,7 +160,7 @@ namespace Cesil.SourceGenerator
                 var nonNullClassWithoutTryFormat = Utils.NonNull(nonNullClass.RemoveNode(nonNullFormatterMtd, SyntaxRemoveOptions.KeepNoTrivia));
 
                 var newNullableMethod =
-                    ReplaceIn(nullableMtd, toReplace.ToImmutable())
+                    Utils.ReplaceIn(nullableMtd, toReplace.ToImmutable())
                         .WithIdentifier(SyntaxFactory.ParseToken("__TryFormat"))
                         .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.InternalKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword)));
 
@@ -177,18 +175,13 @@ namespace Cesil.SourceGenerator
             return true;
         }
 
-        private static bool IsFlagsEnum(FrameworkTypes types, ITypeSymbol forEnum)
+        private static bool TryCreateEnumDefaultFormatter(FrameworkTypes types, ITypeSymbol forEnum, out Formatter? formatter)
         {
-            return forEnum.GetAttributes().Any(i => i.AttributeClass?.Equals(types.FlagsAttribute, SymbolEqualityComparer.Default) ?? false);
-        }
-
-        private static bool TryCreateEnumDefaultFormatter(FrameworkTypes types, ITypeSymbol forEnum, [NotNullWhen(returnValue: true)] out Formatter? formatter)
-        {
-            var isFlags = IsFlagsEnum(types, forEnum);
+            var isFlags = Utils.IsFlagsEnum(types, forEnum);
             var forEnumFullyQualified = forEnum.ToFullyQualifiedName();
 
             // strip out type parameters
-            var nonGeneric = MakeNonGenericDefaultTypeFormatter(forEnumFullyQualified);
+            var nonGeneric = Utils.MakeNonGenericType(EnumTypeFormatterTemplate, "T", forEnumFullyQualified);
 
             // remove all the stuff we _don't_ need
             var toRemoveMtd =
@@ -253,7 +246,7 @@ namespace Cesil.SourceGenerator
                     .Single(m => isFlags ? m.Identifier.ValueText == "TryFormatFlagsEnum" : m.Identifier.ValueText == "TryFormatBasicEnum");
 
             // inline anything that needs inlining
-            var updatedMtd = InlineTailCalls(mtd, trimmed);
+            var updatedMtd = Utils.InlineTailCalls(mtd, trimmed);
 
             // construct final class
             var publicFormatMethod =
@@ -380,116 +373,97 @@ namespace Cesil.SourceGenerator
             return true;
         }
 
-        private static ClassDeclarationSyntax MakeNonGenericDefaultTypeFormatter(string forEnumFullyQualified)
-        {
-            // strip out type parameters
-            var nonGeneric =
-                EnumTypeFormatterTemplate
-                    .WithConstraintClauses(SyntaxFactory.List<TypeParameterConstraintClauseSyntax>())
-                    .WithTypeParameterList(null);
-
-            var forEnumFullyQualifiedSyntax = SyntaxFactory.ParseTypeName(forEnumFullyQualified);
-
-            // replace T with the actual enum type
-            var mentionsOfT = nonGeneric.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>().Where(t => t.Identifier.ValueText == "T").ToList();
-            nonGeneric = nonGeneric.ReplaceNodes(mentionsOfT, (_, __) => forEnumFullyQualifiedSyntax);
-
-            return nonGeneric;
-        }
-
-        private static string GetDefaultTypeFormattersSource()
-        {
-            var asm = Assembly.GetExecutingAssembly();
-            using (var cesilDefaults = asm.GetManifestResourceStream("Cesil.SourceGenerator.Resources.DefaultTypeFormatters.cs"))
-            using (var reader = new StreamReader(cesilDefaults))
-            {
-                return reader.ReadToEnd();
-            }
-        }
-
         private static ClassDeclarationSyntax GetEnumTypeFormatterTemplate()
         {
-            var defaultTypeFormattersCS = GetDefaultTypeFormattersSource();
+            var defaultTypeFormattersCS = Utils.GetResourceText(DEFAULT_TYPE_FORMATTERS_RESOURCE_NAME);
             var parsedDefaultTypeFormatters = SyntaxFactory.ParseCompilationUnit(defaultTypeFormattersCS);
             return parsedDefaultTypeFormatters.DescendantNodesAndSelf().OfType<ClassDeclarationSyntax>().Single(c => c.Identifier.ValueText == "DefaultEnumTypeFormatter");
         }
 
         private static ImmutableDictionary<string, Formatter> BuildDefaultLookup()
         {
-            var defaultTypeFormattersCS = GetDefaultTypeFormattersSource();
+            var defaultTypeFormattersCS = Utils.GetResourceText(DEFAULT_TYPE_FORMATTERS_RESOURCE_NAME);
             var parsedDefaultTypeFormatters = SyntaxFactory.ParseCompilationUnit(defaultTypeFormattersCS);
             var defaultTypeFormatters = parsedDefaultTypeFormatters.DescendantNodesAndSelf().OfType<ClassDeclarationSyntax>().Single(c => c.Identifier.ValueText == "DefaultTypeFormatters");
 
             var builder = ImmutableDictionary.CreateBuilder<string, Formatter>();
 
             // primitives
-            Add(builder, typeof(byte).GetTypeInfo(), defaultTypeFormatters, "TryFormatByte");
-            Add(builder, typeof(sbyte).GetTypeInfo(), defaultTypeFormatters, "TryFormatSByte");
-            Add(builder, typeof(char).GetTypeInfo(), defaultTypeFormatters, "TryFormatChar");
-            Add(builder, typeof(short).GetTypeInfo(), defaultTypeFormatters, "TryFormatShort");
-            Add(builder, typeof(ushort).GetTypeInfo(), defaultTypeFormatters, "TryFormatUShort");
-            Add(builder, typeof(int).GetTypeInfo(), defaultTypeFormatters, "TryFormatInt");
-            Add(builder, typeof(uint).GetTypeInfo(), defaultTypeFormatters, "TryFormatUInt");
-            Add(builder, typeof(long).GetTypeInfo(), defaultTypeFormatters, "TryFormatLong");
-            Add(builder, typeof(ulong).GetTypeInfo(), defaultTypeFormatters, "TryFormatULong");
-            Add(builder, typeof(float).GetTypeInfo(), defaultTypeFormatters, "TryFormatFloat");
-            Add(builder, typeof(double).GetTypeInfo(), defaultTypeFormatters, "TryFormatDouble");
-            Add(builder, typeof(decimal).GetTypeInfo(), defaultTypeFormatters, "TryFormatDecimal");
+            Add(builder, "System.Boolean", true, false,defaultTypeFormatters, "TryFormatBool");
+            Add(builder, "System.Byte", true, false, defaultTypeFormatters, "TryFormatByte");
+            Add(builder, "System.SByte", true, false, defaultTypeFormatters, "TryFormatSByte");
+            Add(builder, "System.Char", true, false, defaultTypeFormatters, "TryFormatChar");
+            Add(builder, "System.Int16", true, false, defaultTypeFormatters, "TryFormatShort");
+            Add(builder, "System.UInt16", true, false, defaultTypeFormatters, "TryFormatUShort");
+            Add(builder, "System.Int32", true, false, defaultTypeFormatters, "TryFormatInt");
+            Add(builder, "System.UInt32", true, false, defaultTypeFormatters, "TryFormatUInt");
+            Add(builder, "System.Int64", true, false, defaultTypeFormatters, "TryFormatLong");
+            Add(builder, "System.UInt64", true, false, defaultTypeFormatters, "TryFormatULong");
+            Add(builder, "System.Single", true, false, defaultTypeFormatters, "TryFormatFloat");
+            Add(builder, "System.Double", true, false, defaultTypeFormatters, "TryFormatDouble");
+            Add(builder, "System.Decimal", true, false, defaultTypeFormatters, "TryFormatDecimal");
 
             // built in structs
-            Add(builder, typeof(Index).GetTypeInfo(), defaultTypeFormatters, "TryFormatIndex");
-            Add(builder, typeof(Range).GetTypeInfo(), defaultTypeFormatters, "TryFormatRange");
-            Add(builder, typeof(Guid).GetTypeInfo(), defaultTypeFormatters, "TryFormatGuid");
-            Add(builder, typeof(DateTime).GetTypeInfo(), defaultTypeFormatters, "TryFormatDateTime");
-            Add(builder, typeof(DateTimeOffset).GetTypeInfo(), defaultTypeFormatters, "TryFormatDateTimeOffset");
-            Add(builder, typeof(TimeSpan).GetTypeInfo(), defaultTypeFormatters, "TryFormatTimeSpan");
+            Add(builder, "System.Index", true, false, defaultTypeFormatters, "TryFormatIndex");
+            Add(builder, "System.Range", true, false, defaultTypeFormatters, "TryFormatRange");
+            Add(builder, "System.Guid", true, false, defaultTypeFormatters, "TryFormatGuid");
+            Add(builder, "System.DateTime", true, false, defaultTypeFormatters, "TryFormatDateTime");
+            Add(builder, "System.DateTimeOffset", true, false, defaultTypeFormatters, "TryFormatDateTimeOffset");
+            Add(builder, "System.TimeSpan", true, false, defaultTypeFormatters, "TryFormatTimeSpan");
 
             // reference types
-            Add(builder, typeof(string).GetTypeInfo(), defaultTypeFormatters, "TryFormatString");
-            Add(builder, typeof(Uri).GetTypeInfo(), defaultTypeFormatters, "TryFormatUri");
-            Add(builder, typeof(Version).GetTypeInfo(), defaultTypeFormatters, "TryFormatVersion");
+            Add(builder, "System.String", false, false, defaultTypeFormatters, "TryFormatString");
+            Add(builder, "System.Uri", false, false, defaultTypeFormatters, "TryFormatUri");
+            Add(builder, "System.Version", false, false, defaultTypeFormatters, "TryFormatVersion");
 
             // nullable primitives
-            Add(builder, typeof(byte?).GetTypeInfo(), defaultTypeFormatters, "TryFormatNullableByte");
-            Add(builder, typeof(sbyte?).GetTypeInfo(), defaultTypeFormatters, "TryFormatNullableSByte");
-            Add(builder, typeof(char?).GetTypeInfo(), defaultTypeFormatters, "TryFormatNullableChar");
-            Add(builder, typeof(short?).GetTypeInfo(), defaultTypeFormatters, "TryFormatNullableShort");
-            Add(builder, typeof(ushort?).GetTypeInfo(), defaultTypeFormatters, "TryFormatNullableUShort");
-            Add(builder, typeof(int?).GetTypeInfo(), defaultTypeFormatters, "TryFormatNullableInt");
-            Add(builder, typeof(uint?).GetTypeInfo(), defaultTypeFormatters, "TryFormatNullableUInt");
-            Add(builder, typeof(long?).GetTypeInfo(), defaultTypeFormatters, "TryFormatNullableLong");
-            Add(builder, typeof(ulong?).GetTypeInfo(), defaultTypeFormatters, "TryFormatNullableULong");
-            Add(builder, typeof(float?).GetTypeInfo(), defaultTypeFormatters, "TryFormatNullableFloat");
-            Add(builder, typeof(double?).GetTypeInfo(), defaultTypeFormatters, "TryFormatNullableDouble");
-            Add(builder, typeof(decimal?).GetTypeInfo(), defaultTypeFormatters, "TryFormatNullableDecimal");
+            Add(builder, "System.Boolean", true, true, defaultTypeFormatters, "TryFormatNullableBool");
+            Add(builder, "System.Byte", true, true, defaultTypeFormatters, "TryFormatNullableByte");
+            Add(builder, "System.SByte", true, true, defaultTypeFormatters, "TryFormatNullableSByte");
+            Add(builder, "System.Char", true, true, defaultTypeFormatters, "TryFormatNullableChar");
+            Add(builder, "System.Int16", true, true, defaultTypeFormatters, "TryFormatNullableShort");
+            Add(builder, "System.UInt16", true, true, defaultTypeFormatters, "TryFormatNullableUShort");
+            Add(builder, "System.Int32", true, true, defaultTypeFormatters, "TryFormatNullableInt");
+            Add(builder, "System.UInt32", true, true, defaultTypeFormatters, "TryFormatNullableUInt");
+            Add(builder, "System.Int64", true, true, defaultTypeFormatters, "TryFormatNullableLong");
+            Add(builder, "System.UInt64", true, true, defaultTypeFormatters, "TryFormatNullableULong");
+            Add(builder, "System.Single", true, true, defaultTypeFormatters, "TryFormatNullableFloat");
+            Add(builder, "System.Double", true, true, defaultTypeFormatters, "TryFormatNullableDouble");
+            Add(builder, "System.Decimal", true, true, defaultTypeFormatters, "TryFormatNullableDecimal");
 
             // nullable built in structs
-            Add(builder, typeof(Index?).GetTypeInfo(), defaultTypeFormatters, "TryFormatNullableIndex");
-            Add(builder, typeof(Range?).GetTypeInfo(), defaultTypeFormatters, "TryFormatNullableRange");
-            Add(builder, typeof(Guid?).GetTypeInfo(), defaultTypeFormatters, "TryFormatNullableGuid");
-            Add(builder, typeof(DateTime?).GetTypeInfo(), defaultTypeFormatters, "TryFormatNullableDateTime");
-            Add(builder, typeof(DateTimeOffset?).GetTypeInfo(), defaultTypeFormatters, "TryFormatNullableDateTimeOffset");
-            Add(builder, typeof(TimeSpan?).GetTypeInfo(), defaultTypeFormatters, "TryFormatNullableTimeSpan");
+            Add(builder, "System.Index", true, true, defaultTypeFormatters, "TryFormatNullableIndex");
+            Add(builder, "System.Range", true, true, defaultTypeFormatters, "TryFormatNullableRange");
+            Add(builder, "System.Guid", true, true, defaultTypeFormatters, "TryFormatNullableGuid");
+            Add(builder, "System.DateTime", true, true, defaultTypeFormatters, "TryFormatNullableDateTime");
+            Add(builder, "System.DateTimeOffset", true, true, defaultTypeFormatters, "TryFormatNullableDateTimeOffset");
+            Add(builder, "System.TimeSpan", true, true, defaultTypeFormatters, "TryFormatNullableTimeSpan");
 
             return builder.ToImmutable();
 
-            static void Add(ImmutableDictionary<string, Formatter>.Builder builder, System.Reflection.TypeInfo type, ClassDeclarationSyntax defaultTypeFormattersSyntax, string methodName)
+            static void Add(
+                ImmutableDictionary<string, Formatter>.Builder builder, 
+                string fullyQualifiedTypeName,
+                bool valueType,
+                bool nullable,
+                ClassDeclarationSyntax defaultTypeFormattersSyntax, 
+                string methodName
+            )
             {
-                var methodBody = ExtractMethodBody(defaultTypeFormattersSyntax, methodName);
+                var methodBody = Utils.ExtractMethodBody(defaultTypeFormattersSyntax, methodName);
 
                 string generateTypeName;
                 string typeName;
-                var underlying = Nullable.GetUnderlyingType(type);
-                if (underlying != null)
+                if (nullable)
                 {
-                    typeName = underlying.FullName + "?";
+                    typeName = fullyQualifiedTypeName + "?";
                     generateTypeName = typeName;
                 }
                 else
                 {
-                    typeName = type.FullName;
+                    typeName = fullyQualifiedTypeName;
                     generateTypeName = typeName;
-                    if (!type.IsValueType)
+                    if (!valueType)
                     {
                         generateTypeName += "?";
                     }
@@ -497,128 +471,66 @@ namespace Cesil.SourceGenerator
 
                 builder.Add(typeName, new Formatter(true, generateTypeName, methodBody));
             }
-
-            static string ExtractMethodBody(ClassDeclarationSyntax defaultTypeFormattersSyntax, string methodName)
-            {
-                var mtd = defaultTypeFormattersSyntax.Members.OfType<MethodDeclarationSyntax>().Single(m => m.Identifier.ValueText == methodName);
-
-                var updatedMtd = InlineTailCalls(mtd, defaultTypeFormattersSyntax);
-                updatedMtd = updatedMtd.NormalizeWhitespace();
-
-                var ret = updatedMtd.ToFullString();
-
-                return ret;
-            }
         }
 
-        private static T InlineTailCalls<T>(T toReplaceIn, TypeDeclarationSyntax referencesTo)
-            where T : SyntaxNode
+        public bool Equals(Formatter? other)
         {
-            var ident = referencesTo.Identifier.ValueText;
-
-            var needReplace =
-                    toReplaceIn
-                        .DescendantNodesAndSelf()
-                        .OfType<ReturnStatementSyntax>()
-                        .Where(
-                            ret =>
-                            {
-                                if (!(ret.Expression is InvocationExpressionSyntax i))
-                                {
-                                    return false;
-                                }
-
-                                if (i.Expression is MemberAccessExpressionSyntax access)
-                                {
-                                    if (access.Expression is SimpleNameSyntax name && name.Identifier.ValueText == ident)
-                                    {
-                                        return true;
-                                    }
-                                }
-
-                                return false;
-                            }
-                        )
-                        .ToImmutableArray();
-
-            var ret = toReplaceIn;
-
-            var toReplaceWith = ImmutableDictionary.CreateBuilder<ReturnStatementSyntax, (ParameterListSyntax Parameters, BlockSyntax Statements)>();
-
-            foreach (var toReplaceRet in needReplace)
+            if (other == null)
             {
-                var toReplace = (InvocationExpressionSyntax)Utils.NonNull(toReplaceRet.Expression);
-
-                var calledMethodName = ((MemberAccessExpressionSyntax)toReplace.Expression).Name.Identifier.ValueText;
-                var calledMethod = referencesTo.Members.OfType<MethodDeclarationSyntax>().Single(m => m.Identifier.ValueText == calledMethodName);
-
-                var calledMethodBody = Utils.NonNull(calledMethod.Body);
-                toReplaceWith.Add(toReplaceRet, (calledMethod.ParameterList, calledMethodBody));
+                return false;
             }
 
-            ret = ReplaceIn(ret, toReplaceWith.ToImmutable());
-
-            return ret;
-        }
-
-        private static T ReplaceIn<T>(T toReplaceIn, ImmutableDictionary<ReturnStatementSyntax, (ParameterListSyntax Parameters, BlockSyntax Statements)> replaceWith)
-            where T : SyntaxNode
-        {
-            var ret = toReplaceIn;
-
-            foreach (var kv in replaceWith)
+            if (Method != null)
             {
-                var toReplaceRet = kv.Key;
-                var calledMethodParams = kv.Value.Parameters;
-                var calledMethodBody = kv.Value.Statements;
-
-                var toReplace = (InvocationExpressionSyntax)Utils.NonNull(toReplaceRet.Expression);
-
-                // introduce locals to for the "parameters" we're removing
-                var localBindings = ImmutableArray.CreateBuilder<StatementSyntax>();
-                var updatedMethodBody = calledMethodBody;
-                for (var i = 0; i < calledMethodParams.Parameters.Count; i++)
+                if (other.Method == null)
                 {
-                    var curParam = calledMethodParams.Parameters[i];
-
-                    var newVar = "__parameter_" + i;
-                    var arg = toReplace.ArgumentList.Arguments[i];
-                    var assign = "var " + newVar + " = (" + arg.ToFullString() + ");";
-
-                    var assignSyntax = SyntaxFactory.ParseStatement(assign);
-                    localBindings.Add(assignSyntax);
-
-                    var newVarSyntax = SyntaxFactory.IdentifierName(newVar);
-
-                    var referToCurParam = updatedMethodBody.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>().Where(x => x.Identifier.ValueText == curParam.Identifier.ValueText).ToImmutableArray();
-
-                    updatedMethodBody = updatedMethodBody.ReplaceNodes(referToCurParam, (_, __) => newVarSyntax);
+                    return false;
                 }
 
-                var allStatements = localBindings.Concat(updatedMethodBody.Statements);
-                var allStatementsList = SyntaxFactory.List(allStatements);
-                var block = SyntaxFactory.Block(allStatementsList);
-
-                // also avoid collisions by renaming any other variables introduced
-                var variableDeclares = block.DescendantNodesAndSelf().OfType<VariableDeclaratorSyntax>().Select(v => v.Identifier.ValueText).Where(v => !v.StartsWith("__")).ToImmutableHashSet();
-                var variableDesignates = block.DescendantNodesAndSelf().OfType<SingleVariableDesignationSyntax>().Select(v => v.Identifier.ValueText).Where(v => !v.StartsWith("__")).ToImmutableHashSet();
-
-                var allVariables = variableDeclares.Union(variableDesignates);
-
-                foreach (var variable in allVariables)
+                if (!Method.Equals(other.Method, SymbolEqualityComparer.IncludeNullability))
                 {
-                    var referToVariable = block.DescendantTokens().Where(t => t.ValueText == variable).ToImmutableArray();
-                    var newVarToken = SyntaxFactory.ParseToken("__" + variable);
-
-                    block = block.ReplaceTokens(referToVariable, (_, __) => newVarToken);
+                    return false;
                 }
-
-                block = block.NormalizeWhitespace();
-
-                ret = ret.ReplaceNode(toReplaceRet, block);
+            }
+            else
+            {
+                if (other.Method != null)
+                {
+                    return false;
+                }
             }
 
-            return ret;
+            if (TakesType != null)
+            {
+                if (other.TakesType == null)
+                {
+                    return false;
+                }
+
+                if (!TakesType.Equals(other.TakesType, SymbolEqualityComparer.IncludeNullability))
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                if (other.TakesType != null)
+                {
+                    return false;
+                }
+            }
+
+            return
+                other.DefaultCode == DefaultCode &&
+                other.DefaultIsMethod == DefaultIsMethod &&
+                other.ForDefaultType == ForDefaultType &&
+                other.IsDefault == IsDefault;
         }
+
+        public override bool Equals(object obj)
+        => Equals(obj as Formatter);
+
+        public override int GetHashCode()
+        => Utils.HashCode(Method, TakesType, DefaultCode, DefaultIsMethod, ForDefaultType, IsDefault);
     }
 }

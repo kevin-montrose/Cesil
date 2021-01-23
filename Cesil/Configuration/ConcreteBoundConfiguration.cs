@@ -63,7 +63,7 @@ namespace Cesil
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private IRowConstructor<T> GetMutableRowBuilder()
-        => RowBuilder.Value.Clone();
+        => RowBuilder.Value.Clone(Options);
 
         internal override IReader<T> CreateReader(IReaderAdapter inner, object? context = null)
         {

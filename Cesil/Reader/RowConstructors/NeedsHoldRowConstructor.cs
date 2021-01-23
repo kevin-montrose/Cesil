@@ -184,7 +184,7 @@ namespace Cesil
             SimpleSet = simpleSetTracker;
         }
 
-        public IRowConstructor<TRow> Clone()
+        public IRowConstructor<TRow> Clone(Options options)
         {
             RequiredSet tracker = default;
             if (HasRequired)
@@ -272,7 +272,7 @@ namespace Cesil
             return new NeedsHoldRowConstructor<TRow, THold>(pool, clear, getInstance, simpleMembers, holdMembers);
         }
 
-        public void SetColumnOrder(HeadersReader<TRow>.HeaderEnumerator columns)
+        public void SetColumnOrder(Options options, HeadersReader<TRow>.HeaderEnumerator columns)
         {
             // took ownership, have to dispose
             using (columns)

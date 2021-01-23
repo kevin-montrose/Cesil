@@ -20,6 +20,17 @@ namespace Cesil
             return ret;
         }
 
+        internal static object GetValueNonNull(this PropertyInfo prop, object? obj)
+        {
+            var ret = prop.GetValue(obj);
+            if (ret == null)
+            {
+                return Throw.InvalidOperationException<object>($"Expected non-null value when reading property {prop}, but was null");
+            }
+
+            return ret;
+        }
+
         internal static bool AllowsNullLikeValue(this TypeInfo type)
         {
             while (type.IsByRef)

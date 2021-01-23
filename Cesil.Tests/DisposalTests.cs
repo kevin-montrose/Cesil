@@ -311,6 +311,10 @@ namespace Cesil.Tests
                 {
                     IDisposable_DynamicRowRange();
                 }
+                else if (t == typeof(AheadOfTimeRowConstructor<>))
+                {
+                    // intentionally not testing, this isn't actually disposable but implements the interface because other row constructors are
+                }
                 else
                 {
                     throw new XunitException($"No test configured for .Dispose() on {t.Name}");

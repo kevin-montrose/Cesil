@@ -2,71 +2,9 @@
 
 namespace Cesil
 {
-    // todo: split this into separate files
-
     /// <summary>
-    /// When using Cesil's Source Generator (see Nuget.org for Cesil.SourceGenerator) marks a class or struct
-    /// as needing a serializer generated at compile time.
-    /// 
-    /// When using the DefaultTypeDescriber or the SourceGeneratorTypeDescriber, the created I(Async)Writers
-    /// for this type will do no runtime code generation.
-    /// 
-    /// You can customize the behavior of the generated serialize with [DataMemberAttribute],
-    /// and [GenerateSerializableMemberAttribute] attributes.
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = true)]
-    public sealed class GenerateSerializableAttribute : Attribute, IEquatable<GenerateSerializableAttribute>
-    {
-        /// <summary>
-        /// Create a GenerateSerializableAttribute attribute.
-        /// </summary>
-        public GenerateSerializableAttribute() { }
-
-        /// <summary>
-        /// Returns true if the given GenerateSerializableAttribute is equal
-        /// to this one.
-        /// </summary>
-        public bool Equals(GenerateSerializableAttribute? attribute)
-        => !ReferenceEquals(attribute, null);
-
-        /// <summary>
-        /// Return true if the given object is a GenerateSerializableAttribute 
-        ///   equal to this one.
-        /// </summary>
-        public override bool Equals(object? obj)
-        => Equals(obj as GenerateSerializableAttribute);
-
-
-        /// <summary>
-        /// Returns a stable hash code for this GeneratedSourceVersionAttribute.
-        /// </summary>
-        public override int GetHashCode()
-        => 0;
-
-        /// <summary>
-        /// Compare two GenerateSerializableAttributes for equality
-        /// </summary>
-        public static bool operator ==(GenerateSerializableAttribute a, GenerateSerializableAttribute b)
-        => Utils.NullReferenceEquality(a, b);
-
-        /// <summary>
-        /// Compare two GenerateSerializableAttributes for inequality
-        /// </summary>
-        public static bool operator !=(GenerateSerializableAttribute a, GenerateSerializableAttribute b)
-        => !(a == b);
-
-        /// <summary>
-        /// Returns a representation of this GenerateSerializableAttribute object.
-        /// 
-        /// Only for debugging, this value is not guaranteed to be stable.
-        /// </summary>
-        public override string ToString()
-        => $"{nameof(GenerateSerializableAttribute)} instance";
-    }
-
-    /// <summary>
-    /// Attach this attribute to a method, field, or property to expose it as serializable and configure it's "ShouldSerialize" and
-    /// "Formatter" behaviors.
+    /// Attach this attribute to a method, field, or property to expose it as serializable and configure it's "ShouldSerialize",
+    /// "Formatter", "Order", and "EmitDefaultValue" behaviors.
     /// 
     /// If attached to a property, the propery must have a getter and take no parameters.
     /// 
@@ -83,8 +21,8 @@ namespace Cesil
     ///      1. a type to which the declaring type of this member can be assigned
     ///      2. in WriteContext
     /// </summary>
-    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
-    public sealed class GenerateSerializableMemberAttribute : Attribute, IEquatable<GenerateSerializableMemberAttribute>
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
+    public sealed class SerializerMemberAttribute : Attribute, IEquatable<SerializerMemberAttribute>
     {
         /// <summary>
         /// The name of the column this member's returned value will be serialized under.
@@ -206,25 +144,24 @@ namespace Cesil
         /// <summary>
         /// Whether or not to emit the default value.
         /// 
-        /// Defaults to true.
+        /// Defaults to Yes.
         /// </summary>
-        [IntentionallyExposedPrimitive("Matches EmitDefaultValue on SerializableMember")]
-        public bool EmitDefaultValue { get; set; } = true;
+        public EmitDefaultValue EmitDefaultValue { get; set; } = EmitDefaultValue.Yes;
 
         /// <summary>
-        /// Create a GenerateSerializableMemberAttribute attribute.
+        /// Create a SerializerMemberAttribute attribute.
         /// 
         /// This will expose the member for serialization if it would not otherwise be exposed.
         /// 
         /// If on a method, a Name must be set.
         /// </summary>
-        public GenerateSerializableMemberAttribute() { }
+        public SerializerMemberAttribute() { }
 
         /// <summary>
-        /// Returns true if the given GenerateSerializableMemberAttribute is equal
+        /// Returns true if the given SerializerMemberAttribute is equal
         /// to this one.
         /// </summary>
-        public bool Equals(GenerateSerializableMemberAttribute? attribute)
+        public bool Equals(SerializerMemberAttribute? attribute)
         {
             if (ReferenceEquals(attribute, null))
             {
@@ -242,37 +179,37 @@ namespace Cesil
         }
 
         /// <summary>
-        /// Return true if the given object is a GenerateSerializableMemberAttribute 
+        /// Return true if the given object is a SerializerMemberAttribute 
         ///   equal to this one.
         /// </summary>
         public override bool Equals(object? obj)
-        => Equals(obj as GenerateSerializableMemberAttribute);
+        => Equals(obj as SerializerMemberAttribute);
 
 
         /// <summary>
-        /// Returns a stable hash code for this GeneratedSourceVersionAttribute.
+        /// Returns a hash code for this SerializerMemberAttribute.
         /// </summary>
         public override int GetHashCode()
         => HashCode.Combine(EmitDefaultValue, FormatterMethodName, FormatterType, Name, _Order, ShouldSerializeMethodName, ShouldSerializeType);
 
         /// <summary>
-        /// Compare two GenerateSerializableAttributes for equality
+        /// Compare two SerializerMemberAttributes for equality
         /// </summary>
-        public static bool operator ==(GenerateSerializableMemberAttribute a, GenerateSerializableMemberAttribute b)
+        public static bool operator ==(SerializerMemberAttribute a, SerializerMemberAttribute b)
         => Utils.NullReferenceEquality(a, b);
 
         /// <summary>
-        /// Compare two GenerateSerializableAttributes for inequality
+        /// Compare two SerializerMemberAttributes for inequality
         /// </summary>
-        public static bool operator !=(GenerateSerializableMemberAttribute a, GenerateSerializableMemberAttribute b)
+        public static bool operator !=(SerializerMemberAttribute a, SerializerMemberAttribute b)
         => !(a == b);
 
         /// <summary>
-        /// Returns a representation of this GenerateSerializableMemberAttribute object.
+        /// Returns a representation of this SerializerMemberAttribute object.
         /// 
         /// Only for debugging, this value is not guaranteed to be stable.
         /// </summary>
         public override string ToString()
-        => $"{nameof(GenerateSerializableMemberAttribute)} with {nameof(EmitDefaultValue)}={EmitDefaultValue}, {nameof(FormatterMethodName)}={FormatterMethodName}, {nameof(FormatterType)}={FormatterType}, {nameof(Name)}={Name}, {nameof(HasOrder)}={HasOrder}, {nameof(Order)}={_Order}, {nameof(ShouldSerializeMethodName)}={ShouldSerializeMethodName}, {nameof(ShouldSerializeType)}={ShouldSerializeType}";
+        => $"{nameof(SerializerMemberAttribute)} with {nameof(EmitDefaultValue)}={EmitDefaultValue}, {nameof(FormatterMethodName)}={FormatterMethodName}, {nameof(FormatterType)}={FormatterType}, {nameof(Name)}={Name}, {nameof(HasOrder)}={HasOrder}, {nameof(Order)}={_Order}, {nameof(ShouldSerializeMethodName)}={ShouldSerializeMethodName}, {nameof(ShouldSerializeType)}={ShouldSerializeType}";
     }
 }

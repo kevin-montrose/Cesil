@@ -19,9 +19,9 @@ namespace Cesil
 
         internal DynamicRowConstructor() { }
 
-        public IRowConstructor<object> Clone() => new DynamicRowConstructor();
+        public IRowConstructor<object> Clone(Options options) => new DynamicRowConstructor();
 
-        public void SetColumnOrder(HeadersReader<object>.HeaderEnumerator columns)
+        public void SetColumnOrder(Options options, HeadersReader<object>.HeaderEnumerator columns)
         {
             ExpectedColumnCount = columns.Count;
 

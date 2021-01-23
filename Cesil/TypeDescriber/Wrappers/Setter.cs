@@ -584,6 +584,7 @@ namespace Cesil
             var mem = parameter.Member;
             if (mem is ConstructorInfo cons)
             {
+                // todo: null handling behavior here?
                 return new Setter(cons.DeclaringTypeNonNull(), NullHandling.AllowNull, parameter.ParameterType.GetTypeInfo(), parameter, parameter.DetermineNullability());
             }
             else
