@@ -14,7 +14,7 @@ namespace Cesil
     /// </summary>
     public sealed class AheadOfTimeTypeDescriber : ITypeDescriber, IEquatable<AheadOfTimeTypeDescriber>
     {
-        private const string CURRENT_CESIL_VERSION = "0.7.0";
+        internal const string CURRENT_CESIL_VERSION = "0.7.0";
 #pragma warning disable CS0618 // Obsolete to prevent clients from using them directly, but fine for us
         private const GeneratedSourceVersionAttribute.GeneratedTypeKind SERIALIZER_KIND = GeneratedSourceVersionAttribute.GeneratedTypeKind.Serializer;
         private const GeneratedSourceVersionAttribute.GeneratedTypeKind DESERIALIZER_KIND = GeneratedSourceVersionAttribute.GeneratedTypeKind.Deserializer;

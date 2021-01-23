@@ -64,6 +64,8 @@ namespace Cesil.SourceGenerator
 
             var sb = new StringBuilder();
 
+            AddHeader(sb, "Formatting");
+
             sb.AppendLine("#nullable disable warnings");
             sb.AppendLine("#nullable enable annotations");
             sb.AppendLine("#pragma warning disable CS0162 // ignore unreachable code, this can happen because of inlining values that are known at source generation time");
@@ -153,6 +155,8 @@ namespace Cesil.SourceGenerator
             var generatedTypeName = "__Cesil_Generated_Serializer_" + fullyQualifiedRowType.Replace(".", "_");
 
             var sb = new StringBuilder();
+
+            AddHeader(sb, "Serialize", fullyQualifiedRowType);
 
             sb.AppendLine("#nullable disable warnings");
             sb.AppendLine("#nullable enable annotations");

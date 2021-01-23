@@ -71,6 +71,8 @@ namespace Cesil.SourceGenerator
 
             var sb = new StringBuilder();
 
+            AddHeader(sb, "Deserialize", fullyQualifiedRowType);
+
             sb.AppendLine("#nullable disable warnings");
             sb.AppendLine("#nullable enable annotations");
             sb.AppendLine();
@@ -873,6 +875,8 @@ namespace Cesil.SourceGenerator
             }
 
             var sb = new StringBuilder();
+
+            AddHeader(sb, "Parsing");
 
             sb.AppendLine("#nullable disable warnings");
             sb.AppendLine("#nullable enable annotations");

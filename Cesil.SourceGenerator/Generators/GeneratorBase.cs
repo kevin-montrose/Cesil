@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -151,6 +152,29 @@ namespace Cesil.SourceGenerator
 
             var attrs = member.GetAttributes();
             return attrs.Any(a => a.AttributeClass?.Equals(ignoreDataMember, SymbolEqualityComparer.Default) ?? false);
+        }
+
+        internal static void AddHeader(StringBuilder sb, string action, string? forType = null)
+        {
+            sb.AppendLine("//***************************************************************************//");
+            sb.AppendLine("// This file was automatically generated and should not be modified by hand. ");
+            sb.AppendLine("//");
+            sb.Append("// Library: ");
+            sb.AppendLine(nameof(Cesil) + "." + nameof(Cesil.SourceGenerator));
+            sb.AppendLine("//");
+            sb.Append("// Purpose: ");
+            sb.AppendLine(action);
+            sb.AppendLine("//");
+            if (forType != null)
+            {
+                sb.Append("// For: ");
+                sb.AppendLine(forType);
+                sb.Append("//");
+            }
+            sb.Append("// On: ");
+            sb.AppendLine(DateTime.UtcNow.ToString("u"));
+            sb.AppendLine("//***************************************************************************//");
+            sb.AppendLine();
         }
     }
 }
