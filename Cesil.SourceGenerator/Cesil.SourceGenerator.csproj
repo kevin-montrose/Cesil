@@ -9,14 +9,14 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Version>0.7.0</Version>
+    <Version>0.8.0</Version>
     <Description>Source Generator for Cesil.  Allows ahead-of-time generation of (de)serializers, enabling Cesil to be used without runtime code generation.</Description>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <PropertyGroup>
     <NoWarn>1701;1702;NU5128</NoWarn>
-    <AssemblyVersion>0.7.0.0</AssemblyVersion>
+    <AssemblyVersion>0.8.0.0</AssemblyVersion>
   </PropertyGroup>
   
   <ItemGroup>

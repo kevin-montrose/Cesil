@@ -5,7 +5,7 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <LangVersion>preview</LangVersion>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>0.7.0</Version>
+    <Version>0.8.0</Version>
     <Authors>Kevin Montrose</Authors>
     <Description>Modern CSV (De)Serializer</Description>
     <Copyright>2020</Copyright>
@@ -25,8 +25,8 @@ Changes
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\SignatureKey.snk</AssemblyOriginatorKeyFile>
     <DelaySign>false</DelaySign>
-    <AssemblyVersion>0.7.0.0</AssemblyVersion>
-    <FileVersion>0.7.0.0</FileVersion>
+    <AssemblyVersion>0.8.0.0</AssemblyVersion>
+    <FileVersion>0.8.0.0</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

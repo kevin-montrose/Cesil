@@ -1,0 +1,779 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Class SerializerMemberAttribute
+   </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Class SerializerMemberAttribute
+   ">
+    <meta name="generator" content="docfx 2.52.0.0">
+    
+    <link rel="shortcut icon" href="../favicon.ico">
+    <link rel="stylesheet" href="../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../styles/docfx.css">
+    <link rel="stylesheet" href="../styles/main.css">
+    <meta property="docfx:navrel" content="">
+    <meta property="docfx:tocrel" content="toc.html">
+    
+    
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div role="main" class="container body-content hide-when-search">
+        <div class="article row grid">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="Cesil.SerializerMemberAttribute">
+  
+  
+  <h1 id="Cesil_SerializerMemberAttribute" data-uid="Cesil.SerializerMemberAttribute" class="text-break">Class SerializerMemberAttribute
+  </h1>
+  <div class="markdown level0 summary"><p>Attach this attribute to a method, field, or property to expose it as serializable and configure it's &quot;ShouldSerialize&quot;,
+&quot;Formatter&quot;, &quot;Order&quot;, and &quot;EmitDefaultValue&quot; behaviors.</p>
+<p>If attached to a property, the propery must have a getter and take no parameters.</p>
+<p>If attached to a method, the method must return a non-null value and either:</p>
+<ul>
+<li>be an instance method and</li>
+</ul>
+<ul>
+<li>take no parameters</li>
+<li>take one parameter, an in WriteContext</li>
+</ul>
+<ul>
+<li>be static and</li>
+</ul>
+<ul>
+<li>take no parameters</li>
+<li>take one parameter either</li>
+</ul>
+<ul>
+<li>an in WriteContext or</li>
+<li>a type to which the declaring type of this member can be assigned</li>
+</ul>
+<ul>
+<li>take two parameters</li>
+</ul>
+<ol>
+<li>a type to which the declaring type of this member can be assigned</li>
+<li>in WriteContext</li>
+</ol>
+</div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="inheritance">
+    <h5>Inheritance</h5>
+    <div class="level0"><span class="xref">System.Object</span></div>
+    <div class="level1"><span class="xref">System.Attribute</span></div>
+    <div class="level2"><span class="xref">SerializerMemberAttribute</span></div>
+  </div>
+  <div classs="implements">
+    <h5>Implements</h5>
+    <div><span class="xref">System.IEquatable</span>&lt;<a class="xref" href="Cesil.SerializerMemberAttribute.html">SerializerMemberAttribute</a>&gt;</div>
+  </div>
+  <div class="inheritedMembers">
+    <h5>Inherited Members</h5>
+    <div>
+      <span class="xref">System.Object.Equals(System.Object, System.Object)</span>
+    </div>
+    <div>
+      <span class="xref">System.Object.GetType()</span>
+    </div>
+    <div>
+      <span class="xref">System.Object.MemberwiseClone()</span>
+    </div>
+    <div>
+      <span class="xref">System.Object.ReferenceEquals(System.Object, System.Object)</span>
+    </div>
+  </div>
+  <h6><strong>Namespace</strong>: <a class="xref" href="Cesil.html">Cesil</a></h6>
+  <h6><strong>Assembly</strong>: Cesil.dll</h6>
+  <h5 id="Cesil_SerializerMemberAttribute_syntax">Syntax</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">[AttributeUsage(AttributeTargets.Field | AttributeTargets.Method | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
+public sealed class SerializerMemberAttribute : Attribute, IEquatable&lt;SerializerMemberAttribute&gt;</code></pre>
+  </div>
+  <h3 id="constructors">Constructors
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializerMemberAttribute__ctor.md&amp;value=---%0Auid%3A%20Cesil.SerializerMemberAttribute.%23ctor%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/SerializerMemberAttribute.cs/#L158">View Source</a>
+  </span>
+  <a id="Cesil_SerializerMemberAttribute__ctor_" data-uid="Cesil.SerializerMemberAttribute.#ctor*"></a>
+  <h4 id="Cesil_SerializerMemberAttribute__ctor" data-uid="Cesil.SerializerMemberAttribute.#ctor">SerializerMemberAttribute()</h4>
+  <div class="markdown level1 summary"><p>Create a SerializerMemberAttribute attribute.</p>
+<p>This will expose the member for serialization if it would not otherwise be exposed.</p>
+<p>If on a method, a Name must be set.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public SerializerMemberAttribute()</code></pre>
+  </div>
+  <h3 id="properties">Properties
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializerMemberAttribute_EmitDefaultValue.md&amp;value=---%0Auid%3A%20Cesil.SerializerMemberAttribute.EmitDefaultValue%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/SerializerMemberAttribute.cs/#L149">View Source</a>
+  </span>
+  <a id="Cesil_SerializerMemberAttribute_EmitDefaultValue_" data-uid="Cesil.SerializerMemberAttribute.EmitDefaultValue*"></a>
+  <h4 id="Cesil_SerializerMemberAttribute_EmitDefaultValue" data-uid="Cesil.SerializerMemberAttribute.EmitDefaultValue">EmitDefaultValue</h4>
+  <div class="markdown level1 summary"><p>Whether or not to emit the default value.</p>
+<p>Defaults to Yes.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public EmitDefaultValue EmitDefaultValue { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.EmitDefaultValue.html">EmitDefaultValue</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializerMemberAttribute_FormatterMethodName.md&amp;value=---%0Auid%3A%20Cesil.SerializerMemberAttribute.FormatterMethodName%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/SerializerMemberAttribute.cs/#L103">View Source</a>
+  </span>
+  <a id="Cesil_SerializerMemberAttribute_FormatterMethodName_" data-uid="Cesil.SerializerMemberAttribute.FormatterMethodName*"></a>
+  <h4 id="Cesil_SerializerMemberAttribute_FormatterMethodName" data-uid="Cesil.SerializerMemberAttribute.FormatterMethodName">FormatterMethodName</h4>
+  <div class="markdown level1 summary"><p>Name of formatter method, used with FormatterType.</p>
+<p>If non-null, FormatterType must also be set.</p>
+<p>The method must:</p>
+<ul>
+<li>be public (or internal, if declared in the same assembly as the annotated type)</li>
+<li>static</li>
+<li>return bool</li>
+<li>have three paramters:</li>
+</ul>
+<ol>
+<li>a type which the annotated member's type can be assigned to</li>
+<li>in WriteContext</li>
+<li>IBufferWriter(char)</li>
+</ol>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string FormatterMethodName { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializerMemberAttribute_FormatterType.md&amp;value=---%0Auid%3A%20Cesil.SerializerMemberAttribute.FormatterType%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/SerializerMemberAttribute.cs/#L86">View Source</a>
+  </span>
+  <a id="Cesil_SerializerMemberAttribute_FormatterType_" data-uid="Cesil.SerializerMemberAttribute.FormatterType*"></a>
+  <h4 id="Cesil_SerializerMemberAttribute_FormatterType" data-uid="Cesil.SerializerMemberAttribute.FormatterType">FormatterType</h4>
+  <div class="markdown level1 summary"><p>Type to lookup a formatter method on, used with FormatterMethodName.</p>
+<p>If null, defaults to a built in Formatter for the type
+of this member (if any).</p>
+<p>If non-null, FormatterMethodName must also be set.</p>
+<p>The type must be public (or internal, if declared in the same assembly as the annotated type).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Type FormatterType { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Type</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializerMemberAttribute_HasOrder.md&amp;value=---%0Auid%3A%20Cesil.SerializerMemberAttribute.HasOrder%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/SerializerMemberAttribute.cs/#L44">View Source</a>
+  </span>
+  <a id="Cesil_SerializerMemberAttribute_HasOrder_" data-uid="Cesil.SerializerMemberAttribute.HasOrder*"></a>
+  <h4 id="Cesil_SerializerMemberAttribute_HasOrder" data-uid="Cesil.SerializerMemberAttribute.HasOrder">HasOrder</h4>
+  <div class="markdown level1 summary"><p>Returns true if Order has been explicitly set.</p>
+<p>Getting Order when HasOrder is false will throw an exception.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool HasOrder { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializerMemberAttribute_Name.md&amp;value=---%0Auid%3A%20Cesil.SerializerMemberAttribute.Name%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/SerializerMemberAttribute.cs/#L34">View Source</a>
+  </span>
+  <a id="Cesil_SerializerMemberAttribute_Name_" data-uid="Cesil.SerializerMemberAttribute.Name*"></a>
+  <h4 id="Cesil_SerializerMemberAttribute_Name" data-uid="Cesil.SerializerMemberAttribute.Name">Name</h4>
+  <div class="markdown level1 summary"><p>The name of the column this member's returned value will be serialized under.</p>
+<p>For fields and properties, this defaults to their declared name.</p>
+<p>For methods, this must be explicitly set.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string Name { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializerMemberAttribute_Order.md&amp;value=---%0Auid%3A%20Cesil.SerializerMemberAttribute.Order%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/SerializerMemberAttribute.cs/#L56">View Source</a>
+  </span>
+  <a id="Cesil_SerializerMemberAttribute_Order_" data-uid="Cesil.SerializerMemberAttribute.Order*"></a>
+  <h4 id="Cesil_SerializerMemberAttribute_Order" data-uid="Cesil.SerializerMemberAttribute.Order">Order</h4>
+  <div class="markdown level1 summary"><p>Value used to order columns.</p>
+<p>Set to null to leave order unspecified.</p>
+<p>Orders with explicit values are sorted before those without values.</p>
+<p>Check HashOrder before getting Order, or an exception will be thrown.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int Order { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializerMemberAttribute_ShouldSerializeMethodName.md&amp;value=---%0Auid%3A%20Cesil.SerializerMemberAttribute.ShouldSerializeMethodName%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/SerializerMemberAttribute.cs/#L141">View Source</a>
+  </span>
+  <a id="Cesil_SerializerMemberAttribute_ShouldSerializeMethodName_" data-uid="Cesil.SerializerMemberAttribute.ShouldSerializeMethodName*"></a>
+  <h4 id="Cesil_SerializerMemberAttribute_ShouldSerializeMethodName" data-uid="Cesil.SerializerMemberAttribute.ShouldSerializeMethodName">ShouldSerializeMethodName</h4>
+  <div class="markdown level1 summary"><p>Name of should serialize method, used with ShouldSerializeType.</p>
+<p>If non-null, ShouldSerializeType must also be set.</p>
+<p>The method must either</p>
+<ul>
+<li>be public (or internal, if declared in the same assembly as the annotated type)</li>
+<li>instance method</li>
+<li>take</li>
+</ul>
+<ol>
+<li>no parameters</li>
+<li>one in WriteContext parameter</li>
+</ol>
+<ul>
+<li>return bool
+or</li>
+<li>be public (or internal, if declared in the same assembly as the annotated type)</li>
+<li>static</li>
+<li>take</li>
+</ul>
+<ol>
+<li>no parameters</li>
+<li>one parameter of a type which declares the annotated member</li>
+<li>two parameters</li>
+<li>a type which declares the annotated member</li>
+<li>in WriteContext</li>
+</ol>
+<ul>
+<li>return bool</li>
+</ul>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string ShouldSerializeMethodName { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializerMemberAttribute_ShouldSerializeType.md&amp;value=---%0Auid%3A%20Cesil.SerializerMemberAttribute.ShouldSerializeType%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/SerializerMemberAttribute.cs/#L115">View Source</a>
+  </span>
+  <a id="Cesil_SerializerMemberAttribute_ShouldSerializeType_" data-uid="Cesil.SerializerMemberAttribute.ShouldSerializeType*"></a>
+  <h4 id="Cesil_SerializerMemberAttribute_ShouldSerializeType" data-uid="Cesil.SerializerMemberAttribute.ShouldSerializeType">ShouldSerializeType</h4>
+  <div class="markdown level1 summary"><p>Type to lookup a should serialize method on, used with ShouldSerializeMethodName.</p>
+<p>If null, no should seralize is used.</p>
+<p>If non-null, ShouldSerializeMethodName must also be set.</p>
+<p>The type must be public (or internal, if declared in the same assembly as the annotated type).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Type ShouldSerializeType { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Type</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="methods">Methods
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializerMemberAttribute_Equals_Cesil_SerializerMemberAttribute_.md&amp;value=---%0Auid%3A%20Cesil.SerializerMemberAttribute.Equals(Cesil.SerializerMemberAttribute)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/SerializerMemberAttribute.cs/#L164">View Source</a>
+  </span>
+  <a id="Cesil_SerializerMemberAttribute_Equals_" data-uid="Cesil.SerializerMemberAttribute.Equals*"></a>
+  <h4 id="Cesil_SerializerMemberAttribute_Equals_Cesil_SerializerMemberAttribute_" data-uid="Cesil.SerializerMemberAttribute.Equals(Cesil.SerializerMemberAttribute)">Equals(SerializerMemberAttribute)</h4>
+  <div class="markdown level1 summary"><p>Returns true if the given SerializerMemberAttribute is equal
+to this one.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool Equals(SerializerMemberAttribute attribute)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.SerializerMemberAttribute.html">SerializerMemberAttribute</a></td>
+        <td><span class="parametername">attribute</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializerMemberAttribute_Equals_System_Object_.md&amp;value=---%0Auid%3A%20Cesil.SerializerMemberAttribute.Equals(System.Object)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/SerializerMemberAttribute.cs/#L185">View Source</a>
+  </span>
+  <a id="Cesil_SerializerMemberAttribute_Equals_" data-uid="Cesil.SerializerMemberAttribute.Equals*"></a>
+  <h4 id="Cesil_SerializerMemberAttribute_Equals_System_Object_" data-uid="Cesil.SerializerMemberAttribute.Equals(System.Object)">Equals(Object)</h4>
+  <div class="markdown level1 summary"><p>Return true if the given object is a SerializerMemberAttribute
+equal to this one.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public override bool Equals(object obj)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Object</span></td>
+        <td><span class="parametername">obj</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="overrides">Overrides</h5>
+  <div><span class="xref">System.Attribute.Equals(System.Object)</span></div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializerMemberAttribute_GetHashCode.md&amp;value=---%0Auid%3A%20Cesil.SerializerMemberAttribute.GetHashCode%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/SerializerMemberAttribute.cs/#L192">View Source</a>
+  </span>
+  <a id="Cesil_SerializerMemberAttribute_GetHashCode_" data-uid="Cesil.SerializerMemberAttribute.GetHashCode*"></a>
+  <h4 id="Cesil_SerializerMemberAttribute_GetHashCode" data-uid="Cesil.SerializerMemberAttribute.GetHashCode">GetHashCode()</h4>
+  <div class="markdown level1 summary"><p>Returns a hash code for this SerializerMemberAttribute.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public override int GetHashCode()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="overrides">Overrides</h5>
+  <div><span class="xref">System.Attribute.GetHashCode()</span></div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializerMemberAttribute_ToString.md&amp;value=---%0Auid%3A%20Cesil.SerializerMemberAttribute.ToString%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/SerializerMemberAttribute.cs/#L212">View Source</a>
+  </span>
+  <a id="Cesil_SerializerMemberAttribute_ToString_" data-uid="Cesil.SerializerMemberAttribute.ToString*"></a>
+  <h4 id="Cesil_SerializerMemberAttribute_ToString" data-uid="Cesil.SerializerMemberAttribute.ToString">ToString()</h4>
+  <div class="markdown level1 summary"><p>Returns a representation of this SerializerMemberAttribute object.</p>
+<p>Only for debugging, this value is not guaranteed to be stable.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public override string ToString()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="overrides">Overrides</h5>
+  <div><span class="xref">System.Object.ToString()</span></div>
+  <h3 id="operators">Operators
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializerMemberAttribute_op_Equality_Cesil_SerializerMemberAttribute_Cesil_SerializerMemberAttribute_.md&amp;value=---%0Auid%3A%20Cesil.SerializerMemberAttribute.op_Equality(Cesil.SerializerMemberAttribute%2CCesil.SerializerMemberAttribute)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/SerializerMemberAttribute.cs/#L198">View Source</a>
+  </span>
+  <a id="Cesil_SerializerMemberAttribute_op_Equality_" data-uid="Cesil.SerializerMemberAttribute.op_Equality*"></a>
+  <h4 id="Cesil_SerializerMemberAttribute_op_Equality_Cesil_SerializerMemberAttribute_Cesil_SerializerMemberAttribute_" data-uid="Cesil.SerializerMemberAttribute.op_Equality(Cesil.SerializerMemberAttribute,Cesil.SerializerMemberAttribute)">Equality(SerializerMemberAttribute, SerializerMemberAttribute)</h4>
+  <div class="markdown level1 summary"><p>Compare two SerializerMemberAttributes for equality</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static bool operator ==(SerializerMemberAttribute a, SerializerMemberAttribute b)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.SerializerMemberAttribute.html">SerializerMemberAttribute</a></td>
+        <td><span class="parametername">a</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="Cesil.SerializerMemberAttribute.html">SerializerMemberAttribute</a></td>
+        <td><span class="parametername">b</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializerMemberAttribute_op_Inequality_Cesil_SerializerMemberAttribute_Cesil_SerializerMemberAttribute_.md&amp;value=---%0Auid%3A%20Cesil.SerializerMemberAttribute.op_Inequality(Cesil.SerializerMemberAttribute%2CCesil.SerializerMemberAttribute)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/SerializerMemberAttribute.cs/#L204">View Source</a>
+  </span>
+  <a id="Cesil_SerializerMemberAttribute_op_Inequality_" data-uid="Cesil.SerializerMemberAttribute.op_Inequality*"></a>
+  <h4 id="Cesil_SerializerMemberAttribute_op_Inequality_Cesil_SerializerMemberAttribute_Cesil_SerializerMemberAttribute_" data-uid="Cesil.SerializerMemberAttribute.op_Inequality(Cesil.SerializerMemberAttribute,Cesil.SerializerMemberAttribute)">Inequality(SerializerMemberAttribute, SerializerMemberAttribute)</h4>
+  <div class="markdown level1 summary"><p>Compare two SerializerMemberAttributes for inequality</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static bool operator !=(SerializerMemberAttribute a, SerializerMemberAttribute b)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.SerializerMemberAttribute.html">SerializerMemberAttribute</a></td>
+        <td><span class="parametername">a</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="Cesil.SerializerMemberAttribute.html">SerializerMemberAttribute</a></td>
+        <td><span class="parametername">b</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="implements">Implements</h3>
+  <div>
+      <span class="xref">System.IEquatable&lt;T&gt;</span>
+  </div>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializerMemberAttribute.md&amp;value=---%0Auid%3A%20Cesil.SerializerMemberAttribute%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
+                  </li>
+                  <li>
+                    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/SerializerMemberAttribute.cs/#L24" class="contribution-link">View Source</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            
+            <span>Generated by <strong>DocFX</strong></span>
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>
