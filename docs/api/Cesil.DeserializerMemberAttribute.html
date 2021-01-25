@@ -1,0 +1,750 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Class DeserializerMemberAttribute
+   </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Class DeserializerMemberAttribute
+   ">
+    <meta name="generator" content="docfx 2.52.0.0">
+    
+    <link rel="shortcut icon" href="../favicon.ico">
+    <link rel="stylesheet" href="../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../styles/docfx.css">
+    <link rel="stylesheet" href="../styles/main.css">
+    <meta property="docfx:navrel" content="">
+    <meta property="docfx:tocrel" content="toc.html">
+    
+    
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div role="main" class="container body-content hide-when-search">
+        <div class="article row grid">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="Cesil.DeserializerMemberAttribute">
+  
+  
+  <h1 id="Cesil_DeserializerMemberAttribute" data-uid="Cesil.DeserializerMemberAttribute" class="text-break">Class DeserializerMemberAttribute
+  </h1>
+  <div class="markdown level0 summary"><p>Attach this attribute to a method, field, property, or parameter to expose it as deserializable and configure it's &quot;Parser&quot;,
+&quot;MemberRequired&quot;, &quot;Reset&quot;, and &quot;Order&quot; behaviors.</p>
+<p>If attached to a property, the propery must have a setter and take no parameters.</p>
+<p>If attached to a method it must return void.</p>
+<p>If attached to a parameter, the parameter must be to a constructor, all parameters to the constructor must also be annotated,
+and the constructor itself must be annotated with DeserializerInstanceProviderAttribute.</p>
+<p>If attached to a static method it may:</p>
+<ul>
+<li>take 1 parameter (the result of the parser) or</li>
+<li>take 2 parameters, the result of the parser and an <code>in ReadContext</code> or</li>
+<li>take 2 parameters, the row type (which may be passed by ref), and the result of the parser or</li>
+<li>take 3 parameters, the row type (which may be passed by ref), the result of the parser, and <code>in ReadContext</code></li>
+</ul>
+<p>If attached to an instance method it may:</p>
+<ul>
+<li>be on the row type, and take 1 parameter (the result of the parser) or</li>
+<li>be on the row type, and take 2 parameters, the result of the parser and an <code>in ReadContext</code></li>
+</ul>
+</div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="inheritance">
+    <h5>Inheritance</h5>
+    <div class="level0"><span class="xref">System.Object</span></div>
+    <div class="level1"><span class="xref">System.Attribute</span></div>
+    <div class="level2"><span class="xref">DeserializerMemberAttribute</span></div>
+  </div>
+  <div classs="implements">
+    <h5>Implements</h5>
+    <div><span class="xref">System.IEquatable</span>&lt;<a class="xref" href="Cesil.DeserializerMemberAttribute.html">DeserializerMemberAttribute</a>&gt;</div>
+  </div>
+  <div class="inheritedMembers">
+    <h5>Inherited Members</h5>
+    <div>
+      <span class="xref">System.Object.Equals(System.Object, System.Object)</span>
+    </div>
+    <div>
+      <span class="xref">System.Object.GetType()</span>
+    </div>
+    <div>
+      <span class="xref">System.Object.MemberwiseClone()</span>
+    </div>
+    <div>
+      <span class="xref">System.Object.ReferenceEquals(System.Object, System.Object)</span>
+    </div>
+  </div>
+  <h6><strong>Namespace</strong>: <a class="xref" href="Cesil.html">Cesil</a></h6>
+  <h6><strong>Assembly</strong>: Cesil.dll</h6>
+  <h5 id="Cesil_DeserializerMemberAttribute_syntax">Syntax</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">[AttributeUsage(AttributeTargets.Field | AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
+public sealed class DeserializerMemberAttribute : Attribute, IEquatable&lt;DeserializerMemberAttribute&gt;</code></pre>
+  </div>
+  <h3 id="constructors">Constructors
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DeserializerMemberAttribute__ctor.md&amp;value=---%0Auid%3A%20Cesil.DeserializerMemberAttribute.%23ctor%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/DeserializerMemberAttribute.cs/#L146">View Source</a>
+  </span>
+  <a id="Cesil_DeserializerMemberAttribute__ctor_" data-uid="Cesil.DeserializerMemberAttribute.#ctor*"></a>
+  <h4 id="Cesil_DeserializerMemberAttribute__ctor" data-uid="Cesil.DeserializerMemberAttribute.#ctor">DeserializerMemberAttribute()</h4>
+  <div class="markdown level1 summary"><p>Create a GenerateDeserializableAttribute attribute.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public DeserializerMemberAttribute()</code></pre>
+  </div>
+  <h3 id="properties">Properties
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DeserializerMemberAttribute_HasOrder.md&amp;value=---%0Auid%3A%20Cesil.DeserializerMemberAttribute.HasOrder%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/DeserializerMemberAttribute.cs/#L111">View Source</a>
+  </span>
+  <a id="Cesil_DeserializerMemberAttribute_HasOrder_" data-uid="Cesil.DeserializerMemberAttribute.HasOrder*"></a>
+  <h4 id="Cesil_DeserializerMemberAttribute_HasOrder" data-uid="Cesil.DeserializerMemberAttribute.HasOrder">HasOrder</h4>
+  <div class="markdown level1 summary"><p>Returns true if Order has been explicitly set.</p>
+<p>Getting Order when HasOrder is false will throw an exception.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool HasOrder { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DeserializerMemberAttribute_MemberRequired.md&amp;value=---%0Auid%3A%20Cesil.DeserializerMemberAttribute.MemberRequired%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/DeserializerMemberAttribute.cs/#L74">View Source</a>
+  </span>
+  <a id="Cesil_DeserializerMemberAttribute_MemberRequired_" data-uid="Cesil.DeserializerMemberAttribute.MemberRequired*"></a>
+  <h4 id="Cesil_DeserializerMemberAttribute_MemberRequired" data-uid="Cesil.DeserializerMemberAttribute.MemberRequired">MemberRequired</h4>
+  <div class="markdown level1 summary"><p>Whether or not this column is required.</p>
+<p>Defaults to No, except for on constructor parameters (where it
+must be Yes).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public MemberRequired MemberRequired { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.MemberRequired.html">MemberRequired</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DeserializerMemberAttribute_Name.md&amp;value=---%0Auid%3A%20Cesil.DeserializerMemberAttribute.Name%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/DeserializerMemberAttribute.cs/#L36">View Source</a>
+  </span>
+  <a id="Cesil_DeserializerMemberAttribute_Name_" data-uid="Cesil.DeserializerMemberAttribute.Name*"></a>
+  <h4 id="Cesil_DeserializerMemberAttribute_Name" data-uid="Cesil.DeserializerMemberAttribute.Name">Name</h4>
+  <div class="markdown level1 summary"><p>The name of the column which maps to this member.</p>
+<p>For fields and properties, this defaults to their declared name.</p>
+<p>For methods, this must be explicitly set.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string Name { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DeserializerMemberAttribute_Order.md&amp;value=---%0Auid%3A%20Cesil.DeserializerMemberAttribute.Order%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/DeserializerMemberAttribute.cs/#L123">View Source</a>
+  </span>
+  <a id="Cesil_DeserializerMemberAttribute_Order_" data-uid="Cesil.DeserializerMemberAttribute.Order*"></a>
+  <h4 id="Cesil_DeserializerMemberAttribute_Order" data-uid="Cesil.DeserializerMemberAttribute.Order">Order</h4>
+  <div class="markdown level1 summary"><p>Value used to order columns.</p>
+<p>Set to null to leave order unspecified.</p>
+<p>Orders with explicit values are sorted before those without values.</p>
+<p>Check HashOrder before getting Order, or an exception will be thrown.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int Order { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DeserializerMemberAttribute_ParserMethodName.md&amp;value=---%0Auid%3A%20Cesil.DeserializerMemberAttribute.ParserMethodName%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/DeserializerMemberAttribute.cs/#L65">View Source</a>
+  </span>
+  <a id="Cesil_DeserializerMemberAttribute_ParserMethodName_" data-uid="Cesil.DeserializerMemberAttribute.ParserMethodName*"></a>
+  <h4 id="Cesil_DeserializerMemberAttribute_ParserMethodName" data-uid="Cesil.DeserializerMemberAttribute.ParserMethodName">ParserMethodName</h4>
+  <div class="markdown level1 summary"><p>Name of parser method, used with ParserType.</p>
+<p>If non-null, ParserType must also be set.</p>
+<p>The method must:</p>
+<ul>
+<li>be static</li>
+<li>return a bool</li>
+<li>have 3 parameters</li>
+</ul>
+<ul>
+<li>ReadOnlySpan(char)</li>
+<li>in ReadContext,</li>
+<li>out assignable to outputType</li>
+</ul>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string ParserMethodName { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DeserializerMemberAttribute_ParserType.md&amp;value=---%0Auid%3A%20Cesil.DeserializerMemberAttribute.ParserType%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/DeserializerMemberAttribute.cs/#L49">View Source</a>
+  </span>
+  <a id="Cesil_DeserializerMemberAttribute_ParserType_" data-uid="Cesil.DeserializerMemberAttribute.ParserType*"></a>
+  <h4 id="Cesil_DeserializerMemberAttribute_ParserType" data-uid="Cesil.DeserializerMemberAttribute.ParserType">ParserType</h4>
+  <div class="markdown level1 summary"><p>Type to lookup a parser method on, used with ParserMethodName.</p>
+<p>If null, defaults to a built in Parser for the type
+of this member (if any).</p>
+<p>If non-null, ParserMethodName must also be set.</p>
+<p>The type must be public (or internal, if declared in the same assembly as the annotated type).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Type ParserType { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Type</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DeserializerMemberAttribute_ResetMethodName.md&amp;value=---%0Auid%3A%20Cesil.DeserializerMemberAttribute.ResetMethodName%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/DeserializerMemberAttribute.cs/#L101">View Source</a>
+  </span>
+  <a id="Cesil_DeserializerMemberAttribute_ResetMethodName_" data-uid="Cesil.DeserializerMemberAttribute.ResetMethodName*"></a>
+  <h4 id="Cesil_DeserializerMemberAttribute_ResetMethodName" data-uid="Cesil.DeserializerMemberAttribute.ResetMethodName">ResetMethodName</h4>
+  <div class="markdown level1 summary"><p>Name of reset method, used with ResetType.</p>
+<p>If non-null, ResetType must also be set.</p>
+<p>The method must return void.</p>
+<p>If referring to an instance method it can take:</p>
+<ul>
+<li>zero parameters or</li>
+<li>a single <code>in ReadContext</code> parameter.</li>
+</ul>
+<p>If referring to a static method it can take:</p>
+<ul>
+<li>zero parameters or</li>
+<li>a single parameter of the row type or</li>
+<li>a single parameter of <code>in ReadContext</code> or</li>
+<li>two parameters, the first of the row type (which may be by ref) and the second of <code>in ReadContext</code></li>
+</ul>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string ResetMethodName { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DeserializerMemberAttribute_ResetType.md&amp;value=---%0Auid%3A%20Cesil.DeserializerMemberAttribute.ResetType%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/DeserializerMemberAttribute.cs/#L81">View Source</a>
+  </span>
+  <a id="Cesil_DeserializerMemberAttribute_ResetType_" data-uid="Cesil.DeserializerMemberAttribute.ResetType*"></a>
+  <h4 id="Cesil_DeserializerMemberAttribute_ResetType" data-uid="Cesil.DeserializerMemberAttribute.ResetType">ResetType</h4>
+  <div class="markdown level1 summary"><p>Type to lookup a reset method on, used with ResetMethodName.</p>
+<p>If non-null, ResetMethodName must also be set.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Type ResetType { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Type</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="methods">Methods
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DeserializerMemberAttribute_Equals_Cesil_DeserializerMemberAttribute_.md&amp;value=---%0Auid%3A%20Cesil.DeserializerMemberAttribute.Equals(Cesil.DeserializerMemberAttribute)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/DeserializerMemberAttribute.cs/#L152">View Source</a>
+  </span>
+  <a id="Cesil_DeserializerMemberAttribute_Equals_" data-uid="Cesil.DeserializerMemberAttribute.Equals*"></a>
+  <h4 id="Cesil_DeserializerMemberAttribute_Equals_Cesil_DeserializerMemberAttribute_" data-uid="Cesil.DeserializerMemberAttribute.Equals(Cesil.DeserializerMemberAttribute)">Equals(DeserializerMemberAttribute)</h4>
+  <div class="markdown level1 summary"><p>Returns true if the given GenerateDeserializableMemberAttribute is equal
+to this one.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool Equals(DeserializerMemberAttribute attribute)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.DeserializerMemberAttribute.html">DeserializerMemberAttribute</a></td>
+        <td><span class="parametername">attribute</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DeserializerMemberAttribute_Equals_System_Object_.md&amp;value=---%0Auid%3A%20Cesil.DeserializerMemberAttribute.Equals(System.Object)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/DeserializerMemberAttribute.cs/#L196">View Source</a>
+  </span>
+  <a id="Cesil_DeserializerMemberAttribute_Equals_" data-uid="Cesil.DeserializerMemberAttribute.Equals*"></a>
+  <h4 id="Cesil_DeserializerMemberAttribute_Equals_System_Object_" data-uid="Cesil.DeserializerMemberAttribute.Equals(System.Object)">Equals(Object)</h4>
+  <div class="markdown level1 summary"><p>Return true if the given object is a GenerateDeserializableMemberAttribute
+equal to this one.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public override bool Equals(object obj)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Object</span></td>
+        <td><span class="parametername">obj</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="overrides">Overrides</h5>
+  <div><span class="xref">System.Attribute.Equals(System.Object)</span></div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DeserializerMemberAttribute_GetHashCode.md&amp;value=---%0Auid%3A%20Cesil.DeserializerMemberAttribute.GetHashCode%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/DeserializerMemberAttribute.cs/#L203">View Source</a>
+  </span>
+  <a id="Cesil_DeserializerMemberAttribute_GetHashCode_" data-uid="Cesil.DeserializerMemberAttribute.GetHashCode*"></a>
+  <h4 id="Cesil_DeserializerMemberAttribute_GetHashCode" data-uid="Cesil.DeserializerMemberAttribute.GetHashCode">GetHashCode()</h4>
+  <div class="markdown level1 summary"><p>Returns a stable hash code for this GenerateDeserializableMemberAttribute.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public override int GetHashCode()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="overrides">Overrides</h5>
+  <div><span class="xref">System.Attribute.GetHashCode()</span></div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DeserializerMemberAttribute_ToString.md&amp;value=---%0Auid%3A%20Cesil.DeserializerMemberAttribute.ToString%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/DeserializerMemberAttribute.cs/#L223">View Source</a>
+  </span>
+  <a id="Cesil_DeserializerMemberAttribute_ToString_" data-uid="Cesil.DeserializerMemberAttribute.ToString*"></a>
+  <h4 id="Cesil_DeserializerMemberAttribute_ToString" data-uid="Cesil.DeserializerMemberAttribute.ToString">ToString()</h4>
+  <div class="markdown level1 summary"><p>Returns a representation of this GenerateDeserializableMemberAttribute object.</p>
+<p>Only for debugging, this value is not guaranteed to be stable.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public override string ToString()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="overrides">Overrides</h5>
+  <div><span class="xref">System.Object.ToString()</span></div>
+  <h3 id="operators">Operators
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DeserializerMemberAttribute_op_Equality_Cesil_DeserializerMemberAttribute_Cesil_DeserializerMemberAttribute_.md&amp;value=---%0Auid%3A%20Cesil.DeserializerMemberAttribute.op_Equality(Cesil.DeserializerMemberAttribute%2CCesil.DeserializerMemberAttribute)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/DeserializerMemberAttribute.cs/#L209">View Source</a>
+  </span>
+  <a id="Cesil_DeserializerMemberAttribute_op_Equality_" data-uid="Cesil.DeserializerMemberAttribute.op_Equality*"></a>
+  <h4 id="Cesil_DeserializerMemberAttribute_op_Equality_Cesil_DeserializerMemberAttribute_Cesil_DeserializerMemberAttribute_" data-uid="Cesil.DeserializerMemberAttribute.op_Equality(Cesil.DeserializerMemberAttribute,Cesil.DeserializerMemberAttribute)">Equality(DeserializerMemberAttribute, DeserializerMemberAttribute)</h4>
+  <div class="markdown level1 summary"><p>Compare two GenerateDeserializableMemberAttribute for equality</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static bool operator ==(DeserializerMemberAttribute a, DeserializerMemberAttribute b)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.DeserializerMemberAttribute.html">DeserializerMemberAttribute</a></td>
+        <td><span class="parametername">a</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="Cesil.DeserializerMemberAttribute.html">DeserializerMemberAttribute</a></td>
+        <td><span class="parametername">b</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DeserializerMemberAttribute_op_Inequality_Cesil_DeserializerMemberAttribute_Cesil_DeserializerMemberAttribute_.md&amp;value=---%0Auid%3A%20Cesil.DeserializerMemberAttribute.op_Inequality(Cesil.DeserializerMemberAttribute%2CCesil.DeserializerMemberAttribute)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/DeserializerMemberAttribute.cs/#L215">View Source</a>
+  </span>
+  <a id="Cesil_DeserializerMemberAttribute_op_Inequality_" data-uid="Cesil.DeserializerMemberAttribute.op_Inequality*"></a>
+  <h4 id="Cesil_DeserializerMemberAttribute_op_Inequality_Cesil_DeserializerMemberAttribute_Cesil_DeserializerMemberAttribute_" data-uid="Cesil.DeserializerMemberAttribute.op_Inequality(Cesil.DeserializerMemberAttribute,Cesil.DeserializerMemberAttribute)">Inequality(DeserializerMemberAttribute, DeserializerMemberAttribute)</h4>
+  <div class="markdown level1 summary"><p>Compare two GenerateDeserializableMemberAttribute for inequality</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static bool operator !=(DeserializerMemberAttribute a, DeserializerMemberAttribute b)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.DeserializerMemberAttribute.html">DeserializerMemberAttribute</a></td>
+        <td><span class="parametername">a</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="Cesil.DeserializerMemberAttribute.html">DeserializerMemberAttribute</a></td>
+        <td><span class="parametername">b</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="implements">Implements</h3>
+  <div>
+      <span class="xref">System.IEquatable&lt;T&gt;</span>
+  </div>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DeserializerMemberAttribute.md&amp;value=---%0Auid%3A%20Cesil.DeserializerMemberAttribute%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
+                  </li>
+                  <li>
+                    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/DeserializerMemberAttribute.cs/#L26" class="contribution-link">View Source</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            
+            <span>Generated by <strong>DocFX</strong></span>
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

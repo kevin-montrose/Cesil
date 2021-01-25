@@ -716,6 +716,7 @@ namespace Test
 namespace Cesil
 {
     // delegates
+    public delegate bool ColumnWriterDelegate();
     public delegate void ParserDelegate<T>(T _);
     public delegate void SetterDelegate<T,V>(T _, V __);
     public delegate void SetterByRefDelegate<T,V>(T _, V __);
@@ -735,6 +736,11 @@ namespace Cesil
     public delegate void ClearHoldDelegate<T>(T _);
     public delegate void InstanceProviderDelegate<T>(T _);
     public delegate void NeedsHoldRowConstructor<T,V>(T _, V __);
+    public delegate void StartRowDelegate(in ReadContext _);
+    public delegate bool TryPreAllocateDelegate<T>(in ReadContext _, bool __, ref T ___);
+    public delegate bool GeneratedColumnAvailableDelegate(ReadOnlySpan<char> _, in ReadContext __);
+    public delegate ref Memory<int> GetColumnMapDelegate();
+
 
     // enums
     public enum RowEnding { }
@@ -775,6 +781,8 @@ namespace Cesil
     public class DynamicRowRange { }
     public class PassthroughRowEnumerable { }
     public class DefaultTypeDescriber { }
+    public class GeneratedSourceVersionAttribute { }
+    
 
     public class ReaderStateMachine
     {

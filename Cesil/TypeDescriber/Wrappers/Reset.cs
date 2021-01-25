@@ -191,6 +191,8 @@ namespace Cesil
         /// <summary>
         /// Create a reset from a method.
         /// 
+        /// The method must return void.
+        /// 
         /// If method is an instance, it can take:
         ///  - zero parameters or 
         ///  - a single `in ReadContext` parameter.
@@ -199,7 +201,7 @@ namespace Cesil
         ///  - zero parameters or
         ///  - a single parameter of the row type or
         ///  - a single parameter of `in ReadContext` or
-        ///  - two parameters, the first of the row type and the second of `in ReadContext`
+        ///  - two parameters, the first of the row type (which may be by ref) and the second of `in ReadContext`
         /// 
         /// If the reset is instance or takes a of the row type parameter, the instance or parameter
         ///   type must be assignable from the type being deserialized.

@@ -70,6 +70,10 @@
   <div class="markdown level0 remarks"></div>
     <h3 id="classes">Classes
   </h3>
+      <h4><a class="xref" href="Cesil.AheadOfTimeTypeDescriber.html">AheadOfTimeTypeDescriber</a></h4>
+      <section><p>An ITypeDescriber that use (de)serializer that was generated ahead of time
+by using Cesil.SourceGenerator.</p>
+</section>
       <h4><a class="xref" href="Cesil.CesilUtils.html">CesilUtils</a></h4>
       <section><p>A collection of convenience methods for reading and writing using streams or files.</p>
 <p>These methods are less flexible than directly using Configuration and are not as efficient
@@ -80,6 +84,10 @@ less code.</p>
       <h4><a class="xref" href="Cesil.Configuration.html">Configuration</a></h4>
       <section><p>Used to combine a type and an Options into an IBoundConfiguration(T),
 which can create readers and writers.</p>
+</section>
+      <h4><a class="xref" href="Cesil.ConstructorInstanceProviderAttribute.html">ConstructorInstanceProviderAttribute</a></h4>
+      <section><p>Automatically attached to generated methods depending on runtime behavior.</p>
+<p>You should not use this directly.</p>
 </section>
       <h4><a class="xref" href="Cesil.DefaultTypeDescriber.html">DefaultTypeDescriber</a></h4>
       <section><p>The default implementation of ITypeDescriber used to
@@ -98,6 +106,36 @@ POCOs, ValueTuples, Tuples, and IEnumerables.</p>
       <h4><a class="xref" href="Cesil.DeserializableMember.html">DeserializableMember</a></h4>
       <section><p>Represents a member of a type to use when deserializing.</p>
 </section>
+      <h4><a class="xref" href="Cesil.DeserializerInstanceProviderAttribute.html">DeserializerInstanceProviderAttribute</a></h4>
+      <section><p>When using Cesil's Source Generator (see Nuget.org for Cesil.SourceGenerator) marks a constructor as the InstanceProvider
+for the containing type.</p>
+<p>To use a method instead of a constructor, use the InstanceProviderType and InstanceProviderMethodName properties on
+[GenerateDeserializableAttribute].</p>
+</section>
+      <h4><a class="xref" href="Cesil.DeserializerMemberAttribute.html">DeserializerMemberAttribute</a></h4>
+      <section><p>Attach this attribute to a method, field, property, or parameter to expose it as deserializable and configure it's &quot;Parser&quot;,
+&quot;MemberRequired&quot;, &quot;Reset&quot;, and &quot;Order&quot; behaviors.</p>
+<p>If attached to a property, the propery must have a setter and take no parameters.</p>
+<p>If attached to a method it must return void.</p>
+<p>If attached to a parameter, the parameter must be to a constructor, all parameters to the constructor must also be annotated,
+and the constructor itself must be annotated with DeserializerInstanceProviderAttribute.</p>
+<p>If attached to a static method it may:</p>
+<ul>
+<li>take 1 parameter (the result of the parser) or</li>
+<li>take 2 parameters, the result of the parser and an <code>in ReadContext</code> or</li>
+<li>take 2 parameters, the row type (which may be passed by ref), and the result of the parser or</li>
+<li>take 3 parameters, the row type (which may be passed by ref), the result of the parser, and <code>in ReadContext</code></li>
+</ul>
+<p>If attached to an instance method it may:</p>
+<ul>
+<li>be on the row type, and take 1 parameter (the result of the parser) or</li>
+<li>be on the row type, and take 2 parameters, the result of the parser and an <code>in ReadContext</code></li>
+</ul>
+</section>
+      <h4><a class="xref" href="Cesil.DoesNotEmitDefaultValueAttribute.html">DoesNotEmitDefaultValueAttribute</a></h4>
+      <section><p>Automatically attached to generated methods depending on runtime behavior.</p>
+<p>You should not use this directly.</p>
+</section>
       <h4><a class="xref" href="Cesil.DynamicRowConverter.html">DynamicRowConverter</a></h4>
       <section><p>Describes how to convert a dynamic row value
 into an instance of a type.</p>
@@ -109,6 +147,29 @@ or static methods.</p>
       <h4><a class="xref" href="Cesil.Formatter.html">Formatter</a></h4>
       <section><p>Represents code used to format a value into a IBufferWriter(char).</p>
 <p>Wraps either a static method or a delegate.</p>
+</section>
+      <h4><a class="xref" href="Cesil.GenerateDeserializerAttribute.html">GenerateDeserializerAttribute</a></h4>
+      <section><p>When using Cesil's Source Generator (see Nuget.org for Cesil.SourceGenerator) marks a class or struct
+as needing a deserializer generated at compile time.</p>
+<p>InstanceProviderType and InstanceProviderMethodName are used to indicate how to obtain an instance
+of the annotated type from a method.  If not set, the type's parameterless constructor is used by default.
+To use a constructor other than the parameterless, use the [DeserializerInstanceProvider].</p>
+<p>When using the AheadOfTimeTypeDescriber, the created I(Async)Readers
+for this type will do no runtime code generation.</p>
+<p>You can customize the behavior of the generated deserializer with [DataMemberAttribute],
+and [GenerateDeserializableMemberAttribute] attributes.</p>
+</section>
+      <h4><a class="xref" href="Cesil.GeneratedSourceVersionAttribute.html">GeneratedSourceVersionAttribute</a></h4>
+      <section><p>Automatically attached to generated types to track compatibility.</p>
+<p>You should not use this directly.</p>
+</section>
+      <h4><a class="xref" href="Cesil.GenerateSerializerAttribute.html">GenerateSerializerAttribute</a></h4>
+      <section><p>When using Cesil's Source Generator (see Nuget.org for Cesil.SourceGenerator) marks a class or struct
+as needing a serializer generated at compile time.</p>
+<p>When using the AheadOfTimeTypeDescriber, the created I(Async)Writers
+for this type will do no runtime code generation.</p>
+<p>You can customize the behavior of the generated serialize with [DataMemberAttribute],
+and [GenerateSerializableMemberAttribute] attributes.</p>
 </section>
       <h4><a class="xref" href="Cesil.Getter.html">Getter</a></h4>
       <section><p>Represents code used to get a value from a type.</p>
@@ -122,6 +183,10 @@ or static methods.</p>
       <section><p>Represents a way to obtain an instance of a type.</p>
 <p>This can be backed by a zero-parameter constructor, a constructor
 taking typed parameters, a static method, or a delegate.</p>
+</section>
+      <h4><a class="xref" href="Cesil.IsRequiredAttribute.html">IsRequiredAttribute</a></h4>
+      <section><p>Automatically attached to generated methods depending on runtime behavior.</p>
+<p>You should not use this directly.</p>
 </section>
       <h4><a class="xref" href="Cesil.ManualTypeDescriber.html">ManualTypeDescriber</a></h4>
       <section><p>An ITypeDescriber that takes lets you register explicit members to return
@@ -160,10 +225,45 @@ is set.</p>
       <h4><a class="xref" href="Cesil.SerializableMember.html">SerializableMember</a></h4>
       <section><p>Represents a member of a type to use when serializing.</p>
 </section>
+      <h4><a class="xref" href="Cesil.SerializerMemberAttribute.html">SerializerMemberAttribute</a></h4>
+      <section><p>Attach this attribute to a method, field, or property to expose it as serializable and configure it's &quot;ShouldSerialize&quot;,
+&quot;Formatter&quot;, &quot;Order&quot;, and &quot;EmitDefaultValue&quot; behaviors.</p>
+<p>If attached to a property, the propery must have a getter and take no parameters.</p>
+<p>If attached to a method, the method must return a non-null value and either:</p>
+<ul>
+<li>be an instance method and</li>
+</ul>
+<ul>
+<li>take no parameters</li>
+<li>take one parameter, an in WriteContext</li>
+</ul>
+<ul>
+<li>be static and</li>
+</ul>
+<ul>
+<li>take no parameters</li>
+<li>take one parameter either</li>
+</ul>
+<ul>
+<li>an in WriteContext or</li>
+<li>a type to which the declaring type of this member can be assigned</li>
+</ul>
+<ul>
+<li>take two parameters</li>
+</ul>
+<ol>
+<li>a type to which the declaring type of this member can be assigned</li>
+<li>in WriteContext</li>
+</ol>
+</section>
       <h4><a class="xref" href="Cesil.Setter.html">Setter</a></h4>
       <section><p>Represents code used to set parsed values onto types.</p>
 <p>Wraps a static method, an instance method, a delegate, a field, or a constructor
 parameter.</p>
+</section>
+      <h4><a class="xref" href="Cesil.SetterBackedByConstructorParameterAttribute.html">SetterBackedByConstructorParameterAttribute</a></h4>
+      <section><p>Automatically attached to generated methods depending on runtime behavior.</p>
+<p>You should not use this directly.</p>
 </section>
       <h4><a class="xref" href="Cesil.ShouldSerialize.html">ShouldSerialize</a></h4>
       <section><p>Represents code used to determine whether or not to write a value.</p>
@@ -189,6 +289,11 @@ and then the uncontrolled type is (de)serialized as if it were the surrogate typ
       <h4><a class="xref" href="Cesil.ColumnIdentifier.html">ColumnIdentifier</a></h4>
       <section><p>Identifies a particular column, either by index or
 index and name.</p>
+<p>A ColumnIdentifier is only valid for as long as the
+values used to construct it.  Accordingly, you should
+be careful when storing ColumnIdentifiers that you did
+not create yourself as they may have been created with
+ReadOnlyMemory(char)s whose lifetime you do not control.</p>
 </section>
       <h4><a class="xref" href="Cesil.DynamicCellValue.html">DynamicCellValue</a></h4>
       <section><p>Wrapper around a dynamic cell which is to be written
@@ -250,6 +355,10 @@ will be disposed.</p>
 <p>A column is &quot;extra&quot; is if it's index is beyond
 those found in the header (or first row, if no header is
 present) of the CSV being read.</p>
+</section>
+      <h4><a class="xref" href="Cesil.GeneratedSourceVersionAttribute.GeneratedTypeKind.html">GeneratedSourceVersionAttribute.GeneratedTypeKind</a></h4>
+      <section><p>Used by GeneratedSourceVersionAttribute.</p>
+<p>You should not use this directly.</p>
 </section>
       <h4><a class="xref" href="Cesil.ManualTypeDescriberFallbackBehavior.html">ManualTypeDescriberFallbackBehavior</a></h4>
       <section><p>How to behave if a ManualTypeDescriber needs to

@@ -297,7 +297,7 @@ namespace Cesil
                         NameLookup = NameLookup.Create(columnNamesValue, Configuration.MemoryPool);
                     }
 
-                    RowBuilder.SetColumnOrder(headers);
+                    RowBuilder.SetColumnOrder(Configuration.Options, headers);
 
                 }
 
@@ -355,7 +355,7 @@ namespace Cesil
                             self.NameLookup = NameLookup.Create(columnNamesValue, self.Configuration.MemoryPool);
                         }
 
-                        self.RowBuilder.SetColumnOrder(headers);
+                        self.RowBuilder.SetColumnOrder(self.Configuration.Options, headers);
                     }
 
                     self.Buffer.PushBackFromOutsideBuffer(pushBack);

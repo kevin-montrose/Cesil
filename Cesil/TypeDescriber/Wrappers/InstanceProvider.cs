@@ -51,17 +51,23 @@ namespace Cesil
 
         internal readonly NonNull<MethodInfo> Method;
 
+        internal readonly NonNull<TypeInfo> AheadOfTimeGeneratedType;
+
+        internal bool IsBackedByGeneratedMethod => AheadOfTimeGeneratedType.HasValue;
+
         internal bool HasFallbacks => _Fallbacks.Length > 0;
 
         private readonly ImmutableArray<InstanceProvider> _Fallbacks;
         ImmutableArray<InstanceProvider> IElseSupporting<InstanceProvider>.Fallbacks => _Fallbacks;
 
-        internal InstanceProvider(ConstructorInfo cons, ImmutableArray<InstanceProvider> fallbacks, NullHandling nullability)
+        internal InstanceProvider(ConstructorInfo cons, ImmutableArray<InstanceProvider> fallbacks, NullHandling nullability, TypeInfo? aheadOfTimeGeneratedType)
         {
             Constructor.Value = cons;
             ConstructsType = cons.DeclaringTypeNonNull();
             ConstructsNullability = nullability;            // this isn't _always_ CannotBeNull because there might be fallbacks
             _Fallbacks = fallbacks;
+
+            AheadOfTimeGeneratedType.SetAllowNull(aheadOfTimeGeneratedType);
         }
 
         internal InstanceProvider(Delegate del, TypeInfo forType, ImmutableArray<InstanceProvider> fallbacks, NullHandling nullability)
@@ -72,12 +78,13 @@ namespace Cesil
             _Fallbacks = fallbacks;
         }
 
-        internal InstanceProvider(MethodInfo mtd, TypeInfo forType, ImmutableArray<InstanceProvider> fallbacks, NullHandling nullability)
+        internal InstanceProvider(MethodInfo mtd, TypeInfo forType, ImmutableArray<InstanceProvider> fallbacks, NullHandling nullability, TypeInfo? aheadOfTimeGeneratedType)
         {
             Method.Value = mtd;
             ConstructsType = forType;
             ConstructsNullability = nullability;
             _Fallbacks = fallbacks;
+            AheadOfTimeGeneratedType.SetAllowNull(aheadOfTimeGeneratedType);
         }
 
         InstanceProvider IElseSupporting<InstanceProvider>.Clone(ImmutableArray<InstanceProvider> newFallbacks, NullHandling? rowHandling, NullHandling? _)
@@ -86,9 +93,9 @@ namespace Cesil
 
             return Mode switch
             {
-                BackingMode.Constructor => new InstanceProvider(Constructor.Value, newFallbacks, rowHandlingValue),
+                BackingMode.Constructor => new InstanceProvider(Constructor.Value, newFallbacks, rowHandlingValue, AheadOfTimeGeneratedType.HasValue ? AheadOfTimeGeneratedType.Value : null),
                 BackingMode.Delegate => new InstanceProvider(Delegate.Value, ConstructsType, newFallbacks, rowHandlingValue),
-                BackingMode.Method => new InstanceProvider(Method.Value, ConstructsType, newFallbacks, rowHandlingValue),
+                BackingMode.Method => new InstanceProvider(Method.Value, ConstructsType, newFallbacks, rowHandlingValue, AheadOfTimeGeneratedType.HasValue ? AheadOfTimeGeneratedType.Value : null),
                 _ => Throw.ImpossibleException<InstanceProvider>($"Unexpected {nameof(BackingMode)}: {Mode}")
             };
         }
@@ -123,8 +130,8 @@ namespace Cesil
             return
                 Mode switch
                 {
-                    BackingMode.Constructor => new InstanceProvider(Constructor.Value, _Fallbacks, nullHandling),
-                    BackingMode.Method => new InstanceProvider(Method.Value, ConstructsType, _Fallbacks, nullHandling),
+                    BackingMode.Constructor => new InstanceProvider(Constructor.Value, _Fallbacks, nullHandling, AheadOfTimeGeneratedType.HasValue ? AheadOfTimeGeneratedType.Value : null),
+                    BackingMode.Method => new InstanceProvider(Method.Value, ConstructsType, _Fallbacks, nullHandling, AheadOfTimeGeneratedType.HasValue ? AheadOfTimeGeneratedType.Value : null),
                     BackingMode.Delegate => new InstanceProvider(Delegate.Value, ConstructsType, _Fallbacks, nullHandling),
                     _ => Throw.ImpossibleException<InstanceProvider>($"Unexpected {nameof(BackingMode)}: {Mode}"),
                 };
@@ -225,6 +232,9 @@ namespace Cesil
         ///   - the second must be an out parameter of the constructed type
         /// </summary>
         public static InstanceProvider ForMethod(MethodInfo method)
+        => ForMethodInner(method, null);
+
+        internal static InstanceProvider ForMethodInner(MethodInfo method, TypeInfo? aheadOfTimeGeneratedType)
         {
             Utils.CheckArgumentNull(method, nameof(method));
 
@@ -259,7 +269,7 @@ namespace Cesil
             var constructs = outP.GetElementTypeNonNull();
             var constructsNullability = p1.DetermineNullability();
 
-            return new InstanceProvider(method, constructs, ImmutableArray<InstanceProvider>.Empty, constructsNullability);
+            return new InstanceProvider(method, constructs, ImmutableArray<InstanceProvider>.Empty, constructsNullability, aheadOfTimeGeneratedType);
         }
 
         /// <summary>
@@ -293,7 +303,7 @@ namespace Cesil
                 return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found a generic type definition", nameof(constructor));
             }
 
-            return new InstanceProvider(constructor, ImmutableArray<InstanceProvider>.Empty, NullHandling.CannotBeNull);
+            return new InstanceProvider(constructor, ImmutableArray<InstanceProvider>.Empty, NullHandling.CannotBeNull, null);
         }
 
         /// <summary>
@@ -309,6 +319,9 @@ namespace Cesil
         ///   - not an unbound generic type (ie. a generic type definition)
         /// </summary>
         public static InstanceProvider ForConstructorWithParameters(ConstructorInfo constructor)
+        => ForConstructorWithParametersInner(constructor, null);
+
+        internal static InstanceProvider ForConstructorWithParametersInner(ConstructorInfo constructor, TypeInfo? paired)
         {
             Utils.CheckArgumentNull(constructor, nameof(constructor));
 
@@ -329,7 +342,7 @@ namespace Cesil
                 return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found a generic type definition", nameof(constructor));
             }
 
-            return new InstanceProvider(constructor, ImmutableArray<InstanceProvider>.Empty, NullHandling.CannotBeNull);
+            return new InstanceProvider(constructor, ImmutableArray<InstanceProvider>.Empty, NullHandling.CannotBeNull, paired);
         }
 
         /// <summary>
@@ -430,6 +443,17 @@ namespace Cesil
 
             if (Mode != instanceProvider.Mode) return false;
 
+            if (AheadOfTimeGeneratedType.HasValue)
+            {
+                if (!instanceProvider.AheadOfTimeGeneratedType.HasValue) return false;
+
+                if (AheadOfTimeGeneratedType.Value != instanceProvider.AheadOfTimeGeneratedType.Value) return false;
+            }
+            else
+            {
+                if (instanceProvider.AheadOfTimeGeneratedType.HasValue) return false;
+            }
+
             if (ConstructsNullability != instanceProvider.ConstructsNullability) return false;
             if (ConstructsType != instanceProvider.ConstructsType) return false;
 
@@ -457,7 +481,7 @@ namespace Cesil
         /// Returns a stable hash for this InstanceProvider.
         /// </summary>
         public override int GetHashCode()
-        => HashCode.Combine(nameof(InstanceProvider), Constructor, ConstructsType, Delegate, Method, Mode, _Fallbacks.Length, ConstructsNullability);
+        => HashCode.Combine(nameof(InstanceProvider), Constructor, ConstructsType, Delegate, Method, Mode, _Fallbacks.Length, HashCode.Combine(ConstructsNullability, AheadOfTimeGeneratedType));
 
         /// <summary>
         /// Returns a representation of this InstanceProvider object.

@@ -490,7 +490,7 @@ namespace Cesil
             if (this.ReadHeaders == ReadHeader.Always)
             {
                 ColumnCount = headers.Headers.Count;
-                RowBuilder.SetColumnOrder(headers.Headers);
+                RowBuilder.SetColumnOrder(Configuration.Options, headers.Headers);
             }
             else
             {

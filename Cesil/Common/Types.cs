@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Reflection;
 
 namespace Cesil
@@ -21,6 +22,11 @@ namespace Cesil
         internal static readonly TypeInfo Float = typeof(float).GetTypeInfo();
         internal static readonly TypeInfo Double = typeof(double).GetTypeInfo();
         internal static readonly TypeInfo Decimal = typeof(decimal).GetTypeInfo();
+
+        // System delegates
+        internal static readonly TypeInfo FuncOfT = typeof(Func<>).GetTypeInfo();
+        internal static readonly TypeInfo FuncOfBool = typeof(Func<bool>).GetTypeInfo();
+        internal static readonly TypeInfo FuncOfImmutableArrayOfString = typeof(Func<ImmutableArray<string>>).GetTypeInfo();
 
         // System structs
         internal static readonly TypeInfo Void = typeof(void).GetTypeInfo();
@@ -49,6 +55,7 @@ namespace Cesil
         // System classes
         internal static readonly TypeInfo Object = typeof(object).GetTypeInfo();
         internal static readonly TypeInfo String = typeof(string).GetTypeInfo();
+        internal static readonly TypeInfo Type = typeof(Type).GetTypeInfo();
         internal static readonly TypeInfo Uri = typeof(Uri).GetTypeInfo();
         internal static readonly TypeInfo Version = typeof(Version).GetTypeInfo();
         internal static readonly TypeInfo[] Tuple_Array =
@@ -111,6 +118,7 @@ namespace Cesil
             };
 
         // Cesil delegates
+        internal static readonly TypeInfo ColumnWriterDelegate = typeof(ColumnWriterDelegate).GetTypeInfo();
         internal static readonly TypeInfo ParserDelegate = typeof(ParserDelegate<>).GetTypeInfo();
         internal static readonly TypeInfo SetterDelegate = typeof(SetterDelegate<,>).GetTypeInfo();
         internal static readonly TypeInfo SetterByRefDelegate = typeof(SetterByRefDelegate<,>).GetTypeInfo();
@@ -130,6 +138,10 @@ namespace Cesil
         internal static readonly TypeInfo ClearHoldDelegate = typeof(ClearHoldDelegate<>).GetTypeInfo();
         internal static readonly TypeInfo InstanceProviderDelegate = typeof(InstanceProviderDelegate<>).GetTypeInfo();
         internal static readonly TypeInfo NeedsHoldRowConstructor = typeof(NeedsHoldRowConstructor<,>).GetTypeInfo();
+        internal static readonly TypeInfo StartRowDelegate = typeof(StartRowDelegate).GetTypeInfo();
+        internal static readonly TypeInfo TryPreAllocateDelegateOfT = typeof(TryPreAllocateDelegate<>).GetTypeInfo();
+        internal static readonly TypeInfo GeneratedColumnAvailableDelegate = typeof(GeneratedColumnAvailableDelegate).GetTypeInfo();
+        internal static readonly TypeInfo GetColumnMapDelegate = typeof(GetColumnMapDelegate).GetTypeInfo();
 
         // Cesil enums
         internal static readonly TypeInfo RowEnding = typeof(RowEnding).GetTypeInfo();

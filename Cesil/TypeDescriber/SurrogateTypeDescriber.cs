@@ -246,7 +246,7 @@ namespace Cesil
 
                         var required = GetEquivalentRequiredFor(member.IsRequired);
 
-                        return DeserializableMember.CreateInner(ontoType, member.Name, (Setter?)fieldOnType, member.Parser, required, (Reset?)resetOnType);
+                        return DeserializableMember.CreateInner(ontoType, member.Name, (Setter?)fieldOnType, member.Parser, required, (Reset?)resetOnType, null);
                     }
                 case BackingMode.Method:
                     {
@@ -282,7 +282,7 @@ namespace Cesil
 
                         var required = GetEquivalentRequiredFor(member.IsRequired);
 
-                        return DeserializableMember.CreateInner(ontoType, member.Name, (Setter?)setterOnType, member.Parser, required, (Reset?)resetOnType);
+                        return DeserializableMember.CreateInner(ontoType, member.Name, (Setter?)setterOnType, member.Parser, required, (Reset?)resetOnType, null);
                     }
                 case BackingMode.Delegate:
                     return Throw.InvalidOperationException<DeserializableMember>($"Cannot map setter {surrogateSetterWrapper} onto {ontoType}, setter is backed by a delegate");
@@ -430,7 +430,7 @@ handleMethod:
                             fallbacks = arrBuilder.ToImmutable();
                         }
 
-                        return new InstanceProvider(consOnType, fallbacks, builder.ConstructsNullability);
+                        return new InstanceProvider(consOnType, fallbacks, builder.ConstructsNullability, null);
                     }
                 case BackingMode.Method:
                     return Throw.InvalidOperationException<InstanceProvider>($"Cannot map a method {nameof(InstanceProvider)} between types");

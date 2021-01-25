@@ -61,25 +61,6 @@ namespace Cesil
             return mem[skip..];
         }
 
-        internal static ReadOnlySpan<char> TrimLeadingWhitespace(ReadOnlySpan<char> span)
-        {
-            var skip = 0;
-            var len = span.Length;
-
-            while (skip < len)
-            {
-                var c = span[skip];
-                if (!char.IsWhiteSpace(c)) break;
-
-                skip++;
-            }
-
-            if (skip == 0) return span;
-            if (skip == len) return ReadOnlySpan<char>.Empty;
-
-            return span[skip..];
-        }
-
         internal static ReadOnlyMemory<char> TrimTrailingWhitespace(ReadOnlyMemory<char> mem)
         {
             var span = mem.Span;
@@ -100,26 +81,6 @@ namespace Cesil
 
 
             return mem[0..(skip + 1)];
-        }
-
-        internal static ReadOnlySpan<char> TrimTrailingWhitespace(ReadOnlySpan<char> span)
-        {
-            var len = span.Length;
-            var start = len - 1;
-            var skip = start;
-
-            while (skip >= 0)
-            {
-                var c = span[skip];
-                if (!char.IsWhiteSpace(c)) break;
-
-                skip--;
-            }
-
-            if (skip == start) return span;
-            if (skip == -1) return ReadOnlySpan<char>.Empty;
-
-            return span[0..(skip + 1)];
         }
 
         internal static bool IsLegalFlagEnum<T>(T e)
@@ -404,6 +365,7 @@ tryAgain:
             }
         }
 
+        // todo: we can probably kill all of this with MemoryExtensions, that'll vectorize nicely now
         private static unsafe int FindChar(ReadOnlySpan<char> span, char c)
         {
             var cQuad =
@@ -830,17 +792,14 @@ checkRemaining:
         {
             var ect = config.Options.ExtraColumnTreatment;
 
-            switch (ect)
-            {
-                // no difference for static cases
-                case ExtraColumnTreatment.Ignore:
-                case ExtraColumnTreatment.IncludeDynamic:
-                    return ExtraColumnTreatment.Ignore;
-                case ExtraColumnTreatment.ThrowException:
-                    return ExtraColumnTreatment.ThrowException;
-                default:
-                    return Throw.ImpossibleException<ExtraColumnTreatment, T>($"Unexpected {nameof(ExtraColumnTreatment)}: {ect}", config);
-            }
+            return 
+                ect switch
+                {
+                    // no difference for static cases
+                    ExtraColumnTreatment.Ignore or ExtraColumnTreatment.IncludeDynamic => ExtraColumnTreatment.Ignore,
+                    ExtraColumnTreatment.ThrowException => ExtraColumnTreatment.ThrowException,
+                    _ => Throw.ImpossibleException<ExtraColumnTreatment, T>($"Unexpected {nameof(ExtraColumnTreatment)}: {ect}", config),
+                };
         }
 
         internal static Memory<DynamicCellValue> GetCells(MemoryPool<DynamicCellValue> arrPool, ref IMemoryOwner<DynamicCellValue>? buffer, ITypeDescriber describer, in WriteContext context, object rowAsObj)
@@ -1141,117 +1100,6 @@ tryAgain:
             return result;
         }
 
-        /// <summary>
-        /// This is _like_ calling ToString(), but it doesn't allow values
-        /// that aren't actually declared on the enum.
-        /// 
-        /// Since copyInto might not be big enough, can return the following values:
-        ///  * 0, if flagsEnum was invalid
-        ///  * greater than 0, length of the value that did fit into copyInto
-        ///  * less than 0, the negated length of a value that didn't fit into copyInto
-        /// </summary>
-        internal static int TryFormatFlagsEnum<T>(
-            T flagsEnum,
-            string[] names,
-            ulong[] values,
-            Span<char> copyInto
-        )
-            where T : struct, Enum
-        {
-            const int MALFORMED_VALUE = 0;
-
-            // based on: https://referencesource.microsoft.com/#mscorlib/system/enum.cs,154
-
-            const string ENUM_SEPERATOR = ", ";
-
-            ulong result = EnumToULong(flagsEnum);
-
-            if (result == 0)
-            {
-                if (values.Length > 0 && values[0] == 0)
-                {
-                    // it's 0 and 0 is a value
-                    var zeroValue = names[0].AsSpan();
-                    if (copyInto.Length < zeroValue.Length)
-                    {
-                        return -zeroValue.Length;
-                    }
-
-                    zeroValue.CopyTo(copyInto);
-                    copyInto = copyInto[..zeroValue.Length];
-
-                    return zeroValue.Length;
-                }
-                else
-                {
-                    // it's 0 and 0 _isn't_ a value
-                    return MALFORMED_VALUE;
-                }
-            }
-
-            var index = values.Length - 1;
-
-            var len = 0;
-            var firstTime = true;
-            var saveResult = result;
-
-            while (index >= 0)
-            {
-                if ((index == 0) && (values[index] == 0))
-                {
-                    break;
-                }
-
-                if ((result & values[index]) == values[index])
-                {
-                    result -= values[index];
-                    if (!firstTime)
-                    {
-                        Insert(copyInto, ref len, ENUM_SEPERATOR);
-                    }
-
-                    Insert(copyInto, ref len, names[index]);
-                    firstTime = false;
-                }
-
-                index--;
-            }
-
-            // couldn't represent the value, so we fail
-            if (result != 0)
-            {
-                return MALFORMED_VALUE;
-            }
-
-            // couldn't fit, so ask for more space
-            if (len > copyInto.Length)
-            {
-                return -len;
-            }
-
-            // were able to represent the value
-            copyInto[^len..].CopyTo(copyInto);  // move everything to the _front_, 'cause we'll need an Advance() call
-            return len;
-
-            // logicaclly, insert a string at the front of the "value"
-            //
-            // but, we actually append things from the _end_, so we don't have to
-            //    copy anything around
-            static void Insert(Span<char> span, ref int len, string value)
-            {
-                var newLen = len + value.Length;
-                if (newLen > span.Length)
-                {
-                    len = newLen;
-                    return;
-                }
-
-                value.AsSpan().CopyTo(span[^newLen..]);
-
-                len = newLen;
-            }
-        }
-
         // separate method for testing purposes, this is dangerous stuff
         internal static T ULongToEnum<T>(ulong enumValue)
             where T : struct, Enum
@@ -1308,69 +1156,6 @@ tryAgain:
             }
 
             return result;
-        }
-
-        /// <summary>
-        /// This is _like_ calling TryParse(), but it doesn't allow values
-        /// that aren't actually declared on the enum.
-        /// </summary>
-        internal static bool TryParseFlagsEnum<T>(ReadOnlySpan<char> data, string[] enumNames, ulong[] enumValues, out T resultT)
-            where T : struct, Enum
-        {
-            // based on: https://referencesource.microsoft.com/#mscorlib/system/enum.cs,432
-
-            ulong result = 0;
-
-            while (!data.IsEmpty)
-            {
-                var ix = FindChar(data, ',');
-                int startNextIx;
-
-                if (ix == -1)
-                {
-                    ix = data.Length;
-                    startNextIx = data.Length;
-                }
-                else
-                {
-                    startNextIx = ix + 1;
-                }
-
-                var value = data[..ix];
-                value = TrimLeadingWhitespace(value);
-                value = TrimTrailingWhitespace(value);
-
-                var success = false;
-
-                for (int j = 0; j < enumNames.Length; j++)
-                {
-                    var namesSpan = enumNames[j].AsSpan();
-
-                    // have to use a comparer because different casing is legal!
-                    var res = namesSpan.CompareTo(value, StringComparison.InvariantCultureIgnoreCase);
-                    if (res != 0)
-                    {
-                        continue;
-                    }
-
-                    var item = enumValues[j];
-
-                    result |= item;
-                    success = true;
-                    break;
-                }
-
-                if (!success)
-                {
-                    resultT = default;
-                    return false;
-                }
-
-                data = data[startNextIx..];
-            }
-
-            resultT = ULongToEnum<T>(result);
-            return true;
         }
     }
 }

@@ -762,6 +762,7 @@ runBenchmark:
             {
                 var category = benchmark.GetCustomAttribute<BenchmarkCategoryAttribute>();
 
+                bool isOneMillion;
                 bool categoryIncluded;
 
                 if (category != null)
@@ -769,10 +770,13 @@ runBenchmark:
                     categoryIncluded =
                         category.Categories.Any(c => includeCategories.Contains(c)) &&
                         !category.Categories.Any(c => excludeCategories.Contains(c));
+
+                    isOneMillion = category.Categories.Contains("OneMillion");
                 }
                 else
                 {
                     categoryIncluded = true;
+                    isOneMillion = false;
                 }
 
                 var benchmarkIncluded =
@@ -786,7 +790,7 @@ runBenchmark:
                 var withAttrs = benchmark.GetMethods().Where(m => m.GetCustomAttribute<BenchmarkAttribute>() != null).ToList();
                 var baselines = withAttrs.Where(m => m.GetCustomAttribute<BenchmarkAttribute>()?.Baseline ?? false).ToList();
 
-                if (baselines.Count == 0)
+                if (baselines.Count == 0 && !isOneMillion)
                 {
                     throw new Exception($"Benchmark {benchmark.Name} does not have a {nameof(BenchmarkAttribute.Baseline)}");
                 }

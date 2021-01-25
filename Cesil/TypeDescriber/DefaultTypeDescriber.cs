@@ -115,7 +115,7 @@ namespace Cesil
                     var isRequired = GetIsRequired(forType, p);
                     var reset = GetReset(forType, p);
 
-                    buffer.Add(order, DeserializableMember.CreateInner(forType, name, setter, parser, isRequired, reset));
+                    buffer.Add(order, DeserializableMember.CreateInner(forType, name, setter, parser, isRequired, reset, null));
                 }
 
                 foreach (var f in forType.GetFields())
@@ -129,7 +129,7 @@ namespace Cesil
                     var isRequired = GetIsRequired(forType, f);
                     var reset = GetReset(forType, f);
 
-                    buffer.Add(order, DeserializableMember.CreateInner(forType, name, setter, parser, isRequired, reset));
+                    buffer.Add(order, DeserializableMember.CreateInner(forType, name, setter, parser, isRequired, reset, null));
                 }
 
                 ret = buffer;
@@ -1396,7 +1396,7 @@ loopEnd:
                 return false;
             }
 
-            member = DeserializableMember.CreateInner(forType, name, setter, parser, MemberRequired.No, null);
+            member = DeserializableMember.CreateInner(forType, name, setter, parser, MemberRequired.No, null, null);
             return true;
         }
 

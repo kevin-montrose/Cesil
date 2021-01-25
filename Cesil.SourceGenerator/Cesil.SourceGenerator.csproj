@@ -1,0 +1,46 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>8.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\SignatureKey.snk</AssemblyOriginatorKeyFile>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Version>0.8.0</Version>
+    <Description>Source Generator for Cesil.  Allows ahead-of-time generation of (de)serializers, enabling Cesil to be used without runtime code generation.</Description>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <NoWarn>1701;1702;NU5128</NoWarn>
+    <AssemblyVersion>0.8.0.0</AssemblyVersion>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <EmbeddedResource Include="..\Cesil\TypeDescriber\Defaults\DefaultTypeFormatters.cs" Link="Resources\DefaultTypeFormatters.cs" />
+    <EmbeddedResource Include="..\Cesil\TypeDescriber\Defaults\DefaultTypeParsers.cs" Link="Resources\DefaultTypeParsers.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Resources\DefaultTypeFormatters.cs" />
+    <Compile Remove="Resources\DefaultTypeParsers.cs" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis" Version="3.8.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.8.0" PrivateAssets="all" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <None Remove="bin\Debug\netstandard2.0\\Cesil.SourceGenerator.dll" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <!-- Package the generator in the analyzer directory of the nuget package -->
+    <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+
+</Project>

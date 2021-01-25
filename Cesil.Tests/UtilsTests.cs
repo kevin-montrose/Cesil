@@ -4,12 +4,45 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using Xunit;
 
 namespace Cesil.Tests
 {
     public class UtilsTests
     {
+        [Fact]
+        public void CesilAssemblyVersionMatchesAheadOfTimeVersion()
+        {
+            var cesilAssembly = typeof(Options).Assembly;
+            var attrs = cesilAssembly.CustomAttributes;
+
+            var asmFileVersionAttr = Assert.Single(attrs, a => a.AttributeType == typeof(AssemblyFileVersionAttribute));
+            var asmInfoVersionAttr = Assert.Single(attrs, a => a.AttributeType == typeof(AssemblyInformationalVersionAttribute));
+            
+            var asmFileVersionStr = Assert.Single(asmFileVersionAttr.ConstructorArguments).Value as string;
+            var asmInfoVersionStr = Assert.Single(asmInfoVersionAttr.ConstructorArguments).Value as string;
+
+            var asmFileVersion = Version.Parse(asmFileVersionStr);
+            var asmInfoVersion = Version.Parse(asmInfoVersionStr);
+            var asmVersion = cesilAssembly.GetName().Version;
+
+            var aotVersion = Version.Parse(AheadOfTimeTypeDescriber.CURRENT_CESIL_VERSION);
+
+            Compare(asmVersion, aotVersion);
+            Compare(asmFileVersion, asmInfoVersion);
+            Compare(asmVersion, asmInfoVersion);
+
+            // special comparison because version have different compontents
+            //   set depending on where it's from
+            static void Compare(Version a, Version b)
+            {
+                Assert.Equal(a.Major, b.Major);
+                Assert.Equal(a.Minor, b.Minor);
+                Assert.Equal(a.Build, b.Build);
+            }
+        }
+
         [Fact]
         public void Sort()
         {
@@ -353,6 +386,94 @@ namespace Cesil.Tests
             // generic tuple types
             Assert.True(typeof(Tuple<,,,,,,,>).GetTypeInfo().IsBigTuple());
             Assert.True(typeof(ValueTuple<,,,,,,,>).GetTypeInfo().IsBigValueTuple());
+        }
+
+        [Fact]
+        public void WeirdReflectionCases()
+        {
+            // fields with no declaring type
+            {
+                var name = $"{nameof(Cesil)}.{nameof(UtilsTests)}.{nameof(WeirdReflectionCases)}.Fields";
+                var asmBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName(name), AssemblyBuilderAccess.Run);
+                var modBuilder = asmBuilder.DefineDynamicModule("Module");
+                var fieldBuilder = modBuilder.DefineInitializedData("WeirdField", new byte[4] { 1, 2, 3, 4 }, FieldAttributes.Static | FieldAttributes.Public);
+                modBuilder.CreateGlobalFunctions();
+
+                var field = modBuilder.GetField(fieldBuilder.Name, BindingFlags.Static | BindingFlags.Public);
+
+                var exc = Assert.Throws<InvalidOperationException>(() => field.DeclaringTypeNonNull());
+                Assert.StartsWith("Could not find declaring type for ", exc.Message);
+            }
+
+            // method with no declaring type
+            {
+                var name = $"{nameof(Cesil)}.{nameof(UtilsTests)}.{nameof(WeirdReflectionCases)}.Methods";
+                var asmBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName(name), AssemblyBuilderAccess.Run);
+                var modBuilder = asmBuilder.DefineDynamicModule("Module");
+                var mtdBuilder = modBuilder.DefineGlobalMethod("WeirdMethod", MethodAttributes.Static | MethodAttributes.Public, null, null);
+                var ilGen = mtdBuilder.GetILGenerator();
+                ilGen.Emit(OpCodes.Ret);
+
+                modBuilder.CreateGlobalFunctions();
+
+                var mtd = modBuilder.GetMethod(mtdBuilder.Name);
+
+                var exc = Assert.Throws<InvalidOperationException>(() => mtd.DeclaringTypeNonNull());
+                Assert.StartsWith("Could not find declaring type for ", exc.Message);
+            }
+
+            // constructor with no declaring type
+            {
+                var name = $"{nameof(Cesil)}.{nameof(UtilsTests)}.{nameof(WeirdReflectionCases)}.Constructors";
+                var asmBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName(name), AssemblyBuilderAccess.Run);
+                var modBuilder = asmBuilder.DefineDynamicModule("Module");
+
+                var globalTypeBuilder = GetModuleTypeBuilder(modBuilder);
+
+                // now we can make a static constructor on this stupid fake type
+                var consBuilder = globalTypeBuilder.DefineConstructor(MethodAttributes.Static | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, null);
+                var ilGenerator = consBuilder.GetILGenerator();
+                ilGenerator.Emit(OpCodes.Ret);
+
+                // actually emit things...
+                modBuilder.CreateGlobalFunctions();
+
+                var cons = Assert.IsAssignableFrom<ConstructorInfo>(consBuilder);
+
+                var exc = Assert.Throws<InvalidOperationException>(() => cons.DeclaringTypeNonNull());
+                Assert.StartsWith("Could not find declaring type for ", exc.Message);
+            }
+
+            // TypeBuilder makes a type but returns null
+            {
+                var name = $"{nameof(Cesil)}.{nameof(UtilsTests)}.{nameof(WeirdReflectionCases)}.TypeBuilder";
+                var asmBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName(name), AssemblyBuilderAccess.Run);
+                var modBuilder = asmBuilder.DefineDynamicModule("Module");
+
+                var globalTypeBuilder = GetModuleTypeBuilder(modBuilder);
+
+                var exc = Assert.Throws<InvalidOperationException>(() => globalTypeBuilder.CreateTypeNonNull());
+                Assert.Equal("Created type was null", exc.Message);
+            }
+
+            // get the TypeBuilder for the hidden <Module> type
+            static TypeBuilder GetModuleTypeBuilder(ModuleBuilder modBuilder)
+            {
+                // blruuuuuugh, getting this out properly is a huge pain... so just reflect it out
+                var moduleDataField = modBuilder.GetType().GetField("_moduleData", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(moduleDataField);
+
+                var moduleData = moduleDataField.GetValue(modBuilder);
+
+                var globalTypeBuilderField = moduleData.GetType().GetField("_globalTypeBuilder", BindingFlags.Public | BindingFlags.Instance);
+                Assert.NotNull(globalTypeBuilderField);
+
+                var globalTypeBuilderObj = globalTypeBuilderField.GetValue(moduleData);
+
+                var globalTypeBuilder = Assert.IsAssignableFrom<TypeBuilder>(globalTypeBuilderObj);
+
+                return globalTypeBuilder;
+            }
         }
 
         [Fact]
@@ -1305,7 +1426,7 @@ namespace Cesil.Tests
                 Span<char> span = default;
 
 tryAgain:
-                var res = Utils.TryFormatFlagsEnum(enumValue, names, values, span);
+                var res = DefaultTypeFormatters.DefaultEnumTypeFormatter<T>.FormatFlagsEnumImpl(enumValue, names, values, span);
                 if (res == 0)
                 {
                     // malformed!
@@ -1415,7 +1536,7 @@ tryAgain:
                 {
                     var valueText = enumValue.ToString();
 
-                    var resBool = Utils.TryParseFlagsEnum<T>(valueText.AsSpan(), names, values, out var resValue);
+                    var resBool = DefaultTypeParsers.DefaultEnumTypeParser<T>.ParseFlagsEnumImpl(valueText.AsSpan(), names, values, out var resValue);
                     if (!resBool)
                     {
                         // malformed!
@@ -1433,7 +1554,7 @@ tryAgain:
                 {
                     var valueText = enumValue.ToString().ToLowerInvariant();
 
-                    var resBool = Utils.TryParseFlagsEnum<T>(valueText.AsSpan(), names, values, out var resValue);
+                    var resBool = DefaultTypeParsers.DefaultEnumTypeParser<T>.ParseFlagsEnumImpl(valueText.AsSpan(), names, values, out var resValue);
                     if (!resBool)
                     {
                         // malformed!
@@ -1451,7 +1572,7 @@ tryAgain:
                 {
                     var valueText = enumValue.ToString().ToUpperInvariant();
 
-                    var resBool = Utils.TryParseFlagsEnum<T>(valueText.AsSpan(), names, values, out var resValue);
+                    var resBool = DefaultTypeParsers.DefaultEnumTypeParser<T>.ParseFlagsEnumImpl(valueText.AsSpan(), names, values, out var resValue);
                     if (!resBool)
                     {
                         // malformed!

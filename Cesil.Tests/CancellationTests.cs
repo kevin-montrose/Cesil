@@ -9,6 +9,7 @@ namespace Cesil.Tests
 {
     public class CancellationTests
     {
+#if DEBUG
         [Fact]
         public async Task AsyncEnumeratorAsync()
         {
@@ -74,5 +75,6 @@ namespace Cesil.Tests
                 }
             }
         }
+#endif
     }
 }

@@ -66,7 +66,6 @@ namespace Cesil
             char? escapeStartEnd = options.EscapedValueStartAndEnd;
             var valueSep = options.ValueSeparator;
 
-
             // this is entirely knowable now, so go ahead and calculate
             //   and save for future use
             var needsEscape = DetermineNeedsEscape(serializeColumns, escapeStartEnd, valueSep);
@@ -231,7 +230,16 @@ namespace Cesil
 
             foreach (var col in cols)
             {
-                var writer = ColumnWriter.Create(t, opts, col.Formatter, col.ShouldSerialize, col.Getter, col.EmitDefaultValue);
+                ColumnWriterDelegate writer;
+
+                if (col.IsBackedByGeneratedMethod)
+                {
+                    writer = (ColumnWriterDelegate)System.Delegate.CreateDelegate(Types.ColumnWriterDelegate, col.GeneratedMethod.Value);
+                }
+                else
+                {
+                    writer = ColumnWriter.Create(t, opts, col.Formatter, col.ShouldSerialize, col.Getter, col.EmitDefaultValue);
+                }
 
                 ret.Add(new Column(col.Name, writer));
             }

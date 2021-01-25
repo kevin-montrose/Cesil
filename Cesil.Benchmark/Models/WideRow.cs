@@ -27,6 +27,7 @@ namespace Cesil.Benchmark
     {
         public static IEnumerable<WideRow> ShallowRows { get; private set; }
         public static IEnumerable<WideRow> DeepRows { get; private set; }
+        public static IEnumerable<WideRow> OneMillion { get; private set; }
 
         [System.Runtime.Serialization.DataMember(Order = 0)]
         public byte Byte { get; set; }
@@ -359,7 +360,7 @@ tryAgain:
 
         public static void Initialize()
         {
-            if (ShallowRows != null && DeepRows != null) return;
+            if (ShallowRows != null && DeepRows != null && OneMillion != null) return;
 
             const int NUM_SHALLOW = 10;
             const int NUM_DEEP = 10_000;
@@ -374,6 +375,12 @@ tryAgain:
             {
                 var r = MakeRandom();
                 DeepRows = Enumerable.Range(0, NUM_DEEP).Select(_ => Create(r)).ToList();
+            }
+
+            // init one million
+            {
+                var r = MakeRandom();
+                OneMillion = Enumerable.Range(0, 1_000_000).Select(_ => Create(r)).ToList();
             }
 
             static Random MakeRandom()
