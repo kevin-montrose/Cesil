@@ -17,6 +17,12 @@
   <PropertyGroup>
     <NoWarn>1701;1702;NU5128</NoWarn>
     <AssemblyVersion>0.8.0.0</AssemblyVersion>
+    <PackageReleaseNotes>Pre-release, but functionally complete.
+Please report any issues: https://github.com/kevin-montrose/Cesil/issues/new
+
+Initial release.
+
+Use with Cesil to avoid runtime code generation of (de)serializers.</PackageReleaseNotes>
   </PropertyGroup>
   
   <ItemGroup>
