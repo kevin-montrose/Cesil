@@ -169,7 +169,7 @@ namespace Cesil.SourceGenerator
             {
                 sb.Append("// For: ");
                 sb.AppendLine(forType);
-                sb.Append("//");
+                sb.AppendLine("//");
             }
             sb.Append("// On: ");
             sb.AppendLine(DateTime.UtcNow.ToString("u"));

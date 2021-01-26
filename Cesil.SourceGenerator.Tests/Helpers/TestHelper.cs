@@ -121,37 +121,6 @@ namespace Cesil.SourceGenerator.Tests
                 }
             }
 
-            //var files =
-            //    new[]
-            //    {
-            //        new [] { "Interface", "Attributes", "GenerateSerializerAttribute.cs" },
-            //        new [] { "Interface", "Attributes", "SerializerMemberAttribute.cs" },
-            //        new [] { "Interface", "Attributes", "DeserializerMemberAttribute.cs" },
-            //        new [] { "Interface", "Attributes", "GenerateDeserializerAttribute.cs" },
-            //        new [] { "Interface", "Attributes", "DeserializerInstanceProviderAttribute.cs" },
-            //        new [] { "Context", "WriteContext.cs" },
-            //        new [] { "Context", "ReadContext.cs" },
-            //        new [] { "TypeDescriber", "Wrappers", "MemberRequired.cs" },
-            //        new [] { "TypeDescriber", "Wrappers", "EmitDefaultValue.cs" },
-            //        new [] { "TypeDescriber", "GeneratorAttributes", "ConstructorInstanceProviderAttribute.cs" },
-            //        new [] { "TypeDescriber", "GeneratorAttributes", "DoesNotEmitDefaultValueAttribute.cs" },
-            //        new [] { "TypeDescriber", "GeneratorAttributes", "GeneratedSourceVersionAttribute.cs" },
-            //        new [] { "TypeDescriber", "GeneratorAttributes", "IsRequiredAttribute.cs" },
-            //        new [] { "TypeDescriber", "GeneratorAttributes", "SetterBackedByConstructorParameterAttribute.cs" },
-            //    };
-
-            //foreach (var fileParts in files)
-            //{
-            //    var toAddFilePath = cesilRootDir;
-            //    foreach (var part in fileParts)
-            //    {
-            //        toAddFilePath = Path.Combine(toAddFilePath, part);
-            //    }
-
-            //    var fileText = File.ReadAllText(toAddFilePath);
-            //    project = project.AddDocument(Path.GetFileName(toAddFilePath), fileText).Project;
-            //}
-
             var cesilRef = GetCesilReference();
             project = project.AddMetadataReference(cesilRef);
 
