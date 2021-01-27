@@ -186,7 +186,7 @@ namespace Cesil.Tests
 
             // detect rows endings
             {
-                var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Detect).WithRowEnding(RowEnding.Detect).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Detect).WithReadRowEnding(ReadRowEnding.Detect).ToOptions();
 
                 // \r\n
                 {
@@ -272,7 +272,7 @@ namespace Cesil.Tests
             {
                 // no headers
                 {
-                    var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                    var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Never).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
                     RunSyncReaderVariants<_MultiCharacterSeparators>(
                         opts,
@@ -307,7 +307,7 @@ namespace Cesil.Tests
 
                 // always headers
                 {
-                    var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                    var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
                     RunSyncReaderVariants<_MultiCharacterSeparators>(
                         opts,
@@ -342,7 +342,7 @@ namespace Cesil.Tests
 
                 // detect headers
                 {
-                    var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Detect).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                    var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Detect).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
                     // not present
                     RunSyncReaderVariants<_MultiCharacterSeparators>(
@@ -410,7 +410,7 @@ namespace Cesil.Tests
 
             // detect line endings
             {
-                var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Detect).WithRowEnding(RowEnding.Detect).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Detect).WithReadRowEnding(ReadRowEnding.Detect).ToOptions();
 
                 // \r\n
                 {
@@ -2861,7 +2861,7 @@ namespace Cesil.Tests
         public void UncommonAdvanceResults()
         {
             {
-                var opts = Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithEscapedValueStartAndEnd('\\').ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).WithEscapedValueStartAndEnd('\\').ToOptions();
 
                 // escape char after \r
                 RunSyncReaderVariants<_UncommonAdvanceResults>(
@@ -2880,7 +2880,7 @@ namespace Cesil.Tests
             }
 
             {
-                var opts = Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithEscapedValueStartAndEnd('\\').WithReadHeader(ReadHeader.Never).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).WithEscapedValueStartAndEnd('\\').WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // kept reading after things were busted
                 RunSyncReaderVariants<_UncommonAdvanceResults>(
@@ -2899,7 +2899,7 @@ namespace Cesil.Tests
             }
 
             {
-                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
                 // kept reading after things were busted
                 RunSyncReaderVariants<_UncommonAdvanceResults>(
@@ -2917,7 +2917,7 @@ namespace Cesil.Tests
             }
 
             {
-                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
                 // kept reading after things were busted
                 RunSyncReaderVariants<_UncommonAdvanceResults>(
@@ -2935,7 +2935,7 @@ namespace Cesil.Tests
             }
 
             {
-                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
                 // kept reading after things were busted
                 RunSyncReaderVariants<_UncommonAdvanceResults>(
@@ -2961,7 +2961,7 @@ namespace Cesil.Tests
         [Fact]
         public void CommentEndingInCarriageReturn()
         {
-            var opt = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+            var opt = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
             RunSyncReaderVariants<_CommentEndingInCarriageReturn>(
                 opt,
@@ -3581,7 +3581,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
                 // with headers
                 RunSyncReaderVariants<_WithComments>(
@@ -3694,7 +3694,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturn).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturn).ToOptions();
 
                 // with headers
                 RunSyncReaderVariants<_WithComments>(
@@ -3807,7 +3807,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.LineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.LineFeed).ToOptions();
 
                 // with headers
                 RunSyncReaderVariants<_WithComments>(
@@ -4464,7 +4464,7 @@ namespace Cesil.Tests
             Assert.Equal(characterTypeMax + 1, ReaderStateMachine.RuleCacheCharacterCount);
             Assert.Equal((maxStateVal + 1) * (characterTypeMax + 1), ReaderStateMachine.RuleCacheConfigSize);
 
-            var rowEndingsMax = Enum.GetValues(typeof(RowEnding)).Cast<byte>().Max();
+            var rowEndingsMax = Enum.GetValues(typeof(ReadRowEnding)).Cast<byte>().Max();
 
             Assert.Equal(rowEndingsMax + 1, ReaderStateMachine.RuleCacheRowEndingCount);
             Assert.Equal((rowEndingsMax + 1) * 16, ReaderStateMachine.RuleCacheConfigCount);
@@ -4507,7 +4507,8 @@ namespace Cesil.Tests
                     Assert.True(
                             state == ReaderStateMachine.State.Record_InEscapedValueWithPendingEscape ||
                             state == ReaderStateMachine.State.Record_Unescaped_NoValue ||
-                            state == ReaderStateMachine.State.Record_Unescaped_WithValue
+                            state == ReaderStateMachine.State.Record_Unescaped_WithValue ||
+                            state == ReaderStateMachine.State.Record_InEscapedValue_ExpectingEndOfValueOrRecord
                     );
                     wasSpecial = true;
                 }
@@ -5061,7 +5062,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public void TwoColumnTwoRow()
         {
-            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
             // normal
             RunSyncReaderVariants<_TwoColumnTwoRow>(
@@ -5137,7 +5138,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public void DetectLineEndings()
         {
-            var opts = Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.Detect).WithReadHeader(ReadHeader.Never).ToOptions();
+            var opts = Options.CreateBuilder(Options.Default).WithReadRowEnding(ReadRowEnding.Detect).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // normal
             {
@@ -5410,7 +5411,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public void DetectHeaders()
         {
-            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Detect).WithRowEnding(RowEnding.Detect).ToOptions();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Detect).WithReadRowEnding(ReadRowEnding.Detect).ToOptions();
 
             // no headers
             RunSyncReaderVariants<_DetectHeaders>(
@@ -5831,7 +5832,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         public void WeirdComments()
         {
             {
-                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.LineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.LineFeed).ToOptions();
                 RunSyncReaderVariants<_Comment>(
                     opts,
                     (config, getReader) =>
@@ -5862,7 +5863,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             }
 
             {
-                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturn).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturn).ToOptions();
                 RunSyncReaderVariants<_Comment>(
                     opts,
                     (config, getReader) =>
@@ -5893,7 +5894,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             }
 
             {
-                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
                 RunSyncReaderVariants<_Comment>(
                     opts,
                     (config, getReader) =>
@@ -6143,7 +6144,706 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             }
         }
 
-        // asyn tests
+        private sealed class _DetectRowEndingsAndHeaders
+        {
+            public int A { get; set; }
+            public string B { get; set; }
+        }
+
+        [Fact]
+        public void DetectRowEndingsAndHeaders()
+        {
+            // \r\n
+            {
+                // detect, detect (no headers)
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Detect),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("123,foo\r\n456,bar"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // detect, detect (has headers)
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Detect),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B,A\r\nfoo,123\r\nbar,456"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // detect, explict no headers
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Never),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("123,foo\r\n456,bar"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // detect, explicit has headers
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Always),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B,A\r\nfoo,123\r\nbar,456"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, detect (no headers)
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.CarriageReturnLineFeed, ReadHeader.Detect),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("123,foo\r\n456,bar"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, detect (has headers)
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.CarriageReturnLineFeed, ReadHeader.Detect),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B,A\r\nfoo,123\r\nbar,456"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, explicit no headers
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.CarriageReturnLineFeed, ReadHeader.Never),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("123,foo\r\n456,bar"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, explicit has headers
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.CarriageReturnLineFeed, ReadHeader.Always),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B,A\r\nfoo,123\r\nbar,456"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+            }
+
+            // \r
+            {
+                // detect, detect (no headers)
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Detect),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("123,foo\r456,bar"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // detect, detect (has headers)
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Detect),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B,A\rfoo,123\rbar,456"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // detect, explict no headers
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Never),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("123,foo\r456,bar"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // detect, explicit has headers
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Always),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B,A\rfoo,123\rbar,456"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, detect (no headers)
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.CarriageReturn, ReadHeader.Detect),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("123,foo\r456,bar"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, detect (has headers)
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.CarriageReturn, ReadHeader.Detect),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B,A\rfoo,123\rbar,456"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, explicit no headers
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.CarriageReturn, ReadHeader.Never),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("123,foo\r456,bar"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, explicit has headers
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.CarriageReturn, ReadHeader.Always),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B,A\rfoo,123\rbar,456"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+            }
+
+            // \n
+            {
+                // detect, detect (no headers)
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Detect),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("123,foo\n456,bar"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // detect, detect (has headers)
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Detect),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B,A\nfoo,123\nbar,456"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // detect, explict no headers
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Never),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("123,foo\n456,bar"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // detect, explicit has headers
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Always),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B,A\nfoo,123\nbar,456"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, detect (no headers)
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.LineFeed, ReadHeader.Detect),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("123,foo\n456,bar"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, detect (has headers)
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.LineFeed, ReadHeader.Detect),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B,A\nfoo,123\nbar,456"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, explicit no headers
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.LineFeed, ReadHeader.Never),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("123,foo\n456,bar"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, explicit has headers
+                {
+                    RunSyncReaderVariants<_DetectRowEndingsAndHeaders>(
+                        MakeOptions(ReadRowEnding.LineFeed, ReadHeader.Always),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B,A\nfoo,123\nbar,456"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, r1.A);
+                                        Assert.Equal("foo", r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, r2.A);
+                                        Assert.Equal("bar", r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+            }
+
+            // todo: async
+            // todo: dynamic
+
+            static Options MakeOptions(ReadRowEnding rowEndings, ReadHeader headers)
+            {
+                return Options.CreateBuilder(Options.Default).WithReadRowEnding(rowEndings).WithReadHeader(headers).ToOptions();
+            }
+        }
+
+        // async tests
 
         [Fact]
         public async Task SkipThenSpecialAsync()
@@ -6290,7 +6990,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
 
             // detect rows endings
             {
-                var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Detect).WithRowEnding(RowEnding.Detect).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Detect).WithReadRowEnding(ReadRowEnding.Detect).ToOptions();
 
                 // \r\n
                 {
@@ -6370,7 +7070,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             {
                 // no headers
                 {
-                    var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                    var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Never).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
                     await RunAsyncReaderVariants<_MultiCharacterSeparators>(
                         opts,
@@ -6405,7 +7105,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
 
                 // always headers
                 {
-                    var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                    var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
                     await RunAsyncReaderVariants<_MultiCharacterSeparators>(
                         opts,
@@ -6440,7 +7140,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
 
                 // detect headers
                 {
-                    var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Detect).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                    var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Detect).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
                     // not present
                     await RunAsyncReaderVariants<_MultiCharacterSeparators>(
@@ -6508,7 +7208,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
 
             // detect line endings
             {
-                var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Detect).WithRowEnding(RowEnding.Detect).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Detect).WithReadRowEnding(ReadRowEnding.Detect).ToOptions();
 
                 // \r\n
                 {
@@ -8847,7 +9547,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         public async Task UncommonAdvanceResultsAsync()
         {
             {
-                var opts = Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithEscapedValueStartAndEnd('\\').ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).WithEscapedValueStartAndEnd('\\').ToOptions();
 
                 // escape char after \r
                 await RunAsyncReaderVariants<_UncommonAdvanceResults>(
@@ -8866,7 +9566,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             }
 
             {
-                var opts = Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithEscapedValueStartAndEnd('\\').WithReadHeader(ReadHeader.Never).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).WithEscapedValueStartAndEnd('\\').WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // kept reading after things were busted
                 await RunAsyncReaderVariants<_UncommonAdvanceResults>(
@@ -8885,7 +9585,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             }
 
             {
-                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
                 // kept reading after things were busted
                 await RunAsyncReaderVariants<_UncommonAdvanceResults>(
@@ -8903,7 +9603,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             }
 
             {
-                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
                 // kept reading after things were busted
                 await RunAsyncReaderVariants<_UncommonAdvanceResults>(
@@ -8921,7 +9621,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             }
 
             {
-                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
                 // kept reading after things were busted
                 await RunAsyncReaderVariants<_UncommonAdvanceResults>(
@@ -9034,7 +9734,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public async Task CommentEndingInCarriageReturnAsync()
         {
-            var opt = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+            var opt = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
             await RunAsyncReaderVariants<_CommentEndingInCarriageReturn>(
                 opt,
@@ -9263,7 +9963,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
                 // with headers
                 await RunAsyncReaderVariants<_WithComments>(
@@ -9376,7 +10076,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturn).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturn).ToOptions();
 
                 // with headers
                 await RunAsyncReaderVariants<_WithComments>(
@@ -9489,7 +10189,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.LineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.LineFeed).ToOptions();
 
                 // with headers
                 await RunAsyncReaderVariants<_WithComments>(
@@ -9605,7 +10305,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         public async Task WeirdCommentsAsync()
         {
             {
-                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.LineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.LineFeed).ToOptions();
                 await RunAsyncReaderVariants<_Comment>(
                     opts,
                     async (config, getReader) =>
@@ -9636,7 +10336,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             }
 
             {
-                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturn).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturn).ToOptions();
                 await RunAsyncReaderVariants<_Comment>(
                     opts,
                     async (config, getReader) =>
@@ -9667,7 +10367,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
             }
 
             {
-                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
                 await RunAsyncReaderVariants<_Comment>(
                     opts,
                     async (config, getReader) =>
@@ -10567,7 +11267,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public async Task TwoColumnTwoRowAsync()
         {
-            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Never).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
             // normal
             {
@@ -10651,7 +11351,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public async Task DetectLineEndingsAsync()
         {
-            var opts = Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.Detect).WithReadHeader(ReadHeader.Never).ToOptions();
+            var opts = Options.CreateBuilder(Options.Default).WithReadRowEnding(ReadRowEnding.Detect).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // normal
             {
@@ -10947,7 +11647,7 @@ mkay,{new DateTime(2001, 6, 6, 6, 6, 6, DateTimeKind.Local)},8675309,987654321.0
         [Fact]
         public async Task DetectHeadersAsync()
         {
-            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Detect).WithRowEnding(RowEnding.Detect).ToOptions();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Detect).WithReadRowEnding(ReadRowEnding.Detect).ToOptions();
 
             // no headers
             await RunAsyncReaderVariants<_DetectHeaders>(

@@ -7,20 +7,8 @@ namespace Cesil
     {
         internal DynamicBoundConfiguration(Options options) : base(options) { }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void AssertCanMakeWriter()
-        {
-            if (Options.RowEnding == RowEnding.Detect)
-            {
-                Throw.InvalidOperationException<object>($"Cannot write with a format that has {nameof(RowEnding)} option of {RowEnding.Detect}");
-                return;
-            }
-        }
-
         internal override IAsyncWriter<dynamic> CreateAsyncWriter(IAsyncWriterAdapter writer, object? context = null)
         {
-            AssertCanMakeWriter();
-
             return new AsyncDynamicWriter(this, writer, context);
         }
 
@@ -36,8 +24,6 @@ namespace Cesil
 
         internal override IWriter<dynamic> CreateWriter(IWriterAdapter writer, object? context = null)
         {
-            AssertCanMakeWriter();
-
             return new DynamicWriter(this, writer, context);
         }
 

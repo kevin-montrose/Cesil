@@ -175,7 +175,7 @@ namespace Cesil
             CharacterLookup charLookup,
             IReaderAdapter inner,
             BufferWithPushback buffer,
-            RowEnding rowEndingOverride
+            ReadRowEnding rowEndingOverride
         )
         : this(stateMachine, config, charLookup, inner, null, buffer, rowEndingOverride) { }
 
@@ -185,7 +185,7 @@ namespace Cesil
             CharacterLookup charLookup,
             IAsyncReaderAdapter inner,
             BufferWithPushback buffer,
-            RowEnding rowEndingOverride
+            ReadRowEnding rowEndingOverride
         )
         : this(stateMachine, config, charLookup, null, inner, buffer, rowEndingOverride) { }
 
@@ -196,7 +196,7 @@ namespace Cesil
             IReaderAdapter? inner,
             IAsyncReaderAdapter? innerAsync,
             BufferWithPushback buffer,
-            RowEnding rowEndingOverride
+            ReadRowEnding rowEndingOverride
         )
         {
             LogHelper.StateTransition_NewHeadersReader();
@@ -598,7 +598,7 @@ finish:
                         return Throw.InvalidOperationException<bool>($"Encountered '{c}' in an escape sequence, which is invalid");
                     case ReaderStateMachine.AdvanceResult.Exception_UnexpectedLineEnding:
                         unprocessedCharacters = default;
-                        return Throw.ImpossibleException<bool, T>($"Unexpected {nameof(RowEnding)} value encountered", Configuration);
+                        return Throw.ImpossibleException<bool, T>($"Unexpected {nameof(ReadRowEnding)} value encountered", Configuration);
                     case ReaderStateMachine.AdvanceResult.Exception_UnexpectedState:
                         unprocessedCharacters = default;
                         return Throw.ImpossibleException<bool, T>($"Unexpected state value entered", Configuration);

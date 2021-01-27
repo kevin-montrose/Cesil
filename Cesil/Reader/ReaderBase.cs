@@ -20,7 +20,7 @@ namespace Cesil
 
         internal BoundConfigurationBase<T> Configuration { get; }
 
-        internal RowEnding? RowEndings { get; set; }
+        internal ReadRowEnding? RowEndings { get; set; }
         internal ReadHeader? ReadHeaders { get; set; }
 
         private readonly ExtraColumnTreatment ExtraColumnTreatment;
@@ -382,7 +382,7 @@ namespace Cesil
                     ReaderStateMachine.AdvanceResult.Exception_ExpectedEndOfRecordOrValue => Throw.InvalidOperationException<ReadWithCommentResultType>($"Encountered '{c}' when expecting the end of a record or value"),
                     ReaderStateMachine.AdvanceResult.Exception_UnexpectedEnd => Throw.InvalidOperationException<ReadWithCommentResultType>($"Data ended unexpectedly"),
                     // this is CRAZY unlikely, but indicates that the TransitionMatrix used was incorrect
-                    ReaderStateMachine.AdvanceResult.Exception_UnexpectedLineEnding => Throw.ImpossibleException<ReadWithCommentResultType, T>($"Unexpected {nameof(Cesil.RowEnding)} value encountered", Configuration),
+                    ReaderStateMachine.AdvanceResult.Exception_UnexpectedLineEnding => Throw.ImpossibleException<ReadWithCommentResultType, T>($"Unexpected {nameof(Cesil.ReadRowEnding)} value encountered", Configuration),
                     // likewise, CRAZY unlikely
                     ReaderStateMachine.AdvanceResult.Exception_UnexpectedState => Throw.ImpossibleException<ReadWithCommentResultType, T>($"Unexpected state value entered", Configuration),
                     _ => Throw.ImpossibleException<ReadWithCommentResultType, T>($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {res}", Configuration),
@@ -500,7 +500,7 @@ namespace Cesil
             Buffer.PushBackFromOutsideBuffer(headers.PushBack);
         }
 
-        protected void HandleLineEndingsDetectionResult((RowEnding Ending, Memory<char> PushBack)? res)
+        protected void HandleLineEndingsDetectionResult((ReadRowEnding Ending, Memory<char> PushBack)? res)
         {
             if (res == null)
             {

@@ -1050,7 +1050,7 @@ namespace Cesil.Tests
                         CharacterLookup.MakeCharacterLookup(Options.Default, MemoryPool<char>.Shared, out _),
                         'a',
                         'b',
-                        RowEnding.CarriageReturnLineFeed,
+                        ReadRowEnding.CarriageReturnLineFeed,
                         ReadHeader.Always,
                         false,
                         false,
@@ -1344,7 +1344,7 @@ namespace Cesil.Tests
                                 MemoryPool<char>.Shared,
                                 64
                             ),
-                            RowEnding.CarriageReturnLineFeed
+                            ReadRowEnding.CarriageReturnLineFeed
                         );
                 }
             }

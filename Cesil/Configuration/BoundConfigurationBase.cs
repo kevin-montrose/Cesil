@@ -58,14 +58,12 @@ namespace Cesil
             Options = options;
 
             RowEndingMemory =
-                Options.RowEnding switch
+                Options.WriteRowEnding switch
                 {
-                    RowEnding.CarriageReturn => CarriageReturn,
-                    RowEnding.CarriageReturnLineFeed => CarriageReturnLineFeed,
-                    RowEnding.LineFeed => LineFeed,
-                    // for cases like detecting headers, actually trying to write is NO GOOD...
-                    //     but construction is fine
-                    _ => default
+                    WriteRowEnding.CarriageReturn => CarriageReturn,
+                    WriteRowEnding.CarriageReturnLineFeed => CarriageReturnLineFeed,
+                    WriteRowEnding.LineFeed => LineFeed,
+                    _ => Throw.ImpossibleException<ReadOnlyMemory<char>>($"Observed an unexpected {nameof(WriteRowEnding)}: {Options.WriteRowEnding}")
                 };
 
             NeedsEncode = new NeedsEncodeHelper(options.ValueSeparator, options.EscapedValueStartAndEnd, options.CommentCharacter);
@@ -93,14 +91,12 @@ namespace Cesil
             Options = options;
 
             RowEndingMemory =
-                Options.RowEnding switch
+                Options.WriteRowEnding switch
                 {
-                    RowEnding.CarriageReturn => CarriageReturn,
-                    RowEnding.CarriageReturnLineFeed => CarriageReturnLineFeed,
-                    RowEnding.LineFeed => LineFeed,
-                    // for cases like detecting headers, actually trying to write is NO GOOD...
-                    //     but construction is fine
-                    _ => default
+                    WriteRowEnding.CarriageReturn => CarriageReturn,
+                    WriteRowEnding.CarriageReturnLineFeed => CarriageReturnLineFeed,
+                    WriteRowEnding.LineFeed => LineFeed,
+                    _ => Throw.ImpossibleException<ReadOnlyMemory<char>>($"Observed an unexpected {nameof(WriteRowEnding)}: {Options.WriteRowEnding}")
                 };
 
             NeedsEncode = new NeedsEncodeHelper(options.ValueSeparator, options.EscapedValueStartAndEnd, options.CommentCharacter);
