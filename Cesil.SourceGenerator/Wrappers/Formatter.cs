@@ -89,7 +89,8 @@ namespace Cesil.SourceGenerator
         {
             if (forType.TypeKind == TypeKind.Enum)
             {
-                return TryCreateEnumDefaultFormatter(types.Framework, forType, out formatter);
+                formatter = CreateEnumDefaultFormatter(types.Framework, forType);
+                return true;
             }
 
             if (forType.TypeKind == TypeKind.Struct && forType is INamedTypeSymbol maybeNullableEnum && maybeNullableEnum.Arity == 1)
@@ -100,7 +101,8 @@ namespace Cesil.SourceGenerator
                     var arg = maybeNullableEnum.TypeArguments.Single();
                     if (arg.TypeKind == TypeKind.Enum)
                     {
-                        return TryCreateNullableEnumDefaultFormatter(types.Framework, forType, out formatter);
+                        formatter = CreateNullableEnumDefaultFormatter(types.Framework, forType);
+                        return true;
                     }
                 }
             }
@@ -110,14 +112,10 @@ namespace Cesil.SourceGenerator
             return DefaultLookup.TryGetValue(key, out formatter);
         }
 
-        private static bool TryCreateNullableEnumDefaultFormatter(FrameworkTypes types, ITypeSymbol forNullableEnum, out Formatter? formatter)
+        private static Formatter CreateNullableEnumDefaultFormatter(FrameworkTypes types, ITypeSymbol forNullableEnum)
         {
             var forEnum = ((INamedTypeSymbol)forNullableEnum).TypeArguments.Single();
-            if (!TryCreateEnumDefaultFormatter(types, forEnum, out var nonNullFormatter) || nonNullFormatter == null)
-            {
-                formatter = null;
-                return false;
-            }
+            var nonNullFormatter = CreateEnumDefaultFormatter(types, forEnum);
 
             var isFlags = Utils.IsFlagsEnum(types, forEnum);
             var forEnumFullyQualified = forEnum.ToFullyQualifiedName();
@@ -171,11 +169,10 @@ namespace Cesil.SourceGenerator
 
             var code = nullableFinal.ToFullString();
 
-            formatter = new Formatter(isMethod, forNullableEnumFullyQualified, code);
-            return true;
+            return new Formatter(isMethod, forNullableEnumFullyQualified, code);
         }
 
-        private static bool TryCreateEnumDefaultFormatter(FrameworkTypes types, ITypeSymbol forEnum, out Formatter? formatter)
+        private static Formatter CreateEnumDefaultFormatter(FrameworkTypes types, ITypeSymbol forEnum)
         {
             var isFlags = Utils.IsFlagsEnum(types, forEnum);
             var forEnumFullyQualified = forEnum.ToFullyQualifiedName();
@@ -369,8 +366,7 @@ namespace Cesil.SourceGenerator
                 code = retClass.ToFullString();
             }
 
-            formatter = new Formatter(isMethod, forEnumFullyQualified, code);
-            return true;
+            return new Formatter(isMethod, forEnumFullyQualified, code);
         }
 
         private static ClassDeclarationSyntax GetEnumTypeFormatterTemplate()
@@ -399,6 +395,8 @@ namespace Cesil.SourceGenerator
             Add(builder, "System.UInt32", true, false, defaultTypeFormatters, "TryFormatUInt");
             Add(builder, "System.Int64", true, false, defaultTypeFormatters, "TryFormatLong");
             Add(builder, "System.UInt64", true, false, defaultTypeFormatters, "TryFormatULong");
+            Add(builder, "System.IntPtr", true, false, defaultTypeFormatters, "TryFormatNInt");
+            Add(builder, "System.UIntPtr", true, false, defaultTypeFormatters, "TryFormatNUInt");
             Add(builder, "System.Single", true, false, defaultTypeFormatters, "TryFormatFloat");
             Add(builder, "System.Double", true, false, defaultTypeFormatters, "TryFormatDouble");
             Add(builder, "System.Decimal", true, false, defaultTypeFormatters, "TryFormatDecimal");
@@ -427,6 +425,8 @@ namespace Cesil.SourceGenerator
             Add(builder, "System.UInt32", true, true, defaultTypeFormatters, "TryFormatNullableUInt");
             Add(builder, "System.Int64", true, true, defaultTypeFormatters, "TryFormatNullableLong");
             Add(builder, "System.UInt64", true, true, defaultTypeFormatters, "TryFormatNullableULong");
+            Add(builder, "System.IntPtr", true, true, defaultTypeFormatters, "TryFormatNullableNInt");
+            Add(builder, "System.UIntPtr", true, true, defaultTypeFormatters, "TryFormatNullableNUInt");
             Add(builder, "System.Single", true, true, defaultTypeFormatters, "TryFormatNullableFloat");
             Add(builder, "System.Double", true, true, defaultTypeFormatters, "TryFormatNullableDouble");
             Add(builder, "System.Decimal", true, true, defaultTypeFormatters, "TryFormatNullableDecimal");
@@ -480,44 +480,11 @@ namespace Cesil.SourceGenerator
                 return false;
             }
 
-            if (Method != null)
+            if(Method != null && TakesType != null)
             {
-                if (other.Method == null)
-                {
-                    return false;
-                }
-
-                if (!Method.Equals(other.Method, SymbolEqualityComparer.IncludeNullability))
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                if (other.Method != null)
-                {
-                    return false;
-                }
-            }
-
-            if (TakesType != null)
-            {
-                if (other.TakesType == null)
-                {
-                    return false;
-                }
-
-                if (!TakesType.Equals(other.TakesType, SymbolEqualityComparer.IncludeNullability))
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                if (other.TakesType != null)
-                {
-                    return false;
-                }
+                return
+                    Method.Equals(other.Method, SymbolEqualityComparer.Default) &&
+                    TakesType.Equals(other.TakesType, SymbolEqualityComparer.Default);
             }
 
             return

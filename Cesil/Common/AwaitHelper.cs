@@ -18,8 +18,7 @@ namespace Cesil
             {
                 if (c.CancelCounter >= c.CancelAfter)
                 {
-                    Throw.OperationCanceledException<object>();
-                    return;
+                    Throw.OperationCanceledException();
                 }
             }
 #endif

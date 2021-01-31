@@ -156,88 +156,88 @@ namespace Cesil
         {
             if (string.IsNullOrEmpty(ValueSeparator))
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(ValueSeparator)} cannot be empty");
+                Throw.InvalidOperationException($"{nameof(ValueSeparator)} cannot be empty");
             }
 
             // can't distinguish between the start of a value and an empty value
             if (ValueSeparator[0] == EscapedValueStartAndEnd)
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(ValueSeparator)} cannot equal {nameof(EscapedValueStartAndEnd)}, both are '{ValueSeparator}'");
+                Throw.InvalidOperationException($"{nameof(ValueSeparator)} cannot equal {nameof(EscapedValueStartAndEnd)}, both are '{ValueSeparator}'");
             }
             // can't distinguish between the start of a comment and an empty value
             if (ValueSeparator[0] == CommentCharacter)
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(ValueSeparator)} cannot equal {nameof(CommentCharacter)}, both are '{ValueSeparator}'");
+                Throw.InvalidOperationException($"{nameof(ValueSeparator)} cannot equal {nameof(CommentCharacter)}, both are '{ValueSeparator}'");
             }
             // can't distinguish between the start of an escaped value and a comment
             if (EscapedValueStartAndEnd != null && EscapedValueStartAndEnd == CommentCharacter)
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(EscapedValueStartAndEnd)} cannot equal {nameof(CommentCharacter)}, both are '{EscapedValueStartAndEnd}'");
+                Throw.InvalidOperationException($"{nameof(EscapedValueStartAndEnd)} cannot equal {nameof(CommentCharacter)}, both are '{EscapedValueStartAndEnd}'");
             }
             // can't have an escape char if you can't start an escape sequence
             if (EscapedValueStartAndEnd == null && EscapedValueEscapeCharacter != null)
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(EscapedValueEscapeCharacter)} cannot be set if, {nameof(EscapedValueStartAndEnd)} isn't set");
+                Throw.InvalidOperationException($"{nameof(EscapedValueEscapeCharacter)} cannot be set if, {nameof(EscapedValueStartAndEnd)} isn't set");
             }
             // ReadRowEnding not recognized
             if (!Enum.IsDefined(Types.ReadRowEnding, ReadRowEnding))
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(ReadRowEnding)} has an unexpected value, '{ReadRowEnding}'");
+                Throw.InvalidOperationException($"{nameof(ReadRowEnding)} has an unexpected value, '{ReadRowEnding}'");
             }
             // WriteRowEnding not recognized
             if (!Enum.IsDefined(Types.WriteRowEnding, WriteRowEnding))
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(WriteRowEnding)} has an unexpected value, '{WriteRowEnding}'");
+                Throw.InvalidOperationException($"{nameof(WriteRowEnding)} has an unexpected value, '{WriteRowEnding}'");
             }
             // ReadHeader not recognized
             if (!Enum.IsDefined(Types.ReadHeader, ReadHeader))
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(ReadHeader)} has an unexpected value, '{ReadHeader}'");
+                Throw.InvalidOperationException($"{nameof(ReadHeader)} has an unexpected value, '{ReadHeader}'");
             }
             // WriteHeader not recognized
             if (!Enum.IsDefined(Types.WriteHeader, WriteHeader))
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(WriteHeader)} has an unexpected value, '{WriteHeader}'");
+                Throw.InvalidOperationException($"{nameof(WriteHeader)} has an unexpected value, '{WriteHeader}'");
             }
             // TypeDescriber not configured
             if (TypeDescriber == null)
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(TypeDescriber)} has not been set");
+                Throw.InvalidOperationException($"{nameof(TypeDescriber)} has not been set");
             }
             // WriteTrailingNewLine not recognized
             if (!Enum.IsDefined(Types.WriteTrailingRowEnding, WriteTrailingRowEnding))
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(WriteTrailingRowEnding)} has an unexpected value, '{WriteTrailingRowEnding}'");
+                Throw.InvalidOperationException($"{nameof(WriteTrailingRowEnding)} has an unexpected value, '{WriteTrailingRowEnding}'");
             }
             // MemoryPoolProvider not configured
             if (MemoryPoolProvider == null)
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(MemoryPoolProvider)} has not been set");
+                Throw.InvalidOperationException($"{nameof(MemoryPoolProvider)} has not been set");
             }
             // WriteBufferSizeHint < 0
             if (WriteBufferSizeHint.HasValue && WriteBufferSizeHint.Value < 0)
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(WriteBufferSizeHint)} cannot be less than 0, is '{WriteBufferSizeHint}'");
+                Throw.InvalidOperationException($"{nameof(WriteBufferSizeHint)} cannot be less than 0, is '{WriteBufferSizeHint}'");
             }
             // ReadBufferSizeHint < 0
             if (ReadBufferSizeHint < 0)
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(ReadBufferSizeHint)} cannot be less than 0, is '{ReadBufferSizeHint}'");
+                Throw.InvalidOperationException($"{nameof(ReadBufferSizeHint)} cannot be less than 0, is '{ReadBufferSizeHint}'");
             }
             // DynamicRowDisposal not recognized
             if (!Enum.IsDefined(Types.DynamicRowDisposal, DynamicRowDisposal))
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(DynamicRowDisposal)} has an unexpected value, '{DynamicRowDisposal}'");
+                Throw.InvalidOperationException($"{nameof(DynamicRowDisposal)} has an unexpected value, '{DynamicRowDisposal}'");
             }
             // WhitespaceTreatment not recognized
             if (!Utils.IsLegalFlagEnum(WhitespaceTreatment))
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(WhitespaceTreatment)} has an unexpected value, '{WhitespaceTreatment}'");
+                Throw.InvalidOperationException($"{nameof(WhitespaceTreatment)} has an unexpected value, '{WhitespaceTreatment}'");
             }
             // ExtraColumnTreatment not recognized
             if (!Enum.IsDefined(Types.ExtraColumnTreatment, ExtraColumnTreatment))
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(ExtraColumnTreatment)} has an unexpected value, '{ExtraColumnTreatment}'");
+                Throw.InvalidOperationException($"{nameof(ExtraColumnTreatment)} has an unexpected value, '{ExtraColumnTreatment}'");
             }
 
             // if any of the special characters are whitespace, we can't use them with any of the trimming... parse is ambiguous
@@ -245,22 +245,22 @@ namespace Cesil
             {
                 if (CommentCharacter.HasValue && char.IsWhiteSpace(CommentCharacter.Value))
                 {
-                    return Throw.InvalidOperationException<Options>($"Cannot use a whitespace removing {nameof(WhitespaceTreatment)} ({WhitespaceTreatment}) with a whitespace {nameof(CommentCharacter)} ('{CommentCharacter}')");
+                    Throw.InvalidOperationException($"Cannot use a whitespace removing {nameof(WhitespaceTreatment)} ({WhitespaceTreatment}) with a whitespace {nameof(CommentCharacter)} ('{CommentCharacter}')");
                 }
 
                 if (EscapedValueEscapeCharacter.HasValue && char.IsWhiteSpace(EscapedValueEscapeCharacter.Value))
                 {
-                    return Throw.InvalidOperationException<Options>($"Cannot use a whitespace removing {nameof(WhitespaceTreatment)} ({WhitespaceTreatment}) with a whitespace {nameof(EscapedValueEscapeCharacter)} ('{EscapedValueEscapeCharacter}')");
+                    Throw.InvalidOperationException($"Cannot use a whitespace removing {nameof(WhitespaceTreatment)} ({WhitespaceTreatment}) with a whitespace {nameof(EscapedValueEscapeCharacter)} ('{EscapedValueEscapeCharacter}')");
                 }
 
                 if (EscapedValueStartAndEnd.HasValue && char.IsWhiteSpace(EscapedValueStartAndEnd.Value))
                 {
-                    return Throw.InvalidOperationException<Options>($"Cannot use a whitespace removing {nameof(WhitespaceTreatment)} ({WhitespaceTreatment}) with a whitespace {nameof(EscapedValueStartAndEnd)} ('{EscapedValueStartAndEnd}')");
+                    Throw.InvalidOperationException($"Cannot use a whitespace removing {nameof(WhitespaceTreatment)} ({WhitespaceTreatment}) with a whitespace {nameof(EscapedValueStartAndEnd)} ('{EscapedValueStartAndEnd}')");
                 }
 
                 if (ValueSeparator.Any(c => char.IsWhiteSpace(c)))
                 {
-                    return Throw.InvalidOperationException<Options>($"Cannot use a whitespace removing {nameof(WhitespaceTreatment)} ({WhitespaceTreatment}) with a whitespace {nameof(ValueSeparator)} ('{ValueSeparator}')");
+                    Throw.InvalidOperationException($"Cannot use a whitespace removing {nameof(WhitespaceTreatment)} ({WhitespaceTreatment}) with a whitespace {nameof(ValueSeparator)} ('{ValueSeparator}')");
                 }
             }
 
@@ -277,7 +277,7 @@ namespace Cesil
                 (ReadRowEnding == ReadRowEnding.Detect && valSepIsRowEnding);
             if (valueSeparatorMatchesRowEnding)
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(ValueSeparator)} cannot match the expected (or potential for {nameof(ReadRowEnding.Detect)}) {nameof(ReadRowEnding)}");
+                Throw.InvalidOperationException($"{nameof(ValueSeparator)} cannot match the expected (or potential for {nameof(ReadRowEnding.Detect)}) {nameof(ReadRowEnding)}");
             }
 
             return BuildInternal();
@@ -295,7 +295,7 @@ namespace Cesil
             Utils.CheckArgumentNull(valueSeparator, nameof(valueSeparator));
             if (valueSeparator.Length == 0)
             {
-                return Throw.ArgumentException<OptionsBuilder>($"{nameof(valueSeparator)} cannot be empty", nameof(valueSeparator));
+                Throw.ArgumentException($"{nameof(valueSeparator)} cannot be empty", nameof(valueSeparator));
             }
 
             return WithValueSeparatorInternal(valueSeparator);
@@ -337,7 +337,7 @@ namespace Cesil
         {
             if (!Enum.IsDefined(Types.ReadRowEnding, readRowEnding))
             {
-                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(Cesil.ReadRowEnding)} value: {readRowEnding}", nameof(readRowEnding));
+                Throw.ArgumentException($"Unexpected {nameof(Cesil.ReadRowEnding)} value: {readRowEnding}", nameof(readRowEnding));
             }
 
             return WithReadRowEndingInternal(readRowEnding);
@@ -357,7 +357,7 @@ namespace Cesil
         {
             if (!Enum.IsDefined(Types.WriteRowEnding, writeRowEnding))
             {
-                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(Cesil.WriteRowEnding)} value: {writeRowEnding}", nameof(writeRowEnding));
+                Throw.ArgumentException($"Unexpected {nameof(Cesil.WriteRowEnding)} value: {writeRowEnding}", nameof(writeRowEnding));
             }
 
             return WithWriteRowEndingInternal(writeRowEnding);
@@ -377,7 +377,7 @@ namespace Cesil
         {
             if (!Enum.IsDefined(Types.ReadHeader, readHeader))
             {
-                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(Cesil.ReadHeader)} value: {readHeader}", nameof(readHeader));
+                Throw.ArgumentException($"Unexpected {nameof(Cesil.ReadHeader)} value: {readHeader}", nameof(readHeader));
             }
 
             return WithReadHeaderInternal(readHeader);
@@ -397,7 +397,7 @@ namespace Cesil
         {
             if (!Enum.IsDefined(Types.WriteHeader, writeHeader))
             {
-                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(Cesil.WriteHeader)} value: {writeHeader}", nameof(writeHeader));
+                Throw.ArgumentException($"Unexpected {nameof(Cesil.WriteHeader)} value: {writeHeader}", nameof(writeHeader));
             }
 
             return WithWriteHeaderInternal(writeHeader);
@@ -429,7 +429,7 @@ namespace Cesil
         {
             if (!Enum.IsDefined(Types.WriteTrailingRowEnding, writeTrailingNewLine))
             {
-                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(Cesil.WriteTrailingRowEnding)} value: {writeTrailingNewLine}", nameof(writeTrailingNewLine));
+                Throw.ArgumentException($"Unexpected {nameof(Cesil.WriteTrailingRowEnding)} value: {writeTrailingNewLine}", nameof(writeTrailingNewLine));
             }
 
             return WithWriteTrailingRowEndingInternal(writeTrailingNewLine);
@@ -478,7 +478,7 @@ namespace Cesil
         {
             if (sizeHint != null && sizeHint < 0)
             {
-                return Throw.ArgumentException<OptionsBuilder>($"Cannot be negative, was {sizeHint.Value}", nameof(sizeHint));
+                Throw.ArgumentException($"Cannot be negative, was {sizeHint.Value}", nameof(sizeHint));
             }
 
             return WithWriteBufferSizeHintInternal(sizeHint);
@@ -504,7 +504,7 @@ namespace Cesil
         {
             if (sizeHint < 0)
             {
-                return Throw.ArgumentException<OptionsBuilder>($"Cannot be negative, was {sizeHint}", nameof(sizeHint));
+                Throw.ArgumentException($"Cannot be negative, was {sizeHint}", nameof(sizeHint));
             }
 
             return WithReadBufferSizeHintInternal(sizeHint);
@@ -527,7 +527,7 @@ namespace Cesil
         {
             if (!Enum.IsDefined(Types.DynamicRowDisposal, dynamicRowDisposal))
             {
-                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(DynamicRowDisposal)} value: {dynamicRowDisposal}", nameof(dynamicRowDisposal));
+                Throw.ArgumentException($"Unexpected {nameof(DynamicRowDisposal)} value: {dynamicRowDisposal}", nameof(dynamicRowDisposal));
             }
 
             return WithDynamicRowDisposalInternal(dynamicRowDisposal);
@@ -548,7 +548,7 @@ namespace Cesil
             // WhitespaceTreatment not recognized
             if (!Utils.IsLegalFlagEnum(whitespaceTreatment))
             {
-                return Throw.ArgumentException<OptionsBuilder>($"{nameof(WhitespaceTreatment)} has an unexpected value, '{WhitespaceTreatment}'", nameof(whitespaceTreatment));
+                Throw.ArgumentException($"{nameof(WhitespaceTreatment)} has an unexpected value, '{WhitespaceTreatment}'", nameof(whitespaceTreatment));
             }
 
             return WithWhitespaceTreatmentInternal(whitespaceTreatment);
@@ -568,7 +568,7 @@ namespace Cesil
             // ExtraColumnTreatment not recognized
             if (!Enum.IsDefined(Types.ExtraColumnTreatment, extraColumnTreatment))
             {
-                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(ExtraColumnTreatment)} value: {extraColumnTreatment}", nameof(extraColumnTreatment));
+                Throw.ArgumentException($"Unexpected {nameof(ExtraColumnTreatment)} value: {extraColumnTreatment}", nameof(extraColumnTreatment));
             }
 
             return WithExtraColumnTreatmentInternal(extraColumnTreatment);

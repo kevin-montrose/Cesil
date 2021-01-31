@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Reflection;
 
 using static Cesil.BindingFlagsConstants;
@@ -147,7 +148,20 @@ namespace Cesil
 
             var ctx = ReadContext.ReadingColumn(options, rowNumber, ColumnIdentifier.CreateInner(columnNumber, name, null), context);
 
-            _ColumnAvailable(data, in ctx);
+            if(!_ColumnAvailable(data, in ctx))
+            {
+                Throw.ParseFailed(GetParser(originalColumnNumber), in ctx, data);
+            }
+
+            static Parser GetParser(int originalColumnNumber)
+            {
+                // only used in exception cases, so the allocation isn't a big deal
+                var type = typeof(TRow).GetTypeInfo();
+                var members = TypeDescribers.AheadOfTime.EnumerateMembersToDeserialize(type);
+                var member = members.ElementAt(originalColumnNumber);
+
+                return member.Parser;
+            }
         }
 
         public TRow FinishRow()

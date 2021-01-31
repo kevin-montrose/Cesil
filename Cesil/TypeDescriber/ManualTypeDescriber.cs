@@ -80,7 +80,7 @@ namespace Cesil
             {
                 if (ThrowsOnNoConfiguredType)
                 {
-                    return Throw.InvalidOperationException<InstanceProvider?>($"No configured instance provider for {forType}");
+                    Throw.InvalidOperationException($"No configured instance provider for {forType}");
                 }
 
                 return Fallback.GetInstanceProvider(forType);
@@ -101,7 +101,7 @@ namespace Cesil
             {
                 if (ThrowsOnNoConfiguredType)
                 {
-                    return Throw.InvalidOperationException<IEnumerable<DeserializableMember>>($"No configured members to deserialize for {forType}");
+                    Throw.InvalidOperationException($"No configured members to deserialize for {forType}");
                 }
 
                 return Fallback.EnumerateMembersToDeserialize(forType);
@@ -122,7 +122,7 @@ namespace Cesil
             {
                 if (ThrowsOnNoConfiguredType)
                 {
-                    return Throw.InvalidOperationException<IEnumerable<SerializableMember>>($"No configured members to serialize for {forType}");
+                    Throw.InvalidOperationException($"No configured members to serialize for {forType}");
                 }
 
                 return Fallback.EnumerateMembersToSerialize(forType);
@@ -238,20 +238,29 @@ namespace Cesil
         /// Operation not supported, raises exception if used.
         /// </summary>
         public Parser GetDynamicCellParserFor(in ReadContext context, TypeInfo targetType)
-        => Throw.NotSupportedException<Parser>(nameof(ManualTypeDescriber), nameof(GetDynamicCellParserFor));
+        {
+            Throw.NotSupportedException(nameof(ManualTypeDescriber), nameof(GetDynamicCellParserFor));
+            return default;
+        }
 
         /// <summary>
         /// Operation not supported, raises exception if used.
         /// </summary>
         public DynamicRowConverter GetDynamicRowConverter(in ReadContext context, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
-        => Throw.NotSupportedException<DynamicRowConverter>(nameof(ManualTypeDescriber), nameof(GetDynamicRowConverter));
+        {
+            Throw.NotSupportedException(nameof(ManualTypeDescriber), nameof(GetDynamicRowConverter));
+            return default;
+        }
 
         /// <summary>
         /// Operation not supported, raises exception if used.
         /// </summary>
         [return: IntentionallyExposedPrimitive("Count, int is the best option")]
         public int GetCellsForDynamicRow(in WriteContext context, object row, Span<DynamicCellValue> cells)
-        => Throw.NotSupportedException<int>(nameof(ManualTypeDescriber), nameof(GetCellsForDynamicRow));
+        {
+            Throw.NotSupportedException(nameof(ManualTypeDescriber), nameof(GetCellsForDynamicRow));
+            return default;
+        }
 
         // equatable
 

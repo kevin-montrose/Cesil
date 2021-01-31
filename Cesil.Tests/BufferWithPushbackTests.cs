@@ -57,7 +57,6 @@ namespace Cesil.Tests
                         Assert.Equal(TEXT, shouldMatch);
                     }
                 },
-                releasePinsAcrossYields: false,
                 cancellable: false
             );
         }
@@ -127,7 +126,6 @@ namespace Cesil.Tests
                         Assert.Equal(SECOND_TEXT, shouldMatch2);
                     }
                 },
-                releasePinsAcrossYields: false,
                 cancellable: false
             );
         }

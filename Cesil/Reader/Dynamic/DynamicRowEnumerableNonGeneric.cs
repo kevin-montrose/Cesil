@@ -19,17 +19,14 @@ namespace Cesil
                 DependsOn = dynRow;
                 Offset = Length = null;
             }
-            else if (row is DynamicRowRange dynRowRange)
+            else
             {
+                var dynRowRange = Utils.NonNull(row as DynamicRowRange);
+
                 Row = dynRowRange.Parent;
                 DependsOn = dynRowRange;
                 Offset = dynRowRange.Offset;
                 Length = dynRowRange.Length;
-            }
-            else
-            {
-                DependsOn = Row = Throw.ImpossibleException<DynamicRow>($"Unexpected dynamic row type ({row.GetType().GetTypeInfo()})");
-                return;
             }
         }
 

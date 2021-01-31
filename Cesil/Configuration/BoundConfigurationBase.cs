@@ -29,21 +29,6 @@ namespace Cesil
         internal readonly MemoryPool<char> MemoryPool;
         internal readonly MemoryPool<DynamicCellValue> DynamicMemoryPool;
 
-#pragma warning disable CS8618
-        /// <summary>
-        /// For some testing scenarios.
-        /// 
-        /// Created instance is nearly unusable.
-        /// </summary>
-        protected BoundConfigurationBase(
-            MemoryPool<char> memPool,
-            MemoryPool<DynamicCellValue> dynMemPool)
-        {
-            MemoryPool = memPool;
-            DynamicMemoryPool = dynMemPool;
-        }
-#pragma warning restore CS8618
-
         /// <summary>
         /// For working with dynamic.
         /// </summary>
@@ -63,7 +48,7 @@ namespace Cesil
                     WriteRowEnding.CarriageReturn => CarriageReturn,
                     WriteRowEnding.CarriageReturnLineFeed => CarriageReturnLineFeed,
                     WriteRowEnding.LineFeed => LineFeed,
-                    _ => Throw.ImpossibleException<ReadOnlyMemory<char>>($"Observed an unexpected {nameof(WriteRowEnding)}: {Options.WriteRowEnding}")
+                    _ => Throw.ImpossibleException_Returns<ReadOnlyMemory<char>>($"Observed an unexpected {nameof(WriteRowEnding)}: {Options.WriteRowEnding}")
                 };
 
             NeedsEncode = new NeedsEncodeHelper(options.ValueSeparator, options.EscapedValueStartAndEnd, options.CommentCharacter);
@@ -96,7 +81,7 @@ namespace Cesil
                     WriteRowEnding.CarriageReturn => CarriageReturn,
                     WriteRowEnding.CarriageReturnLineFeed => CarriageReturnLineFeed,
                     WriteRowEnding.LineFeed => LineFeed,
-                    _ => Throw.ImpossibleException<ReadOnlyMemory<char>>($"Observed an unexpected {nameof(WriteRowEnding)}: {Options.WriteRowEnding}")
+                    _ => Throw.ImpossibleException_Returns<ReadOnlyMemory<char>>($"Observed an unexpected {nameof(WriteRowEnding)}: {Options.WriteRowEnding}")
                 };
 
             NeedsEncode = new NeedsEncodeHelper(options.ValueSeparator, options.EscapedValueStartAndEnd, options.CommentCharacter);

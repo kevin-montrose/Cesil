@@ -73,7 +73,15 @@ namespace Cesil.SourceGenerator
 
         internal static Diagnostic UnexpectedConstantValueType(Location? loc, System.Reflection.TypeInfo[] expected, System.Reflection.TypeInfo? found)
         {
-            var foundName = found?.Name ?? "--UNKNOWN--";
+            string foundName;
+            if (found == null)
+            {
+                foundName = "--UNKNOWN--";
+            }
+            else
+            {
+                foundName = found.Name;
+            }
 
             var expectedStr = string.Join(", or ", expected.Select(s => s.Name));
 
@@ -162,7 +170,7 @@ namespace Cesil.SourceGenerator
             new DiagnosticDescriptor(
                "CES1011",
                "Both FormatterType and FormatterMethodName must be set",
-               "Either both must be set, or neither must be set.  Only one was set.",
+               "Either both must be set, or neither must be set - only one was set",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -175,7 +183,7 @@ namespace Cesil.SourceGenerator
             new DiagnosticDescriptor(
                "CES1012",
                "Both ShouldSerializeType and ShouldSerializeMethodName must be set",
-               "Either both must be set, or neither must be set.  Only one was set.",
+               "Either both must be set, or neither must be set - only one was set",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -188,7 +196,7 @@ namespace Cesil.SourceGenerator
             new DiagnosticDescriptor(
                "CES1013",
                "Could not find method",
-               "No method {1} on {0} found.",
+               "No method {1} on {0} found",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -201,7 +209,7 @@ namespace Cesil.SourceGenerator
             new DiagnosticDescriptor(
                "CES1014",
                "More than one method found",
-               "Multiple methods with name {1} on {0} were found.",
+               "Multiple methods with name {1} on {0} were found",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -214,7 +222,7 @@ namespace Cesil.SourceGenerator
             new DiagnosticDescriptor(
                "CES1015",
                "Method not public or internal",
-               "Method {0} is not accessible.  It must either be public, or internal and declared in the compiled assembly.",
+               "Method {0} is not accessible - it must either be public, or internal and declared in the compiled assembly",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -223,24 +231,11 @@ namespace Cesil.SourceGenerator
         internal static Diagnostic MethodNotPublicOrInternal(Location? loc, IMethodSymbol method)
         => Diagnostic.Create(_MethodNotPublicOrInternal, loc, method.Name);
 
-        private static readonly DiagnosticDescriptor _MethodNotStatic =
-            new DiagnosticDescriptor(
-               "CES1016",
-               "Method not static",
-               "Method {0} must be static.",
-               "Cesil",
-               DiagnosticSeverity.Error,
-               true
-           );
-
-        internal static Diagnostic MethodNotStatic(Location? loc, IMethodSymbol method)
-        => Diagnostic.Create(_MethodNotStatic, loc, method.Name);
-
         private static readonly DiagnosticDescriptor _BadFormatterParameters =
             new DiagnosticDescriptor(
                "CES1016",
                "Invalid Formatter method parameters",
-               "Method {0} does not take correct parameters.  Should take {1} (or a type it can be assigned to), in WriteContext, and IBufferWriter<char>.",
+               "Method {0} does not take the correct parameters - should take {1} (or a type it can be assigned to), in WriteContext, and IBufferWriter<char>",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -253,7 +248,7 @@ namespace Cesil.SourceGenerator
             new DiagnosticDescriptor(
                "CES1017",
                "Method cannot be generic",
-               "Method {0} is generic, which is not supported.",
+               "Method {0} is generic, which is not supported",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -266,7 +261,7 @@ namespace Cesil.SourceGenerator
            new DiagnosticDescriptor(
                "CES1018",
                "Method must return bool",
-               "Method {0} does not return bool, but must do so.",
+               "Method {0} does not return bool, but must do so",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -279,7 +274,7 @@ namespace Cesil.SourceGenerator
            new DiagnosticDescriptor(
                "CES1019",
                "Invalid ShouldSerialize method parameters",
-               "Method {0}, which is static and takes one parameter, should take {1} (or a type it can be assigned to).",
+               "Method {0}, which is static and takes one parameter, should take {1} (or a type it can be assigned to)",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -292,7 +287,7 @@ namespace Cesil.SourceGenerator
            new DiagnosticDescriptor(
                "CES1020",
                "Invalid ShouldSerialize method parameters",
-               "Method {0}, which is static and takes two parameters, should take {1} (or a type it can be assigned to), and in WriteContext.",
+               "Method {0}, which is static and takes two parameters, should take {1} (or a type it can be assigned to), and in WriteContext",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -305,7 +300,7 @@ namespace Cesil.SourceGenerator
             new DiagnosticDescriptor(
                "CES1021",
                "ShouldSerialize method on wrong type",
-               "Method {0}, which is an instance method, is declared on the wrong type (expected declaration on {1}).",
+               "Method {0}, which is an instance method, is declared on the wrong type (expected declaration on {1})",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -318,7 +313,7 @@ namespace Cesil.SourceGenerator
            new DiagnosticDescriptor(
                "CES1022",
                "Invalid ShouldSerialize method parameters",
-               "Method {0} takes too many parameters.",
+               "Method {0} takes too many parameters",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -331,7 +326,7 @@ namespace Cesil.SourceGenerator
            new DiagnosticDescriptor(
                "CES1023",
                "Invalid ShouldSerialize method parameters",
-               "Method {0}, which is instance and takes one parameter, should take in WriteContext.",
+               "Method {0}, which is instance and takes one parameter, should take in WriteContext",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -357,7 +352,7 @@ namespace Cesil.SourceGenerator
             new DiagnosticDescriptor(
                "CES1025",
                "Method cannot return void",
-               "Method {0} must return a value, found void.",
+               "Method {0} must return a value, found void",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -369,8 +364,8 @@ namespace Cesil.SourceGenerator
         private static readonly DiagnosticDescriptor _SerializableMemberMustHaveNameSetForMethod =
             new DiagnosticDescriptor(
                "CES1026",
-               "SerializableMemberAttribute must have Name set",
-               "Method {0} with [SerializableMember] must have property Name explicitly set.",
+               "[SerializerMemberAttribute] must have Name set",
+               "Method {0} with [SerializerMemberAttribute] must have property Name explicitly set",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -382,7 +377,7 @@ namespace Cesil.SourceGenerator
         private static readonly DiagnosticDescriptor _NoSystemMemoryReference =
             new DiagnosticDescriptor(
                "CES1027",
-               "Missing system.Memory Reference",
+               "Missing System.Memory Reference",
                "Could not find a type exported by System.Memory, are you missing a reference?",
                "Cesil",
                DiagnosticSeverity.Error,
@@ -396,7 +391,7 @@ namespace Cesil.SourceGenerator
            new DiagnosticDescriptor(
                "CES1028",
                "Invalid Getter method parameters",
-               "Method {0}, which is static and takes one parameter, should take {1} (or a type it can be assigned to), or in WriteContext.",
+               "Method {0}, which is static and takes one parameter, should take {1} (or a type it can be assigned to), or in WriteContext",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -409,7 +404,7 @@ namespace Cesil.SourceGenerator
            new DiagnosticDescriptor(
                "CES1029",
                "Invalid Getter method parameters",
-               "Method {0}, which is static and takes two parameters, should take {1} (or a type it can be assigned to) and in WriteContext.",
+               "Method {0}, which is static and takes two parameters, should take {1} (or a type it can be assigned to) and in WriteContext",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -422,7 +417,7 @@ namespace Cesil.SourceGenerator
            new DiagnosticDescriptor(
                "CES1030",
                "Invalid Getter method parameters",
-               "Method {0} takes too many parameters.",
+               "Method {0} takes too many parameters",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -435,7 +430,7 @@ namespace Cesil.SourceGenerator
            new DiagnosticDescriptor(
                "CES1031",
                "Invalid Getter method parameters",
-               "Method {0}, which is an instance method and takes one parameter, should in WriteContext.",
+               "Method {0}, which is an instance method and takes one parameter, should take in WriteContext",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -448,7 +443,7 @@ namespace Cesil.SourceGenerator
             new DiagnosticDescriptor(
                "CES1032",
                "No default Formatter",
-               "There is no default Formatter for {0}, you must provide one.",
+               "There is no default Formatter for {0}, you must provide one",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -460,8 +455,8 @@ namespace Cesil.SourceGenerator
         private static readonly DiagnosticDescriptor _IsRequiredSpecifiedMultipleTimes =
             new DiagnosticDescriptor(
                "CES1033",
-               "Member's IsRequired was specified multiple times",
-               "Only one attribute may specify IsRequired per member",
+               "Member's IsRequired or MemberRequired was specified multiple times",
+               "Only one attribute may specify IsRequired or MemberRequired per member",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -474,7 +469,7 @@ namespace Cesil.SourceGenerator
             new DiagnosticDescriptor(
                "CES1035",
                "Invalid Setter method parameters",
-               "Method {0} takes too few parameters, expected it to take at least a parsed value",
+               "Method {0} takes too few parameters, expected it to take at least a value",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -487,7 +482,7 @@ namespace Cesil.SourceGenerator
             new DiagnosticDescriptor(
                "CES1036",
                "Method must return void",
-               "Method {0} must return void, but returns a value.",
+               "Method {0} must return void, but returns a value",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -500,7 +495,7 @@ namespace Cesil.SourceGenerator
             new DiagnosticDescriptor(
                "CES1037",
                "Invalid Setter method parameters",
-               "Method {0}, which is static and takes one parameter, should take a value (not by reference).",
+               "Method {0}, which is static and takes one parameter, should take a value (not by reference)",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -513,7 +508,7 @@ namespace Cesil.SourceGenerator
             new DiagnosticDescriptor(
                "CES1038",
                "Invalid Setter method parameters",
-               "Method {0}, which is static and takes two parameters, should take either a value and `in ReadContext` or {1} (possible by ref) and a value.",
+               "Method {0}, which is static and takes two parameters, should take either a value and in ReadContext or {1} (possible by ref) and a value",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -526,7 +521,7 @@ namespace Cesil.SourceGenerator
             new DiagnosticDescriptor(
                "CES1039",
                "Invalid Setter method parameters",
-               "Method {0}, which is static and takes three parameters, should take {1} (possible by ref), a value, and an `in ReadContext`.",
+               "Method {0}, which is static and takes three parameters, should take {1} (possible by ref), a value, and an in ReadContext",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -539,7 +534,7 @@ namespace Cesil.SourceGenerator
             new DiagnosticDescriptor(
                "CES1040",
                "Invalid Setter method parameters",
-               "Method {0} takes too many parameters, expect at most 2 for instance method and 3 for static methods.",
+               "Method {0} takes too many parameters, expected at most 2 for instance method and 3 for static methods",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -552,7 +547,7 @@ namespace Cesil.SourceGenerator
              new DiagnosticDescriptor(
                "CES1041",
                "Invalid Setter method",
-               "Method {0} is an instance method, and must be invokable on the row type ({1}).",
+               "Method {0} is an instance method, and must be invokable on the row type ({1})",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -565,7 +560,7 @@ namespace Cesil.SourceGenerator
             new DiagnosticDescriptor(
                "CES1042",
                "Invalid Setter method parameters",
-               "Method {0}, which is instance and takes one parameter, should take a value (not by ref).",
+               "Method {0}, which is instance and takes one parameter, should take a value (not by ref)",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -578,7 +573,7 @@ namespace Cesil.SourceGenerator
             new DiagnosticDescriptor(
                "CES1043",
                "Invalid Setter method parameters",
-               "Method {0}, which is instance and takes two parameters, should take a value (not by ref) and `in ReadContext`.",
+               "Method {0}, which is instance and takes two parameters, should take a value (not by ref) and in ReadContext",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -643,7 +638,7 @@ namespace Cesil.SourceGenerator
             new DiagnosticDescriptor(
                "CES1048",
                "Both ResetType and ResetMethodName must be set",
-               "Either both must be set, or neither must be set.  Only one was set.",
+               "Either both must be set, or neither must be set - only one was set",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -656,7 +651,7 @@ namespace Cesil.SourceGenerator
             new DiagnosticDescriptor(
                "CES1049",
                "Both ParserType and ParserMethodName must be set",
-               "Either both must be set, or neither must be set.  Only one was set.",
+               "Either both must be set, or neither must be set - only one was set",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -669,7 +664,7 @@ namespace Cesil.SourceGenerator
             new DiagnosticDescriptor(
                "CES1050",
                "Invalid Reset method parameters",
-               "Method {0}, which is static and takes one parameter, must take an `in ReadContext` or the row type ({1}).",
+               "Method {0}, which is static and takes one parameter, must take an in ReadContext or the row type ({1})",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -682,7 +677,7 @@ namespace Cesil.SourceGenerator
             new DiagnosticDescriptor(
                "CES1051",
                "Invalid Reset method parameters",
-               "Method {0}, which is static and takes two parameters, must take the row type ({1}, potentially by ref) and `in ReadContext`.",
+               "Method {0}, which is static and takes two parameters, must take the row type ({1}, potentially by ref) and in ReadContext",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -693,9 +688,9 @@ namespace Cesil.SourceGenerator
 
         private static readonly DiagnosticDescriptor _BadResetParameters_InstanceOne =
             new DiagnosticDescriptor(
-               "CES1050",
+               "CES1052",
                "Invalid Reset method parameters",
-               "Method {0}, which is instance and takes one parameter, must take an `in ReadContext`.",
+               "Method {0}, which is instance and takes one parameter, must take an in ReadContext",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -706,9 +701,9 @@ namespace Cesil.SourceGenerator
 
         private static readonly DiagnosticDescriptor _BadResetParameters_TooMany =
             new DiagnosticDescriptor(
-               "CES1051",
+               "CES1053",
                "Invalid Reset method parameters",
-               "Method {0} takes too many parameters, expect at most 1 for instance methods and 2 for static methods.",
+               "Method {0} takes too many parameters, expect at most 1 for instance methods and 2 for static methods",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -719,9 +714,9 @@ namespace Cesil.SourceGenerator
 
         private static readonly DiagnosticDescriptor _BadParserParameters =
             new DiagnosticDescriptor(
-               "CES1052",
+               "CES1054",
                "Invalid Parser method parameters",
-               "Method {0} must take a ReadOnlySpan<char>, an `in ReadContext`, and produce an out value.",
+               "Method {0} must take a ReadOnlySpan<char>, an in ReadContext, and produce an out value",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -732,7 +727,7 @@ namespace Cesil.SourceGenerator
 
         private static readonly DiagnosticDescriptor _NoSetterOnDeserializableProperty =
             new DiagnosticDescriptor(
-                "CES1053",
+                "CES1055",
                 "Property lacking setter",
                 "Deserializable properties must declare a setter",
                 "Cesil",
@@ -745,7 +740,7 @@ namespace Cesil.SourceGenerator
 
         private static readonly DiagnosticDescriptor _DeserializablePropertyCannotHaveParameters =
             new DiagnosticDescriptor(
-                "CES1054",
+                "CES1056",
                 "Property cannot take parameters",
                 "Deserializable properties cannot take parameters",
                 "Cesil",
@@ -758,9 +753,9 @@ namespace Cesil.SourceGenerator
 
         private static readonly DiagnosticDescriptor _DeserializableMemberMustHaveNameSetForMethod =
             new DiagnosticDescriptor(
-               "CES1055",
-               "DeserializableMemberAttribute must have Name set",
-               "Method {0} with [DeserializableMember] must have property Name explicitly set.",
+               "CES1057",
+               "[DeserializerMemberAttribute] must have Name set",
+               "Method {0} with [DeserializerMemberAttribute] must have property Name explicitly set",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -771,9 +766,9 @@ namespace Cesil.SourceGenerator
 
         private static readonly DiagnosticDescriptor _BadReset_NotOnRow =
              new DiagnosticDescriptor(
-               "CES1056",
+               "CES1058",
                "Invalid Reset method",
-               "Method {0} is an instance method, and must be invokable on the row type ({1}).",
+               "Method {0} is an instance method, and so must be invokable on the row type ({1})",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -784,9 +779,9 @@ namespace Cesil.SourceGenerator
 
         private static readonly DiagnosticDescriptor _NoBuiltInParser =
             new DiagnosticDescriptor(
-               "CES1057",
+               "CES1059",
                "No default Parser",
-               "There is no default Parser for {0}, you must provide one.",
+               "There is no default Parser for {0}, you must provide one",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -797,7 +792,7 @@ namespace Cesil.SourceGenerator
 
         private static readonly DiagnosticDescriptor _InstanceProviderTypeSpecifiedMultipleTimes =
             new DiagnosticDescriptor(
-               "CES1058",
+               "CES1060",
                "InstanceProviderType was specified multiple times",
                "InstanceProviderType may only be specified once",
                "Cesil",
@@ -810,7 +805,7 @@ namespace Cesil.SourceGenerator
 
         private static readonly DiagnosticDescriptor _InstanceProviderMethodNameSpecifiedMultipleTimes =
             new DiagnosticDescriptor(
-               "CES1059",
+               "CES1061",
                "InstanceProviderMethodName was specified multiple times",
                "InstanceProviderMethodName may only be specified once",
                "Cesil",
@@ -823,9 +818,9 @@ namespace Cesil.SourceGenerator
 
         private static readonly DiagnosticDescriptor _InstanceProviderBothMustBeSet =
             new DiagnosticDescriptor(
-               "CES1060",
+               "CES1062",
                "Both InstanceProviderType and InstanceProviderMethodName must be set",
-               "Either both must be set, or neither must be set.  Only one was set.",
+               "Either both must be set, or neither must be set - only one was set",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -836,9 +831,9 @@ namespace Cesil.SourceGenerator
 
         private static readonly DiagnosticDescriptor _BadInstanceProviderParameters =
             new DiagnosticDescriptor(
-               "CES1061",
+               "CES1063",
                "Invalid InstanceProvider method parameters",
-               "Method {0} must take an `in ReadContext`, and produce an out value assignable to the attributed type.",
+               "Method {0} must take an in ReadContext, and produce an out value assignable to the attributed type",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -849,9 +844,9 @@ namespace Cesil.SourceGenerator
 
         private static readonly DiagnosticDescriptor _NoInstanceProvider =
             new DiagnosticDescriptor(
-               "CES1062",
+               "CES1064",
                "No InstanceProvider configured",
-               "Type {0} does not have an InstanceProvider.  A type must have an accessible parameterless constructor, or an explicit InstanceProvider configured with InstanceProviderType and InstanceProviderMethodName on its [GenerateDeserializable].",
+               "Type {0} does not have an InstanceProvider - a type must have an accessible parameterless constructor, or an explicit InstanceProvider configured with InstanceProviderType and InstanceProviderMethodName on its [GenerateDeserializerAttribute]",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -862,9 +857,9 @@ namespace Cesil.SourceGenerator
 
         private static readonly DiagnosticDescriptor _InstanceProviderConstructorAndMethodProvided =
             new DiagnosticDescriptor(
-               "CES1063",
+               "CES1065",
                "Both method and constructor InstanceProvider specified",
-               "Type {0} has a constructor marked as an InstanceProvider, and a method provided as an InstanceProvider.  Only one may be specified.",
+               "Type {0} has a constructor marked as an InstanceProvider, and a method provided as an InstanceProvider - only one may be specified",
                "Cesil",
                DiagnosticSeverity.Error,
                true
@@ -875,9 +870,9 @@ namespace Cesil.SourceGenerator
 
         private static readonly DiagnosticDescriptor _DeserializableMemberOnNonConstructorParameter =
         new DiagnosticDescriptor(
-           "CES1064",
-           "[GenerateDeserializableMemberAttribute] applied to non-constructor parameter",
-           "Type {0}'s method {1} has parameter with [GenerateDeserializableMemberAttribute], which is not permitted.",
+           "CES1066",
+           "[DeserializerMemberAttribute] applied to non-constructor parameter",
+           "Type {0}'s method {1} has parameter with [DeserializerMemberAttribute], which is not permitted",
            "Cesil",
            DiagnosticSeverity.Error,
            true
@@ -888,9 +883,9 @@ namespace Cesil.SourceGenerator
 
         private static readonly DiagnosticDescriptor _ConstructorHasMembersButIsntInstanceProvider =
         new DiagnosticDescriptor(
-           "CES1065",
-           "[GenerateDeserializableMemberAttribute] applied to constructor parameters, but constructor isn't annotated with [GenerateDeserializableInstanceProviderAttribute].",
-           "Type {0} has constructor with annotated constructor parameters, but constructor is not an InstanceProvider.",
+           "CES1067",
+           "[DeserializerMemberAttribute] applied to constructor parameters, but constructor isn't annotated with [DeserializerInstanceProviderAttribute]",
+           "Type {0} has constructor with annotated constructor parameters, but constructor is not an InstanceProvider",
            "Cesil",
            DiagnosticSeverity.Error,
            true
@@ -901,9 +896,9 @@ namespace Cesil.SourceGenerator
 
         private static readonly DiagnosticDescriptor _AllConstructorParametersMustBeMembers =
         new DiagnosticDescriptor(
-           "CES1066",
-           "All parameters of [GenerateDeserializableInstanceProviderAttribute] constructor must be annotated with [GenerateDeserializableMemberAttribute].",
-           "All of type {0}'s InstanceProvider constructor's parameters must be annotated with [GenerateDeserializableMemberAttribute].",
+           "CES1068",
+           "All parameters of [DeserializerInstanceProviderAttribute] constructor must be annotated with [DeserializerMemberAttribute]",
+           "All of type {0}'s InstanceProvider constructor's parameters must be annotated with [DeserializerMemberAttribute]",
            "Cesil",
            DiagnosticSeverity.Error,
            true
@@ -914,9 +909,9 @@ namespace Cesil.SourceGenerator
 
         private static readonly DiagnosticDescriptor _ParametersMustBeRequired =
         new DiagnosticDescriptor(
-           "CES1067",
-           "Parameter cannot be optional, MemberRequired or IsRequired must be absent, Yes, or true.",
-           "Parameter {1} on type {0}'s constructor cannot be optional.",
+           "CES1069",
+           "Parameter cannot be optional, MemberRequired or IsRequired must be Yes, or true",
+           "Parameter {1} on type {0}'s constructor cannot be optional",
            "Cesil",
            DiagnosticSeverity.Error,
            true
@@ -927,9 +922,9 @@ namespace Cesil.SourceGenerator
 
         private static readonly DiagnosticDescriptor _BadReset_MustBeStaticForParameters =
         new DiagnosticDescriptor(
-           "CES1068",
+           "CES1070",
            "For constructor parameters, Reset methods must be static",
-           "Parameter {1} on type {0}'s constructor has a non-static Reset method {2}.",
+           "Parameter {1} on type {0}'s constructor has a non-static Reset method {2}",
            "Cesil",
            DiagnosticSeverity.Error,
            true
@@ -937,6 +932,58 @@ namespace Cesil.SourceGenerator
 
         internal static Diagnostic BadReset_MustBeStaticForParameters(Location? loc, ITypeSymbol type, IParameterSymbol parameter, IMethodSymbol method)
         => Diagnostic.Create(_BadReset_MustBeStaticForParameters, loc, type.Name, parameter.Name, method.Name);
+
+        private static readonly DiagnosticDescriptor _BadSetter_CannotHaveInitSettersWithNonConstructorInstanceProviders =
+        new DiagnosticDescriptor(
+           "CES1071",
+           "Properties with init setters cannot be used with non-constructor InstanceProvider",
+           "Property {0} on {1} has an init setter, but the InstanceProvider for {1} is not backed by a constructor",
+           "Cesil",
+           DiagnosticSeverity.Error,
+           true
+       );
+
+        internal static Diagnostic BadSetter_CannotHaveInitSettersWithNonConstructorInstanceProviders(Location? loc, ITypeSymbol type, IPropertySymbol prop)
+        => Diagnostic.Create(_BadSetter_CannotHaveInitSettersWithNonConstructorInstanceProviders, loc, prop.Name, type.Name);
+
+        private static readonly DiagnosticDescriptor _MethodNotStatic =
+            new DiagnosticDescriptor(
+               "CES1072",
+               "Method not static",
+               "Method {0} must be static",
+               "Cesil",
+               DiagnosticSeverity.Error,
+               true
+           );
+
+        internal static Diagnostic MethodNotStatic(Location? loc, IMethodSymbol method)
+        => Diagnostic.Create(_MethodNotStatic, loc, method.Name);
+
+        private static readonly DiagnosticDescriptor _UnexpectedConstantValue =
+            new DiagnosticDescriptor(
+               "CES1073",
+               "Unexpected constant value",
+               "Found constant value \"{0}\", but expected one of {1}",
+               "Cesil",
+               DiagnosticSeverity.Error,
+               true
+           );
+
+        internal static Diagnostic UnexpectedConstantValue(Location? loc, string value, params string[] expected)
+        => Diagnostic.Create(_UnexpectedConstantValue, loc, value, string.Join(", or ", expected.Select(t => $"\"{t}\"")));
+
+        private static readonly DiagnosticDescriptor _MethodMustBeOrdinary =
+            new DiagnosticDescriptor(
+               "CES1074",
+               "Method must be ordinay",
+               "Method {0} cannot be used, only ordinary (non-operator, non-constructor, non-local, non-destrector, non-property, and non-event) methods maybe used",
+               "Cesil",
+               DiagnosticSeverity.Error,
+               true
+           );
+
+        internal static Diagnostic MethodMustBeOrdinary(Location? loc, IMethodSymbol method)
+        => Diagnostic.Create(_MethodMustBeOrdinary, loc, method.Name);
 
         private static readonly DiagnosticDescriptor _GenericError =
             new DiagnosticDescriptor(

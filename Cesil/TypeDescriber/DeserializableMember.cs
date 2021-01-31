@@ -144,27 +144,27 @@ namespace Cesil
         {
             if (beingDeserializedType == null)
             {
-                return Throw.ArgumentNullException<DeserializableMember>(nameof(beingDeserializedType));
+                Throw.ArgumentNullException(nameof(beingDeserializedType));
             }
 
             if (name == null)
             {
-                return Throw.ArgumentNullException<DeserializableMember>(nameof(name));
+                Throw.ArgumentNullException(nameof(name));
             }
 
             if (setter == null)
             {
-                return Throw.ArgumentNullException<DeserializableMember>(nameof(setter));
+                Throw.ArgumentNullException(nameof(setter));
             }
 
             if (parser == null)
             {
-                return Throw.ArgumentNullException<DeserializableMember>(nameof(parser));
+                Throw.ArgumentNullException(nameof(parser));
             }
 
             if (name.Length == 0)
             {
-                return Throw.ArgumentException<DeserializableMember>($"{nameof(name)} must be at least 1 character long", nameof(name));
+                Throw.ArgumentException($"{nameof(name)} must be at least 1 character long", nameof(name));
             }
 
             bool isRequiredBool;
@@ -178,27 +178,28 @@ namespace Cesil
                     isRequiredBool = false;
                     break;
                 default:
-                    return Throw.ArgumentException<DeserializableMember>($"Unexpected {nameof(MemberRequired)}: {isRequired}", nameof(isRequired));
+                    Throw.ArgumentException($"Unexpected {nameof(MemberRequired)}: {isRequired}", nameof(isRequired));
+                    return default;
             }
 
             var valueType = setter.Takes;
 
             if (!valueType.IsAssignableFrom(parser.Creates))
             {
-                return Throw.ArgumentException<DeserializableMember>($"Provided {nameof(Parser)} creates a {parser.Creates}, which cannot be passed to {setter} which expects a {valueType}", nameof(setter));
+                Throw.ArgumentException($"Provided {nameof(Parser)} creates a {parser.Creates}, which cannot be passed to {setter} which expects a {valueType}", nameof(setter));
             }
 
             if (reset != null && reset.RowType.HasValue)
             {
                 if (!reset.RowType.Value.IsAssignableFrom(beingDeserializedType))
                 {
-                    return Throw.ArgumentException<DeserializableMember>($"{nameof(reset)} must be callable on {beingDeserializedType}", nameof(reset));
+                    Throw.ArgumentException($"{nameof(reset)} must be callable on {beingDeserializedType}", nameof(reset));
                 }
             }
 
             if (setter.Mode == BackingMode.ConstructorParameter && !isRequiredBool)
             {
-                return Throw.InvalidOperationException<DeserializableMember>($"{nameof(Setter)} that is backed by a constructor parameter can only be used with {nameof(MemberRequired)}.{nameof(MemberRequired.Yes)}; {nameof(setter)} was {setter}");
+                Throw.InvalidOperationException($"{nameof(Setter)} that is backed by a constructor parameter can only be used with {nameof(MemberRequired)}.{nameof(MemberRequired.Yes)}; {nameof(setter)} was {setter}");
             }
 
             return new DeserializableMember(name, setter, parser, isRequiredBool, reset, aheadOfTimeGeneratedType);

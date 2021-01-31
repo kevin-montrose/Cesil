@@ -40,13 +40,13 @@ namespace Cesil
                 switch (Poison.Value)
                 {
                     case PoisonType.Cancelled:
-                        Throw.InvalidOperationException<object>("Object is in an invalid state, a previous operation was canceled");
+                        Throw.InvalidOperationException("Object is in an invalid state, a previous operation was canceled");
                         return;
                     case PoisonType.Exception:
-                        Throw.InvalidOperationException<object>("Object is in an invalid state, a previous operation raised an exception");
+                        Throw.InvalidOperationException("Object is in an invalid state, a previous operation raised an exception");
                         return;
                     default:
-                        Throw.ImpossibleException<object, T>($"Unexpected {nameof(PoisonType)}: {Poison}", self);
+                        Throw.ImpossibleException($"Unexpected {nameof(PoisonType)}: {Poison}", self);
                         return;
                 }
             }

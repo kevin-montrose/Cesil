@@ -5,7 +5,7 @@ using static Cesil.ReaderStateMachine;
 
 namespace Cesil
 {
-    internal struct CharacterLookup : ITestableDisposable
+    internal struct CharacterLookup
     {
         // internal for testing purposes
         internal static readonly char[] WhitespaceCharacters =
@@ -38,25 +38,23 @@ namespace Cesil
                 '\u3000'
             };
 
-        public bool IsDisposed { get; private set; }
-
         internal readonly int MinimumCharacter;
         internal readonly int CharLookupOffset;
 
         // internal for testing purposes
-        internal readonly IMemoryOwner<char> Memory;
+        private readonly char[] MemoryArry;
+        internal readonly unsafe char* Memory;
 
-        internal CharacterLookup(int mc, int clo, IMemoryOwner<char> m)
+        internal unsafe CharacterLookup(int mc, int clo, char[] mArr, char* m)
         {
-            IsDisposed = false;
             MinimumCharacter = mc;
             CharLookupOffset = clo;
+            MemoryArry = mArr;
             Memory = m;
         }
 
         internal static unsafe CharacterLookup MakeCharacterLookup(
             Options options,
-            MemoryPool<char> memoryPool,
             out int neededSize
         )
         {
@@ -108,9 +106,10 @@ namespace Cesil
 
             neededSize = (maxChar - minimumCharacter) + 1;
 
-            var charLookupOwner = memoryPool.Rent(neededSize / sizeof(char));
+            var charLookupArr = GC.AllocateArray<char>(neededSize, pinned: true);
 
-            fixed (char* charLookupPtr = charLookupOwner.Memory.Span)
+            // this is a no-op, because RuleCache is on the pinned heap
+            fixed (char* charLookupPtr = charLookupArr)
             {
                 CharacterType* charLookup = (CharacterType*)charLookupPtr;
 
@@ -161,27 +160,9 @@ namespace Cesil
 
                     charLookup[i] = cType;
                 }
-            }
 
-            return new CharacterLookup(minimumCharacter, neededSize, charLookupOwner);
-        }
-
-        internal readonly unsafe MemoryHandle Pin(out CharacterType* charLookup)
-        {
-            var ret = Memory.Memory.Pin();
-
-            charLookup = (CharacterType*)ret.Pointer;
-
-            return ret;
-        }
-
-        public void Dispose()
-        {
-            if (!IsDisposed)
-            {
-                Memory.Dispose();
-
-                IsDisposed = true;
+                // need to capture the array so it isn't GC'd
+                return new CharacterLookup(minimumCharacter, neededSize, charLookupArr, charLookupPtr);
             }
         }
     }

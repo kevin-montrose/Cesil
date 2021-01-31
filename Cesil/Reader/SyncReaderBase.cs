@@ -33,28 +33,27 @@ namespace Cesil
 
                 HandleRowEndingsAndHeaders();
 
-                using (StateMachine.Pin())
+                while (true)
                 {
-                    while (true)
-                    {
 #pragma warning disable CES0005 // T is generic, and null is legal, but since T isn't known to be a class we have to forgive null here
-                        T _ = default!;
+                    T _ = default!;
 #pragma warning restore CES0005
-                        var res = TryReadInner(false, true, false, ref _);
-                        if (!res.HasValue)
-                        {
-                            break;
-                        }
-
-                        into.Add(res.Value);
+                    var res = TryReadInner(false, false, ref _);
+                    if (!res.HasValue)
+                    {
+                        break;
                     }
+
+                    into.Add(res.Value);
                 }
 
                 return into;
             }
             catch (Exception e)
             {
-                return Throw.PoisonAndRethrow<TCollection>(this, e);
+                Throw.PoisonAndRethrow(this, e);
+
+                return default;
             }
         }
 
@@ -82,7 +81,7 @@ namespace Cesil
             {
                 HandleRowEndingsAndHeaders();
 
-                var res = TryReadInner(false, false, false, ref record);
+                var res = TryReadInner(false, false, ref record);
                 if (res.ResultType == ReadWithCommentResultType.HasValue)
                 {
                     record = res.Value;
@@ -94,7 +93,9 @@ namespace Cesil
             }
             catch (Exception e)
             {
-                return Throw.PoisonAndRethrow<bool>(this, e);
+                Throw.PoisonAndRethrow(this, e);
+
+                return default;
             }
         }
 
@@ -107,7 +108,7 @@ namespace Cesil
             {
                 HandleRowEndingsAndHeaders();
 
-                var res = TryReadInner(false, false, true, ref record);
+                var res = TryReadInner(false, true, ref record);
                 if (res.ResultType == ReadWithCommentResultType.HasValue)
                 {
                     record = res.Value;
@@ -119,7 +120,9 @@ namespace Cesil
             }
             catch (Exception e)
             {
-                return Throw.PoisonAndRethrow<bool>(this, e);
+                Throw.PoisonAndRethrow(this, e);
+
+                return default;
             }
         }
 
@@ -135,11 +138,13 @@ namespace Cesil
 #pragma warning disable CES0005 // T is generic, and null is legal, but since T isn't known to be a class we have to forgive null here
                 T record = default!;
 #pragma warning restore CES0005
-                return TryReadInner(true, false, false, ref record);
+                return TryReadInner(true, false, ref record);
             }
             catch (Exception e)
             {
-                return Throw.PoisonAndRethrow<ReadWithCommentResult<T>>(this, e);
+                Throw.PoisonAndRethrow(this, e);
+
+                return default;
             }
         }
 
@@ -152,15 +157,17 @@ namespace Cesil
             {
                 HandleRowEndingsAndHeaders();
 
-                return TryReadInner(true, false, true, ref record);
+                return TryReadInner(true, true, ref record);
             }
             catch (Exception e)
             {
-                return Throw.PoisonAndRethrow<ReadWithCommentResult<T>>(this, e);
+                Throw.PoisonAndRethrow(this, e);
+
+                return default;
             }
         }
 
-        internal abstract ReadWithCommentResult<T> TryReadInner(bool returnComments, bool pinAcquired, bool checkRecord, ref T record);
+        internal abstract ReadWithCommentResult<T> TryReadInner(bool returnComments, bool checkRecord, ref T record);
 
         internal abstract void HandleRowEndingsAndHeaders();
 

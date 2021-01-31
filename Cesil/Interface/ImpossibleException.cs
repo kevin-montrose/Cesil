@@ -26,7 +26,7 @@ namespace Cesil
         internal static ImpossibleException Create<T>(string reason, string fileName, string memberName, int lineNumber, IBoundConfiguration<T> config)
         => new ImpossibleException(
             DefaultMessage(reason, fileName, memberName, lineNumber) + "\r\n" +
-            $"Bound to {typeof(T).FullName ?? typeof(T).Name}\r\n" +
+            $"Bound to {typeof(T).FullName}\r\n" +
             (config is ConcreteBoundConfiguration<T> ? "Concrete binding" : "Dynamic binding") + "\r\n" +
             OptionsMessage(config.Options)
         );

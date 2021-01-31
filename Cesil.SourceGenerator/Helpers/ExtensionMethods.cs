@@ -6,7 +6,7 @@ namespace Cesil.SourceGenerator
     internal static class ExtensionMethods
     {
         internal static string EscapeCSharp(this string text)
-        =>SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(text)).ToFullString();
+        => SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(text)).ToFullString();
 
         internal static T? ParentOrSelfOfType<T>(this SyntaxNode self)
             where T : SyntaxNode
@@ -28,7 +28,7 @@ namespace Cesil.SourceGenerator
 
         internal static bool IsNormalParameterOfType(this IParameterSymbol p, Compilation compilation, ITypeSymbol type)
         {
-            if(p.RefKind != RefKind.None)
+            if (p.RefKind != RefKind.None)
             {
                 return false;
             }
@@ -36,6 +36,7 @@ namespace Cesil.SourceGenerator
             var pType = p.Type;
 
             // without an in/ref/out/etc. conversions need to be checked
+
             var conversion = compilation.ClassifyConversion(type, pType);
             var canConvert = conversion.IsImplicit || conversion.IsIdentity;
 

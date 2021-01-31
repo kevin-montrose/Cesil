@@ -48,7 +48,7 @@ namespace Cesil
         => ((IEnumerable<T>)this).GetEnumerator();
 
         void IEnumerator.Reset()
-        => Throw.NotSupportedException<object>(nameof(MemberOrderHelper<T>), nameof(Reset));
+        => Throw.NotSupportedException(nameof(MemberOrderHelper<T>), nameof(Reset));
 
         void IDisposable.Dispose()
         {

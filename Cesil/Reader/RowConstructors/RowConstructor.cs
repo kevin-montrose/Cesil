@@ -67,7 +67,7 @@ namespace Cesil
 
                     if (reset.RowType.HasValue || !reset.IsStatic)
                     {
-                        return Throw.InvalidOperationException<IRowConstructor<TRow>>($"Cannot attach a {nameof(Reset)} that requires the row be available to a member whose {nameof(Setter)} is backed by a constructor parameter; found {member.Reset} associated with {member.Setter}");
+                        Throw.InvalidOperationException($"Cannot attach a {nameof(Reset)} that requires the row be available to a member whose {nameof(Setter)} is backed by a constructor parameter; found {member.Reset} associated with {member.Setter}");
                     }
                 }
             }
@@ -211,7 +211,7 @@ namespace Cesil
             var ret = createMtd.Invoke(null, new object[] { pool, clearHold, constructFromHold, simple, hold });
             if (ret == null)
             {
-                return Throw.ImpossibleException<IRowConstructor<TRow>>($"Couldn't build an {nameof(NeedsHoldRowConstructor<object, object>)}, shouldn't be possible");
+                Throw.ImpossibleException($"Couldn't build an {nameof(NeedsHoldRowConstructor<object, object>)}, shouldn't be possible");
             }
 
             return (IRowConstructor<TRow>)ret;

@@ -4,25 +4,26 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
-using Microsoft.CodeAnalysis.Text;
 using System.Text;
 
 using static Cesil.SourceGenerator.Constants;
+using System.Collections.Generic;
 
 namespace Cesil.SourceGenerator
 {
     [Generator]
     internal sealed class DeserializerGenerator : GeneratorBase<DeserializerTypes, DeserializableMember>
     {
-        internal ImmutableDictionary<TypeDeclarationSyntax, AttributeSyntax> TypeDeclarationsToDeserializeAttribute = ImmutableDictionary<TypeDeclarationSyntax, AttributeSyntax>.Empty;
-        internal ImmutableDictionary<TypeDeclarationSyntax, (ConstructorDeclarationSyntax Constructor, AttributeSyntax InstanceProviderAttribute)> TypeDeclarationsToConstructorsWithAttribute = ImmutableDictionary<TypeDeclarationSyntax, (ConstructorDeclarationSyntax Constructor, AttributeSyntax InstanceProviderAttribute)>.Empty;
         internal ImmutableArray<Parser> NeededDefaultParsers = ImmutableArray<Parser>.Empty;
 
-        internal bool SkipGeneration;
         internal ImmutableDictionary<INamedTypeSymbol, InstanceProvider> InstanceProviders = ImmutableDictionary<INamedTypeSymbol, InstanceProvider>.Empty;
 
-        internal override void GenerateSource(Compilation compilation, GeneratorExecutionContext context, DeserializerTypes types, ImmutableDictionary<INamedTypeSymbol, ImmutableArray<DeserializableMember>> toGenerate)
+        internal override IEnumerable<(string FileName, string Source)> GenerateSource(
+            ImmutableDictionary<INamedTypeSymbol, ImmutableArray<DeserializableMember>> toGenerate
+        )
         {
+            const string DEFAULT_PARSERS_FILE_NAME = "__Cesil_Generated_DefaultParsers.cs";
+
             NeededDefaultParsers = Members.SelectMany(m => m.Value.Select(v => v.Parser).Where(p => p.IsDefault)).Distinct().ToImmutableArray();
 
             var defaultParsersFullyQualifiedTypeName = "--NONE--";
@@ -32,11 +33,7 @@ namespace Cesil.SourceGenerator
                 string defaultParsersSource;
                 (defaultParsersFullyQualifiedTypeName, defaultParsersSource) = defaultParsers.Value;
 
-                var defaultParsersFileName = "__Cesil_Generated_DefaultParsers.cs";
-
-                defaultParsersSource = Utils.RemoveUnusedUsings(compilation, defaultParsersSource);
-
-                context.AddSource(defaultParsersFileName, SourceText.From(defaultParsersSource, Encoding.UTF8));
+                yield return (DEFAULT_PARSERS_FILE_NAME, defaultParsersSource);
             }
 
             foreach (var kv in Members)
@@ -48,11 +45,10 @@ namespace Cesil.SourceGenerator
                 var inOrder = Utils.SortColumns(columns, a => a.Order);
 
                 var source = GenerateDeserializerType(defaultParsersFullyQualifiedTypeName, rowType, instanceProvider, inOrder);
-                source = Utils.RemoveUnusedUsings(compilation, source);
 
                 var generatedFileName = "__Cesil_Generated_Deserializer_" + rowType.ToFullyQualifiedName().Replace(".", "_") + ".cs";
 
-                context.AddSource(generatedFileName, SourceText.From(source, Encoding.UTF8));
+                yield return (generatedFileName, source);
             }
         }
 
@@ -67,7 +63,9 @@ namespace Cesil.SourceGenerator
             var generatedTypeName = "__Cesil_Generated_Deserializer_" + fullyQualifiedRowType.Replace(".", "_");
 
             var isValueType = rowType.IsValueType;
-            var needsHold = instanceProvider.IsConstructor && !instanceProvider.IsDefault;
+            var needsHold =
+                (instanceProvider.IsConstructor && !instanceProvider.IsDefault) ||
+                columns.Any(c => c.Setter.Property?.SetMethod.IsInitOnly ?? false);
 
             var sb = new StringBuilder();
 
@@ -119,7 +117,7 @@ namespace Cesil.SourceGenerator
             var instanceProviderMethod = AddInstanceProvider(sb, fullyQualifiedRowType, instanceProvider);
             AddTryPreAllocate(sb, isValueType, needsHold, fullyQualifiedRowType, instanceProviderMethod);
 
-            var tryMoveFromHold = needsHold ? AddTryMoveFromHoldMethod(sb, fullyQualifiedRowType, instanceProvider, columns) : "";
+            var tryMoveFromHold = needsHold ? AddTryMoveFromHoldMethod(sb, fullyQualifiedRowType, instanceProvider, columns) : null;
 
             // where data comes in
             sb.AppendLine();
@@ -154,7 +152,7 @@ namespace Cesil.SourceGenerator
             if (needsHold)
             {
                 sb.AppendLine();
-                sb.AppendLine("    " + tryMoveFromHold + "();");
+                sb.AppendLine("    " + tryMoveFromHold + "(false);");
             }
 
             sb.AppendLine();
@@ -165,7 +163,7 @@ namespace Cesil.SourceGenerator
             AddStartRow(sb, needsHold, columns);
 
             // method for finishing a row
-            AddFinishRow(sb, needsHold, fullyQualifiedRowType, columns);
+            AddFinishRow(sb, needsHold, tryMoveFromHold, fullyQualifiedRowType, columns);
 
             // emit methods for handling individual columns
             for (var i = 0; i < columns.Length; i++)
@@ -237,11 +235,22 @@ namespace Cesil.SourceGenerator
 
                 if (setterMtd == null)
                 {
-                    // store enough to find the parameter on the constructor
-                    var position = Utils.NonNullValue(setter.ParameterPosition);
-                    sb.AppendLine("    #pragma warning disable CS0618 // only Obsolete to prevent direct use");
-                    sb.AppendLine("    [Cesil.SetterBackedByConstructorParameterAttribute(" + position + ")]");
-                    sb.AppendLine("    #pragma warning restore CS0618");
+                    if (setter.ParameterPosition != null)
+                    {
+                        // store enough to find the parameter on the constructor
+                        var position = setter.ParameterPosition;
+                        sb.AppendLine("    #pragma warning disable CS0618 // only Obsolete to prevent direct use");
+                        sb.AppendLine("    [Cesil.SetterBackedByConstructorParameterAttribute(" + position + ")]");
+                        sb.AppendLine("    #pragma warning restore CS0618");
+                    }
+                    else
+                    {
+                        // otherwise, we must be in the init-only case
+                        var initOnlyProp = Utils.NonNull(setter.Property);
+                        sb.AppendLine("    #pragma warning disable CS0618 // only Obsolete to prevent direct use");
+                        sb.AppendLine("    [Cesil.SetterBackedByInitOnlyPropertyAttribute(" + initOnlyProp.Name.EscapeCSharp() + ", " + GetInitPropertyBindingFlags(initOnlyProp) + ")]");
+                        sb.AppendLine("    #pragma warning restore CS0618");
+                    }
                 }
 
                 sb.AppendLine("    public System.Boolean " + colMethodName + "(System.ReadOnlySpan<char> data, in Cesil.ReadContext ctx)");
@@ -289,14 +298,10 @@ namespace Cesil.SourceGenerator
                         sb.AppendLine("       " + resetStatement);
                     }
 
-                    if (setterMtd != null)
-                    {
-                        sb.AppendLine("       " + setterMtd + "(ref __CurrentRow, parsed, in ctx);");
-                    }
-                    else
-                    {
-                        sb.AppendLine("         throw new System.InvalidOperationException(\"Column is backed by a constructor parameter and cannot be set at this time\");");
-                    }
+                    // setter can't be backed by non-method because if it were, mayNeedHold would be true
+                    setterMtd = Utils.NonNull(setterMtd);
+
+                    sb.AppendLine("       " + setterMtd + "(ref __CurrentRow, parsed, in ctx);");
                 }
 
                 if (col.IsRequired)
@@ -310,12 +315,33 @@ namespace Cesil.SourceGenerator
                 sb.AppendLine("    }");
             }
 
+            static string GetInitPropertyBindingFlags(IPropertySymbol property)
+            {
+                var flagsBuilder = ImmutableArray.CreateBuilder<string>();
+
+                // init-only MUST be instance
+                flagsBuilder.Add(nameof(System.Reflection.BindingFlags.Instance));
+
+                if (property.DeclaredAccessibility.HasFlag(Accessibility.Public))
+                {
+                    flagsBuilder.Add(nameof(System.Reflection.BindingFlags.Public));
+                }
+                else
+                {
+                    flagsBuilder.Add(nameof(System.Reflection.BindingFlags.NonPublic));
+                }
+
+                var flags = flagsBuilder.ToImmutable();
+
+                return string.Join(" | ", flags.Select(s => $"{nameof(System)}.{nameof(System.Reflection)}.{nameof(System.Reflection.BindingFlags)}.{s}"));
+            }
+
             static string AddTryMoveFromHoldMethod(StringBuilder sb, string fullyQualifiedRowType, InstanceProvider instanceProvider, ImmutableArray<DeserializableMember> columns)
             {
                 const string METHOD_NAME = "__TryMoveFromHold";
 
                 sb.AppendLine();
-                sb.AppendLine("    private void " + METHOD_NAME + "()");
+                sb.AppendLine("    private void " + METHOD_NAME + "(System.Boolean endingRow)");
                 sb.AppendLine("    {");
 
                 // don't do anything if we're already populated
@@ -325,7 +351,7 @@ namespace Cesil.SourceGenerator
                 sb.AppendLine("      }");
 
                 // check to see if enough things are set that we _can_ populate
-                var terms = ImmutableArray.CreateBuilder<string>();
+                var termsBuilder = ImmutableArray.CreateBuilder<string>();
                 for (var i = 0; i < columns.Length; i++)
                 {
                     var col = columns[i];
@@ -336,67 +362,135 @@ namespace Cesil.SourceGenerator
 
                     var heldVar = GetColumnIsHeldFieldName(i);
 
-                    terms.Add(heldVar);
+                    termsBuilder.Add(heldVar);
                 }
+                var terms = termsBuilder.ToImmutable();
 
-                sb.AppendLine();
-                sb.AppendLine("      var canMove = " + string.Join(" && ", terms.ToImmutableArray()) + ";");
-
-                sb.AppendLine();
-                sb.AppendLine("      if(!canMove)");
-                sb.AppendLine("      {");
-                sb.AppendLine("         return;");
-                sb.AppendLine("      }");
-
-                // create the row using any setters that 
-                var initTerms = ImmutableArray.CreateBuilder<string>();
-                var consPs = Utils.NonNull(instanceProvider.Method).Parameters;
-                foreach (var p in consPs)
+                if (!terms.IsEmpty)
                 {
-                    int? colIxRaw = null;
-                    Reset? reset = null;
-                    for (var i = 0; i < columns.Length; i++)
+                    sb.AppendLine();
+                    sb.AppendLine("      var canMove = " + string.Join(" && ", terms.ToImmutableArray()) + ";");
+
+                    sb.AppendLine();
+                    sb.AppendLine("      if(!canMove)");
+                    sb.AppendLine("      {");
+                    sb.AppendLine("         return;");
+                    sb.AppendLine("      }");
+                }
+
+                // handle any setters that correspond to constructor parameters 
+                var constructorParameterValues = ImmutableArray.CreateBuilder<string>();
+                if (!instanceProvider.IsDefault)
+                {
+                    var consPs = Utils.NonNull(instanceProvider.Method).Parameters;
+                    foreach (var p in consPs)
                     {
-                        var col = columns[i];
-                        if (col.Setter.Parameter == null)
+                        int? colIxRaw = null;
+                        Reset? reset = null;
+                        for (var i = 0; i < columns.Length; i++)
                         {
-                            continue;
-                        }
+                            var col = columns[i];
+                            if (col.Setter.Parameter == null)
+                            {
+                                continue;
+                            }
 
-                        if (col.Setter.Parameter.Equals(p, SymbolEqualityComparer.Default))
+                            if (col.Setter.Parameter.Equals(p, SymbolEqualityComparer.Default))
+                            {
+                                colIxRaw = i;
+                                reset = col.Reset;
+                                break;
+                            }
+                        }
+                        var colIx = Utils.NonNullValue(colIxRaw);
+
+                        var colVar = GetColumnHeldValueFieldName(colIx);
+
+                        constructorParameterValues.Add(colVar);
+
+                        // run the reset before invoking the constructor
+                        if (reset != null)
                         {
-                            colIxRaw = i;
-                            reset = col.Reset;
-                            break;
+                            var resetMethod = GetResetMethodName(colIx);
+                            var heldContextFieldName = GetColumnHeldContextFieldName(colIx);
+                            sb.AppendLine("      " + resetMethod + "(" + heldContextFieldName + ".Value);");   // none of these can take a row, since they're backed by constructor params
                         }
-                    }
-                    var colIx = Utils.NonNullValue(colIxRaw);
-
-                    var colVar = GetColumnHeldValueFieldName(colIx);
-
-                    initTerms.Add(colVar);
-
-                    // run the reset before invoking the constructor
-                    if (reset != null)
-                    {
-                        var resetMethod = GetResetMethodName(colIx);
-                        var heldContextFieldName = GetColumnHeldContextFieldName(colIx);
-                        sb.AppendLine("      " + resetMethod + "(" + heldContextFieldName + ".Value);");   // none of these can take a row, since they're backed by constructor params
                     }
                 }
 
+                // handle any setters that correspond to init only properties
+                var initOnlyPropsBuilder = ImmutableArray.CreateBuilder<string>();
+                for (var i = 0; i < columns.Length; i++)
+                {
+                    var col = columns[i];
+                    var prop = col.Setter.Property;
+                    if (prop == null)
+                    {
+                        continue;
+                    }
+
+                    var setter = Utils.NonNull(prop.SetMethod);
+
+                    if (!setter.IsInitOnly)
+                    {
+                        continue;
+                    }
+
+                    var isHeldFieldName = GetColumnIsHeldFieldName(i);
+                    var heldValueFieldName = GetColumnHeldValueFieldName(i);
+
+                    var ternary = $"{prop.Name} = {isHeldFieldName} ? {heldValueFieldName} : default!";
+
+                    initOnlyPropsBuilder.Add(ternary);
+                }
+                var initOnlyProps = initOnlyPropsBuilder.ToImmutable();
+
+                // if we have any init only members, we HAVE to wait until the last second to create the row
+                if (!initOnlyProps.IsEmpty)
+                {
+                    sb.AppendLine("      if(!endingRow)");
+                    sb.AppendLine("      {");
+                    sb.AppendLine("        return;");
+                    sb.AppendLine("      }");
+                    sb.AppendLine();
+                }
+
                 sb.AppendLine();
-                sb.AppendLine("      __CurrentRow = new " + fullyQualifiedRowType + "(" + string.Join(", ", initTerms.ToImmutable()) + ");");
+                sb.Append("      __CurrentRow = new " + fullyQualifiedRowType + "(" + string.Join(", ", constructorParameterValues.ToImmutable()) + ")");
+
+                if (!initOnlyProps.IsEmpty)
+                {
+                    sb.AppendLine();
+                    sb.AppendLine("      {");
+                    foreach (var initExp in initOnlyProps)
+                    {
+                        sb.Append("        ");
+                        sb.Append(initExp);
+                        sb.AppendLine(",");
+                    }
+                    sb.Append("      }");
+                }
+                sb.AppendLine(";");
+
                 sb.AppendLine("      __CurrentRowPopulated = true;");
 
-
-                // move anything that's already present
+                // move anything that's already present, but not covered by constructor parameters or init only properties
                 for (var i = 0; i < columns.Length; i++)
                 {
                     var col = columns[i];
                     if (col.Setter.Parameter != null)
                     {
                         continue;
+                    }
+
+                    if (col.Setter.Property != null)
+                    {
+                        var setMtd = Utils.NonNull(col.Setter.Property.SetMethod);
+                        if (setMtd.IsInitOnly)
+                        {
+                            // we've already handled these above
+                            continue;
+                        }
                     }
 
                     var isHeld = GetColumnIsHeldFieldName(i);
@@ -544,6 +638,13 @@ namespace Cesil.SourceGenerator
                 }
                 else if (setter.Property != null)
                 {
+                    var setMtd = Utils.NonNull(setter.Property.SetMethod);
+
+                    if (setMtd.IsInitOnly)
+                    {
+                        return null;
+                    }
+
                     if (setter.Property.IsStatic)
                     {
                         invokeStatement = setter.Property.ContainingType.ToFullyQualifiedName() + "." + setter.Property.Name + " = value";
@@ -553,15 +654,17 @@ namespace Cesil.SourceGenerator
                         invokeStatement = "row." + setter.Property.Name + " = value";
                     }
                 }
-                else if (setter.Method != null)
+                else
                 {
-                    if (setter.Method.IsStatic)
+                    var mtd = Utils.NonNull(setter.Method);
+
+                    if (mtd.IsStatic)
                     {
-                        invokeStatement = setter.Method.ContainingType.ToFullyQualifiedName() + "." + setter.Method.Name + "(";
+                        invokeStatement = setter.Method.ContainingType.ToFullyQualifiedName() + "." + mtd.Name + "(";
                     }
                     else
                     {
-                        invokeStatement = "row." + setter.Method.Name + "(";
+                        invokeStatement = "row." + mtd.Name + "(";
                     }
 
                     var needsComma = false;
@@ -591,10 +694,6 @@ namespace Cesil.SourceGenerator
                     }
 
                     invokeStatement += ")";
-                }
-                else
-                {
-                    throw new Exception("Shouldn't be possible");
                 }
 
                 var fullyQualifiedValueTypeName = setter.ValueType.ToFullyQualifiedName();
@@ -805,13 +904,28 @@ namespace Cesil.SourceGenerator
                 sb.AppendLine("  }");
             }
 
-            static void AddFinishRow(StringBuilder sb, bool mayNeedHold, string fullyQualifiedRowType, ImmutableArray<DeserializableMember> columns)
+            static void AddFinishRow(StringBuilder sb, bool mayNeedHold, string? moveFromHoldMethod, string fullyQualifiedRowType, ImmutableArray<DeserializableMember> columns)
             {
                 var hasRequiredColumns = columns.Any(c => c.IsRequired);
 
                 sb.AppendLine();
                 sb.AppendLine("  public " + fullyQualifiedRowType + " FinishRow()");
                 sb.AppendLine("  {");
+
+                if (mayNeedHold)
+                {
+                    // we might have some _optional_ values that are getting held, if that's true
+                    sb.AppendLine("    if (!__CurrentRowPopulated)");
+                    sb.AppendLine("    {");
+                    sb.AppendLine("      " + moveFromHoldMethod + "(true);");
+                    sb.AppendLine();
+                    sb.AppendLine("      if(!__CurrentRowPopulated)");
+                    sb.AppendLine("      {");
+                    sb.AppendLine("        throw new System.Runtime.Serialization.SerializationException(\"Could not create row with held values\");");
+                    sb.AppendLine("      }");
+                    sb.AppendLine("    }");
+                }
+
                 sb.AppendLine("    if (!__CurrentRowPopulated)");
                 sb.AppendLine("    {");
                 sb.AppendLine("      throw new System.Exception(\"No current row available, shouldn't be trying to finish a row\");");
@@ -963,31 +1077,28 @@ namespace Cesil.SourceGenerator
             GeneratorExecutionContext context,
             Compilation compilation,
             ImmutableArray<TypeDeclarationSyntax> toGenerateFor,
+            AttributedMembers attrMembers,
             DeserializerTypes types
         )
         {
             var ret = ImmutableDictionary.CreateBuilder<INamedTypeSymbol, ImmutableArray<DeserializableMember>>();
             var instanceProviders = ImmutableDictionary.CreateBuilder<INamedTypeSymbol, InstanceProvider>();
 
+            var typeDeclToDeserializeAttr = attrMembers.GetAttributedDeclarations(types.OurTypes.GenerateDeserializerAttribute);
+            var typeToConsIp = attrMembers.GetAttributedConstructors(types.OurTypes.DeserializerInstanceProviderAttribute);
+
             foreach (var decl in toGenerateFor)
             {
-                var model = compilation.GetSemanticModel(decl.SyntaxTree);
-                var namedType = model.GetDeclaredSymbol(decl);
-                if (namedType == null)
-                {
-                    var diag = Diagnostics.GenericError(decl.GetLocation(), "Type identified, but not named");
-                    context.ReportDiagnostic(diag);
-                    continue;
-                }
+                var namedType = attrMembers.TypeDeclarationsToNamedTypes[decl];
 
-                var members = GetDeserializableMembers(context, compilation, types, namedType);
+                var members = GetDeserializableMembers(context, attrMembers, compilation, types, namedType);
 
                 var diags = ImmutableArray<Diagnostic>.Empty;
 
-                var pairedAttr = TypeDeclarationsToDeserializeAttribute[decl];
+                var pairedAttr = typeDeclToDeserializeAttr[decl];
 
                 (ConstructorDeclarationSyntax Constructor, AttributeSyntax InstanceProviderAttribute)? constructorIp;
-                if (TypeDeclarationsToConstructorsWithAttribute.TryGetValue(decl, out var constructorIpRaw))
+                if (typeToConsIp.TryGetValue(decl, out var constructorIpRaw))
                 {
                     constructorIp = constructorIpRaw;
                 }
@@ -999,6 +1110,7 @@ namespace Cesil.SourceGenerator
                 var provider =
                     GetInstanceProvider(
                         compilation,
+                        attrMembers,
                         types,
                         namedType,
                         pairedAttr,
@@ -1016,6 +1128,36 @@ namespace Cesil.SourceGenerator
                     continue;
                 }
 
+                // check for init violations
+                if (!provider.IsConstructor && !provider.IsDefault)
+                {
+                    var hasInitViolation = false;
+
+                    foreach (var member in members)
+                    {
+                        var prop = member.Setter.Property;
+                        if (prop == null)
+                        {
+                            continue;
+                        }
+
+                        var setMtd = Utils.NonNull(prop.SetMethod);
+
+                        if (setMtd.IsInitOnly)
+                        {
+                            var diag = Diagnostics.BadSetter_CannotHaveInitSettersWithNonConstructorInstanceProviders(prop.Locations.First(), namedType, prop);
+                            context.ReportDiagnostic(diag);
+
+                            hasInitViolation = true;
+                        }
+                    }
+
+                    if (hasInitViolation)
+                    {
+                        continue;
+                    }
+                }
+
                 ret.Add(namedType, members);
                 instanceProviders.Add(namedType, provider);
             }
@@ -1027,6 +1169,7 @@ namespace Cesil.SourceGenerator
 
         private static InstanceProvider? GetInstanceProvider(
             Compilation compilation,
+            AttributedMembers attrMembers,
             DeserializerTypes types,
             INamedTypeSymbol namedType,
             AttributeSyntax attr,
@@ -1038,7 +1181,7 @@ namespace Cesil.SourceGenerator
 
             var settings =
                 Utils.GetMethodFromAttribute(
-                    compilation,
+                    attrMembers,
                     "InstanceProviderType",
                     Diagnostics.InstanceProviderTypeSpecifiedMultipleTimes,
                     "InstanceProviderMethodName",
@@ -1065,36 +1208,27 @@ namespace Cesil.SourceGenerator
             if (settings == null && constructorWithAttribute == null)
             {
                 // default constructor
-                return InstanceProvider.ForDefault(compilation, namedType, ref diags);
+                return InstanceProvider.ForDefault(attrMembers, namedType, ref diags);
             }
             else if (settings != null)
             {
                 // explicit method
                 var (type, mtdName) = settings.Value;
 
-                return InstanceProvider.ForMethod(compilation, types, attrLoc, namedType, type, mtdName, ref diags);
-            }
-            else if (constructorWithAttribute != null)
-            {
-                // explicit constructor
-                var (cons, _) = constructorWithAttribute.Value;
-
-                // ... but it's the default constructor, so just move on
-                if (cons.ParameterList.Parameters.Count == 0)
-                {
-                    return InstanceProvider.ForDefault(compilation, namedType, ref diags);
-                }
-
-                return InstanceProvider.ForConstructorWithParameters(compilation, types, namedType, cons, ref diags);
+                return InstanceProvider.ForMethod(compilation, attrMembers, types, attrLoc, namedType, type, mtdName, ref diags);
             }
             else
             {
-                throw new Exception("Shouldn't be possible");
+                // explicit constructor
+                var (cons, _) = Utils.NonNullValue(constructorWithAttribute);
+
+                return InstanceProvider.ForConstructorWithParameters(compilation, types, namedType, cons, ref diags);
             }
         }
 
         private static ImmutableArray<DeserializableMember> GetDeserializableMembers(
             GeneratorExecutionContext context,
+            AttributedMembers attrMembers,
             Compilation compilation,
             DeserializerTypes types,
             INamedTypeSymbol namedType
@@ -1103,19 +1237,53 @@ namespace Cesil.SourceGenerator
             var hasErrors = false;
             var ret = ImmutableArray.CreateBuilder<DeserializableMember>();
 
-            foreach (var member in namedType.GetMembers())
+            var (isRecord, cons, recordProperties) = namedType.IsRecord();
+
+            if (isRecord)
             {
-                var res = GetDeserializableMember(compilation, types, namedType, member);
+                cons = Utils.NonNull(cons);
+
+                foreach (var p in cons.Parameters)
+                {
+                    var configAttrs = GetConfigurationAttributes(attrMembers, types.OurTypes.DeserializerMemberAttribute, types.Framework, p);
+                    var (paramMember, memberDiags) = DeserializableMember.ForConstructorParameter(compilation, attrMembers, types, namedType, p, configAttrs);
+
+                    if (!memberDiags.IsEmpty)
+                    {
+                        hasErrors = true;
+
+                        foreach (var diag in memberDiags)
+                        {
+                            context.ReportDiagnostic(diag);
+                        }
+                    }
+
+                    if (paramMember != null)
+                    {
+                        ret.Add(paramMember);
+                    }
+                }
+            }
+
+            foreach (var member in namedType.GetMembersIncludingInherited())
+            {
+                // already handled the record constructor (if any) specially
+                if (member.Equals(cons, SymbolEqualityComparer.Default))
+                {
+                    continue;
+                }
+
+                var res = GetDeserializableMember(compilation, attrMembers, types, namedType, member, recordProperties);
                 if (res == null)
                 {
                     continue;
                 }
 
-                var (serializableMembers, diags) = res.Value;
+                var (deserializableMembers, diags) = res.Value;
 
-                if (!serializableMembers.IsEmpty)
+                if (!deserializableMembers.IsEmpty)
                 {
-                    ret.AddRange(serializableMembers);
+                    ret.AddRange(deserializableMembers);
                 }
                 else
                 {
@@ -1138,19 +1306,21 @@ namespace Cesil.SourceGenerator
 
         private static (ImmutableArray<DeserializableMember> Members, ImmutableArray<Diagnostic> Diagnostics)? GetDeserializableMember(
             Compilation compilation,
+            AttributedMembers attrMembers,
             DeserializerTypes types,
             INamedTypeSymbol deserializingType,
-            ISymbol member
+            ISymbol member,
+            ImmutableArray<IPropertySymbol> recordDeclaredProperties
         )
         {
             if (member is IPropertySymbol prop)
             {
-                if (IsIgnored(member, types.Framework))
+                if (recordDeclaredProperties.Contains(prop) || IsIgnored(member, types.Framework))
                 {
                     return null;
                 }
 
-                var configAttrs = GetConfigurationAttributes(compilation, types.OurTypes.DeserializerMemberAttribute, types.Framework, member);
+                var configAttrs = GetConfigurationAttributes(attrMembers, types.OurTypes.DeserializerMemberAttribute, types.Framework, member);
 
                 // skip properties without setters _if_ there are no attributes (if there are, we need to raise an error later)
                 if (configAttrs.IsEmpty && prop.SetMethod == null)
@@ -1158,17 +1328,15 @@ namespace Cesil.SourceGenerator
                     return null;
                 }
 
-                var isVisible =
-                    (member.DeclaredAccessibility == Accessibility.Public && !member.IsStatic) ||
-                    !configAttrs.IsEmpty;
+                var include = prop.ShouldInclude(configAttrs);
 
                 // neither visible or annotated to include
-                if (!isVisible)
+                if (!include)
                 {
                     return null;
                 }
 
-                var propMember = DeserializableMember.ForProperty(compilation, types, deserializingType, prop, configAttrs);
+                var propMember = DeserializableMember.ForProperty(compilation, attrMembers, types, deserializingType, prop, configAttrs);
 
                 var memberRet = ImmutableArray<DeserializableMember>.Empty;
 
@@ -1181,7 +1349,7 @@ namespace Cesil.SourceGenerator
             }
             else if (member is IFieldSymbol field)
             {
-                var configAttrs = GetConfigurationAttributes(compilation, types.OurTypes.DeserializerMemberAttribute, types.Framework, member);
+                var configAttrs = GetConfigurationAttributes(attrMembers, types.OurTypes.DeserializerMemberAttribute, types.Framework, member);
 
                 // must be annotated to include
                 if (configAttrs.IsEmpty)
@@ -1189,7 +1357,7 @@ namespace Cesil.SourceGenerator
                     return null;
                 }
 
-                var fieldMember = DeserializableMember.ForField(compilation, types, deserializingType, field, configAttrs);
+                var fieldMember = DeserializableMember.ForField(compilation, attrMembers, types, deserializingType, field, configAttrs);
 
                 var memberRet = ImmutableArray<DeserializableMember>.Empty;
 
@@ -1210,7 +1378,7 @@ namespace Cesil.SourceGenerator
                 foreach (var p in ps)
                 {
                     var attrs = p.GetAttributes();
-                    if (attrs.Any(a => a.AttributeClass?.Equals(types.OurTypes.DeserializerMemberAttribute, SymbolEqualityComparer.Default) ?? false))
+                    if (attrs.Any(a => types.OurTypes.DeserializerMemberAttribute.Equals(a.AttributeClass, SymbolEqualityComparer.Default)))
                     {
                         haveMemberAttr++;
                         if (method.MethodKind != MethodKind.Constructor)
@@ -1233,7 +1401,7 @@ namespace Cesil.SourceGenerator
                     var consLoc = method.Locations.FirstOrDefault();
 
                     var consAttrs = method.GetAttributes();
-                    var consIsAnnotated = consAttrs.Any(c => c.AttributeClass?.Equals(types.OurTypes.DeserializerInstanceProviderAttribute, SymbolEqualityComparer.Default) ?? false);
+                    var consIsAnnotated = consAttrs.Any(c => types.OurTypes.DeserializerInstanceProviderAttribute.Equals(c.AttributeClass, SymbolEqualityComparer.Default));
                     if (!consIsAnnotated)
                     {
                         if (haveMemberAttr > 0)
@@ -1261,8 +1429,8 @@ namespace Cesil.SourceGenerator
 
                         foreach (var p in ps)
                         {
-                            var configAttrs = GetConfigurationAttributes(compilation, types.OurTypes.DeserializerMemberAttribute, types.Framework, p);
-                            var (paramMember, memberDiags) = DeserializableMember.ForConstructorParameter(compilation, types, deserializingType, p, configAttrs);
+                            var configAttrs = GetConfigurationAttributes(attrMembers, types.OurTypes.DeserializerMemberAttribute, types.Framework, p);
+                            var (paramMember, memberDiags) = DeserializableMember.ForConstructorParameter(compilation, attrMembers, types, deserializingType, p, configAttrs);
 
                             if (!memberDiags.IsEmpty)
                             {
@@ -1283,7 +1451,7 @@ namespace Cesil.SourceGenerator
 
                 if (method.MethodKind == MethodKind.Ordinary)
                 {
-                    var configAttrs = GetConfigurationAttributes(compilation, types.OurTypes.DeserializerMemberAttribute, types.Framework, member);
+                    var configAttrs = GetConfigurationAttributes(attrMembers, types.OurTypes.DeserializerMemberAttribute, types.Framework, member);
 
                     // must be annotated to include
                     if (configAttrs.IsEmpty)
@@ -1291,7 +1459,7 @@ namespace Cesil.SourceGenerator
                         return null;
                     }
 
-                    var mtdMember = DeserializableMember.ForMethod(compilation, types, deserializingType, method, configAttrs);
+                    var mtdMember = DeserializableMember.ForMethod(compilation, attrMembers, types, deserializingType, method, configAttrs);
                     var memberRet = ImmutableArray<DeserializableMember>.Empty;
 
                     if (mtdMember.Member != null)
@@ -1306,79 +1474,30 @@ namespace Cesil.SourceGenerator
             return null;
         }
 
-        internal override ImmutableArray<TypeDeclarationSyntax> GetTypesToGenerateFor(Compilation compilation, DeserializerTypes types)
+        internal override ImmutableArray<TypeDeclarationSyntax> GetTypesToGenerateFor(AttributedMembers members, DeserializerTypes types)
         {
             var ret = ImmutableArray.CreateBuilder<TypeDeclarationSyntax>();
-            var attrTracker = ImmutableDictionary.CreateBuilder<TypeDeclarationSyntax, AttributeSyntax>();
-            var consAttrTracker = ImmutableDictionary.CreateBuilder<TypeDeclarationSyntax, (ConstructorDeclarationSyntax Constructor, AttributeSyntax InstanceProviderAttribute)>();
 
-            foreach (var tree in compilation.SyntaxTrees)
+            SelectTypeDetails(members.AttributedTypes, types, ret);
+            SelectTypeDetails(members.AttributedRecords, types, ret);
+
+            return ret.ToImmutable();
+
+            static void SelectTypeDetails<T>(
+                ImmutableArray<(AttributeSyntax Attribute, INamedTypeSymbol AttributeType, T SyntaxDeclaration)> attributed,
+                DeserializerTypes types,
+                ImmutableArray<TypeDeclarationSyntax>.Builder ret
+            )
+            where T : TypeDeclarationSyntax
             {
-                var model = compilation.GetSemanticModel(tree);
-
-                var root = tree.GetRoot();
-                var decls = root.DescendantNodesAndSelf().OfType<TypeDeclarationSyntax>();
-                foreach (var decl in decls)
+                foreach (var (_, attrType, typeDecl) in attributed)
                 {
-                    var tracking = false;
-
-                    var attrLists = decl.AttributeLists;
-                    foreach (var attrList in attrLists)
+                    if (types.OurTypes.GenerateDeserializerAttribute.Equals(attrType, SymbolEqualityComparer.Default))
                     {
-                        foreach (var attr in attrList.Attributes)
-                        {
-                            var attrTypeInfo = model.GetTypeInfo(attr);
-
-                            var attrType = attrTypeInfo.Type;
-                            if (attrType == null)
-                            {
-                                continue;
-                            }
-
-                            if (attrType.Equals(types.OurTypes.GenerateDeserializerAttribute, SymbolEqualityComparer.Default))
-                            {
-                                tracking = true;
-                                ret.Add(decl);
-                                attrTracker.Add(decl, attr);
-                            }
-                        }
-                    }
-
-                    if (!tracking)
-                    {
-                        continue;
-                    }
-
-                    var consDecls = decl.DescendantNodesAndSelf().OfType<ConstructorDeclarationSyntax>();
-                    foreach (var consDecl in consDecls)
-                    {
-                        var consAttrLists = consDecl.AttributeLists;
-                        foreach (var attrList in consAttrLists)
-                        {
-                            foreach (var attr in attrList.Attributes)
-                            {
-                                var attrTypeInfo = model.GetTypeInfo(attr);
-
-                                var attrType = attrTypeInfo.Type;
-                                if (attrType == null)
-                                {
-                                    continue;
-                                }
-
-                                if (attrType.Equals(types.OurTypes.DeserializerInstanceProviderAttribute, SymbolEqualityComparer.Default))
-                                {
-                                    consAttrTracker.Add(decl, (consDecl, attr));
-                                }
-                            }
-                        }
+                        ret.Add(typeDecl);
                     }
                 }
             }
-
-            TypeDeclarationsToDeserializeAttribute = attrTracker.ToImmutable();
-            TypeDeclarationsToConstructorsWithAttribute = consAttrTracker.ToImmutable();
-
-            return ret.ToImmutable();
         }
 
         internal override bool TryCreateNeededTypes(Compilation compilation, GeneratorExecutionContext context, out DeserializerTypes? neededTypes)

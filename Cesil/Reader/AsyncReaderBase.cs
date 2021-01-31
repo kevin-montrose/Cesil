@@ -51,28 +51,25 @@ namespace Cesil
                     return ReadAllAsync_ContinueAfterHandleRowEndingsAndHeadersAsync(this, headersAndRowEndingsTask, into, cancellationToken);
                 }
 
-                using (StateMachine.Pin())
+                while (true)
                 {
-                    while (true)
-                    {
 #pragma warning disable CES0005 // T is generic, and null is legal, but since T isn't known to be a class we have to forgive null here
-                        T _ = default!;
+                    T _ = default!;
 #pragma warning restore CES0005
-                        var resTask = TryReadInnerAsync(false, true, false, ref _, cancellationToken);
-                        if (!resTask.IsCompletedSuccessfully(this))
-                        {
-                            return ReadAllAsync_ContinueAfterTryReadAsync(this, resTask, into, cancellationToken);
-                        }
+                    var resTask = TryReadInnerAsync(false, false, ref _, cancellationToken);
+                    if (!resTask.IsCompletedSuccessfully(this))
+                    {
+                        return ReadAllAsync_ContinueAfterTryReadAsync(this, resTask, into, cancellationToken);
+                    }
 
-                        var res = resTask.Result;
-                        if (res.HasValue)
-                        {
-                            into.Add(res.Value);
-                        }
-                        else
-                        {
-                            break;
-                        }
+                    var res = resTask.Result;
+                    if (res.HasValue)
+                    {
+                        into.Add(res.Value);
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
 
@@ -80,7 +77,9 @@ namespace Cesil
             }
             catch (Exception e)
             {
-                return Throw.PoisonAndRethrow<ValueTask<TCollection>>(this, e);
+                Throw.PoisonAndRethrow(this, e);
+
+                return default;
             }
 
             // continue after HandleRowEndingsAndHeadersAsync completes
@@ -90,29 +89,25 @@ namespace Cesil
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
 
-                    using (self.StateMachine.Pin())
+                    while (true)
                     {
-                        while (true)
-                        {
 #pragma warning disable CES0005 // T is generic, and null is legal, but since T isn't known to be a class we have to forgive null here
-                            T _ = default!;
+                        T _ = default!;
 #pragma warning restore CES0005
 
-                            var resTask = self.TryReadInnerAsync(false, true, false, ref _, cancellationToken);
-                            ReadWithCommentResult<T> res;
-                            self.StateMachine.ReleasePinForAsync(resTask);
-                            {
-                                res = await ConfigureCancellableAwait(self, resTask, cancellationToken);
-                            }
+                        var resTask = self.TryReadInnerAsync(false, false, ref _, cancellationToken);
+                        ReadWithCommentResult<T> res;
+                        {
+                            res = await ConfigureCancellableAwait(self, resTask, cancellationToken);
+                        }
 
-                            if (res.HasValue)
-                            {
-                                into.Add(res.Value);
-                            }
-                            else
-                            {
-                                break;
-                            }
+                        if (res.HasValue)
+                        {
+                            into.Add(res.Value);
+                        }
+                        else
+                        {
+                            break;
                         }
                     }
 
@@ -120,7 +115,9 @@ namespace Cesil
                 }
                 catch (Exception e)
                 {
-                    return Throw.PoisonAndRethrow<TCollection>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
+                    
+                    return default;
                 }
             }
 
@@ -145,9 +142,8 @@ namespace Cesil
 #pragma warning disable CES0005 // T is generic, and null is legal, but since T isn't known to be a class we have to forgive null here
                         T _ = default!;
 #pragma warning restore CES0005
-                        var resTask = self.TryReadInnerAsync(false, true, false, ref _, cancellationToken);
+                        var resTask = self.TryReadInnerAsync(false, false, ref _, cancellationToken);
                         ReadWithCommentResult<T> res;
-                        self.StateMachine.ReleasePinForAsync(resTask);
                         {
                             res = await ConfigureCancellableAwait(self, resTask, cancellationToken);
                         }
@@ -165,7 +161,9 @@ namespace Cesil
                 }
                 catch (Exception e)
                 {
-                    return Throw.PoisonAndRethrow<TCollection>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
+
+                    return default;
                 }
             }
         }
@@ -193,7 +191,7 @@ namespace Cesil
                     return TryReadWithReuseAsync_ContinueAfterHandleRowEndingsAndHeadersAsync(this, handleRowEndingsAndHeadersTask, row, cancellationToken);
                 }
 
-                var tryReadTask = TryReadInnerAsync(false, false, true, ref row, cancellationToken);
+                var tryReadTask = TryReadInnerAsync(false, true, ref row, cancellationToken);
                 if (!tryReadTask.IsCompletedSuccessfully(this))
                 {
                     return TryReadWithReuseAsync_ContinueAfterTryReadInnerAsync(this, tryReadTask, cancellationToken);
@@ -205,12 +203,13 @@ namespace Cesil
                     {
                         ReadWithCommentResultType.HasValue => new ValueTask<ReadResult<T>>(new ReadResult<T>(res.Value)),
                         ReadWithCommentResultType.NoValue => new ValueTask<ReadResult<T>>(ReadResult<T>.Empty),
-                        _ => Throw.InvalidOperationException<ValueTask<ReadResult<T>>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}")
+                        _ => Throw.InvalidOperationException_Returns<ValueTask<ReadResult<T>>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}")
                     };
             }
             catch (Exception e)
             {
-                return Throw.PoisonAndRethrow<ValueTask<ReadResult<T>>>(this, e);
+                Throw.PoisonAndRethrow(this, e);
+                return default;
             }
 
             // wait for HandleRowEndingsAndHeadersAsync to finish, then continue
@@ -220,7 +219,7 @@ namespace Cesil
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
 
-                    var readTask = self.TryReadInnerAsync(false, false, true, ref row, cancellationToken);
+                    var readTask = self.TryReadInnerAsync(false, true, ref row, cancellationToken);
                     var res = await ConfigureCancellableAwait(self, readTask, cancellationToken);
 
                     return
@@ -228,12 +227,13 @@ namespace Cesil
                         {
                             ReadWithCommentResultType.HasValue => new ReadResult<T>(res.Value),
                             ReadWithCommentResultType.NoValue => ReadResult<T>.Empty,
-                            _ => Throw.InvalidOperationException<ReadResult<T>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}")
+                            _ => Throw.InvalidOperationException_Returns<ReadResult<T>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}")
                         };
                 }
                 catch (Exception e)
                 {
-                    return Throw.PoisonAndRethrow<ReadResult<T>>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
+                    return default;
                 }
             }
 
@@ -249,12 +249,14 @@ namespace Cesil
                         {
                             ReadWithCommentResultType.HasValue => new ReadResult<T>(res.Value),
                             ReadWithCommentResultType.NoValue => ReadResult<T>.Empty,
-                            _ => Throw.InvalidOperationException<ReadResult<T>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}")
+                            _ => Throw.InvalidOperationException_Returns<ReadResult<T>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}")
                         };
                 }
                 catch (Exception e)
                 {
-                    return Throw.PoisonAndRethrow<ReadResult<T>>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
+
+                    return default;
                 }
             }
         }
@@ -275,7 +277,7 @@ namespace Cesil
                     return TryReadAsync_ContinueAfterHandleRowEndingsAndHeadersAsync(this, handleRowEndingsAndHeadersTask, row, cancellationToken);
                 }
 
-                var tryReadTask = TryReadInnerAsync(false, false, false, ref row, cancellationToken);
+                var tryReadTask = TryReadInnerAsync(false, false, ref row, cancellationToken);
                 if (!tryReadTask.IsCompletedSuccessfully(this))
                 {
                     return TryReadAsync_ContinueAfterTryReadInnerAsync(this, tryReadTask, cancellationToken);
@@ -287,12 +289,14 @@ namespace Cesil
                     {
                         ReadWithCommentResultType.HasValue => new ValueTask<ReadResult<T>>(new ReadResult<T>(res.Value)),
                         ReadWithCommentResultType.NoValue => new ValueTask<ReadResult<T>>(ReadResult<T>.Empty),
-                        _ => Throw.InvalidOperationException<ValueTask<ReadResult<T>>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}")
+                        _ => Throw.InvalidOperationException_Returns<ValueTask<ReadResult<T>>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}")
                     };
             }
             catch (Exception e)
             {
-                return Throw.PoisonAndRethrow<ValueTask<ReadResult<T>>>(this, e);
+                Throw.PoisonAndRethrow(this, e);
+                
+                return default;
             }
 
             // wait for HandleRowEndingsAndHeadersAsync to finish, then continue
@@ -302,7 +306,7 @@ namespace Cesil
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
 
-                    var readTask = self.TryReadInnerAsync(false, false, false, ref row, cancellationToken);
+                    var readTask = self.TryReadInnerAsync(false, false, ref row, cancellationToken);
                     var res = await ConfigureCancellableAwait(self, readTask, cancellationToken);
 
                     return
@@ -310,12 +314,14 @@ namespace Cesil
                         {
                             ReadWithCommentResultType.HasValue => new ReadResult<T>(res.Value),
                             ReadWithCommentResultType.NoValue => ReadResult<T>.Empty,
-                            _ => Throw.InvalidOperationException<ReadResult<T>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}")
+                            _ => Throw.InvalidOperationException_Returns<ReadResult<T>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}")
                         };
                 }
                 catch (Exception e)
                 {
-                    return Throw.PoisonAndRethrow<ReadResult<T>>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
+
+                    return default;
                 }
             }
 
@@ -331,12 +337,14 @@ namespace Cesil
                         {
                             ReadWithCommentResultType.HasValue => new ReadResult<T>(res.Value),
                             ReadWithCommentResultType.NoValue => ReadResult<T>.Empty,
-                            _ => Throw.InvalidOperationException<ReadResult<T>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}")
+                            _ => Throw.InvalidOperationException_Returns<ReadResult<T>>($"Unexpected {nameof(ReadWithCommentResultType)}: {res.ResultType}")
                         };
                 }
                 catch (Exception e)
                 {
-                    return Throw.PoisonAndRethrow<ReadResult<T>>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
+
+                    return default;
                 }
             }
         }
@@ -358,11 +366,13 @@ namespace Cesil
                     return TryReadWithCommentAsync_ContinueAfterHandleRowEndingsAndHeadersAsync(this, handleRowEndingsAndHeadersTask, record, cancellationToken);
                 }
 
-                return TryReadInnerAsync(true, false, false, ref record, cancellationToken);
+                return TryReadInnerAsync(true, false, ref record, cancellationToken);
             }
             catch (Exception e)
             {
-                return Throw.PoisonAndRethrow<ValueTask<ReadWithCommentResult<T>>>(this, e);
+                Throw.PoisonAndRethrow(this, e);
+
+                return default;
             }
 
             // wait for HandleRowEndingsAndHeadersAsync and continue
@@ -372,14 +382,16 @@ namespace Cesil
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
 
-                    var readTask = self.TryReadInnerAsync(true, false, false, ref record, cancellationToken);
+                    var readTask = self.TryReadInnerAsync(true, false, ref record, cancellationToken);
                     var ret = await ConfigureCancellableAwait(self, readTask, cancellationToken);
 
                     return ret;
                 }
                 catch (Exception e)
                 {
-                    return Throw.PoisonAndRethrow<ReadWithCommentResult<T>>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
+
+                    return default;
                 }
             }
         }
@@ -397,11 +409,13 @@ namespace Cesil
                     return TryReadWithCommentReuseAsync_ContinueAfterHandleRowEndingsAndHeadersAsync(this, handleRowEndingsAndHeadersTask, record, cancellationToken);
                 }
 
-                return TryReadInnerAsync(true, false, true, ref record, cancellationToken);
+                return TryReadInnerAsync(true, true, ref record, cancellationToken);
             }
             catch (Exception e)
             {
-                return Throw.PoisonAndRethrow<ValueTask<ReadWithCommentResult<T>>>(this, e);
+                Throw.PoisonAndRethrow(this, e);
+
+                return default;
             }
 
             // wait for HandleRowEndingsAndHeadersAsync and continue
@@ -411,19 +425,21 @@ namespace Cesil
                 {
                     await ConfigureCancellableAwait(self, waitFor, cancellationToken);
 
-                    var readTask = self.TryReadInnerAsync(true, false, true, ref record, cancellationToken);
+                    var readTask = self.TryReadInnerAsync(true, true, ref record, cancellationToken);
                     var ret = await ConfigureCancellableAwait(self, readTask, cancellationToken);
 
                     return ret;
                 }
                 catch (Exception e)
                 {
-                    return Throw.PoisonAndRethrow<ReadWithCommentResult<T>>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
+
+                    return default;
                 }
             }
         }
 
-        internal abstract ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync(bool returnComments, bool pinAcquired, bool checkRecord, ref T record, CancellationToken cancellationToken);
+        internal abstract ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync(bool returnComments, bool checkRecord, ref T record, CancellationToken cancellationToken);
 
         internal abstract ValueTask HandleRowEndingsAndHeadersAsync(CancellationToken cancellationToken);
 

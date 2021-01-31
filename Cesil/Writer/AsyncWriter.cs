@@ -45,7 +45,9 @@ namespace Cesil
             }
             catch (Exception e)
             {
-                return Throw.PoisonAndRethrow<ValueTask>(this, e);
+                Throw.PoisonAndRethrow(this, e);
+
+                return default;
             }
 
             // wait for the record to end, then continue async
@@ -69,7 +71,7 @@ namespace Cesil
                 }
                 catch (Exception e)
                 {
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
             }
 
@@ -97,7 +99,7 @@ namespace Cesil
                 }
                 catch (Exception e)
                 {
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
             }
         }
@@ -120,7 +122,7 @@ namespace Cesil
 
                 if (commentCharNullable == null)
                 {
-                    return Throw.InvalidOperationException<ValueTask>($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
+                    Throw.InvalidOperationException($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
                 }
 
                 var commentChar = commentCharNullable.Value;
@@ -185,7 +187,7 @@ namespace Cesil
             }
             catch (Exception e)
             {
-                Throw.PoisonAndRethrow<object>(this, e);
+                Throw.PoisonAndRethrow(this, e);
             }
 
             return default;
@@ -203,7 +205,7 @@ namespace Cesil
                 }
                 catch (Exception e)
                 {
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
             }
 
@@ -247,7 +249,7 @@ namespace Cesil
                 }
                 catch (Exception e)
                 {
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
 
             }
@@ -297,7 +299,7 @@ namespace Cesil
                 }
                 catch (Exception e)
                 {
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
             }
 
@@ -313,8 +315,7 @@ namespace Cesil
 
                     if (commentCharNullable == null)
                     {
-                        Throw.InvalidOperationException<object>($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
-                        return;
+                        Throw.InvalidOperationException($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
                     }
 
                     var commentChar = commentCharNullable.Value;
@@ -367,7 +368,7 @@ namespace Cesil
                 }
                 catch (Exception e)
                 {
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
             }
         }
@@ -431,7 +432,7 @@ namespace Cesil
             var ctx = WriteContexts[colIx].SetRowNumberForWriteColumn(RowNumber);
             if (!col.Write(row, ctx, Buffer))
             {
-                return Throw.SerializationException<ValueTask>($"Could not write column {col.Name}, formatter returned false");
+                Throw.SerializationException($"Could not write column {col.Name}, formatter returned false");
             }
 
             ReadOnlySequence<char> res = default;
@@ -460,7 +461,7 @@ namespace Cesil
 
                 if (!col.Write(row, ctx, self.Buffer))
                 {
-                    Throw.SerializationException<object>($"Could not write column {col.Name}, formatter returned false");
+                    Throw.SerializationException($"Could not write column {col.Name}, formatter returned false");
                 }
 
                 ReadOnlySequence<char> res = default;
@@ -867,7 +868,7 @@ namespace Cesil
 
                     Buffer.Dispose();
 
-                    return Throw.PoisonAndRethrow<ValueTask>(this, e);
+                    Throw.PoisonAndRethrow(this, e);
                 }
             }
 
@@ -926,7 +927,7 @@ namespace Cesil
 
                     self.Buffer.Dispose();
 
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
             }
 
@@ -977,7 +978,7 @@ namespace Cesil
 
                     self.Buffer.Dispose();
 
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
             }
 
@@ -1023,7 +1024,7 @@ namespace Cesil
 
                     self.Buffer.Dispose();
 
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
             }
 
@@ -1053,7 +1054,7 @@ namespace Cesil
 
                     self.Buffer.Dispose();
 
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
             }
         }

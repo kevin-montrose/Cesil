@@ -339,6 +339,74 @@ namespace Cesil
 
         // non-null
 
+        private static bool TryParseNInt(ReadOnlySpan<char> span, in ReadContext ctx, out nint val)
+        {
+            // nint is actually and IntPtr
+            switch (IntPtr.Size)
+            {
+                // IntPtr is an int
+                case 4:
+                    if (DefaultTypeParsers.TryParseInt(span, ctx, out var intVal))
+                    {
+                        val = (nint)intVal;
+                        return true;
+                    }
+
+                    val = default;
+                    return false;
+
+                // IntPtr is a long
+                case 8:
+                    if (DefaultTypeParsers.TryParseLong(span, ctx, out var longVal))
+                    {
+                        val = (nint)longVal;
+                        return true;
+                    }
+
+                    val = default;
+                    return false;
+
+                // Shouldn't be possible
+                default:
+                    val = default;
+                    return false;
+            }
+        }
+
+        private static bool TryParseNUInt(ReadOnlySpan<char> span, in ReadContext ctx, out nuint val)
+        {
+            // nuint is actually and UIntPtr
+            switch (UIntPtr.Size)
+            {
+                // UIntPtr is an int
+                case 4:
+                    if (DefaultTypeParsers.TryParseUInt(span, ctx, out var uintVal))
+                    {
+                        val = (nuint)uintVal;
+                        return true;
+                    }
+
+                    val = default;
+                    return false;
+
+                // UIntPtr is a long
+                case 8:
+                    if (DefaultTypeParsers.TryParseULong(span, ctx, out var ulongVal))
+                    {
+                        val = (nuint)ulongVal;
+                        return true;
+                    }
+
+                    val = default;
+                    return false;
+
+                // Shouldn't be possible
+                default:
+                    val = default;
+                    return false;
+            }
+        }
+
         private static bool TryParseBool(ReadOnlySpan<char> span, in ReadContext ctx, out bool val)
         {
             return bool.TryParse(span, out val);
@@ -516,6 +584,42 @@ namespace Cesil
         }
 
         // nullable
+
+        private static bool TryParseNullableNInt(ReadOnlySpan<char> span, in ReadContext ctx, out nint? val)
+        {
+            if(span.Length == 0)
+            {
+                val = null;
+                return true;
+            }
+
+            if(DefaultTypeParsers.TryParseNInt(span, in ctx, out var pVal))
+            {
+                val = pVal;
+                return true;
+            }
+
+            val = null;
+            return false;
+        }
+
+        private static bool TryParseNullableNUInt(ReadOnlySpan<char> span, in ReadContext ctx, out nuint? val)
+        {
+            if (span.Length == 0)
+            {
+                val = null;
+                return true;
+            }
+
+            if (DefaultTypeParsers.TryParseNUInt(span, in ctx, out var pVal))
+            {
+                val = pVal;
+                return true;
+            }
+
+            val = null;
+            return false;
+        }
 
         private static bool TryParseNullableBool(ReadOnlySpan<char> span, in ReadContext ctx, out bool? val)
         {

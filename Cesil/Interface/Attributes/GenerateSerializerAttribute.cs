@@ -10,7 +10,9 @@ namespace Cesil
     /// for this type will do no runtime code generation.
     /// 
     /// You can customize the behavior of the generated serialize with [DataMemberAttribute],
-    /// and [GenerateSerializableMemberAttribute] attributes.
+    /// and [SerializerMemberAttribute] attributes.
+    /// 
+    /// Default behavior (with no additional attributes) closely follows DefaultTypeDescriver.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
     public sealed class GenerateSerializerAttribute : Attribute, IEquatable<GenerateSerializerAttribute>

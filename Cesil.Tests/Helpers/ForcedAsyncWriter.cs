@@ -41,9 +41,6 @@ namespace Cesil.Tests
             await Inner.FlushAsync();
         }
 
-        public override object InitializeLifetimeService()
-        => Inner.InitializeLifetimeService();
-
         public override void Write(bool value)
         => throw new NotImplementedException();
 

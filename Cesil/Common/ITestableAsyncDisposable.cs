@@ -14,7 +14,7 @@ namespace Cesil
             {
                 var name = GetType().Name;
 
-                Throw.ObjectDisposedException<object>(name);
+                Throw.ObjectDisposedException(name);
             }
         }
     }

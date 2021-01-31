@@ -131,7 +131,8 @@ namespace Cesil
                 case Algorithm.BinarySearch: return TryLookupBinarySearch(key, out value);
                 default:
                     value = 0;
-                    return Throw.ImpossibleException<bool>($"Unexpected {nameof(Algorithm)}: {Mode}");
+                    Throw.ImpossibleException($"Unexpected {nameof(Algorithm)}: {Mode}");
+                    return default;
             }
         }
 
@@ -447,7 +448,8 @@ processPrefixGroup:
                 return new NameLookup(Algorithm.BinarySearch, binaryTreeOwner, binaryTreeMem);
             }
 
-            return Throw.InvalidOperationException<NameLookup>($"Could create a lookup for dynamic member names, names could not fit in memory acquired from MemoryPool: {memoryPool}");
+            Throw.InvalidOperationException($"Could create a lookup for dynamic member names, names could not fit in memory acquired from MemoryPool: {memoryPool}");
+            return default;
         }
 
         // internal for testing purposes

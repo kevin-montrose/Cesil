@@ -4,14 +4,17 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
+using System.Runtime.Serialization;
 using System.Threading.Tasks;
+using Cesil.SourceGenerator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
 
-namespace Cesil.SourceGenerator.Tests
+namespace Cesil.Tests
 {
-    public class SerializerGenerationTests
+    public class GenerateSerializerGenerationTests
     {
         [Fact]
         public async Task SimpleAsync()
@@ -172,6 +175,10 @@ namespace Foo
         public double Double { get; set; }
         [SerializerMember]
         public decimal Decimal { get; set; }
+        [SerializerMember]
+        public nint NInt { get; set; }
+        [SerializerMember]
+        public nuint NUInt { get; set; }
 
         [SerializerMember]
         public bool? NullableBool { get; set; }
@@ -197,6 +204,10 @@ namespace Foo
         public double? NullableDouble { get; set; }
         [SerializerMember]
         public decimal? NullableDecimal { get; set; }
+        [SerializerMember]
+        public nint? NullableNInt { get; set; }
+        [SerializerMember]
+        public nuint? NullableNUInt { get; set; }
 
         [SerializerMember]
         public string? String { get; set; }
@@ -275,6 +286,8 @@ namespace Foo
                     row1.Float = (float)1.2f;
                     row1.Double = (double)3.4;
                     row1.Decimal = (decimal)4.5m;
+                    row1.NInt = (nint)(-123);
+                    row1.NUInt = (nuint)123;
 
                     row1.NullableBool = false;
                     row1.NullableByte = (byte)2;
@@ -288,6 +301,8 @@ namespace Foo
                     row1.NullableFloat = (float)6.7f;
                     row1.NullableDouble = (double)8.9;
                     row1.NullableDecimal = (decimal)0.1m;
+                    row1.NullableNInt = (nint?)(-456);
+                    row1.NullableNUInt = (nuint?)456;
 
                     row1.String = "hello";
 
@@ -328,6 +343,8 @@ namespace Foo
                     row2.Float = (float)2.3f;
                     row2.Double = (double)4.5;
                     row2.Decimal = (decimal)6.7m;
+                    row2.NInt = (nint)(-789);
+                    row2.NUInt = (nuint)789;
 
                     row2.NullableBool = (bool?)null;
                     row2.NullableByte = (byte?)null;
@@ -341,6 +358,8 @@ namespace Foo
                     row2.NullableFloat = (float?)null;
                     row2.NullableDouble = (double?)null;
                     row2.NullableDecimal = (decimal?)null;
+                    row2.NullableNInt = (nint?)null;
+                    row2.NullableNUInt = (nuint?)null;
 
                     row2.String = null;
 
@@ -371,7 +390,7 @@ namespace Foo
 
             var csv = Write(type, rows);
 
-            Assert.Equal("Bool,Byte,SByte,Short,UShort,Int,UInt,Long,ULong,Float,Double,Decimal,NullableBool,NullableByte,NullableSByte,NullableShort,NullableUShort,NullableInt,NullableUInt,NullableLong,NullableULong,NullableFloat,NullableDouble,NullableDecimal,String,Char,NullableChar,Guid,NullableGuid,DateTime,DateTimeOffset,NullableDateTime,NullableDateTimeOffset,Uri,TimeSpan,NullableTimeSpan,Enum,FlagsEnum,NullableEnum,NullableFlagsEnum\r\nTrue,1,-1,-11,11,-111,111,-1111,1111,1.20000005,3.3999999999999999,4.5,False,2,-2,-22,22,-222,222,-2222,2222,6.69999981,8.9000000000000004,0.1,hello,a,b,6e3687af-99a8-4415-9cde-c0d90d182171,7e3687af-99a8-4415-9cde-c0d90d182171,2020-11-15 00:00:00Z,2020-11-15 00:00:00Z,2021-11-15 00:00:00Z,2021-11-15 00:00:00Z,https://example.com/example,01:02:03,04:05:06,None,Empty,Foo,Hello\r\nFalse,3,-3,-33,33,-333,333,-3333,3333,2.29999995,4.5,6.7,,,,,,,,,,,,,,c,,8e3687af-99a8-4415-9cde-c0d90d182171,,2022-11-15 00:00:00Z,2022-11-15 00:00:00Z,,,,07:08:09,,Foo,Hello,,", csv);
+            Assert.Equal("Bool,Byte,SByte,Short,UShort,Int,UInt,Long,ULong,Float,Double,Decimal,NInt,NUInt,NullableBool,NullableByte,NullableSByte,NullableShort,NullableUShort,NullableInt,NullableUInt,NullableLong,NullableULong,NullableFloat,NullableDouble,NullableDecimal,NullableNInt,NullableNUInt,String,Char,NullableChar,Guid,NullableGuid,DateTime,DateTimeOffset,NullableDateTime,NullableDateTimeOffset,Uri,TimeSpan,NullableTimeSpan,Enum,FlagsEnum,NullableEnum,NullableFlagsEnum\r\nTrue,1,-1,-11,11,-111,111,-1111,1111,1.20000005,3.3999999999999999,4.5,-123,123,False,2,-2,-22,22,-222,222,-2222,2222,6.69999981,8.9000000000000004,0.1,-456,456,hello,a,b,6e3687af-99a8-4415-9cde-c0d90d182171,7e3687af-99a8-4415-9cde-c0d90d182171,2020-11-15 00:00:00Z,2020-11-15 00:00:00Z,2021-11-15 00:00:00Z,2021-11-15 00:00:00Z,https://example.com/example,01:02:03,04:05:06,None,Empty,Foo,Hello\r\nFalse,3,-3,-33,33,-333,333,-3333,3333,2.29999995,4.5,6.7,-789,789,,,,,,,,,,,,,,,,c,,8e3687af-99a8-4415-9cde-c0d90d182171,,2022-11-15 00:00:00Z,2022-11-15 00:00:00Z,,,,07:08:09,,Foo,Hello,,", csv);
         }
 
         [Fact]
@@ -405,6 +424,9 @@ namespace Foo
         [SerializerMember(ShouldSerializeType = typeof(ShouldSerializeAsync), ShouldSerializeMethodName=""ShouldSerializeDouble"")]
         public double Double { get; set; }
 
+        [SerializerMember(ShouldSerializeType = typeof(ShouldSerializeAsync), ShouldSerializeMethodName=""ShouldSerializeDecimal"")]
+        public decimal Decimal { get; set; }
+
         internal bool ShouldSerializeByte()
         => SerializeByte;
 
@@ -419,6 +441,9 @@ namespace Foo
 
         internal static bool ShouldSerializeDouble(ShouldSerializeAsync row, in WriteContext ctx)
         => (((int)(ctx.RowNumber + row.Double)) % 2) == 1;
+
+        internal static bool ShouldSerializeDecimal(in WriteContext ctx)
+        => (ctx.RowNumber % 3) == 0;
     }
 }");
             var serializeIntProp = type.GetField("SerializeInt");
@@ -429,7 +454,7 @@ namespace Foo
                 {
                     row1.Byte = (byte)1;
                     row1.SerializeByte = true;
-                    
+
                     row1.Int = (int)2;
 
                     row1.Short = (short)3;
@@ -437,6 +462,8 @@ namespace Foo
                     row1.Long = (long)4;
 
                     row1.Double = (double)5.5;
+
+                    row1.Decimal = (decimal)6.6;
                 },
                 row2 =>
                 {
@@ -450,6 +477,8 @@ namespace Foo
                     row2.Long = (long)5;
 
                     row2.Double = (double)7.7;
+
+                    row2.Decimal = (decimal)9.9;
                 },
                 row3 =>
                 {
@@ -463,6 +492,8 @@ namespace Foo
                     row3.Long = (long)6;
 
                     row3.Double = (double)9.9;
+
+                    row3.Decimal = (decimal)-1.234;
                 }
             );
 
@@ -470,8 +501,8 @@ namespace Foo
             serializeIntProp.SetValue(null, true);
             var csv2 = Write(type, rows);
 
-            Assert.Equal("Byte,Int,Short,Long,Double\r\n1,,3,4,5.5\r\n,,,,\r\n3,,5,6,9.9000000000000004", csv1);
-            Assert.Equal("Byte,Int,Short,Long,Double\r\n1,2,3,4,5.5\r\n,3,,,\r\n3,4,5,6,9.9000000000000004", csv2);
+            Assert.Equal("Byte,Int,Short,Long,Double,Decimal\r\n1,,3,4,5.5,6.6\r\n,,,,,\r\n3,,5,6,9.9000000000000004,", csv1);
+            Assert.Equal("Byte,Int,Short,Long,Double,Decimal\r\n1,2,3,4,5.5,6.6\r\n,3,,,,\r\n3,4,5,6,9.9000000000000004,", csv2);
         }
 
         [Fact]
@@ -491,7 +522,13 @@ namespace Foo
         public string Field = """";
 
         [SerializerMember]
+        public static string StaticField = """";
+
+        [SerializerMember]
         public string Prop { get; set; } = """";
+
+        [SerializerMember]
+        public static string StaticProp { get; set; } = """";
 
         [SerializerMember(Name = ""InstanceMethod1"")]
         public string InstanceMethod() => ""foo"";
@@ -512,6 +549,12 @@ namespace Foo
         public static string StaticMethod(GetterAsync row, in WriteContext ctx) => ""world""+ctx.RowNumber;
     }
 }");
+            var sProp = type.GetPropertyNonNull("StaticProp", BindingFlags.Public | BindingFlags.Static);
+            var sField = type.GetFieldNonNull("StaticField", BindingFlags.Public | BindingFlags.Static);
+
+            sProp.SetValue(null, "SProp");
+            sField.SetValue(null, "SField");
+
             var rows = Create(
                 type,
                 row1 =>
@@ -528,7 +571,7 @@ namespace Foo
 
             var csv = Write(type, rows);
 
-            Assert.Equal("Field,Prop,InstanceMethod1,InstanceMethod2,StaticMethod1,StaticMethod2,StaticMethod3,StaticMethod4\r\nabcd,efgh,foo,bar0,fizz,buzz,hello0,world0\r\nijkl,mnop,foo,bar1,fizz,buzz,hello1,world1", csv);
+            Assert.Equal("Field,StaticField,Prop,StaticProp,InstanceMethod1,InstanceMethod2,StaticMethod1,StaticMethod2,StaticMethod3,StaticMethod4\r\nabcd,SField,efgh,SProp,foo,bar0,fizz,buzz,hello0,world0\r\nijkl,SField,mnop,SProp,foo,bar1,fizz,buzz,hello1,world1", csv);
         }
 
         [Fact]
@@ -998,16 +1041,194 @@ namespace Foo
             Assert.Equal("A,B\r\nhello,world\r\nfizz,buzz", csv);
         }
 
+        [Fact]
+        public async Task FailingFormatterAsync()
+        {
+            var type =
+                    await RunSourceGeneratorAsync(
+                        "Foo.FailingFormatterAsync",
+                        @"
+using Cesil;
+using System.Buffers;
+
+namespace Foo 
+{   
+    [GenerateSerializer]
+    public class FailingFormatterAsync
+    {
+        [SerializerMember(FormatterType=typeof(FailingFormatterAsync), FormatterMethodName=nameof(Fail))]
+        public string? A { get; set; }
+
+        internal static bool Fail(string? val, in WriteContext ctx, IBufferWriter<char> buffer)
+        {
+            return false;
+        }
+    }
+}"
+                    );
+
+            var rows =
+                Create(
+                    type,
+                    r1 =>
+                    {
+                        r1.A = "foo";
+                    }
+                );
+
+            var exc = Assert.Throws<SerializationException>(() => Write(type, rows));
+
+            Assert.Equal("Could not write column A, formatter returned false", exc.Message);
+        }
+
+        [Fact]
+        public async Task RecordsAsync()
+        {
+            // simple
+            {
+                var type =
+                        await RunSourceGeneratorAsync(
+                            "Foo.Records1",
+                            @"
+using Cesil;
+
+namespace Foo 
+{   
+    [GenerateSerializer]
+    public record Records1(int A, string B);
+}"
+                        );
+
+                var cons = type.GetConstructorNonNull(new[] { typeof(int).GetTypeInfo(), typeof(string).GetTypeInfo() });
+
+                var rows =
+                    ImmutableArray.Create(
+                        cons.Invoke(new object[] { 1, "foo" }),
+                        cons.Invoke(new object[] { 2, "bar" })
+                    );
+
+                var csv = Write(type, rows);
+
+                Assert.Equal("A,B\r\n1,foo\r\n2,bar", csv);
+            }
+
+            // additional property
+            {
+                var type =
+                        await RunSourceGeneratorAsync(
+                            "Foo.Records2",
+                            @"
+using Cesil;
+
+namespace Foo 
+{   
+    [GenerateSerializer]
+    public record Records2(int A)
+    {
+        [SerializerMember]
+        public string? B { get; set; }
+    }
+}"
+                        );
+
+                var cons = type.GetConstructorNonNull(new[] { typeof(int).GetTypeInfo() });
+
+                var rows =
+                    ImmutableArray.Create(
+                        cons.Invoke(new object[] { 1 }),
+                        cons.Invoke(new object[] { 2 })
+                    );
+
+                ((dynamic)rows[0]).B = "foo";
+                ((dynamic)rows[1]).B = "bar";
+
+                var csv = Write(type, rows);
+
+                Assert.Equal("A,B\r\n1,foo\r\n2,bar", csv);
+            }
+
+            // inheritance
+            {
+                var type =
+                        await RunSourceGeneratorAsync(
+                            "Foo.Records3",
+                            @"
+using Cesil;
+
+namespace Foo 
+{   
+    public record Records1(int A, string B);
+
+    [GenerateSerializer]
+    public record Records3(int C) : Records1(C * 2, C.ToString()+""!"") { }
+}
+            "
+                        );
+
+                var cons = type.GetConstructorNonNull(new[] { typeof(int).GetTypeInfo() });
+
+                var rows =
+                    ImmutableArray.Create(
+                        cons.Invoke(new object[] { 1 }),
+                        cons.Invoke(new object[] { 2 })
+                    );
+
+                var csv = Write(type, rows);
+
+                Assert.Equal("A,B,C\r\n2,1!,1\r\n4,2!,2", csv);
+            }
+
+            // customized
+            {
+                var type =
+                        await RunSourceGeneratorAsync(
+                            "Foo.Records4",
+                            @"
+using Cesil;
+
+namespace Foo 
+{   
+    [GenerateSerializer]
+    public record Records4([property:SerializerMember(Name=""Foo"")]int C) { }
+}
+            "
+                        );
+
+                var cons = type.GetConstructorNonNull(new[] { typeof(int).GetTypeInfo() });
+
+                var rows =
+                    ImmutableArray.Create(
+                        cons.Invoke(new object[] { 1 }),
+                        cons.Invoke(new object[] { 2 }),
+                        cons.Invoke(new object[] { 3 })
+                    );
+
+                var csv = Write(type, rows);
+
+                Assert.Equal("Foo\r\n1\r\n2\r\n3", csv);
+            }
+        }
+
         private static string Write(System.Reflection.TypeInfo rowType, ImmutableArray<object> rows)
         {
             var writeImpl = WriteImplOfT.MakeGenericMethod(rowType);
 
-            var ret = writeImpl.Invoke(null, new object[] { rows });
+            try
+            {
+                var ret = writeImpl.Invoke(null, new object[] { rows });
 
-            return (string)ret;
+                return (string)ret;
+            }
+            catch (TargetInvocationException e)
+            {
+                var wrapped = ExceptionDispatchInfo.Capture(e.InnerException);
+                wrapped.Throw();
+
+                throw new Exception("Shouldn't be possible");
+            }
         }
 
-        private static readonly MethodInfo WriteImplOfT = typeof(SerializerGenerationTests).GetMethod(nameof(WriteImpl), BindingFlags.NonPublic | BindingFlags.Static);
+        private static readonly MethodInfo WriteImplOfT = typeof(GenerateSerializerGenerationTests).GetMethod(nameof(WriteImpl), BindingFlags.NonPublic | BindingFlags.Static);
         private static string WriteImpl<T>(ImmutableArray<object> rows)
         {
             var opts = Options.CreateBuilder(Options.Default).WithTypeDescriber(TypeDescribers.AheadOfTime).ToOptions();
@@ -1029,7 +1250,7 @@ namespace Foo
         {
             var builder = ImmutableArray.CreateBuilder<dynamic>();
 
-            foreach(var callback in callbacks)
+            foreach (var callback in callbacks)
             {
                 var row = Activator.CreateInstance(rowType);
                 callback(row);
@@ -1048,7 +1269,7 @@ namespace Foo
         {
             var serializer = new SerializerGenerator();
 
-            var (producedCompilation, diagnostics) = await TestHelper.RunSourceGeneratorAsync(testFile, serializer, nullableContext, caller);
+            var (producedCompilation, diagnostics) = await SourceGeneratorTestHelper.RunSourceGeneratorAsync(testFile, serializer, nullableContext, caller);
 
             Assert.Empty(diagnostics);
 
@@ -1058,7 +1279,7 @@ namespace Foo
 
             Assert.Empty(res.Diagnostics);
             Assert.True(res.Success);
-            
+
             var asm = Assembly.LoadFile(outputFile);
             var ret = Assert.Single(asm.GetTypes().Where(t => t.FullName == typeName));
 

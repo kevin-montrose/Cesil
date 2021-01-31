@@ -16,6 +16,420 @@ namespace Cesil.Tests
     public class DefaultTypeDescriberTests
     {
         [Fact]
+        public void GetCellsForDynamicRowFormatterCaching()
+        {
+            var span = new DynamicCellValue[15];
+
+            // DynamicRow
+            {
+                var td = new DefaultTypeDescriber();
+                var row = GetDynamicRow();
+
+                var count = td.GetCellsForDynamicRow(default, row, span);
+                Assert.Equal(3, count);
+
+                row.Dispose();
+            }
+
+            // DynamicRowRange
+            {
+                var td = new DefaultTypeDescriber();
+                var row = GetDynamicRow();
+                var range = (((dynamic)row)[1..]) as object;
+
+                var count = td.GetCellsForDynamicRow(default, range, span);
+                Assert.Equal(2, count);
+
+                row.Dispose();
+            }
+
+            // ExpandoObject
+            {
+                var td = new DefaultTypeDescriber();
+
+                var row = new System.Dynamic.ExpandoObject();
+                ((IDictionary<string, dynamic>)row)["A"] = 1;
+                ((IDictionary<string, dynamic>)row)["B"] = 2;
+                ((IDictionary<string, dynamic>)row)["C"] = 3;
+
+                var count = td.GetCellsForDynamicRow(default, row, span);
+                Assert.Equal(3, count);
+            }
+
+            // other
+            {
+                var td = new DefaultTypeDescriber();
+
+                var row = new FakeExpandoObject();
+                ((IDictionary<string, dynamic>)row)["A"] = 1;
+                ((IDictionary<string, dynamic>)row)["B"] = 2;
+                ((IDictionary<string, dynamic>)row)["C"] = 3;
+
+                var count = td.GetCellsForDynamicRow(default, row, span);
+                Assert.Equal(3, count);
+            }
+
+            static DynamicRow GetDynamicRow()
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).ToOptions();
+
+                return CesilUtils.EnumerateDynamicFromString("A,B,C\r\n1,2,3", opts).Single() as DynamicRow;
+            }
+        }
+
+        private sealed class _DisabledCachingDueToSubClassing : DefaultTypeDescriber
+        {
+            public bool Include { get; set; }
+
+            protected override bool ShouldIncludeCell(string name, in WriteContext context, dynamic row)
+            => Include;
+        }
+
+        [Fact]
+        public void DisabledCachingDueToSubClassing()
+        {
+            var span = new DynamicCellValue[15];
+
+            // GetCellsForDynamicRow, DynamicRow
+            {
+                var td = new _DisabledCachingDueToSubClassing();
+
+                var row = GetDynamicRow();
+
+                td.Include = true;
+                var count1 = td.GetCellsForDynamicRow(default, row, span);
+                Assert.Equal(3, count1);
+
+                td.Include = false;
+                var count2 = td.GetCellsForDynamicRow(default, row, span);
+                Assert.Equal(0, count2);
+
+                row.Dispose();
+            }
+
+            // GetCellsForDynamicRow, DynamicRowRange
+            {
+                var td = new _DisabledCachingDueToSubClassing();
+
+                var row = GetDynamicRow();
+                var range = (((dynamic)row)[1..]) as object;
+
+                td.Include = true;
+                var count1 = td.GetCellsForDynamicRow(default, range, span);
+                Assert.Equal(2, count1);
+
+                td.Include = false;
+                var count2 = td.GetCellsForDynamicRow(default, range, span);
+                Assert.Equal(0, count2);
+
+                row.Dispose();
+            }
+
+            // GetCellsForDynamicRow, ExpandoObject
+            {
+                var td = new _DisabledCachingDueToSubClassing();
+
+                var row = new System.Dynamic.ExpandoObject();
+                ((IDictionary<string, dynamic>)row)["A"] = 1;
+                ((IDictionary<string, dynamic>)row)["B"] = 2;
+                ((IDictionary<string, dynamic>)row)["C"] = 3;
+
+                td.Include = true;
+                var count1 = td.GetCellsForDynamicRow(default, row, span);
+                Assert.Equal(3, count1);
+
+                td.Include = false;
+                var count2 = td.GetCellsForDynamicRow(default, row, span);
+                Assert.Equal(0, count2);
+            }
+
+            // GetCellsForDynamicRow, other dynamic
+            {
+                var td = new _DisabledCachingDueToSubClassing();
+
+                var row = new FakeExpandoObject();
+                ((IDictionary<string, dynamic>)row)["A"] = 1;
+                ((IDictionary<string, dynamic>)row)["B"] = 2;
+                ((IDictionary<string, dynamic>)row)["C"] = 3;
+
+                td.Include = true;
+                var count1 = td.GetCellsForDynamicRow(default, row, span);
+                Assert.Equal(3, count1);
+
+                td.Include = false;
+                var count2 = td.GetCellsForDynamicRow(default, row, span);
+                Assert.Equal(0, count2);
+            }
+
+            // GetCellsForDynamicRow, plain .NET type
+            {
+                var td = new _DisabledCachingDueToSubClassing();
+
+                var row = new { A = 1, B = 2, C = 3 };
+
+                td.Include = true;
+                var count1 = td.GetCellsForDynamicRow(default, row, span);
+                Assert.Equal(3, count1);
+
+                td.Include = false;
+                var count2 = td.GetCellsForDynamicRow(default, row, span);
+                Assert.Equal(0, count2);
+            }
+
+            static DynamicRow GetDynamicRow()
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithDynamicRowDisposal(DynamicRowDisposal.OnExplicitDispose).ToOptions();
+
+                return CesilUtils.EnumerateDynamicFromString("A,B,C\r\n1,2,3", opts).Single() as DynamicRow;
+            }
+        }
+
+        private int _NamelessParameter()
+        => 1;
+
+        [Fact]
+        public void NamelessParameter()
+        {
+            var mtd = typeof(DefaultTypeDescriberTests).GetMethod(nameof(_NamelessParameter), BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.NotNull(mtd);
+
+            var ret = mtd.ReturnParameter;
+            Assert.NotNull(ret);
+            Assert.Null(ret.Name);
+
+            Assert.Throws<InvalidOperationException>(() => DefaultTypeDescriber.GetName(ret));
+        }
+
+        record _Records1;
+        record _Records2(int A);
+        record _Records3(int A)
+        {
+            public string B { get; init; }
+        }
+        record _Records4(int A)
+        {
+            public string B { get; init; }
+
+            public _Records4(int a, string b): this(a)
+            {
+                A = a;
+                B = b;
+            }
+        }
+        record _Records5(string B): _Records4(B.Length)
+        {
+            public double C { get; set; }
+        }
+
+        [Fact]
+        public void Records_Deserialize()
+        {
+            // _Records1
+            {
+                var ip = TypeDescribers.Default.GetInstanceProvider(typeof(_Records1).GetTypeInfo());
+                var mems = TypeDescribers.Default.EnumerateMembersToDeserialize(typeof(_Records1).GetTypeInfo());
+
+                Assert.True(ip.Constructor.HasValue);
+                Assert.False(ip.ConstructorTakesParameters);
+                Assert.Empty(mems);
+            }
+
+            // _Records2
+            {
+                var ip = TypeDescribers.Default.GetInstanceProvider(typeof(_Records2).GetTypeInfo());
+                var mems = TypeDescribers.Default.EnumerateMembersToDeserialize(typeof(_Records2).GetTypeInfo());
+
+                Assert.True(ip.Constructor.HasValue);
+                Assert.True(ip.ConstructorTakesParameters);
+                Assert.Collection(
+                    ip.Constructor.Value.GetParameters(),
+                    a =>
+                    {
+                        Assert.Equal("A", a.Name);
+                    }
+                );
+                Assert.Collection(
+                    mems,
+                    a =>
+                    {
+                        Assert.True(a.Setter.ConstructorParameter.HasValue);
+                        Assert.Equal("A", a.Setter.ConstructorParameter.Value.Name);
+                    }
+                );
+            }
+
+            // _Records3
+            {
+                var ip = TypeDescribers.Default.GetInstanceProvider(typeof(_Records3).GetTypeInfo());
+                var mems = TypeDescribers.Default.EnumerateMembersToDeserialize(typeof(_Records3).GetTypeInfo());
+
+                Assert.True(ip.Constructor.HasValue);
+                Assert.True(ip.ConstructorTakesParameters);
+                Assert.Collection(
+                    ip.Constructor.Value.GetParameters(),
+                    a => Assert.Equal("A", a.Name)
+                );
+                Assert.Collection(
+                    mems,
+                    a =>
+                    {
+                        Assert.True(a.Setter.ConstructorParameter.HasValue);
+                        Assert.Equal("A", a.Setter.ConstructorParameter.Value.Name);
+                    },
+                    b =>
+                    {
+                        Assert.True(b.Setter.Method.HasValue);
+                        Assert.Equal(typeof(_Records3).GetProperty(nameof(_Records3.B)).SetMethod, b.Setter.Method.Value);
+                    }
+                );
+            }
+
+            // _Records4
+            {
+                var ip = TypeDescribers.Default.GetInstanceProvider(typeof(_Records4).GetTypeInfo());
+                var mems = TypeDescribers.Default.EnumerateMembersToDeserialize(typeof(_Records4).GetTypeInfo());
+
+                Assert.True(ip.Constructor.HasValue);
+                Assert.True(ip.ConstructorTakesParameters);
+                Assert.Collection(
+                    ip.Constructor.Value.GetParameters(),
+                    a => Assert.Equal("A", a.Name)
+                );
+                Assert.Collection(
+                    mems,
+                    a =>
+                    {
+                        Assert.True(a.Setter.ConstructorParameter.HasValue);
+                        Assert.Equal("A", a.Setter.ConstructorParameter.Value.Name);
+                    },
+                    b =>
+                    {
+                        Assert.True(b.Setter.Method.HasValue);
+                        Assert.Equal(typeof(_Records4).GetProperty(nameof(_Records4.B)).SetMethod, b.Setter.Method.Value);
+                    }
+                );
+            }
+
+            // _Records5
+            {
+                var ip = TypeDescribers.Default.GetInstanceProvider(typeof(_Records5).GetTypeInfo());
+                var mems = TypeDescribers.Default.EnumerateMembersToDeserialize(typeof(_Records5).GetTypeInfo());
+
+                Assert.True(ip.Constructor.HasValue);
+                Assert.True(ip.ConstructorTakesParameters);
+                Assert.Collection(
+                    ip.Constructor.Value.GetParameters(),
+                    b => Assert.Equal("B", b.Name)
+                );
+                Assert.Collection(
+                    mems,
+                    a=>
+                    {
+                        Assert.True(a.Setter.Method.HasValue);
+                        Assert.Equal(typeof(_Records5).GetProperty(nameof(_Records5.A)).SetMethod, a.Setter.Method.Value);
+                    },
+                    b =>
+                    {
+                        Assert.True(b.Setter.ConstructorParameter.HasValue);
+                        Assert.Equal("B", b.Setter.ConstructorParameter.Value.Name);
+                    },
+                    c =>
+                    {
+                        Assert.True(c.Setter.Method.HasValue);
+                        Assert.Equal(typeof(_Records5).GetProperty(nameof(_Records5.C)).SetMethod, c.Setter.Method.Value);
+                    }
+                );
+            }
+        }
+
+        [Fact]
+        public void Records_Serialize()
+        {
+            // _Records1
+            {
+                var mems = TypeDescribers.Default.EnumerateMembersToSerialize(typeof(_Records1).GetTypeInfo());
+
+                Assert.Empty(mems);
+            }
+
+            // _Records2
+            {
+                var mems = TypeDescribers.Default.EnumerateMembersToSerialize(typeof(_Records2).GetTypeInfo());
+
+                Assert.Collection(
+                    mems,
+                    a =>
+                    {
+                        Assert.True(a.Getter.Method.HasValue);
+                        Assert.Equal(typeof(_Records2).GetProperty(nameof(_Records2.A)).GetMethod, a.Getter.Method.Value);
+                    }
+                );
+            }
+
+            // _Records3
+            {
+                var mems = TypeDescribers.Default.EnumerateMembersToSerialize(typeof(_Records3).GetTypeInfo());
+
+                Assert.Collection(
+                    mems,
+                    a =>
+                    {
+                        Assert.True(a.Getter.Method.HasValue);
+                        Assert.Equal(typeof(_Records3).GetProperty(nameof(_Records3.A)).GetMethod, a.Getter.Method.Value);
+                    },
+                    b =>
+                    {
+                        Assert.True(b.Getter.Method.HasValue);
+                        Assert.Equal(typeof(_Records3).GetProperty(nameof(_Records3.B)).GetMethod, b.Getter.Method.Value);
+                    }
+                );
+            }
+
+            // _Records4
+            {
+                var mems = TypeDescribers.Default.EnumerateMembersToSerialize(typeof(_Records4).GetTypeInfo());
+
+                Assert.Collection(
+                    mems,
+                    a =>
+                    {
+                        Assert.True(a.Getter.Method.HasValue);
+                        Assert.Equal(typeof(_Records4).GetProperty(nameof(_Records4.A)).GetMethod, a.Getter.Method.Value);
+                    },
+                    b =>
+                    {
+                        Assert.True(b.Getter.Method.HasValue);
+                        Assert.Equal(typeof(_Records4).GetProperty(nameof(_Records4.B)).GetMethod, b.Getter.Method.Value);
+                    }
+                );
+            }
+
+            // _Records5
+            {
+                var mems = TypeDescribers.Default.EnumerateMembersToSerialize(typeof(_Records5).GetTypeInfo());
+
+                Assert.Collection(
+                    mems,
+                    a =>
+                    {
+                        Assert.True(a.Getter.Method.HasValue);
+                        Assert.Equal(typeof(_Records5).GetProperty(nameof(_Records5.A)).GetMethod, a.Getter.Method.Value);
+                    },
+                    b =>
+                    {
+                        Assert.True(b.Getter.Method.HasValue);
+                        Assert.Equal(typeof(_Records5).GetProperty(nameof(_Records5.B)).GetMethod, b.Getter.Method.Value);
+                    },
+                    c =>
+                    {
+                        Assert.True(c.Getter.Method.HasValue);
+                        Assert.Equal(typeof(_Records5).GetProperty(nameof(_Records5.C)).GetMethod, c.Getter.Method.Value);
+                    }
+                );
+            }
+        }
+
+        [Fact]
         public void DelegateCache()
         {
             Action foo = () => { };
@@ -344,6 +758,44 @@ namespace Cesil.Tests
 
                 Assert.True(del("t", default, out var v1));
                 Assert.Equal('t', v1);
+
+                Assert.False(del("foo", default, out _));
+            }
+
+            // nint
+            {
+                var mtd = Parser.GetDefault(typeof(nint).GetTypeInfo());
+                Assert.NotNull(mtd);
+
+                var del = (Parse<nint>)Delegate.CreateDelegate(typeof(Parse<nint>), mtd.Method.Value);
+
+                Assert.True(del("0", default, out var v1));
+                Assert.Equal((nint)0, v1);
+
+                Assert.True(del(nint.MinValue.ToString(CultureInfo.InvariantCulture), default, out var v2));
+                Assert.Equal(nint.MinValue, v2);
+
+                Assert.True(del(nint.MaxValue.ToString(CultureInfo.InvariantCulture), default, out var v3));
+                Assert.Equal(nint.MaxValue, v3);
+
+                Assert.False(del("foo", default, out _));
+            }
+
+            // nuint
+            {
+                var mtd = Parser.GetDefault(typeof(nuint).GetTypeInfo());
+                Assert.NotNull(mtd);
+
+                var del = (Parse<nuint>)Delegate.CreateDelegate(typeof(Parse<nuint>), mtd.Method.Value);
+
+                Assert.True(del("0", default, out var v1));
+                Assert.Equal((nuint)0, v1);
+
+                Assert.True(del(nuint.MinValue.ToString(CultureInfo.InvariantCulture), default, out var v2));
+                Assert.Equal(nuint.MinValue, v2);
+
+                Assert.True(del(nuint.MaxValue.ToString(CultureInfo.InvariantCulture), default, out var v3));
+                Assert.Equal(nuint.MaxValue, v3);
 
                 Assert.False(del("foo", default, out _));
             }
@@ -780,6 +1232,50 @@ namespace Cesil.Tests
 
                 Assert.True(del("", default, out var v2));
                 Assert.Equal((char?)null, v2);
+
+                Assert.False(del("foo", default, out _));
+            }
+
+            // nint?
+            {
+                var mtd = Parser.GetDefault(typeof(nint?).GetTypeInfo());
+                Assert.NotNull(mtd);
+
+                var del = (Parse<nint?>)Delegate.CreateDelegate(typeof(Parse<nint?>), mtd.Method.Value);
+
+                Assert.True(del(nint.MinValue.ToString(CultureInfo.InvariantCulture), default, out var v1));
+                Assert.Equal(nint.MinValue, v1.Value);
+
+                Assert.True(del("0", default, out var v2));
+                Assert.Equal((nint)0, v2.Value);
+
+                Assert.True(del(nint.MaxValue.ToString(CultureInfo.InvariantCulture), default, out var v3));
+                Assert.Equal(nint.MaxValue, v3.Value);
+
+                Assert.True(del("", default, out var v5));
+                Assert.Equal((nint?)null, v5);
+
+                Assert.False(del("foo", default, out _));
+            }
+
+            // nuint?
+            {
+                var mtd = Parser.GetDefault(typeof(nuint?).GetTypeInfo());
+                Assert.NotNull(mtd);
+
+                var del = (Parse<nuint?>)Delegate.CreateDelegate(typeof(Parse<nuint?>), mtd.Method.Value);
+
+                Assert.True(del(nuint.MinValue.ToString(CultureInfo.InvariantCulture), default, out var v1));
+                Assert.Equal(nuint.MinValue, v1.Value);
+
+                Assert.True(del("0", default, out var v2));
+                Assert.Equal((nuint)0, v2.Value);
+
+                Assert.True(del(nuint.MaxValue.ToString(CultureInfo.InvariantCulture), default, out var v3));
+                Assert.Equal(nuint.MaxValue, v3.Value);
+
+                Assert.True(del("", default, out var v5));
+                Assert.Equal((nuint?)null, v5);
 
                 Assert.False(del("foo", default, out _));
             }
@@ -1663,6 +2159,76 @@ namespace Cesil.Tests
                 }
             }
 
+            // nint
+            {
+                var pipe = new Pipe();
+                var writer = new CharWriter(pipe.Writer);
+                var reader = pipe.Reader;
+
+                var mtd = Formatter.GetDefault(typeof(nint).GetTypeInfo()).Method.Value;
+
+                // min
+                {
+                    var res = mtd.Invoke(null, new object[] { nint.MinValue, ctx, writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(nint.MinValue.ToString(CultureInfo.InvariantCulture), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // max
+                {
+                    var res = mtd.Invoke(null, new object[] { nint.MaxValue, ctx, writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(nint.MaxValue.ToString(CultureInfo.InvariantCulture), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+            }
+
+            // nuint
+            {
+                var pipe = new Pipe();
+                var writer = new CharWriter(pipe.Writer);
+                var reader = pipe.Reader;
+
+                var mtd = Formatter.GetDefault(typeof(nuint).GetTypeInfo()).Method.Value;
+
+                // min
+                {
+                    var res = mtd.Invoke(null, new object[] { nuint.MinValue, ctx, writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(nuint.MinValue.ToString(CultureInfo.InvariantCulture), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // max
+                {
+                    var res = mtd.Invoke(null, new object[] { nuint.MaxValue, ctx, writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(nuint.MaxValue.ToString(CultureInfo.InvariantCulture), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+            }
+
             // bool
             {
                 var pipe = new Pipe();
@@ -2524,6 +3090,98 @@ namespace Cesil.Tests
                 // null
                 {
                     var res = mtd.Invoke(null, new object[] { (char?)null, ctx, writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.False(reader.TryRead(out _));
+                }
+            }
+
+            // nint?
+            {
+                var pipe = new Pipe();
+                var writer = new CharWriter(pipe.Writer);
+                var reader = pipe.Reader;
+
+                var mtd = Formatter.GetDefault(typeof(nint?).GetTypeInfo()).Method.Value;
+
+                // min
+                {
+                    var res = mtd.Invoke(null, new object[] { (nint?)nint.MinValue, ctx, writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(nint.MinValue.ToString(CultureInfo.InvariantCulture), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // max
+                {
+                    var res = mtd.Invoke(null, new object[] { (nint?)nint.MaxValue, ctx, writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(nint.MaxValue.ToString(CultureInfo.InvariantCulture), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // null
+                {
+                    var res = mtd.Invoke(null, new object[] { (nint?)null, ctx, writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.False(reader.TryRead(out _));
+                }
+            }
+
+            // nuint?
+            {
+                var pipe = new Pipe();
+                var writer = new CharWriter(pipe.Writer);
+                var reader = pipe.Reader;
+
+                var mtd = Formatter.GetDefault(typeof(nuint?).GetTypeInfo()).Method.Value;
+
+                // min
+                {
+                    var res = mtd.Invoke(null, new object[] { (nuint?)nuint.MinValue, ctx, writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(nuint.MinValue.ToString(CultureInfo.InvariantCulture), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // max
+                {
+                    var res = mtd.Invoke(null, new object[] { (nuint?)nuint.MaxValue, ctx, writer });
+                    var resBool = (bool)res;
+                    Assert.True(resBool);
+
+                    await writer.FlushAsync();
+
+                    Assert.True(reader.TryRead(out var buff));
+                    Assert.Equal(nuint.MaxValue.ToString(CultureInfo.InvariantCulture), BufferToString(buff.Buffer));
+                    reader.AdvanceTo(buff.Buffer.End);
+                }
+
+                // null
+                {
+                    var res = mtd.Invoke(null, new object[] { (nuint?)null, ctx, writer });
                     var resBool = (bool)res;
                     Assert.True(resBool);
 

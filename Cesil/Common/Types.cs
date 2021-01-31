@@ -24,6 +24,7 @@ namespace Cesil
         internal static readonly TypeInfo Decimal = typeof(decimal).GetTypeInfo();
 
         // System delegates
+        internal static readonly TypeInfo Action2 = typeof(Action<,>).GetTypeInfo();
         internal static readonly TypeInfo FuncOfT = typeof(Func<>).GetTypeInfo();
         internal static readonly TypeInfo FuncOfBool = typeof(Func<bool>).GetTypeInfo();
         internal static readonly TypeInfo FuncOfImmutableArrayOfString = typeof(Func<ImmutableArray<string>>).GetTypeInfo();
@@ -167,8 +168,9 @@ namespace Cesil
         internal static readonly TypeInfo DefaultTypeFormatters = typeof(DefaultTypeFormatters).GetTypeInfo();
         internal static readonly TypeInfo DefaultEnumTypeFormatter = typeof(DefaultTypeFormatters.DefaultEnumTypeFormatter<>).GetTypeInfo();
         internal static readonly TypeInfo DisposableHelper = typeof(DisposableHelper).GetTypeInfo();
+        internal static readonly TypeInfo RecordDynamicRowConverter = typeof(RecordDynamicRowConverter<>).GetTypeInfo();
         internal static readonly TypeInfo Throw = typeof(Throw).GetTypeInfo();
-        internal static readonly TypeInfo TupleDynamicParsers = typeof(TupleDynamicParsers<>).GetTypeInfo();
+        internal static readonly TypeInfo TupleDynamicRowConverters = typeof(TupleDynamicRowConverters<>).GetTypeInfo();
         internal static readonly TypeInfo Utils = typeof(Utils).GetTypeInfo();
         internal static readonly TypeInfo WellKnownRowTypes = typeof(WellKnownRowTypes).GetTypeInfo();
         internal static readonly TypeInfo WellKnownEnumRowType = typeof(WellKnownRowTypes.WellKnownEnumRowType<>).GetTypeInfo();

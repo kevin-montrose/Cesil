@@ -122,7 +122,7 @@ namespace Cesil
                     var val = cell.Value as object;
                     if (!del(val, in ctx, Buffer))
                     {
-                        return Throw.SerializationException<ValueTask>($"Could not write column {ci}, formatter {formatter} returned false");
+                        Throw.SerializationException($"Could not write column {ci}, formatter {formatter} returned false");
                     }
 
                     ReadOnlySequence<char> res = default;
@@ -144,13 +144,13 @@ end:
                     { }
                 }
                 RowNumber++;
-
-                return default;
             }
             catch (Exception e)
             {
-                return Throw.PoisonAndRethrow<ValueTask>(this, e);
+                Throw.PoisonAndRethrow(this, e);
             }
+
+            return default;
 
             // continue after WriteHeadersAndRowIfNeededAsync completes
             static async ValueTask WriteAsync_ContinueAfterWriteHeadersAsync(AsyncDynamicWriter self, ValueTask waitFor, dynamic row, ITypeDescriber typeDescriber, ReadOnlyMemory<char> valueSeparator, CancellationToken cancellationToken)
@@ -201,7 +201,7 @@ end:
                         var val = cell.Value as object;
                         if (!del(val, in ctx, self.Buffer))
                         {
-                            Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
+                            Throw.SerializationException($"Could not write column {ci}, formatter {formatter} returned false");
                         }
 
                         ReadOnlySequence<char> res = default;
@@ -225,7 +225,7 @@ end:
                 }
                 catch (Exception e)
                 {
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
             }
 
@@ -260,7 +260,7 @@ end:
                         var val = cell.Value as object;
                         if (!del(val, in ctx, self.Buffer))
                         {
-                            Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
+                            Throw.SerializationException($"Could not write column {ci}, formatter {formatter} returned false");
                         }
 
                         ReadOnlySequence<char> res = default;
@@ -308,7 +308,7 @@ end:
                         var val = cell.Value as object;
                         if (!del(val, in ctx, self.Buffer))
                         {
-                            Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
+                            Throw.SerializationException($"Could not write column {ci}, formatter {formatter} returned false");
                         }
 
                         ReadOnlySequence<char> res = default;
@@ -332,7 +332,7 @@ end:
                 }
                 catch (Exception exc)
                 {
-                    Throw.PoisonAndRethrow<object>(self, exc);
+                    Throw.PoisonAndRethrow(self, exc);
                 }
             }
 
@@ -381,7 +381,7 @@ end:
                         var val = cell.Value as object;
                         if (!del(val, in ctx, self.Buffer))
                         {
-                            Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
+                            Throw.SerializationException($"Could not write column {ci}, formatter {formatter} returned false");
                         }
 
                         ReadOnlySequence<char> res = default;
@@ -405,7 +405,7 @@ end:
                 }
                 catch (Exception exc)
                 {
-                    Throw.PoisonAndRethrow<object>(self, exc);
+                    Throw.PoisonAndRethrow(self, exc);
                 }
             }
         }
@@ -457,7 +457,7 @@ end:
 
                 if (commentCharNullable == null)
                 {
-                    return Throw.InvalidOperationException<ValueTask>($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
+                    Throw.InvalidOperationException($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
                 }
 
                 HasWrittenComments = true;
@@ -526,7 +526,7 @@ end:
             }
             catch (Exception e)
             {
-                Throw.PoisonAndRethrow<object>(this, e);
+                Throw.PoisonAndRethrow(this, e);
             }
 
             return default;
@@ -573,7 +573,7 @@ end:
                 }
                 catch (Exception e)
                 {
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
             }
 
@@ -590,7 +590,7 @@ end:
                 }
                 catch (Exception e)
                 {
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
             }
 
@@ -638,7 +638,7 @@ end:
                 }
                 catch (Exception e)
                 {
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
             }
 
@@ -654,8 +654,7 @@ end:
 
                     if (commentCharNullable == null)
                     {
-                        Throw.InvalidOperationException<object>($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
-                        return;
+                        Throw.InvalidOperationException($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
                     }
 
                     var commentChar = commentCharNullable.Value;
@@ -711,7 +710,7 @@ end:
                 }
                 catch (Exception e)
                 {
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
             }
 
@@ -733,8 +732,7 @@ end:
 
                     if (commentCharNullable == null)
                     {
-                        Throw.InvalidOperationException<object>($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
-                        return;
+                        Throw.InvalidOperationException($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
                     }
 
                     var commentChar = commentCharNullable.Value;
@@ -790,7 +788,7 @@ end:
                 }
                 catch (Exception e)
                 {
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
             }
         }
@@ -894,8 +892,7 @@ end:
 
                 if (colName == null)
                 {
-                    Throw.InvalidOperationException<object>($"No column name found at index {colIx} when {nameof(WriteHeader)} = {options.WriteHeader}");
-                    return;
+                    Throw.InvalidOperationException($"No column name found at index {colIx} when {nameof(WriteHeader)} = {options.WriteHeader}");
                 }
 
                 var encodedColName = colName;
@@ -1122,7 +1119,7 @@ end:
                     CellBuffer?.Dispose();
                     ColumnNames?.Dispose();
 
-                    return Throw.PoisonAndRethrow<ValueTask>(this, e);
+                    Throw.PoisonAndRethrow(this, e);
                 }
             }
 
@@ -1186,7 +1183,7 @@ end:
                     self.CellBuffer?.Dispose();
                     self.ColumnNames?.Dispose();
 
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
             }
 
@@ -1242,7 +1239,7 @@ end:
                     self.CellBuffer?.Dispose();
                     self.ColumnNames?.Dispose();
 
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
             }
 
@@ -1288,7 +1285,7 @@ end:
                     self.CellBuffer?.Dispose();
                     self.ColumnNames?.Dispose();
 
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
             }
 
@@ -1320,7 +1317,7 @@ end:
                     self.CellBuffer?.Dispose();
                     self.ColumnNames?.Dispose();
 
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
             }
         }

@@ -1,11 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Text;
 
 using static Cesil.SourceGenerator.Constants;
 
@@ -16,13 +16,12 @@ namespace Cesil.SourceGenerator
     {
         internal ImmutableArray<Formatter> NeededDefaultFormatters = ImmutableArray<Formatter>.Empty;
 
-        internal override void GenerateSource(
-            Compilation compilation,
-            GeneratorExecutionContext context,
-            SerializerTypes types,
+        internal override IEnumerable<(string FileName, string Source)> GenerateSource(
             ImmutableDictionary<INamedTypeSymbol, ImmutableArray<SerializableMember>> toGenerate
         )
         {
+            const string DEFAULT_FORMATTERS_FILE_NAME = "__Cesil_Generated_DefaultFormatters.cs";
+
             NeededDefaultFormatters = Members.SelectMany(m => m.Value.Select(v => v.Formatter).Where(f => f.IsDefault)).Distinct().ToImmutableArray();
 
             var defaultFormatterFullyQualifiedTypeName = "--NONE--";
@@ -32,11 +31,7 @@ namespace Cesil.SourceGenerator
                 string defaultFormattersSource;
                 (defaultFormatterFullyQualifiedTypeName, defaultFormattersSource) = defaultFormatters.Value;
 
-                var defaultFormatterFileName = "__Cesil_Generated_DefaultFormatters.cs";
-
-                defaultFormattersSource = Utils.RemoveUnusedUsings(compilation, defaultFormattersSource);
-
-                context.AddSource(defaultFormatterFileName, SourceText.From(defaultFormattersSource, Encoding.UTF8));
+                yield return (DEFAULT_FORMATTERS_FILE_NAME, defaultFormattersSource);
             }
 
             foreach (var kv in Members)
@@ -47,11 +42,10 @@ namespace Cesil.SourceGenerator
                 var inOrder = Utils.SortColumns(columns, a => a.Order);
 
                 var source = GenerateSerializerType(defaultFormatterFullyQualifiedTypeName, rowType, inOrder);
-                source = Utils.RemoveUnusedUsings(compilation, source);
 
                 var generatedFileName = "__Cesil_Generated_Serializer_" + rowType.ToFullyQualifiedName().Replace(".", "_") + ".cs";
 
-                context.AddSource(generatedFileName, SourceText.From(source, Encoding.UTF8));
+                yield return (generatedFileName, source);
             }
         }
 
@@ -368,9 +362,9 @@ namespace Cesil.SourceGenerator
                         getStatement = "row." + p.Name;
                     }
                 }
-                else if (getter.Method != null)
+                else
                 {
-                    var mtd = getter.Method;
+                    var mtd = Utils.NonNull(getter.Method);
                     if (mtd.IsStatic)
                     {
                         getStatement = fullyQualifiedRowType + "." + mtd.Name;
@@ -398,10 +392,6 @@ namespace Cesil.SourceGenerator
                     }
 
                     getStatement += ")";
-                }
-                else
-                {
-                    throw new Exception("Shouldn't be possible");
                 }
 
                 var getterMethodName = "__Column_" + colIx + "_Getter";
@@ -437,7 +427,6 @@ namespace Cesil.SourceGenerator
                     if (shouldSerialize.TakesRow)
                     {
                         invokeStatement += "row";
-
 
                         if (shouldSerialize.TakesContext)
                         {
@@ -508,6 +497,7 @@ namespace Cesil.SourceGenerator
             GeneratorExecutionContext context,
             Compilation compilation,
             ImmutableArray<TypeDeclarationSyntax> toGenerateFor,
+            AttributedMembers attrMembers,
             SerializerTypes types
         )
         {
@@ -515,16 +505,9 @@ namespace Cesil.SourceGenerator
 
             foreach (var decl in toGenerateFor)
             {
-                var model = compilation.GetSemanticModel(decl.SyntaxTree);
-                var namedType = model.GetDeclaredSymbol(decl);
-                if (namedType == null)
-                {
-                    var diag = Diagnostics.GenericError(decl.GetLocation(), "Type identified, but not named");
-                    context.ReportDiagnostic(diag);
-                    continue;
-                }
-
-                var members = GetSerializableMembers(context, compilation, types, namedType);
+                var namedType = attrMembers.TypeDeclarationsToNamedTypes[decl];
+              
+                var members = GetSerializableMembers(context, attrMembers, compilation, types, namedType);
                 if (!members.IsEmpty)
                 {
                     ret.Add(namedType, members);
@@ -536,6 +519,7 @@ namespace Cesil.SourceGenerator
 
         private static ImmutableArray<SerializableMember> GetSerializableMembers(
             GeneratorExecutionContext context,
+            AttributedMembers attrMembers,
             Compilation compilation,
             SerializerTypes types,
             INamedTypeSymbol namedType
@@ -544,9 +528,10 @@ namespace Cesil.SourceGenerator
             var hasErrors = false;
             var ret = ImmutableArray.CreateBuilder<SerializableMember>();
 
-            foreach (var member in namedType.GetMembers())
+            var members = namedType.GetMembersIncludingInherited();
+            foreach (var member in members)
             {
-                var res = GetSerializableMember(compilation, types, namedType, member);
+                var res = GetSerializableMember(compilation, attrMembers, types, namedType, member);
                 if (res == null)
                 {
                     continue;
@@ -579,6 +564,7 @@ namespace Cesil.SourceGenerator
 
         private static (SerializableMember? Member, ImmutableArray<Diagnostic> Diagnostics)? GetSerializableMember(
             Compilation compilation,
+            AttributedMembers attrMembers,
             SerializerTypes types,
             INamedTypeSymbol serializingType,
             ISymbol member
@@ -591,29 +577,27 @@ namespace Cesil.SourceGenerator
                     return null;
                 }
 
-                var configAttrs = GetConfigurationAttributes(compilation, types.OurTypes.SerializerMemberAttribute, types.Framework, member);
+                var configAttrs = GetConfigurationAttributes(attrMembers, types.OurTypes.SerializerMemberAttribute, types.Framework, member);
 
                 // skip properties if they have no getter _unless_ they're attributed (in which case there's an error we need to report)
                 if (configAttrs.IsEmpty && prop.GetMethod == null)
-                { 
-                    return null;
-                }
-
-                var isVisible =
-                    (member.DeclaredAccessibility == Accessibility.Public && !member.IsStatic) ||
-                    !configAttrs.IsEmpty;
-
-                // neither visible or annotated to include
-                if (!isVisible)
                 {
                     return null;
                 }
 
-                return SerializableMember.ForProperty(compilation, types, serializingType, prop, configAttrs);
+                var include = prop.ShouldInclude(configAttrs);
+
+                // neither visible or annotated to include
+                if (!include)
+                {
+                    return null;
+                }
+
+                return SerializableMember.ForProperty(compilation, attrMembers, types, serializingType, prop, configAttrs);
             }
             else if (member is IFieldSymbol field)
             {
-                var configAttrs = GetConfigurationAttributes(compilation, types.OurTypes.SerializerMemberAttribute, types.Framework, member);
+                var configAttrs = GetConfigurationAttributes(attrMembers, types.OurTypes.SerializerMemberAttribute, types.Framework, member);
 
                 // must be annotated to include
                 if (configAttrs.IsEmpty)
@@ -621,11 +605,11 @@ namespace Cesil.SourceGenerator
                     return null;
                 }
 
-                return SerializableMember.ForField(compilation, types, serializingType, field, configAttrs);
+                return SerializableMember.ForField(compilation, attrMembers, types, serializingType, field, configAttrs);
             }
-            else if (member is IMethodSymbol method && method.MethodKind == MethodKind.Ordinary)
+            else if (member is IMethodSymbol method)
             {
-                var configAttrs = GetConfigurationAttributes(compilation, types.OurTypes.SerializerMemberAttribute, types.Framework, member);
+                var configAttrs = GetConfigurationAttributes(attrMembers, types.OurTypes.SerializerMemberAttribute, types.Framework, member);
 
                 // must be annotated to include
                 if (configAttrs.IsEmpty)
@@ -633,47 +617,36 @@ namespace Cesil.SourceGenerator
                     return null;
                 }
 
-                return SerializableMember.ForMethod(compilation, types, serializingType, method, configAttrs);
+                return SerializableMember.ForMethod(compilation, attrMembers, types, serializingType, method, configAttrs);
             }
 
             return null;
         }
 
-        internal override ImmutableArray<TypeDeclarationSyntax> GetTypesToGenerateFor(Compilation compilation, SerializerTypes types)
+        internal override ImmutableArray<TypeDeclarationSyntax> GetTypesToGenerateFor(AttributedMembers members, SerializerTypes types)
         {
             var ret = ImmutableArray.CreateBuilder<TypeDeclarationSyntax>();
 
-            foreach (var tree in compilation.SyntaxTrees)
+            SelectTypeDetails(members.AttributedTypes, types, ret);
+            SelectTypeDetails(members.AttributedRecords, types, ret);
+
+            return ret.ToImmutable();
+
+            static void SelectTypeDetails<T>(
+                ImmutableArray<(AttributeSyntax Attribute, INamedTypeSymbol AttributeType, T SyntaxDeclaration)> attributed,
+                SerializerTypes types,
+                ImmutableArray<TypeDeclarationSyntax>.Builder ret
+            )
+            where T : TypeDeclarationSyntax
             {
-                var model = compilation.GetSemanticModel(tree);
-
-                var root = tree.GetRoot();
-                var decls = root.DescendantNodesAndSelf().OfType<TypeDeclarationSyntax>();
-                foreach (var decl in decls)
+                foreach (var (_, attrType, typeDecl) in attributed)
                 {
-                    var attrLists = decl.AttributeLists;
-                    foreach (var attrList in attrLists)
+                    if (types.OurTypes.GenerateSerializerAttribute.Equals(attrType, SymbolEqualityComparer.Default))
                     {
-                        foreach (var attr in attrList.Attributes)
-                        {
-                            var attrTypeInfo = model.GetTypeInfo(attr);
-
-                            var attrType = attrTypeInfo.Type;
-                            if (attrType == null)
-                            {
-                                continue;
-                            }
-
-                            if (attrType.Equals(types.OurTypes.GenerateSerializerAttribute, SymbolEqualityComparer.Default))
-                            {
-                                ret.Add(decl);
-                            }
-                        }
+                        ret.Add(typeDecl);
                     }
                 }
             }
-
-            return ret.ToImmutable();
         }
     }
 }

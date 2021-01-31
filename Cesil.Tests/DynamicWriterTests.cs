@@ -35,6 +35,91 @@ namespace Cesil.Tests
         }
 
         [Fact]
+        public void WriteRowEndings()
+        {
+            // \r\n
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed).ToOptions();
+
+                var r1 = MakeDynamicRow("A\r\nfoo");
+                var r2 = MakeDynamicRow("A\r\nbar");
+
+                RunSyncDynamicWriterVariants(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.Write(r1);
+                            csv.Write(r2);
+                        }
+
+                        var txt = getStr();
+                        Assert.Equal("A\r\nfoo\r\nbar", txt);
+                    }
+                );
+
+                r1.Dispose();
+                r2.Dispose();
+            }
+
+            // \r
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteRowEnding(WriteRowEnding.CarriageReturn).ToOptions();
+
+                var r1 = MakeDynamicRow("A\r\nfoo");
+                var r2 = MakeDynamicRow("A\r\nbar");
+
+                RunSyncDynamicWriterVariants(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.Write(r1);
+                            csv.Write(r2);
+                        }
+
+                        var txt = getStr();
+                        Assert.Equal("A\rfoo\rbar", txt);
+                    }
+                );
+
+                r1.Dispose();
+                r2.Dispose();
+            }
+
+            // \n
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteRowEnding(WriteRowEnding.LineFeed).ToOptions();
+
+                var r1 = MakeDynamicRow("A\r\nfoo");
+                var r2 = MakeDynamicRow("A\r\nbar");
+
+                RunSyncDynamicWriterVariants(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.Write(r1);
+                            csv.Write(r2);
+                        }
+
+                        var txt = getStr();
+                        Assert.Equal("A\nfoo\nbar", txt);
+                    }
+                );
+
+                r1.Dispose();
+                r2.Dispose();
+            }
+        }
+
+        [Fact]
         public void WriteRange()
         {
             var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteHeader(WriteHeader.Never).ToOptions();
@@ -2113,6 +2198,91 @@ namespace Cesil.Tests
         }
 
         // async tests
+
+        [Fact]
+        public async Task WriteRowEndingsAsync()
+        {
+            // \r\n
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed).ToOptions();
+
+                var r1 = MakeDynamicRow("A\r\nfoo");
+                var r2 = MakeDynamicRow("A\r\nbar");
+
+                await RunAsyncDynamicWriterVariants(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAsync(r1);
+                            await csv.WriteAsync(r2);
+                        }
+
+                        var txt = await getStr();
+                        Assert.Equal("A\r\nfoo\r\nbar", txt);
+                    }
+                );
+
+                r1.Dispose();
+                r2.Dispose();
+            }
+
+            // \r
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteRowEnding(WriteRowEnding.CarriageReturn).ToOptions();
+
+                var r1 = MakeDynamicRow("A\r\nfoo");
+                var r2 = MakeDynamicRow("A\r\nbar");
+
+                await RunAsyncDynamicWriterVariants(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAsync(r1);
+                            await csv.WriteAsync(r2);
+                        }
+
+                        var txt = await getStr();
+                        Assert.Equal("A\rfoo\rbar", txt);
+                    }
+                );
+
+                r1.Dispose();
+                r2.Dispose();
+            }
+
+            // \n
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithWriteRowEnding(WriteRowEnding.LineFeed).ToOptions();
+
+                var r1 = MakeDynamicRow("A\r\nfoo");
+                var r2 = MakeDynamicRow("A\r\nbar");
+
+                await RunAsyncDynamicWriterVariants(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAsync(r1);
+                            await csv.WriteAsync(r2);
+                        }
+
+                        var txt = await getStr();
+                        Assert.Equal("A\nfoo\nbar", txt);
+                    }
+                );
+
+                r1.Dispose();
+                r2.Dispose();
+            }
+        }
 
         [Fact]
         public async Task WriteRangeAsync()

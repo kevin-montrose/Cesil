@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+
+using static Cesil.BindingFlagsConstants;
 
 namespace Cesil
 {
@@ -14,7 +17,7 @@ namespace Cesil
             var ret = field.GetValue(obj);
             if (ret == null)
             {
-                return Throw.InvalidOperationException<object>($"Expected non-null value when reading field {field}, but was null");
+                Throw.InvalidOperationException($"Expected non-null value when reading field {field}, but was null");
             }
 
             return ret;
@@ -25,7 +28,7 @@ namespace Cesil
             var ret = prop.GetValue(obj);
             if (ret == null)
             {
-                return Throw.InvalidOperationException<object>($"Expected non-null value when reading property {prop}, but was null");
+                Throw.InvalidOperationException($"Expected non-null value when reading property {prop}, but was null");
             }
 
             return ret;
@@ -136,7 +139,8 @@ namespace Cesil
                     var val = arg.Value;
                     if (val == null)
                     {
-                        return Throw.ImpossibleException<NullHandling>($@"NullableAttribute with null first argument (on member {member}), this should not be possible");
+                        Throw.ImpossibleException($@"NullableAttribute with null first argument (on member {member}), this should not be possible");
+                        return default;
                     }
 
                     if (argType == Types.Byte)
@@ -151,7 +155,8 @@ namespace Cesil
                         var firstArg = valArr.FirstOrDefault().Value;
                         if (firstArg == null)
                         {
-                            return Throw.ImpossibleException<NullHandling>($@"NullableAttribute with missing or null first argument (on member {member}), this should not be possible");
+                            Throw.ImpossibleException($@"NullableAttribute with missing or null first argument (on member {member}), this should not be possible");
+                            return default;
                         }
 
                         // we only care about the _first_ byte which describe the root reference
@@ -161,7 +166,8 @@ namespace Cesil
                     }
                     else
                     {
-                        return Throw.ImpossibleException<NullHandling>($@"NullableAttribute with unexpected argument type {argType} (on member {member}), this should not be possible");
+                        Throw.ImpossibleException($@"NullableAttribute with unexpected argument type {argType} (on member {member}), this should not be possible");
+                        return default;
                     }
                 }
             }
@@ -179,7 +185,8 @@ namespace Cesil
                         var val = arg.Value;
                         if (val == null)
                         {
-                            return Throw.ImpossibleException<NullHandling>($@"NullableContextAttribute with null first argument (on member {member}), this should not be possible");
+                            Throw.ImpossibleException($@"NullableContextAttribute with null first argument (on member {member}), this should not be possible");
+                            return default;
                         }
 
                         var valByte = (byte)val;
@@ -199,7 +206,7 @@ namespace Cesil
                     0 => GetObliviousNullHandling(effectiveMemberType),
                     1 => NullHandling.ForbidNull,
                     2 => NullHandling.AllowNull,
-                    _ => Throw.ImpossibleException<NullHandling>($@"NullableAttribute with unexpected argument {val} (on member {member}), this should not be possible"),
+                    _ => Throw.ImpossibleException_Returns<NullHandling>($@"NullableAttribute with unexpected argument {val} (on member {member}), this should not be possible"),
                 };
             }
 
@@ -319,7 +326,7 @@ namespace Cesil
             var consNull = type.GetConstructor(bindingAttr, binder, types, modifiers);
             if (consNull == null)
             {
-                return Throw.InvalidOperationException<ConstructorInfo>($"Could not get constructor on {type} for {string.Join(", ", (IEnumerable<TypeInfo>)types)} with {bindingAttr}");
+                Throw.InvalidOperationException($"Could not get constructor on {type} for {string.Join(", ", (IEnumerable<TypeInfo>)types)} with {bindingAttr}");
             }
 
             return consNull;
@@ -330,7 +337,7 @@ namespace Cesil
             var consNull = type.GetConstructor(args);
             if (consNull == null)
             {
-                return Throw.InvalidOperationException<ConstructorInfo>($"Could not get constructor on {type} for {string.Join(", ", (IEnumerable<TypeInfo>)args)}");
+                Throw.InvalidOperationException($"Could not get constructor on {type} for {string.Join(", ", (IEnumerable<TypeInfo>)args)}");
             }
 
             return consNull;
@@ -341,7 +348,7 @@ namespace Cesil
             var elemNull = type.GetElementType();
             if (elemNull == null)
             {
-                return Throw.InvalidOperationException<TypeInfo>($"Could not get element type for {type}");
+                Throw.InvalidOperationException($"Could not get element type for {type}");
             }
 
             return elemNull.GetTypeInfo();
@@ -356,7 +363,7 @@ namespace Cesil
             //   happen
             if (declNull == null)
             {
-                return Throw.InvalidOperationException<TypeInfo>($"Could not find declaring type for {cons}");
+                Throw.InvalidOperationException($"Could not find declaring type for {cons}");
             }
 
             return declNull.GetTypeInfo();
@@ -370,7 +377,7 @@ namespace Cesil
             //   which is weird, but legal, so check for it
             if (declNull == null)
             {
-                return Throw.InvalidOperationException<TypeInfo>($"Could not find declaring type for {mtd}");
+                Throw.InvalidOperationException($"Could not find declaring type for {mtd}");
             }
 
             return declNull.GetTypeInfo();
@@ -384,7 +391,7 @@ namespace Cesil
             //   which is weird, but legal, so check for it
             if (declNull == null)
             {
-                return Throw.InvalidOperationException<TypeInfo>($"Could not find declaring type for {field}");
+                Throw.InvalidOperationException($"Could not find declaring type for {field}");
             }
 
             return declNull.GetTypeInfo();
@@ -395,7 +402,7 @@ namespace Cesil
             var fieldNull = type.GetField(fieldName, flags);
             if (fieldNull == null)
             {
-                return Throw.InvalidOperationException<FieldInfo>($"Could not find field {fieldName} with {flags} on {type}");
+                Throw.InvalidOperationException($"Could not find field {fieldName} with {flags} on {type}");
             }
 
             return fieldNull;
@@ -406,7 +413,7 @@ namespace Cesil
             var mtdNull = type.GetMethod(methodName);
             if (mtdNull == null)
             {
-                return Throw.InvalidOperationException<MethodInfo>($"Could not find method {methodName} on {type}");
+                Throw.InvalidOperationException($"Could not find method {methodName} on {type}");
             }
 
             return mtdNull;
@@ -417,7 +424,7 @@ namespace Cesil
             var mtdNull = type.GetMethod(methodName, flags);
             if (mtdNull == null)
             {
-                return Throw.InvalidOperationException<MethodInfo>($"Could not find method {methodName} with {flags} on {type}");
+                Throw.InvalidOperationException($"Could not find method {methodName} with {flags} on {type}");
             }
 
             return mtdNull;
@@ -429,10 +436,9 @@ namespace Cesil
 
             if (mtdNull == null)
             {
-                return
-                    Throw.InvalidOperationException<MethodInfo>(
-                        $"Could not find method {methodName} with {flags} and ({string.Join(", ", parameterTypes.Select(s => s.FullName))}) on {type}"
-                    );
+                Throw.InvalidOperationException(
+                    $"Could not find method {methodName} with {flags} and ({string.Join(", ", parameterTypes.Select(s => s.FullName))}) on {type}"
+                );
             }
 
             return mtdNull;
@@ -443,7 +449,7 @@ namespace Cesil
             var propNull = type.GetProperty(propName, flags);
             if (propNull == null)
             {
-                return Throw.InvalidOperationException<PropertyInfo>($"Could not find property {propName} with {flags} on {type}");
+                Throw.InvalidOperationException($"Could not find property {propName} with {flags} on {type}");
             }
 
             return propNull;
@@ -454,7 +460,7 @@ namespace Cesil
             var getNull = prop.GetMethod;
             if (getNull == null)
             {
-                return Throw.InvalidOperationException<MethodInfo>($"Could not find getter on {prop}");
+                Throw.InvalidOperationException($"Could not find getter on {prop}");
             }
 
             return getNull;
@@ -468,10 +474,146 @@ namespace Cesil
             //   which is craaaaazy unlikely but technically possible
             if (type == null)
             {
-                return Throw.InvalidOperationException<TypeInfo>($"Created type was null");
+                Throw.InvalidOperationException($"Created type was null");
             }
 
             return type;
+        }
+
+        internal static (ConstructorInfo PrimaryCons, ImmutableHashSet<PropertyInfo> SetByCons, int? RecordDepth) ReadRecordType(this TypeInfo type)
+        {
+            if(!type.IsRecordType(out var cons, out var props, out var depth))
+            {
+                Throw.ImpossibleException($"Type {type} was assumed to be a record, but isn't");
+            }
+
+            return (cons, props, depth);
+        }
+
+        internal static bool IsRecordType(
+            this TypeInfo type,
+            [MaybeNullWhen(returnValue: false)] out ConstructorInfo primaryCons,
+            out ImmutableHashSet<PropertyInfo> setByCons,
+            out int? recordDepth
+        )
+        {
+            if (!LooksLikeRecordType(type))
+            {
+                primaryCons = null;
+                setByCons = ImmutableHashSet<PropertyInfo>.Empty;
+                recordDepth = null;
+                return false;
+            }
+
+            // has to have a protected constructor taking self
+            var cons = type.GetConstructor(InternalInstance, null, new[] { type }, null);
+
+            var methods = type.GetMethods(PublicInstance);
+            var deconstruct = methods.SingleOrDefault(m => m.Name == "Deconstruct" && m.DeclaringTypeNonNull() == type);
+
+            if (deconstruct == null)
+            {
+                // implies this has NO parameters to a primary constructor
+                // that is, it's a declaration of the form
+                //   record Foo;
+
+                var publicCons = type.GetConstructorNonNull(PublicInstance, null, Array.Empty<TypeInfo>(), null);
+                primaryCons = publicCons;
+                setByCons = ImmutableHashSet<PropertyInfo>.Empty;
+                recordDepth = DetermineDepth(type);
+                return true;
+            }
+
+            var deconstructParams = deconstruct.GetParameters();
+            if (deconstructParams.Length == 0 || deconstructParams.Any(p => !p.ParameterType.IsByRef))
+            {
+                // wut
+
+                primaryCons = null;
+                setByCons = ImmutableHashSet<PropertyInfo>.Empty;
+                recordDepth = null;
+                return false;
+            }
+
+            var primaryConsParamTypess = deconstructParams.Select(p => p.ParameterType.GetTypeInfo().GetElementTypeNonNull()).ToArray();
+            primaryCons = type.GetConstructor(PublicInstance, null, primaryConsParamTypess, null);
+
+            if (primaryCons == null)
+            {
+                setByCons = ImmutableHashSet<PropertyInfo>.Empty;
+                recordDepth = null;
+                return false;
+            }
+
+            var properties = type.GetProperties(PublicInstance);
+            var primaryConsParams = primaryCons.GetParameters();
+            setByCons =
+                properties
+                    .Where(
+                        p =>
+                            p.IsAutoInit() &&
+                            primaryConsParams.Any(pcp => pcp.Name == p.Name && pcp.ParameterType == p.PropertyType)
+                    )
+                    .ToImmutableHashSet();
+            recordDepth = DetermineDepth(type);
+
+            return true;
+
+            // how deep in the heirarchy of record types is this type?
+            static int DetermineDepth(TypeInfo d)
+            {
+                var ret = 0;
+                var baseType = d.BaseType?.GetTypeInfo();
+                while (baseType != null && LooksLikeRecordType(baseType))
+                {
+                    ret++;
+                    baseType = baseType.BaseType?.GetTypeInfo();
+                }
+
+                return ret;
+            }
+
+            // does it have the minimum bits needed to be a record?
+            static bool LooksLikeRecordType(TypeInfo type)
+            {
+                // has to have a protected constructor taking self
+                var cons = type.GetConstructor(InternalInstance, null, new[] { type }, null);
+                if (cons == null)
+                {
+                    return false;
+                }
+
+                // has to have this "unspeakable" clone method
+                var mtd = type.GetMethod("<Clone>$", PublicInstance);
+                if (mtd == null)
+                {
+                    return false;
+                }
+
+                return true;
+            }
+        }
+
+        internal static bool IsAutoInit(this PropertyInfo prop)
+        {
+            if (prop.SetMethod == null)
+            {
+                return false;
+            }
+
+            var declType = prop.DeclaringType;
+            if (declType == null)
+            {
+                return false;
+            }
+
+            var backingField = declType.GetField($"<{prop.Name}>k__BackingField", All);
+            if (backingField == null)
+            {
+                return false;
+            }
+
+            return !backingField.IsPublic && backingField.IsInitOnly && !backingField.IsStatic;
         }
     }
 }

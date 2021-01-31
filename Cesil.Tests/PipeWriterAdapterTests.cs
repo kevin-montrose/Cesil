@@ -127,7 +127,9 @@ namespace Cesil.Tests
                         if (en == Encoding.BigEndianUnicode.EncodingName) return -1;
                         if (en == Encoding.Unicode.EncodingName) return -1;
                         if (en == Encoding.UTF32.EncodingName) return -1;
+#pragma warning disable SYSLIB0001 // UTF7 is garbage, but keep the test
                         if (en == Encoding.UTF7.EncodingName) return -1;
+#pragma warning restore SYSLIB0001
                         if (en == Encoding.UTF8.EncodingName) return -1;
 
                         return 0;

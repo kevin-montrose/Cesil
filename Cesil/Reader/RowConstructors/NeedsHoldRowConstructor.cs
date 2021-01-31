@@ -349,7 +349,7 @@ namespace Cesil
         {
             if (RowStarted)
             {
-                Throw.ImpossibleException<object>("Row already started");
+                Throw.ImpossibleException("Row already started");
             }
 
             _RowStarted = true;
@@ -371,14 +371,12 @@ namespace Cesil
         {
             if (!_RowStarted)
             {
-                Throw.ImpossibleException<object>("Row hasn't been started, column is unexpected");
-                return;
+                Throw.ImpossibleException("Row hasn't been started, column is unexpected");
             }
 
             if (columnNumber >= MemberLookup.Length)
             {
-                Throw.InvalidOperationException<object>($"Unexpected column (Index={columnNumber})");
-                return;
+                Throw.InvalidOperationException($"Unexpected column (Index={columnNumber})");
             }
 
             var (simpleMember, heldMember) = LookupColumn(columnNumber);
@@ -396,8 +394,7 @@ namespace Cesil
 
                 if (required == MemberRequired.Yes && data.Length == 0)
                 {
-                    Throw.SerializationException<object>($"Column [{ctx.Column}] is required, but was not found in row");
-                    return;
+                    Throw.SerializationException($"Column [{ctx.Column}] is required, but was not found in row");
                 }
 
                 if (CurrentPopulated)
@@ -426,8 +423,7 @@ namespace Cesil
 
                 if (required == MemberRequired.Yes && data.Length == 0)
                 {
-                    Throw.SerializationException<object>($"Column [{ctx.Column}] is required, but was not found in row");
-                    return;
+                    Throw.SerializationException($"Column [{ctx.Column}] is required, but was not found in row");
                 }
 
                 parseAndHold(ref Hold, in ctx, data);
@@ -447,15 +443,13 @@ namespace Cesil
 
                             if (shallowCtx.Mode != ReadContextMode.ReadingColumn)
                             {
-                                Throw.ImpossibleException<object>($"{nameof(ShallowReadContext)} wasn't for {ReadContextMode.ReadingColumn}, which was not expected");
-                                return;
+                                Throw.ImpossibleException($"{nameof(ShallowReadContext)} wasn't for {ReadContextMode.ReadingColumn}, which was not expected");
                             }
 
                             var (simpleMemberInner, _) = LookupColumn(shallowCtx.ColumnIndex);
                             if (simpleMemberInner == null)
                             {
-                                Throw.ImpossibleException<object>($"Column [{shallowCtx.ColumnIndex}] recorded as a previously set simple column, but could not be found when creating row");
-                                return;
+                                Throw.ImpossibleException($"Column [{shallowCtx.ColumnIndex}] recorded as a previously set simple column, but could not be found when creating row");
                             }
 
                             var (nameInner, _, _, moveToRow, _) = SimpleMembers[simpleMemberInner.Value];
@@ -480,10 +474,10 @@ namespace Cesil
             {
                 if (RowStarted)
                 {
-                    return Throw.SerializationException<TRow>($"Current row has started, but insufficient columns have been parsed to create the row");
+                    Throw.SerializationException($"Current row has started, but insufficient columns have been parsed to create the row");
                 }
 
-                return Throw.ImpossibleException<TRow>($"No current row available, shouldn't be trying to finish a row");
+                Throw.ImpossibleException($"No current row available, shouldn't be trying to finish a row");
             }
 
             if (!RequiredTracker.CheckRequiredAndClear(out var missingIx))
@@ -492,12 +486,12 @@ namespace Cesil
                 if (simpleMember != null)
                 {
                     var (name, _, _, _, _) = SimpleMembers[simpleMember.Value];
-                    return Throw.SerializationException<TRow>($"Column [{name}] is required, but was not found in row");
+                    Throw.SerializationException($"Column [{name}] is required, but was not found in row");
                 }
                 else
                 {
                     // held isn't actually possible, because of the RowStarted check above
-                    return Throw.ImpossibleException<TRow>($"Column in position {missingIx} was required and missing, but couldn't find a member to match it to.  This shouldn't happen.");
+                    Throw.ImpossibleException($"Column in position {missingIx} was required and missing, but couldn't find a member to match it to.  This shouldn't happen.");
                 }
             }
 

@@ -103,7 +103,7 @@ namespace Cesil
                     var val = cell.Value as object;
                     if (!del(val, in ctx, Buffer))
                     {
-                        Throw.SerializationException<object>($"Could not write column {ci}, formatter {formatter} returned false");
+                        Throw.SerializationException($"Could not write column {ci}, formatter {formatter} returned false");
                     }
 
                     ReadOnlySequence<char> res = default;
@@ -124,7 +124,7 @@ end:
             }
             catch (Exception e)
             {
-                Throw.PoisonAndRethrow<object>(this, e);
+                Throw.PoisonAndRethrow(this, e);
             }
         }
 
@@ -165,8 +165,7 @@ end:
 
                 if (commentCharNullable == null)
                 {
-                    Throw.InvalidOperationException<object>($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
-                    return;
+                    Throw.InvalidOperationException($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
                 }
 
                 HasWrittenComments = true;
@@ -225,7 +224,7 @@ end:
             }
             catch (Exception e)
             {
-                Throw.PoisonAndRethrow<object>(this, e);
+                Throw.PoisonAndRethrow(this, e);
             }
         }
 
@@ -285,8 +284,7 @@ end:
 
                 if (colName == null)
                 {
-                    Throw.InvalidOperationException<object>($"No column name found at index {colIx} when {nameof(Cesil.WriteHeader)} = {options.WriteHeader}");
-                    return;
+                    Throw.InvalidOperationException($"No column name found at index {colIx} when {nameof(Cesil.WriteHeader)} = {options.WriteHeader}");
                 }
 
                 var encodedColName = colName;
@@ -410,7 +408,7 @@ end:
                     CellBuffer?.Dispose();
                     ColumnNames?.Dispose();
 
-                    Throw.PoisonAndRethrow<object>(this, e);
+                    Throw.PoisonAndRethrow(this, e);
                 }
             }
         }

@@ -27,7 +27,7 @@ namespace Cesil
 
             if (options.ReadHeader == ReadHeader.Detect)
             {
-                return Throw.ArgumentException<IBoundConfiguration<dynamic>>($"Dynamic deserialization cannot detect the presence of headers, you must specify a {nameof(ReadHeader)} of {nameof(ReadHeader.Always)} or {nameof(ReadHeader.Never)}", nameof(options));
+                Throw.ArgumentException($"Dynamic deserialization cannot detect the presence of headers, you must specify a {nameof(ReadHeader)} of {nameof(ReadHeader.Always)} or {nameof(ReadHeader.Never)}", nameof(options));
             }
 
             return new DynamicBoundConfiguration(options);
@@ -52,7 +52,7 @@ namespace Cesil
 
             if (forType == Types.Object)
             {
-                return Throw.InvalidOperationException<IBoundConfiguration<TRow>>($"Use {nameof(ForDynamic)} when creating configurations for dynamic types");
+                Throw.InvalidOperationException($"Use {nameof(ForDynamic)} when creating configurations for dynamic types");
             }
 
             var deserializeMembers = options.TypeDescriber.EnumerateMembersToDeserialize(forType);
@@ -137,20 +137,17 @@ namespace Cesil
         {
             if (serializeColumns == null)
             {
-                Throw.InvalidOperationException<object>($"Registered {nameof(ITypeDescriber)} returned null for {nameof(ITypeDescriber.EnumerateMembersToSerialize)}");
-                return;
+                Throw.InvalidOperationException($"Registered {nameof(ITypeDescriber)} returned null for {nameof(ITypeDescriber.EnumerateMembersToSerialize)}");
             }
 
             if (deserializeColumns == null)
             {
-                Throw.InvalidOperationException<object>($"Registered {nameof(ITypeDescriber)} returned null for {nameof(ITypeDescriber.EnumerateMembersToDeserialize)}");
-                return;
+                Throw.InvalidOperationException($"Registered {nameof(ITypeDescriber)} returned null for {nameof(ITypeDescriber.EnumerateMembersToDeserialize)}");
             }
 
             if (!deserializeColumns.Any() && !serializeColumns.Any())
             {
-                Throw.InvalidOperationException<object>($"No columns found to read or write for {t.FullName}");
-                return;
+                Throw.InvalidOperationException($"No columns found to read or write for {t.FullName}");
             }
 
             if (provider != null)
@@ -180,8 +177,7 @@ namespace Cesil
 
                         if (!found)
                         {
-                            Throw.InvalidOperationException<object>($"No {nameof(Setter)} found for constructor parameter {p}");
-                            return;
+                            Throw.InvalidOperationException($"No {nameof(Setter)} found for constructor parameter {p}");
                         }
                     }
 
@@ -193,8 +189,7 @@ namespace Cesil
                         var cp = setter.ConstructorParameter.Value;
                         if (cp.Member != cons)
                         {
-                            Throw.InvalidOperationException<object>($"{setter} is backed by a parameter not on the constructor {cons}");
-                            return;
+                            Throw.InvalidOperationException($"{setter} is backed by a parameter not on the constructor {cons}");
                         }
 
                         // no need to check for nullability, since we're using a constructor we'll never have a null row
@@ -208,8 +203,7 @@ namespace Cesil
                         var setter = d.Setter;
                         if (setter.Mode == BackingMode.ConstructorParameter)
                         {
-                            Throw.InvalidOperationException<object>($"{setter} bound to constructor parameter when {nameof(InstanceProvider)} is not backed by a parameter taking constructor");
-                            return;
+                            Throw.InvalidOperationException($"{setter} bound to constructor parameter when {nameof(InstanceProvider)} is not backed by a parameter taking constructor");
                         }
                     }
                 }
@@ -218,8 +212,7 @@ namespace Cesil
             {
                 if (deserializeColumns.Any())
                 {
-                    Throw.InvalidOperationException<object>($"Registered {nameof(ITypeDescriber)} returned null for {nameof(ITypeDescriber.GetInstanceProvider)} while return non-null for {nameof(ITypeDescriber.EnumerateMembersToDeserialize)}");
-                    return;
+                    Throw.InvalidOperationException($"Registered {nameof(ITypeDescriber)} returned null for {nameof(ITypeDescriber.GetInstanceProvider)} while return non-null for {nameof(ITypeDescriber.EnumerateMembersToDeserialize)}");
                 }
             }
         }

@@ -147,8 +147,7 @@ namespace Cesil
 
             if (count < 0)
             {
-                Throw.ArgumentException<object>($"Must be >= 0", nameof(count));
-                return;
+                Throw.ArgumentException($"Must be >= 0", nameof(count));
             }
 
             Tail.BytesUsed += count;
@@ -160,7 +159,7 @@ namespace Cesil
 
             if (sizeHint < 0)
             {
-                return Throw.ArgumentException<Memory<char>>($"Must be >= 0", nameof(sizeHint));
+                Throw.ArgumentException($"Must be >= 0", nameof(sizeHint));
             }
 
             int size;
@@ -207,7 +206,7 @@ namespace Cesil
             {
                 if (size > MemoryPool.MaxBufferSize)
                 {
-                    return Throw.InvalidOperationException<Memory<char>>($"Needed a larger memory segment than could be requested, needed {size:N0}; {nameof(MemoryPool<char>.MaxBufferSize)} = {MemoryPool.MaxBufferSize:N0}");
+                    Throw.InvalidOperationException($"Needed a larger memory segment than could be requested, needed {size:N0}; {nameof(MemoryPool<char>.MaxBufferSize)} = {MemoryPool.MaxBufferSize:N0}");
                 }
 
                 alloc = MemoryPool.Rent(size);

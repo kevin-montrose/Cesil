@@ -40,7 +40,7 @@ namespace Cesil
                     ThrowOnNoRegisteredSurrogate = false;
                     break;
                 default:
-                    Throw.ImpossibleException<object>($"Unexpected {nameof(SurrogateTypeDescriberFallbackBehavior)}: {fallbackBehavior}");
+                    Throw.ImpossibleException($"Unexpected {nameof(SurrogateTypeDescriberFallbackBehavior)}: {fallbackBehavior}");
                     break;
             }
         }
@@ -107,7 +107,7 @@ namespace Cesil
             {
                 if (ThrowOnNoRegisteredSurrogate)
                 {
-                    return Throw.InvalidOperationException<IEnumerable<DeserializableMember>>($"No surrogate registered for {forType}");
+                    Throw.InvalidOperationException($"No surrogate registered for {forType}");
                 }
 
                 return FallbackDescriber.EnumerateMembersToDeserialize(forType);
@@ -141,7 +141,7 @@ namespace Cesil
             {
                 if (ThrowOnNoRegisteredSurrogate)
                 {
-                    return Throw.InvalidOperationException<IEnumerable<SerializableMember>>($"No surrogate registered for {forType}");
+                    Throw.InvalidOperationException($"No surrogate registered for {forType}");
                 }
 
                 return FallbackDescriber.EnumerateMembersToSerialize(forType);
@@ -176,7 +176,7 @@ namespace Cesil
             {
                 if (ThrowOnNoRegisteredSurrogate)
                 {
-                    return Throw.InvalidOperationException<InstanceProvider>($"No surrogate registered for {forType}");
+                    Throw.InvalidOperationException($"No surrogate registered for {forType}");
                 }
 
                 return FallbackDescriber.GetInstanceProvider(forType);
@@ -185,7 +185,7 @@ namespace Cesil
             var fromProxy = TypeDescriber.GetInstanceProvider(proxy);
             if (fromProxy == null)
             {
-                return Throw.InvalidOperationException<InstanceProvider>($"No {nameof(InstanceProvider)} returned by {TypeDescriber} for {proxy}");
+                Throw.InvalidOperationException($"No {nameof(InstanceProvider)} returned by {TypeDescriber} for {proxy}");
             }
 
             return Map(forType, fromProxy);
@@ -199,7 +199,7 @@ namespace Cesil
                 var surrogateResetWrapper = member.Reset.Value;
                 if (surrogateResetWrapper.Mode != BackingMode.Method)
                 {
-                    return Throw.InvalidOperationException<DeserializableMember>($"Cannot map reset {surrogateResetWrapper} onto {ontoType}, reset isn't backed by a method");
+                    Throw.InvalidOperationException($"Cannot map reset {surrogateResetWrapper} onto {ontoType}, reset isn't backed by a method");
                 }
 
                 var surrogateReset = surrogateResetWrapper.Method.Value;
@@ -220,7 +220,7 @@ namespace Cesil
                 resetOnType = ontoType.GetMethod(surrogateReset.Name, surrogateResetBinding, null, resetTakesTypes, null);
                 if (resetOnType == null)
                 {
-                    return Throw.InvalidOperationException<DeserializableMember>($"No equivalent to {resetOnType} found on {ontoType}");
+                    Throw.InvalidOperationException($"No equivalent to {resetOnType} found on {ontoType}");
                 }
             }
 
@@ -236,12 +236,12 @@ namespace Cesil
                         var fieldOnType = ontoType.GetField(surrogateField.Name, surrogateFieldBinding);
                         if (fieldOnType == null)
                         {
-                            return Throw.InvalidOperationException<DeserializableMember>($"No equivalent to {surrogateField} found on {ontoType}");
+                            Throw.InvalidOperationException($"No equivalent to {surrogateField} found on {ontoType}");
                         }
 
                         if (fieldOnType.FieldType != surrogateField.FieldType)
                         {
-                            return Throw.InvalidOperationException<DeserializableMember>($"Field {fieldOnType} type ({fieldOnType.FieldType}) does not match surrogate field {surrogateField} type ({surrogateField.FieldType})");
+                            Throw.InvalidOperationException($"Field {fieldOnType} type ({fieldOnType.FieldType}) does not match surrogate field {surrogateField} type ({surrogateField.FieldType})");
                         }
 
                         var required = GetEquivalentRequiredFor(member.IsRequired);
@@ -258,7 +258,7 @@ namespace Cesil
                         var setterOnType = ontoType.GetMethod(surrogateSetter.Name, surrogateSetterBinding);
                         if (setterOnType == null)
                         {
-                            return Throw.InvalidOperationException<DeserializableMember>($"No equivalent to {surrogateSetter} found on {ontoType}");
+                            Throw.InvalidOperationException($"No equivalent to {surrogateSetter} found on {ontoType}");
                         }
 
                         var paramsOnType = setterOnType.GetParameters();
@@ -266,7 +266,7 @@ namespace Cesil
 
                         if (paramsOnType.Length != paramsOnSurrogate.Length)
                         {
-                            return Throw.InvalidOperationException<DeserializableMember>($"Parameters for {setterOnType} do not match parameters for {surrogateSetter}");
+                            Throw.InvalidOperationException($"Parameters for {setterOnType} do not match parameters for {surrogateSetter}");
                         }
 
                         for (var i = 0; i < paramsOnType.Length; i++)
@@ -276,7 +276,7 @@ namespace Cesil
 
                             if (pOnType.ParameterType != pOnSurrogate.ParameterType)
                             {
-                                return Throw.InvalidOperationException<DeserializableMember>($"Parameter #{(i + 1)} on {setterOnType} does not match same parameter on {surrogateSetter}");
+                                Throw.InvalidOperationException($"Parameter #{(i + 1)} on {setterOnType} does not match same parameter on {surrogateSetter}");
                             }
                         }
 
@@ -285,9 +285,11 @@ namespace Cesil
                         return DeserializableMember.CreateInner(ontoType, member.Name, (Setter?)setterOnType, member.Parser, required, (Reset?)resetOnType, null);
                     }
                 case BackingMode.Delegate:
-                    return Throw.InvalidOperationException<DeserializableMember>($"Cannot map setter {surrogateSetterWrapper} onto {ontoType}, setter is backed by a delegate");
+                    Throw.InvalidOperationException($"Cannot map setter {surrogateSetterWrapper} onto {ontoType}, setter is backed by a delegate");
+                    return default;
                 default:
-                    return Throw.InvalidOperationException<DeserializableMember>($"Unexpected {nameof(BackingMode)}: {surrogateSetterWrapper.Mode}");
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {surrogateSetterWrapper.Mode}");
+                    return default;
             }
         }
 
@@ -302,7 +304,7 @@ namespace Cesil
                 {
                     if (surrogateShouldSerializeWrapper.Takes.HasValue && surrogateShouldSerializeWrapper.IsStatic)
                     {
-                        return Throw.InvalidOperationException<SerializableMember>($"Cannot map 'should serialize' {surrogateShouldSerializeWrapper} onto {ontoType}, it takes a parameter");
+                        Throw.InvalidOperationException($"Cannot map 'should serialize' {surrogateShouldSerializeWrapper} onto {ontoType}, it takes a parameter");
                     }
 
                     var surrogateShouldSerialize = surrogateShouldSerializeWrapper.Method.Value;
@@ -312,14 +314,15 @@ namespace Cesil
                     var shouldSerializeOnTypeMtd = ontoType.GetMethod(surrogateShouldSerialize.Name, surrogateShouldSerializeBinding);
                     if (shouldSerializeOnTypeMtd == null)
                     {
-                        return Throw.InvalidOperationException<SerializableMember>($"No equivalent to {surrogateShouldSerialize} found on {ontoType}");
+                        Throw.InvalidOperationException($"No equivalent to {surrogateShouldSerialize} found on {ontoType}");
                     }
 
                     shouldSerializeOnType = ShouldSerialize.ForMethod(shouldSerializeOnTypeMtd);
                 }
                 else
                 {
-                    return Throw.InvalidOperationException<SerializableMember>($"Cannot map 'should serialize' {surrogateShouldSerializeWrapper} onto {ontoType}, 'should serialize' isn't backed by a method");
+                    Throw.InvalidOperationException($"Cannot map 'should serialize' {surrogateShouldSerializeWrapper} onto {ontoType}, 'should serialize' isn't backed by a method");
+                    return default;
                 }
             }
             else
@@ -338,23 +341,25 @@ namespace Cesil
                         var fieldOnType = ontoType.GetField(surrogateField.Name, surrogateFieldBinding);
                         if (fieldOnType == null)
                         {
-                            return Throw.InvalidOperationException<SerializableMember>($"No equivalent to {surrogateField} found on {ontoType}");
+                            Throw.InvalidOperationException($"No equivalent to {surrogateField} found on {ontoType}");
                         }
 
                         if (fieldOnType.FieldType != surrogateField.FieldType)
                         {
-                            return Throw.InvalidOperationException<SerializableMember>($"Field {fieldOnType} type ({fieldOnType.FieldType}) does not match surrogate field {surrogateField} type ({surrogateField.FieldType})");
+                            Throw.InvalidOperationException($"Field {fieldOnType} type ({fieldOnType.FieldType}) does not match surrogate field {surrogateField} type ({surrogateField.FieldType})");
                         }
 
                         var emitDefaultField = GetEquivalentEmitFor(member.EmitDefaultValue);
                         return SerializableMember.CreateInner(ontoType, member.Name, (Getter?)fieldOnType, member.Formatter, shouldSerializeOnType, emitDefaultField);
                     }
                 case BackingMode.Delegate:
-                    return Throw.InvalidOperationException<SerializableMember>($"Cannot map getter {surrogateGetterWrapper} onto {ontoType}, getter isn't backed by a method");
+                    Throw.InvalidOperationException($"Cannot map getter {surrogateGetterWrapper} onto {ontoType}, getter isn't backed by a method");
+                    return default;
                 case BackingMode.Method:
                     goto handleMethod;
                 default:
-                    return Throw.InvalidOperationException<SerializableMember>($"Unexpected {nameof(BackingMode)}: {surrogateGetterWrapper.Mode}");
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {surrogateGetterWrapper.Mode}");
+                    return default;
             }
 
 handleMethod:
@@ -365,7 +370,7 @@ handleMethod:
             var getterOnType = ontoType.GetMethod(surrogateGetter.Name, surrogateGetterBinding);
             if (getterOnType == null)
             {
-                return Throw.InvalidOperationException<SerializableMember>($"No equivalent to {surrogateGetter} found on {ontoType}");
+                Throw.InvalidOperationException($"No equivalent to {surrogateGetter} found on {ontoType}");
             }
 
             var surrogateParams = surrogateGetter.GetParameters();
@@ -373,7 +378,7 @@ handleMethod:
 
             if (surrogateParams.Length != onTypeParams.Length)
             {
-                return Throw.InvalidOperationException<SerializableMember>($"Parameters for {getterOnType} do not match parameters for {surrogateGetter}");
+                Throw.InvalidOperationException($"Parameters for {getterOnType} do not match parameters for {surrogateGetter}");
             }
 
             for (var i = 0; i < surrogateParams.Length; i++)
@@ -383,7 +388,7 @@ handleMethod:
 
                 if (sP != tP)
                 {
-                    return Throw.InvalidOperationException<SerializableMember>($"Parameter #{(i + 1)} on {getterOnType} does not match same parameter on {surrogateGetter}");
+                    Throw.InvalidOperationException($"Parameter #{(i + 1)} on {getterOnType} does not match same parameter on {surrogateGetter}");
                 }
             }
 
@@ -396,7 +401,8 @@ handleMethod:
             switch (builder.Mode)
             {
                 case BackingMode.Delegate:
-                    return Throw.InvalidOperationException<InstanceProvider>($"Cannot map a delegate {nameof(InstanceProvider)} between types");
+                    Throw.InvalidOperationException($"Cannot map a delegate {nameof(InstanceProvider)} between types");
+                    return default;
                 case BackingMode.Constructor:
                     {
                         var surrogateCons = builder.Constructor.Value;
@@ -412,7 +418,7 @@ handleMethod:
                         var consOnType = ontoType.GetConstructor(surrogateConsBinding, null, consTypes, null);
                         if (consOnType == null)
                         {
-                            return Throw.InvalidOperationException<InstanceProvider>($"No equivalent to {surrogateCons} found on {ontoType}");
+                            Throw.InvalidOperationException($"No equivalent to {surrogateCons} found on {ontoType}");
                         }
 
                         var fallbacks = ImmutableArray<InstanceProvider>.Empty;
@@ -433,9 +439,11 @@ handleMethod:
                         return new InstanceProvider(consOnType, fallbacks, builder.ConstructsNullability, null);
                     }
                 case BackingMode.Method:
-                    return Throw.InvalidOperationException<InstanceProvider>($"Cannot map a method {nameof(InstanceProvider)} between types");
+                    Throw.InvalidOperationException($"Cannot map a method {nameof(InstanceProvider)} between types");
+                    return default;
                 default:
-                    return Throw.InvalidOperationException<InstanceProvider>($"Unexpected {nameof(BackingMode)}: {builder.Mode}");
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {builder.Mode}");
+                    return default;
             }
         }
 

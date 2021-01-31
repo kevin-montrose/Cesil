@@ -14,13 +14,126 @@ namespace Cesil.SourceGenerator
     {
         private static readonly SymbolDisplayFormat FullyQualifiedFormat = new SymbolDisplayFormat(typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces);
 
+        internal static readonly Func<SyntaxToken, SyntaxToken, SyntaxToken> TakeUpdatedToken = (a, b) => b;
+        internal static readonly Func<SyntaxTrivia, SyntaxTrivia, SyntaxTrivia> TakeUpdatedTrivia = (a, b) => b;
+
+        internal static bool IsNormalOrByRef(this RefKind refKind)
+        => refKind == RefKind.None || refKind == RefKind.Ref;
+
+        // todo: can this be made to handle InternalsVisibleTo?
+        internal static bool IsAccessible(this IMethodSymbol mtd, AttributedMembers attrMembers)
+        => mtd.DeclaredAccessibility == Accessibility.Public ||
+            (attrMembers.CompilingAssembly.Equals(mtd.ContainingAssembly, SymbolEqualityComparer.Default) &&
+             mtd.DeclaredAccessibility == Accessibility.Internal);
+
+        internal static bool ShouldInclude(this IPropertySymbol prop, ImmutableArray<AttributeSyntax> attrs)
+        => (prop.DeclaredAccessibility == Accessibility.Public && !prop.IsStatic) ||
+            !attrs.IsEmpty;
+
+        internal static (bool IsRecord, IMethodSymbol? PrimaryConstructor, ImmutableArray<IPropertySymbol> RecordDeclaredProperties) IsRecord(this INamedTypeSymbol symbol)
+        {
+            var isRecord = symbol.DeclaringSyntaxReferences.Where(x => x.GetSyntax().ParentOrSelfOfType<RecordDeclarationSyntax>() != null).Any();
+
+            if (!isRecord)
+            {
+                return (false, null, ImmutableArray<IPropertySymbol>.Empty);
+            }
+
+            var cons = symbol.GetMembers().OfType<IMethodSymbol>().Where(m => m.MethodKind == MethodKind.Constructor).ToImmutableArray();
+            var consRefs = cons.Select(s => s.DeclaringSyntaxReferences.Select(x => x.GetSyntax()).ToImmutableArray()).ToImmutableArray();
+
+            var primaryCons = cons.SingleOrDefault(c => c.DeclaredAccessibility == Accessibility.Public && c.DeclaringSyntaxReferences.Any(x => x.GetSyntax() is RecordDeclarationSyntax));
+
+            primaryCons ??= cons.Single(c => c.Parameters.Length == 0);
+
+            var recordDeclaredProperties = GetRecordDeclaredProperties(symbol);
+
+            return (true, primaryCons, recordDeclaredProperties);
+        }
+
+        private static ImmutableArray<IPropertySymbol> GetRecordDeclaredProperties(INamedTypeSymbol symbol)
+        {
+            var ret = ImmutableArray.CreateBuilder<IPropertySymbol>();
+
+            if (symbol.BaseType != null)
+            {
+                foreach (var prop in GetRecordDeclaredProperties(symbol.BaseType))
+                {
+                    ret.Add(prop);
+                }
+            }
+
+            var primaryCons =
+                symbol
+                    .GetMembers()
+                    .OfType<IMethodSymbol>()
+                    .Where(m => m.MethodKind == MethodKind.Constructor)
+                    .SingleOrDefault(c => c.DeclaredAccessibility == Accessibility.Public && c.DeclaringSyntaxReferences.Any(x => x.GetSyntax() is RecordDeclarationSyntax));
+
+            var declaredProps = symbol.GetMembers().OfType<IPropertySymbol>().ToImmutableArray();
+
+            if (primaryCons != null)
+            {
+                foreach (var p in primaryCons.Parameters)
+                {
+                    var correspondingProperty = declaredProps.Single(s => s.Name == p.Name);
+                    ret.Add(correspondingProperty);
+                }
+            }
+
+            return ret.ToImmutable();
+        }
+
+        internal static ImmutableArray<ISymbol> GetMembersIncludingInherited(this INamedTypeSymbol symbol)
+        {
+            var ret = ImmutableArray.CreateBuilder<ISymbol>();
+
+            if (symbol.BaseType != null)
+            {
+                ret.AddRange(GetMembersIncludingInherited(symbol.BaseType));
+            }
+
+            var members = symbol.GetMembers();
+            ret.AddRange(members);
+
+            return ret.ToImmutable();
+        }
+
         internal static bool IsFlagsEnum(FrameworkTypes types, ITypeSymbol forEnum)
         {
-            return forEnum.GetAttributes().Any(i => i.AttributeClass?.Equals(types.FlagsAttribute, SymbolEqualityComparer.Default) ?? false);
+            var attrs = forEnum.GetAttributes();
+            foreach (var i in attrs)
+            {
+                var attrClass = i.AttributeClass;
+
+                if (types.FlagsAttribute.Equals(attrClass, SymbolEqualityComparer.Default))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         internal static string ToFullyQualifiedName(this ITypeSymbol symbol)
-        => symbol.ToDisplayString(FullyQualifiedFormat);
+        {
+            if (symbol.TypeKind == TypeKind.Struct && symbol is INamedTypeSymbol maybeNullableEnum && maybeNullableEnum.Arity == 1)
+            {
+                var typeDecl = maybeNullableEnum.ConstructedFrom;
+                if (typeDecl.SpecialType == SpecialType.System_Nullable_T)
+                {
+                    var arg = maybeNullableEnum.TypeArguments.Single();
+                    return arg.ToFullyQualifiedName() + "?";
+                }
+            }
+
+            return symbol.SpecialType switch
+            {
+                SpecialType.System_IntPtr => "System.IntPtr",
+                SpecialType.System_UIntPtr => "System.UIntPtr",
+                _ => symbol.ToDisplayString(FullyQualifiedFormat)
+            };
+        }
 
         internal static T NonNull<T>(T? item)
             where T : class
@@ -44,24 +157,32 @@ namespace Cesil.SourceGenerator
             return item.Value;
         }
 
-        internal static ImmutableArray<T> GetConstantsWithName<T>(Compilation compilation, ImmutableArray<AttributeSyntax> attrs, string name, ref ImmutableArray<Diagnostic> diags)
+        internal static ImmutableArray<T> GetConstantsWithName<T>(
+            AttributedMembers attrMembers, 
+            ImmutableArray<AttributeSyntax> attrs, 
+            string name, 
+            ref ImmutableArray<Diagnostic> diags
+        )
         {
             var ret = ImmutableArray<T>.Empty;
 
             foreach (var attr in attrs)
             {
-                var argList = attr.ArgumentList;
-                if (argList == null) continue;
-
-                var model = compilation.GetSemanticModel(attr.SyntaxTree);
-
-                var values = argList.Arguments.Where(a => a.NameEquals != null && a.NameEquals.Name.Identifier.ValueText == name);
-                foreach (var value in values)
+                if(!attrMembers.AttributeToConstantValues.TryGetValue(attr, out var constValues))
                 {
-                    var trueValue = model.GetConstantValue(value.Expression);
+                    continue;
+                }
+
+                if(!constValues.TryGetValue(name, out var values))
+                {
+                    continue;
+                }
+
+                foreach (var (expression, trueValue) in values)
+                {
                     if (!trueValue.HasValue)
                     {
-                        var diag = Diagnostics.CouldNotExtractConstantValue(value.Expression.GetLocation());
+                        var diag = Diagnostics.CouldNotExtractConstantValue(expression.GetLocation());
                         diags = diags.Add(diag);
                         continue;
                     }
@@ -72,8 +193,8 @@ namespace Cesil.SourceGenerator
                     }
                     else
                     {
-                        var actualType = trueValue.Value?.GetType()?.GetTypeInfo();
-                        var diag = Diagnostics.UnexpectedConstantValueType(value.Expression.GetLocation(), new[] { typeof(T).GetTypeInfo() }, actualType);
+                        var actualType = trueValue.Value?.GetType().GetTypeInfo();
+                        var diag = Diagnostics.UnexpectedConstantValueType(expression.GetLocation(), new[] { typeof(T).GetTypeInfo() }, actualType);
                         diags = diags.Add(diag);
                         continue;
                     }
@@ -83,25 +204,33 @@ namespace Cesil.SourceGenerator
             return ret;
         }
 
-        internal static (ImmutableArray<T1> First, ImmutableArray<T2> Second) GetConstantsWithName<T1, T2>(Compilation compilation, ImmutableArray<AttributeSyntax> attrs, string name, ref ImmutableArray<Diagnostic> diags)
+        internal static (ImmutableArray<T1> First, ImmutableArray<T2> Second) GetConstantsWithName<T1, T2>(
+            AttributedMembers attrMembers,
+            ImmutableArray<AttributeSyntax> attrs,
+            string name, 
+            ref ImmutableArray<Diagnostic> diags
+        )
         {
             var ret1 = ImmutableArray<T1>.Empty;
             var ret2 = ImmutableArray<T2>.Empty;
 
             foreach (var attr in attrs)
             {
-                var argList = attr.ArgumentList;
-                if (argList == null) continue;
-
-                var model = compilation.GetSemanticModel(attr.SyntaxTree);
-
-                var values = argList.Arguments.Where(a => a.NameEquals != null && a.NameEquals.Name.Identifier.ValueText == name);
-                foreach (var value in values)
+                if (!attrMembers.AttributeToConstantValues.TryGetValue(attr, out var constValues))
                 {
-                    var trueValue = model.GetConstantValue(value.Expression);
+                    continue;
+                }
+
+                if (!constValues.TryGetValue(name, out var values))
+                {
+                    continue;
+                }
+
+                foreach (var (expression, trueValue)  in values)
+                {
                     if (!trueValue.HasValue)
                     {
-                        var diag = Diagnostics.CouldNotExtractConstantValue(value.Expression.GetLocation());
+                        var diag = Diagnostics.CouldNotExtractConstantValue(expression.GetLocation());
                         diags = diags.Add(diag);
                         continue;
                     }
@@ -116,8 +245,8 @@ namespace Cesil.SourceGenerator
                     }
                     else
                     {
-                        var actualType = trueValue.Value?.GetType()?.GetTypeInfo();
-                        var diag = Diagnostics.UnexpectedConstantValueType(value.Expression.GetLocation(), new[] { typeof(T1).GetTypeInfo(), typeof(T2).GetTypeInfo() }, actualType);
+                        var actualType = trueValue.Value?.GetType().GetTypeInfo();
+                        var diag = Diagnostics.UnexpectedConstantValueType(expression.GetLocation(), new[] { typeof(T1).GetTypeInfo(), typeof(T2).GetTypeInfo() }, actualType);
                         diags = diags.Add(diag);
                         continue;
                     }
@@ -128,7 +257,7 @@ namespace Cesil.SourceGenerator
         }
 
         internal static int? GetOrderFromAttributes(
-            Compilation compilation,
+            AttributedMembers attrMembers,
             Location? location,
             FrameworkTypes frameworkTypes,
             INamedTypeSymbol cesilMemberAttr,
@@ -146,28 +275,22 @@ namespace Cesil.SourceGenerator
 
             foreach (var attr in attrs)
             {
-                var model = compilation.GetSemanticModel(attr.Name.SyntaxTree);
-                var type = model.GetTypeInfo(attr.Name).Type;
-
-                if (type == null)
+                if(!attrMembers.AttributeSyntaxToAttributeType.TryGetValue(attr, out var type))
                 {
                     continue;
                 }
 
-                if (type.Equals(cesilMemberAttr, SymbolEqualityComparer.Default))
+                if (cesilMemberAttr.Equals(type, SymbolEqualityComparer.Default))
                 {
-                    var value = GetConstantsWithName<int>(compilation, ImmutableArray.Create(attr), "Order", ref diags);
+                    var value = GetConstantsWithName<int>(attrMembers, ImmutableArray.Create(attr), "Order", ref diags);
                     foreach (var val in value)
                     {
                         values.Add(val);
                     }
-
-                    continue;
                 }
-
-                if (dataMemberAttr != null && type.Equals(dataMemberAttr, SymbolEqualityComparer.Default))
+                else if (dataMemberAttr != null && dataMemberAttr.Equals(type, SymbolEqualityComparer.Default))
                 {
-                    var value = GetConstantsWithName<int>(compilation, ImmutableArray.Create(attr), "Order", ref diags);
+                    var value = GetConstantsWithName<int>(attrMembers, ImmutableArray.Create(attr), "Order", ref diags);
                     foreach (var val in value)
                     {
                         if (val == -1)
@@ -179,8 +302,6 @@ namespace Cesil.SourceGenerator
                             values.Add(val);
                         }
                     }
-
-                    continue;
                 }
             }
 
@@ -204,7 +325,7 @@ namespace Cesil.SourceGenerator
         }
 
         internal static (INamedTypeSymbol Type, string Method)? GetMethodFromAttribute(
-            Compilation compilation,
+            AttributedMembers attrMembers,
             string typeNameProperty,
             Func<Location?, Diagnostic> multipleTypeDefinitionDiagnostic,
             string methodNameProperty,
@@ -215,7 +336,7 @@ namespace Cesil.SourceGenerator
             ref ImmutableArray<Diagnostic> diags
         )
         {
-            var types = GetTypeConstantWithName(compilation, attrs, typeNameProperty, ref diags);
+            var types = GetTypeConstantWithName(attrMembers, attrs, typeNameProperty, ref diags);
             if (types.Length > 1)
             {
                 var diag = multipleTypeDefinitionDiagnostic(location);
@@ -226,7 +347,7 @@ namespace Cesil.SourceGenerator
 
             var type = types.SingleOrDefault();
 
-            var methods = GetConstantsWithName<string>(compilation, attrs, methodNameProperty, ref diags);
+            var methods = GetConstantsWithName<string>(attrMembers, attrs, methodNameProperty, ref diags);
             if (methods.Length > 1)
             {
                 var diag = multipleMethodDefinitionDiagnostic(location);
@@ -253,36 +374,37 @@ namespace Cesil.SourceGenerator
             return (type, method);
         }
 
-        private static ImmutableArray<INamedTypeSymbol> GetTypeConstantWithName(Compilation compilation, ImmutableArray<AttributeSyntax> attrs, string name, ref ImmutableArray<Diagnostic> diags)
+        internal static ImmutableArray<INamedTypeSymbol> GetTypeConstantWithName(
+            AttributedMembers attrMembers,
+            ImmutableArray<AttributeSyntax> attrs, 
+            string name, 
+            ref ImmutableArray<Diagnostic> diags
+        )
         {
             var ret = ImmutableArray<INamedTypeSymbol>.Empty;
 
             foreach (var attr in attrs)
             {
-                var argList = attr.ArgumentList;
-                if (argList == null) continue;
-
-                var model = compilation.GetSemanticModel(attr.SyntaxTree);
-
-                var values = argList.Arguments.Where(a => a.NameEquals != null && a.NameEquals.Name.Identifier.ValueText == name);
-                foreach (var value in values)
+                if (!attrMembers.AttributeToConstantValues.TryGetValue(attr, out var constValues))
                 {
+                    continue;
+                }
 
-                    if (value.Expression is TypeOfExpressionSyntax typeofExp)
+                if (!constValues.TryGetValue(name, out var values))
+                {
+                    continue;
+                }
+
+                foreach (var (expression, value) in values)
+                {
+                    if(!value.HasValue || !(value.Value is INamedTypeSymbol namedType))
                     {
-                        var type = model.GetTypeInfo(typeofExp.Type);
-
-                        if (type.Type is INamedTypeSymbol namedType)
-                        {
-                            ret = ret.Add(namedType);
-                        }
-                        else
-                        {
-                            var diag = Diagnostics.CouldNotExtractConstantValue(value.Expression.GetLocation());
-                            diags = diags.Add(diag);
-                            continue;
-                        }
+                        var diag = Diagnostics.CouldNotExtractConstantValue(expression.GetLocation());
+                        diags = diags.Add(diag);
+                        continue;
                     }
+
+                    ret = ret.Add(namedType);
                 }
             }
 
@@ -310,9 +432,14 @@ namespace Cesil.SourceGenerator
             return mtds.Single();
         }
 
-        internal static string? GetNameFromAttributes(Compilation compilation, Location? location, ImmutableArray<AttributeSyntax> attrs, ref ImmutableArray<Diagnostic> diags)
+        internal static string? GetNameFromAttributes(
+            AttributedMembers attrMembers,
+            Location? location, 
+            ImmutableArray<AttributeSyntax> attrs, 
+            ref ImmutableArray<Diagnostic> diags
+        )
         {
-            var names = Utils.GetConstantsWithName<string>(compilation, attrs, "Name", ref diags);
+            var names = GetConstantsWithName<string>(attrMembers, attrs, "Name", ref diags);
 
             if (names.Length > 1)
             {
@@ -352,7 +479,29 @@ namespace Cesil.SourceGenerator
         internal static T ReplaceIn<T>(T toReplaceIn, ImmutableDictionary<ReturnStatementSyntax, (ParameterListSyntax Parameters, BlockSyntax Statements)> replaceWith)
             where T : SyntaxNode
         {
-            var ret = toReplaceIn;
+            var nodesToReplaceBuilder = ImmutableDictionary.CreateBuilder<ReturnStatementSyntax, BlockSyntax>();
+
+            var nextParameterIndex =
+                NonNullValue(
+                    toReplaceIn
+                        .DescendantTokens()
+                        .Select(
+                            x =>
+                            {
+                                var valText = x.ValueText;
+                                if (!valText.StartsWith("__parameter_"))
+                                {
+                                    return default(int?);
+                                }
+
+                                var tail = valText.Substring("__parameter_".Length);
+                                return int.Parse(tail);
+                            }
+                        )
+                        .Where(x => x != null)
+                        .Concat(new int?[] { -1 })
+                        .Max()
+                ) + 1;
 
             foreach (var kv in replaceWith)
             {
@@ -369,7 +518,9 @@ namespace Cesil.SourceGenerator
                 {
                     var curParam = calledMethodParams.Parameters[i];
 
-                    var newVar = "__parameter_" + i;
+                    var newVar = "__parameter_" + nextParameterIndex;
+                    nextParameterIndex++;
+
                     var arg = toReplace.ArgumentList.Arguments[i];
                     var assign = "var " + newVar + " = (" + arg.ToFullString() + ");";
 
@@ -403,10 +554,14 @@ namespace Cesil.SourceGenerator
 
                 block = block.NormalizeWhitespace();
 
-                ret = ret.ReplaceNode(toReplaceRet, block);
+                nodesToReplaceBuilder.Add(toReplaceRet, block);
             }
 
-            return ret;
+            var nodesToReplace = nodesToReplaceBuilder.ToImmutable();
+
+            var ret = toReplaceIn.ReplaceNodes(nodesToReplace.Keys, (old, _) => nodesToReplace[old]);
+
+            return NonNull(ret);
         }
 
         internal static T InlineIfInnerCalls<T>(T toReplaceIn, TypeDeclarationSyntax referencesTo)
@@ -439,8 +594,54 @@ namespace Cesil.SourceGenerator
                     )
                     .ToImmutableArray();
 
+            var nextParameterIndex =
+                NonNullValue(
+                    toReplaceIn
+                        .DescendantTokens()
+                        .Select(
+                            x =>
+                            {
+                                var valText = x.ValueText;
+                                if (!valText.StartsWith("__parameter_"))
+                                {
+                                    return default(int?);
+                                }
+
+                                var tail = valText.Substring("__parameter_".Length);
+                                return int.Parse(tail);
+                            }
+                        )
+                        .Where(x => x != null)
+                        .Concat(new int?[] { -1 })
+                        .Max()
+                ) + 1;
+
+            var nextDoneIndex =
+                NonNullValue(
+                    toReplaceIn
+                        .DescendantTokens()
+                        .Select(
+                            x =>
+                            {
+                                var valText = x.ValueText;
+                                if (!valText.StartsWith("__callDone_"))
+                                {
+                                    return default(int?);
+                                }
+
+                                var tail = valText.Substring("__callDone_".Length);
+                                return int.Parse(tail);
+                            }
+                        )
+                        .Where(x => x != null)
+                        .Concat(new int?[] { -1 })
+                        .Max()
+                ) + 1;
+
             var toReplaceWith = ImmutableDictionary.CreateBuilder<IfStatementSyntax, BlockSyntax>();
             var toReplaceVariables = ImmutableDictionary.CreateBuilder<string, string>();
+
+            var labelName = SyntaxFactory.IdentifierName("__callDone_" + nextDoneIndex);
 
             foreach (var toReplaceRet in needReplace)
             {
@@ -453,7 +654,6 @@ namespace Cesil.SourceGenerator
                 var resVar = SyntaxFactory.IdentifierName("__resultOf_" + calledMethodName);
                 var resVarDecl = SyntaxFactory.ParseStatement("System.Boolean " + resVar.Identifier + ";");
 
-                var labelName = SyntaxFactory.IdentifierName("__callDone");
                 var gotoCallDone = SyntaxFactory.GotoStatement(SyntaxKind.GotoStatement, labelName);
                 var gotoLabel = SyntaxFactory.ParseStatement(labelName.Identifier.ValueText + ":");
 
@@ -462,24 +662,31 @@ namespace Cesil.SourceGenerator
 
                 var outParamIndexes = calledMethod.ParameterList.Parameters.Select((a, ix) => (Argument: a, Index: ix)).Where(t => t.Argument.Modifiers.Any(m => m.ValueText == "out")).Select(t => t.Index).ToImmutableArray();
 
-                foreach (var ix in outParamIndexes)
-                {
-                    var arg = toReplace.ArgumentList.Arguments[ix];
-                    var argExp = arg.Expression;
-                    var argExpIdent = argExp.DescendantTokens().Where(t => t.IsKind(SyntaxKind.IdentifierToken)).Where(v => v.ValueText != "var").ToImmutableArray();
-                    var outVar = argExpIdent.Single().ValueText;
-                    toReplaceVariables.Add(outVar, "__p_" + ix);
-                }
-
                 var paramsInMethodToNewParamsBuilder = ImmutableDictionary.CreateBuilder<string, SyntaxNode>();
                 for (var i = 0; i < paramsInMethod.Length; i++)
                 {
                     var oldP = paramsInMethod[i];
-                    var newP = "__p_" + i;
+
+                    var newP = "__parameter_" + nextParameterIndex;
+                    nextParameterIndex++;
+
                     paramsInMethodToNewParamsBuilder.Add(oldP, SyntaxFactory.IdentifierName(newP));
                 }
 
                 var paramsInMethodToNewParams = paramsInMethodToNewParamsBuilder.ToImmutable();
+
+                foreach (var ix in outParamIndexes)
+                {
+                    var arg = toReplace.ArgumentList.Arguments[ix];
+                    var pForArg = paramsInMethod[ix];
+                    var argExp = arg.Expression;
+                    var argExpIdent = argExp.DescendantTokens().Where(t => t.IsKind(SyntaxKind.IdentifierToken)).Where(v => v.ValueText != "var").ToImmutableArray();
+                    var outVar = argExpIdent.Single().ValueText;
+
+                    var mapsTo = paramsInMethodToNewParams[pForArg];
+
+                    toReplaceVariables.Add(outVar, mapsTo.ToFullString());
+                }
 
                 var variableUsesInCalledMethodBody =
                     calledMethodBody
@@ -494,9 +701,9 @@ namespace Cesil.SourceGenerator
                             variableUsesInCalledMethodBody,
                             (old, partialRewrite) => paramsInMethodToNewParams[((IdentifierNameSyntax)old).Identifier.ValueText].WithTriviaFrom(partialRewrite),
                             Enumerable.Empty<SyntaxToken>(),
-                            (a, b) => b,
+                            TakeUpdatedToken,
                             Enumerable.Empty<SyntaxTrivia>(),
-                            (a, b) => b
+                            TakeUpdatedTrivia
                         );
 
                 var retExprs = calledMethodBodyWithNewPs.DescendantNodesAndSelf().OfType<ReturnStatementSyntax>();
@@ -521,9 +728,9 @@ namespace Cesil.SourceGenerator
                                 return block;
                             },
                             Enumerable.Empty<SyntaxToken>(),
-                            (a, b) => b,
+                            TakeUpdatedToken,
                             Enumerable.Empty<SyntaxTrivia>(),
-                            (a, b) => b
+                            TakeUpdatedTrivia
                         );
 
                 var ifWithVar =
@@ -532,9 +739,9 @@ namespace Cesil.SourceGenerator
                             new[] { toReplace },
                             (_, old) => resVar.WithTriviaFrom(old),
                             Enumerable.Empty<SyntaxToken>(),
-                            (a, b) => b,
+                            TakeUpdatedToken,
                             Enumerable.Empty<SyntaxTrivia>(),
-                            (a, b) => b
+                            TakeUpdatedTrivia
                         );
 
                 var finalNodes = ImmutableArray.CreateBuilder<SyntaxNode>();
@@ -586,9 +793,9 @@ namespace Cesil.SourceGenerator
                         return newBlock;
                     },
                     Enumerable.Empty<SyntaxToken>(),
-                    (a, b) => b,
+                    TakeUpdatedToken,
                     Enumerable.Empty<SyntaxTrivia>(),
-                    (a, b) => b
+                    TakeUpdatedTrivia
                 );
 
             var variableReplacementMap = toReplaceVariables.ToImmutable();
@@ -611,6 +818,12 @@ namespace Cesil.SourceGenerator
                         return newToken.WithTriviaFrom(partialRewrite);
                     }
                 );
+
+            // recurse if we made any changes to handle new references entered
+            if (!ret.Equals(toReplaceIn))
+            {
+                return InlineIfInnerCalls(ret, referencesTo);
+            }
 
             return ret;
         }
@@ -660,6 +873,12 @@ namespace Cesil.SourceGenerator
 
             var ret = ReplaceIn(toReplaceIn, toReplaceWith.ToImmutable());
 
+            // do another pass, incase anything with inlined itself has relevant tail calls
+            if (!ret.Equals(toReplaceIn))
+            {
+                return InlineTailCalls(ret, referencesTo);
+            }
+
             return ret;
         }
 
@@ -667,13 +886,8 @@ namespace Cesil.SourceGenerator
         {
             const string UNUSED_USING = "CS8019";
 
-            var existingTree = compilation.SyntaxTrees.ElementAtOrDefault(0);
-            var options = existingTree?.Options as CSharpParseOptions;
-
-            if (options == null)
-            {
-                return source;
-            }
+            var existingTree = compilation.SyntaxTrees.ElementAt(0);
+            var options = NonNull(existingTree.Options as CSharpParseOptions);
 
             var syntaxTree = CSharpSyntaxTree.ParseText(source, options: options, encoding: Encoding.UTF8);
             var syntax = (CompilationUnitSyntax)syntaxTree.GetRoot();
@@ -809,7 +1023,7 @@ namespace Cesil.SourceGenerator
         }
 
         public static T MakeNonGenericType<T>(T template, string genericParameterName, string concreteTypeName)
-            where T: TypeDeclarationSyntax
+            where T : TypeDeclarationSyntax
         {
             // strip out type parameters
             var nonGeneric =
