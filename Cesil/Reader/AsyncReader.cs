@@ -189,9 +189,9 @@ namespace Cesil
         {
             var options = Configuration.Options;
 
-            if (options.RowEnding != RowEnding.Detect)
+            if (options.ReadRowEnding != ReadRowEnding.Detect)
             {
-                RowEndings = options.RowEnding;
+                RowEndings = options.ReadRowEnding;
                 TryMakeStateMachine();
                 return default;
             }
@@ -222,7 +222,7 @@ namespace Cesil
 
 
             // wait for header detection to finish, then continue async
-            static async ValueTask HandleLineEndingsAsync_ContinueAfterDetectAsync(AsyncReader<T> self, ValueTask<(RowEnding Ending, Memory<char> PushBack)?> waitFor, RowEndingDetector needsDispose, CancellationToken cancellationToken)
+            static async ValueTask HandleLineEndingsAsync_ContinueAfterDetectAsync(AsyncReader<T> self, ValueTask<(ReadRowEnding Ending, Memory<char> PushBack)?> waitFor, RowEndingDetector needsDispose, CancellationToken cancellationToken)
             {
                 try
                 {

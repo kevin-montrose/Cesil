@@ -180,9 +180,9 @@ namespace Cesil
         {
             var options = Configuration.Options;
 
-            if (options.RowEnding != RowEnding.Detect)
+            if (options.ReadRowEnding != ReadRowEnding.Detect)
             {
-                RowEndings = options.RowEnding;
+                RowEndings = options.ReadRowEnding;
                 TryMakeStateMachine();
                 return;
             }

@@ -281,7 +281,8 @@
             <summary>
             Default options:
               - separator = ,
-              - row endings = \r\n
+              - automatically detects row endings when reading
+              - when writing, row endings = \r\n
               - escaped columns start = "
               - escape character = "
               - detects headers when reading
@@ -302,7 +303,8 @@
             <summary>
             Default options for dynamic operations:
               - separator = ,
-              - row endings = \r\n
+              - automatically detects row endings when reading
+              - when writing, row endings = \r\n
               - escaped columns start = "
               - escape character = "
               - assumes headers are present
@@ -340,9 +342,14 @@
               will be null for formats without an EscapedValueStartAndEnd.
             </summary>
         </member>
-        <member name="P:Cesil.Options.RowEnding">
+        <member name="P:Cesil.Options.ReadRowEnding">
             <summary>
-            The sequence of characters used to end a row.
+            The sequence of characters used to end a row when reading.
+            </summary>
+        </member>
+        <member name="P:Cesil.Options.WriteRowEnding">
+            <summary>
+            The sequence of characters used to end a row when writing.
             </summary>
         </member>
         <member name="P:Cesil.Options.ReadHeader">
@@ -488,9 +495,14 @@
               MUST be null for formats without an EscapedValueStartAndEnd.
             </summary>
         </member>
-        <member name="P:Cesil.OptionsBuilder.RowEnding">
+        <member name="P:Cesil.OptionsBuilder.ReadRowEnding">
             <summary>
-            The sequence of characters used to end a row.
+            The sequence of characters used to end a row when reading.
+            </summary>
+        </member>
+        <member name="P:Cesil.OptionsBuilder.WriteRowEnding">
+            <summary>
+            The sequence of characters used to end a row when writing.
             </summary>
         </member>
         <member name="P:Cesil.OptionsBuilder.ReadHeader">
@@ -599,9 +611,14 @@
             If this is non-null, EscapedValueStartAndEnd must also be non-null.
             </summary>
         </member>
-        <member name="M:Cesil.OptionsBuilder.WithRowEnding(Cesil.RowEnding)">
+        <member name="M:Cesil.OptionsBuilder.WithReadRowEnding(Cesil.ReadRowEnding)">
             <summary>
-            Set the sequence of characters that will end a row.
+            Set the sequence of characters that will end a row when reading.
+            </summary>
+        </member>
+        <member name="M:Cesil.OptionsBuilder.WithWriteRowEnding(Cesil.WriteRowEnding)">
+            <summary>
+            Set the sequence of characters that will end a row when write.
             </summary>
         </member>
         <member name="M:Cesil.OptionsBuilder.WithReadHeader(Cesil.ReadHeader)">
@@ -710,30 +727,29 @@
               are not present.
             </summary>
         </member>
-        <member name="T:Cesil.RowEnding">
+        <member name="T:Cesil.ReadRowEnding">
             <summary>
-            Which character sequence ends a row.
+            Which character sequence will end a row when reading rows.
             
-            This can be determined automatically with
-              Detect.
+            This can be determined automatically with Detect.
             </summary>
         </member>
-        <member name="F:Cesil.RowEnding.CarriageReturn">
+        <member name="F:Cesil.ReadRowEnding.CarriageReturn">
             <summary>
             The \r character.
             </summary>
         </member>
-        <member name="F:Cesil.RowEnding.LineFeed">
+        <member name="F:Cesil.ReadRowEnding.LineFeed">
             <summary>
             The \n character.
             </summary>
         </member>
-        <member name="F:Cesil.RowEnding.CarriageReturnLineFeed">
+        <member name="F:Cesil.ReadRowEnding.CarriageReturnLineFeed">
             <summary>
             \r\n character sequence.
             </summary>
         </member>
-        <member name="F:Cesil.RowEnding.Detect">
+        <member name="F:Cesil.ReadRowEnding.Detect">
             <summary>
             Will probe the CSV and discover which sequence of characters
                indicates the end of a record.
@@ -825,6 +841,28 @@
         <member name="F:Cesil.WriteHeader.Never">
             <summary>
             No header row will be written the writer.
+            </summary>
+        </member>
+        <member name="T:Cesil.WriteRowEnding">
+            <summary>
+            Which character sequence will end a row when writing rows.
+            
+            Unlike with ReadRowEnding, this cannot be inferred.
+            </summary>
+        </member>
+        <member name="F:Cesil.WriteRowEnding.CarriageReturnLineFeed">
+            <summary>
+            \r\n character sequence.
+            </summary>
+        </member>
+        <member name="F:Cesil.WriteRowEnding.LineFeed">
+            <summary>
+            The \n character.
+            </summary>
+        </member>
+        <member name="F:Cesil.WriteRowEnding.CarriageReturn">
+            <summary>
+            The \r character.
             </summary>
         </member>
         <member name="T:Cesil.WriteTrailingRowEnding">

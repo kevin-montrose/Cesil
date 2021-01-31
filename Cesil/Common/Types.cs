@@ -144,9 +144,10 @@ namespace Cesil
         internal static readonly TypeInfo GetColumnMapDelegate = typeof(GetColumnMapDelegate).GetTypeInfo();
 
         // Cesil enums
-        internal static readonly TypeInfo RowEnding = typeof(RowEnding).GetTypeInfo();
+        internal static readonly TypeInfo ReadRowEnding = typeof(ReadRowEnding).GetTypeInfo();
         internal static readonly TypeInfo ReadHeader = typeof(ReadHeader).GetTypeInfo();
         internal static readonly TypeInfo WriteHeader = typeof(WriteHeader).GetTypeInfo();
+        internal static readonly TypeInfo WriteRowEnding = typeof(WriteRowEnding).GetTypeInfo();
         internal static readonly TypeInfo WriteTrailingRowEnding = typeof(WriteTrailingRowEnding).GetTypeInfo();
         internal static readonly TypeInfo DynamicRowDisposal = typeof(DynamicRowDisposal).GetTypeInfo();
         internal static readonly TypeInfo ManualTypeDescriberFallbackBehavior = typeof(ManualTypeDescriberFallbackBehavior).GetTypeInfo();

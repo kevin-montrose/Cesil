@@ -743,9 +743,10 @@ namespace Cesil
 
 
     // enums
-    public enum RowEnding { }
+    public enum ReadRowEnding { }
     public enum ReadHeader { }
     public enum WriteHeader { }
+    public enum WriteRowEnding { }
     public enum WriteTrailingRowEnding { }
     public enum DynamicRowDisposal { }
     public enum ManualTypeDescriberFallbackBehavior { }

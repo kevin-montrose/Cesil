@@ -36,9 +36,13 @@ namespace Cesil
         /// </summary>
         public char? EscapedValueEscapeCharacter { get; private set; }
         /// <summary>
-        /// The sequence of characters used to end a row.
+        /// The sequence of characters used to end a row when reading.
         /// </summary>
-        public RowEnding RowEnding { get; private set; }
+        public ReadRowEnding ReadRowEnding { get; private set; }
+        /// <summary>
+        /// The sequence of characters used to end a row when writing.
+        /// </summary>
+        public WriteRowEnding WriteRowEnding { get; private set; }
         /// <summary>
         /// Whether or not to read headers when reading a CSV.
         /// </summary>
@@ -112,7 +116,8 @@ namespace Cesil
             ValueSeparator = copy.ValueSeparator;
             EscapedValueStartAndEnd = copy.EscapedValueStartAndEnd;
             EscapedValueEscapeCharacter = copy.EscapedValueEscapeCharacter;
-            RowEnding = copy.RowEnding;
+            ReadRowEnding = copy.ReadRowEnding;
+            WriteRowEnding = copy.WriteRowEnding;
             ReadHeader = copy.ReadHeader;
             WriteHeader = copy.WriteHeader;
             TypeDescriber = copy.TypeDescriber;
@@ -174,10 +179,15 @@ namespace Cesil
             {
                 return Throw.InvalidOperationException<Options>($"{nameof(EscapedValueEscapeCharacter)} cannot be set if, {nameof(EscapedValueStartAndEnd)} isn't set");
             }
-            // RowEnding not recognized
-            if (!Enum.IsDefined(Types.RowEnding, RowEnding))
+            // ReadRowEnding not recognized
+            if (!Enum.IsDefined(Types.ReadRowEnding, ReadRowEnding))
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(RowEnding)} has an unexpected value, '{RowEnding}'");
+                return Throw.InvalidOperationException<Options>($"{nameof(ReadRowEnding)} has an unexpected value, '{ReadRowEnding}'");
+            }
+            // WriteRowEnding not recognized
+            if (!Enum.IsDefined(Types.WriteRowEnding, WriteRowEnding))
+            {
+                return Throw.InvalidOperationException<Options>($"{nameof(WriteRowEnding)} has an unexpected value, '{WriteRowEnding}'");
             }
             // ReadHeader not recognized
             if (!Enum.IsDefined(Types.ReadHeader, ReadHeader))
@@ -261,13 +271,13 @@ namespace Cesil
             var valSepIsRowEnding = valSepIsCR || valSepIsLF;
 
             var valueSeparatorMatchesRowEnding =
-                (RowEnding == RowEnding.CarriageReturn && valSepIsCR) ||
-                (RowEnding == RowEnding.CarriageReturnLineFeed && valSepIsCR) ||    // only the first character matters, so valSepIsCR is what we want here
-                (RowEnding == RowEnding.LineFeed && valSepIsLF) ||
-                (RowEnding == RowEnding.Detect && valSepIsRowEnding);
+                (ReadRowEnding == ReadRowEnding.CarriageReturn && valSepIsCR) ||
+                (ReadRowEnding == ReadRowEnding.CarriageReturnLineFeed && valSepIsCR) ||    // only the first character matters, so valSepIsCR is what we want here
+                (ReadRowEnding == ReadRowEnding.LineFeed && valSepIsLF) ||
+                (ReadRowEnding == ReadRowEnding.Detect && valSepIsRowEnding);
             if (valueSeparatorMatchesRowEnding)
             {
-                return Throw.InvalidOperationException<Options>($"{nameof(ValueSeparator)} cannot match the expected (or potential for {nameof(RowEnding.Detect)}) {nameof(RowEnding)}");
+                return Throw.InvalidOperationException<Options>($"{nameof(ValueSeparator)} cannot match the expected (or potential for {nameof(ReadRowEnding.Detect)}) {nameof(ReadRowEnding)}");
             }
 
             return BuildInternal();
@@ -321,22 +331,42 @@ namespace Cesil
         }
 
         /// <summary>
-        /// Set the sequence of characters that will end a row.
+        /// Set the sequence of characters that will end a row when reading.
         /// </summary>
-        public OptionsBuilder WithRowEnding(RowEnding rowEnding)
+        public OptionsBuilder WithReadRowEnding(ReadRowEnding readRowEnding)
         {
-            if (!Enum.IsDefined(Types.RowEnding, rowEnding))
+            if (!Enum.IsDefined(Types.ReadRowEnding, readRowEnding))
             {
-                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(Cesil.RowEnding)} value: {rowEnding}", nameof(rowEnding));
+                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(Cesil.ReadRowEnding)} value: {readRowEnding}", nameof(readRowEnding));
             }
 
-            return WithRowEndingInternal(rowEnding);
+            return WithReadRowEndingInternal(readRowEnding);
         }
 
         // sometimes we want to skip validation in tests
-        internal OptionsBuilder WithRowEndingInternal(RowEnding l)
+        internal OptionsBuilder WithReadRowEndingInternal(ReadRowEnding l)
         {
-            RowEnding = l;
+            ReadRowEnding = l;
+            return this;
+        }
+
+        /// <summary>
+        /// Set the sequence of characters that will end a row when write.
+        /// </summary>
+        public OptionsBuilder WithWriteRowEnding(WriteRowEnding writeRowEnding)
+        {
+            if (!Enum.IsDefined(Types.WriteRowEnding, writeRowEnding))
+            {
+                return Throw.ArgumentException<OptionsBuilder>($"Unexpected {nameof(Cesil.WriteRowEnding)} value: {writeRowEnding}", nameof(writeRowEnding));
+            }
+
+            return WithWriteRowEndingInternal(writeRowEnding);
+        }
+
+        // sometimes we want to skip validation in tests
+        internal OptionsBuilder WithWriteRowEndingInternal(WriteRowEnding l)
+        {
+            WriteRowEnding = l;
             return this;
         }
 
@@ -566,11 +596,12 @@ namespace Cesil
             ret.Append($", {nameof(MemoryPoolProvider)}={MemoryPoolProvider}");
             ret.Append($", {nameof(ReadBufferSizeHint)}={ReadBufferSizeHint}");
             ret.Append($", {nameof(ReadHeader)}={ReadHeader}");
-            ret.Append($", {nameof(RowEnding)}={RowEnding}");
+            ret.Append($", {nameof(ReadRowEnding)}={ReadRowEnding}");
             ret.Append($", {nameof(TypeDescriber)}={TypeDescriber}");
             ret.Append($", {nameof(ValueSeparator)}={ValueSeparator}");
             ret.Append($", {nameof(WriteBufferSizeHint)}={WriteBufferSizeHint}");
             ret.Append($", {nameof(WriteHeader)}={WriteHeader}");
+            ret.Append($", {nameof(WriteRowEnding)}={WriteRowEnding}");
             ret.Append($", {nameof(WriteTrailingRowEnding)}={WriteTrailingRowEnding}");
             ret.Append($", {nameof(WhitespaceTreatment)}={WhitespaceTreatment}");
             ret.Append($", {nameof(ExtraColumnTreatment)}={ExtraColumnTreatment}");

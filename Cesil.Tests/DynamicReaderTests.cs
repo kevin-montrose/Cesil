@@ -918,7 +918,7 @@ namespace Cesil.Tests
             {
                 // no headers
                 {
-                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Never).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
                     RunSyncDynamicReaderVariants(
                         opts,
@@ -953,7 +953,7 @@ namespace Cesil.Tests
 
                 // always headers
                 {
-                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
                     RunSyncDynamicReaderVariants(
                         opts,
@@ -989,8 +989,8 @@ namespace Cesil.Tests
 
             // detect line endings
             {
-                var opts1 = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Never).WithRowEnding(RowEnding.Detect).ToOptions();
-                var opts2 = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithRowEnding(RowEnding.Detect).ToOptions();
+                var opts1 = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Never).WithReadRowEnding(ReadRowEnding.Detect).ToOptions();
+                var opts2 = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithReadRowEnding(ReadRowEnding.Detect).ToOptions();
 
                 // \r\n
                 {
@@ -1221,7 +1221,7 @@ namespace Cesil.Tests
 
             // detect rows endings
             {
-                var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithRowEnding(RowEnding.Detect).ToOptions();
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithReadRowEnding(ReadRowEnding.Detect).ToOptions();
 
                 // \r\n
                 {
@@ -3772,8 +3772,8 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts1 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
-                var opts2 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).WithReadHeader(ReadHeader.Never).ToOptions();
+                var opts1 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
+                var opts2 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // with headers
                 RunSyncDynamicReaderVariants(
@@ -3872,8 +3872,8 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts1 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturn).WithReadHeader(ReadHeader.Always).ToOptions();
-                var opts2 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturn).WithReadHeader(ReadHeader.Never).ToOptions();
+                var opts1 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturn).WithReadHeader(ReadHeader.Always).ToOptions();
+                var opts2 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturn).WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // with headers
                 RunSyncDynamicReaderVariants(
@@ -3972,8 +3972,8 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts1 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.LineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
-                var opts2 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.LineFeed).WithReadHeader(ReadHeader.Never).ToOptions();
+                var opts1 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.LineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
+                var opts2 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.LineFeed).WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // with headers
                 RunSyncDynamicReaderVariants(
@@ -4075,7 +4075,7 @@ namespace Cesil.Tests
         public void WeirdComments()
         {
             {
-                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.LineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.LineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
                 RunSyncDynamicReaderVariants(
                     opts,
                     (config, getReader) =>
@@ -4106,7 +4106,7 @@ namespace Cesil.Tests
             }
 
             {
-                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturn).WithReadHeader(ReadHeader.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturn).WithReadHeader(ReadHeader.Always).ToOptions();
                 RunSyncDynamicReaderVariants(
                     opts,
                     (config, getReader) =>
@@ -4137,7 +4137,7 @@ namespace Cesil.Tests
             }
 
             {
-                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
                 RunSyncDynamicReaderVariants(
                     opts,
                     (config, getReader) =>
@@ -4199,7 +4199,7 @@ namespace Cesil.Tests
         [Fact]
         public void Comments()
         {
-            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithReadHeader(ReadHeader.Always).ToOptions();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
             // comment first line
             RunSyncDynamicReaderVariants(
@@ -5087,7 +5087,7 @@ namespace Cesil.Tests
         [Fact]
         public void DetectLineEndings()
         {
-            var opts = Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.Detect).WithReadHeader(ReadHeader.Never).ToOptions();
+            var opts = Options.CreateBuilder(Options.Default).WithReadRowEnding(ReadRowEnding.Detect).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // normal
             {
@@ -7335,7 +7335,7 @@ loop:
             {
                 // no headers
                 {
-                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Never).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
                     await RunAsyncDynamicReaderVariants(
                         opts,
@@ -7370,7 +7370,7 @@ loop:
 
                 // always headers
                 {
-                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                    var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
                     await RunAsyncDynamicReaderVariants(
                         opts,
@@ -7406,8 +7406,8 @@ loop:
 
             // detect line endings
             {
-                var opts1 = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Never).WithRowEnding(RowEnding.Detect).ToOptions();
-                var opts2 = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithRowEnding(RowEnding.Detect).ToOptions();
+                var opts1 = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Never).WithReadRowEnding(ReadRowEnding.Detect).ToOptions();
+                var opts2 = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithReadRowEnding(ReadRowEnding.Detect).ToOptions();
 
                 // \r\n
                 {
@@ -7636,7 +7636,7 @@ loop:
 
             // detect rows endings
             {
-                var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithRowEnding(RowEnding.Detect).ToOptions();
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithValueSeparator("#|#").WithReadHeader(ReadHeader.Always).WithReadRowEnding(ReadRowEnding.Detect).ToOptions();
 
                 // \r\n
                 {
@@ -9128,8 +9128,8 @@ loop:
         {
             // \r\n
             {
-                var opts1 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
-                var opts2 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).WithReadHeader(ReadHeader.Never).ToOptions();
+                var opts1 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
+                var opts2 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // with headers
                 await RunAsyncDynamicReaderVariants(
@@ -9228,8 +9228,8 @@ loop:
 
             // \r
             {
-                var opts1 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturn).WithReadHeader(ReadHeader.Always).ToOptions();
-                var opts2 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturn).WithReadHeader(ReadHeader.Never).ToOptions();
+                var opts1 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturn).WithReadHeader(ReadHeader.Always).ToOptions();
+                var opts2 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturn).WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // with headers
                 await RunAsyncDynamicReaderVariants(
@@ -9328,8 +9328,8 @@ loop:
 
             // \n
             {
-                var opts1 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.LineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
-                var opts2 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithRowEnding(RowEnding.LineFeed).WithReadHeader(ReadHeader.Never).ToOptions();
+                var opts1 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.LineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
+                var opts2 = Options.CreateBuilder(Options.Default).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.LineFeed).WithReadHeader(ReadHeader.Never).ToOptions();
 
                 // with headers
                 await RunAsyncDynamicReaderVariants(
@@ -9431,7 +9431,7 @@ loop:
         public async Task WeirdCommentsAsync()
         {
             {
-                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.LineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.LineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
                 await RunAsyncDynamicReaderVariants(
                     opts,
                     async (config, getReader) =>
@@ -9462,7 +9462,7 @@ loop:
             }
 
             {
-                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturn).WithReadHeader(ReadHeader.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturn).WithReadHeader(ReadHeader.Always).ToOptions();
                 await RunAsyncDynamicReaderVariants(
                     opts,
                     async (config, getReader) =>
@@ -9493,7 +9493,7 @@ loop:
             }
 
             {
-                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithRowEnding(RowEnding.CarriageReturnLineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).WithReadHeader(ReadHeader.Always).ToOptions();
                 await RunAsyncDynamicReaderVariants(
                     opts,
                     async (config, getReader) =>
@@ -9555,7 +9555,7 @@ loop:
         [Fact]
         public async Task CommentsAsync()
         {
-            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithReadHeader(ReadHeader.Always).ToOptions();
+            var opts = Options.CreateBuilder(Options.Default).WithReadHeader(ReadHeader.Always).WithCommentCharacter('#').WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
 
             // comment first line
             await RunAsyncDynamicReaderVariants(
@@ -9981,7 +9981,7 @@ loop:
         [Fact]
         public async Task DetectLineEndingsAsync()
         {
-            var opts = Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.Detect).WithReadHeader(ReadHeader.Never).ToOptions();
+            var opts = Options.CreateBuilder(Options.Default).WithReadRowEnding(ReadRowEnding.Detect).WithReadHeader(ReadHeader.Never).ToOptions();
 
             // normal
             {

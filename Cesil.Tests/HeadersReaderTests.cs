@@ -52,7 +52,7 @@ namespace Cesil.Tests
                         charLookup,
                         new TextReaderAdapter(str),
                         MakeBuffer(),
-                        config.Options.RowEnding
+                        config.Options.ReadRowEnding
                     );
                 var res = reader.Read();
                 Assert.True(res.IsHeader);
@@ -72,7 +72,7 @@ namespace Cesil.Tests
                     (ConcreteBoundConfiguration<_Foo>)
                         Configuration.For<_Foo>(
                             Options.CreateBuilder(Options.Default)
-                                .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                                .WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed)
                                 .ToOptions()
                         );
 
@@ -86,7 +86,7 @@ namespace Cesil.Tests
                         charLookup,
                         new TextReaderAdapter(str),
                         MakeBuffer(),
-                        config.Options.RowEnding
+                        config.Options.ReadRowEnding
                     );
                 var res = reader.Read();
                 Assert.True(res.IsHeader);
@@ -175,7 +175,7 @@ namespace Cesil.Tests
                         Configuration.For<_CommentBeforeHeader>(
                             Options.CreateBuilder(Options.Default)
                                 .WithCommentCharacter('#')
-                                .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                                .WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed)
                                 .ToOptions()
                         );
 
@@ -189,7 +189,7 @@ namespace Cesil.Tests
                             charLookup,
                             new TextReaderAdapter(str),
                             MakeBuffer(),
-                            config.Options.RowEnding
+                            config.Options.ReadRowEnding
                         );
                     var res = reader.Read();
                     Assert.True(res.IsHeader);
@@ -208,14 +208,14 @@ namespace Cesil.Tests
                         Configuration.For<_CommentBeforeHeader>(
                             Options.CreateBuilder(Options.Default)
                                 .WithCommentCharacter('#')
-                                .WithRowEnding(RowEnding.CarriageReturn)
+                                .WithReadRowEnding(ReadRowEnding.CarriageReturn)
                                 .ToOptions()
                         );
 
                 using (var str = new StringReader("#hello\nfoo\n\rFoo,Bar"))
                 {
                     using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                    using var reader = new HeadersReader<_CommentBeforeHeader>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), config.Options.RowEnding);
+                    using var reader = new HeadersReader<_CommentBeforeHeader>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), config.Options.ReadRowEnding);
                     var res = reader.Read();
                     Assert.True(res.IsHeader);
                     Assert.Collection(
@@ -233,14 +233,14 @@ namespace Cesil.Tests
                         Configuration.For<_CommentBeforeHeader>(
                             Options.CreateBuilder(Options.Default)
                                 .WithCommentCharacter('#')
-                                .WithRowEnding(RowEnding.LineFeed)
+                                .WithReadRowEnding(ReadRowEnding.LineFeed)
                                 .ToOptions()
                         );
 
                 using (var str = new StringReader("#hello\rfoo\r..\nFoo,Bar"))
                 {
                     using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                    using var reader = new HeadersReader<_CommentBeforeHeader>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), config.Options.RowEnding);
+                    using var reader = new HeadersReader<_CommentBeforeHeader>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), config.Options.ReadRowEnding);
                     var res = reader.Read();
                     Assert.True(res.IsHeader);
                     Assert.Collection(
@@ -276,7 +276,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("foo,fizz,bar,buzz,baz,nope,nada,zilch,what,who,when,where,qwerty,dvorak"))
                 {
                     using var charLookup = CharacterLookup.MakeCharacterLookup(charLookupOptions, MemoryPool<char>.Shared, out _);
-                    using (var reader = new HeadersReader<_BufferTooLarge>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), RowEnding.CarriageReturnLineFeed))
+                    using (var reader = new HeadersReader<_BufferTooLarge>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed))
                     {
                         Assert.Throws<InvalidOperationException>(() => reader.Read());
                     }
@@ -294,7 +294,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("fizz"))
                 {
                     using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
                     var res = reader.Read();
                     Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("fizz", new string(i.Span)));
                     Assert.False(res.IsHeader);
@@ -306,7 +306,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Foo"))
                 {
                     using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
                     var res = reader.Read();
                     Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("Foo", new string(i.Span)));
                     Assert.True(res.IsHeader);
@@ -318,7 +318,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Foo,fizz"))
                 {
                     using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -331,7 +331,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("fizz,Bar"))
                 {
                     using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -347,7 +347,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Foo,Bar"))
                 {
                     using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -360,7 +360,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Bar,Foo"))
                 {
                     using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -376,7 +376,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Foo,Bar,Fizz"))
                 {
                     using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -390,7 +390,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Bar,Fizz,Foo"))
                 {
                     using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -439,12 +439,12 @@ namespace Cesil.Tests
                     }
                 );
 
-            var config = (ConcreteBoundConfiguration<_ManyHeaders>)Configuration.For<_ManyHeaders>(Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions());
+            var config = (ConcreteBoundConfiguration<_ManyHeaders>)Configuration.For<_ManyHeaders>(Options.CreateBuilder(Options.Default).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions());
 
             using (var str = new StringReader(csv))
             {
                 using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                using var reader = new HeadersReader<_ManyHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                using var reader = new HeadersReader<_ManyHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
                 var res = reader.Read();
                 Assert.Collection(
                     ToEnumerable(res.Headers),
@@ -466,14 +466,14 @@ namespace Cesil.Tests
         [Fact]
         public void TrailingRecords()
         {
-            var config = (ConcreteBoundConfiguration<_JustHeaders>)Configuration.For<_JustHeaders>(Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions());
+            var config = (ConcreteBoundConfiguration<_JustHeaders>)Configuration.For<_JustHeaders>(Options.CreateBuilder(Options.Default).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions());
 
             // none
             {
                 using (var str = new StringReader("fizz\r\n0\r\n"))
                 {
                     using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
                     var res = reader.Read();
                     Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("fizz", new string(i.Span)));
                     Assert.False(res.IsHeader);
@@ -485,7 +485,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Foo\r\nfoo"))
                 {
                     using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
                     var res = reader.Read();
                     Assert.Collection(ToEnumerable(res.Headers), i => Assert.Equal("Foo", new string(i.Span)));
                     Assert.True(res.IsHeader);
@@ -497,7 +497,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Foo,fizz\r\n1,2"))
                 {
                     using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -510,7 +510,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("fizz,Bar\r\n2,blah\r\n"))
                 {
                     using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -526,7 +526,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Foo,Bar\r\nwhatever,something"))
                 {
                     using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -539,7 +539,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Bar,Foo\r\n3,4"))
                 {
                     using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -555,7 +555,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Foo,Bar,Fizz\r\na,b,c\r\n"))
                 {
                     using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -569,7 +569,7 @@ namespace Cesil.Tests
                 using (var str = new StringReader("Bar,Fizz,Foo\r\n1,2,3"))
                 {
                     using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                    using var reader = new HeadersReader<_JustHeaders>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
                     var res = reader.Read();
                     Assert.Collection(
                         ToEnumerable(res.Headers),
@@ -605,7 +605,7 @@ namespace Cesil.Tests
                         charLookup,
                         new AsyncTextReaderAdapter(str),
                         MakeBuffer(),
-                        config.Options.RowEnding
+                        config.Options.ReadRowEnding
                     );
                 var res = await reader.ReadAsync(default);
                 Assert.True(res.IsHeader);
@@ -625,7 +625,7 @@ namespace Cesil.Tests
                     (ConcreteBoundConfiguration<_Foo>)
                         Configuration.For<_Foo>(
                             Options.CreateBuilder(Options.Default)
-                                .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                                .WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed)
                                 .ToOptions()
                         );
 
@@ -639,7 +639,7 @@ namespace Cesil.Tests
                         charLookup,
                         new AsyncTextReaderAdapter(str),
                         MakeBuffer(),
-                        config.Options.RowEnding
+                        config.Options.ReadRowEnding
                     );
                 var res = await reader.ReadAsync(default);
                 Assert.True(res.IsHeader);
@@ -700,7 +700,7 @@ namespace Cesil.Tests
                 var opts =
                     Options.CreateBuilder(Options.Default)
                         .WithCommentCharacter('#')
-                        .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                        .WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed)
                         .ToOptions();
 
                 await RunAsyncReaderVariants<_CommentBeforeHeader>(
@@ -718,7 +718,7 @@ namespace Cesil.Tests
                             var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
 
                             using (var charLookup = CharacterLookup.MakeCharacterLookup(cInner.Options, config.MemoryPool, out _))
-                            using (var reader = new HeadersReader<_CommentBeforeHeader>(stateMachine, cInner, charLookup, str, MakeBuffer(), cInner.Options.RowEnding))
+                            using (var reader = new HeadersReader<_CommentBeforeHeader>(stateMachine, cInner, charLookup, str, MakeBuffer(), cInner.Options.ReadRowEnding))
                             {
                                 if (configForced != null)
                                 {
@@ -744,7 +744,7 @@ namespace Cesil.Tests
                 var opts =
                    Options.CreateBuilder(Options.Default)
                         .WithCommentCharacter('#')
-                        .WithRowEnding(RowEnding.CarriageReturn)
+                        .WithReadRowEnding(ReadRowEnding.CarriageReturn)
                         .ToOptions();
 
                 await RunAsyncReaderVariants<_CommentBeforeHeader>(
@@ -762,7 +762,7 @@ namespace Cesil.Tests
                             var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
 
                             using (var charLookup = CharacterLookup.MakeCharacterLookup(cInner.Options, config.MemoryPool, out _))
-                            using (var reader = new HeadersReader<_CommentBeforeHeader>(stateMachine, cInner, charLookup, str, MakeBuffer(), cInner.Options.RowEnding))
+                            using (var reader = new HeadersReader<_CommentBeforeHeader>(stateMachine, cInner, charLookup, str, MakeBuffer(), cInner.Options.ReadRowEnding))
                             {
                                 if (configForced != null)
                                 {
@@ -788,7 +788,7 @@ namespace Cesil.Tests
                 var opts =
                     Options.CreateBuilder(Options.Default)
                         .WithCommentCharacter('#')
-                        .WithRowEnding(RowEnding.LineFeed)
+                        .WithReadRowEnding(ReadRowEnding.LineFeed)
                         .ToOptions();
 
                 await RunAsyncReaderVariants<_CommentBeforeHeader>(
@@ -806,7 +806,7 @@ namespace Cesil.Tests
                             var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
 
                             using (var charLookup = CharacterLookup.MakeCharacterLookup(cInner.Options, config.MemoryPool, out _))
-                            using (var reader = new HeadersReader<_CommentBeforeHeader>(stateMachine, cInner, charLookup, str, MakeBuffer(), cInner.Options.RowEnding))
+                            using (var reader = new HeadersReader<_CommentBeforeHeader>(stateMachine, cInner, charLookup, str, MakeBuffer(), cInner.Options.ReadRowEnding))
                             {
                                 if (configForced != null)
                                 {
@@ -847,7 +847,7 @@ namespace Cesil.Tests
                         {
                             var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
                             using var charLookup = CharacterLookup.MakeCharacterLookup(cInner.Options, config.MemoryPool, out _);
-                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner, charLookup, str, MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner, charLookup, str, MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
 
                             if (configForced != null)
                             {
@@ -879,7 +879,7 @@ namespace Cesil.Tests
                         {
                             var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
                             using var charLookup = CharacterLookup.MakeCharacterLookup(cInner.Options, config.MemoryPool, out _);
-                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner, charLookup, str, MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner, charLookup, str, MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
 
                             if (configForced != null)
                             {
@@ -911,7 +911,7 @@ namespace Cesil.Tests
                         {
                             var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
                             using var charLookup = CharacterLookup.MakeCharacterLookup(cInner.Options, config.MemoryPool, out _);
-                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner, charLookup, str, MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner, charLookup, str, MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
 
                             if (configForced != null)
                             {
@@ -944,7 +944,7 @@ namespace Cesil.Tests
                         {
                             var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
                             using var charLookup = CharacterLookup.MakeCharacterLookup(cInner.Options, config.MemoryPool, out _);
-                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner, charLookup, str, MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner, charLookup, str, MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
 
                             if (configForced != null)
                             {
@@ -980,7 +980,7 @@ namespace Cesil.Tests
                         {
                             var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
                             using var charLookup = CharacterLookup.MakeCharacterLookup(cInner.Options, config.MemoryPool, out _);
-                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner, charLookup, str, MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner, charLookup, str, MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
 
                             if (configForced != null)
                             {
@@ -1013,7 +1013,7 @@ namespace Cesil.Tests
                         {
                             var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
                             using var charLookup = CharacterLookup.MakeCharacterLookup(cInner.Options, config.MemoryPool, out _);
-                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner, charLookup, str, MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner, charLookup, str, MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
 
                             if (configForced != null)
                             {
@@ -1049,7 +1049,7 @@ namespace Cesil.Tests
                         {
                             var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
                             using var charLookup = CharacterLookup.MakeCharacterLookup(cInner.Options, config.MemoryPool, out _);
-                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner, charLookup, str, MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner, charLookup, str, MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
 
                             if (configForced != null)
                             {
@@ -1083,7 +1083,7 @@ namespace Cesil.Tests
                         {
                             var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
                             using var charLookup = CharacterLookup.MakeCharacterLookup(cInner.Options, config.MemoryPool, out _);
-                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner, charLookup, str, MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, cInner, charLookup, str, MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
 
                             if (configForced != null)
                             {
@@ -1108,7 +1108,7 @@ namespace Cesil.Tests
         [Fact]
         public async Task ManyHeadersAsync()
         {
-            var config = Configuration.For<_ManyHeaders>(Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions());
+            var config = Configuration.For<_ManyHeaders>(Options.CreateBuilder(Options.Default).WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions());
 
             var csv =
                 string.Join(
@@ -1142,7 +1142,7 @@ namespace Cesil.Tests
                     {
                         var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
                         using var charLookup = CharacterLookup.MakeCharacterLookup(c.Options, config.MemoryPool, out _);
-                        using var reader = new HeadersReader<_ManyHeaders>(stateMachine, c, charLookup, str, MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                        using var reader = new HeadersReader<_ManyHeaders>(stateMachine, c, charLookup, str, MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
 
                         if (forcedConfig != null)
                         {
@@ -1196,7 +1196,7 @@ namespace Cesil.Tests
                         {
                             var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
                             using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config, charLookup, str, MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config, charLookup, str, MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
 
                             if (forcedConfig != null)
                             {
@@ -1228,7 +1228,7 @@ namespace Cesil.Tests
                         {
                             var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
                             using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config, charLookup, str, MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config, charLookup, str, MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
 
                             if (forcedConfig != null)
                             {
@@ -1260,7 +1260,7 @@ namespace Cesil.Tests
                         {
                             var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
                             using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config, charLookup, str, MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config, charLookup, str, MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
 
                             if (forcedConfig != null)
                             {
@@ -1293,7 +1293,7 @@ namespace Cesil.Tests
                         {
                             var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
                             using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config, charLookup, str, MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config, charLookup, str, MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
 
                             if (forcedConfig != null)
                             {
@@ -1329,7 +1329,7 @@ namespace Cesil.Tests
                         {
                             var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
                             using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config, charLookup, str, MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config, charLookup, str, MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
 
                             if (forcedConfig != null)
                             {
@@ -1362,7 +1362,7 @@ namespace Cesil.Tests
                         {
                             var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
                             using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config, charLookup, str, MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config, charLookup, str, MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
 
                             if (forcedConfig != null)
                             {
@@ -1398,7 +1398,7 @@ namespace Cesil.Tests
                         {
                             var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
                             using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config, charLookup, str, MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config, charLookup, str, MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
 
                             if (forcedConfig != null)
                             {
@@ -1432,7 +1432,7 @@ namespace Cesil.Tests
                         {
                             var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
                             using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
-                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config, charLookup, str, MakeBuffer(), RowEnding.CarriageReturnLineFeed);
+                            using var reader = new HeadersReader<_JustHeaders>(stateMachine, config, charLookup, str, MakeBuffer(), ReadRowEnding.CarriageReturnLineFeed);
 
                             if (forcedConfig != null)
                             {

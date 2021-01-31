@@ -10,7 +10,7 @@ namespace Cesil
 
         internal State CurrentState;
 
-        internal RowEnding RowEndings;
+        internal ReadRowEnding RowEndings;
         internal ReadHeader HasHeaders;
 
 #if DEBUG
@@ -39,7 +39,7 @@ namespace Cesil
             CharacterLookup preAllocLookup,
             char? escapeStartChar,
             char? escapeChar,
-            RowEnding rowEndings,
+            ReadRowEnding rowEndings,
             ReadHeader hasHeaders,
             bool readingComments,
             bool skipLeadingWhitespace,

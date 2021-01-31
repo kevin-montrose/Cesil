@@ -15,7 +15,8 @@ namespace Cesil
         /// <summary>
         /// Default options:
         ///   - separator = ,
-        ///   - row endings = \r\n
+        ///   - automatically detects row endings when reading
+        ///   - when writing, row endings = \r\n
         ///   - escaped columns start = "
         ///   - escape character = "
         ///   - detects headers when reading
@@ -34,7 +35,7 @@ namespace Cesil
         public static readonly Options Default =
             CreateBuilder()
                 .WithValueSeparator(",")
-                .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                .WithReadRowEnding(ReadRowEnding.Detect)
                 .WithEscapedValueStartAndEnd('"')
                 .WithEscapedValueEscapeCharacter('"')
                 .WithReadHeader(ReadHeader.Detect)
@@ -47,13 +48,15 @@ namespace Cesil
                 .WithReadBufferSizeHint(0)
                 .WithDynamicRowDisposal(DynamicRowDisposal.OnReaderDispose)
                 .WithWhitespaceTreatment(WhitespaceTreatments.Preserve)
+                .WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed)
                 .WithExtraColumnTreatment(ExtraColumnTreatment.Ignore)
                 .ToOptions();
 
         /// <summary>
         /// Default options for dynamic operations:
         ///   - separator = ,
-        ///   - row endings = \r\n
+        ///   - automatically detects row endings when reading
+        ///   - when writing, row endings = \r\n
         ///   - escaped columns start = "
         ///   - escape character = "
         ///   - assumes headers are present
@@ -70,7 +73,7 @@ namespace Cesil
         public static readonly Options DynamicDefault =
             CreateBuilder()
                 .WithValueSeparator(",")
-                .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                .WithReadRowEnding(ReadRowEnding.Detect)
                 .WithEscapedValueStartAndEnd('"')
                 .WithEscapedValueEscapeCharacter('"')
                 .WithReadHeader(ReadHeader.Always)
@@ -83,6 +86,7 @@ namespace Cesil
                 .WithReadBufferSizeHint(0)
                 .WithDynamicRowDisposal(DynamicRowDisposal.OnReaderDispose)
                 .WithWhitespaceTreatment(WhitespaceTreatments.Preserve)
+                .WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed)
                 .WithExtraColumnTreatment(ExtraColumnTreatment.IncludeDynamic)
                 .ToOptions();
 
@@ -107,9 +111,13 @@ namespace Cesil
         /// </summary>
         public char? EscapedValueEscapeCharacter { get; }
         /// <summary>
-        /// The sequence of characters used to end a row.
+        /// The sequence of characters used to end a row when reading.
         /// </summary>
-        public RowEnding RowEnding { get; }
+        public ReadRowEnding ReadRowEnding { get; }
+        /// <summary>
+        /// The sequence of characters used to end a row when writing.
+        /// </summary>
+        public WriteRowEnding WriteRowEnding { get; private set; }
         /// <summary>
         /// Whether or not to read headers when reading a CSV.
         /// </summary>
@@ -176,7 +184,8 @@ namespace Cesil
             ValueSeparator = copy.ValueSeparator;
             EscapedValueStartAndEnd = copy.EscapedValueStartAndEnd;
             EscapedValueEscapeCharacter = copy.EscapedValueEscapeCharacter;
-            RowEnding = copy.RowEnding;
+            ReadRowEnding = copy.ReadRowEnding;
+            WriteRowEnding = copy.WriteRowEnding;
             ReadHeader = copy.ReadHeader;
             WriteHeader = copy.WriteHeader;
             TypeDescriber = Utils.NonNull(copy.TypeDescriber);
@@ -231,7 +240,8 @@ namespace Cesil
                 options.MemoryPoolProvider == MemoryPoolProvider &&
                 options.ReadBufferSizeHint == ReadBufferSizeHint &&
                 options.ReadHeader == ReadHeader &&
-                options.RowEnding == RowEnding &&
+                options.ReadRowEnding == ReadRowEnding &&
+                options.WriteRowEnding == WriteRowEnding &&
                 options.TypeDescriber == TypeDescriber &&
                 options.ValueSeparator == ValueSeparator &&
                 options.WriteBufferSizeHint == WriteBufferSizeHint &&
@@ -254,14 +264,17 @@ namespace Cesil
                 ReadBufferSizeHint,
                 ReadHeader,
                 HashCode.Combine(
-                    RowEnding,
+                    ReadRowEnding,
+                    WriteRowEnding,
                     TypeDescriber,
                     ValueSeparator,
                     WriteBufferSizeHint,
                     WriteHeader,
                     WriteTrailingRowEnding,
-                    WhitespaceTreatment,
-                    ExtraColumnTreatment
+                    HashCode.Combine(
+                        WhitespaceTreatment,
+                        ExtraColumnTreatment
+                    )
                 )
             );
 
@@ -281,11 +294,12 @@ namespace Cesil
             ret.Append($", {nameof(MemoryPoolProvider)}={MemoryPoolProvider}");
             ret.Append($", {nameof(ReadBufferSizeHint)}={ReadBufferSizeHint}");
             ret.Append($", {nameof(ReadHeader)}={ReadHeader}");
-            ret.Append($", {nameof(RowEnding)}={RowEnding}");
+            ret.Append($", {nameof(ReadRowEnding)}={ReadRowEnding}");
             ret.Append($", {nameof(TypeDescriber)}={TypeDescriber}");
             ret.Append($", {nameof(ValueSeparator)}={ValueSeparator}");
             ret.Append($", {nameof(WriteBufferSizeHint)}={WriteBufferSizeHint}");
             ret.Append($", {nameof(WriteHeader)}={WriteHeader}");
+            ret.Append($", {nameof(WriteRowEnding)}={WriteRowEnding}");
             ret.Append($", {nameof(WriteTrailingRowEnding)}={WriteTrailingRowEnding}");
             ret.Append($", {nameof(WhitespaceTreatment)}={WhitespaceTreatment}");
             ret.Append($", {nameof(ExtraColumnTreatment)}={ExtraColumnTreatment}");

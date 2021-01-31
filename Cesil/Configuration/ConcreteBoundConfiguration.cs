@@ -53,12 +53,6 @@ namespace Cesil
                 Throw.InvalidOperationException<object>($"No columns configured to write for {typeof(T).FullName}");
                 return;
             }
-
-            if (Options.RowEnding == RowEnding.Detect)
-            {
-                Throw.InvalidOperationException<object>($"Cannot write with a format that has {nameof(RowEnding)} option of {RowEnding.Detect}");
-                return;
-            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
