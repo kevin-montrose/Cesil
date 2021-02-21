@@ -21,7 +21,7 @@ jobs:
       run: dotnet build --configuration Debug --no-restore
     - name: Code coverage
       shell: pwsh
-      run: RunCodeCoverage.ps1 silent none
+      run: .\RunCodeCoverage.ps1 silent none
     - name: Generate Shields JSON
       shell: pwsh
       working-directory: .\ShieldGenerator\bin\Debug\netcoreapp3.1
