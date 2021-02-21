@@ -20,14 +20,14 @@ jobs:
     - name: Build
       run: dotnet build --configuration Debug --no-restore
     - name: Code coverage
-      shell: cmd
-      run: RunCodeCoverage.bat silent none
+      shell: pwsh
+      run: RunCodeCoverage.ps1 silent none
     - name: Generate Shields JSON
-      shell: cmd
+      shell: pwsh
       working-directory: .\ShieldGenerator\bin\Debug\netcoreapp3.1
-      run: ShieldGenerator.exe coverage
+      run: .\ShieldGenerator.exe coverage
     - name: Copy JSON
-      shell: cmd
+      shell: pwsh
       run: copy .\TestCoverageResults\*.json .\shields
     - name: Add shields branch
       run: |
