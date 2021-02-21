@@ -1,3 +1,5 @@
+$ErrorActionPreference = "Stop"
+
 $contents = @'
 <html>
 <head>
