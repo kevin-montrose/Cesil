@@ -18,10 +18,12 @@ You may be interested in:
  - [Writing](https://github.com/kevin-montrose/Cesil/wiki/Writing)
  - [Convenience Utilities](https://github.com/kevin-montrose/Cesil/wiki/Convenience-Utilities)
  - [Default Type Describer](https://github.com/kevin-montrose/Cesil/wiki/Default-Type-Describer)
+ - [Source Generators](https://github.com/kevin-montrose/Cesil/wiki/Source-Generators)
 
 # Quick Start
 
  1. Install the latest Cesil off of [Nuget](https://www.nuget.org/packages/Cesil/).
+    * If you want to avoid runtime code generation, you will need to add [Cesil.SourceGenerator](https://www.nuget.org/packages/Cesil.SourceGenerator/) as well.  See [Source Generators](https://github.com/kevin-montrose/Cesil/wiki/Source-Generators) for more details.
  2. Add `using Cesil;` to your C# file
  3. Create a configuration (with default Options) with either `Configuration.For<TYourType>()` or `Configuration.ForDynamic()`, as appropriate for your use case
  4. Create a reader or writer using one of the `CreateReader`, `CreateAsyncReader`, `CreateWriter`, or `CreateAsyncWriter` methods on the configuration.

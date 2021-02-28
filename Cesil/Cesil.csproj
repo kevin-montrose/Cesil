@@ -17,10 +17,8 @@
 Please report any issues: https://github.com/kevin-montrose/Cesil/issues/new
 
 Changes
- - Now targets .NET Core 3.1
- - removes allocations from formatting various enums
- - taking a range of a dynamic row no longer copies the underlying data buffer
- - bug fix for parsing values that start with implicitly skipped characters</PackageReleaseNotes>
+ - Add support for compile time generation of (de)serializers
+ - Add Cesil.SourceGenerator package, apply new attributes, and use AheadOfTimeTypeDescriber to avoid runtime code generation</PackageReleaseNotes>
     <Nullable>enable</Nullable>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\SignatureKey.snk</AssemblyOriginatorKeyFile>

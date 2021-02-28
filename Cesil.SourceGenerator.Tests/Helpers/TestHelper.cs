@@ -121,6 +121,7 @@ namespace Cesil.SourceGenerator.Tests
                 }
             }
 
+
             var cesilRef = GetCesilReference();
             project = project.AddMetadataReference(cesilRef);
 
